@@ -244,10 +244,7 @@ int main(int argc, char *argv[])
 	{
 		std::string token(argv[i]);
 
-		if (token == "-modifytga")
-			Global::iModifyTGA = -1;
-		else if (token == "-e3d")
-		{
+		if (token == "-e3d") {
 			if (Global::iConvertModels > 0)
 				Global::iConvertModels = -Global::iConvertModels;
 			else
@@ -263,8 +260,12 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			std::cout << "usage: " << std::string(argv[0]) << " [-s sceneryfilepath] "
-				      << "[-v vehiclename] [-modifytga] [-e3d]" << std::endl;
+			std::cout
+                << "usage: " << std::string(argv[0])
+                << " [-s sceneryfilepath]"
+                << " [-v vehiclename]"
+                << " [-e3d]"
+                << std::endl;
 			return -1;
 		}
 	}
@@ -376,49 +377,41 @@ int main(int argc, char *argv[])
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
 */
-    if( Global::iModifyTGA < 0 ) { // tylko modyfikacja TGA, bez uruchamiania symulacji
-        Global::iMaxTextureSize = 64; //żeby nie zamulać pamięci
-        World.ModifyTGA(); // rekurencyjne przeglądanie katalogów
-    }
-    else {
-        if( Global::iConvertModels < 0 ) {
-            Global::iConvertModels = -Global::iConvertModels;
-            World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
-            World.CreateE3D( "dynamic/", true );
-        } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
+    if( Global::iConvertModels < 0 ) {
+        Global::iConvertModels = -Global::iConvertModels;
+        World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
+        World.CreateE3D( "dynamic/", true );
+    } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
 #ifdef _WIN32
-        Console::On(); // włączenie konsoli
+    Console::On(); // włączenie konsoli
 #endif
 
-        try {
-            while( ( false == glfwWindowShouldClose( window ) )
-                && ( true == World.Update() )
-                && ( true == GfxRenderer.Render() ) ) {
-                glfwPollEvents();
-                input::Keyboard.poll();
-                if( true == Global::InputMouse )   { input::Mouse.poll(); }
-                if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
-            }
+    try {
+        while( ( false == glfwWindowShouldClose( window ) )
+            && ( true == World.Update() )
+            && ( true == GfxRenderer.Render() ) ) {
+            glfwPollEvents();
+            input::Keyboard.poll();
+            if( true == Global::InputMouse )   { input::Mouse.poll(); }
+            if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
         }
-        catch( std::bad_alloc const &Error ) {
+	}
+	catch (std::runtime_error e)
+    {
+    	ErrorLog(e.what());
+		return -1;
+	}
+	catch( std::bad_alloc const &Error ) {
+		ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+		return -1;
+	}
 
-            ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
-            return -1;
-        }
-        catch (std::runtime_error e)
-        {
-            ErrorLog(e.what());
-            return -1;
-        }
-
-#ifdef _WIN32
-        Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
-#endif
-    }
 
 	TPythonInterpreter::killInstance();
+
 #ifdef _WIN32
+    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
 	delete pConsole;
 #endif
 

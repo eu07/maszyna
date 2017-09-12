@@ -206,10 +206,10 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 0))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 0))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(-1, fDirection),
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(-1, fDirection),
                                       0)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir == fDirection) //(pCurrentTrack->iPrevDirection)
@@ -243,10 +243,10 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 1))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 1))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(1, fDirection),
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(1, fDirection),
                                       1)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir != fDirection) //(pCurrentTrack->iNextDirection)

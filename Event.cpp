@@ -140,10 +140,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
 
 void TEvent::Load(cParser *parser, vector3 *org)
 {
-    int i;
-    int ti;
     std::string token;
-    //string str;
 
     bEnabled = true; // zmieniane na false dla eventów używanych do skanowania sygnałów
 
@@ -247,47 +244,47 @@ void TEvent::Load(cParser *parser, vector3 *org)
         *parser >> token;
         Conditions(parser, token); // sprawdzanie warunków
         break;
-    case tp_CopyValues:
-        Params[9].asText = NULL;
+    case tp_CopyValues: {
+        Params[9].asText = nullptr;
         iFlags = update_memstring | update_memval1 | update_memval2; // normalanie trzy
-        i = 0;
+        int paramidx { 0 };
         parser->getTokens();
         *parser >> token; // nazwa drugiej komórki (źródłowej)
-        while (token.compare("endevent") != 0)
-        {
-            switch (++i)
+        while (token.compare("endevent") != 0) {
+
+            switch (++paramidx)
             { // znaczenie kolejnych parametrów
             case 1: // nazwa drugiej komórki (źródłowej)
                 Params[9].asText = new char[token.size() + 1]; // usuwane i zamieniane na wskaźnik
                 strcpy(Params[9].asText, token.c_str());
                 break;
             case 2: // maska wartości
-                iFlags = stol_def(token,
-                             (update_memstring | update_memval1 | update_memval2));
+                iFlags = stol_def(token, (update_memstring | update_memval1 | update_memval2));
                 break;
             }
             parser->getTokens();
             *parser >> token;
         }
         break;
-    case tp_WhoIs:
+    }
+    case tp_WhoIs: {
         iFlags = update_memstring | update_memval1 | update_memval2; // normalanie trzy
-        i = 0;
+        int paramidx { 0 };
         parser->getTokens();
         *parser >> token; // nazwa drugiej komórki (źródłowej)
-        while (token.compare("endevent") != 0)
-        {
-            switch (++i)
-            { // znaczenie kolejnych parametrów
-            case 1: // maska wartości
-                iFlags = stol_def(token,
-                             (update_memstring | update_memval1 | update_memval2));
-                break;
+        while( token.compare( "endevent" ) != 0 ) {
+            switch( ++paramidx ) { // znaczenie kolejnych parametrów
+                case 1: // maska wartości
+                    iFlags = stol_def( token, ( update_memstring | update_memval1 | update_memval2 ) );
+                    break;
+                default:
+                    break;
             }
             parser->getTokens();
             *parser >> token;
         }
         break;
+    }
     case tp_GetValues:
     case tp_LogValues:
         parser->getTokens(); //"endevent"
@@ -384,25 +381,27 @@ void TEvent::Load(cParser *parser, vector3 *org)
         parser->getTokens();
         *parser >> token;
         break;
-    case tp_Lights:
-        i = 0;
-        do
-        {
+    case tp_Lights: {
+        int paramidx { 0 };
+        do {
             parser->getTokens();
             *parser >> token;
-            if (token.compare("endevent") != 0)
-            {
-                // str = AnsiString(token.c_str());
-                if (i < 8)
-                    Params[i].asdouble = atof(token.c_str()); // teraz może mieć ułamek
-                i++;
+            if( token.compare( "endevent" ) != 0 ) {
+
+                if( paramidx < 8 ) {
+                    Params[ paramidx ].asdouble = atof( token.c_str() ); // teraz może mieć ułamek
+                    ++paramidx;
+                }
+                else {
+                    ErrorLog( "Bad event: lights event \"" + asName + "\" with more than 8 parameters" );
+                }
             }
-        } while (token.compare("endevent") != 0);
+        } while( token.compare( "endevent" ) != 0 );
         break;
+    }
     case tp_Visible: // zmiana wyświetlania obiektu
         parser->getTokens();
         *parser >> token;
-        // str = AnsiString(token.c_str());
         Params[0].asInt = atoi(token.c_str());
         parser->getTokens();
         *parser >> token;
@@ -410,7 +409,6 @@ void TEvent::Load(cParser *parser, vector3 *org)
     case tp_Velocity:
         parser->getTokens();
         *parser >> token;
-        // str = AnsiString(token.c_str());
         Params[0].asdouble = atof(token.c_str()) * 0.28;
         parser->getTokens();
         *parser >> token;
@@ -544,38 +542,46 @@ void TEvent::Load(cParser *parser, vector3 *org)
         parser->getTokens();
         *parser >> token;
         break;
-    case tp_Multiple:
-        i = 0;
-        ti = 0; // flaga dla else
+    case tp_Multiple: {
+        int paramidx { 0 };
+        bool ti { false }; // flaga dla else
         parser->getTokens();
         *parser >> token;
-        // str = AnsiString(token.c_str());
-        while (token != "endevent" && token != "condition" &&
-			token != "randomdelay")
-        {
-            if ((token.substr(0, 5) != "none_") ? (i < 8) : false)
-            { // eventy rozpoczynające się od "none_" są ignorowane
-                if (token != "else")
-                {
-                    Params[i].asText = new char[token.size() + 1];
-                    strcpy(Params[i].asText, token.c_str());
-                    if (ti)
-                        iFlags |= conditional_else << i; // oflagowanie dla eventów "else"
-                    i++;
+
+        while( ( token != "endevent" )
+            && ( token != "condition" )
+            && ( token != "randomdelay" ) ) {
+
+            if( token != "else" ) {
+                if( token.substr( 0, 5 ) != "none_" ) {
+                    // eventy rozpoczynające się od "none_" są ignorowane
+                    if( paramidx < 8 ) {
+                        Params[ paramidx ].asText = new char[ token.size() + 1 ];
+                        strcpy( Params[ paramidx ].asText, token.c_str() );
+                        if( ti ) {
+                            // oflagowanie dla eventów "else"
+                            iFlags |= conditional_else << paramidx;
+                        }
+                        ++paramidx;
+                    }
+                    else {
+                        ErrorLog( "Bad event: multi-event \"" + asName + "\" with more than 8 events; discarding link to event \"" + token + "\"" );
+                    }
                 }
-                else
-                    ti = !ti; // zmiana flagi dla słowa "else"
+                else {
+                    WriteLog( "Multi-event \"" + asName + "\" ignored link to event \"" + token + "\"" );
+                }
             }
-            else if (i >= 8)
-                ErrorLog("Bad event: \"" + token + "\" ignored in multiple \"" + asName + "\"!");
-            else
-                WriteLog("Event \"" + token + "\" ignored in multiple \"" + asName + "\"!");
+            else {
+                // zmiana flagi dla słowa "else"
+                ti = !ti;
+            }
             parser->getTokens();
             *parser >> token;
-            // str = AnsiString(token.c_str());
         }
         Conditions(parser, token); // sprawdzanie warunków
         break;
+    }
     case tp_Voltage: // zmiana napięcia w zasilaczu (TractionPowerSource)
     case tp_Friction: // zmiana przyczepnosci na scenerii
         parser->getTokens();

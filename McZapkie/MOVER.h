@@ -191,8 +191,6 @@ static int const sound_relay = 16;
 static int const sound_manyrelay = 32;
 static int const sound_brakeacc = 64;
 
-static bool  PhysicActivationFlag = false;
-
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
 static int const dt_Default = 0;
@@ -813,7 +811,6 @@ public:
         voltage
     };
 #endif
-	int ScanCounter = 0;   /*pomocnicze do skanowania sprzegow*/
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
 	double DistCounter = 0.0;                  /*! licznik kilometrow */

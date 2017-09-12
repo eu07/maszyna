@@ -297,7 +297,6 @@ TTrain::TTrain() {
     fPPress = fNPress = 0;
 
     // asMessage="";
-    fMechCroach = 0.25;
     pMechShake = vector3(0, 0, 0);
     vMechMovement = vector3(0, 0, 0);
     pMechOffset = vector3(0, 0, 0);
@@ -424,8 +423,7 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     */
     MechSpring.Init(0.015, 250);
     vMechVelocity = vector3(0, 0, 0);
-    pMechOffset = vector3(-0.4, 3.3, 5.5);
-    fMechCroach = 0.5;
+    pMechOffset = vector3( 0, 0, 0 );
     fMechSpringX = 1;
     fMechSpringY = 0.5;
     fMechSpringZ = 0.5;
@@ -1465,10 +1463,14 @@ void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_d
         if( Train->mvControlled->bPantKurek3 == false ) {
             // connect pantographs with primary tank
             Train->mvControlled->bPantKurek3 = true;
+            // visual feedback:
+            Train->ggPantCompressorValve.UpdateValue( 0.0 );
         }
         else {
             // connect pantograps with pantograph compressor
             Train->mvControlled->bPantKurek3 = false;
+            // visual feedback:
+            Train->ggPantCompressorValve.UpdateValue( 1.0 );
         }
     }
 }
@@ -1491,10 +1493,14 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // press or hold to activate
         Train->mvControlled->PantCompFlag = true;
+        // visual feedback:
+        Train->ggPantCompressorButton.UpdateValue( 1.0 );
     }
     else {
         // release to disable
         Train->mvControlled->PantCompFlag = false;
+        // visual feedback:
+        Train->ggPantCompressorButton.UpdateValue( 0.0 );
     }
 }
 
@@ -4671,37 +4677,37 @@ bool TTrain::Update( double const Deltatime )
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
             ggBrakeCtrl.Update();
         }
-        if (ggLocalBrake.SubModel)
-        {
+        if( ggLocalBrake.SubModel ) {
 #ifdef _WIN32
-            if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
-                    false) // nie blokujemy AI
-            { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
-			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
-                if ((mvOccupied->BrakeLocHandle == FD1))
-                {
-                    double b = Console::AnalogCalibrateGet(1);
-					b *= 10.0;
-					b = clamp<double>( b, 0.0, LocalBrakePosNo); // przycięcie zmiennej do granic
-                    ggLocalBrake.UpdateValue(b); // przesów bez zaokrąglenia
-					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FD1 break position = " + to_string(b));
-                    mvOccupied->LocalBrakePos =
-                        int(1.09 * b); // sposób zaokrąglania jest do ustalenia
+            if( ( DynamicObject->Mechanik != nullptr )
+             && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
+             && ( mvOccupied->BrakeLocHandle == FD1 )
+             && ( ( Global::iFeedbackMode == 4 )
+               || ( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+                // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
+                // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
+                auto const b = clamp<double>(
+                    Console::AnalogCalibrateGet( 1 ) * 10.0,
+                    0.0,
+                    ManualBrakePosNo );
+                ggLocalBrake.UpdateValue( b ); // przesów bez zaokrąglenia
+                mvOccupied->LocalBrakePos = int( 1.09 * b ); // sposób zaokrąglania jest do ustalenia
+                if( ( true == Global::bMWDdebugEnable )
+                 && ( ( Global::iMWDDebugMode & 4 ) != 0 ) ) {
+                    WriteLog( "FD1 break position = " + to_string( b ) );
                 }
-                else // standardowa prodedura z kranem powiązanym z klawiaturą
-                    ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
             }
             else // standardowa prodedura z kranem powiązanym z klawiaturą
 #endif
                 ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
+
             ggLocalBrake.Update();
         }
-        if (ggManualBrake.SubModel != NULL)
-        {
+        if (ggManualBrake.SubModel != nullptr) {
             ggManualBrake.UpdateValue(double(mvOccupied->ManualBrakePos));
             ggManualBrake.Update();
         }
+        ggAlarmChain.Update();
         ggBrakeProfileCtrl.Update();
         ggBrakeProfileG.Update();
         ggBrakeProfileR.Update();
@@ -5662,6 +5668,8 @@ bool TTrain::Update( double const Deltatime )
         ggPantRearButtonOff.Update();
         ggPantSelectedDownButton.Update();
         ggPantAllDownButton.Update();
+        ggPantCompressorButton.Update();
+        ggPantCompressorValve.Update();
 
         ggUpperLightButton.Update();
         ggLeftLightButton.Update();
@@ -6335,8 +6343,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 }
 
 void TTrain::MechStop()
-{ // likwidacja ruchu kamery w kabinie (po powrocie
-    // przez [F4])
+{ // likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
     pMechPosition = vector3(0, 0, 0);
     pMechShake = vector3(0, 0, 0);
     vMechMovement = vector3(0, 0, 0);
@@ -6576,6 +6583,8 @@ void TTrain::clear_cab_controls()
     ggPantRearButtonOff.Clear();
     ggPantSelectedDownButton.Clear();
     ggPantAllDownButton.Clear();
+    ggPantCompressorButton.Clear();
+    ggPantCompressorValve.Clear();
     ggZbS.Clear();
     ggI1B.Clear();
     ggI2B.Clear();
@@ -6722,6 +6731,15 @@ void TTrain::set_cab_controls() {
                 0.0 :
                 1.0 ) );
     }
+    // auxiliary compressor
+    ggPantCompressorValve.PutValue(
+        mvControlled->bPantKurek3 ?
+            0.0 : // default setting is pantographs connected with primary tank
+            1.0 );
+    ggPantCompressorButton.PutValue(
+        mvControlled->PantCompFlag ?
+            1.0 :
+            0.0 );
     // converter
     if( mvOccupied->ConvSwitchType != "impulse" ) {
         ggConverterButton.PutValue(
@@ -7140,6 +7158,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantalloff_sw:", ggPantAllDownButton },
         { "pantselected_sw:", ggPantSelectedButton },
         { "pantselectedoff_sw:", ggPantSelectedDownButton },
+        { "pantcompressor_sw:", ggPantCompressorButton },
+        { "pantcompressorvalve_sw:", ggPantCompressorValve },
         { "trainheating_sw:", ggTrainHeatingButton },
         { "signalling_sw:", ggSignallingButton },
         { "door_signalling_sw:", ggDoorSignallingButton },

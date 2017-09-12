@@ -91,8 +91,8 @@ void UpdateTimers(bool pause)
     }
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
-    oldCount = count;
 
+    oldCount = count;
     // Keep track of the time lapse and frame count
 #if __linux__
 	double fTime = (double)(count / 1000000000);
@@ -111,6 +111,7 @@ void UpdateTimers(bool pause)
     }
     fSimulationTime += DeltaTime;
 };
-};
+
+}; // namespace timer
 
 //---------------------------------------------------------------------------

@@ -212,13 +212,12 @@ private: // parametry aktualnego składu
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
 	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
 	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
-  public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
-  private:
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
+private:
     double LastUpdatedTime = 0.0; // czas od ostatniego logu
     double ElapsedTime = 0.0; // czas od poczatku logu
     double deltalog = 0.05; // przyrost czasu
@@ -227,26 +226,21 @@ private: // parametry aktualnego składu
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction = actSleep; // aktualny stan
   public:
-    inline TAction GetAction()
-    {
-        return eAction;
-    }
+    inline 
+    TAction GetAction() {
+        return eAction; }
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
     int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
     // migacz lub czeka na stan zwrotnicy
   private:
     TDynamicObject *pVehicle = nullptr; // pojazd w którym siedzi sterujący
-    TDynamicObject
-        *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
+    TDynamicObject *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
     TMoverParameters *mvControlling = nullptr; // jakim pojazdem steruje (może silnikowym w EZT)
     TMoverParameters *mvOccupied = nullptr; // jakim pojazdem hamuje
     TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
-    // int TrainNumber; //numer rozkladowy tego pociagu
-    // AnsiString OrderCommand; //komenda pobierana z pojazdu
-    // double OrderValue; //argument komendy
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
-    sound *tsGuardSignal = nullptr; // komunikat od kierownika
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
+    sound *tsGuardSignal = nullptr; // komunikat od kierownika
   public:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)

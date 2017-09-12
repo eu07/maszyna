@@ -46,13 +46,10 @@ class TCamera
     vector3 LookAt; // współrzędne punktu, na który ma patrzeć
     vector3 vUp;
     vector3 Velocity;
-    vector3 CrossPos;
-    double CrossDist;
     void Init(vector3 NPos, vector3 NAngle);
-    void Reset()
-    {
-        Pitch = Yaw = Roll = 0;
-    };
+    inline
+    void Reset() {
+        Pitch = Yaw = Roll = 0; };
     void OnCursorMove(double const x, double const y);
     void OnCommand( command_data const &Command );
     void Update();

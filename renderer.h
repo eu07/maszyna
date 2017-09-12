@@ -285,7 +285,7 @@ private:
     void
         Render( TTrack *Track );
     bool
-        Render_cab( TDynamicObject *Dynamic );
+        Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
     bool

@@ -199,14 +199,10 @@ simulation_time::julian_day() const {
 
 TWorld::TWorld()
 {
-    // randomize();
-    // Randomize();
     Train = NULL;
-    // Aspect=1;
     for (int i = 0; i < 10; ++i)
         KeyEvents[i] = NULL; // eventy wyzwalane klawiszami cyfrowymi
     Global::iSlowMotion = 0;
-    // Global::changeDynObj=NULL;
     pDynamicNearest = NULL;
     fTimeBuffer = 0.0; // bufor czasu aktualizacji dla stałego kroku fizyki
     fMaxDt = 0.01; //[s] początkowy krok czasowy fizyki
@@ -215,7 +211,6 @@ TWorld::TWorld()
 
 TWorld::~TWorld()
 {
-    Global::bManageNodes = false; // Ra: wyłączenie wyrejestrowania, bo się sypie
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
 }
@@ -232,61 +227,6 @@ void TWorld::TrainDelete(TDynamicObject *d)
     mvControlled = NULL;
     Global::pUserDynamic = NULL; // tego też nie ma
 };
-
-/* Ra: do opracowania: wybor karty graficznej ~Intel gdy są dwie...
-BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
-{
-    FARPROC EnumDisplayDevices;
-    HINSTANCE  hInstUser32;
-    DISPLAY_DEVICE DispDev;
-    char szSaveDeviceName[33];  // 32 + 1 for the null-terminator
-    BOOL bRet = TRUE;
-        HRESULT hr;
-
-    hInstUser32 = LoadLibrary("c:\\windows\User32.DLL");
-    if (!hInstUser32) return FALSE;
-
-    // Get the address of the EnumDisplayDevices function
-    EnumDisplayDevices = (FARPROC)GetProcAddress(hInstUser32,"EnumDisplayDevicesA");
-    if (!EnumDisplayDevices) {
-        FreeLibrary(hInstUser32);
-        return FALSE;
-    }
-
-    ZeroMemory(&DispDev, sizeof(DispDev));
-    DispDev.cb = sizeof(DispDev);
-
-    // After the first call to EnumDisplayDevices,
-    // DispDev.DeviceString is the adapter name
-    if (EnumDisplayDevices(NULL, nDeviceIndex, &DispDev, 0))
-        {
-                hr = StringCchCopy(szSaveDeviceName, 33, DispDev.DeviceName);
-                if (FAILED(hr))
-                {
-                // TODO: write error handler
-                }
-
-        // After second call, DispDev.DeviceString is the
-        // monitor name for that device
-        EnumDisplayDevices(szSaveDeviceName, 0, &DispDev, 0);
-
-                // In the following, lpszMonitorInfo must be 128 + 1 for
-                // the null-terminator.
-                hr = StringCchCopy(lpszMonitorInfo, 129, DispDev.DeviceString);
-                if (FAILED(hr))
-                {
-                // TODO: write error handler
-                }
-
-    } else    {
-        bRet = FALSE;
-    }
-
-    FreeLibrary(hInstUser32);
-
-    return bRet;
-}
-*/
 
 bool TWorld::Init( GLFWwindow *Window ) {
 
@@ -825,11 +765,6 @@ void TWorld::OnKeyDown(int cKey)
             }
         }
     }
-    // switch (cKey)
-    //{case 'a': //ignorowanie repetycji
-    // case 'A': Global::iKeyLast=cKey; break;
-    // default: Global::iKeyLast=0;
-    //}
 }
 
 void TWorld::OnMouseMove(double x, double y)
@@ -840,12 +775,14 @@ void TWorld::OnMouseMove(double x, double y)
 void TWorld::InOutKey( bool const Near )
 { // przełączenie widoku z kabiny na zewnętrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
-    if (FreeFlyModeFlag)
-    { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
+    if (FreeFlyModeFlag) {
+        // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
         Global::pUserDynamic = NULL; // bez renderowania względem kamery
-        if (Train)
-        { // Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
-            Train->Silence(); // wyłączenie dźwięków kabiny
+        if (Train) {
+            // cache current cab position so there's no need to set it all over again after each out-in switch
+            Train->pMechSittingPosition = Train->pMechOffset;
+            // wyłączenie dźwięków kabiny
+            Train->Silence();
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
@@ -1053,8 +990,15 @@ bool TWorld::Update()
     // this means at count > 20 simulation and render are going to desync. is that right?
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
-    for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
-        Ground.Update( dt / updatecount, 1 ); // tu zrobić tylko coklatkową aktualizację przesunięć
+    if( true == Global::FullPhysics ) {
+        // default calculation mode, each step calculated separately
+        for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
+            Ground.Update( dt / updatecount, 1 );
+        }
+    }
+    else {
+        // slightly simplified calculation mode; can lead to errors
+        Ground.Update( dt / updatecount, updatecount );
     }
 
     // yB dodał przyspieszacz fizyki
@@ -2033,26 +1977,6 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		}
-};
-
-//---------------------------------------------------------------------------
-void TWorld::ModifyTGA(const std::string &dir)
-{ // rekurencyjna modyfikacje plików TGA
-/*  TODO: implement version without Borland stuff
-	TSearchRec sr;
-    if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
-    {
-        do
-        {
-            if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeśli katalog, to rekurencja
-                    ModifyTGA(dir + sr.Name + "/");
-                else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".tga")
-                    TTexturesManager::GetTextureID(NULL, NULL, AnsiString(dir + sr.Name).c_str());
-        } while (FindNext(sr) == 0);
-        FindClose(sr);
-    }
-*/
 };
 
 //---------------------------------------------------------------------------

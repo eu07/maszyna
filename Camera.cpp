@@ -25,17 +25,13 @@ void TCamera::Init(vector3 NPos, vector3 NAngle)
 {
 
     vUp = vector3(0, 1, 0);
-    //    pOffset= vector3(-0.8,0,0);
-    CrossDist = 10;
     Velocity = vector3(0, 0, 0);
     Pitch = NAngle.x;
     Yaw = NAngle.y;
     Roll = NAngle.z;
     Pos = NPos;
 
-    //    Type= tp_Follow;
     Type = (Global::bFreeFly ? tp_Free : tp_Follow);
-    //    Type= tp_Free;
 };
 
 void TCamera::OnCursorMove(double x, double y)
