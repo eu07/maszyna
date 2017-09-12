@@ -423,14 +423,23 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glEnable( GL_TEXTURE_2D );
                 }
 #endif
+#ifdef EU07_NEW_CAB_RENDERCODE
+                if( World.Train != nullptr ) {
+                    // cab render is performed without shadows, due to low resolution and number of models without windows :|
+                    switch_units( true, false, false );
+                    Render_cab( World.Train->Dynamic(), false );
+                }
+#endif
+                switch_units( true, true, true );
                 Render( &World.Ground );
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( &World.Ground );
-                // cab render is performed without shadows, due to low resolution and number of models without windows :|
-                switch_units( true, false, false );
-                // cab render is done in translucent phase to deal with badly configured vehicles
-                if( World.Train != nullptr ) { Render_cab( World.Train->Dynamic() ); }
+                if( World.Train != nullptr ) {
+                    // cab render is performed without shadows, due to low resolution and number of models without windows :|
+                    switch_units( true, false, false );
+                    Render_cab( World.Train->Dynamic(), true );
+                }
 
                 if( m_environmentcubetexturesupport ) {
                     // restore default texture matrix for reflections cube map
@@ -1621,8 +1630,8 @@ opengl_renderer::Render( TGroundNode *Node ) {
             break;
         }
     }
-    if( ( distancesquared > Node->fSquareRadius )
-     || ( distancesquared < Node->fSquareMinRadius ) ) {
+    if( ( distancesquared <  Node->fSquareMinRadius )
+     || ( distancesquared >= Node->fSquareRadius ) ) {
         return false;
     }
 
@@ -1906,7 +1915,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 bool
-opengl_renderer::Render_cab( TDynamicObject *Dynamic ) {
+opengl_renderer::Render_cab( TDynamicObject *Dynamic, bool const Alpha ) {
 
     if( Dynamic == nullptr ) {
 
@@ -1943,8 +1952,19 @@ opengl_renderer::Render_cab( TDynamicObject *Dynamic ) {
                     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
                 }
                 // render
+#ifdef EU07_NEW_CAB_RENDERCODE
+                if( true == Alpha ) {
+                    // translucent parts
+                    Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
+                }
+                else {
+                    // opaque parts
+                    Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
+                }
+#else
                 Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
                 Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
+#endif
                 // post-render restore
                 if( Dynamic->fShade > 0.0f ) {
                     // change light level based on light level of the occupied track
@@ -2030,7 +2050,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
     if( ( Submodel->iVisible )
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
-     && ( TSubModel::fSquareDist <= Submodel->fSquareMaxDist ) ) {
+     && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -2412,8 +2432,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             break;
         }
     }
-    if( ( distancesquared > Node->fSquareRadius )
-     || ( distancesquared < Node->fSquareMinRadius ) ) {
+    if( ( distancesquared <  Node->fSquareMinRadius )
+     || ( distancesquared >= Node->fSquareRadius ) ) {
         return false;
     }
 
@@ -2675,7 +2695,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
     // renderowanie przezroczystych przez DL
     if( ( Submodel->iVisible )
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
-     && ( TSubModel::fSquareDist <= Submodel->fSquareMaxDist ) ) {
+     && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();

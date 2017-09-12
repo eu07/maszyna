@@ -205,7 +205,7 @@ public:
         return trNext; };
     inline TTrack *CurrentPrev() const {
         return trPrev; };
-    TTrack * Neightbour(int s, double &d);
+    TTrack *Connected(int s, double &d) const;
     bool SetConnections(int i);
     bool Switch(int i, double t = -1.0, double d = -1.0);
     bool SwitchForced(int i, TDynamicObject *o);

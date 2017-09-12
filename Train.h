@@ -299,6 +299,8 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
+    TGauge ggPantCompressorButton;
+    TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
@@ -376,7 +378,6 @@ public: // reszta może by?publiczna
     vector3 pMechShake;
     vector3 vMechVelocity;
     // McZapkie: do poruszania sie po kabinie
-    double fMechCroach;
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     TCab Cabine[maxcab + 1]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
     int iCabn;
