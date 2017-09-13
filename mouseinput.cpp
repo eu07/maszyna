@@ -10,10 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "mouseinput.h"
 #include "usefull.h"
-#include "globals.h"
-#include "timer.h"
-#include "world.h"
-#include "train.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "World.h"
+#include "Train.h"
 #include "renderer.h"
 
 extern TWorld World;

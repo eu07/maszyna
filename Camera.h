@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "dumb3d.h"
-#include "dynobj.h"
+#include "DynObj.h"
 #include "command.h"
 
 using namespace Math3D;

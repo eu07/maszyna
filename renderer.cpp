@@ -10,16 +10,16 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 
 #include "renderer.h"
-#include "globals.h"
-#include "timer.h"
-#include "world.h"
-#include "train.h"
-#include "data.h"
-#include "dynobj.h"
-#include "animmodel.h"
-#include "traction.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "World.h"
+#include "Train.h"
+#include "Data.h"
+#include "DynObj.h"
+#include "AnimModel.h"
+#include "Traction.h"
 #include "uilayer.h"
-#include "logs.h"
+#include "Logs.h"
 #include "usefull.h"
 
 opengl_renderer GfxRenderer;
@@ -294,12 +294,14 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     // prepare basic geometry chunks
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
-    m_billboardgeometry = m_geometry.create_chunk(
+	auto tmp = 
         vertex_array{
             { { -size,  size, 0.f }, glm::vec3(), { 1.f, 1.f } },
             { {  size,  size, 0.f }, glm::vec3(), { 0.f, 1.f } },
             { { -size, -size, 0.f }, glm::vec3(), { 1.f, 0.f } },
-            { {  size, -size, 0.f }, glm::vec3(), { 0.f, 0.f } } },
+            { {  size, -size, 0.f }, glm::vec3(), { 0.f, 0.f } } };
+    m_billboardgeometry = m_geometry.create_chunk(
+			tmp,
             geometrybank,
             GL_TRIANGLE_STRIP );
     // prepare debug mode objects
@@ -1117,10 +1119,9 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     // skydome
     Environment->m_skydome.Render();
-    if( true == Global::bUseVBO ) {
-        // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-        opengl_vbogeometrybank::reset();
-    }
+    // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
+    opengl_vbogeometrybank::reset();
+
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
         // setup
@@ -2850,7 +2851,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 TSubModel *p;
                 if( !Submodel->smLetter ) { // jeśli nie ma tablicy, to ją stworzyć; miejsce nieodpowiednie, ale tymczasowo może być
                     Submodel->smLetter = new TSubModel *[ 256 ]; // tablica wskaźników submodeli dla wyświetlania tekstu
-                    ::ZeroMemory( Submodel->smLetter, 256 * sizeof( TSubModel * ) ); // wypełnianie zerami
+                    memset( Submodel->smLetter, 0, 256 * sizeof( TSubModel * ) ); // wypełnianie zerami
                     p = Submodel->Child;
                     while( p ) {
                         Submodel->smLetter[ p->pName[ 0 ] ] = p;
@@ -3154,7 +3155,7 @@ opengl_renderer::Init_caps() {
 
     WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
-    WriteLog( std::string("Render path: ") + ( Global::bUseVBO ? "VBO" : "Display lists" ) );
+    WriteLog( std::string("Render path: NOGFX" ) );
     if( GLEW_EXT_framebuffer_object ) {
         m_framebuffersupport = true;
         WriteLog( "Framebuffer objects enabled" );

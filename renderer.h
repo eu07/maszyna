@@ -15,8 +15,8 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
-#include "world.h"
-#include "memcell.h"
+#include "World.h"
+#include "MemCell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP

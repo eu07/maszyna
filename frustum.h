@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "float3d.h"
+#include "Float3d.h"
 #include "dumb3d.h"
 
 std::vector<glm::vec4> const ndcfrustumshapepoints {

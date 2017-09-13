@@ -11,10 +11,10 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 
 #include "Globals.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "Console.h"
 #include "Timer.h"
-#include "mover.h"
+#include "MOVER.h"
 
 //---------------------------------------------------------------------------
 
@@ -379,7 +379,8 @@ void TCamera::Update()
 
 vector3 TCamera::GetDirection() {
 
-    return glm::normalize( glm::rotateY<float>( glm::vec3{ 0.f, 0.f, 1.f }, Yaw ) );
+    glm::vec3 v = glm::normalize( glm::rotateY<float>( glm::vec3{ 0.f, 0.f, 1.f }, Yaw ) );
+	return vector3(v.x, v.y, v.z);
 }
 
 bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {

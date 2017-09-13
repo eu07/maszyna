@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "Driver.h"
 #include "Event.h"
 #include "parser.h"

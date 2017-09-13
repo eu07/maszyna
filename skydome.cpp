@@ -1,4 +1,3 @@
-
 #include "stdafx.h"
 #include "skydome.h"
 #include "color.h"
@@ -158,7 +157,7 @@ bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
     }
 
     m_sundirection = Direction;
-	m_thetasun = std::acosf( m_sundirection.y );
+	m_thetasun = std::acos( m_sundirection.y );
 	m_phisun = std::atan2( m_sundirection.z, m_sundirection.x );
 
     return true;

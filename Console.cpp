@@ -10,11 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
+#include "McZapkie/mctools.h"
 #include "LPT.h"
 #include "Logs.h"
 #include "MWD.h" // maciek001: obsluga portu COM
 #include "PoKeys55.h"
-#include "mczapkie/mctools.h"
 
 //---------------------------------------------------------------------------
 // Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
@@ -339,14 +339,6 @@ void Console::BitsUpdate(int mask)
 		//if(mask & 0x8000) if(iBits & 0x8000) MWDComm->WriteDataBuff[1] |= 1<<7; (puste)
 		//else MWDComm->WriteDataBuff[0] &= ~(1<<7);
 	}
-};
-
-bool Console::Pressed(int x)
-{ // na razie tak - czyta się tylko klawiatura
-	if (glfwGetKey(Global::window, x) == GLFW_TRUE)
-		return true;
-	else
-		return false;
 };
 
 void Console::ValueSet(int x, double y)

@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 //#include <fstream>
 #include "Classes.h"
 #include "dumb3d.h"
-#include "mczapkie/mover.h"
+#include "McZapkie/MOVER.h"
 #include <string>
 using namespace Math3D;
 using namespace Mtable;
@@ -174,7 +174,7 @@ static const int BrakeAccTableSize = 20;
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
-    int iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    size_t iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
     int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
     std::vector<TSpeedPos> sSpeedTable;
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
@@ -240,7 +240,7 @@ private:
     TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
-    TTextSound *tsGuardSignal = nullptr; // komunikat od kierownika
+    sound *tsGuardSignal = nullptr; // komunikat od kierownika
   public:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)

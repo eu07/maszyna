@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "moon.h"
 #include "stars.h"
 #include "skydome.h"
-#include "mczapkie/mover.h"
+#include "McZapkie/MOVER.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -59,6 +59,8 @@ namespace simulation {
 extern simulation_time Time;
 
 }
+
+class opengl_renderer;
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
@@ -119,7 +121,6 @@ private:
 
     TCamera Camera;
     TCamera DebugCamera;
-    TGround Ground;
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
@@ -144,6 +145,8 @@ private:
     void CabChange(TDynamicObject *old, TDynamicObject *now);
     // handles vehicle change flag
     void ChangeDynamic();
+
+    TGround Ground; //m7todo: tmp
 };
 
 //---------------------------------------------------------------------------

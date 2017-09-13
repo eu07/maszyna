@@ -10,10 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include <Windows.h>
+//#include <Windows.h>
 #include "renderer.h"
-#include "glfw/glfw3.h"
-#include "gl/glew.h"
+#include <GLFW/glfw3.h>
+#include <GL/glew.h>
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -121,7 +121,7 @@ class TDynamicObject;
 class TAnimModel; // obiekt terenu
 class cParser; // nowy (powolny!) parser
 class TEvent;
-class TTextSound;
+class sound;
 
 class TTranscript
 { // klasa obsługująca linijkę napisu do dźwięku
@@ -177,8 +177,8 @@ class Global
     static bool bLoadTraction;
     static float fFriction;
     static bool bLiveTraction;
-    static float Global::fMouseXScale;
-    static float Global::fMouseYScale;
+    static float fMouseXScale;
+    static float fMouseYScale;
     static double fFogStart;
     static double fFogEnd;
     static TGround *pGround;
@@ -203,7 +203,6 @@ class Global
 
     // TODO: put these things in the renderer
     static float BaseDrawRange;
-    static opengl_light DayLight;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
     static bool BasicRenderer;
@@ -259,7 +258,8 @@ class Global
     static bool DLFont; // switch indicating presence of basic font
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
-    static bool bActive; // czy jest aktywnym oknem
+	static bool bActive;
+
     static int iConvertModels; // tworzenie plików binarnych
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne
     static int iSlowMotionMask; // maska wyłączanych właściwości
@@ -287,7 +287,7 @@ class Global
     static float4 UITextColor; // base color of UI text
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy łączyć eventy z torami poprzez nazwę toru
-    static TTextSound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
+    static sound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
 	static int iPoKeysPWM[7]; // numery wejść dla PWM
 
     //randomizacja
@@ -300,7 +300,6 @@ class Global
     static TDynamicObject * DynamicNearest();
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
-    static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 
@@ -320,5 +319,25 @@ class Global
 	static double fMWDamp[2];
 	static double fMWDlowVolt[2];
 	static int iMWDdivider;
+
+	static opengl_light DayLight;
+
+	enum soundmode_t
+	{
+		linear,
+		scaled,
+		compat,
+	};
+
+	enum soundstopmode_t
+	{
+		queue,
+		playstop,
+		stop
+	};
+
+	static soundmode_t soundpitchmode;
+	static soundmode_t soundgainmode;
+	static soundstopmode_t soundstopmode;
 };
 //---------------------------------------------------------------------------

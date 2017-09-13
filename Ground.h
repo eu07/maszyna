@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Float3d.h"
 #include "Names.h"
 #include "lightarray.h"
+#include "lua.h"
 
 typedef int TGroundNodeType;
 // Ra: zmniejszone liczby, aby zrobić tabelkę i zoptymalizować wyszukiwanie
@@ -123,7 +124,7 @@ public:
         TEventLauncher *EvLaunch; // wyzwalacz zdarzeń
         TTraction *hvTraction; // drut zasilający
         TTractionPowerSource *psTractionPowerSource; // zasilanie drutu (zaniedbane w sceneriach)
-        TTextSound *tsStaticSound; // dźwięk przestrzenny
+        sound *tsStaticSound; // dźwięk przestrzenny
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
     Math3D::vector3 pCenter; // współrzędne środka do przydzielenia sektora
@@ -260,6 +261,7 @@ class TGround
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
+    lua m_lua;
 
     vector3 pOrigin;
     vector3 aRotate;
@@ -318,7 +320,9 @@ class TGround
     void convert_terrain( TGroundNode const *Terrain );
     void convert_terrain( TSubModel const *Submodel );
     void RaTriangleDivider(TGroundNode *node);
+#ifdef _WIN32
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
+#endif
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);
@@ -340,6 +344,8 @@ class TGround
     void IsolatedBusyList();
     void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
+
+    void add_event(TEvent *event);
 };
 
 //---------------------------------------------------------------------------

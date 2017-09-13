@@ -16,14 +16,17 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Model3d.h"
 
 #include "Globals.h"
-#include "logs.h"
-#include "mczapkie/mctools.h"
-#include "Usefull.h"
-#include "ground.h"
+#include "Logs.h"
+#include "McZapkie/mctools.h"
+#include "usefull.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
 #include "sn_utils.h"
+#include "World.h"
+
+extern TWorld World;
+
 //---------------------------------------------------------------------------
 
 using namespace Mtable;
@@ -380,15 +383,6 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
-        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
-         || ( std::abs( scale.y - 1.0f ) > 0.01 )
-         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
-            m_normalizenormals = (
-                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
-                    rescale :
-                    normalize );
-        }
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -874,73 +868,79 @@ TSubModel *TSubModel::GetFromName(std::string const &search, bool i)
 // WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void TSubModel::RaAnimation(TAnimType a)
+{
+	glm::mat4 m = OpenGLMatrices.data(GL_MODELVIEW);
+	RaAnimation(m, a);
+	glLoadMatrixf(glm::value_ptr(m));
+}
+
+void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 { // wykonanie animacji niezależnie od renderowania
 	switch (a)
 	{ // korekcja położenia, jeśli submodel jest animowany
 	case at_Translate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
 		break;
 	case at_Rotate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glRotatef(f_Angle, v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z);
+		m = glm::rotate(m, glm::radians(f_Angle), glm::vec3(v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z));
 		break;
 	case at_RotateXYZ:
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
-		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f);
-		glRotatef(v_Angles.y, 0.0f, 1.0f, 0.0f);
-		glRotatef(v_Angles.z, 0.0f, 0.0f, 1.0f);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
+		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		glRotatef(simulation::Time.data().wSecond * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		glRotatef(simulation::Time.data().wMinute * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		glRotatef(simulation::Time.data().wHour * 30.0 * 0.5, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		glRotatef(simulation::Time.data().wHour * 15.0 * 0.25, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Seconds: // sekundy płynnie
-		glRotatef(simulation::Time.second() * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Minutes: // minuty płynnie
-		glRotatef(simulation::Time.data().wMinute * 6.0 + simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f + (float)simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
-		glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+		m = glm::rotate(m, glm::radians(2.0f * (float)Global::fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24: // godziny płynnie 24h/360°
-		glRotatef(Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+					 // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+		m = glm::rotate(m, glm::radians((float)Global::fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
         matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
-		glLoadIdentity(); // macierz jedynkowa
-		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
-												 // zmian
-		glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
-			0.0); // jedynie obracamy w pionie o kąt
+		m = glm::mat4(1.0f);
+		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
+		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		glRotated(1.5 * std::sin(M_PI * simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Sky: // animacja nieba
-		glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
-														// glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-		glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
+		m = glm::rotate(m, glm::radians((float)Global::fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
+		m = glm::rotate(m, glm::radians((float)-fmod(Global::fTimeAngleDeg, 360.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-		glRotatef(v_Angles.z, 0.0f, 1.0f, 0.0f); // obrót względem osi pionowej (azymut)
-		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f); // obrót względem poziomu (deklinacja)
+		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 1.0f, 0.0f)); // obrót względem osi pionowej (azymut)
+		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f)); // obrót względem poziomu (deklinacja)
 		break;
 	case at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
@@ -961,7 +961,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 	if (mAnimMatrix) // można by to dać np. do at_Translate
 	{
-		glMultMatrixf(mAnimMatrix->readArray());
+		m *= glm::make_mat4(mAnimMatrix->e);
 		mAnimMatrix = NULL; // jak animator będzie potrzebował, to ustawi ponownie
 	}
 };
@@ -1296,13 +1296,13 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_float32(s, fVisible);
 	sn_utils::ls_float32(s, fLight);
 
-	for (size_t i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 		sn_utils::ls_float32(s, f4Ambient[i]);
-	for (size_t i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 		sn_utils::ls_float32(s, f4Diffuse[i]);
-	for (size_t i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 		sn_utils::ls_float32(s, f4Specular[i]);
-	for (size_t i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 		sn_utils::ls_float32(s, f4Emision[i]);
 
 	sn_utils::ls_float32(s, fWireSize);
@@ -1420,13 +1420,13 @@ void TSubModel::deserialize(std::istream &s)
 	fVisible = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
-	for (size_t i = 0; i < 4; ++i)
+	for (int i = 0; i < 4; ++i)
 		f4Ambient[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
+	for (int i = 0; i < 4; ++i)
 		f4Diffuse[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
+	for (int i = 0; i < 4; ++i)
 		f4Specular[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
+	for (int i = 0; i < 4; ++i)
 		f4Emision[i] = sn_utils::ld_float32(s);
 
 	fWireSize = sn_utils::ld_float32(s);
@@ -1513,11 +1513,6 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     if( submodel.eType < TP_ROTATOR ) {
                         // normal vectors debug routine
                         auto normallength = glm::length2( vertex.normal );
-                        if( ( false == submodel.m_normalizenormals )
-                         && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
-                            submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
-                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization" );
-                        }
                     }
                 }
                 // remap geometry type for custom type submodels
@@ -1679,15 +1674,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
-        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
-         || ( std::abs( scale.y - 1.0f ) > 0.01 )
-         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
-            m_normalizenormals = (
-                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
-                    rescale :
-                    normalize );
-        }
     }
 };
 
@@ -1695,7 +1681,9 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
 	WriteLog("Loading binary format 3d model data from \"" + FileName + "\"...");
 	
-	std::ifstream file(FileName, std::ios::binary);
+	std::string fn = FileName;
+	std::replace(fn.begin(), fn.end(), '\\', '/');
+	std::ifstream file(fn, std::ios::binary);
 
 	uint32_t type = sn_utils::ld_uint32(file);
 	uint32_t size = sn_utils::ld_uint32(file) - 8;

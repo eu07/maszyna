@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #define szSceneryPath "scenery\\"
 #define szTexturePath "textures\\"
 #define szSoundPath "sounds\\"
+#define global_texture_path "textures/"
 
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
 
@@ -85,8 +86,8 @@ template <class Iterator_, class VecType_>
 void
 bounding_box( VecType_ &Mincorner, VecType_ &Maxcorner, Iterator_ First, Iterator_ Last ) {
 
-    Mincorner = VecType_( typename std::numeric_limits<VecType_::value_type>::max() );
-    Maxcorner = VecType_( typename std::numeric_limits<VecType_::value_type>::lowest() );
+    Mincorner = VecType_( std::numeric_limits<typename VecType_::value_type>::max() );
+    Maxcorner = VecType_( std::numeric_limits<typename VecType_::value_type>::lowest() );
 
     std::for_each(
         First, Last,

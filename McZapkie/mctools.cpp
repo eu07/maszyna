@@ -75,7 +75,7 @@ bool ClearFlag( int &Flag, int const Value ) {
     }
 }
 
-inline double Random(double a, double b)
+double Random(double a, double b)
 {
     std::uniform_real_distribution<> dis(a, b);
     return dis(Global::random_engine);
@@ -276,7 +276,8 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
 }
 
 bool FileExists( std::string const &Filename ) {
-
-    std::ifstream file( Filename );
+	std::string fn = Filename;
+	std::replace(fn.begin(), fn.end(), '\\', '/');
+	std::ifstream file( fn );
     return( true == file.is_open() );
 }

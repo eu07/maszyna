@@ -14,15 +14,16 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "texture.h"
+#include "Texture.h"
 
-#include <ddraw.h>
 #include "GL/glew.h"
 
 #include "usefull.h"
-#include "globals.h"
-#include "logs.h"
+#include "Globals.h"
+#include "Logs.h"
 #include "sn_utils.h"
+
+#include <png.h>
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
@@ -47,6 +48,7 @@ opengl_texture::load() {
 
              if( extension == "dds" ) { load_DDS(); }
         else if( extension == "tga" ) { load_TGA(); }
+		else if( extension == "png" ) { load_PNG(); }
         else if( extension == "bmp" ) { load_BMP(); }
         else if( extension == "tex" ) { load_TEX(); }
         else { goto fail; }
@@ -71,6 +73,51 @@ fail:
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
+}
+
+void opengl_texture::load_PNG()
+{
+	png_image png;
+	memset(&png, 0, sizeof(png_image));
+	png.version = PNG_IMAGE_VERSION;
+
+	png_image_begin_read_from_file(&png, name.c_str());
+	if (png.warning_or_error)
+	{
+		data_state = resource_state::failed;
+		ErrorLog(name + " error: " + std::string(png.message));
+		return;
+	}
+
+	if (png.format & PNG_FORMAT_FLAG_ALPHA)
+	{
+		data_format = GL_RGBA;
+		data_components = GL_RGBA;
+		png.format = PNG_FORMAT_RGBA;
+	}
+	else
+	{
+		data_format = GL_RGB;
+		data_components = GL_RGB;
+		png.format = PNG_FORMAT_RGB;
+	}
+	data_width = png.width;
+	data_height = png.height;
+
+	data.resize(PNG_IMAGE_SIZE(png));
+
+	png_image_finish_read(&png, nullptr,
+		(void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
+
+    if (png.warning_or_error)
+    {
+        data_state = resource_state::failed;
+        ErrorLog(name + " error: " + std::string(png.message));
+        return;
+    }
+
+    data_mapcount = 1;
+    data_state = resource_state::good;
 }
 
 void
@@ -561,8 +608,8 @@ opengl_texture::create() {
         for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
             if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
                 // compressed dds formats
                 int const datablocksize =
                     ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
@@ -589,7 +636,9 @@ opengl_texture::create() {
             }
         }
 
-        data = std::vector<char>();
+		// TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+		data.clear();
+		data.shrink_to_fit();
         data_state = resource_state::none;
         is_ready = true;
     }
@@ -719,22 +768,9 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     if( Filename.rfind( '.' ) != std::string::npos )
         Filename.erase( Filename.rfind( '.' ) ); // trim extension if there's one
 
-    for( char &c : Filename ) {
-        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
-        c = ( c == '/' ? '\\' : c );
-    }
-/*
-    std::transform(
-        Filename.begin(), Filename.end(),
-        Filename.begin(),
-        []( char Char ){ return Char == '/' ? '\\' : Char; } );
-*/
-    if( Filename.find( '\\' ) == std::string::npos ) {
-        // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-        Filename = szTexturePath + Filename;
-    }
+	std::replace(Filename.begin(), Filename.end(), '\\', '/'); // fix slashes
 
-    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
+    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".png" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank
     auto lookup = find_in_databank( Filename + Global::szDefaultExt );
@@ -911,14 +947,14 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
 
     auto lookup = m_texturemappings.find( Texturename );
     if( lookup != m_texturemappings.end() ) {
-        return lookup->second;
+        return (int)lookup->second;
     }
     // jeszcze próba z dodatkową ścieżką
-    lookup = m_texturemappings.find( szTexturePath + Texturename );
+    lookup = m_texturemappings.find( global_texture_path + Texturename );
 
     return (
         lookup != m_texturemappings.end() ?
-            lookup->second :
+            (int)lookup->second :
             npos );
 }
 
@@ -928,7 +964,7 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
 
     return(
         FileExists( Texturename ) ? Texturename :
-        FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
+        FileExists( global_texture_path + Texturename ) ? global_texture_path + Texturename :
         "" );
 }
 

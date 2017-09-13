@@ -46,7 +46,7 @@ GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
-std::string Global::asVersion = "couldn't retrieve version string";
+std::string Global::asVersion = "UNKNOWN";
 bool Global::ControlPicking = false; // indicates controls pick mode is enabled
 bool Global::InputMouse = true; // whether control pick mode can be activated
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
@@ -62,7 +62,7 @@ cParser *Global::pParser = NULL;
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
-float4 Global::UITextColor = float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
+float4 Global::UITextColor = float4( 225.0f / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
@@ -74,13 +74,12 @@ std::vector<vector3> Global::FreeCameraInitAngle;
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+int Global::DynamicLightCount = 7;
+bool Global::ScaleSpecularValues = false;
 float Global::BaseDrawRange { 2500.f };
-opengl_light Global::DayLight;
-int Global::DynamicLightCount { 3 };
-bool Global::ScaleSpecularValues { true };
+bool Global::RenderShadows { false };
 bool Global::BasicRenderer { false };
-bool Global::RenderShadows { true };
 Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
@@ -117,7 +116,6 @@ bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
 float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
-bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
@@ -186,6 +184,11 @@ double Global::fMWDvolt[2] = { 4000, 1023 };
 double Global::fMWDamp[2] = { 800, 1023 };
 double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
+
+opengl_light Global::DayLight;
+Global::soundmode_t Global::soundpitchmode = Global::linear;
+Global::soundmode_t Global::soundgainmode = Global::linear;
+Global::soundstopmode_t Global::soundstopmode = Global::queue;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -414,12 +417,6 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens( 1, false );
             Parser >> Global::AnisotropicFiltering;
         }
-        else if( token == "usevbo" )
-        {
-
-            Parser.getTokens();
-            Parser >> Global::bUseVBO;
-        }
         else if (token == "feedbackmode")
         {
 
@@ -499,6 +496,37 @@ void Global::ConfigParse(cParser &Parser)
                 >> Global::shadowtune.depth
                 >> Global::shadowtune.distance;
         }
+		else if (token == "soundgainmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "linear")
+				Global::soundgainmode = Global::linear;
+			else if (token == "scaled")
+				Global::soundgainmode = Global::scaled;
+			else if (token == "compat")
+				Global::soundgainmode = Global::compat;
+		}
+		else if (token == "soundstopmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "queue")
+				Global::soundstopmode = Global::queue;
+			else if (token == "playstop")
+				Global::soundstopmode = Global::playstop;
+			else if (token == "stop")
+				Global::soundstopmode = Global::stop;
+		}
+		else if (token == "soundpitchmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "linear")
+				Global::soundpitchmode = Global::linear;
+			else if (token == "compat")
+				Global::soundpitchmode = Global::compat;
+		}
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient
@@ -723,13 +751,6 @@ void Global::ConfigParse(cParser &Parser)
             Global::UITextColor = Global::UITextColor / 255.0f;
             Global::UITextColor.w = 1.0f;
         }
-        else if (token == "pyscreenrendererpriority")
-        {
-            // priority of python screen renderer
-            Parser.getTokens();
-            Parser >> token;
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(token.c_str());
-        }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
@@ -860,7 +881,9 @@ void Global::ConfigParse(cParser &Parser)
             // TBD: remove, or launch depending on passed flag?
         if (qp)
     { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
-    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+#ifdef _WIN32
+		    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+#endif
             /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
                         fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
             if (iFpsRadiusMax > 400)
@@ -1010,20 +1033,6 @@ bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 {
     return pGround->AddToQuery(event, who);
 };
-//---------------------------------------------------------------------------
-
-bool Global::DoEvents()
-{ // wywoływać czasem, żeby nie robił wrażenia zawieszonego
-    MSG msg;
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-    {
-        if (msg.message == WM_QUIT)
-            return FALSE;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    return TRUE;
-}
 //---------------------------------------------------------------------------
 
 TTranscripts::TTranscripts()

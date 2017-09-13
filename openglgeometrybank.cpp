@@ -11,8 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "openglgeometrybank.h"
 
 #include "sn_utils.h"
-#include "logs.h"
-#include "globals.h"
+#include "Logs.h"
+#include "Globals.h"
 
 void
 basic_vertex::serialize( std::ostream &s ) const {
@@ -390,8 +390,7 @@ geometrybank_manager::update() {
 geometrybank_handle
 geometrybank_manager::create_bank() {
 
-    if( true == Global::bUseVBO ) { m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point() ); }
-    else                          { m_geometrybanks.emplace_back( std::make_shared<opengl_dlgeometrybank>(), std::chrono::steady_clock::time_point() ); }
+    m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point() );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     return geometrybank_handle( m_geometrybanks.size(), 0 );
 }

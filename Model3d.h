@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "GL/glew.h"
-#include "Parser.h"
+#include "parser.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "VBO.h"
@@ -50,12 +50,11 @@ enum TAnimType // rodzaj animacji
 	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
 };
 
+class TModel3d;
 class TGroundNode;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
-    //m7todo: zrobić normalną serializację
-
     friend class opengl_renderer;
     friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend class TDynamicObject; // temporary etc
@@ -148,6 +147,7 @@ public:
 private:
 	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
+	void RaAnimation(glm::mat4 &m, TAnimType a);
 
 public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model

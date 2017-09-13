@@ -66,6 +66,24 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
                 World.OnCommandGet( (DaneRozkaz *)( pDane->lpData ) );
             break;
         }
+		case WM_KEYDOWN:
+		case WM_KEYUP: {
+			if (wParam == VK_INSERT || wParam == VK_DELETE || wParam == VK_HOME || wParam == VK_END || wParam == VK_PRIOR || wParam == VK_NEXT)
+				lParam &= ~0x1ff0000;
+			if (wParam == VK_INSERT)				
+				lParam |= 0x152 << 16;
+			if (wParam == VK_DELETE)				
+				lParam |= 0x153 << 16;
+			if (wParam == VK_HOME)				
+				lParam |= 0x147 << 16;
+			if (wParam == VK_END)				
+				lParam |= 0x14F << 16;
+			if (wParam == VK_PRIOR)				
+				lParam |= 0x149 << 16;
+			if (wParam == VK_NEXT)				
+				lParam |= 0x151 << 16;
+			break;
+		}
     }
     // pass all unhandled messages to DefWindowProc
     return CallWindowProc( BaseWindowProc, Hwnd, uMsg, wParam, lParam );

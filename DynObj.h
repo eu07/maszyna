@@ -14,11 +14,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "TrkFoll.h"
 // McZapkie:
-#include "RealSound.h"
-#include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
-#include "texture.h"
+#include "Texture.h"
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -308,28 +306,28 @@ public: // modele składowe pojazdu
     double dRailLength;
     double dRailPosition[MaxAxles]; // licznik pozycji osi w/m szyny
     double dWheelsPosition[MaxAxles]; // pozycja osi w/m srodka pojazdu
-    TRealSound rsStukot[MaxAxles]; // dzwieki poszczegolnych osi //McZapkie-270202
-    TRealSound rsSilnik; // McZapkie-010302 - silnik
-    TRealSound rsWentylator; // McZapkie-030302
-    TRealSound rsPisk; // McZapkie-260302
-    TRealSound rsDerailment; // McZapkie-051202
-    TRealSound rsPrzekladnia;
-    TAdvancedSound sHorn1;
-    TAdvancedSound sHorn2;
-    TAdvancedSound sCompressor; // NBMX wrzesien 2003
-    TAdvancedSound sConverter;
-    TAdvancedSound sSmallCompressor;
-    TAdvancedSound sDepartureSignal;
-    TAdvancedSound sTurbo;
-	TAdvancedSound sSand;
-	TAdvancedSound sReleaser;
+    sound* rsStukot[MaxAxles] = { nullptr }; // dzwieki poszczegolnych osi //McZapkie-270202
+    sound* rsSilnik = nullptr; // McZapkie-010302 - silnik
+    sound* rsWentylator = nullptr; // McZapkie-030302
+    sound* rsPisk = nullptr; // McZapkie-260302
+    sound* rsDerailment = nullptr; // McZapkie-051202
+    sound* rsPrzekladnia = nullptr;
+    sound* sHorn1 = nullptr;
+    sound* sHorn2 = nullptr;
+    sound* sCompressor = nullptr; // NBMX wrzesien 2003
+    sound* sConverter = nullptr;
+    sound* sSmallCompressor = nullptr;
+    sound* sDepartureSignal = nullptr;
+    sound* sTurbo = nullptr;
+	sound* sSand = nullptr;
+	sound* sReleaser = nullptr;
 
     // Winger 010304
-    //    TRealSound rsPanTup; //PSound sPantUp;
-    TRealSound sPantUp;
-    TRealSound sPantDown;
-    TRealSound rsDoorOpen; // Ra: przeniesione z kabiny
-    TRealSound rsDoorClose;
+    //    sound* rsPanTup; //PSound sPantUp;
+    sound* sPantUp = nullptr;
+    sound* sPantDown = nullptr;
+    sound* rsDoorOpen = nullptr; // Ra: przeniesione z kabiny
+    sound* rsDoorClose = nullptr;
 
     double eng_vol_act;
     double eng_frq_act;
@@ -340,10 +338,10 @@ public: // modele składowe pojazdu
     Math3D::vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
-    // TRealSound sBrakeAcc; //dźwięk przyspieszacza
-    PSound sBrakeAcc;
+    // sound* sBrakeAcc; //dźwięk przyspieszacza
+    sound* sBrakeAcc = nullptr;
     bool bBrakeAcc;
-    TRealSound rsUnbrake; // yB - odglos luzowania
+    sound* rsUnbrake = nullptr; // yB - odglos luzowania
     float ModCamRot;
     int iInventory; // flagi bitowe posiadanych submodeli (np. świateł)
     void TurnOff();
@@ -394,8 +392,8 @@ public: // modele składowe pojazdu
         return this ? asName : std::string("");
     };
 
-    TRealSound rsDiesielInc; // youBy
-    TRealSound rscurve; // youBy
+    sound* rsDiesielInc = nullptr; // youBy
+    sound* rscurve = nullptr; // youBy
     //    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
     // youBy - dym
     // TSmoke Smog;
@@ -425,7 +423,7 @@ public: // modele składowe pojazdu
     // poprzedniego
     TDynamicObject();
     ~TDynamicObject();
-    double TDynamicObject::Init( // zwraca długość pojazdu albo 0, jeśli błąd
+    double Init( // zwraca długość pojazdu albo 0, jeśli błąd
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);

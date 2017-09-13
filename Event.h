@@ -39,7 +39,8 @@ enum TEventType {
     tp_Visible,
     tp_Voltage,
     tp_Message,
-    tp_Friction
+    tp_Friction,
+    tp_Lua
 };
 
 const int update_memstring = 0x0000001; // zmodyfikować tekst (UpdateValues)
@@ -72,7 +73,7 @@ union TParam
     bool asBool;
     double asdouble;
     int asInt;
-    TTextSound *tsTextSound;
+    sound *tsTextSound;
     char *asText;
     TCommandType asCommand;
     TTractionPowerSource *psPower;

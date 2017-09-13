@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 // Copyright (c) 1999 Microsoft Corp. All rights reserved.
 //-----------------------------------------------------------------------------
 #include "stdafx.h"
-#include "WavRead.h"
+#include "wavread.h"
 #include "usefull.h"
 
 //-----------------------------------------------------------------------------

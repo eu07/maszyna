@@ -8,6 +8,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #pragma once
+#include "shader.h"
 
 #include "openglgeometrybank.h"
 

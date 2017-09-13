@@ -9,9 +9,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "keyboardinput.h"
-#include "logs.h"
+#include "Logs.h"
 #include "parser.h"
-#include "world.h"
+#include "World.h"
 
 extern TWorld World;
 

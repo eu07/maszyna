@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Driver.h"
 
-#include <direct.h>
 #include "Globals.h"
 #include "Logs.h"
 #include "mtable.h"
@@ -26,6 +25,7 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 #include "McZapkie/mctools.h"
 #include "McZapkie/MOVER.h"
+#include "sound.h"
 
 #define LOGVELOCITY 0
 #define LOGORDERS 1
@@ -1498,8 +1498,12 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     TableClear();
 
     if( WriteLogFlag ) {
-        _mkdir( "physicslog\\" );
-        LogFile.open( std::string( "physicslog\\" + VehicleName + ".dat" ),
+#ifdef _WIN32
+        CreateDirectory( "physicslog", NULL );
+#elif __linux__
+        mkdir( "physicslog", 0644 );
+#endif
+        LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
         LogFile << std::string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
@@ -1531,7 +1535,7 @@ void TController::CloseLog()
 
 TController::~TController()
 { // wykopanie mechanika z roboty
-    delete tsGuardSignal;
+    sound_man->destroy_sound(&tsGuardSignal);
     delete TrainParams;
     CloseLog();
 };
@@ -2539,7 +2543,7 @@ bool TController::DecBrake()
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
     if (tsGuardSignal) // jeśli jest dźwięk kierownika
-        if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
+        if (tsGuardSignal->is_playing()) // jeśli gada, to nie jedziemy
             return false;
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
@@ -3012,8 +3016,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
             TrainParams = new TTrainParameters(NewCommand); // rozkład jazdy
         else
             TrainParams->NewName(NewCommand); // czyści tabelkę przystanków
-        delete tsGuardSignal;
-        tsGuardSignal = nullptr; // wywalenie kierownika
+		sound_man->destroy_sound(&tsGuardSignal); // wywalenie kierownika
         if (NewCommand != "none")
         {
             if (!TrainParams->LoadTTfile(
@@ -3036,9 +3039,9 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
                 if (FileExists(NewCommand))
                 { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = new TTextSound(NewCommand, 30, pVehicle->GetPosition().x,
-                                        pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                        false);
+                    tsGuardSignal = sound_man->create_text_sound(NewCommand);
+                    if (tsGuardSignal)
+						tsGuardSignal->position(pVehicle->GetPosition());
                     // rsGuardSignal->Stop();
                     iGuardRadio = 0; // nie przez radio
                 }
@@ -3047,9 +3050,9 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
                     if (FileExists(NewCommand))
                     { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = new TTextSound(NewCommand, -1, pVehicle->GetPosition().x,
-                                            pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                            false);
+                        tsGuardSignal = sound_man->create_text_sound(NewCommand);
+                        if (tsGuardSignal)
+							tsGuardSignal->position(pVehicle->GetPosition());
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4393,27 +4396,30 @@ TController::UpdateSituation(double dt) {
                                 ->DoorOpenCtrl ) // jeśli drzwi niesterowane przez maszynistę
                                 Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
 
-                        tsGuardSignal->Stop();
-                        // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                        // bezpośrednim
-                        // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
-                        // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
-                        // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
-                        // obsługę kanałów radiowych itd.
-                        if( !iGuardRadio ) {
-                            // jeśli nie przez radio
-                            tsGuardSignal->Play( 1.0, 0, !FreeFlyModeFlag, pVehicle->GetPosition() ); // dla true jest głośniej
-                        }
-                        else {
-                            // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                            // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                            // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                            // przy braku reakcji
-                            if( SquareMagnitude( pVehicle->GetPosition() - Global::pCameraPosition ) < 2000 * 2000 ) {
-                                // w odległości mniejszej niż 2km
-                                tsGuardSignal->Play( 1.0, 0, true, pVehicle->GetPosition() ); // dźwięk niby przez radio
-                            }
-                        }
+						if (tsGuardSignal)
+						{
+	                        tsGuardSignal->stop();
+	                        // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
+	                        // bezpośrednim
+	                        // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
+	                        // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
+	                        // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
+	                        // obsługę kanałów radiowych itd.
+	                        if( !iGuardRadio ) {
+	                            // jeśli nie przez radio
+	                            tsGuardSignal->position(pVehicle->GetPosition()).play();
+	                        }
+	                        else {
+	                            // if (iGuardRadio==iRadioChannel) //zgodność kanału
+	                            // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
+	                            // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
+	                            // przy braku reakcji
+	                            if( SquareMagnitude( pVehicle->GetPosition() - Global::pCameraPosition ) < 2000 * 2000 ) {
+	                                // w odległości mniejszej niż 2km
+	                                tsGuardSignal->position(pVehicle->GetPosition()).play();
+	                            }
+	                        }
+						}
                     }
                 }
             if( mvOccupied->V == 0.0 ) {
@@ -4825,19 +4831,41 @@ TController::UpdateSituation(double dt) {
                             }
                         }
                     }
-                    if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
-                        // jak hamuje, to nie tykaj kranu za często
-                        // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
-                        if( OrderList[ OrderPos ] != Disconnect ) {
-                            // przy odłączaniu nie zwalniamy tu hamulca
-                            DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
-                        }
-                        fBrakeTime = (
-                            mvOccupied->BrakeDelayFlag > bdelay_G ?
-                                mvOccupied->BrakeDelay[ 0 ] :
-                                mvOccupied->BrakeDelay[ 2 ] )
-                            / 3.0;
-                        fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
+                    // Mietek-end1
+                    SpeedSet(); // ciągla regulacja prędkości
+#if LOGVELOCITY
+                    WriteLog("BrakePos=" + AnsiString(mvOccupied->BrakeCtrlPos) + ", MainCtrl=" +
+                             AnsiString(mvControlling->MainCtrlPos));
+#endif
+
+                    /* //Ra: mamy teraz wskażnik na człon silnikowy, gorzej jak są dwa w
+                       ukrotnieniu...
+                          //zapobieganie poslizgowi w czlonie silnikowym; Ra: Couplers[1] powinno
+                       być
+                          if (Controlling->Couplers[0].Connected!=NULL)
+                           if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
+                            if (Controlling->Couplers[0].Connected->SlippingWheels)
+                             if (Controlling->ScndCtrlPos>0?!Controlling->DecScndCtrl(1):true)
+                             {
+                              if (!Controlling->DecMainCtrl(1))
+                               if (mvOccupied->BrakeCtrlPos==mvOccupied->BrakeCtrlPosNo)
+                                mvOccupied->DecBrakeLevel();
+                              ++iDriverFailCount;
+                             }
+                    */
+                    // zapobieganie poslizgowi u nas
+                    if (mvControlling->SlippingWheels)
+                    {
+                        if (!mvControlling->DecScndCtrl(2)) // bocznik na zero
+                            mvControlling->DecMainCtrl(1);
+                        if (mvOccupied->BrakeCtrlPos ==
+                            mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
+							//yB: ten warunek wyżej nie ma sensu
+                            mvOccupied->DecBrakeLevel(); // to cofnij hamulec
+                        else
+                            mvControlling->AntiSlippingButton();
+                        ++iDriverFailCount;
+                        //mvControlling->SlippingWheels = false; // flaga już wykorzystana
                     }
                     // stop-gap measure to ensure cars actually brake to stop even when above calculactions go awry
                     // instead of releasing the brakes and creeping into obstacle at 1-2 km/h

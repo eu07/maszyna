@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Driver.h"
 #include "Console.h"
+#include "sound.h"
 
 void
 control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {
@@ -363,6 +364,40 @@ TTrain::~TTrain()
         if (DynamicObject->Mechanik)
             DynamicObject->Mechanik->TakeControl(
                 true); // likwidacja kabiny wymaga przejęcia przez AI
+
+	sound_man->destroy_sound(&dsbNastawnikJazdy);
+	sound_man->destroy_sound(&dsbNastawnikBocz);
+	sound_man->destroy_sound(&dsbRelay);
+	sound_man->destroy_sound(&dsbPneumaticRelay);
+	sound_man->destroy_sound(&dsbSwitch);
+	sound_man->destroy_sound(&dsbPneumaticSwitch);
+	sound_man->destroy_sound(&dsbReverserKey);
+	sound_man->destroy_sound(&dsbCouplerAttach);
+	sound_man->destroy_sound(&dsbCouplerDetach);
+	sound_man->destroy_sound(&dsbDieselIgnition);
+	sound_man->destroy_sound(&dsbDoorClose);
+	sound_man->destroy_sound(&dsbDoorOpen);
+	sound_man->destroy_sound(&dsbPantUp);
+	sound_man->destroy_sound(&dsbPantDown);
+	sound_man->destroy_sound(&dsbWejscie_na_bezoporow);
+	sound_man->destroy_sound(&dsbWejscie_na_drugi_uklad);
+	sound_man->destroy_sound(&rsBrake);
+	sound_man->destroy_sound(&rsSlippery);
+	sound_man->destroy_sound(&rsHiss);
+	sound_man->destroy_sound(&rsHissU);
+	sound_man->destroy_sound(&rsHissE);
+	sound_man->destroy_sound(&rsHissX);
+	sound_man->destroy_sound(&rsHissT);
+	sound_man->destroy_sound(&rsSBHiss);
+	sound_man->destroy_sound(&rsRunningNoise);
+	sound_man->destroy_sound(&rsEngageSlippery);
+	sound_man->destroy_sound(&rsFadeSound);
+	sound_man->destroy_sound(&dsbHasler);
+	sound_man->destroy_sound(&dsbBuzzer);
+	sound_man->destroy_sound(&dsbSlipAlarm);
+	sound_man->destroy_sound(&dsbCouplerStretch);
+	sound_man->destroy_sound(&dsbEN57_CouplerStretch);
+	sound_man->destroy_sound(&dsbBufferClamp);
 }
 
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
@@ -486,9 +521,9 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
     PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
     // induction motor state data
-    char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
-    char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
-    char* TXTP[ 3 ] = { "bc", "bp", "sp" };
+    const char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
+    const char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
+    const char* TXTP[ 3 ] = { "bc", "bp", "sp" };
     for( int j = 0; j < 10; ++j )
         PyDict_SetItemString( dict, ( std::string( "eimp_t_" ) + std::string( TXTT[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ 0 ][ j ] ) );
     for( int i = 0; i < 8; ++i ) {
@@ -3666,6 +3701,7 @@ bool TTrain::Update( double const Deltatime )
             fEIMParams[1 + i][9] = 0;
         }
 
+#ifdef _WIN32
         if (Global::iFeedbackMode == 4)
         { // wykonywać tylko gdy wyprowadzone na pulpit
             Console::ValueSet(0,
@@ -3697,6 +3733,7 @@ bool TTrain::Update( double const Deltatime )
 			Console::ValueSet(7, fTachoVelocity);
 			//Console::ValueSet(8, mvControlled->BatteryVoltage); // jeszcze nie pora ;)
 		}
+#endif
 
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
         // przy dowolnym ustawieniu kierunkowego
@@ -3752,125 +3789,130 @@ bool TTrain::Update( double const Deltatime )
         //------------------
 
         double vol = 0;
-        //    int freq=1;
         double dfreq;
+        glm::vec3 dynpos;
+        {
+        	vector3 v = DynamicObject->GetPosition();
+        	dynpos = glm::make_vec3(&v.x);
+        }
 
         // McZapkie-280302 - syczenie
         if ((mvOccupied->BrakeHandle == FV4a) || (mvOccupied->BrakeHandle == FVel6))
         {
-            if (rsHiss.AM != 0) // upuszczanie z PG
+            if (rsHiss) // upuszczanie z PG
             {
                 fPPress = (1 * fPPress + mvOccupied->Handle->GetSound(s_fv4a_b)) / (2);
                 if (fPPress > 0)
                 {
-                    vol = 2.0 * rsHiss.AM * fPPress;
+                    vol = 2.0 * fPPress;
                 }
-                if (vol > 0.001)
+                if (vol * rsHiss->gain_mul > 0.001)
                 {
-                    rsHiss.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                	rsHiss->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHiss.Stop();
+                    rsHiss->stop();
                 }
             }
-            if (rsHissU.AM != 0) // upuszczanie z PG
+            if (rsHissU) // upuszczanie z PG
             {
                 fNPress = (1 * fNPress + mvOccupied->Handle->GetSound(s_fv4a_u)) / (2);
+                vol = 0.0;
                 if (fNPress > 0)
                 {
-                    vol = rsHissU.AM * fNPress;
+                    vol = fNPress;
                 }
-                if (vol > 0.001)
+                if (vol * rsHissU->gain_mul > 0.001)
                 {
-                    rsHissU.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHissU->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHissU.Stop();
+                    rsHissU->stop();
                 }
             }
-            if (rsHissE.AM != 0) // upuszczanie przy naglym
+            if (rsHissE) // upuszczanie przy naglym
             {
-                vol = mvOccupied->Handle->GetSound(s_fv4a_e) * rsHissE.AM;
-                if (vol > 0.001)
+                vol = mvOccupied->Handle->GetSound(s_fv4a_e);
+                if (vol * rsHissE->gain_mul > 0.001)
                 {
-                    rsHissE.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHissE->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHissE.Stop();
+                    rsHissE->stop();
                 }
             }
-            if (rsHissX.AM != 0) // upuszczanie sterujacego fala
+            if (rsHissX) // upuszczanie sterujacego fala
             {
-                vol = mvOccupied->Handle->GetSound(s_fv4a_x) * rsHissX.AM;
-                if (vol > 0.001)
+                vol = mvOccupied->Handle->GetSound(s_fv4a_x);
+                if (vol * rsHissX->gain_mul > 0.001)
                 {
-                    rsHissX.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHissX->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHissX.Stop();
+                    rsHissX->stop();
                 }
             }
-            if (rsHissT.AM != 0) // upuszczanie z czasowego 
+            if (rsHissT) // upuszczanie z czasowego 
             {
-                vol = mvOccupied->Handle->GetSound(s_fv4a_t) * rsHissT.AM;
-                if (vol > 0.001)
+                vol = mvOccupied->Handle->GetSound(s_fv4a_t);
+                if (vol * rsHissT->gain_mul > 0.001)
                 {
-                    rsHissT.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHissT->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHissT.Stop();
+                    rsHissT->stop();
                 }
             }
 
         } // koniec FV4a
         else // jesli nie FV4a
         {
-            if (rsHiss.AM != 0.0) // upuszczanie z PG
+            if (rsHiss) // upuszczanie z PG
             {
                 fPPress = (4.0f * fPPress + std::max(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) / (4.0f + 1.0f);
                 if (fPPress > 0.0f)
                 {
-                    vol = 2.0 * rsHiss.AM * fPPress;
+                    vol = 2.0 * fPPress;
                 }
-                if (vol > 0.01)
+                if (vol * rsHiss->gain_mul > 0.01)
                 {
-                    rsHiss.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHiss->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHiss.Stop();
+                    rsHiss->stop();
                 }
             }
-            if (rsHissU.AM != 0.0) // napelnianie PG
+            if (rsHissU) // napelnianie PG
             {
                 fNPress = (4.0f * fNPress + Min0R(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) / (4.0f + 1.0f);
                 if (fNPress < 0.0f)
                 {
-                    vol = -1.0 * rsHissU.AM * fNPress;
+                    vol = -1.0 * fNPress;
                 }
-                if (vol > 0.01)
+                if (vol * rsHissU->gain_mul > 0.01)
                 {
-                    rsHissU.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                    rsHissU->loop().gain(vol).position(dynpos).play();
                 }
                 else
                 {
-                    rsHissU.Stop();
+                    rsHissU->stop();
                 }
             }
         } // koniec nie FV4a
 
         // Winger-160404 - syczenie pomocniczego (luzowanie)
-        /*      if (rsSBHiss.AM!=0)
+        /*      if (rsSBHiss->gain_mul!=0)
                {
                   fSPPress=(mvOccupied->LocalBrakeRatio())-(mvOccupied->LocalBrakePos);
                   if (fSPPress>0)
                    {
-                    vol=2*rsSBHiss.AM*fSPPress;
+                    vol=2*rsSBHiss->gain_mul*fSPPress;
                    }
                   if (vol>0.1)
                    {
@@ -3878,22 +3920,22 @@ bool TTrain::Update( double const Deltatime )
                    }
                   else
                    {
-                    rsSBHiss.Stop();
+                    rsSBHiss->stop();
                    }
                }
         */
         // szum w czasie jazdy
         vol = 0.0;
         dfreq = 1.0;
-        if (rsRunningNoise.AM != 0)
+        if (rsRunningNoise)
         {
             if (DynamicObject->GetVelocity() != 0)
             {
                 if (!TestFlag(mvOccupied->DamageFlag,
                               dtrain_wheelwear)) // McZpakie-221103: halas zalezny od kola
                 {
-                    dfreq = rsRunningNoise.FM * mvOccupied->Vel + rsRunningNoise.FA;
-                    vol = rsRunningNoise.AM * mvOccupied->Vel + rsRunningNoise.AA;
+                    dfreq = mvOccupied->Vel;
+                    vol = mvOccupied->Vel;
                     switch (tor->eEnvironment)
                     {
                     case e_tunnel:
@@ -3918,8 +3960,8 @@ bool TTrain::Update( double const Deltatime )
                 else // uszkodzone kolo (podkucie)
                     if (fabs(mvOccupied->nrot) > 0.01)
                 {
-                    dfreq = rsRunningNoise.FM * mvOccupied->Vel + rsRunningNoise.FA;
-                    vol = rsRunningNoise.AM * mvOccupied->Vel + rsRunningNoise.AA;
+                    dfreq = mvOccupied->Vel;
+                    vol = mvOccupied->Vel;
                     switch (tor->eEnvironment)
                     {
                     case e_tunnel:
@@ -3944,66 +3986,63 @@ bool TTrain::Update( double const Deltatime )
                            mvOccupied->UnitBrakeForce /
                                (1 + mvOccupied->MaxBrakeForce); // hamulce wzmagaja halas
                 vol = vol * (20.0 + tor->iDamageFlag) / 21;
-                rsRunningNoise.AdjFreq(dfreq, 0);
-                rsRunningNoise.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                rsRunningNoise->pitch(dfreq).gain(vol).position(dynpos).loop().play();
             }
             else
-                rsRunningNoise.Stop();
+                rsRunningNoise->stop();
         }
 
-        if (rsBrake.AM != 0)
+        if (rsBrake)
         {
             if ((!mvOccupied->SlippingWheels) && (mvOccupied->UnitBrakeForce > 10.0) &&
                 (DynamicObject->GetVelocity() > 0.01))
             {
-                //        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+mvOccupied->UnitBrakeForce);
-                vol =
-                    rsBrake.AM * sqrt((DynamicObject->GetVelocity() * mvOccupied->UnitBrakeForce));
-                dfreq = rsBrake.FA + rsBrake.FM * DynamicObject->GetVelocity();
-                rsBrake.AdjFreq(dfreq, 0);
-                rsBrake.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                //        vol=rsBrake->gain_off+rsBrake->gain_mul*(DynamicObject->GetVelocity()*100+mvOccupied->UnitBrakeForce);
+                vol = sqrt((DynamicObject->GetVelocity() * mvOccupied->UnitBrakeForce));
+                dfreq = DynamicObject->GetVelocity();
+                rsBrake->pitch(dfreq).gain(vol).position(dynpos).loop().play();
             }
             else
             {
-                rsBrake.Stop();
+                rsBrake->stop();
             }
         }
 
-        if (rsEngageSlippery.AM != 0)
+        if (rsEngageSlippery)
         {
             if /*((fabs(mvControlled->dizel_engagedeltaomega)>0.2) && */ (
                 mvControlled->dizel_engage > 0.1)
             {
                 if (fabs(mvControlled->dizel_engagedeltaomega) > 0.2)
                 {
-                    dfreq = rsEngageSlippery.FA +
-                            rsEngageSlippery.FM * fabs(mvControlled->dizel_engagedeltaomega);
-                    vol = rsEngageSlippery.AA + rsEngageSlippery.AM * (mvControlled->dizel_engage);
+                    dfreq = fabs(mvControlled->dizel_engagedeltaomega);
+                    vol = mvControlled->dizel_engage;
                 }
                 else
                 {
                     dfreq =
-                        1; // rsEngageSlippery.FA+0.7*rsEngageSlippery.FM*(fabs(mvControlled->enrot)+mvControlled->nmax);
+                        1; // rsEngageSlippery->pitch_off+0.7*rsEngageSlippery->pitch_mul*(fabs(mvControlled->enrot)+mvControlled->nmax);
                     if (mvControlled->dizel_engage > 0.2)
                         vol =
-                            rsEngageSlippery.AA +
-                            0.2 * rsEngageSlippery.AM * (mvControlled->enrot / mvControlled->nmax);
+                            0.2 * (mvControlled->enrot / mvControlled->nmax);
                     else
                         vol = 0;
                 }
-                rsEngageSlippery.AdjFreq(dfreq, 0);
-                rsEngageSlippery.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                rsEngageSlippery->pitch(dfreq).gain(vol).position(dynpos).loop().play();
             }
             else
             {
-                rsEngageSlippery.Stop();
+                rsEngageSlippery->stop();
             }
         }
 
-        if (FreeFlyModeFlag)
-            rsFadeSound.Stop(); // wyłącz to cholerne cykanie!
-        else
-            rsFadeSound.Play(1, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+        if (rsFadeSound)
+        {
+	        if (FreeFlyModeFlag)
+	            rsFadeSound->stop(); // wyłącz to cholerne cykanie!
+	        else
+	        	rsFadeSound->loop().position(dynpos).play();
+    	}
 
         // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
         // gdy zachodza pewne wydarzenia komentowane dzwiekiem.
@@ -4019,20 +4058,28 @@ bool TTrain::Update( double const Deltatime )
             if (mvOccupied->EventFlag || TestFlag(mvOccupied->SoundFlag, sound_loud))
             {
                 mvOccupied->EventFlag = false; // Ra: w kabinie?
-                if( dsbRelay != nullptr ) { dsbRelay->SetVolume( DSBVOLUME_MAX ); }
+                if( dsbRelay != nullptr ) { dsbRelay->gain(1.0f); }
             }
             else
             {
-                if( dsbRelay != nullptr ) { dsbRelay->SetVolume( -40 ); }
+                if( dsbRelay != nullptr ) { dsbRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f); }
             }
             if (!TestFlag(mvOccupied->SoundFlag, sound_manyrelay))
-                play_sound( dsbRelay );
+			{
+                if (dsbRelay) dsbRelay->play();
+			}
             else
             {
                 if (TestFlag(mvOccupied->SoundFlag, sound_loud))
-                    play_sound( dsbWejscie_na_bezoporow );
+				{
+                    if (dsbWejscie_na_bezoporow)
+						dsbWejscie_na_bezoporow->play();
+				}
                 else
-                    play_sound( dsbWejscie_na_drugi_uklad );
+				{
+                    if (dsbWejscie_na_drugi_uklad)
+						dsbWejscie_na_drugi_uklad->play();
+				}
             }
         }
 
@@ -4040,40 +4087,43 @@ bool TTrain::Update( double const Deltatime )
             if( TestFlag( mvOccupied->SoundFlag, sound_bufferclamp ) ) // zderzaki uderzaja o siebie
             {
                 if( TestFlag( mvOccupied->SoundFlag, sound_loud ) )
-                    dsbBufferClamp->SetVolume( DSBVOLUME_MAX );
+                    dsbBufferClamp->gain(1.0f);
                 else
-                    dsbBufferClamp->SetVolume( -20 );
-                play_sound( dsbBufferClamp );
+                    dsbBufferClamp->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f);
+                dsbBufferClamp->play();
             }
         }
         if (dsbCouplerStretch)
             if (TestFlag(mvOccupied->SoundFlag, sound_couplerstretch)) // sprzegi sie rozciagaja
             {
                 if (TestFlag(mvOccupied->SoundFlag, sound_loud))
-                    dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
+                    dsbCouplerStretch->gain(1.0f);
                 else
-                    dsbCouplerStretch->SetVolume(-20);
-                play_sound( dsbCouplerStretch );
+                    dsbCouplerStretch->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f);
+                dsbCouplerStretch->play();
             }
 
         if (mvOccupied->SoundFlag == 0)
             if (mvOccupied->EventFlag)
                 if (TestFlag(mvOccupied->DamageFlag, dtrain_wheelwear))
                 { // Ra: przenieść do DynObj!
-                    if (rsRunningNoise.AM != 0)
+                    if (rsRunningNoise)
                     {
-                        rsRunningNoise.Stop();
-                        // float aa=rsRunningNoise.AA;
-                        float am = rsRunningNoise.AM;
-                        float fa = rsRunningNoise.FA;
-                        float fm = rsRunningNoise.FM;
-                        rsRunningNoise.Init("lomotpodkucia.wav", -1, 0, 0, 0,
-                                            true); // MC: zmiana szumu na lomot
-                        if (rsRunningNoise.AM == 1)
-                            rsRunningNoise.AM = am;
-                        rsRunningNoise.AA = 0.7;
-                        rsRunningNoise.FA = fa;
-                        rsRunningNoise.FM = fm;
+                        rsRunningNoise->stop();
+                        // float aa=rsRunningNoise->gain_off;
+                        float am = rsRunningNoise->gain_mul;
+                        float fa = rsRunningNoise->pitch_off;
+                        float fm = rsRunningNoise->pitch_mul;
+
+                       	// MC: zmiana szumu na lomot
+                        sound_man->destroy_sound(&rsRunningNoise);
+                        rsRunningNoise = sound_man->create_sound("lomotpodkucia.wav");
+                        
+                        if (rsRunningNoise->gain_mul == 1)
+                            rsRunningNoise->gain_mul = am;
+                        rsRunningNoise->gain_off = 0.7;
+                        rsRunningNoise->pitch_off = fa;
+                        rsRunningNoise->pitch_mul = fm;
                     }
                     mvOccupied->EventFlag = false;
                 }
@@ -4264,29 +4314,29 @@ bool TTrain::Update( double const Deltatime )
             {
                 if (fabs(mvControlled->Im) > 10.0)
                     btLampkaPoslizg.TurnOn();
-                rsSlippery.Play(-rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                rsSlippery->gain(-veldiff).loop().position(dynpos).play();
                 if (mvControlled->TrainType == dt_181) // alarm przy poslizgu dla 181/182 - BOMBARDIER
                     if (dsbSlipAlarm)
-                        play_sound( dsbSlipAlarm, DSBPLAY_LOOPING );
+                    	dsbSlipAlarm->loop().play();
             }
             else
             {
                 if ((mvOccupied->UnitBrakeForce > 100.0) && (DynamicObject->GetVelocity() > 1.0))
                 {
-                    rsSlippery.Play(rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                	rsSlippery->gain(veldiff).loop().position(dynpos).play();
                     if (mvControlled->TrainType == dt_181)
                         if (dsbSlipAlarm)
-                            dsbSlipAlarm->Stop();
+                            dsbSlipAlarm->stop();
                 }
             }
         }
         else
         {
             btLampkaPoslizg.TurnOff();
-            rsSlippery.Stop();
+            rsSlippery->stop();
             if (mvControlled->TrainType == dt_181)
                 if (dsbSlipAlarm)
-                    dsbSlipAlarm->Stop();
+                    dsbSlipAlarm->stop();
         }
 
         if ((mvControlled->Mains) || (mvControlled->TrainType == dt_EZT))
@@ -4601,6 +4651,7 @@ bool TTrain::Update( double const Deltatime )
         }
         if (ggBrakeCtrl.SubModel)
         {
+#ifdef _WIN32
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
 						(Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
@@ -4628,14 +4679,14 @@ bool TTrain::Update( double const Deltatime )
                 // else //standardowa prodedura z kranem powiązanym z klawiaturą
                 // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             }
+#endif
             // else //standardowa prodedura z kranem powiązanym z klawiaturą
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
             ggBrakeCtrl.Update();
         }
-
         if( ggLocalBrake.SubModel ) {
-
+#ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
              && ( mvOccupied->BrakeLocHandle == FD1 )
@@ -4654,10 +4705,10 @@ bool TTrain::Update( double const Deltatime )
                     WriteLog( "FD1 break position = " + to_string( b ) );
                 }
             }
-            else {
-                // standardowa prodedura z kranem powiązanym z klawiaturą
-                ggLocalBrake.UpdateValue( double( mvOccupied->LocalBrakePos ) );
-            }
+            else // standardowa prodedura z kranem powiązanym z klawiaturą
+#endif
+                ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
+
             ggLocalBrake.Update();
         }
         if (ggManualBrake.SubModel != nullptr) {
@@ -4862,24 +4913,20 @@ bool TTrain::Update( double const Deltatime )
             {
                 if (dsbBuzzer)
                 {
-                    dsbBuzzer->GetStatus(&stat);
-                    if (!(stat & DSBSTATUS_PLAYING))
-                    {
-                        play_sound( dsbBuzzer, DSBVOLUME_MAX, DSBPLAY_LOOPING );
-                        Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
-                    }
+                	dsbBuzzer->loop().play();
+#ifdef _WIN32
+                    Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
+#endif
                 }
             }
             else
             {
                 if (dsbBuzzer)
                 {
-                    dsbBuzzer->GetStatus(&stat);
-                    if (stat & DSBSTATUS_PLAYING)
-                    {
-                        dsbBuzzer->Stop();
-                        Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
-                    }
+                	dsbBuzzer->stop();
+#ifdef _WIN32
+                    Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+#endif
                 }
             }
         }
@@ -4889,12 +4936,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaSHP.TurnOff();
             if (dsbBuzzer)
             {
-                dsbBuzzer->GetStatus(&stat);
-                if (stat & DSBSTATUS_PLAYING)
-                {
-                    dsbBuzzer->Stop();
-                    Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
-                }
+            	dsbBuzzer->stop();
             }
         }
 
@@ -4948,7 +4990,7 @@ bool TTrain::Update( double const Deltatime )
                     //         mvControlled->StLinFlag=true; //WSem nie wrzucilo na ta
                     //         pozycje po jego zalaczeniu //yBARC - co to tutaj robi?!
                     if (mvControlled->EngineType == DieselEngine)
-                        dsbDieselIgnition->Play(0, 0, 0);
+                        dsbDieselIgnition->play();
                 }
         }
         else
@@ -4961,7 +5003,7 @@ bool TTrain::Update( double const Deltatime )
             // zerowania timera
             if ((mvControlled->Mains != true) && (fMainRelayTimer > 0))
             {
-                dsbRelay->Play(0, 0, 0);
+                dsbRelay->play();
                 fMainRelayTimer = 0;
             }
             ggMainOnButton.UpdateValue(0);
@@ -4971,7 +5013,7 @@ bool TTrain::Update( double const Deltatime )
         {
             ggMainOffButton.PutValue(1);
             if (mvControlled->MainSwitch(false))
-                dsbRelay->Play(0, 0, 0);
+                dsbRelay->play();
         }
         else
             ggMainOffButton.UpdateValue(0);
@@ -5363,7 +5405,7 @@ bool TTrain::Update( double const Deltatime )
             if ((mvOccupied->TrainType == dt_EZT) && (mvControlled->Mains) &&
                 (mvControlled->ActiveDir != 0))
             {
-                play_sound( dsbPneumaticSwitch );
+                dsbPneumaticSwitch->play();
             }
         }
 #endif
@@ -5451,14 +5493,14 @@ bool TTrain::Update( double const Deltatime )
                 ggAntiSlipButton.UpdateValue(1);
                 if (mvOccupied->SwitchEPBrake(1))
                 {
-                    play_sound( dsbPneumaticSwitch );
+                    dsbPneumaticSwitch->play();
                 }
             }
             else
             {
                 if (mvOccupied->SwitchEPBrake(0))
                 {
-                    play_sound( dsbPneumaticSwitch );
+                    dsbPneumaticSwitch->play();
                 }
             }
 
@@ -5494,7 +5536,7 @@ bool TTrain::Update( double const Deltatime )
                     if (ggNextCurrentButton.SubModel)
                     {
                         ggNextCurrentButton.UpdateValue(1);
-                        play_sound( dsbSwitch );
+                        dsbSwitch->play();
                         ShowNextCurrent = true;
                     }
                 }
@@ -5507,7 +5549,7 @@ bool TTrain::Update( double const Deltatime )
                     { // Ra: było pod GLFW_KEY_F3
                         if ((mvOccupied->EpFuseSwitch(true)))
                         {
-                            play_sound( dsbPneumaticSwitch );
+                            dsbPneumaticSwitch->play();
                         }
                     }
                 }
@@ -5519,7 +5561,7 @@ bool TTrain::Update( double const Deltatime )
                         {
                             if ((mvOccupied->EpFuseSwitch(false)))
                             {
-                                play_sound( dsbPneumaticSwitch );
+                                dsbPneumaticSwitch->play();
                             }
                         }
                     }
@@ -5533,7 +5575,7 @@ bool TTrain::Update( double const Deltatime )
                 if (ggNextCurrentButton.SubModel)
                 {
                     ggNextCurrentButton.UpdateValue(0);
-                    play_sound( dsbSwitch );
+                    dsbSwitch->play();
                     ShowNextCurrent = false;
                 }
             }
@@ -5602,15 +5644,11 @@ bool TTrain::Update( double const Deltatime )
         //  if (fabs(DynamicObject->GetVelocity())>0.5)
         if( dsbHasler != nullptr ) {
             if( ( false == FreeFlyModeFlag ) && ( fTachoCount > maxtacho ) ) {
-                dsbHasler->GetStatus( &stat );
-                if( !( stat & DSBSTATUS_PLAYING ) )
-                    play_sound( dsbHasler, DSBVOLUME_MAX, DSBPLAY_LOOPING );
+            	dsbHasler->loop().play();
             }
             else {
                 if( ( true == FreeFlyModeFlag ) || ( fTachoCount < 1 ) ) {
-                    dsbHasler->GetStatus( &stat );
-                    if( stat & DSBSTATUS_PLAYING )
-                        dsbHasler->Stop();
+                    dsbHasler->stop();
                 }
             }
         }
@@ -5814,11 +5852,11 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     //Wartości domyślne by nie wysypywało przy wybrakowanych mmd @240816 Stele
     // NOTE: should be no longer needed as safety checks were added,
     // but leaving the defaults for the sake of incomplete mmd files
-    dsbPneumaticSwitch = TSoundsManager::GetFromName("silence1.wav", true);
-    dsbBufferClamp = TSoundsManager::GetFromName("en57_bufferclamp.wav", true);
-    dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
-    dsbCouplerStretch = TSoundsManager::GetFromName("en57_couplerstretch.wav", true);
-    dsbCouplerAttach = TSoundsManager::GetFromName("couplerattach.wav", true);
+    dsbPneumaticSwitch = sound_man->create_sound("silence1.wav");
+    dsbBufferClamp = sound_man->create_sound("en57_bufferclamp.wav");
+    dsbCouplerDetach = sound_man->create_sound("couplerdetach.wav");
+    dsbCouplerStretch = sound_man->create_sound("en57_couplerstretch.wav");
+    dsbCouplerAttach = sound_man->create_sound("couplerattach.wav");
 
     std::string token;
     do
@@ -5841,214 +5879,247 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // nastawnik:
                 dsbNastawnikJazdy =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "ctrlscnd:")
             {
                 // hunter-081211: nastawnik bocznikowania
                 dsbNastawnikBocz =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "reverserkey:")
             {
                 // hunter-131211: dzwiek kierunkowego
                 dsbReverserKey =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "buzzer:")
             {
                 // bzyczek shp:
                 dsbBuzzer =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "slipalarm:")
             {
                 // Bombardier 011010: alarm przy poslizgu:
                 dsbSlipAlarm =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "tachoclock:")
             {
                 // cykanie rejestratora:
                 dsbHasler =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "switch:")
             {
                 // przelaczniki:
                 dsbSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "pneumaticswitch:")
             {
                 // stycznik EP:
                 dsbPneumaticSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "wejscie_na_bezoporow:")
             {
                 // hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
                 dsbWejscie_na_bezoporow =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "wejscie_na_drugi_uklad:")
             {
 
                 dsbWejscie_na_drugi_uklad =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "relay:")
             {
                 // styczniki itp:
                 dsbRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
                 if (!dsbWejscie_na_bezoporow)
                 { // hunter-111211: domyslne, gdy brak
                     dsbWejscie_na_bezoporow =
-                        TSoundsManager::GetFromName("wejscie_na_bezoporow.wav", true);
+                        sound_man->create_sound("wejscie_na_bezoporow.wav");
                 }
                 if (!dsbWejscie_na_drugi_uklad)
                 {
                     dsbWejscie_na_drugi_uklad =
-                        TSoundsManager::GetFromName("wescie_na_drugi_uklad.wav", true);
+                        sound_man->create_sound("wescie_na_drugi_uklad.wav");
                 }
             }
             else if (token == "pneumaticrelay:")
             {
                 // wylaczniki pneumatyczne:
                 dsbPneumaticRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "couplerattach:")
             {
                 // laczenie:
                 dsbCouplerAttach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "couplerstretch:")
             {
                 // laczenie:
                 dsbCouplerStretch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "couplerdetach:")
             {
                 // rozlaczanie:
                 dsbCouplerDetach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "bufferclamp:")
             {
                 // laczenie:
                 dsbBufferClamp =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "ignition:")
             {
                 // odpalanie silnika
                 dsbDieselIgnition =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "brakesound:")
             {
                 // hamowanie zwykle:
-                rsBrake.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true, true);
+                rsBrake = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsBrake.AM >> rsBrake.AA >> rsBrake.FM >> rsBrake.FA;
-                rsBrake.AM /= (1 + mvOccupied->MaxBrakeForce * 1000);
-                rsBrake.FM /= (1 + mvOccupied->Vmax);
+				if (rsBrake)
+				{
+                	parser >> rsBrake->gain_mul >> rsBrake->gain_off >> rsBrake->pitch_mul >> rsBrake->pitch_off;
+	                rsBrake->gain_mul /= (1 + mvOccupied->MaxBrakeForce * 1000);
+	                rsBrake->pitch_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "slipperysound:")
             {
                 // sanie:
-                rsSlippery.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsSlippery = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsSlippery.AM >> rsSlippery.AA;
-                rsSlippery.FM = 0.0;
-                rsSlippery.FA = 1.0;
-                rsSlippery.AM /= (1 + mvOccupied->Vmax);
+				if (rsSlippery)
+				{
+	                parser >> rsSlippery->gain_mul >> rsSlippery->gain_off;
+	                rsSlippery->pitch_mul = 0.0;
+	                rsSlippery->pitch_off = 1.0;
+	                rsSlippery->gain_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "airsound:")
             {
                 // syk:
-                rsHiss.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsHiss = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHiss.AM >> rsHiss.AA;
-                rsHiss.FM = 0.0;
-                rsHiss.FA = 1.0;
+				if (rsHiss)
+				{
+	                parser >> rsHiss->gain_mul >> rsHiss->gain_off;
+	                rsHiss->pitch_mul = 0.0;
+	                rsHiss->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound2:")
             {
                 // syk:
-                rsHissU.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsHissU = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissU.AM >> rsHissU.AA;
-                rsHissU.FM = 0.0;
-                rsHissU.FA = 1.0;
+				if (rsHissU)
+				{
+	                parser >> rsHissU->gain_mul >> rsHissU->gain_off;
+	                rsHissU->pitch_mul = 0.0;
+	                rsHissU->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound3:")
             {
                 // syk:
-                rsHissE.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsHissE = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissE.AM >> rsHissE.AA;
-                rsHissE.FM = 0.0;
-                rsHissE.FA = 1.0;
+				if (rsHissE)
+				{
+	                parser >> rsHissE->gain_mul >> rsHissE->gain_off;
+	                rsHissE->pitch_mul = 0.0;
+	                rsHissE->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound4:")
             {
                 // syk:
-                rsHissX.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsHissX = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissX.AM >> rsHissX.AA;
-                rsHissX.FM = 0.0;
-                rsHissX.FA = 1.0;
+				if (rsHissX)
+				{
+        	        parser >> rsHissX->gain_mul >> rsHissX->gain_off;
+    	            rsHissX->pitch_mul = 0.0;
+	                rsHissX->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound5:")
             {
                 // syk:
-                rsHissT.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsHissT = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissT.AM >> rsHissT.AA;
-                rsHissT.FM = 0.0;
-                rsHissT.FA = 1.0;
+				if (rsHissT)
+				{
+	                parser >> rsHissT->gain_mul >> rsHissT->gain_off;
+	                rsHissT->pitch_mul = 0.0;
+	                rsHissT->pitch_off = 1.0;
+				}
             }
             else if (token == "fadesound:")
             {
                 // syk:
-                rsFadeSound.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
-                rsFadeSound.AM = 1.0;
-                rsFadeSound.AA = 1.0;
-                rsFadeSound.FM = 1.0;
-                rsFadeSound.FA = 1.0;
+                rsFadeSound = sound_man->create_sound(parser.getToken<std::string>());
+				if (rsFadeSound)
+				{
+	                rsFadeSound->gain_mul = 1.0;
+	                rsFadeSound->gain_off = 1.0;
+	                rsFadeSound->pitch_mul = 1.0;
+	                rsFadeSound->pitch_off = 1.0;
+				}
             }
             else if (token == "localbrakesound:")
             {
                 // syk:
-                rsSBHiss.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true);
+                rsSBHiss = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsSBHiss.AM >> rsSBHiss.AA;
-                rsSBHiss.FM = 0.0;
-                rsSBHiss.FA = 1.0;
+				if (rsSBHiss)
+				{
+	                parser >> rsSBHiss->gain_mul >> rsSBHiss->gain_off;
+	                rsSBHiss->pitch_mul = 0.0;
+	                rsSBHiss->pitch_off = 1.0;
+				}
             }
             else if (token == "runningnoise:")
             {
                 // szum podczas jazdy:
-                rsRunningNoise.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true, true);
+                rsRunningNoise = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsRunningNoise.AM >> rsRunningNoise.AA >> rsRunningNoise.FM >>
-                    rsRunningNoise.FA;
-                rsRunningNoise.AM /= (1 + mvOccupied->Vmax);
-                rsRunningNoise.FM /= (1 + mvOccupied->Vmax);
+				if (rsRunningNoise)
+				{
+	                parser >> rsRunningNoise->gain_mul >> rsRunningNoise->gain_off >> rsRunningNoise->pitch_mul >>
+	                    rsRunningNoise->pitch_off;
+	                rsRunningNoise->gain_mul /= (1 + mvOccupied->Vmax);
+	                rsRunningNoise->pitch_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "engageslippery:")
             {
                 // tarcie tarcz sprzegla:
-                rsEngageSlippery.Init(parser.getToken<std::string>(), -1, 0, 0, 0, true, true);
+                rsEngageSlippery = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsEngageSlippery.AM >> rsEngageSlippery.AA >> rsEngageSlippery.FM >>
-                    rsEngageSlippery.FA;
-                rsEngageSlippery.FM /= (1 + mvOccupied->nmax);
+				if (rsEngageSlippery)
+				{
+	                parser >> rsEngageSlippery->gain_mul >> rsEngageSlippery->gain_off >> rsEngageSlippery->pitch_mul >>
+	                    rsEngageSlippery->pitch_off;
+	                rsEngageSlippery->pitch_mul /= (1 + mvOccupied->nmax);
+				}
             }
             else if (token == "mechspring:")
             {
@@ -6065,25 +6136,25 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // podniesienie patyka:
                 dsbPantUp =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "pantographdown:")
             {
                 // podniesienie patyka:
                 dsbPantDown =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "doorclose:")
             {
                 // zamkniecie drzwi:
                 dsbDoorClose =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
             else if (token == "dooropen:")
             {
                 // otwarcie drzwi:
                 dsbDoorOpen =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
+                    sound_man->create_sound(parser.getToken<std::string>());
             }
 
         } while (token != "");
@@ -6274,10 +6345,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
         set_cab_controls();
-        // HACK: for some reason simulation at the start is slow until a sound is played
-        // until we do a proper fix, try to play a 'silent' sound when cab is entered
-        // TBD: it could be instead a legit sound of door closing
-        play_sound( dsbSwitch, DSBVOLUME_MIN );
         return true;
     }
     return (token == "none");
@@ -6371,62 +6438,73 @@ void TTrain::DynamicSet(TDynamicObject *d)
 void TTrain::Silence()
 { // wyciszenie dźwięków przy wychodzeniu
     if (dsbNastawnikJazdy)
-        dsbNastawnikJazdy->Stop();
+        dsbNastawnikJazdy->stop();
     if (dsbNastawnikBocz)
-        dsbNastawnikBocz->Stop();
+        dsbNastawnikBocz->stop();
     if (dsbRelay)
-        dsbRelay->Stop();
+        dsbRelay->stop();
     if (dsbPneumaticRelay)
-        dsbPneumaticRelay->Stop();
+        dsbPneumaticRelay->stop();
     if (dsbSwitch)
-        dsbSwitch->Stop();
+        dsbSwitch->stop();
     if (dsbPneumaticSwitch)
-        dsbPneumaticSwitch->Stop();
+        dsbPneumaticSwitch->stop();
     if (dsbReverserKey)
-        dsbReverserKey->Stop();
+        dsbReverserKey->stop();
     if (dsbCouplerAttach)
-        dsbCouplerAttach->Stop();
+        dsbCouplerAttach->stop();
     if (dsbCouplerDetach)
-        dsbCouplerDetach->Stop();
+        dsbCouplerDetach->stop();
     if (dsbDieselIgnition)
-        dsbDieselIgnition->Stop();
+        dsbDieselIgnition->stop();
     if (dsbDoorClose)
-        dsbDoorClose->Stop();
+        dsbDoorClose->stop();
     if (dsbDoorOpen)
-        dsbDoorOpen->Stop();
+        dsbDoorOpen->stop();
     if (dsbPantUp)
-        dsbPantUp->Stop();
+        dsbPantUp->stop();
     if (dsbPantDown)
-        dsbPantDown->Stop();
+        dsbPantDown->stop();
     if (dsbWejscie_na_bezoporow)
-        dsbWejscie_na_bezoporow->Stop();
+        dsbWejscie_na_bezoporow->stop();
     if (dsbWejscie_na_drugi_uklad)
-        dsbWejscie_na_drugi_uklad->Stop();
-    rsBrake.Stop();
-    rsSlippery.Stop();
-    rsHiss.Stop();
-    rsHissU.Stop();
-    rsHissE.Stop();
-    rsHissX.Stop();
-    rsHissT.Stop();
-    rsSBHiss.Stop();
-    rsRunningNoise.Stop();
-    rsEngageSlippery.Stop();
-    rsFadeSound.Stop();
+        dsbWejscie_na_drugi_uklad->stop();
+    if (rsBrake)
+    	rsBrake->stop();
+    if (rsSlippery)
+    	rsSlippery->stop();
+    if (rsHiss)
+    	rsHiss->stop();
+    if (rsHissU)
+    	rsHissU->stop();
+    if (rsHissE)
+    	rsHissE->stop();
+    if (rsHissX)
+    	rsHissX->stop();
+    if (rsHissT)
+    	rsHissT->stop();
+    if (rsSBHiss)
+	    rsSBHiss->stop();
+	if (rsRunningNoise)
+    	rsRunningNoise->stop();
+    if (rsEngageSlippery)
+    	rsEngageSlippery->stop();
+    if (rsFadeSound)
+    	rsFadeSound->stop();
     if (dsbHasler)
-        dsbHasler->Stop(); // wyłączenie dźwięków opuszczanej kabiny
+        dsbHasler->stop(); // wyłączenie dźwięków opuszczanej kabiny
     if (dsbBuzzer)
-        dsbBuzzer->Stop();
+        dsbBuzzer->stop();
     if (dsbSlipAlarm)
-        dsbSlipAlarm->Stop(); // dźwięk alarmu przy poślizgu
-    // sConverter.Stop();
-    // sSmallCompressor->Stop();
+        dsbSlipAlarm->stop(); // dźwięk alarmu przy poślizgu
+    // sConverter->stop();
+    // sSmallCompressor->stop();
     if (dsbCouplerStretch)
-        dsbCouplerStretch->Stop();
+        dsbCouplerStretch->stop();
     if (dsbEN57_CouplerStretch)
-        dsbEN57_CouplerStretch->Stop();
+        dsbEN57_CouplerStretch->stop();
     if (dsbBufferClamp)
-        dsbBufferClamp->Stop();
+        dsbBufferClamp->stop();
 };
 
 void TTrain::SetLights()
@@ -7325,29 +7403,19 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 }
 
 void
-TTrain::play_sound( PSound Sound, int const Volume, DWORD const Flags ) {
+TTrain::play_sound( sound* Sound, float gain ) {
 
     if( Sound ) {
-
-        Sound->SetCurrentPosition( 0 );
-        Sound->SetVolume( Volume );
-        Sound->Play( 0, 0, Flags );
-        return;
+    	Sound->gain(gain).play();
     }
 }
 
 void
-TTrain::play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags ) {
+TTrain::play_sound( sound* Sound, sound* Fallbacksound, float gain ) {
 
-    if( Sound ) {
-
-        play_sound( Sound, Volume, Flags );
-        return;
-    }
-    if( Fallbacksound ) {
-
-        play_sound( Fallbacksound, Volume, Flags );
-        return;
-    }
+    if( Sound )
+        play_sound( Sound, gain);
+    else if( Fallbacksound )
+        play_sound( Fallbacksound, gain );
 }
 

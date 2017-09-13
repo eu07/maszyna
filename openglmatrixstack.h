@@ -7,7 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#pragma once
+#ifndef OPENGLMATRIXSTACK_INC
+#define OPENGLMATRIXSTACK_INC
 
 #include <stack>
 #include <vector>
@@ -57,6 +58,10 @@ public:
         translate( glm::vec3 const &Translation ) {
             m_stack.top() = glm::translate( m_stack.top(), Translation );
             upload(); }
+	void
+		load(glm::mat4 const &Matrix) {
+		m_stack.top() = Matrix;
+		upload(); }
     void
         multiply( glm::mat4 const &Matrix ) {
             m_stack.top() *= Matrix;
@@ -149,6 +154,11 @@ public:
         multiply( Type_ const *Matrix ) {
             m_stacks[ m_mode ].multiply(
                 glm::make_mat4( Matrix ) ); }
+	template <typename Type_>
+	void
+		load(Type_ const *Matrix) {
+		m_stacks[m_mode].load(
+			glm::make_mat4(Matrix)); }
     template <typename Type_>
     void
         ortho( Type_ const Left, Type_ const Right, Type_ const Bottom, Type_ const Top, Type_ const Znear, Type_ const Zfar ) {
@@ -212,3 +222,4 @@ extern opengl_matrices OpenGLMatrices;
 #define gluLookAt OpenGLMatrices.look_at
 
 //---------------------------------------------------------------------------
+#endif

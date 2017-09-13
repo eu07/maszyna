@@ -1,18 +1,20 @@
-﻿
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "uilayer.h"
-#include "globals.h"
+#include "Globals.h"
 #include "usefull.h"
 #include "renderer.h"
-#include "logs.h"
+#include "Logs.h"
+
+#include <GL/glut.h>
 
 ui_layer UILayer;
 
+#ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+	GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
+#endif
 
 ui_layer::~ui_layer() {
 /*
@@ -24,8 +26,24 @@ ui_layer::~ui_layer() {
 
 bool
 ui_layer::init( GLFWwindow *Window ) {
-
     m_window = Window;
+
+#ifndef _WIN32
+	Global::bGlutFont = true;
+#endif
+
+	if (Global::bGlutFont)
+	{
+		int zi = 0;
+		char zc = 0;
+		char *zcp = &zc;
+		glutInit(&zi, &zcp);
+		WriteLog("Used font from GLUT.");
+		Global::DLFont = true;
+		return true;
+	}
+
+#ifdef _WIN32
     HFONT font; // Windows Font ID
     m_fontbase = ::glGenLists(96); // storage for 96 characters
     HDC hDC = ::GetDC( glfwGetWin32Window( m_window ) );
@@ -33,14 +51,14 @@ ui_layer::init( GLFWwindow *Window ) {
                         0, // width of font
                         0, // angle of escapement
                         0, // orientation angle
-                        (Global::bGlutFont ? FW_MEDIUM : FW_HEAVY), // font weight
+                        FW_MEDIUM, // font weight
                         FALSE, // italic
                         FALSE, // underline
                         FALSE, // strikeout
                         DEFAULT_CHARSET, // character set identifier
                         OUT_DEFAULT_PRECIS, // output precision
                         CLIP_DEFAULT_PRECIS, // clipping precision
-                        (Global::bGlutFont ? CLEARTYPE_QUALITY : PROOF_QUALITY), // output quality
+                        CLEARTYPE_QUALITY, // output quality
                         DEFAULT_PITCH | FF_DONTCARE, // family and pitch
                         "Lucida Console"); // font name
     ::SelectObject(hDC, font); // selects the font we want
@@ -53,16 +71,14 @@ ui_layer::init( GLFWwindow *Window ) {
     }
     else {
         ErrorLog( "Font init failed" );
-//        return false;
-        // NOTE: we report success anyway, given some cards can't produce fonts in this manner
         Global::DLFont = false;
         return true;
     }
+#endif
 }
 
 void
 ui_layer::render() {
-
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho( 0, std::max( 1, Global::iWindowWidth ), std::max( 1, Global::iWindowHeight ), 0, -1, 1 );
@@ -267,12 +283,20 @@ ui_layer::print( std::string const &Text )
      || (true == Text.empty()) )
         return;
     
-    ::glPushAttrib( GL_LIST_BIT );
+	if (Global::bGlutFont)
+	{
+		for (size_t i = 0; i < Text.size(); i++)
+			glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Text[i]);
+	}
+	else
+	{
+		::glPushAttrib(GL_LIST_BIT);
 
-    ::glListBase( m_fontbase - 32 );
-    ::glCallLists( Text.size(), GL_UNSIGNED_BYTE, Text.c_str() );
+		::glListBase(m_fontbase - 32);
+		::glCallLists((GLsizei)Text.size(), GL_UNSIGNED_BYTE, Text.c_str());
 
-    ::glPopAttrib();
+		::glPopAttrib();
+	}
 }
 
 void

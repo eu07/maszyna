@@ -511,7 +511,7 @@ class TDriverHandle {
     virtual double GetPos(int i);
     virtual double GetEP(double pos);
 
-    inline TDriverHandle() { ::SecureZeroMemory( Sounds, sizeof( Sounds ) ); }
+    inline TDriverHandle() { memset(Sounds, 0, sizeof(Sounds)); }
 };
 
 class TFV4a : public TDriverHandle {

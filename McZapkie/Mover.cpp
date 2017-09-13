@@ -8,12 +8,11 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Mover.h"
-#include "../globals.h"
-#include "../logs.h"
+#include "MOVER.h"
+#include "Globals.h"
+#include "Logs.h"
 #include "Oerlikon_ESt.h"
-#include "../parser.h"
-#include "mctools.h"
+#include "parser.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -6389,6 +6388,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     WriteLog("LOAD FIZ FROM " + file);
 
+	std::replace(file.begin(), file.end(), '\\', '/');
     std::ifstream in(file);
 	if (!in.is_open())
 	{

@@ -26,7 +26,6 @@ http://mozilla.org/MPL/2.0/.
 #include "TractionPower.h"
 #include "Traction.h"
 #include "Track.h"
-#include "RealSound.h"
 #include "AnimModel.h"
 #include "MemCell.h"
 #include "mtable.h"
@@ -36,15 +35,18 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
-#include "world.h"
+#include "World.h"
 #include "uilayer.h"
+#include "sound.h"
 
 //---------------------------------------------------------------------------
 
+#ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+	GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
+#endif
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 std::string LogComment;
@@ -185,13 +187,6 @@ void TGroundNode::RenderHidden()
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     switch (iType)
     {
-    case TP_SOUND: // McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-        if ((tsStaticSound->GetStatus() & DSBSTATUS_PLAYING) == DSBPLAY_LOOPING)
-        {
-            tsStaticSound->Play(1, DSBPLAY_LOOPING, true, tsStaticSound->vSoundPosition);
-            tsStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
-        }
-        return;
     case TP_EVLAUNCH:
         if (EvLaunch->Render())
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
@@ -407,7 +402,8 @@ void TSubRect::LoadNodes() {
                         vertex.texture );
                 }
                 node->Piece->geometry = GfxRenderer.Insert( vertices, m_geometrybank, node->iType );
-                node->Piece->vertices.swap( std::vector<TGroundVertex>() ); // hipster shrink_to_fit
+				node->Piece->vertices.clear();
+				node->Piece->vertices.shrink_to_fit();
                 // TODO: get rid of the vertex counters, they're obsolete at this point
                 if( node->iType == GL_LINES ) { node->iNumVerts = 0; }
                 else                          { node->iNumPts = 0; }
@@ -458,7 +454,7 @@ TGroundRect::Init() {
                 - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
                 + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
                 + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
-            area.radius = subrectsize * M_SQRT2;
+            area.radius = subrectsize * (float)M_SQRT2;
             // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
             subcell->m_geometrybank = m_geometrybank;
         }
@@ -528,7 +524,7 @@ TGround::TGround()
     for( int i = 0; i < TP_LAST; ++i ) {
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
-    ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+	memset(TempConnectionType, 0, sizeof(TempConnectionType));
     // set bounding area information for ground rectangles
     float const rectsize = 1000.0f;
     glm::vec3 const worldcenter;
@@ -536,7 +532,7 @@ TGround::TGround()
         for( int row = 0; row < iNumRects; ++row ) {
             auto &area = Rects[ column ][ row ].m_area;
             // NOTE: in current implementation triangles can stick out to ~200m from the area, so we add extra padding
-            area.radius = ( rectsize * 0.5f * M_SQRT2 ) + 200.0f;
+            area.radius = ( rectsize * 0.5f * (float)M_SQRT2 ) + 200.0f;
             area.center =
                 worldcenter
                 - glm::vec3( (iNumRects / 2) * rectsize, 0.0f, (iNumRects / 2) * rectsize ) // 'upper left' corner of the world
@@ -1062,8 +1058,11 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         parser->getTokens();
         *parser >> token;
 		str = token;
-		//str = AnsiString(token.c_str());
-        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, false, rmin);
+
+        tmp->tsStaticSound = sound_man->create_text_sound(str);
+        if (tmp->tsStaticSound)
+            tmp->tsStaticSound->position(tmp->pCenter).dist(sqrt(tmp->fSquareRadius));
+
         if (rmin < 0.0)
             rmin = 0.0; // przywrócenie poprawnej wartości, jeśli służyła do wyłączenia efektu Dopplera
         parser->getTokens();
@@ -1604,7 +1603,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
             tmp->iType = GL_LINES;
             tmp->Piece = new piece_node();
-            tmp->iNumPts = importedvertices.size();
+            tmp->iNumPts = (int)importedvertices.size();
 
             if( false == importedvertices.empty() ) {
 
@@ -1761,6 +1760,72 @@ void TGround::FirstInit()
 
     WriteLog("FirstInit is done");
 };
+
+void TGround::add_event(TEvent *tmp)
+{
+    if (tmp->Type == tp_Unknown)
+        delete tmp;
+    else
+    { // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
+        TEvent *found = FindEvent(tmp->asName);
+        if (found)
+        { // jeśli znaleziony duplikat
+            auto const size = tmp->asName.size();
+            if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // utylizacja duplikatu z krzyżykiem
+            else if( ( size > 8 )
+                  && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
+                // tymczasowo wyjątki
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // tymczasowa utylizacja duplikatów W5
+            else if( ( size > 8 )
+                  && ( tmp->asName.substr( size - 8 ) == "_warning"))
+                // tymczasowo wyjątki
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // tymczasowa utylizacja duplikatu z trąbieniem
+            else if( ( size > 4 )
+                  && ( tmp->asName.substr( size - 4 ) == "_shp" ))
+                  // nie podlegają logowaniu
+            {
+                delete tmp;
+                tmp = NULL;
+            } // tymczasowa utylizacja duplikatu SHP
+            if (tmp) // jeśli nie został zutylizowany
+                if (Global::bJoinEvents)
+                    found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                else
+                {
+                    ErrorLog("Duplicated event: " + tmp->asName);
+                    found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                    found->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na
+                    // wsteczną zgodność
+                    // SafeDelete(tmp); //bezlitośnie usuwamy wszelkie duplikaty, żeby nie
+                    // zaśmiecać drzewka
+                }
+        }
+        if ( nullptr != tmp )
+        { // jeśli nie duplikat
+            tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
+            RootEvent = tmp;
+            if (!found)
+            { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
+                if( ( RootEvent->Type != tp_Ignored )
+                 && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
+                    // event uruchamiany automatycznie po starcie
+                    AddToQuery( RootEvent, NULL ); // dodanie do kolejki
+                }
+                m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
+            }
+        }
+    }
+}
 
 bool TGround::Init(std::string File)
 { // główne wczytywanie scenerii
@@ -1921,68 +1986,14 @@ bool TGround::Init(std::string File)
         {
             TEvent *tmp = new TEvent();
             tmp->Load(&parser, &pOrigin);
-            if (tmp->Type == tp_Unknown)
-                delete tmp;
-            else
-            { // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
-                TEvent *found = FindEvent(tmp->asName);
-                if (found)
-                { // jeśli znaleziony duplikat
-                    auto const size = tmp->asName.size();
-                    if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // utylizacja duplikatu z krzyżykiem
-                    else if( ( size > 8 )
-                          && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
-                        // tymczasowo wyjątki
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // tymczasowa utylizacja duplikatów W5
-                    else if( ( size > 8 )
-                          && ( tmp->asName.substr( size - 8 ) == "_warning"))
-                        // tymczasowo wyjątki
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // tymczasowa utylizacja duplikatu z trąbieniem
-                    else if( ( size > 4 )
-                          && ( tmp->asName.substr( size - 4 ) == "_shp" ))
-                          // nie podlegają logowaniu
-                    {
-                        delete tmp;
-                        tmp = NULL;
-                    } // tymczasowa utylizacja duplikatu SHP
-                    if (tmp) // jeśli nie został zutylizowany
-                        if (Global::bJoinEvents)
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
-                        else
-                        {
-                            ErrorLog("Duplicated event: " + tmp->asName);
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
-                            found->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na
-                            // wsteczną zgodność
-                            // SafeDelete(tmp); //bezlitośnie usuwamy wszelkie duplikaty, żeby nie
-                            // zaśmiecać drzewka
-                        }
-                }
-                if ( nullptr != tmp )
-                { // jeśli nie duplikat
-                    tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
-                    RootEvent = tmp;
-                    if (!found)
-                    { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
-                        if( ( RootEvent->Type != tp_Ignored )
-                         && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
-                            // event uruchamiany automatycznie po starcie
-                            AddToQuery( RootEvent, NULL ); // dodanie do kolejki
-                        }
-                        m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
-                    }
-                }
-            }
+            add_event(tmp);
+        }
+        else if (str == "lua")
+        {
+            parser.getTokens();
+            std::string file;
+            parser >> file;
+            m_lua.interpret(subpath + file);
         }
         else if (str == "rotate")
         {
@@ -2080,10 +2091,10 @@ bool TGround::Init(std::string File)
             WriteLog("Scenery light definition");
             parser.getTokens(3, false);
             parser
-                >> Global::DayLight.direction.x
-                >> Global::DayLight.direction.y
-                >> Global::DayLight.direction.z;;
-            Global::DayLight.direction = glm::normalize( Global::DayLight.direction );
+				>> Global::DayLight.direction.x
+				>> Global::DayLight.direction.y
+				>> Global::DayLight.direction.z;
+			Global::DayLight.direction = glm::normalize(Global::DayLight.direction);
             parser.getTokens(9, false);
 
             do {
@@ -2900,7 +2911,7 @@ bool TGround::InitLaunchers()
                 if (tmp)
                     EventLauncher->MemCell = tmp->MemCell; // jeśli znaleziona, dopisać
                 else
-                    MessageBox(0, "Cannot find Memory Cell for Event Launcher", "Error", MB_OK);
+                    WriteLog("Cannot find Memory Cell for Event Launcher");
             }
             else
                 EventLauncher->MemCell = NULL;
@@ -3289,22 +3300,20 @@ bool TGround::CheckQuery()
                 Error("Not implemented yet :(");
                 break;
             case tp_Exit:
-                MessageBox(0, tmpEvent->asNodeName.c_str(), " THE END ", MB_OK);
+                WriteLog(tmpEvent->asNodeName.c_str());
                 Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
                 return false;
             case tp_Sound:
                 switch (tmpEvent->Params[0].asInt)
                 { // trzy możliwe przypadki:
                 case 0:
-                    tmpEvent->Params[9].tsTextSound->Stop();
+                    tmpEvent->Params[9].tsTextSound->stop();
                     break;
                 case 1:
-                    tmpEvent->Params[9].tsTextSound->Play(
-                        1, 0, true, tmpEvent->Params[9].tsTextSound->vSoundPosition);
+                    tmpEvent->Params[9].tsTextSound->play();
                     break;
                 case -1:
-                    tmpEvent->Params[9].tsTextSound->Play(
-                        1, DSBPLAY_LOOPING, true, tmpEvent->Params[9].tsTextSound->vSoundPosition);
+                    tmpEvent->Params[9].tsTextSound->play();
                     break;
                 }
                 break;
@@ -3482,6 +3491,9 @@ bool TGround::CheckQuery()
             }
             break;
             case tp_Message: // wyświetlenie komunikatu
+                break;
+            case tp_Lua:
+                ((lua::eventhandler_t)tmpEvent->Params[0].asPointer)(tmpEvent, tmpEvent->Activator);
                 break;
             } // switch (tmpEvent->Type)
         } // if (tmpEvent->bEnabled)
@@ -3829,7 +3841,7 @@ bool TGround::GetTraction(TDynamicObject *model)
     return true;
 };
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 //---------------------------------------------------------------------------
 void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
 { // wysłanie komunikatu do sterującego
@@ -3838,9 +3850,11 @@ void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LP
         h = FindWindow(0, ClassName.c_str()); // można by to zapamiętać
     SendMessage(h, Msg, wParam, lParam);
 };
+#endif
 //--------------------------------
 void TGround::WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 2; // 2 - event
@@ -3855,10 +3869,12 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 { // wysłanie informacji w postaci pojedynczego tekstu
+#ifdef _WIN32
 	DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 13; // numer komunikatu
@@ -3872,10 +3888,12 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijString(const std::string &t, int n)
 { // wysłanie informacji w postaci pojedynczego tekstu
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = n; // numer komunikatu
@@ -3888,15 +3906,19 @@ void TGround::WyslijString(const std::string &t, int n)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijWolny(const std::string &t)
 { // Ra: jeszcze do wyczyszczenia
+#ifdef _WIN32
     WyslijString(t, 4); // tor wolny
+#endif
 };
 //--------------------------------
 void TGround::WyslijNamiary(TGroundNode *t)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
+#ifdef _WIN32
     // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
@@ -3969,10 +3991,12 @@ void TGround::WyslijNamiary(TGroundNode *t)
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
+#endif
 };
 //
 void TGround::WyslijObsadzone()
 {   // wysłanie informacji o pojeździe
+#ifdef _WIN32
 	DaneRozkaz2 r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 12;   // kod 12
@@ -4011,11 +4035,13 @@ void TGround::WyslijObsadzone()
 	// WriteLog("Ramka gotowa");
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
+#endif
 }
 
 //--------------------------------
 void TGround::WyslijParam(int nr, int fl)
 { // wysłanie parametrów symulacji w ramce (nr) z flagami (fl)
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = nr; // zwykle 5
@@ -4034,8 +4060,8 @@ void TGround::WyslijParam(int nr, int fl)
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
-};
 #endif
+};
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -4227,7 +4253,7 @@ void TGround::TerrainWrite()
                             break;
                         }
             }
-    m->SaveToBinFile(strdup(("models\\" + Global::asTerrainModel).c_str()));
+    m->SaveToBinFile(strdup(("models/" + Global::asTerrainModel).c_str()));
 */
 };
 

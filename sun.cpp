@@ -1,10 +1,9 @@
-
 #include "stdafx.h"
 #include "sun.h"
-#include "globals.h"
+#include "Globals.h"
 #include "mtable.h"
 #include "usefull.h"
-#include "world.h"
+#include "World.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
@@ -15,9 +14,17 @@ cSun::cSun() {
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 
+#ifdef _WIN32
 	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
 	::GetTimeZoneInformation( &timezoneinfo );
 	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#elif __linux__
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    time_t local = mktime(localtime(&ts.tv_sec));
+    time_t utc = mktime(gmtime(&ts.tv_sec));
+	m_observer.timezone = (local - utc) / 3600.0f;
+#endif
 }
 
 cSun::~cSun() { gluDeleteQuadric( sunsphere ); }

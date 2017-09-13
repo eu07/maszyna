@@ -39,16 +39,16 @@ class TGauge {
         double *dData { nullptr };
         int *iData;
     };
-    PSound m_soundfxincrease { nullptr }; // sound associated with increasing control's value
-    PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
-    std::map<int, PSound> m_soundfxvalues; // sounds associated with specific values
+    sound *m_soundfxincrease { nullptr }; // sound associated with increasing control's value
+    sound *m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
+    std::map<int, sound*> m_soundfxvalues; // sounds associated with specific values
 // methods
     // imports member data pair from the config file
     bool
         Load_mapping( cParser &Input );
     // plays specified sound
     void
-        play( PSound Sound );
+        play( sound* Sound );
 
   public:
     TGauge() = default;
@@ -59,7 +59,7 @@ class TGauge {
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
-    void UpdateValue(double fNewDesired, PSound Fallbacksound = nullptr );
+    void UpdateValue(double fNewDesired, sound *Fallbacksound = nullptr );
     void PutValue(double fNewDesired);
     double GetValue() const;
     void Update();

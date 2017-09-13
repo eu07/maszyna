@@ -16,12 +16,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "Ground.h"
 #include "parser.h"
-#include "Mover.h"
+#include "MOVER.h"
 #include "DynObj.h"
 #include "AnimModel.h"
 #include "MemCell.h"
@@ -1812,11 +1812,11 @@ void TTrack::EnvironmentSet()
     glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
     switch( eEnvironment ) {
         case e_canyon: {
-            Global::DayLight.apply_intensity( 0.4f );
+            Global::DayLight.apply_intensity(0.4f);
             break;
         }
         case e_tunnel: {
-            Global::DayLight.apply_intensity( 0.2f );
+			Global::DayLight.apply_intensity(0.2f);
             break;
         }
         default: {
@@ -1830,7 +1830,7 @@ void TTrack::EnvironmentReset()
     switch( eEnvironment ) {
         case e_canyon:
         case e_tunnel: {
-            Global::DayLight.apply_intensity();
+			Global::DayLight.apply_intensity();
             break;
         }
         default: {

@@ -14,7 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Button.h"
 #include "Gauge.h"
 #include "Spring.h"
-#include "AdvSound.h"
 #include "PyInt.h"
 #include "command.h"
 
@@ -111,8 +110,8 @@ class TTrain
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
     // plays specified sound, or fallback sound if the primary sound isn't presend
     // NOTE: temporary routine until sound system is sorted out and paired with switches
-    void play_sound( PSound Sound, int const Volume = DSBVOLUME_MAX, DWORD const Flags = 0 );
-    void play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags );
+    void play_sound( sound* Sound, float gain = 1.0f);
+    void play_sound( sound* Sound, sound* Fallbacksound, float gain = 1.0f );
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // command handlers
@@ -389,48 +388,48 @@ public: // reszta może by?publiczna
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnikJazdy;
-    PSound dsbNastawnikBocz; // hunter-081211
-    PSound dsbRelay;
-    PSound dsbPneumaticRelay;
-    PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;
-    PSound dsbReverserKey; // hunter-121211
+    sound* dsbNastawnikJazdy = nullptr;
+    sound* dsbNastawnikBocz = nullptr; // hunter-081211
+    sound* dsbRelay = nullptr;
+    sound* dsbPneumaticRelay = nullptr;
+    sound* dsbSwitch = nullptr;
+    sound* dsbPneumaticSwitch = nullptr;
+    sound* dsbReverserKey = nullptr; // hunter-121211
 
-    PSound dsbCouplerAttach; // Ra: w kabinie????
-    PSound dsbCouplerDetach; // Ra: w kabinie???
+    sound* dsbCouplerAttach = nullptr; // Ra: w kabinie????
+    sound* dsbCouplerDetach = nullptr; // Ra: w kabinie???
 
-    PSound dsbDieselIgnition; // Ra: w kabinie???
+    sound* dsbDieselIgnition = nullptr; // Ra: w kabinie???
 
-    PSound dsbDoorClose; // Ra: w kabinie???
-    PSound dsbDoorOpen; // Ra: w kabinie???
+    sound* dsbDoorClose = nullptr; // Ra: w kabinie???
+    sound* dsbDoorOpen = nullptr; // Ra: w kabinie???
 
     // Winger 010304
-    PSound dsbPantUp;
-    PSound dsbPantDown;
+    sound* dsbPantUp = nullptr;
+    sound* dsbPantDown = nullptr;
 
-    PSound dsbWejscie_na_bezoporow;
-    PSound dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
+    sound* dsbWejscie_na_bezoporow = nullptr;
+    sound* dsbWejscie_na_drugi_uklad = nullptr; // hunter-081211: poprawka literowki
 
-    //    PSound dsbHiss1;
-    //  PSound dsbHiss2;
+    //    sound* dsbHiss1;
+    //  sound* dsbHiss2;
 
     // McZapkie-280302
-    TRealSound rsBrake;
-    TRealSound rsSlippery;
-    TRealSound rsHiss; // upuszczanie
-    TRealSound rsHissU; // napelnianie
-    TRealSound rsHissE; // nagle
-    TRealSound rsHissX; // fala
-    TRealSound rsHissT; // czasowy
-    TRealSound rsSBHiss;
-    TRealSound rsRunningNoise;
-    TRealSound rsEngageSlippery;
-    TRealSound rsFadeSound;
+    sound* rsBrake = nullptr;
+    sound* rsSlippery = nullptr;
+    sound* rsHiss = nullptr; // upuszczanie
+    sound* rsHissU = nullptr; // napelnianie
+    sound* rsHissE = nullptr; // nagle
+    sound* rsHissX = nullptr; // fala
+    sound* rsHissT = nullptr; // czasowy
+    sound* rsSBHiss = nullptr;
+    sound* rsRunningNoise = nullptr;
+    sound* rsEngageSlippery = nullptr;
+    sound* rsFadeSound = nullptr;
 
-    PSound dsbHasler;
-    PSound dsbBuzzer;
-    PSound dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound* dsbHasler = nullptr;
+    sound* dsbBuzzer = nullptr;
+    sound* dsbSlipAlarm = nullptr; // Bombardier 011010: alarm przy poslizgu dla 181/182
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -440,10 +439,10 @@ public: // reszta może by?publiczna
     vector3 MirrorPosition(bool lewe);
 
   private:
-    // PSound dsbBuzzer;
-    PSound dsbCouplerStretch;
-    PSound dsbEN57_CouplerStretch;
-    PSound dsbBufferClamp;
+    sound* dsbCouplerStretch = nullptr;
+    sound* dsbEN57_CouplerStretch = nullptr;
+    sound* dsbBufferClamp = nullptr;
+
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika

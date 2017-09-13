@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "parser.h"
-#include "logs.h"
+#include "Logs.h"
 
 /*
     MaSzyna EU07 locomotive simulator parser
@@ -36,6 +36,7 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
     switch (Type) {
         case buffer_FILE: {
             Path.append( Stream );
+			std::replace(Path.begin(), Path.end(), '\\', '/');
             mStream = std::make_shared<std::ifstream>( Path );
             break;
         }

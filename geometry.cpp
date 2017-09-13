@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 #include <vcl.h>
 #pragma hdrstop
 
-#include "Geometry.h"
+#include "geometry.h"
 
 inline double sqr(double a)
 {

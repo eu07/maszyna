@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Model3d.h"
 #include "Console.h"
-#include "logs.h"
+#include "Logs.h"
 
 void TButton::Clear(int i)
 {
@@ -89,13 +89,13 @@ TButton::Load_mapping( cParser &Input ) {
     if( key == "soundinc:" ) {
         m_soundfxincrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
     else if( key == "sounddec:" ) {
         m_soundfxdecrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
@@ -124,6 +124,7 @@ void TButton::Update() {
     if( pModelOn  != nullptr ) { pModelOn->iVisible  =   m_state; }
     if( pModelOff != nullptr ) { pModelOff->iVisible = (!m_state); }
 
+#ifdef _WIN32
     if (iFeedbackBit) {
         // jeżeli generuje informację zwrotną
         if (m_state) // zapalenie
@@ -131,6 +132,7 @@ void TButton::Update() {
         else
             Console::BitsClear(iFeedbackBit);
     }
+#endif
 };
 
 void TButton::AssignBool(bool const *bValue) {
@@ -148,12 +150,11 @@ TButton::play() {
 }
 
 void
-TButton::play( PSound Sound ) {
+TButton::play( sound* Sound ) {
 
     if( Sound == nullptr ) { return; }
 
-    Sound->SetCurrentPosition( 0 );
-    Sound->SetVolume( DSBVOLUME_MAX );
-    Sound->Play( 0, 0, 0 );
+	Sound->stop();
+	Sound->play();
     return;
 }

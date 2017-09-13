@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Traction.h"
 #include "Globals.h"
-#include "logs.h"
+#include "Logs.h"
 #include "mctools.h"
 #include "TractionPower.h"
 
@@ -476,10 +476,11 @@ TTraction::wire_color() const {
             }
             default: {break; }
         }
+		color *= 0.2;
         // w zaleźności od koloru swiatła
-        color.r *= Global::DayLight.ambient[ 0 ];
-        color.g *= Global::DayLight.ambient[ 1 ];
-        color.b *= Global::DayLight.ambient[ 2 ];
+		//color.r *= Global::daylight.ambient.x;
+		//color.g *= Global::daylight.ambient.y;
+		//color.b *= Global::daylight.ambient.z;
     }
     else {
         // tymczasowo pokazanie zasilanych odcinków

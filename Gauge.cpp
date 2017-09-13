@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Model3d.h"
 #include "Timer.h"
-#include "logs.h"
+#include "Logs.h"
 
 void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
@@ -128,13 +128,13 @@ TGauge::Load_mapping( cParser &Input ) {
     if( key == "soundinc:" ) {
         m_soundfxincrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
     else if( key == "sounddec:" ) {
         m_soundfxdecrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
     else if( key.find( "sound" ) == 0 ) {
@@ -145,7 +145,7 @@ TGauge::Load_mapping( cParser &Input ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),
                 ( value != "none" ?
-                    TSoundsManager::GetFromName( value, true ) :
+                    sound_man->create_sound(value) :
                     nullptr ) );
         }
     }
@@ -178,7 +178,7 @@ void TGauge::DecValue(double fNewDesired)
 
 // ustawienie wartości docelowej. plays provided fallback sound, if no sound was defined in the control itself
 void
-TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
+TGauge::UpdateValue( double fNewDesired, sound* Fallbacksound ) {
 
     auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
     if( static_cast<int>( std::round( 100.0 * ( fDesiredValue - fOffset ) / fScale ) ) == desiredtimes100 ) {
@@ -316,13 +316,12 @@ void TGauge::UpdateValue()
 };
 
 void
-TGauge::play( PSound Sound ) {
+TGauge::play( sound *Sound ) {
 
     if( Sound == nullptr ) { return; }
 
-    Sound->SetCurrentPosition( 0 );
-    Sound->SetVolume( DSBVOLUME_MAX );
-    Sound->Play( 0, 0, 0 );
+	Sound->stop();
+	Sound->play();
     return;
 }
 

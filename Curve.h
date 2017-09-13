@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #define CurveH
 
 #include "QueryParserComp.hpp"
-#include "Usefull.h"
+#include "usefull.h"
 
 class TCurve
 {

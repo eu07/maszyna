@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mtable.h"
-#include "mczapkie/mctools.h"
+#include "McZapkie/mctools.h"
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca różnicę czasu
@@ -241,6 +241,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         ConversionError = 666;
         vActual = -1;
         s = scnpath + TrainName + ".txt";
+		std::replace(s.begin(), s.end(), '\\', '/');
         // Ra 2014-09: ustalić zasady wyznaczenia pierwotnego pliku przy przesuniętych rozkładach
         // (kolejny pociąg dostaje numer +2)
         fin.open(s.c_str()); // otwieranie pliku

@@ -34,9 +34,9 @@ class TTraction
     float NominalVoltage { 0.0f };
     float MaxCurrent { 0.0f };
     float fResistivity { 0.0f }; //[om/m], przeliczone z [om/km]
-    DWORD Material { 0 }; // 1: Cu, 2: Al
+    unsigned int Material { 0 }; // 1: Cu, 2: Al
     float WireThickness { 0.0f };
-    DWORD DamageFlag { 0 }; // 1: zasniedziale, 128: zerwana
+    unsigned int DamageFlag { 0 }; // 1: zasniedziale, 128: zerwana
     int Wires { 2 };
     float WireOffset { 0.0f };
     std::string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej

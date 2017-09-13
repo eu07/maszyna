@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "material.h"
 #include "renderer.h"
 #include "usefull.h"
-#include "globals.h"
+#include "Globals.h"
 
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
@@ -71,13 +71,11 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
     filename += ".mat";
 
-    for( char &c : filename ) {
-        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
-        c = ( c == '/' ? '\\' : c );
-    }
-    if( filename.find( '\\' ) == std::string::npos ) {
+	std::replace(filename.begin(), filename.end(), '\\', '/'); // fix slashes
+
+    if( filename.find( '/' ) == std::string::npos ) {
         // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-        filename = szTexturePath + filename;
+        filename = global_texture_path + filename;
     }
 
     // try to locate requested material in the databank
@@ -121,7 +119,7 @@ material_manager::find_in_databank( std::string const &Materialname ) const {
         return lookup->second;
     }
     // jeszcze próba z dodatkową ścieżką
-    lookup = m_materialmappings.find( szTexturePath + Materialname );
+    lookup = m_materialmappings.find( global_texture_path + Materialname );
 
     return (
         lookup != m_materialmappings.end() ?
@@ -136,7 +134,7 @@ material_manager::find_on_disk( std::string const &Materialname ) const {
 
     return(
         FileExists( Materialname ) ? Materialname :
-        FileExists( szTexturePath + Materialname ) ? szTexturePath + Materialname :
+        FileExists( global_texture_path + Materialname ) ? global_texture_path + Materialname :
         "" );
 }
 

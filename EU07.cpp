@@ -15,10 +15,10 @@ Authors:
 MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
 Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
+
 #include "stdafx.h"
-#ifdef CAN_I_HAS_LIBPNG
 #include <png.h>
-#endif
+#include <thread>
 
 #include "Globals.h"
 #include "Logs.h"
@@ -28,39 +28,20 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Console.h"
 #include "PyInt.h"
 #include "World.h"
-#include "Mover.h"
+#include "MOVER.h"
 #include "usefull.h"
-#include "timer.h"
+#include "Timer.h"
 #include "resource.h"
 #include "uilayer.h"
 
-#ifdef EU07_BUILD_STATIC
-#pragma comment( lib, "glfw3.lib" )
-#pragma comment( lib, "glew32s.lib" )
-#else
-#ifdef _WINDOWS
-#pragma comment( lib, "glfw3dll.lib" )
-#else
-#pragma comment( lib, "glfw3.lib" )
-#endif
-#pragma comment( lib, "glew32.lib" )
-#endif // build_static
-#pragma comment( lib, "opengl32.lib" )
-#pragma comment( lib, "glu32.lib" )
-#pragma comment( lib, "dsound.lib" )
-#pragma comment( lib, "winmm.lib" )
-#pragma comment( lib, "setupapi.lib" )
-#pragma comment( lib, "python27.lib" )
+#pragma comment (lib, "glu32.lib")
+#pragma comment (lib, "dsound.lib")
+#pragma comment (lib, "winmm.lib")
+#pragma comment (lib, "setupapi.lib")
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
-#ifdef CAN_I_HAS_LIBPNG
-#pragma comment (lib, "libpng16.lib")
-#endif
 
-#ifdef _MSC_VER
-#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
-#endif
-
+std::unique_ptr<sound_manager> sound_man;
 TWorld World;
 
 namespace input {
@@ -72,7 +53,6 @@ glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking 
 
 }
 
-#ifdef CAN_I_HAS_LIBPNG
 void screenshot_save_thread( char *img )
 {
 	png_image png;
@@ -90,7 +70,13 @@ void screenshot_save_thread( char *img )
 	strftime(datetime, 64, "%Y-%m-%d_%H-%M-%S", tm_info);
 
 	uint64_t perf;
+#ifdef _WIN32
 	QueryPerformanceCounter((LARGE_INTEGER*)&perf);
+#elif __linux__
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	perf = ts.tv_nsec;
+#endif
 
 	std::string filename = "screenshots/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
@@ -111,7 +97,6 @@ void make_screenshot()
 	std::thread t(screenshot_save_thread, img);
 	t.detach();
 }
-#endif
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
@@ -125,12 +110,12 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
+	if (!window)
+		return;
+
     input::Mouse.move( x, y );
 
-    if( true == Global::ControlPicking ) {
-        glfwSetCursorPos( window, x, y );
-    }
-    else {
+    if( !Global::ControlPicking ) {
         glfwSetCursorPos( window, 0, 0 );
     }
 }
@@ -187,7 +172,6 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         World.OnKeyDown( key );
 
-#ifdef CAN_I_HAS_LIBPNG
         switch( key )
         {
             case GLFW_KEY_F11: {
@@ -196,7 +180,6 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
             }
             default: { break; }
         }
-#endif
     }
 }
 
@@ -231,17 +214,8 @@ extern WNDPROC BaseWindowProc;
 
 int main(int argc, char *argv[])
 {
-#if defined(_MSC_VER) && defined (_DEBUG)
-    // memory leaks
-    _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
-    // floating point operation errors
-    auto state = _clearfp();
-    state = _control87( 0, 0 );
-    // this will turn on FPE for #IND and zerodiv
-    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
-#endif
 #ifdef _WINDOWS
-    ::SetUnhandledExceptionFilter( unhandled_handler );
+	::SetUnhandledExceptionFilter(unhandled_handler);
 #endif
 
 	if (!glfwInit())
@@ -250,60 +224,21 @@ int main(int argc, char *argv[])
 #ifdef _WINDOWS
     DeleteFile( "log.txt" );
     DeleteFile( "errors.txt" );
-    _mkdir("logs");
+    CreateDirectory("logs", NULL);
 #endif
     Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 
+#ifdef _WIN32
     // hunter-271211: ukrywanie konsoli
     if( Global::iWriteLogEnabled & 2 )
 	{
         AllocConsole();
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
-/*
-    std::string executable( argv[ 0 ] ); auto const pathend = executable.rfind( '\\' );
-    Global::ExecutableName =
-        ( pathend != std::string::npos ?
-            executable.substr( executable.rfind( '\\' ) + 1 ) :
-            executable );
-*/
-    // retrieve product version from the file's version data table
-    {
-        auto const fileversionsize = ::GetFileVersionInfoSize( argv[ 0 ], NULL );
-        std::vector<BYTE>fileversiondata; fileversiondata.resize( fileversionsize );
-        if( ::GetFileVersionInfo( argv[ 0 ], 0, fileversionsize, fileversiondata.data() ) ) {
+#endif
 
-            struct lang_codepage {
-                WORD language;
-                WORD codepage;
-            } *langcodepage;
-            UINT datasize;
-
-            ::VerQueryValue(
-                fileversiondata.data(),
-                TEXT( "\\VarFileInfo\\Translation" ),
-                (LPVOID*)&langcodepage,
-                &datasize );
-
-            std::string subblock; subblock.resize( 50 );
-            ::StringCchPrintf(
-                &subblock[0], subblock.size(),
-                TEXT( "\\StringFileInfo\\%04x%04x\\ProductVersion" ),
-                langcodepage->language,
-                langcodepage->codepage );
-
-            VOID *stringdata;
-            if( ::VerQueryValue(
-                    fileversiondata.data(),
-                    subblock.data(),
-                    &stringdata,
-                    &datasize ) ) {
-
-                Global::asVersion = std::string( reinterpret_cast<char*>(stringdata) );
-            }
-        }
-    }
+	Global::asVersion = "NG";
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -346,6 +281,8 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     if( Global::iMultisampling > 0 ) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global::iMultisampling );
     }
@@ -358,14 +295,8 @@ int main(int argc, char *argv[])
     }
 
     GLFWwindow *window =
-        glfwCreateWindow(
-            Global::iWindowWidth,
-            Global::iWindowHeight,
-            Global::AppName.c_str(),
-            ( Global::bFullScreen ?
-                monitor :
-                nullptr),
-            nullptr );
+        glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
+			Global::AppName.c_str(), Global::bFullScreen ? monitor : nullptr, nullptr );
 
     if (!window)
 	{
@@ -412,40 +343,50 @@ int main(int argc, char *argv[])
         ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
-    if( ( false == GfxRenderer.Init( window ) )
-     || ( false == UILayer.init( window ) ) ) {
+	try {
+		if ((false == GfxRenderer.Init(window))
+			|| (false == UILayer.init(window)))
+			return -1;
 
-        return -1;
-    }
-    input::Keyboard.init();
-    input::Mouse.init();
-    input::Gamepad.init();
+		sound_man = std::make_unique<sound_manager>();
 
-    Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-    try {
-        if( false == World.Init( window ) ) {
+		input::Keyboard.init();
+		input::Mouse.init();
+		input::Gamepad.init();
+
+		Global::pWorld = &World;
+		if( false == World.Init( window ) ) {
             ErrorLog( "Simulation setup failed" );
             return -1;
         }
     }
-    catch( std::bad_alloc const &Error ) {
-
+    catch( std::bad_alloc const &Error )
+	{
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         return -1;
     }
+	catch (std::runtime_error e)
+	{
+        ErrorLog(e.what());
+		return -1;
+	}
 
+#ifdef _WIN32
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
+#endif
 /*
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
 */
     if( Global::iConvertModels < 0 ) {
         Global::iConvertModels = -Global::iConvertModels;
-        World.CreateE3D( "models\\" ); // rekurencyjne przeglądanie katalogów
-        World.CreateE3D( "dynamic\\", true );
+        World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
+        World.CreateE3D( "dynamic/", true );
     } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
+#ifdef _WIN32
     Console::On(); // włączenie konsoli
+#endif
 
     try {
         while( ( false == glfwWindowShouldClose( window ) )
@@ -456,17 +397,24 @@ int main(int argc, char *argv[])
             if( true == Global::InputMouse )   { input::Mouse.poll(); }
             if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
         }
-    }
-    catch( std::bad_alloc const &Error ) {
+	}
+	catch (std::runtime_error e)
+    {
+    	ErrorLog(e.what());
+		return -1;
+	}
+	catch( std::bad_alloc const &Error ) {
+		ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+		return -1;
+	}
 
-        ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
-        return -1;
-    }
-
-    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
 
 	TPythonInterpreter::killInstance();
+
+#ifdef _WIN32
+    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
 	delete pConsole;
+#endif
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

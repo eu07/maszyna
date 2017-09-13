@@ -1,6 +1,6 @@
 #pragma once
 
-#include "float3d.h"
+#include "Float3d.h"
 
 inline
 glm::vec3

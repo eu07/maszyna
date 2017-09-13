@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
-#include "Sound.h"
+#include "sound.h"
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "Event.h"
@@ -46,10 +46,12 @@ simulation_time Time;
 
 }
 
+#ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
+#endif
 
 void
 simulation_time::init() {
@@ -63,7 +65,21 @@ simulation_time::init() {
     WORD const requestedhour = m_time.wHour;
     WORD const requestedminute = m_time.wMinute;
 
+#ifdef __linux__
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	tm *tms = localtime(&ts.tv_sec);
+	m_time.wYear = tms->tm_year;
+	m_time.wMonth = tms->tm_mon;
+	m_time.wDayOfWeek = tms->tm_wday;
+	m_time.wDay = tms->tm_mday;
+	m_time.wHour = tms->tm_hour;
+	m_time.wMinute = tms->tm_min;
+	m_time.wSecond = tms->tm_sec;
+	m_time.wMilliseconds = ts.tv_nsec / 1000000;
+#elif _WIN32
     ::GetLocalTime( &m_time );
+#endif
 
     if( Global::fMoveLight > 0.0 ) {
         // day and month of the year can be overriden by scenario setup
@@ -197,7 +213,6 @@ TWorld::~TWorld()
 {
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
-    TSoundsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -223,22 +238,13 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     WriteLog( "\nStarting MaSzyna rail vehicle simulator (release: " + Global::asVersion + ")" );
     WriteLog( "For online documentation and additional files refer to: http://eu07.pl");
-    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-
-    if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
-        WriteLog( "Sound subsystem setup complete" );
-    }
-    else {
-        ErrorLog( "Sound subsystem setup failed" );
-        return false;
-    }
 
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
+
     GfxRenderer.Render();
 
     WriteLog( "World setup..." );
@@ -608,8 +614,7 @@ void TWorld::OnKeyDown(int cKey)
     { // i potwierdzenie
         if( cKey == GLFW_KEY_Y ) {
             // flaga wyjścia z programu
-            ::PostQuitMessage( 0 );
-//            Global::iTextMode = -1;
+			glfwSetWindowShouldClose(window, 1);
         }
         return; // nie przekazujemy do pociągu
     }
@@ -619,6 +624,7 @@ void TWorld::OnKeyDown(int cKey)
         {
             if (cKey == GLFW_KEY_1)
                 Global::iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
+#ifdef _WIN32
             else if (cKey == GLFW_KEY_2)
             { // włącz/wyłącz okno konsoli
                 Global::iWriteLogEnabled ^= 2;
@@ -629,6 +635,7 @@ void TWorld::OnKeyDown(int cKey)
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
                 }
             }
+#endif
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
@@ -685,8 +692,7 @@ void TWorld::OnKeyDown(int cKey)
                                          temp->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->dsbSwitch->gain(1.0f).play();
                     }
             }
         }
@@ -715,8 +721,7 @@ void TWorld::OnKeyDown(int cKey)
                     tmp->iLights[CouplNr] = (tmp->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->dsbSwitch->gain(1.0f).play();
                     }
                 }
             }
@@ -736,8 +741,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
                         }
             }
         }
@@ -756,8 +760,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
                         }
             }
         }
@@ -945,7 +948,9 @@ bool TWorld::Update()
         // tak można np. moc silników itp., ale ruch musi być przeliczany w każdej klatce, bo
         // inaczej skacze
         Global::tranTexts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
+#ifdef _WIN32
         Console::Update(); // obsługa cykli PoKeys (np. aktualizacja wyjść analogowych)
+#endif
         double iter =
             ceil(fTimeBuffer / fMaxDt); // ile kroków się zmieściło od ostatniego sprawdzania?
         int n = int(iter); // ile kroków jako int
@@ -1049,6 +1054,18 @@ bool TWorld::Update()
 
     Ground.Update_Lights();
 
+	{
+		glm::dmat4 cam_matrix;
+		Camera.SetMatrix(cam_matrix);
+
+		glm::vec3 pos(Camera.Pos.x, Camera.Pos.y, Camera.Pos.z);
+	    glm::vec3 at = glm::vec3(0.0, 0.0, -1.0) * glm::mat3(cam_matrix);
+	    glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * glm::mat3(cam_matrix);
+
+	    sound_man->set_listener(pos, at, up);
+	    sound_man->update(dt);
+	}
+
     // render time routines follow:
 
     dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
@@ -1057,7 +1074,9 @@ bool TWorld::Update()
 
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
     while( fTime50Hz >= 1.0 / 50.0 ) {
+#ifdef _WIN32
         Console::Update(); // to i tak trzeba wywoływać
+#endif
         Update_UI();
         // decelerate camera
         Camera.Velocity *= 0.65;
@@ -1569,12 +1588,8 @@ TWorld::Update_UI() {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
 
-            uitextline2 =
-                std::string( "Rendering mode: " )
-                + ( Global::bUseVBO ?
-                    "VBO" :
-                    "Display Lists" )
-                + " ";
+
+
             // dump last opengl error, if any
             GLenum glerror = ::glGetError();
             if( glerror != GL_NO_ERROR ) {
@@ -2154,7 +2169,7 @@ TWorld::ToggleDaylight() {
 
 void
 world_environment::init() {
-
+//	m_skydome.init();
     m_sun.init();
     m_moon.init();
     m_stars.init();

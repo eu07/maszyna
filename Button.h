@@ -22,8 +22,8 @@ class TButton
     bool m_state { false };
     bool const *bData { nullptr };
     int iFeedbackBit { 0 }; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
-    PSound m_soundfxincrease { nullptr }; // sound associated with increasing control's value
-    PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
+    sound* m_soundfxincrease { nullptr }; // sound associated with increasing control's value
+    sound* m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
 // methods
     // imports member data pair from the config file
     bool
@@ -33,7 +33,7 @@ class TButton
         play();
     // plays specified sound
     void
-        play( PSound Sound );
+        play( sound *Sound );
 
   public:
     TButton() = default;
