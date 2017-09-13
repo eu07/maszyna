@@ -2497,7 +2497,7 @@ void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const 
     // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
     if( Train->ggInstrumentLightButton.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
-            WriteLog( "Universal3 switch is missing, or wasn't defined" );
+            WriteLog( "Instrument light switch is missing, or wasn't defined" );
         }
         return;
     }

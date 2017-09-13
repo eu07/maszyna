@@ -186,8 +186,8 @@ class TController
 private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
+public:
     double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
-  public:
     TEvent *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
     int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
@@ -245,25 +245,20 @@ private:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
     double VelDesired = 0.0; // predkość, z jaką ma jechać, wynikająca z analizy tableki; <=VelSignal
-    double fAccDesiredAv = 0.0; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby
-    // ograniczyć migotanie
-  public:
+    double fAccDesiredAv = 0.0; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby ograniczyć migotanie
     double VelforDriver = -1.0; // prędkość, używana przy zmianie kierunku (ograniczenie przy nieznajmości szlaku?)
     double VelSignal = 0.0; // ograniczenie prędkości z kompilacji znaków i sygnałów // normalnie na początku ma stać, no chyba że jedzie
     double VelLimit = -1.0; // predkość zadawana przez event jednokierunkowego ograniczenia prędkości // -1: brak ograniczenia prędkości
-  public:
     double VelSignalLast = -1.0; // prędkość zadana na ostatnim semaforze // ostatni semafor też bez ograniczenia
     double VelSignalNext = 0.0; // prędkość zadana na następnym semaforze
     double VelLimitLast = -1.0; // prędkość zadana przez ograniczenie // ostatnie ograniczenie bez ograniczenia
     double VelRoad = -1.0; // aktualna prędkość drogowa (ze znaku W27) (PutValues albo komendą) // prędkość drogowa bez ograniczenia
-  public:
     double VelNext = 120.0; // prędkość, jaka ma być po przejechaniu długości ProximityDist
   private:
     double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do punktu, <0:podana wartość
     double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora
   public:
-    double
-        ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
+    double ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
   private:
     vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
     // odnosi sie komenda
@@ -297,7 +292,7 @@ private:
     double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
     double WaitingTime = 0.0; // zliczany czas oczekiwania do samoistnego ruszenia
     double WaitingExpireTime = 31.0; // tyle ma czekać, zanim się ruszy // maksymlany czas oczekiwania do samoistnego ruszenia
-    // TEvent* eSignLast; //ostatnio znaleziony sygnał, o ile nie minięty
+
   private: //---//---//---//---// koniec zmiennych, poniżej metody //---//---//---//---//
     void SetDriverPsyche();
     bool PrepareEngine();
@@ -314,23 +309,16 @@ private:
     void AutoRewident(); // ustawia hamulce w składzie
 	double ESMVelocity(bool Main);
   public:
-    Mtable::TTrainParameters *Timetable()
-    {
-        return TrainParams;
-    };
+    Mtable::TTrainParameters *Timetable() {
+        return TrainParams; };
     void PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const vector3 *NewLocation, TStopReason reason = stopComm);
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     // procedury dotyczace rozkazow dla maszynisty
-    void SetVelocity(double NewVel, double NewVelNext,
-                     TStopReason r = stopNone); // uaktualnia informacje o prędkości
-/*
-    bool SetProximityVelocity(
-        double NewDist,
-        double NewVelNext); // uaktualnia informacje o prędkości przy nastepnym semaforze
-*/
+    // uaktualnia informacje o prędkości
+    void SetVelocity(double NewVel, double NewVelNext, TStopReason r = stopNone);
   public:
     void JumpToNextOrder();
     void JumpToFirstOrder();
@@ -349,9 +337,7 @@ private:
     void OrdersInit(double fVel);
     void OrdersClear();
     void OrdersDump();
-    TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
-                bool primary = true // czy ma aktywnie prowadzić?
-                );
+    TController( bool AI, TDynamicObject *NewControll, bool InitPsyche, bool primary = true );
     std::string OrderCurrent();
     void WaitingSet(double Seconds);
 
@@ -360,33 +346,24 @@ private:
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
-//    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
-
-  private: // Ra: metody obsługujące skanowanie toru
+    // Ra: metody obsługujące skanowanie toru
     TEvent *CheckTrackEvent(TTrack *Track, double const fDirection ) const;
-//    bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
-//    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     // modifies brake distance for low target speeds, to ease braking rate in such situations
     float
-        braking_distance_multiplier( float const Targetvelocity );
+        braking_distance_multiplier( float const Targetvelocity ) const;
     void TablePurger();
     void TableSort();
-    inline double MoveDistanceGet()
-    {
-        return dMoveLen;
-    }
-    inline void MoveDistanceReset()
-    {
-        dMoveLen = 0.0;
-    }
+    inline double MoveDistanceGet() const {
+        return dMoveLen; }
+    inline void MoveDistanceReset() {
+        dMoveLen = 0.0; }
   public:
-    inline void MoveDistanceAdd(double distance)
-    {
+    inline void MoveDistanceAdd(double distance) {
         dMoveLen += distance * iDirection; //jak jedzie do tyłu to trzeba uwzględniać, że distance jest ujemna
     }
     std::size_t TableSize() const { return sSpeedTable.size(); }
@@ -396,8 +373,7 @@ private:
   private: // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
     bool BackwardTrackBusy(TTrack *Track);
     TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
-                               TEvent *&Event);
+    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event);
     void SetProximityVelocity(double dist, double vel, const vector3 *pos);
     TCommandType BackwardScan();
 
@@ -417,13 +393,16 @@ private:
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
     inline
     int DrivigFlags() const {
-        return iDrivigFlags;
-    };
+        return iDrivigFlags; };
+    // returns most recently calculated distance to potential obstacle ahead
+    double
+        TrackBlock() const;
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
     std::string TableText(std::size_t const Index);
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
     std::string OwnerName() const;
-    TMoverParameters const *Controlling() const { return mvControlling; }
+    TMoverParameters const *Controlling() const {
+        return mvControlling; }
 };
