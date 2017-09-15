@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 
+#define EU07_NEW_CAB_RENDERCODE
+
 opengl_renderer GfxRenderer;
 extern TWorld World;
 
@@ -1343,19 +1345,6 @@ opengl_renderer::Render( TGround *Ground ) {
 
     m_drawqueue.clear();
 
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::color: {
-            // rednerowanie globalnych (nie za często?)
-            for( TGroundNode *node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
-                node->RenderHidden();
-            }
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-
     glm::vec3 const cameraposition { m_renderpass.camera.position() };
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
     int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
@@ -1372,20 +1361,6 @@ opengl_renderer::Render( TGround *Ground ) {
                 for( int row = originz; row <= originz + segmentcount; ++row ) {
 
                     auto *cell = &Ground->Rects[ column ][ row ];
-
-                    for( int subcellcolumn = 0; subcellcolumn < iNumSubRects; ++subcellcolumn ) {
-                        for( int subcellrow = 0; subcellrow < iNumSubRects; ++subcellrow ) {
-                            auto subcell = cell->FastGetSubRect( subcellcolumn, subcellrow );
-                            if( subcell == nullptr ) { continue; }
-                            // renderowanie obiektów aktywnych a niewidocznych
-                            for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
-                                node->RenderHidden();
-                            }
-                            // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
-                            subcell->RenderSounds();
-                        }
-                    }
-
                     if( m_renderpass.camera.visible( cell->m_area ) ) {
                         Render( cell );
                     }

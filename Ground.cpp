@@ -2437,7 +2437,7 @@ bool TGround::InitEvents()
                     Current->Params[9].asTrack = tmp->pTrack;
                 if (!Current->Params[9].asTrack)
                 {
-                    ErrorLog("Bad event: Track \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find track \"" + cellastext + "\"" );
                     Current->iFlags &= ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
                 }
             }
@@ -2448,7 +2448,7 @@ bool TGround::InitEvents()
                     Current->Params[9].asMemCell = tmp->MemCell;
                 if (!Current->Params[9].asMemCell)
                 {
-                    ErrorLog("Bad event: MemCell \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
                     Current->iFlags &= ~(conditional_memstring | conditional_memval1 | conditional_memval2);
                 }
             }
@@ -2459,13 +2459,13 @@ bool TGround::InitEvents()
                     cellastext = Current->Params[ i ].asText;
                     SafeDeleteArray(Current->Params[i].asText);
                     Current->Params[i].asEvent = FindEvent(cellastext);
-					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
+					if( !Current->Params[ i ].asEvent ) {
+                        // Ra: tylko w logu informacja o braku
 						if( ( Current->Params[ i ].asText == NULL )
 						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
-							WriteLog( "Event \"" + cellastext + "\" does not exist" );
-							ErrorLog( "Missed event: " + cellastext + " in multiple " + Current->asName );
+                            ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find event \"" + cellastext + "\"" );
 						}
-                        }
+                    }
                 }
             }
             break;
@@ -3410,18 +3410,22 @@ bool TGround::CheckQuery()
                             owner != nullptr ?
                                 owner->fReady :
                                 -1.0 );
+                        auto const collisiondistance = (
+                            owner != nullptr ?
+                                owner->TrackBlock() :
+                                -1.0 );
 
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
                             consistbrakelevel,
-                            0, // na razie nic
+                            collisiondistance,
                             tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
 
                         WriteLog(
                               "whois request (" + to_string( tmpEvent->iFlags ) + ") "
                             + "[name: " + tmpEvent->Activator->MoverParameters->TypeName + "], "
                             + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
-                            + "[]" );
+                            + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
                     }
                     else {
                         // jeśli parametry ładunku
@@ -3587,6 +3591,45 @@ void
 TGround::Update_Lights() {
 
     m_lights.update();
+}
+
+void
+TGround::Update_Hidden() {
+
+    // rednerowanie globalnych (nie za często?)
+    for( TGroundNode *node = srGlobal.nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+
+    // render events and sounds from sectors near enough to the viewer
+    auto const range = 2750.0; // audible range of 100 db sound
+    int const camerax = static_cast<int>( std::floor( Global::pCameraPosition.x / 1000.0 ) + iNumRects / 2 );
+    int const cameraz = static_cast<int>( std::floor( Global::pCameraPosition.z / 1000.0 ) + iNumRects / 2 );
+    int const segmentcount = 2 * static_cast<int>( std::ceil( range / 1000.0 ) );
+    int const originx = std::max( 0, camerax - segmentcount / 2 );
+    int const originz = std::max( 0, cameraz - segmentcount / 2 );
+
+    for( int column = originx; column <= originx + segmentcount; ++column ) {
+        for( int row = originz; row <= originz + segmentcount; ++row ) {
+
+            auto &cell = Rects[ column ][ row ];
+
+            for( int subcellcolumn = 0; subcellcolumn < iNumSubRects; ++subcellcolumn ) {
+                for( int subcellrow = 0; subcellrow < iNumSubRects; ++subcellrow ) {
+                    auto subcell = cell.FastGetSubRect( subcellcolumn, subcellrow );
+                    if( subcell == nullptr ) { continue; }
+                    // renderowanie obiektów aktywnych a niewidocznych
+                    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
+                        node->RenderHidden();
+                    }
+                    // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
+                    // TODO: move to sound renderer
+                    subcell->RenderSounds();
+                }
+            }
+        }
+    }
+
 }
 
 // Winger 170204 - szukanie trakcji nad pantografami

@@ -1052,6 +1052,7 @@ bool TWorld::Update()
 
     Ground.CheckQuery();
 
+    Ground.Update_Hidden();
     Ground.Update_Lights();
 
 	{
@@ -1451,6 +1452,10 @@ TWorld::Update_UI() {
                     + ", Fb: " + to_string( tmp->MoverParameters->Fb * 0.001f, 1 )
                     + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
                     + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
+
+                if( tmp->Mechanik ) {
+                    uitextline2 += "; Ag: " + to_string( tmp->Mechanik->fAccGravity, 2 );
+                }
 
                 uitextline2 +=
                     "; TC:"

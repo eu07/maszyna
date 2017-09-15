@@ -1355,7 +1355,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
 // modifies brake distance for low target speeds, to ease braking rate in such situations
 float
-TController::braking_distance_multiplier( float const Targetvelocity ) {
+TController::braking_distance_multiplier( float const Targetvelocity ) const {
 
     if( Targetvelocity > 65.f ) { return 1.f; }
     if( Targetvelocity < 5.f )  { return 1.f; }
@@ -1422,11 +1422,15 @@ void TController::TablePurger()
     iLast = sSpeedTable.size() - 1;
 };
 
-void TController::TableSort()
-{
+void TController::TableSort() {
+
+    if( sSpeedTable.size() < 3 ) {
+        // we skip last slot and no point in checking if there's only one other entry
+        return;
+    }
     TSpeedPos sp_temp = TSpeedPos(); // uzywany do przenoszenia
-    for (std::size_t i = 0; i < (iLast - 1) && iLast > 1 && iLast != -1; ++i)
-    { // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
+    for( std::size_t i = 0; i < ( iLast - 1 ); ++i ) {
+        // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
         if (sSpeedTable[i].fDist > sSpeedTable[i + 1].fDist)
         { // jesli pozycja wcześniejsza jest dalej to źle
             sp_temp = sSpeedTable[i + 1];
@@ -3992,6 +3996,11 @@ TController::UpdateSituation(double dt) {
                 // bottom margin raised to 2 km/h to give the AI more leeway at low speed limits
                 fVelPlus = clamp( std::ceil( 0.05 * VelDesired ), 2.0, 5.0 );
             }
+            if( mvOccupied->BrakeDelayFlag == bdelay_G ) {
+                // increase distances for cargo trains to take into account slower reaction to brakes
+                fMinProximityDist += 10.0;
+                fMaxProximityDist += 10.0;
+            }
         }
         else {
             // samochod (sokista też)
@@ -4302,6 +4311,12 @@ TController::UpdateSituation(double dt) {
                                     if( vehicle->fTrackBlock <= fMinProximityDist ) {
                                         VelDesired = 0.0;
                                     }
+
+                                    if( ( mvOccupied->CategoryFlag & 1 )
+                                     && ( OrderCurrentGet() & Obey_train ) ) {
+                                        // trains which move normally should try to stop at safe margin
+                                        ActualProximityDist -= fDriverDist;
+                                    }
                                 }
                             }
                             else {
@@ -4455,8 +4470,8 @@ TController::UpdateSituation(double dt) {
             // przeciwnie do zadanego kierunku jazdy
             //(AccDesired) porównujemy z (fAccGravity) albo (AbsAccS)
             if( ( VelNext >= 0.0 )
-                && ( ActualProximityDist <= routescanrange )
-                && ( vel >= VelNext ) ) {
+             && ( ActualProximityDist <= routescanrange )
+             && ( vel >= VelNext ) ) {
                 // gdy zbliża się i jest za szybki do nowej prędkości, albo stoi na zatrzymaniu
                 if (vel > 0.0) {
                     // jeśli jedzie
@@ -4563,23 +4578,52 @@ TController::UpdateSituation(double dt) {
             }
             // koniec predkosci nastepnej
 
-            if( vel > VelDesired ) {
-                // jesli jedzie za szybko do AKTUALNEGO
-                if( VelDesired == 0.0 ) {
-                    // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                    AccDesired = std::min( AccDesired, -0.9 ); // hamuj solidnie
-                }
-                else {
-                    // slow down, not full stop
-                    if( vel > ( VelDesired + fVelPlus ) ) {
-                        // hamuj tak średnio
-                        AccDesired = std::min( AccDesired, -fBrake_a0[ 0 ] * 0.5 );
+            // decisions based on current speed
+            if( mvOccupied->CategoryFlag == 1 ) {
+                // try to estimate increase of current velocity before engaged brakes start working
+                auto const speedestimate = vel + vel * ( 1.0 - fBrake_a0[ 0 ] ) * AbsAccS;
+                if( speedestimate > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
                     }
                     else {
-                        // o 5 km/h to olej (zacznij luzować)
-                        AccDesired = std::min(
-                            AccDesired, // but don't override decceleration for VelNext 
-                            std::max( 0.0, AccPreferred ) );
+                        if( speedestimate > ( VelDesired + fVelPlus ) ) {
+                            // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
+                            AccDesired = std::min( AccDesired, -0.25 );
+                        }
+                        else {
+                            // close enough to target to stop accelerating
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                interpolate( // ease off as you close to the target velocity
+                                    -0.06, AccPreferred,
+                                    clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                        }
+                    }
+                }
+            }
+            else {
+                // for cars the older version works better
+                if( vel > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.9 ); // hamuj solidnie
+                    }
+                    else {
+                        // slow down, not full stop
+                        if( vel > ( VelDesired + fVelPlus ) ) {
+                            // hamuj tak średnio
+                            AccDesired = std::min( AccDesired, -fBrake_a0[ 0 ] * 0.5 );
+                        }
+                        else {
+                            // o 5 km/h to olej (zacznij luzować)
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                std::max( 0.0, AccPreferred ) );
+                        }
                     }
                 }
             }
@@ -4587,6 +4631,10 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
+            if( mvOccupied->CategoryFlag == 1 ) {
+                // also take into account impact of gravity
+                AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
+            }
 
 
 
@@ -4643,15 +4691,20 @@ TController::UpdateSituation(double dt) {
                     }
                 // NOTE: as a stop-gap measure the routine is limited to trains only while car calculations seem off
                 if( mvControlling->CategoryFlag == 1 ) {
-                    if( -AccDesired * BrakeAccFactor() < (
-                        ( ( fReady > 0.4 ) || ( VelNext > vel - 40.0 ) ) ?
-                            fBrake_a0[ 0 ] * 0.8 :
-                            -fAccThreshold )
-                        / braking_distance_multiplier( VelNext ) ) {
-                        AccDesired = std::max( -0.06, AccDesired );
+                    if( vel < VelDesired ) {
+                        // don't adjust acceleration when going above current goal speed
+                        if( -AccDesired * BrakeAccFactor() < (
+                            ( ( fReady > 0.4 )
+                           || ( VelNext > vel - 40.0 ) ) ?
+                                fBrake_a0[ 0 ] * 0.8 :
+                                -fAccThreshold )
+                            / braking_distance_multiplier( VelNext ) ) {
+                            AccDesired = std::max( -0.06, AccDesired );
+                        }
                     }
                     else {
-                        ReactionTime = 0.25; // i orientuj się szybciej, jeśli hamujesz
+                        // i orientuj się szybciej, jeśli hamujesz
+                        ReactionTime = 0.25;
                     }
                 }
                 if (mvOccupied->BrakeSystem == Pneumatic) // napełnianie uderzeniowe
@@ -5537,6 +5590,13 @@ bool TController::IsStop()
 { // informuje, czy jest zatrzymanie na najbliższej stacji
     return TrainParams->IsStop();
 };
+
+// returns most recently calculated distance to potential obstacle ahead
+double
+TController::TrackBlock() const {
+
+    return pVehicles[ TMoverParameters::side::front ]->fTrackBlock;
+}
 
 void TController::MoveTo(TDynamicObject *to)
 { // przesunięcie AI do innego pojazdu (przy zmianie kabiny)
