@@ -3581,6 +3581,45 @@ TGround::Update_Lights() {
     m_lights.update();
 }
 
+void
+TGround::Update_Hidden() {
+
+    // rednerowanie globalnych (nie za często?)
+    for( TGroundNode *node = srGlobal.nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+
+    // render events and sounds from sectors near enough to the viewer
+    auto const range = 2750.0; // audible range of 100 db sound
+    int const camerax = static_cast<int>( std::floor( Global::pCameraPosition.x / 1000.0 ) + iNumRects / 2 );
+    int const cameraz = static_cast<int>( std::floor( Global::pCameraPosition.z / 1000.0 ) + iNumRects / 2 );
+    int const segmentcount = 2 * static_cast<int>( std::ceil( range / 1000.0 ) );
+    int const originx = std::max( 0, camerax - segmentcount / 2 );
+    int const originz = std::max( 0, cameraz - segmentcount / 2 );
+
+    for( int column = originx; column <= originx + segmentcount; ++column ) {
+        for( int row = originz; row <= originz + segmentcount; ++row ) {
+
+            auto &cell = Rects[ column ][ row ];
+
+            for( int subcellcolumn = 0; subcellcolumn < iNumSubRects; ++subcellcolumn ) {
+                for( int subcellrow = 0; subcellrow < iNumSubRects; ++subcellrow ) {
+                    auto subcell = cell.FastGetSubRect( subcellcolumn, subcellrow );
+                    if( subcell == nullptr ) { continue; }
+                    // renderowanie obiektów aktywnych a niewidocznych
+                    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
+                        node->RenderHidden();
+                    }
+                    // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
+                    // TODO: move to sound renderer
+                    subcell->RenderSounds();
+                }
+            }
+        }
+    }
+
+}
+
 // Winger 170204 - szukanie trakcji nad pantografami
 bool TGround::GetTraction(TDynamicObject *model)
 { // aktualizacja drutu zasilającego dla każdego pantografu, żeby odczytać napięcie

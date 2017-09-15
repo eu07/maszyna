@@ -1047,6 +1047,7 @@ bool TWorld::Update()
 
     Ground.CheckQuery();
 
+    Ground.Update_Hidden();
     Ground.Update_Lights();
 
     // render time routines follow:

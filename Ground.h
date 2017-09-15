@@ -227,7 +227,7 @@ public:
         return pSubRects + iRow * iNumSubRects + iCol; // zwrócenie właściwego
     };
     // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
-    TSubRect * FastGetSubRect(int iCol, int iRow) {
+    TSubRect *FastGetSubRect(int iCol, int iRow) const {
         return (
             pSubRects ?
                 pSubRects + iRow * iNumSubRects + iCol :
@@ -287,6 +287,7 @@ class TGround
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
     void Update_Lights(); // updates scene lights array
+    void Update_Hidden(); // updates invisible elements of the scene
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
     bool CheckQuery();

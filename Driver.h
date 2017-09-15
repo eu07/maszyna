@@ -171,8 +171,8 @@ extern bool WriteLogFlag; // logowanie parametrów fizycznych
 static const int BrakeAccTableSize = 20;
 //----------------------------------------------------------------------------
 
-class TController
-{
+class TController {
+
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
     int iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
     int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
@@ -183,7 +183,7 @@ class TController
     std::size_t SemNextIndex{ std::size_t(-1) };
     std::size_t SemNextStopIndex{ std::size_t( -1 ) };
     double dMoveLen = 0.0; // odległość przejechana od ostatniego sprawdzenia tabelki
-private: // parametry aktualnego składu
+    // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
 public:
@@ -191,11 +191,11 @@ public:
     TEvent *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
     int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
-  private: // parametry sterowania pojazdem (stan, hamowanie)
+    // parametry sterowania pojazdem (stan, hamowanie)
+  private:
     double fShuntVelocity = 40.0; // maksymalna prędkość manewrowania, zależy m.in. od składu // domyślna prędkość manewrowa
     int iVehicles = 0; // ilość pojazdów w składzie
     int iEngineActive = 0; // ABu: Czy silnik byl juz zalaczony; Ra: postęp w załączaniu
-    // vector3 vMechLoc; //pozycja pojazdu do liczenia odległości od semafora (?)
     bool Psyche = false;
     int iDrivigFlags = // flagi bitowe ruchu
         moveStopPoint | // podjedź do W4 możliwie blisko

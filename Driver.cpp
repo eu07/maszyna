@@ -1422,11 +1422,15 @@ void TController::TablePurger()
     iLast = sSpeedTable.size() - 1;
 };
 
-void TController::TableSort()
-{
+void TController::TableSort() {
+
+    if( sSpeedTable.size() < 3 ) {
+        // we skip last slot and no point in checking if there's only one other entry
+        return;
+    }
     TSpeedPos sp_temp = TSpeedPos(); // uzywany do przenoszenia
-    for (std::size_t i = 0; i < (iLast - 1) && iLast > 0; ++i)
-    { // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
+    for( std::size_t i = 0; i < ( iLast - 1 ); ++i ) {
+        // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
         if (sSpeedTable[i].fDist > sSpeedTable[i + 1].fDist)
         { // jesli pozycja wcześniejsza jest dalej to źle
             sp_temp = sSpeedTable[i + 1];
@@ -4568,24 +4572,52 @@ TController::UpdateSituation(double dt) {
             }
             // koniec predkosci nastepnej
 
-            if( vel > VelDesired ) {
-                // jesli jedzie za szybko do AKTUALNEGO
-                if( VelDesired == 0.0 ) {
-                    // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                    AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
-                }
-                else {
-                    // try to estimate increase of current velocity before engaged brakes start working
-                    // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
-                    if( ( vel + vel * ( 1.0 - fBrake_a0[ 0 ] ) * AbsAccS ) > ( VelDesired + fVelPlus ) ) {
-                        // hamuj tak średnio
-                        AccDesired = std::min( AccDesired, -0.25 );
+            // decisions based on current speed
+            if( mvOccupied->CategoryFlag == 1 ) {
+                // try to estimate increase of current velocity before engaged brakes start working
+                auto const speedestimate = vel + vel * ( 1.0 - fBrake_a0[ 0 ] ) * AbsAccS;
+                if( speedestimate > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
                     }
                     else {
-                        // o 5 km/h to olej (zacznij luzować)
-                        AccDesired = std::min(
-                            AccDesired, // but don't override decceleration for VelNext 
-                            std::max( 0.0, AccPreferred ) );
+                        if( speedestimate > ( VelDesired + fVelPlus ) ) {
+                            // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
+                            AccDesired = std::min( AccDesired, -0.25 );
+                        }
+                        else {
+                            // close enough to target to stop accelerating
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                interpolate( // ease off as you close to the target velocity
+                                    -0.06, AccPreferred,
+                                    clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                        }
+                    }
+                }
+            }
+            else {
+                // for cars the older version works better
+                if( vel > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.9 ); // hamuj solidnie
+                    }
+                    else {
+                        // slow down, not full stop
+                        if( vel > ( VelDesired + fVelPlus ) ) {
+                            // hamuj tak średnio
+                            AccDesired = std::min( AccDesired, -fBrake_a0[ 0 ] * 0.5 );
+                        }
+                        else {
+                            // o 5 km/h to olej (zacznij luzować)
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                std::max( 0.0, AccPreferred ) );
+                        }
                     }
                 }
             }
@@ -4593,8 +4625,10 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
-            // also take into account impact of gravity
-            AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
+            if( mvOccupied->CategoryFlag == 1 ) {
+                // also take into account impact of gravity
+                AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
+            }
 
 
 
