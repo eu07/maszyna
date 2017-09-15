@@ -2437,7 +2437,7 @@ bool TGround::InitEvents()
                     Current->Params[9].asTrack = tmp->pTrack;
                 if (!Current->Params[9].asTrack)
                 {
-                    ErrorLog("Bad event: Track \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find track \"" + cellastext + "\"" );
                     Current->iFlags &= ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
                 }
             }
@@ -2448,7 +2448,7 @@ bool TGround::InitEvents()
                     Current->Params[9].asMemCell = tmp->MemCell;
                 if (!Current->Params[9].asMemCell)
                 {
-                    ErrorLog("Bad event: MemCell \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
                     Current->iFlags &= ~(conditional_memstring | conditional_memval1 | conditional_memval2);
                 }
             }
@@ -2459,13 +2459,13 @@ bool TGround::InitEvents()
                     cellastext = Current->Params[ i ].asText;
                     SafeDeleteArray(Current->Params[i].asText);
                     Current->Params[i].asEvent = FindEvent(cellastext);
-					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
+					if( !Current->Params[ i ].asEvent ) {
+                        // Ra: tylko w logu informacja o braku
 						if( ( Current->Params[ i ].asText == NULL )
 						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
-							WriteLog( "Event \"" + cellastext + "\" does not exist" );
-							ErrorLog( "Missed event: " + cellastext + " in multiple " + Current->asName );
+                            ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find event \"" + cellastext + "\"" );
 						}
-                        }
+                    }
                 }
             }
             break;
@@ -3410,18 +3410,22 @@ bool TGround::CheckQuery()
                             owner != nullptr ?
                                 owner->fReady :
                                 -1.0 );
+                        auto const collisiondistance = (
+                            owner != nullptr ?
+                                owner->TrackBlock() :
+                                -1.0 );
 
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
                             consistbrakelevel,
-                            0, // na razie nic
+                            collisiondistance,
                             tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
 
                         WriteLog(
                               "whois request (" + to_string( tmpEvent->iFlags ) + ") "
                             + "[name: " + tmpEvent->Activator->MoverParameters->TypeName + "], "
                             + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
-                            + "[]" );
+                            + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
                     }
                     else {
                         // jeśli parametry ładunku

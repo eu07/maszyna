@@ -1452,6 +1452,10 @@ TWorld::Update_UI() {
                     + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
                     + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
 
+                if( tmp->Mechanik ) {
+                    uitextline2 += "; Ag: " + to_string( tmp->Mechanik->fAccGravity, 2 );
+                }
+
                 uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );

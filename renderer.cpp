@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 
+#define EU07_NEW_CAB_RENDERCODE
+
 opengl_renderer GfxRenderer;
 extern TWorld World;
 
