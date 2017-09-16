@@ -317,6 +317,9 @@ void TGauge::UpdateValue()
     }
 };
 
+// todo: ugly approach to getting train translation
+// maybe cache gauge position
+
 extern TWorld World;
 
 void TGauge::play( sound *Sound )
