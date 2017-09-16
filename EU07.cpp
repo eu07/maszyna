@@ -41,6 +41,10 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
 
+#ifdef _MSC_VER 
+#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup") 
+#endif 
+
 std::unique_ptr<sound_manager> sound_man;
 TWorld World;
 

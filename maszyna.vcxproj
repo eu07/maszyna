@@ -52,7 +52,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;$(SolutionDir)ref\luajit\include;$(SolutionDir)ref\openal\include;$(SolutionDir)ref\libsndfile\include;$(SolutionDir)ref\freeglut\include;$(SolutionDir)ref\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -61,17 +61,18 @@
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/$(PlatformShortName);$(SolutionDir)ref/libpng/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/$(PlatformShortName);$(SolutionDir)ref/libpng/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref\freeglut\lib/$(PlatformShortName);$(SolutionDir)ref\libpng\lib/$(Platform);$(SolutionDir)ref\libsndfile\lib/$(Platform);$(SolutionDir)ref\luajit\lib/$(Platform);$(SolutionDir)ref\openal\lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>python27.lib;libpng16.lib;lua51.lib;OpenAL32.lib;libsndfile-1.lib;glfw3dll.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;EU07_BUILD_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;$(SolutionDir)ref\luajit\include;$(SolutionDir)ref\openal\include;$(SolutionDir)ref\libsndfile\include;$(SolutionDir)ref\freeglut\include;$(SolutionDir)ref\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -80,12 +81,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/$(PlatformShortName);$(SolutionDir)ref/libpng/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/$(PlatformShortName);$(SolutionDir)ref/libpng/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref\freeglut\lib/$(PlatformShortName);$(SolutionDir)ref\libpng\lib/$(Platform);$(SolutionDir)ref\libsndfile\lib/$(Platform);$(SolutionDir)ref\luajit\lib/$(Platform);$(SolutionDir)ref\openal\lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>python27.lib;libpng16.lib;lua51.lib;OpenAL32.lib;libsndfile-1.lib;glfw3.lib;glew32s.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AdvSound.cpp" />
     <ClCompile Include="AirCoupler.cpp" />
     <ClCompile Include="AnimModel.cpp" />
     <ClCompile Include="Button.cpp" />
@@ -110,6 +111,7 @@
     <ClCompile Include="keyboardinput.cpp" />
     <ClCompile Include="lightarray.cpp" />
     <ClCompile Include="Logs.cpp" />
+    <ClCompile Include="lua.cpp" />
     <ClCompile Include="material.cpp" />
     <ClCompile Include="mczapkie\friction.cpp" />
     <ClCompile Include="mczapkie\hamulce.cpp" />
@@ -127,10 +129,10 @@
     <ClCompile Include="openglmatrixstack.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />
-    <ClCompile Include="RealSound.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Segment.cpp" />
+    <ClCompile Include="shader.cpp" />
     <ClCompile Include="sky.cpp" />
     <ClCompile Include="skydome.cpp" />
     <ClCompile Include="sn_utils.cpp" />
@@ -158,7 +160,6 @@
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AdvSound.h" />
     <ClInclude Include="AirCoupler.h" />
     <ClInclude Include="AnimModel.h" />
     <ClInclude Include="Button.h" />
@@ -185,6 +186,8 @@
     <ClInclude Include="keyboardinput.h" />
     <ClInclude Include="lightarray.h" />
     <ClInclude Include="Logs.h" />
+    <ClInclude Include="lua.h" />
+    <ClInclude Include="lua_ffi.h" />
     <ClInclude Include="material.h" />
     <ClInclude Include="McZapkie\friction.h" />
     <ClInclude Include="McZapkie\hamulce.h" />
@@ -202,11 +205,11 @@
     <ClInclude Include="openglmatrixstack.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="PyInt.h" />
-    <ClInclude Include="RealSound.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Segment.h" />
+    <ClInclude Include="shader.h" />
     <ClInclude Include="sky.h" />
     <ClInclude Include="skydome.h" />
     <ClInclude Include="sn_utils.h" />
@@ -230,6 +233,7 @@
     <ClInclude Include="VBO.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="wavread.h" />
+    <ClInclude Include="winheaders.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>
   <ItemGroup>

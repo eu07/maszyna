@@ -27,9 +27,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AdvSound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AirCoupler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -94,9 +91,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PyInt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RealSound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
@@ -234,6 +228,12 @@
     <ClCompile Include="material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lua.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -317,9 +317,6 @@
     <ClInclude Include="Console\LPT.h">
       <Filter>Header Files\input</Filter>
     </ClInclude>
-    <ClInclude Include="RealSound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Segment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -345,9 +342,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AdvSound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model3d.h">
@@ -453,6 +447,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="winheaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lua_ffi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
