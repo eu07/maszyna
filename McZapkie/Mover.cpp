@@ -3720,14 +3720,19 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
                                             Sign(nrot * M_PI * WheelDiameter - V) *
                                                 Adhesive(RunningTrack.friction) * TotalMassxg,
                                         dt, nrot);
-            Fwheels = Sign(nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
+            Fwheels = Sign(temp_nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
 			if (Fwheels*Sign(V)>0)
 			{
-				FTrain = Fwheels - Fb;
+				FTrain = Fwheels + Fb*Sign(V);
+			}
+			else if (FTrain*Sign(V)>0)
+			{
+				Fb = FTrain*Sign(V) - Fwheels*Sign(V);
 			}
 			else
 			{
-				Fb = FTrain - Fwheels;
+				Fb = -Fwheels*Sign(V);
+				FTrain = 0;
 			}
 			if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
 			{
@@ -4630,7 +4635,7 @@ double TMoverParameters::TractionForce(double dt)
                     {
                         PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
                                    (eimc[eimc_p_Fh] *
-                                    Max0R(dtrans / MaxBrakePress[0], AnPos) /*dizel_fill*/);
+                                    Max0R(Max0R(dtrans,0.01) / MaxBrakePress[0], AnPos) /*dizel_fill*/);
                     }
                     else
                         PosRatio = 0;

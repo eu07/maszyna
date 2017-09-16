@@ -464,6 +464,7 @@ public: // reszta może by?publiczna
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi
     char cCode[20]; // kod pojazdu
+	bool bSlip[20]; // poślizg kół pojazdu
     std::string asCarName[20]; // nazwa czlonu
     bool bMains[8]; // WSy
     float fCntVol[8]; // napiecie NN
