@@ -59,8 +59,8 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     CPointIn = NewCPointIn;
     Point2 = NewPoint2;
     // poprawienie przechyłki
-    fRoll1 = DegToRad(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
-    fRoll2 = DegToRad(fNewRoll2);
+    fRoll1 = glm::radians(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
+    fRoll2 = glm::radians(fNewRoll2);
     if (Global::bRollFix)
     { // Ra: poprawianie przechyłki
         // Przechyłka powinna być na środku wewnętrznej szyny, a standardowo jest w osi
@@ -78,7 +78,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
                 CPointOut.y += w1; // prosty ma wektory jednostkowe
             pOwner->MovedUp1(w1); // zwrócić trzeba informację o podwyższeniu podsypki
         }
-        if (fRoll2 != 0.0)
+        if (fRoll2 != 0.f)
         {
             double w2 = std::abs(std::sin(fRoll2) * 0.75); // 0.5*w2+0.0325; //0.75m dla 1.435
             Point2.y += w2; // modyfikacja musi być przed policzeniem dalszych parametrów
@@ -87,9 +87,9 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
             // zwrócić trzeba informację o podwyższeniu podsypki
         }
     }
+    // kąt w planie, żeby nie liczyć wielokrotnie
     // Ra: ten kąt jeszcze do przemyślenia jest
-    fDirection = -atan2(Point2.x - Point1.x,
-                        Point2.z - Point1.z); // kąt w planie, żeby nie liczyć wielokrotnie
+    fDirection = -std::atan2(Point2.x - Point1.x, Point2.z - Point1.z);
     bCurve = bIsCurve;
     if (bCurve)
     { // przeliczenie współczynników wielomianu, będzie mniej mnożeń i można policzyć pochodne
@@ -101,10 +101,9 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     else
         fLength = (Point1 - Point2).Length();
     fStep = fNewStep;
-    if (fLength <= 0)
-    {
+    if (fLength <= 0) {
+
         ErrorLog( "Bad geometry: zero length spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
-        // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         fLength = 0.01; // crude workaround TODO: fix this properly
 /*
         return false; // zerowe nie mogą być
@@ -355,7 +354,7 @@ Math3D::vector3 TSegment::FastGetPoint(double const t) const
             interpolate( Point1, Point2, t ) );
 }
 
-bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, Math3D::vector3 **p, bool bRender)
+bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, const basic_vertex *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, float fOffsetX, glm::vec3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -365,13 +364,14 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
     if( !fTsBuffer )
         return false; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
 
-    Math3D::vector3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
-    double s, step, fOffset, tv1, tv2, t, fEnd;
+    glm::vec3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
+    float s, step, fOffset, tv1, tv2, t, fEnd;
     bool const trapez = iNumShapePoints < 0; // sygnalizacja trapezowatości
     iNumShapePoints = std::abs( iNumShapePoints );
-    fTextureLength *= Texturescale;
+    float const texturelength = fTextureLength * Texturescale;
+    float const texturescale = Texturescale;
 
-    double m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
+    float m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
     step = fStep;
     tv1 = 1.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
     s = fStep * iSkip; // iSkip - ile odcinków z początku pominąć
@@ -379,9 +379,9 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
     t = fTsBuffer[ i ]; // tabela wattości t dla segmentów
     // BUG: length of spline can be 0, we should skip geometry generation for such cases
     fOffset = 0.1 / fLength; // pierwsze 10cm
-    pos1 = FastGetPoint( t ); // wektor początku segmentu
-    dir = FastGetDirection( t, fOffset ); // wektor kierunku
-    parallel1 = Normalize( Math3D::vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+    pos1 = glm::dvec3{ FastGetPoint( t ) - Origin }; // wektor początku segmentu
+    dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // wektor kierunku
+    parallel1 = glm::normalize( glm::vec3{ -dir.z, 0.f, dir.x } ); // wektor poprzeczny
     if( iEnd == 0 )
         iEnd = iSegCount;
     fEnd = fLength * double( iEnd ) / double( iSegCount );
@@ -406,26 +406,26 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
         while( tv1 < 0.0 ) {
             tv1 += 1.0;
         }
-        tv2 = tv1 - step / fTextureLength; // mapowanie na końcu segmentu
+        tv2 = tv1 - step / texturelength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
-        pos2 = FastGetPoint( t );
-        dir = FastGetDirection( t, fOffset ); // nowy wektor kierunku
-        parallel2 = Normalize( Math3D::vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+        pos2 = glm::dvec3{ FastGetPoint( t ) - Origin };
+        dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // nowy wektor kierunku
+        parallel2 = glm::normalize( glm::vec3{ -dir.z, 0.f, dir.x } ); // wektor poprzeczny
 
         if( trapez ) {
             for( int j = 0; j < iNumShapePoints; ++j ) {
-                pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].x - fOffsetX ) + m1 * ShapePoints[ j + iNumShapePoints ].x ) + pos1;
-                pt.y += jmm1 * ShapePoints[ j ].y + m1 * ShapePoints[ j + iNumShapePoints ].y;
-                pt -= Origin;
-                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel1;
-                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
+                pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].position.x - fOffsetX ) + m1 * ShapePoints[ j + iNumShapePoints ].position.x ) + pos1;
+                pt.y += jmm1 * ShapePoints[ j ].position.y + m1 * ShapePoints[ j + iNumShapePoints ].position.y;
+//                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].normal.x + m1 * ShapePoints[ j + iNumShapePoints ].normal.x ) * parallel1;
+                norm.y += jmm1 * ShapePoints[ j ].normal.y + m1 * ShapePoints[ j + iNumShapePoints ].normal.y;
                 if( bRender ) {
                     // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ( jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z ) / Texturescale, tv1 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ( jmm1 * ShapePoints[ j ].texture.x + m1 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv1 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -435,17 +435,17 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
                             ( *p )++;
                         } // zapamiętanie brzegu jezdni
                 // dla trapezu drugi koniec ma inne współrzędne
-                pt = parallel2 * ( jmm2 * ( ShapePoints[ j ].x - fOffsetX ) + m2 * ShapePoints[ j + iNumShapePoints ].x ) + pos2;
-                pt.y += jmm2 * ShapePoints[ j ].y + m2 * ShapePoints[ j + iNumShapePoints ].y;
-                pt -= Origin;
-                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel2;
-                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
+                pt = parallel2 * ( jmm2 * ( ShapePoints[ j ].position.x - fOffsetX ) + m2 * ShapePoints[ j + iNumShapePoints ].position.x ) + pos2;
+                pt.y += jmm2 * ShapePoints[ j ].position.y + m2 * ShapePoints[ j + iNumShapePoints ].position.y;
+//                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].normal.x + m1 * ShapePoints[ j + iNumShapePoints ].normal.x ) * parallel2;
+                norm.y += jmm1 * ShapePoints[ j ].normal.y + m1 * ShapePoints[ j + iNumShapePoints ].normal.y;
                 if( bRender ) {
                     // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ( jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z ) / Texturescale, tv2 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ( jmm2 * ShapePoints[ j ].texture.x + m2 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv2 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -460,27 +460,27 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
             if( bRender  ) {
                 for( int j = 0; j < iNumShapePoints; ++j ) {
                     //łuk z jednym profilem
-                    pt = parallel1 * ( ShapePoints[ j ].x - fOffsetX ) + pos1;
-                    pt.y += ShapePoints[ j ].y;
-                    pt -= Origin;
-                    norm = ShapePoints[ j ].n.x * parallel1;
-                    norm.y += ShapePoints[ j ].n.y;
+                    pt = parallel1 * ( ShapePoints[ j ].position.x - fOffsetX ) + pos1;
+                    pt.y += ShapePoints[ j ].position.y;
+//                    pt -= Origin;
+                    norm = ShapePoints[ j ].normal.x * parallel1;
+                    norm.y += ShapePoints[ j ].normal.y;
 
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ShapePoints[ j ].z / Texturescale, tv1 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv1 } );
 
-                    pt = parallel2 * ShapePoints[ j ].x + pos2;
-                    pt.y += ShapePoints[ j ].y;
-                    pt -= Origin;
-                    norm = ShapePoints[ j ].n.x * parallel2;
-                    norm.y += ShapePoints[ j ].n.y;
+                    pt = parallel2 * ShapePoints[ j ].position.x + pos2;
+                    pt.y += ShapePoints[ j ].position.y;
+//                    pt -= Origin;
+                    norm = ShapePoints[ j ].normal.x * parallel2;
+                    norm.y += ShapePoints[ j ].normal.y;
 
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ShapePoints[ j ].z / Texturescale, tv2 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv2 } );
                 }
             }
         }

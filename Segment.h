@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "usefull.h"
 
 // 110405 Ra: klasa punktów przekroju z normalnymi
-
+/*
 class vector6 : public Math3D::vector3
 { // punkt przekroju wraz z wektorem normalnym
   public:
@@ -26,7 +26,6 @@ class vector6 : public Math3D::vector3
         n.y = 1.0;
     };
     vector6(double a, double b, double c, double d, double e, double f)
-    //{x=a; y=b; z=c; n.x=d; n.y=e; n.z=f;};
     {
         x = a;
         y = b;
@@ -45,13 +44,14 @@ class vector6 : public Math3D::vector3
         n.z = 0.0;
     };
 };
-
+*/
 class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
   private:
     Math3D::vector3 Point1, CPointOut, CPointIn, Point2;
-    double fRoll1 = 0.0,
-           fRoll2 = 0.0; // przechyłka na końcach
+    float
+        fRoll1{ 0.f },
+        fRoll2{ 0.f }; // przechyłka na końcach
     double fLength = 0.0; // długość policzona
     double *fTsBuffer = nullptr; // wartości parametru krzywej dla równych odcinków
     double fStep = 0.0;
@@ -118,18 +118,18 @@ public:
         FastGetPoint_1() const {
             return Point2; };
     inline
-    double
+    float
         GetRoll(double const Distance) const {
-            return interpolate( fRoll1, fRoll2, Distance / fLength ); }
+            return interpolate( fRoll1, fRoll2, static_cast<float>(Distance / fLength) ); }
     inline
     void
-        GetRolls(double &r1, double &r2) const {
+        GetRolls(float &r1, float &r2) const {
             // pobranie przechyłek (do generowania trójkątów)
             r1 = fRoll1;
             r2 = fRoll2; }
 
     bool
-        RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, vector6 const *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0, Math3D::vector3 **p = nullptr, bool bRender = true);
+        RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, basic_vertex const *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, float fOffsetX = 0.f, glm::vec3 **p = nullptr, bool bRender = true);
     void
         Render();
     inline

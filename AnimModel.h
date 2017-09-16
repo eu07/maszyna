@@ -77,16 +77,9 @@ class TAnimContainer
     TAnimContainer();
     ~TAnimContainer();
     bool Init(TSubModel *pNewSubModel);
-    // std::string inline GetName() { return
-    // std::string(pSubModel?pSubModel->asName.c_str():""); };
-    // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
-    // };
-    std::string NameGet()
-    {
-        return (pSubModel ? pSubModel->pName : "");
-    };
-    // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
-    // fNewRotateSpeed, bool bResetAngle=false);
+    inline
+    std::string NameGet() {
+        return (pSubModel ? pSubModel->pName : ""); };
     void SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
     void SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
     void AnimSetVMD(double fNewSpeed);
@@ -94,24 +87,20 @@ class TAnimContainer
     void UpdateModel();
     void UpdateModelIK();
     bool InMovement(); // czy w trakcie animacji?
-    double _fastcall AngleGet()
-    {
-        return vRotateAngles.z;
-    }; // jednak ostatnia, T3D ma inny układ
-    vector3 _fastcall TransGet()
-    {
-        return vector3(-vTranslation.x, vTranslation.z, vTranslation.y);
-    }; // zmiana, bo T3D ma inny układ
-    void WillBeAnimated()
-    {
+    inline
+    double AngleGet() {
+        return vRotateAngles.z; }; // jednak ostatnia, T3D ma inny układ
+    inline
+    vector3 TransGet() {
+        return vector3(-vTranslation.x, vTranslation.z, vTranslation.y); }; // zmiana, bo T3D ma inny układ
+    inline
+    void WillBeAnimated() {
         if (pSubModel)
-            pSubModel->WillBeAnimated();
-    };
+            pSubModel->WillBeAnimated(); };
     void EventAssign(TEvent *ev);
-    TEvent * Event()
-    {
-        return evDone;
-    };
+    inline
+    TEvent * Event() {
+        return evDone; };
 };
 
 class TAnimAdvanced

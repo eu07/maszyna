@@ -10,23 +10,23 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "GL/glew.h"
-#include "ResourceManager.h"
+#include <vector>
+#include <deque>
+
 #include "Segment.h"
 #include "material.h"
 
-typedef enum
-{
+enum TTrackType {
     tt_Unknown,
     tt_Normal,
     tt_Switch,
     tt_Table,
     tt_Cross,
     tt_Tributary
-} TTrackType;
+};
 // McZapkie-100502
-typedef enum
-{
+
+enum TEnvironmentType {
     e_unknown = -1,
     e_flat = 0,
     e_mountains,
@@ -34,7 +34,7 @@ typedef enum
     e_tunnel,
     e_bridge,
     e_bank
-} TEnvironmentType;
+};
 // Ra: opracować alternatywny system cieni/świateł z definiowaniem koloru oświetlenia w halach
 
 class TEvent;
@@ -49,23 +49,22 @@ class TSwitchExtension
     TSwitchExtension(TTrack *owner, int const what);
     ~TSwitchExtension();
     std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
-    // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
-    // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
     TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
     TTrack *pPrevs[2]; // tory do³¹czone do punktów 1 i 3
     int iNextDirection[2]; // to te¿ z [2]+[2] przerobiæ na [4]
     int iPrevDirection[2];
     int CurrentIndex = 0; // dla zwrotnicy
-    double fOffset = 0.0,
-           fDesiredOffset = 0.0; // aktualne i docelowe położenie napędu iglic
-    double fOffsetSpeed = 0.1; // prędkość liniowa ruchu iglic
-    double fOffsetDelay = 0.05; // opóźnienie ruchu drugiej iglicy względem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
+    float
+        fOffset{ 0.f },
+        fDesiredOffset{ 0.f }; // aktualne i docelowe położenie napędu iglic
+    float fOffsetSpeed = 0.1f; // prędkość liniowa ruchu iglic
+    float fOffsetDelay = 0.05f; // opóźnienie ruchu drugiej iglicy względem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
     union
     {
         struct
         { // zmienne potrzebne tylko dla zwrotnicy
-            double fOffset1,
-                   fOffset2; // przesunięcia iglic - 0=na wprost
+            float fOffset1,
+                  fOffset2; // przesunięcia iglic - 0=na wprost
             bool RightSwitch; // czy zwrotnica w prawo
         };
         struct
@@ -77,21 +76,17 @@ class TSwitchExtension
         struct
         { // zmienne dla skrzyżowania
             int iRoads; // ile dróg się spotyka?
-            Math3D::vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
-//            int iPoints; // liczba faktycznie użytych wierzchołków nawierzchni
+            glm::vec3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
             bool bPoints; // czy utworzone?
         };
     };
     bool bMovement = false; // czy w trakcie animacji
-    int iLeftVBO = 0,
-        iRightVBO = 0; // indeksy iglic w VBO
     TSubRect *pOwner = nullptr; // sektor, któremu trzeba zgłosić animację
     TTrack *pNextAnim = nullptr; // następny tor do animowania
     TEvent *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
-  private:
 };
 
 class TIsolated
@@ -106,7 +101,6 @@ class TIsolated
     TMemCell *pMemCell = nullptr; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
-    ~TIsolated();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
     bool Busy() {
@@ -118,7 +112,7 @@ class TIsolated
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack /*: public Resource*/ {
+class TTrack {
 
     friend class opengl_renderer;
 
@@ -207,7 +201,7 @@ public:
         return trPrev; };
     TTrack *Connected(int s, double &d) const;
     bool SetConnections(int i);
-    bool Switch(int i, double t = -1.0, double d = -1.0);
+    bool Switch(int i, float const t = -1.f, float const d = -1.f);
     bool SwitchForced(int i, TDynamicObject *o);
     int CrossSegment(int from, int into);
     inline int GetSwitchState() {
@@ -241,17 +235,12 @@ public:
     std::string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
-    GLuint TextureGet(int i) {
-        return (
-            i ?
-            m_material1 :
-            m_material2 ); };
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);
     void MovedUp1(float const dh);
     std::string NameGet();
     void VelocitySet(float v);
-    float VelocityGet();
+    double VelocityGet();
     void ConnectionsLog();
 
   private:
