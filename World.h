@@ -108,8 +108,7 @@ TWorld();
     void OnCommandGet(DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
-    TTrain const *
-        train() const { return Train; }
+    TTrain* train() { return Train; }
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
 

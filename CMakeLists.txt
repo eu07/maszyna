@@ -131,5 +131,5 @@ include_directories(${LUAJIT_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 
 if (UNIX)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
 endif()

@@ -19,6 +19,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "Timer.h"
 #include "Logs.h"
+#include "World.h"
+#include "Train.h"
 
 void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
@@ -315,14 +317,30 @@ void TGauge::UpdateValue()
     }
 };
 
-void
-TGauge::play( sound *Sound ) {
+extern TWorld World;
 
-    if( Sound == nullptr ) { return; }
+void TGauge::play( sound *Sound )
+{
+    if (!Sound)
+		return;
 
 	Sound->stop();
+
+	if (SubModel && World.train())
+	{
+		float4x4 mat;
+		SubModel->ParentMatrix(&mat);
+		glm::vec3 pos = *mat.TranslationGet();
+
+		if (glm::length(pos) > 1.0f)
+		{
+			pos = glm::vec3(glm::vec4(pos, 1.0f) * glm::inverse((glm::mat4)World.train()->Dynamic()->mMatrix));
+			pos = pos + (glm::vec3)World.train()->Dynamic()->GetPosition();
+
+			Sound->set_mode(sound::anchored).dist(1.5f).position(pos);
+		}
+	}
+
 	Sound->play();
     return;
 }
-
-//---------------------------------------------------------------------------

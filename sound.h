@@ -45,9 +45,17 @@ class sound
 	glm::vec3 last_pos;
 	float dt_sum;
 
+public:
+	enum mode_t
+	{
+		global,
+		spatial,
+		anchored
+	};
+
 protected:
 	float max_dist;
-	bool spatial;
+	mode_t mode;
 	glm::vec3 pos;
 	int samplerate;
 
@@ -68,12 +76,13 @@ public:
 	virtual void stop() = 0;
 	virtual void update(float dt);
 
+	sound& set_mode(mode_t);
 	sound& dist(float);
 	sound& gain(float);
 	sound& pitch(float);
 	virtual sound& loop(bool loop = true) = 0;
 
-	sound& position(glm::vec3 const &);
+	sound& position(glm::vec3);
 	sound& position(Math3D::vector3 const &);
 };
 
@@ -155,6 +164,7 @@ class sound_manager
 
 public:
 	glm::vec3 pos, last_pos;
+	glm::mat3 rot;
 
 	sound_manager();
 	~sound_manager();
@@ -166,8 +176,7 @@ public:
 	void destroy_sound(sound**);
 
 	void update(float dt);
-	void set_listener(glm::vec3 const &pos, glm::vec3 const &at, glm::vec3 const &up);
-	void set_listener(Math3D::vector3 const &pos, Math3D::vector3 const &at, Math3D::vector3 const &up);
+	void set_listener(glm::vec3 const &pos, glm::mat3 const &rot);
 };
 
 extern std::unique_ptr<sound_manager> sound_man;
