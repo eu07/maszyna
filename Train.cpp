@@ -6735,9 +6735,11 @@ void TTrain::set_cab_controls() {
     if( true == bCabLightDim ) {
         ggCabLightDimButton.PutValue( 1.0 );
     }
-    if( true == InstrumentLightActive ) {
-        ggInstrumentLightButton.PutValue( 1.0 );
-    }
+
+    ggInstrumentLightButton.PutValue( (
+        InstrumentLightActive ?
+            1.0 :
+            0.0 ) );
     // doors
     // NOTE: we're relying on the cab models to have switches reversed for the rear cab(?)
     ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened ? 1.0 : 0.0 );

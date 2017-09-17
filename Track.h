@@ -209,6 +209,15 @@ public:
             SwitchExtension ?
                 SwitchExtension->CurrentIndex :
                 -1); };
+    // returns number of different routes possible to take from given point
+    // TODO: specify entry point, number of routes for switches can vary
+    inline
+    int
+        RouteCount() const {
+        return (
+            SwitchExtension != nullptr ?
+                SwitchExtension->iRoads - 1 :
+                1 ); }
     void Load(cParser *parser, Math3D::vector3 pOrigin, std::string name);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);

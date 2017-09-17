@@ -230,8 +230,9 @@ private:
     TAction GetAction() {
         return eAction; }
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
-    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
-    // migacz lub czeka na stan zwrotnicy
+/*
+    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala migacz lub czeka na stan zwrotnicy
+*/
   private:
     TDynamicObject *pVehicle = nullptr; // pojazd w którym siedzi sterujący
     TDynamicObject *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
@@ -401,7 +402,9 @@ private:
     void DirectionInitial();
     std::string TableText(std::size_t const Index);
     int CrossRoute(TTrack *tr);
+/*
     void RouteSwitch(int d);
+*/
     std::string OwnerName() const;
     TMoverParameters const *Controlling() const {
         return mvControlling; }
