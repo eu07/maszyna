@@ -17,5 +17,7 @@ cmake ../.. -A x64 ^
 -DLIBSNDFILE_INCLUDE_DIR=%DEPS_DIR%/libsndfile/include ^
 -DLIBSNDFILE_LIBRARY=%DEPS_DIR%/libsndfile/lib/win64/libsndfile-1.lib ^
 -DLUAJIT_INCLUDE_DIR=%DEPS_DIR%/luajit/include ^
--DLUAJIT_LIBRARIES=%DEPS_DIR%/luajit/lib/win64/lua51.lib
+-DLUAJIT_LIBRARIES=%DEPS_DIR%/luajit/lib/win64/lua51.lib ^
+-Dlibserialport_INCLUDE_DIR=%DEPS_DIR%/libserialport/include ^
+-Dlibserialport_LIBRARY=%DEPS_DIR%/libserialport/lib/win64/libserialport-0.lib
 popd

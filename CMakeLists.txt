@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
 project("eu07++ng")
 
+set(CMAKE_CXX_STANDARD 14)
 include_directories("." "Console" "McZapkie")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
 
@@ -66,11 +67,12 @@ set(SOURCES
 "translation.cpp"
 "material.cpp"
 "lua.cpp"
+"uart.cpp"
 )
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
-	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/MWD.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
+	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
 endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -129,6 +131,10 @@ target_link_libraries(${PROJECT_NAME} ${LIBSNDFILE_LIBRARY})
 find_package(LuaJIT REQUIRED)
 include_directories(${LUAJIT_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
+
+find_package(libserialport REQUIRED)
+include_directories(${libserialport_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
 
 if (UNIX)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")

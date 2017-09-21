@@ -166,24 +166,11 @@ int Global::iPoKeysPWM[7] = {0, 1, 2, 3, 4, 5, 6};
 bool Global::bnewAirCouplers = true;
 double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
+
+Global::uart_conf_t Global::uart_conf;
+
 //randomizacja
 std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
-// maciek001: konfiguracja wstępna portu COM
-bool Global::bMWDmasterEnable = false;              // główne włączenie portu!
-bool Global::bMWDdebugEnable = false;               // włącz dodawanie do logu
-int Global::iMWDDebugMode = 0;                      // co ma wyświetlać w logu
-std::string Global::sMWDPortId = "COM1";             // nazwa portu z którego korzystamy
-unsigned long int Global::iMWDBaudrate = 9600;      // prędkość transmisji danych
-bool Global::bMWDInputEnable = false;               // włącz wejścia
-bool Global::bMWDBreakEnable = false;               // włącz wejścia analogowe
-double Global::fMWDAnalogInCalib[4][2] = { { 0, 1023 },{ 0, 1023 },{ 0, 1023 },{ 0, 1023 } };	// wartość max potencjometru, wartość min potencjometru, rozdzielczość (max. wartość jaka może być)
-double Global::fMWDzg[2] = { 0.9, 1023 };
-double Global::fMWDpg[2] = { 0.8, 1023 };
-double Global::fMWDph[2] = { 0.6, 1023 };
-double Global::fMWDvolt[2] = { 4000, 1023 };
-double Global::fMWDamp[2] = { 800, 1023 };
-double Global::fMWDlowVolt[2] = { 150, 1023 };
-int Global::iMWDdivider = 5;
 
 opengl_light Global::DayLight;
 Global::soundmode_t Global::soundpitchmode = Global::linear;
@@ -756,102 +743,33 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> Global::InputGamepad;
         }
-        // maciek001: ustawienia MWD
-		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!
-			Parser.getTokens();
-			Parser >> bMWDmasterEnable;
-			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
-		}
-		else if (token == "mwddebugenable") {         // logowanie pracy
-			Parser.getTokens();
-			Parser >> bMWDdebugEnable;
-			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
-		}
-		else if (token == "mwddebugmode") {           // co ma być debugowane?
-			Parser.getTokens(1, false);
-			Parser >> iMWDDebugMode;
-			if (bMWDdebugEnable) WriteLog("Debug Mode = " + to_string(iMWDDebugMode));
-		}
-		else if (token == "mwdcomportname") {         // nazwa portu COM
-			Parser.getTokens();
-			Parser >> sMWDPortId;
-			if (bMWDdebugEnable) WriteLog("PortName " + sMWDPortId);
-		}
-		else if (token == "mwdbaudrate") {            // prędkość transmisji danych
-			Parser.getTokens(1, false);
-			Parser >> iMWDBaudrate;
-			if (bMWDdebugEnable) WriteLog("Baud rate = " + to_string((int)(iMWDBaudrate / 1000)) + (" kbps"));
-		}
-		else if (token == "mwdinputenable") {         // włącz wejścia
-			Parser.getTokens();
-			Parser >> bMWDInputEnable;
-			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
-		}
-		else if (token == "mwdbreakenable") {         // włącz obsługę hamulców
-			Parser.getTokens();
-			Parser >> bMWDBreakEnable;
-			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
-		}
-		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[0][0] >> fMWDAnalogInCalib[0][1];
-			if (bMWDdebugEnable) WriteLog("Main break settings: " + to_string(fMWDAnalogInCalib[0][0]) + (" ") + to_string(fMWDAnalogInCalib[0][1]));
-		}
-		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
-			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + (" ") + to_string(fMWDAnalogInCalib[1][1]));
-		}
-		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + (" ") + to_string(fMWDAnalogInCalib[2][1]));
-		}
-		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + (" ") + to_string(fMWDAnalogInCalib[3][1]));
-		}
-		else if (token == "mwdmaintankpress") {        // max ciśnienie w zbiorniku głownym i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDzg[0] >> fMWDzg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + (" ") + to_string(fMWDzg[1]));
-		}
-		else if (token == "mwdmainpipepress") {        // max ciśnienie w przewodzie głownym i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDpg[0] >> fMWDpg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + (" ") + to_string(fMWDpg[1]));
-		}
-		else if (token == "mwdbreakpress") {           // max ciśnienie w hamulcach i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDph[0] >> fMWDph[1];
-			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + (" ") + to_string(fMWDph[1]));
-		}
-		else if (token == "mwdhivoltmeter") {          // max napięcie na woltomierzu WN
-			Parser.getTokens(2, false);
-			Parser >> fMWDvolt[0] >> fMWDvolt[1];
-			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + (" ") + to_string(fMWDvolt[1]));
-		}
-		else if (token == "mwdhiampmeter") {
-			Parser.getTokens(2, false);
-			Parser >> fMWDamp[0] >> fMWDamp[1];
-			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
-		}
-		else if (token == "mwdlowvoltmeter") {
-			Parser.getTokens(2, false);
-			Parser >> fMWDlowVolt[0] >> fMWDlowVolt[1];
-			if (bMWDdebugEnable) WriteLog("Low VoltMeter settings: " + to_string(fMWDlowVolt[0]) + (" ") + to_string(fMWDlowVolt[1]));
-		}
-		else if (token == "mwddivider") {
-			Parser.getTokens(1, false);
-			Parser >> iMWDdivider;
-			if (iMWDdivider == 0)
-			{
-				WriteLog("Dzielnik nie może być równy ZERO! Ustawiam na 1!");
-				iMWDdivider = 1;
-			}
-			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
-		}
+        else if (token == "uart")
+        {
+            Parser.getTokens(3, false);
+            Global::uart_conf.enable = true;
+            Parser >> Global::uart_conf.port;
+            Parser >> Global::uart_conf.baud;
+            Parser >> Global::uart_conf.interval;
+            Parser >> Global::uart_conf.updatetime;
+        }
+        else if (token == "uarttune")
+        {
+            Parser.getTokens(14);
+            Parser >> Global::uart_conf.mainbrakemin
+                    >> Global::uart_conf.mainbrakemax
+                    >> Global::uart_conf.localbrakemin
+                    >> Global::uart_conf.localbrakemax
+                    >> Global::uart_conf.tankmax
+                    >> Global::uart_conf.tankuart
+                    >> Global::uart_conf.pipemax
+                    >> Global::uart_conf.pipeuart
+                    >> Global::uart_conf.brakemax
+                    >> Global::uart_conf.brakeuart
+                    >> Global::uart_conf.hvmax
+                    >> Global::uart_conf.hvuart
+                    >> Global::uart_conf.currentmax
+                    >> Global::uart_conf.currentuart;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

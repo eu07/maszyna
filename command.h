@@ -169,6 +169,13 @@ struct command_data {
     int action; // press, repeat or release
     std::uint64_t param1;
     std::uint64_t param2;
+    enum desired_state_t
+    {
+        TOGGLE,
+        OFF,
+        ON
+    };
+    desired_state_t desired_state;
     double time_delta;
 };
 
@@ -218,7 +225,9 @@ public:
     // posts specified command for the specified recipient
     // TODO: replace uint16_t with recipient handle, based on item id
     void
-        post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2, int const Action, std::uint16_t const Recipient ) const;
+        post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
+              int const Action, std::uint16_t const Recipient,
+              command_data::desired_state_t state = command_data::TOGGLE ) const;
 private:
 // types
 // members

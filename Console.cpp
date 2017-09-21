@@ -13,7 +13,6 @@ http://mozilla.org/MPL/2.0/.
 #include "McZapkie/mctools.h"
 #include "LPT.h"
 #include "Logs.h"
-#include "MWD.h" // maciek001: obsluga portu COM
 #include "PoKeys55.h"
 
 //---------------------------------------------------------------------------
@@ -118,7 +117,6 @@ Console::~Console()
 {
     delete PoKeys55[0];
     delete PoKeys55[1];
-    delete MWDComm;
 };
 
 void Console::ModeSet(int m, int h)
@@ -166,18 +164,6 @@ int Console::On()
         break;
     }
 
-	if (Global::bMWDmasterEnable)
-	{
-		WriteLog("Opening ComPort");
-		MWDComm = new TMWDComm();
-		if (!(MWDComm->Open())) // jeżeli nie otwarł portu
-		{
-			WriteLog("ERROR: ComPort is NOT OPEN!");
-			delete MWDComm;
-			MWDComm = NULL;
-		}
-	}
-
     return 0;
 };
 
@@ -196,8 +182,6 @@ void Console::Off()
     PoKeys55[1] = NULL;
     delete LPT;
     LPT = NULL;
-	delete MWDComm;
-	MWDComm = NULL;
 };
 
 void Console::BitsSet(int mask, int entry)
@@ -289,56 +273,6 @@ void Console::BitsUpdate(int mask)
         }
         break;
 	}
-	if (Global::bMWDmasterEnable)
-	{
-		// maciek001: MWDComm lampki i kontrolki
-		// out3: ogrzewanie sk?adu, opory rozruchowe, poslizg, zaluzjewent, -, -, czuwak, shp
-		// out4: stycz.liniowe, pezekaznikr??nicobwpomoc, nadmiarprzetw, roznicowy obw. g?, nadmiarsilniki, wylszybki, zanikpr?duprzyje?dzienaoporach, nadmiarsprezarki
-		// out5: HASLER */
-		if (mask & 0x0001) if (iBits & 1) {
-			MWDComm->WriteDataBuff[4] |= 1 << 7;  	// SHP	HASLER też
-			if (!MWDComm->bSHPstate) {
-				MWDComm->bSHPstate = true;
-				MWDComm->bPrzejazdSHP = true;
-			}
-			else MWDComm->bPrzejazdSHP = false;
-		}
-		else {
-			MWDComm->WriteDataBuff[4] &= ~(1 << 7);
-			MWDComm->bPrzejazdSHP = false;
-			MWDComm->bSHPstate = false;
-		}
-		if (mask & 0x0002) if (iBits & 2) MWDComm->WriteDataBuff[4] |= 1 << 6;  	// CA
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 6);
-		if (mask & 0x0004) if (iBits & 4) MWDComm->WriteDataBuff[4] |= 1 << 1; 		// jazda na oporach rozruchowych
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 1);
-		if (mask & 0x0008) if (iBits & 8)	MWDComm->WriteDataBuff[5] |= 1 << 5; 	// wyłącznik szybki
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 5);
-		if (mask & 0x0010) if (iBits & 0x10) MWDComm->WriteDataBuff[5] |= 1 << 4; 	// nadmiarowy silników trakcyjnych
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 4);
-		if (mask & 0x0020) if (iBits & 0x20) MWDComm->WriteDataBuff[5] |= 1 << 0; 	// styczniki liniowe
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 0);
-		if (mask & 0x0040) if (iBits & 0x40) MWDComm->WriteDataBuff[4] |= 1 << 2; 	// poślizg
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 2);
-		if (mask & 0x0080) if (iBits & 0x80) MWDComm->WriteDataBuff[5] |= 1 << 2; 	// (nadmiarowy) przetwornicy? ++
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 2);
-		if (mask & 0x0100) if (iBits & 0x100) MWDComm->WriteDataBuff[5] |= 1 << 7; 	// nadmiarowy sprężarki
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 7);
-		if (mask & 0x0200) if (iBits & 0x200) MWDComm->WriteDataBuff[2] |= 1 << 1; 	// wentylatory i opory
-		else MWDComm->WriteDataBuff[2] &= ~(1 << 1);
-		if (mask & 0x0400) if (iBits & 0x400) MWDComm->WriteDataBuff[2] |= 1 << 2; 	// wysoki rozruch
-		else MWDComm->WriteDataBuff[2] &= ~(1 << 2);
-		if (mask & 0x0800) if (iBits & 0x800) MWDComm->WriteDataBuff[4] |= 1 << 0;	// ogrzewanie pociągu
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 0);
-		if (mask & 0x1000) if (iBits & 0x1000) MWDComm->bHamowanie = true;	// hasler: ciśnienie w hamulcach HASLER rysik 2
-		else MWDComm->bHamowanie = false;
-		if (mask & 0x2000) if (iBits & 0x2000) MWDComm->WriteDataBuff[6] |= 1 << 4; // hasler: prąd "na" silnikach - HASLER rysik 3
-		else MWDComm->WriteDataBuff[6] &= ~(1 << 4);
-		if (mask & 0x4000) if (iBits & 0x4000) MWDComm->WriteDataBuff[6] |= 1 << 7; // brzęczyk SHP/CA
-		else MWDComm->WriteDataBuff[6] &= ~(1 << 7);
-		//if(mask & 0x8000) if(iBits & 0x8000) MWDComm->WriteDataBuff[1] |= 1<<7; (puste)
-		//else MWDComm->WriteDataBuff[0] &= ~(1<<7);
-	}
 };
 
 void Console::ValueSet(int x, double y)
@@ -371,57 +305,6 @@ void Console::ValueSet(int x, double y)
                 WriteLog(" calibrated=" + std::to_string(temp));
             PoKeys55[0]->PWM(x, temp);
         }
-	if (Global::bMWDmasterEnable)
-	{
-		unsigned int iliczba;
-		switch (x)
-		{
-		case 0: iliczba = (unsigned int)floor((y / (Global::fMWDzg[0] * 10) * Global::fMWDzg[1]) + 0.5); // zbiornik główny
-			MWDComm->WriteDataBuff[12] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[11] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main tank press " + to_string(MWDComm->WriteDataBuff[12]) + " " + to_string(MWDComm->WriteDataBuff[11]));
-			break;
-		case 1: iliczba = (unsigned int)floor((y / (Global::fMWDpg[0] * 10) * Global::fMWDpg[1]) + 0.5); // przewód główny
-			MWDComm->WriteDataBuff[10] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[9] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main pipe press " + to_string(MWDComm->WriteDataBuff[10]) + " " + to_string(MWDComm->WriteDataBuff[9]));
-			break;
-		case 2: iliczba = (unsigned int)floor((y / (Global::fMWDph[0] * 10) * Global::fMWDph[1]) + 0.5); // cylinder hamulcowy
-			MWDComm->WriteDataBuff[8] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[7] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Break press " + to_string(MWDComm->WriteDataBuff[8]) + " " + to_string(MWDComm->WriteDataBuff[7]));
-			break;
-		case 3: iliczba = (unsigned int)floor((y / Global::fMWDvolt[0] * Global::fMWDvolt[1]) + 0.5); // woltomierz WN
-			MWDComm->WriteDataBuff[14] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[13] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Hi Volt meter " + to_string(MWDComm->WriteDataBuff[14]) + " " + to_string(MWDComm->WriteDataBuff[13]));
-			break;
-		case 4: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 1
-			MWDComm->WriteDataBuff[16] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[15] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter1 " + to_string(MWDComm->WriteDataBuff[16]) + " " + to_string(MWDComm->WriteDataBuff[15]));
-			break;
-		case 5: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 2
-			MWDComm->WriteDataBuff[18] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[17] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter2 " + to_string(MWDComm->WriteDataBuff[18]) + " " + to_string(MWDComm->WriteDataBuff[17]));
-			break;
-		case 6: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 3
-			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
-			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter3 " + to_string(MWDComm->WriteDataBuff[20]) + " " + to_string(MWDComm->WriteDataBuff[19]));
-			break;
-		case 7: if (Global::iPause) MWDComm->WriteDataBuff[0] = 0; //skoro pauza to hasler stoi i nie nabija kilometrów CHYBA NIE DZIAŁA!
-				else MWDComm->WriteDataBuff[0] = (unsigned char)floor(y); 	// prędkość dla np haslera
-				if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Speed: " + to_string(MWDComm->WriteDataBuff[0]));
-			break;
-		case 8: iliczba = (unsigned int)floor((y / Global::fMWDlowVolt[0] * Global::fMWDlowVolt[1]) + 0.5);	// volt NN
-			MWDComm->WriteDataBuff[22] = (unsigned int)(iliczba >> 8);
-			MWDComm->WriteDataBuff[21] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Low Volt meter " + to_string(MWDComm->WriteDataBuff[22]) + " " + to_string(MWDComm->WriteDataBuff[21]));
-			break; // przygotowane do wdrożenia, jeszcze nie wywoływane
-		}
-	}
 };
 
 void Console::Update()
@@ -439,11 +322,6 @@ void Console::Update()
                 Global::iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }
-	if (Global::bMWDmasterEnable)
-	{
-		if (MWDComm->GetMWDState()) MWDComm->Run();
-		else MWDComm->Close();
-	}
 };
 
 float Console::AnalogGet(int x)
@@ -467,11 +345,6 @@ float Console::AnalogCalibrateGet(int x)
 		if (x == 0) return (b + 2) / 8;
 		if (x == 1) return b/10;
 		else return b;
-	}
-	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
-	{
-		float b = (float)MWDComm->uiAnalog[x];
-		return (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
 	}
     return -1.0; // odcięcie
 };

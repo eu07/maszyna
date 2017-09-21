@@ -493,5 +493,19 @@ public: // reszta może by?publiczna
     inline TMoverParameters *Controlled() { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
     void Silence();
+
+	float get_tacho();
+	float get_tank_pressure();
+	float get_pipe_pressure();
+	float get_brake_pressure();
+	float get_hv_voltage();
+	std::array<float, 3> get_current();
+	bool get_alarm();
+	int get_drive_direction();
+
+    void set_mainctrl(int);
+    void set_scndctrl(int);
+    void set_trainbrake(float);
+    void set_localbrake(float);
 };
 //---------------------------------------------------------------------------

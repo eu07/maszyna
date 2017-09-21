@@ -33,6 +33,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Timer.h"
 #include "resource.h"
 #include "uilayer.h"
+#include "uart.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
@@ -50,7 +51,7 @@ keyboard_input Keyboard;
 mouse_input Mouse;
 gamepad_input Gamepad;
 glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
-
+std::unique_ptr<uart_input> uart;
 }
 
 void screenshot_save_thread( char *img )
@@ -350,9 +351,13 @@ int main(int argc, char *argv[])
 
 		sound_man = std::make_unique<sound_manager>();
 
+		Global::pWorld = &World;
+
 		input::Keyboard.init();
 		input::Mouse.init();
 		input::Gamepad.init();
+        if (Global::uart_conf.enable)
+            input::uart = std::make_unique<uart_input>();
 
 		if( false == World.Init( window ) ) {
             ErrorLog( "Simulation setup failed" );
@@ -393,6 +398,8 @@ int main(int argc, char *argv[])
             && ( true == GfxRenderer.Render() ) ) {
             glfwPollEvents();
             input::Keyboard.poll();
+            if (input::uart)
+                input::uart->poll();
             if( true == Global::InputMouse )   { input::Mouse.poll(); }
             if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
         }
