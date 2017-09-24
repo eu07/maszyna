@@ -1061,12 +1061,12 @@ bool TWorld::Update()
 /*
     if (DebugModeFlag)
         if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-            if( Console::Pressed( GLFW_KEY_ESCAPE ) ) {
+			if (glfwGetKey(window, GLFW_KEY_PAUSE) == GLFW_PRESS) {
                 // yB dodał przyspieszacz fizyki
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n); // 5 razy
+                Ground.Update(dt / updatecount, updatecount);
+                Ground.Update(dt / updatecount, updatecount);
+                Ground.Update(dt / updatecount, updatecount);
+                Ground.Update(dt / updatecount, updatecount); // 5 razy
             }
 */
     // secondary fixed step simulation time routines
@@ -1481,7 +1481,7 @@ TWorld::Update_UI() {
                 uitextline2 +=
                     "; Ft: " + to_string( tmp->MoverParameters->Ft * 0.001f * tmp->MoverParameters->ActiveCab, 1 )
                     + ", Fb: " + to_string( tmp->MoverParameters->Fb * 0.001f, 1 )
-                    + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
+                    + ", Fr: " + to_string( tmp->MoverParameters->Adhesive(tmp->MoverParameters->RunningTrack.friction), 2 )
                     + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
 
                 uitextline2 +=
@@ -1680,15 +1680,15 @@ TWorld::Update_UI() {
                 if( tmp == nullptr ) {
                     break;
                 }
-
-                uitextline1 =
-                    "vel: " + to_string( tmp->GetVelocity(), 2 ) + " km/h" + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" )
-                    + "; dist: " + to_string( tmp->MoverParameters->DistCounter, 2 ) + " km"
-                    + "; pos: ("
-                    + to_string( tmp->GetPosition().x, 2 ) + ", "
-                    + to_string( tmp->GetPosition().y, 2 ) + ", "
-                    + to_string( tmp->GetPosition().z, 2 )
-                    + ")";
+				uitextline1 =
+					"vel: " + to_string(tmp->GetVelocity(), 2) + "/" + to_string(tmp->MoverParameters->nrot* M_PI * tmp->MoverParameters->WheelDiameter * 3.6, 2)
+					+ " km/h" + (tmp->MoverParameters->SlippingWheels ? " (!)" : "    ")
+					+ "; dist: " + to_string(tmp->MoverParameters->DistCounter, 2) + " km"
+					+ "; pos: ("
+					+ to_string(tmp->GetPosition().x, 2) + ", "
+					+ to_string(tmp->GetPosition().y, 2) + ", "
+					+ to_string(tmp->GetPosition().z, 2) + "), PM="
+					+ to_string(tmp->MoverParameters->WheelFlat, 1) + " mm";
 
                 uitextline2 =
                     "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 1 )

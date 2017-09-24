@@ -780,6 +780,7 @@ public:
 	double Ftmax = 0.0;
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
+	bool EIMCLogForce; // 
     static std::vector<std::string> const eimc_labels;
 	/*-dla wagonow*/
     double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
@@ -823,6 +824,7 @@ public:
 	double AccN = 0.0; //przyspieszenie normalne w [m/s^2]
 	double AccV = 0.0;
 	double nrot = 0.0;
+	double WheelFlat = 0.0;
 	/*! rotacja kol [obr/s]*/
 	double EnginePower = 0.0;                  /*! chwilowa moc silnikow*/
 	double dL = 0.0; double Fb = 0.0; double Ff = 0.0;                  /*przesuniecie, sila hamowania i tarcia*/

@@ -1707,7 +1707,7 @@ void TController::AutoRewident()
 	}
 	if (mvOccupied->TrainType == dt_EZT)
 	{
-		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize];
+		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.75);
 		fBrakeReaction = 0.25;
 	}
 	else if (ustaw > 16)

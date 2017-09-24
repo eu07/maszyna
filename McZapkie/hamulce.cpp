@@ -1462,9 +1462,15 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
 
     // powtarzacz — podwojny zawor zwrotny
     temp = Max0R(LoadC * BCP / temp * Min0R(Max0R(1 - EDFlag, 0), 1), LBP);
+	double speed = 1;
+	if ((ASBP < 0.1) && ((BrakeStatus & b_asb) == b_asb))
+	{
+		temp = 0;
+		speed = 3;
+	}
 
     if ((BrakeCyl->P() > temp))
-        dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC, temp) * dt;
+        dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC * speed, temp) * dt;
     else if ((BrakeCyl->P() < temp))
         dv = PFVa(BVP, BrakeCyl->P(), 0.02 * SizeBC, temp) * dt;
     else
@@ -1995,7 +2001,8 @@ double TKE::GetPF( double const PP, double const dt, double const Vel )
     // luzowanie CH
     //  temp:=Max0R(BCP,LBP);
     IMP = Max0R(IMP / temp, Max0R(LBP, ASBP * int((BrakeStatus & b_asb) == b_asb)));
-
+	if ((ASBP < 0.1) && ((BrakeStatus & b_asb) == b_asb))
+		IMP = 0;
     // luzowanie CH
     if ((BCP > IMP + 0.005) || (Max0R(ImplsRes->P(), 8 * LBP) < 0.25))
         dv = PFVd(BCP, 0, 0.05, IMP) * dt;

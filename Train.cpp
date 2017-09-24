@@ -478,7 +478,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
     PyDict_SetItemString( dict, "slipping_wheels", PyGetBool( mover->SlippingWheels ) );
-	PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SlippingWheels ));
+	PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SandDose ));
     // electric current data
     PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mover->RunningTraction.TractionVoltage ) );
     PyDict_SetItemString( dict, "voltage", PyGetFloat( mover->Voltage ) );
@@ -4205,10 +4205,10 @@ bool TTrain::Update( double const Deltatime )
                 }
                 if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
                 {
-                    fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fr];
+                    fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fmax];
                     fEIMParams[1 + in][1] = Max0R(fEIMParams[1 + in][0], 0);
                     fEIMParams[1 + in][2] = -Min0R(fEIMParams[1 + in][0], 0);
-                    fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fr] /
+                    fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fmax] /
                                             Max0R(p->MoverParameters->eimv[eimv_Fful], 1);
                     fEIMParams[1 + in][4] = Max0R(fEIMParams[1 + in][3], 0);
                     fEIMParams[1 + in][5] = -Min0R(fEIMParams[1 + in][3], 0);
