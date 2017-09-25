@@ -47,13 +47,14 @@ void uart_input::poll()
 
     sp_return ret;
 
-    if (sp_input_waiting(port) >= 16)
+    if ((ret = sp_input_waiting(port)) >= 16)
     {
         std::array<uint8_t, 16> buffer;
         ret = sp_blocking_read(port, (void*)buffer.data(), buffer.size(), 0);
 		if (ret < 0)
             throw std::runtime_error("uart: failed to read from port");
-        
+
+		WriteLog("uart: recv");        
 		sp_drain(port);
 		data_pending = false;
 
@@ -115,6 +116,8 @@ void uart_input::poll()
         old_packet = buffer;
     }
 
+	WriteLog("uart, available input: " + std::to_string(ret));
+
 	if (!data_pending && sp_output_waiting(port) == 0)
 	{
 	    // TODO: ugly! move it into structure like input_bits
@@ -162,8 +165,9 @@ void uart_input::poll()
 
 	    buffer[8] |= buzzer << 7;
 
-		sp_flush(port, SP_BUF_INPUT); // flush input buffer in preparation for reply packet
+//		sp_flush(port, SP_BUF_INPUT); // flush input buffer in preparation for reply packet
 
+		WriteLog("uart: send");
 	    ret = sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	    if (ret != buffer.size())
 			throw std::runtime_error("uart: failed to write to port");
