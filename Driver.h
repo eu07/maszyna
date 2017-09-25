@@ -174,7 +174,7 @@ static const int BrakeAccTableSize = 20;
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
-    size_t iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    int iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
     int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
     std::vector<TSpeedPos> sSpeedTable;
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze

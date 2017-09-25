@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-project("eu07++ng")
+include(PrecompiledHeader)
+#include(cotire)
+set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
+project("eu07")
 
 include_directories("." "Console" "McZapkie")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
@@ -66,11 +69,58 @@ set(SOURCES
 "translation.cpp"
 "material.cpp"
 "lua.cpp"
+"stdafx.cpp"
 )
+
+set (ARCH "x86")
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
+	add_definitions(-DEU07_BUILD_STATIC) # to make pymath to not redefine round
+
 	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/MWD.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
+	set(GLEW_INCLUDE_DIR ${GLEW_INCLUDE_DIR} "${DEPS_DIR}/glew/include/")
+	set(GLFW3_INCLUDE_DIR ${GLFW3_INCLUDE_DIR} "${DEPS_DIR}/glfw/include/")
+	set(GLUT_INCLUDE_DIR ${GLUT_INCLUDE_DIR} "${DEPS_DIR}/freeglut/include/")
+	set(PNG_PNG_INCLUDE_DIR ${PNG_PNG_INCLUDE_DIR} "${DEPS_DIR}/libpng/include/")
+	set(ZLIB_INCLUDE_DIR ${ZLIB_INCLUDE_DIR} "${DEPS_DIR}/zlib/")
+	set(GLM_INCLUDE_DIR ${GLM_INCLUDE_DIR} "${DEPS_DIR}/glm/")
+	set(OPENAL_INCLUDE_DIR ${OPENAL_INCLUDE_DIR} "${DEPS_DIR}/openal/include")
+	set(LIBSNDFILE_INCLUDE_DIR ${LIBSNDFILE_INCLUDE_DIR} "${DEPS_DIR}/libsndfile/include")
+	set(LUAJIT_INCLUDE_DIR ${LUAJIT_INCLUDE_DIR} "${DEPS_DIR}/luajit/include")
+	set(PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR} "${DEPS_DIR}/python/include")
+
+	if (${CMAKE_EXE_LINKER_FLAGS} STREQUAL "/machine:x86")
+		#set(GLEW_LIBRARY ${GLEW_LIBRARY} "${DEPS_DIR}/glew/lib/x86/glew32s.lib")
+		#set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES} "${DEPS_DIR}/glfw/lib/x86/glfw3.lib")
+		#set(GLUT_glut_LIBRARY ${GLFW3_ROOT_PATH} "${DEPS_DIR}/freeglut/lib/x86/freeglut.lib")
+		#set(PNG_LIBRARY ${PNG_LIBRARY} "${DEPS_DIR}/libpng/lib/win32/libpng16.lib")
+		#set(OPENAL_LIBRARY ${OPENAL_LIBRARY} "${DEPS_DIR}/openal/lib/win32/OpenAL32.lib")
+		#set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/win32/libsndfile-1.lib")
+		#set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/win32/lua51.lib")
+		#set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/x86/python27.lib")
+	elseif(${CMAKE_EXE_LINKER_FLAGS} STREQUAL "/machine:x64")
+		set (ARCH "x64")
+		#set(GLEW_LIBRARY ${GLEW_LIBRARY} "${DEPS_DIR}/glew/lib/x64/glew32s.lib")
+		#set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES} "${DEPS_DIR}/glfw/lib/x64/glfw3.lib")
+		#set(GLUT_glut_LIBRARY ${GLFW3_ROOT_PATH} "${DEPS_DIR}/freeglut/lib/x64/freeglut.lib")
+		#set(PNG_LIBRARY ${PNG_LIBRARY} "${DEPS_DIR}/libpng/lib/win64/libpng16.lib")
+		#set(OPENAL_LIBRARY ${OPENAL_LIBRARY} "${DEPS_DIR}/openal/lib/win64/OpenAL32.lib")
+		#set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/win64/libsndfile-1.lib")
+		#set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/win64/lua51.lib")
+		#set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/x64/python27.lib")
+	endif()
+	
+	
+	set(GLEW_LIBRARY ${GLEW_LIBRARY} "${DEPS_DIR}/glew/lib/${ARCH}/glew32s.lib")
+	set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES} "${DEPS_DIR}/glfw/lib/${ARCH}/glfw3.lib")
+	set(GLUT_glut_LIBRARY ${GLFW3_ROOT_PATH} "${DEPS_DIR}/freeglut/lib/${ARCH}/freeglut.lib")
+	set(PNG_LIBRARY ${PNG_LIBRARY} "${DEPS_DIR}/libpng/lib/${ARCH}/libpng16.lib")
+	set(OPENAL_LIBRARY ${OPENAL_LIBRARY} "${DEPS_DIR}/openal/lib/${ARCH}/OpenAL32.lib")
+	set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/${ARCH}/libsndfile-1.lib")
+	set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/${ARCH}/lua51.lib")
+	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")	
+	
 endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -79,6 +129,8 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
+add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
@@ -86,6 +138,17 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/wd4996 /wd4244")
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
 endif()
+
+string(TIMESTAMP data_exe %y%m%d)
+
+set_target_properties( ${PROJECT_NAME}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
+	OUTPUT_NAME "${PROJECT_NAME}-${ARCH}_${data_exe}"
+	DEBUG_POSTFIX "_d"
+)
 
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
@@ -133,3 +196,5 @@ target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 if (UNIX)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 endif()
+
+#cotire(${PROJECT_NAME})
