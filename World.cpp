@@ -1052,6 +1052,7 @@ bool TWorld::Update()
 
     Ground.CheckQuery();
 
+    Ground.Update_Hidden();
     Ground.Update_Lights();
 
 	{
@@ -1059,10 +1060,7 @@ bool TWorld::Update()
 		Camera.SetMatrix(cam_matrix);
 
 		glm::vec3 pos(Camera.Pos.x, Camera.Pos.y, Camera.Pos.z);
-	    glm::vec3 at = glm::vec3(0.0, 0.0, -1.0) * glm::mat3(cam_matrix);
-	    glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * glm::mat3(cam_matrix);
-
-	    sound_man->set_listener(pos, at, up);
+	    sound_man->set_listener(pos, glm::mat3(cam_matrix));
 	    sound_man->update(dt);
 	}
 

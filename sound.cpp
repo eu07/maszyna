@@ -259,17 +259,16 @@ void sound_manager::update(float dt)
 	}
 }
 
-void sound_manager::set_listener(glm::vec3 const &p, glm::vec3 const &at, glm::vec3 const &up)
+void sound_manager::set_listener(glm::vec3 const &p, glm::mat3 const &r)
 {
 	pos = p;
-	alListenerfv(AL_POSITION, glm::value_ptr(p));
+	rot = r;
+	glm::vec3 at = glm::vec3(0.0, 0.0, -1.0) * r;
+	glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * r;
+
+	alListenerfv(AL_POSITION, glm::value_ptr(pos));
 	glm::vec3 ori[] = { at, up };
 	alListenerfv(AL_ORIENTATION, (ALfloat*)ori);
-}
-
-void sound_manager::set_listener(Math3D::vector3 const &p, Math3D::vector3 const &at, Math3D::vector3 const &up)
-{
-	set_listener((glm::vec3)glm::make_vec3(&p.x), (glm::vec3)glm::make_vec3(&at.x), (glm::vec3)glm::make_vec3(&up.x));
 }
 
 sound::sound()
@@ -278,14 +277,25 @@ sound::sound()
 	alGenSources(1, &id);
 	if (!id)
 		throw std::runtime_error("sound: cannot generate source");
-	alSourcei(id, AL_SOURCE_RELATIVE, AL_TRUE);
 	dist(5.0f * 3.82f);
-	spatial = false;
+	set_mode(global);
 	gain_off = 0.0f;
 	gain_mul = 1.0f;
 	pitch_off = 0.0f;
 	pitch_mul = 1.0f;
 	dt_sum = 0.0f;
+}
+
+sound& sound::set_mode(mode_t m)
+{
+	mode = m;
+
+	if (mode == global || mode == anchored)
+		alSourcei(id, AL_SOURCE_RELATIVE, AL_TRUE);
+	else if (mode == spatial)
+		alSourcei(id, AL_SOURCE_RELATIVE, AL_FALSE);
+
+	return *this;
 }
 
 simple_sound::simple_sound(sound_buffer *buf) : sound::sound()
@@ -308,22 +318,25 @@ simple_sound::~simple_sound()
 	buffer->unref();
 }
 
-sound& sound::position(glm::vec3 const &p)
+sound& sound::position(glm::vec3 p)
 {
-	if (!spatial)
+	if (mode == global)
 	{
-		alSourcei(id, AL_SOURCE_RELATIVE, AL_FALSE);
-		spatial = true;
+		set_mode(spatial);
 		last_pos = p;
 	}
 
-	if (p != pos)
+	if (p != pos || mode == anchored)
 	{
 		pos = p;
 		pos_dirty = true;
 
+		if (mode == anchored)
+			p = (p - sound_man->pos) * glm::inverse(sound_man->rot);
+
 		alSourcefv(id, AL_POSITION, glm::value_ptr(p));
 	}
+
 	return *this;
 }
 
@@ -343,7 +356,7 @@ sound& sound::dist(float dist)
 
 void simple_sound::play()
 {
-	if (playing || (spatial && glm::distance(pos, sound_man->pos) > max_dist))
+	if (playing || (mode != global && glm::distance(pos, sound_man->pos) > max_dist))
 		return;
 
 	alSourcePlay(id);
@@ -361,9 +374,9 @@ void simple_sound::stop()
 
 void sound::update(float dt)
 {
-	if (spatial)
+	if (mode == spatial)
 		dt_sum += dt;
-	if (spatial && pos_dirty)
+	if (mode == spatial && pos_dirty)
 	{
 		glm::vec3 velocity = (pos - last_pos) / dt_sum; // m/s
 		alSourcefv(id, AL_VELOCITY, glm::value_ptr(velocity));
@@ -383,7 +396,7 @@ void simple_sound::update(float dt)
 	    alGetSourcei(id, AL_SOURCE_STATE, &v);
 		if (v != AL_PLAYING)
 			playing = false;
-		else if (spatial && glm::distance(pos, sound_man->pos) > max_dist)
+		else if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
 			stop();
 	}
 }
@@ -464,7 +477,7 @@ void complex_sound::play()
 	if (cs != state::post)
 		return;
 
-    if (spatial && glm::distance(pos, sound_man->pos) > max_dist)
+    if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
         return;
 
 	alSourceRewind(id);
@@ -554,7 +567,7 @@ void complex_sound::update(float dt)
 	}
 
 	if (cs == state::main)
-		if (spatial && glm::distance(pos, sound_man->pos) > max_dist)
+		if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
 		{
 			shut_by_dist = true;
 			stop();

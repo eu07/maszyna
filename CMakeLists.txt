@@ -5,6 +5,7 @@ include(PrecompiledHeader)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
+set(CMAKE_CXX_STANDARD 14)
 include_directories("." "Console" "McZapkie")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
 
@@ -70,6 +71,7 @@ set(SOURCES
 "material.cpp"
 "lua.cpp"
 "stdafx.cpp"
+"uart.cpp"
 )
 
 set (ARCH "x86")
@@ -78,7 +80,7 @@ if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
 	add_definitions(-DEU07_BUILD_STATIC) # to make pymath to not redefine round
 
-	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/MWD.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
+	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
 	set(GLEW_INCLUDE_DIR ${GLEW_INCLUDE_DIR} "${DEPS_DIR}/glew/include/")
 	set(GLFW3_INCLUDE_DIR ${GLFW3_INCLUDE_DIR} "${DEPS_DIR}/glfw/include/")
 	set(GLUT_INCLUDE_DIR ${GLUT_INCLUDE_DIR} "${DEPS_DIR}/freeglut/include/")
@@ -193,8 +195,12 @@ find_package(LuaJIT REQUIRED)
 include_directories(${LUAJIT_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 
+find_package(libserialport REQUIRED)
+include_directories(${libserialport_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
+
 if (UNIX)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
 endif()
 
 #cotire(${PROJECT_NAME})

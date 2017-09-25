@@ -68,7 +68,7 @@ class TGauge {
     void AssignDouble(double *dValue);
     void AssignInt(int *iValue);
     void UpdateValue();
-    TSubModel *SubModel; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
+    TSubModel *SubModel = nullptr; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 
 //---------------------------------------------------------------------------

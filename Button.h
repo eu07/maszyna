@@ -49,6 +49,7 @@ class TButton
         Turn( !m_state ); };
     inline bool Active() {
         return (pModelOn) || (pModelOff); };
+	inline uint8_t b() { return m_state ? 1 : 0; };
     void Update();
     void Init(std::string const &asName, TModel3d *pModel, bool bNewOn = false);
     void Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);

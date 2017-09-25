@@ -156,5 +156,6 @@ TButton::play( sound* Sound ) {
 
 	Sound->stop();
 	Sound->play();
+
     return;
 }

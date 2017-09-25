@@ -25,6 +25,11 @@ class float3
     };
     float Length() const;
     float LengthSquared() const;
+
+	operator glm::vec3() const
+	{
+		return glm::vec3(x, y, z);
+	}
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)

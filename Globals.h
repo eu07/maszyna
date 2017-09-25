@@ -293,6 +293,31 @@ class Global
     //randomizacja
     static std::mt19937 random_engine;
 
+    struct uart_conf_t
+    {
+        bool enable = false;
+        std::string port;
+        int baud;
+        int interval;
+        float updatetime;
+
+        float mainbrakemin = 0.0f;
+        float mainbrakemax = 65535.0f;
+        float localbrakemin = 0.0f;
+        float localbrakemax = 65535.0f;
+        float tankmax = 10.0f;
+        float tankuart = 65535.0f;
+        float pipemax = 10.0f;
+        float pipeuart = 65535.0f;
+        float brakemax = 10.0f;
+        float brakeuart = 65535.0f;
+        float hvmax = 100000.0f;
+        float hvuart = 65535.0f;
+        float currentmax = 10000.0f;
+        float currentuart = 65535.0f;
+    };
+    static uart_conf_t uart_conf;
+
 	// metody
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(cParser &parser);
@@ -302,23 +327,6 @@ class Global
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
-
-    // maciek001: zmienne dla MWD
-	static bool bMWDmasterEnable;           // główne włączenie portu COM
-	static bool bMWDdebugEnable;            // logowanie pracy
-	static int iMWDDebugMode;
-	static std::string sMWDPortId;           // nazwa portu COM
-	static unsigned long int iMWDBaudrate;  // prędkość transmisji
-	static bool bMWDInputEnable;            // włącz wejścia
-	static bool bMWDBreakEnable;            // włącz wejścia analogowe (hamulce)
-	static double fMWDAnalogInCalib[4][2];  // ustawienia kranów hamulca zespolonego i dodatkowego - min i max
-	static double fMWDzg[2];                // max wartość wskazywana i max wartość generowana (rozdzielczość)
-	static double fMWDpg[2];
-	static double fMWDph[2];
-	static double fMWDvolt[2];
-	static double fMWDamp[2];
-	static double fMWDlowVolt[2];
-	static int iMWDdivider;
 
 	static opengl_light DayLight;
 

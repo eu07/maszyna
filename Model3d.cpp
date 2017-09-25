@@ -1090,7 +1090,9 @@ void TSubModel::ParentMatrix(float4x4 *m)
   // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D), to
   // dodatkowy obrót
   // obrót T3D jest wymagany np. do policzenia wysokości pantografów
-	*m = float4x4(*fMatrix); // skopiowanie, bo będziemy mnożyć
+	m->Identity();
+	if (fMatrix)
+		*m = float4x4(*fMatrix); // skopiowanie, bo będziemy mnożyć
 							 // m(3)[1]=m[3][1]+0.054; //w górę o wysokość ślizgu (na razie tak)
 	TSubModel *sm = this;
 	while (sm->Parent)
