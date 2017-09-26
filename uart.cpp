@@ -15,11 +15,18 @@ uart_input::uart_input()
     if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK)
         throw std::runtime_error("uart: cannot open port");
 
-    if (sp_set_baudrate(port, conf.baud) != SP_OK)
-        throw std::runtime_error("uart: cannot set baudrate");
+	sp_port_config *config;
 
-    if (sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE) != SP_OK)
-        throw std::runtime_error("uart: cannot set flowcontrol");
+    if (sp_new_config(&config) != SP_OK ||
+		sp_set_config_baudrate(config, conf.baud) != SP_OK ||
+		sp_set_config_flowcontrol(config, SP_FLOWCONTROL_NONE) != SP_OK ||
+		sp_set_config_bits(config, 8) != SP_OK ||
+		sp_set_config_stopbits(config, 1) != SP_OK ||
+		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
+		sp_set_config(port, config) != SP_OK)
+        throw std::runtime_error("uart: cannot set config");
+
+	sp_free_config(config);
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK)
         throw std::runtime_error("uart: cannot flush");
@@ -44,6 +51,8 @@ void uart_input::poll()
     last_update = now;
 
     TTrain *t = Global::pWorld->train();
+	if (!t)
+		return;
 
     sp_return ret;
 
@@ -54,8 +63,15 @@ void uart_input::poll()
 		if (ret < 0)
             throw std::runtime_error("uart: failed to read from port");
 
-		WriteLog("uart: recv");        
-		sp_drain(port);
+		if (conf.debug)
+		{
+			char buf[buffer.size() * 3 + 1];
+			size_t pos = 0;
+			for (uint8_t b : buffer)
+				pos += sprintf(&buf[pos], "%02X ", b);
+			WriteLog("uart: rx: " + std::string(buf));
+		}
+
 		data_pending = false;
 
         for (auto entry : input_bits)
@@ -103,20 +119,17 @@ void uart_input::poll()
             relay.post(std::get<1>(entry), 0, 0, action, 0, desired_state);
         }
 
-        int mainctrl = buffer[6];
-        int scndctrl = buffer[7];
-        float trainbrake = (float)(((uint16_t)buffer[8] | ((uint16_t)buffer[9] << 8)) - conf.mainbrakemin) / (conf.mainbrakemax - conf.mainbrakemin);
-        float localbrake = (float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.mainbrakemin) / (conf.localbrakemax - conf.localbrakemin);
-
-        t->set_mainctrl(mainctrl);
-        t->set_scndctrl(scndctrl);
-        t->set_trainbrake(trainbrake);
-        t->set_localbrake(localbrake);
+		if (conf.mainenable)
+	        t->set_mainctrl(buffer[6]);
+		if (conf.scndenable)
+	        t->set_scndctrl(buffer[7]);
+		if (conf.trainenable)
+	        t->set_trainbrake((float)(((uint16_t)buffer[8] | ((uint16_t)buffer[9] << 8)) - conf.mainbrakemin) / (conf.mainbrakemax - conf.mainbrakemin));
+		if (conf.localenable)
+	        t->set_localbrake((float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.mainbrakemin) / (conf.localbrakemax - conf.localbrakemin));
 
         old_packet = buffer;
     }
-
-	WriteLog("uart, available input: " + std::to_string(ret));
 
 	if (!data_pending && sp_output_waiting(port) == 0)
 	{
@@ -165,9 +178,15 @@ void uart_input::poll()
 
 	    buffer[8] |= buzzer << 7;
 
-//		sp_flush(port, SP_BUF_INPUT); // flush input buffer in preparation for reply packet
+		if (conf.debug)
+		{
+			char buf[buffer.size() * 3 + 1];
+			size_t pos = 0;
+			for (uint8_t b : buffer)
+				pos += sprintf(&buf[pos], "%02X ", b);
+			WriteLog("uart: tx: " + std::string(buf));
+		}
 
-		WriteLog("uart: send");
 	    ret = sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	    if (ret != buffer.size())
 			throw std::runtime_error("uart: failed to write to port");

@@ -749,7 +749,6 @@ void Global::ConfigParse(cParser &Parser)
             Global::uart_conf.enable = true;
             Parser >> Global::uart_conf.port;
             Parser >> Global::uart_conf.baud;
-            Parser >> Global::uart_conf.interval;
             Parser >> Global::uart_conf.updatetime;
         }
         else if (token == "uarttune")
@@ -770,6 +769,19 @@ void Global::ConfigParse(cParser &Parser)
                     >> Global::uart_conf.currentmax
                     >> Global::uart_conf.currentuart;
         }
+		else if (token == "uartfeature")
+		{
+			Parser.getTokens(4);
+			Parser >> Global::uart_conf.mainenable
+				>> Global::uart_conf.scndenable
+				>> Global::uart_conf.trainenable
+				>> Global::uart_conf.localenable;
+		}
+		else if (token == "uartdebug")
+		{
+			Parser.getTokens(1);
+			Parser >> Global::uart_conf.debug;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

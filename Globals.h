@@ -298,7 +298,6 @@ class Global
         bool enable = false;
         std::string port;
         int baud;
-        int interval;
         float updatetime;
 
         float mainbrakemin = 0.0f;
@@ -315,6 +314,13 @@ class Global
         float hvuart = 65535.0f;
         float currentmax = 10000.0f;
         float currentuart = 65535.0f;
+
+		bool mainenable = true;
+		bool scndenable = true;
+		bool trainenable = true;
+		bool localenable = true;
+
+		bool debug = false;
     };
     static uart_conf_t uart_conf;
 
