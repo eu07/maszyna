@@ -137,9 +137,9 @@ void uart_input::poll()
 
 	    uint8_t buzzer = (uint8_t)t->get_alarm();
 	    uint8_t tacho = (uint8_t)t->get_tacho();
-	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() / conf.tankmax * conf.tankuart);
-	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() / conf.pipemax * conf.pipeuart);
-	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, t->get_brake_pressure() / conf.brakemax * conf.brakeuart);
+	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() * 0.1f / conf.tankmax * conf.tankuart);
+	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() * 0.1f / conf.pipemax * conf.pipeuart);
+	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, t->get_brake_pressure() * 0.1f / conf.brakemax * conf.brakeuart);
 	    uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, t->get_hv_voltage() / conf.hvmax * conf.hvuart);
 	    auto current = t->get_current();
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, current[0]) / conf.currentmax * conf.currentuart;
