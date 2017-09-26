@@ -148,35 +148,26 @@ void uart_input::poll()
 
 	    std::array<uint8_t, 31> buffer =
 	    {
-	        0, 0, //byte 0-1
-			tacho, //byte 2
-	        0, 0, 0, 0, 0, 0, //byte 3-8
-	        SPLIT_INT16(brake_press), //byte 9-10
-	        SPLIT_INT16(pipe_press), //byte 11-12
-	        SPLIT_INT16(tank_press), //byte 13-14
-	        SPLIT_INT16(hv_voltage), //byte 15-16
-	        SPLIT_INT16(current1), //byte 17-18
-	        SPLIT_INT16(current2), //byte 19-20
-	        SPLIT_INT16(current3), //byte 21-22
-			0, 0, 0, 0, 0, 0, 0, 0 //byte 23-30
+			tacho, //byte 0
+	        0, //byte 1
+			(uint8_t)(t->btLampkaOpory.b() << 1 | t->btLampkaWysRozr.b() << 2), //byte 2
+			0, //byte 3
+			(uint8_t)(t->btLampkaOgrzewanieSkladu.b() << 0 | t->btLampkaOpory.b() << 1 |
+			t->btLampkaPoslizg.b() << 2 | t->btLampkaCzuwaka.b() << 6 |
+			t->btLampkaSHP.b() << 7), //byte 4
+			(uint8_t)(t->btLampkaStyczn.b() << 0 | t->btLampkaNadmPrzetw.b() << 2 |
+			t->btLampkaNadmSil.b() << 4 | t->btLampkaWylSzybki.b() << 5 |
+			t->btLampkaNadmSpr.b() << 6), //byte 5
+			(uint8_t)(buzzer << 7), //byte 6
+	        SPLIT_INT16(brake_press), //byte 7-8
+	        SPLIT_INT16(pipe_press), //byte 9-10
+	        SPLIT_INT16(tank_press), //byte 11-12
+	        SPLIT_INT16(hv_voltage), //byte 13-14
+	        SPLIT_INT16(current1), //byte 15-16
+	        SPLIT_INT16(current2), //byte 17-18
+	        SPLIT_INT16(current3), //byte 19-20
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0 //byte 21-30
 	    };
-
-	    buffer[4] |= t->btLampkaOpory.b() << 1;
-	    buffer[4] |= t->btLampkaWysRozr.b() << 2;
-
-	    buffer[6] |= t->btLampkaOgrzewanieSkladu.b() << 0;
-	    buffer[6] |= t->btLampkaOpory.b() << 1;
-	    buffer[6] |= t->btLampkaPoslizg.b() << 2;
-	    buffer[6] |= t->btLampkaCzuwaka.b() << 6;
-	    buffer[6] |= t->btLampkaSHP.b() << 7;
-
-	    buffer[7] |= t->btLampkaStyczn.b() << 0;
-	    buffer[7] |= t->btLampkaNadmPrzetw.b() << 2;
-	    buffer[7] |= t->btLampkaNadmSil.b() << 4;
-	    buffer[7] |= t->btLampkaWylSzybki.b() << 5;
-	    buffer[7] |= t->btLampkaNadmSpr.b() << 6;
-
-	    buffer[8] |= buzzer << 7;
 
 		if (conf.debug)
 		{
