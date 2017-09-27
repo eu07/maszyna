@@ -126,7 +126,7 @@ void uart_input::poll()
 		if (conf.trainenable)
 	        t->set_trainbrake((float)(((uint16_t)buffer[8] | ((uint16_t)buffer[9] << 8)) - conf.mainbrakemin) / (conf.mainbrakemax - conf.mainbrakemin));
 		if (conf.localenable)
-	        t->set_localbrake((float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.mainbrakemin) / (conf.localbrakemax - conf.localbrakemin));
+	        t->set_localbrake((float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.localbrakemin) / (conf.localbrakemax - conf.localbrakemin));
 
         old_packet = buffer;
     }
