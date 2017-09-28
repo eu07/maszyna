@@ -37,6 +37,10 @@ uart_input::uart_input()
 
 uart_input::~uart_input()
 {
+	std::array<uint8_t, 31> buffer = { 0 };
+	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
+	sp_drain(port);
+
     sp_close(port);
     sp_free_port(port);
 }
@@ -135,7 +139,7 @@ void uart_input::poll()
 	{
 	    // TODO: ugly! move it into structure like input_bits
 
-	    uint8_t buzzer = (uint8_t)t->get_alarm();
+	    uint8_t buzzer = Global::iPause ? 0 : (uint8_t)t->get_alarm();
 	    uint8_t tacho = (uint8_t)t->get_tacho();
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() * 0.1f / conf.pipemax * conf.pipeuart);
