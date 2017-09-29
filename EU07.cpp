@@ -337,15 +337,15 @@ int main(int argc, char *argv[])
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 
-    const HANDLE icon = ::LoadImage(
-        ::GetModuleHandle( 0 ),
-        MAKEINTRESOURCE( IDI_ICON1 ),
-        IMAGE_ICON,
-        ::GetSystemMetrics( SM_CXSMICON ),
-        ::GetSystemMetrics( SM_CYSMICON ),
-        0 );
-    if( icon )
-        ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
+    //const HANDLE icon = ::LoadImage(
+    //    ::GetModuleHandle( 0 ),
+    //    MAKEINTRESOURCE( IDI_ICON1 ),
+    //    IMAGE_ICON,
+    //    ::GetSystemMetrics( SM_CXSMICON ),
+    //    ::GetSystemMetrics( SM_CYSMICON ),
+    //    0 );
+    //if( icon )
+    //    ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
 	try {
