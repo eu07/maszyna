@@ -72,7 +72,7 @@ set(SOURCES
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
-	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
+	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp")
 endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
