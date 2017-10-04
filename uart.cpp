@@ -139,8 +139,8 @@ void uart_input::poll()
 	{
 	    // TODO: ugly! move it into structure like input_bits
 
-	    uint8_t buzzer = Global::iPause ? 0 : (uint8_t)t->get_alarm();
-	    uint8_t tacho = (uint8_t)t->get_tacho();
+	    uint8_t buzzer = (uint8_t)t->get_alarm();
+	    uint8_t tacho = Global::iPause ? 0 : (uint8_t)t->get_tacho();
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, t->get_brake_pressure() * 0.1f / conf.brakemax * conf.brakeuart);
