@@ -339,7 +339,7 @@ void TGauge::play( sound *Sound )
 			auto pos = glm::vec3(glm::vec4(model_pos, 1.0f) * glm::inverse((glm::mat4)World.train()->Dynamic()->mMatrix));
 			pos += (glm::vec3)World.train()->Dynamic()->GetPosition();
 
-			Sound->set_mode(sound::anchored).dist(1.5f).position(pos);
+			Sound->set_mode(sound::anchored).dist(3.0f).position(pos);
 		}
 	}
 

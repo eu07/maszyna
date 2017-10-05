@@ -348,9 +348,11 @@ sound& sound::position(Math3D::vector3 const &pos)
 
 sound& sound::dist(float dist)
 {
-	alSourcef(id, AL_MAX_DISTANCE, dist);
-	alSourcef(id, AL_REFERENCE_DISTANCE, dist / 3.82f);
-	max_dist = dist * 1.5f;
+	max_dist = dist * 2.0f;
+	float half_dist = dist / 3.82f;
+	alSourcef(id, AL_REFERENCE_DISTANCE, half_dist / 1.32f);
+	alSourcef(id, AL_ROLLOFF_FACTOR, 3.0f);
+	alSourcef(id, AL_MAX_DISTANCE, max_dist);
 	return *this;
 }
 
