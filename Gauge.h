@@ -50,6 +50,8 @@ class TGauge {
     void
         play( sound* Sound );
 
+	glm::vec3 model_pos;
+
   public:
     TGauge() = default;
     inline

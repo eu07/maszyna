@@ -39,8 +39,8 @@ opengl_material::deserialize_mapping( cParser &Input, bool const Loadnow ) {
     }
 
     std::string path;
-    if( name.rfind( '\\' ) != std::string::npos ) {
-        path = name.substr( 0, name.rfind( '\\' ) + 1 );
+    if( name.rfind( '/' ) != std::string::npos ) {
+        path = name.substr( 0, name.rfind( '/' ) + 1 );
     }
 
     std::string key, value;

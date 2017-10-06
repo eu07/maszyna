@@ -50,6 +50,10 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
         }
         else // a banan może być z optymalizacją?
             NewSubModel->WillBeAnimated(); // wyłączenie ignowania jedynkowego transformu
+
+		float4x4 mat;
+		SubModel->ParentMatrix(&mat);
+		model_pos = *mat.TranslationGet();
     }
 };
 
@@ -318,7 +322,6 @@ void TGauge::UpdateValue()
 };
 
 // todo: ugly approach to getting train translation
-// maybe cache gauge position
 
 extern TWorld World;
 
@@ -331,16 +334,12 @@ void TGauge::play( sound *Sound )
 
 	if (SubModel && World.train())
 	{
-		float4x4 mat;
-		SubModel->ParentMatrix(&mat);
-		glm::vec3 pos = *mat.TranslationGet();
-
-		if (glm::length(pos) > 1.0f)
+		if (glm::length(model_pos) > 1.0f)
 		{
-			pos = glm::vec3(glm::vec4(pos, 1.0f) * glm::inverse((glm::mat4)World.train()->Dynamic()->mMatrix));
-			pos = pos + (glm::vec3)World.train()->Dynamic()->GetPosition();
+			auto pos = glm::vec3(glm::vec4(model_pos, 1.0f) * glm::inverse((glm::mat4)World.train()->Dynamic()->mMatrix));
+			pos += (glm::vec3)World.train()->Dynamic()->GetPosition();
 
-			Sound->set_mode(sound::anchored).dist(1.5f).position(pos);
+			Sound->set_mode(sound::anchored).dist(3.0f).position(pos);
 		}
 	}
 

@@ -15,11 +15,18 @@ uart_input::uart_input()
     if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK)
         throw std::runtime_error("uart: cannot open port");
 
-    if (sp_set_baudrate(port, conf.baud) != SP_OK)
-        throw std::runtime_error("uart: cannot set baudrate");
+	sp_port_config *config;
 
-    if (sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE) != SP_OK)
-        throw std::runtime_error("uart: cannot set flowcontrol");
+    if (sp_new_config(&config) != SP_OK ||
+		sp_set_config_baudrate(config, conf.baud) != SP_OK ||
+		sp_set_config_flowcontrol(config, SP_FLOWCONTROL_NONE) != SP_OK ||
+		sp_set_config_bits(config, 8) != SP_OK ||
+		sp_set_config_stopbits(config, 1) != SP_OK ||
+		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
+		sp_set_config(port, config) != SP_OK)
+        throw std::runtime_error("uart: cannot set config");
+
+	sp_free_config(config);
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK)
         throw std::runtime_error("uart: cannot flush");
@@ -30,6 +37,10 @@ uart_input::uart_input()
 
 uart_input::~uart_input()
 {
+	std::array<uint8_t, 31> buffer = { 0 };
+	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
+	sp_drain(port);
+
     sp_close(port);
     sp_free_port(port);
 }
@@ -44,17 +55,27 @@ void uart_input::poll()
     last_update = now;
 
     TTrain *t = Global::pWorld->train();
+	if (!t)
+		return;
 
     sp_return ret;
 
-    if (sp_input_waiting(port) >= 16)
+    if ((ret = sp_input_waiting(port)) >= 16)
     {
         std::array<uint8_t, 16> buffer;
         ret = sp_blocking_read(port, (void*)buffer.data(), buffer.size(), 0);
 		if (ret < 0)
             throw std::runtime_error("uart: failed to read from port");
-        
-		sp_drain(port);
+
+		if (conf.debug)
+		{
+			char buf[buffer.size() * 3 + 1];
+			size_t pos = 0;
+			for (uint8_t b : buffer)
+				pos += sprintf(&buf[pos], "%02X ", b);
+			WriteLog("uart: rx: " + std::string(buf));
+		}
+
 		data_pending = false;
 
         for (auto entry : input_bits)
@@ -102,15 +123,14 @@ void uart_input::poll()
             relay.post(std::get<1>(entry), 0, 0, action, 0, desired_state);
         }
 
-        int mainctrl = buffer[6];
-        int scndctrl = buffer[7];
-        float trainbrake = (float)(((uint16_t)buffer[8] | ((uint16_t)buffer[9] << 8)) - conf.mainbrakemin) / (conf.mainbrakemax - conf.mainbrakemin);
-        float localbrake = (float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.mainbrakemin) / (conf.localbrakemax - conf.localbrakemin);
-
-        t->set_mainctrl(mainctrl);
-        t->set_scndctrl(scndctrl);
-        t->set_trainbrake(trainbrake);
-        t->set_localbrake(localbrake);
+		if (conf.mainenable)
+	        t->set_mainctrl(buffer[6]);
+		if (conf.scndenable)
+	        t->set_scndctrl(buffer[7]);
+		if (conf.trainenable)
+	        t->set_trainbrake((float)(((uint16_t)buffer[8] | ((uint16_t)buffer[9] << 8)) - conf.mainbrakemin) / (conf.mainbrakemax - conf.mainbrakemin));
+		if (conf.localenable)
+	        t->set_localbrake((float)(((uint16_t)buffer[10] | ((uint16_t)buffer[11] << 8)) - conf.localbrakemin) / (conf.localbrakemax - conf.localbrakemin));
 
         old_packet = buffer;
     }
@@ -120,10 +140,10 @@ void uart_input::poll()
 	    // TODO: ugly! move it into structure like input_bits
 
 	    uint8_t buzzer = (uint8_t)t->get_alarm();
-	    uint8_t tacho = (uint8_t)t->get_tacho();
-	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() / conf.tankmax * conf.tankuart);
-	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() / conf.pipemax * conf.pipeuart);
-	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, t->get_brake_pressure() / conf.brakemax * conf.brakeuart);
+	    uint8_t tacho = Global::iPause ? 0 : (uint8_t)t->get_tacho();
+	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, t->get_tank_pressure() * 0.1f / conf.tankmax * conf.tankuart);
+	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, t->get_pipe_pressure() * 0.1f / conf.pipemax * conf.pipeuart);
+	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, t->get_brake_pressure() * 0.1f / conf.brakemax * conf.brakeuart);
 	    uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, t->get_hv_voltage() / conf.hvmax * conf.hvuart);
 	    auto current = t->get_current();
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, current[0]) / conf.currentmax * conf.currentuart;
@@ -132,37 +152,35 @@ void uart_input::poll()
 
 	    std::array<uint8_t, 31> buffer =
 	    {
-	        0, 0, //byte 0-1
-			tacho, //byte 2
-	        0, 0, 0, 0, 0, 0, //byte 3-8
-	        SPLIT_INT16(brake_press), //byte 9-10
-	        SPLIT_INT16(pipe_press), //byte 11-12
-	        SPLIT_INT16(tank_press), //byte 13-14
-	        SPLIT_INT16(hv_voltage), //byte 15-16
-	        SPLIT_INT16(current1), //byte 17-18
-	        SPLIT_INT16(current2), //byte 19-20
-	        SPLIT_INT16(current3), //byte 21-22
-			0, 0, 0, 0, 0, 0, 0, 0 //byte 23-30
+			tacho, //byte 0
+	        0, //byte 1
+			(uint8_t)(t->btLampkaOpory.b() << 1 | t->btLampkaWysRozr.b() << 2), //byte 2
+			0, //byte 3
+			(uint8_t)(t->btLampkaOgrzewanieSkladu.b() << 0 | t->btLampkaOpory.b() << 1 |
+			t->btLampkaPoslizg.b() << 2 | t->btLampkaCzuwaka.b() << 6 |
+			t->btLampkaSHP.b() << 7), //byte 4
+			(uint8_t)(t->btLampkaStyczn.b() << 0 | t->btLampkaNadmPrzetw.b() << 2 |
+			t->btLampkaNadmSil.b() << 4 | t->btLampkaWylSzybki.b() << 5 |
+			t->btLampkaNadmSpr.b() << 6), //byte 5
+			(uint8_t)(buzzer << 7), //byte 6
+	        SPLIT_INT16(brake_press), //byte 7-8
+	        SPLIT_INT16(pipe_press), //byte 9-10
+	        SPLIT_INT16(tank_press), //byte 11-12
+	        SPLIT_INT16(hv_voltage), //byte 13-14
+	        SPLIT_INT16(current1), //byte 15-16
+	        SPLIT_INT16(current2), //byte 17-18
+	        SPLIT_INT16(current3), //byte 19-20
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0 //byte 21-30
 	    };
 
-	    buffer[4] |= t->btLampkaOpory.b() << 1;
-	    buffer[4] |= t->btLampkaWysRozr.b() << 2;
-
-	    buffer[6] |= t->btLampkaOgrzewanieSkladu.b() << 0;
-	    buffer[6] |= t->btLampkaOpory.b() << 1;
-	    buffer[6] |= t->btLampkaPoslizg.b() << 2;
-	    buffer[6] |= t->btLampkaCzuwaka.b() << 6;
-	    buffer[6] |= t->btLampkaSHP.b() << 7;
-
-	    buffer[7] |= t->btLampkaStyczn.b() << 0;
-	    buffer[7] |= t->btLampkaNadmPrzetw.b() << 2;
-	    buffer[7] |= t->btLampkaNadmSil.b() << 4;
-	    buffer[7] |= t->btLampkaWylSzybki.b() << 5;
-	    buffer[7] |= t->btLampkaNadmSpr.b() << 6;
-
-	    buffer[8] |= buzzer << 7;
-
-		sp_flush(port, SP_BUF_INPUT); // flush input buffer in preparation for reply packet
+		if (conf.debug)
+		{
+			char buf[buffer.size() * 3 + 1];
+			size_t pos = 0;
+			for (uint8_t b : buffer)
+				pos += sprintf(&buf[pos], "%02X ", b);
+			WriteLog("uart: tx: " + std::string(buf));
+		}
 
 	    ret = sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	    if (ret != buffer.size())

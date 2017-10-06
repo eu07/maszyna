@@ -1055,15 +1055,6 @@ bool TWorld::Update()
     Ground.Update_Hidden();
     Ground.Update_Lights();
 
-	{
-		glm::dmat4 cam_matrix;
-		Camera.SetMatrix(cam_matrix);
-
-		glm::vec3 pos(Camera.Pos.x, Camera.Pos.y, Camera.Pos.z);
-	    sound_man->set_listener(pos, glm::mat3(cam_matrix));
-	    sound_man->update(dt);
-	}
-
     // render time routines follow:
 
     dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
@@ -1093,6 +1084,16 @@ bool TWorld::Update()
     // variable step render time routines
 
     Update_Camera( dt );
+
+	{
+		glm::dmat4 cam_matrix;
+		Camera.SetMatrix(cam_matrix);
+
+		glm::vec3 pos(Camera.Pos.x, Camera.Pos.y, Camera.Pos.z);
+	    sound_man->set_listener(pos, glm::mat3(cam_matrix));
+	    sound_man->update(Global::iPause ? 0.0f : dt);
+	}
+
 
     GfxRenderer.Update( dt );
     ResourceSweep();
