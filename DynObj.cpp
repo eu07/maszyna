@@ -2957,12 +2957,6 @@ bool TDynamicObject::Update(double dt, double dt1)
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen =
         GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
-    // yB: zeby zawsze wrzucalo w jedna strone zakretu
-/*
-    // this seemed to have opposite effect, if anything -- the sway direction would be affected
-    // by the 'direction' of the track, making the sway go sometimes inward, sometimes outward
-    MoverParameters->AccN *= -ABuGetDirection();
-*/
     // if (dDOMoveLen!=0.0) //Ra: nie może być, bo blokuje Event0
     if( Mechanik )
         Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia

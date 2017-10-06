@@ -49,6 +49,7 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <tuple>
 #include <cctype>
 #include <locale>
 #include <codecvt>
@@ -93,3 +94,5 @@
 #include <glm/gtx/norm.hpp>
 
 #include "openglmatrixstack.h"
+
+//#define EU07_USE_OLD_GROUNDCODE

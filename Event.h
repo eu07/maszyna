@@ -11,9 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "dumb3d.h"
-#include "Classes.h"
-
-using namespace Math3D;
+#include "classes.h"
 
 enum TEventType {
     tp_Unknown,
@@ -63,6 +61,7 @@ union TParam
     void *asPointer;
     TMemCell *asMemCell;
     TGroundNode *nGroundNode;
+    glm::dvec3 const *asLocation;
     TTrack *asTrack;
     TAnimModel *asModel;
     TAnimContainer *asAnimContainer;
@@ -87,9 +86,10 @@ class TEvent // zmienne: ev*
     std::string asName;
     bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
     int iQueued = 0; // ile razy dodany do kolejki
-    // bool bIsHistory;
     TEvent *evNext = nullptr; // następny w kolejce
+#ifdef EU07_USE_OLD_GROUNDCODE
     TEvent *evNext2 = nullptr;
+#endif
     TEventType Type = tp_Unknown;
     double fStartTime = 0.0;
     double fDelay = 0.0;
@@ -103,15 +103,61 @@ class TEvent // zmienne: ev*
     TEvent(std::string const &m = "");
     ~TEvent();
     void Init();
-    void Load(cParser *parser, vector3 *org);
+    void Load(cParser *parser, Math3D::vector3 const &org);
     static void AddToQuery( TEvent *Event, TEvent *&Start );
     std::string CommandGet();
     TCommandType Command();
     double ValueGet(int n);
-    vector3 PositionGet() const;
+    glm::dvec3 PositionGet() const;
     bool StopCommand();
     void StopCommandSent();
     void Append(TEvent *e);
+};
+
+class event_manager {
+
+public:
+// destructor
+    ~event_manager();
+// methods
+    // adds provided event to the collection. returns: true on success
+    // TODO: return handle instead of pointer
+    bool
+        insert( TEvent *Event );
+    // legacy method, returns pointer to specified event, or null
+    TEvent *
+        FindEvent( std::string const &Name );
+    // legacy method, inserts specified event in the event query
+    bool
+        AddToQuery( TEvent *Event, TDynamicObject *Owner );
+    // legacy method, executes queued events
+    bool
+        CheckQuery();
+    // legacy method, initializes events after deserialization from scenario file
+    void
+        InitEvents();
+
+private:
+// types
+    using event_sequence = std::deque<TEvent *>;
+    using event_map = std::unordered_map<std::string, std::size_t>;
+
+// methods
+    // legacy method, verifies condition for specified event
+    bool
+        EventConditon( TEvent *Event );
+
+// members
+    event_sequence m_events;
+/*
+    // NOTE: disabled until event class refactoring
+    event_sequence m_eventqueue;
+*/
+    // legacy version of the above
+    TEvent *QueryRootEvent { nullptr };
+    TEvent *m_workevent { nullptr };
+
+    event_map m_eventmap;
 };
 
 //---------------------------------------------------------------------------

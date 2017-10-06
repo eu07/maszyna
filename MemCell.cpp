@@ -25,17 +25,18 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
+// legacy constructor
 TMemCell::TMemCell(vector3 *p)
 {
     fValue1 = fValue2 = 0;
-    vPosition =
-        p ? *p : vector3(0, 0, 0); // ustawienie współrzędnych, bo do TGroundNode nie ma dostępu
+    m_location =
+        p ? *p : glm::dvec3(); // ustawienie współrzędnych, bo do TGroundNode nie ma dostępu
     bCommand = false; // komenda wysłana
     OnSent = NULL;
 }
-void TMemCell::Init()
-{
-}
+
+TMemCell::TMemCell( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
+
 void TMemCell::UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask )
 {
     if (CheckMask & update_memadd)
@@ -103,10 +104,17 @@ TCommandType TMemCell::CommandCheck()
 bool TMemCell::Load(cParser *parser)
 {
     std::string token;
-    parser->getTokens(1, false); // case sensitive
-    *parser >> szText;
-    parser->getTokens( 2, false );
+#ifdef EU07_USE_OLD_GROUNDCODE
+    parser->getTokens( 3, false );
     *parser
+#else
+    parser->getTokens( 6, false );
+    *parser
+        >> m_location.x
+        >> m_location.y
+        >> m_location.z
+#endif
+        >> szText
         >> fValue1
         >> fValue2;
     parser->getTokens();
@@ -149,11 +157,6 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
     return ( ( !TestFlag( CheckMask, conditional_memval1 ) || ( fValue1 == fTestValue1 ) )
           && ( !TestFlag( CheckMask, conditional_memval2 ) || ( fValue2 == fTestValue2 ) ) );
 };
-
-bool TMemCell::Render()
-{
-    return true;
-}
 
 bool TMemCell::IsVelocity()
 { // sprawdzenie, czy event odczytu tej komórki ma być do skanowania, czy do kolejkowania

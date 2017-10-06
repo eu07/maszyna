@@ -406,23 +406,20 @@ void TAnimContainer::EventAssign(TEvent *ev)
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-TAnimModel::TAnimModel()
-{
-    pRoot = NULL;
-    pModel = NULL;
-    iNumLights = 0;
-    fBlinkTimer = 0;
-
-    for (int i = 0; i < iMaxNumLights; ++i)
-    {
-        LightsOn[i] = LightsOff[i] = nullptr; // normalnie nie ma
-        lsLights[i] = ls_Off; // a jeśli są, to wyłączone
+TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {
+    // TODO: wrap these in a tuple and move to underlying model
+    for( int index = 0; index < iMaxNumLights; ++index ) {
+        LightsOn[ index ] = LightsOff[ index ] = nullptr; // normalnie nie ma
+        lsLights[ index ] = ls_Off; // a jeśli są, to wyłączone
     }
-    vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
-    pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25f; // standardowy próg zaplania
-    fOnTime = 0.66f;
-    fOffTime = fOnTime + 0.66f;
+}
+
+TAnimModel::TAnimModel() {
+    // TODO: wrap these in a tuple and move to underlying model
+    for( int index = 0; index < iMaxNumLights; ++index ) {
+        LightsOn[index] = LightsOff[index] = nullptr; // normalnie nie ma
+        lsLights[index] = ls_Off; // a jeśli są, to wyłączone
+    }
 }
 
 TAnimModel::~TAnimModel()

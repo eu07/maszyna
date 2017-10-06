@@ -228,6 +228,18 @@
     <ClCompile Include="material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scenenode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vertex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -444,6 +456,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vertex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scenenode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -13,8 +13,10 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <deque>
 
+#include "scenenode.h"
 #include "Segment.h"
 #include "material.h"
+#include "names.h"
 
 enum TTrackType {
     tt_Unknown,
@@ -112,12 +114,12 @@ class TIsolated
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack {
+class TTrack : public editor::basic_node {
 
     friend class opengl_renderer;
 
 private:
-    TGroundNode * pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
+//    TGroundNode * pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
@@ -126,7 +128,7 @@ private:
 
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
-    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
+    double fRadiusTable[ 2 ] = { 0.0, 0.0 }; // dwa promienie, drugi dla zwrotnicy
     float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
@@ -134,6 +136,7 @@ private:
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
 
+    glm::dvec3 m_origin;
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     typedef std::vector<geometry_handle> geometryhandle_sequence;
@@ -167,7 +170,6 @@ public:
     int iQualityFlag = 20;
     int iDamageFlag = 0;
     TEnvironmentType eEnvironment = e_flat; // dźwięk i oświetlenie
-    bool bVisible = true; // czy rysowany
     int iAction = 0; // czy modyfikowany eventami (specjalna obsługa przy skanowaniu)
     float fOverhead = -1.0; // można normalnie pobierać prąd (0 dla jazdy bezprądowej po danym odcinku, >0-z opuszczonym i ograniczeniem prędkości)
   private:
@@ -177,11 +179,13 @@ public:
     double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
     double fRadius = 0.0; // promień, dla zwrotnicy kopiowany z tabeli
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
-    TTraction *hvOverhead = nullptr; // drut zasilający do szybkiego znalezienia (nie używany)
-    TGroundNode *nFouling[ 2 ]; // współrzędne ukresu albo oporu kozła
+    TGroundNode *nFouling[ 2 ] = { nullptr, nullptr }; // współrzędne ukresu albo oporu kozła
 
-    TTrack(TGroundNode *g);
-    ~TTrack();
+    TTrack( scene::node_data const &Nodedata );
+    // legacy constructor
+    TTrack( std::string Name );
+    virtual ~TTrack();
+
     void Init();
     static TTrack * Create400m(int what, double dx);
     TTrack * NullCreate(int dir);
@@ -218,7 +222,7 @@ public:
             SwitchExtension != nullptr ?
                 SwitchExtension->iRoads - 1 :
                 1 ); }
-    void Load(cParser *parser, Math3D::vector3 pOrigin, std::string name);
+    void Load(cParser *parser, Math3D::vector3 pOrigin);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
@@ -226,7 +230,16 @@ public:
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
 
-    void create_geometry(geometrybank_handle const &Bank); // wypełnianie VBO
+    // set origin point
+    void
+        origin( glm::dvec3 Origin ) {
+            m_origin = Origin; }
+
+#ifdef EU07_USE_OLD_GROUNDCODE
+    void create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ); // wypełnianie VBO
+#else
+    void create_geometry( geometrybank_handle const &Bank ); // wypełnianie VBO
+#endif
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet(TSubRect *o) {
@@ -247,7 +260,6 @@ public:
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);
     void MovedUp1(float const dh);
-    std::string NameGet();
     void VelocitySet(float v);
     double VelocityGet();
     void ConnectionsLog();
@@ -255,6 +267,17 @@ public:
   private:
     void EnvironmentSet();
     void EnvironmentReset();
+};
+
+
+
+// collection of virtual tracks and roads present in the scene
+class path_table : public basic_table<TTrack> {
+
+public:
+    // legacy method, initializes tracks after deserialization from scenario file
+    void
+        InitTracks();
 };
 
 //---------------------------------------------------------------------------

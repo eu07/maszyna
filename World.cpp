@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 
 #include "Globals.h"
+#include "simulation.h"
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "renderer.h"
@@ -242,6 +243,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     GfxRenderer.Render();
 
     WriteLog( "World setup..." );
+#ifdef EU07_USE_OLD_GROUNDCODE
     if( true == Ground.Init( Global::SceneryFile ) ) {
         WriteLog( "...world setup done" );
     }
@@ -249,6 +251,9 @@ bool TWorld::Init( GLFWwindow *Window ) {
         ErrorLog( "...world setup failed" );
         return false;
     }
+#else
+    if( false == simulation::State.deserialize( Global::SceneryFile ) ) { return false; }
+#endif
 
     simulation::Time.init();
 
@@ -299,6 +304,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     // if (!Global::bMultiplayer) //na razie włączone
     { // eventy aktywowane z klawiatury tylko dla jednego użytkownika
+#ifdef EU07_USE_OLD_GROUNDCODE
         KeyEvents[0] = Ground.FindEvent("keyctrl00");
         KeyEvents[1] = Ground.FindEvent("keyctrl01");
         KeyEvents[2] = Ground.FindEvent("keyctrl02");
@@ -309,6 +315,18 @@ bool TWorld::Init( GLFWwindow *Window ) {
         KeyEvents[7] = Ground.FindEvent("keyctrl07");
         KeyEvents[8] = Ground.FindEvent("keyctrl08");
         KeyEvents[9] = Ground.FindEvent("keyctrl09");
+#else
+        KeyEvents[ 0 ] = simulation::Events.FindEvent( "keyctrl00" );
+        KeyEvents[ 1 ] = simulation::Events.FindEvent( "keyctrl01" );
+        KeyEvents[ 2 ] = simulation::Events.FindEvent( "keyctrl02" );
+        KeyEvents[ 3 ] = simulation::Events.FindEvent( "keyctrl03" );
+        KeyEvents[ 4 ] = simulation::Events.FindEvent( "keyctrl04" );
+        KeyEvents[ 5 ] = simulation::Events.FindEvent( "keyctrl05" );
+        KeyEvents[ 6 ] = simulation::Events.FindEvent( "keyctrl06" );
+        KeyEvents[ 7 ] = simulation::Events.FindEvent( "keyctrl07" );
+        KeyEvents[ 8 ] = simulation::Events.FindEvent( "keyctrl08" );
+        KeyEvents[ 9 ] = simulation::Events.FindEvent( "keyctrl09" );
+#endif
     }
 
     WriteLog( "Load time: " +
@@ -396,7 +414,11 @@ void TWorld::OnKeyDown(int cKey)
         { // z [Shift] uruchomienie eventu
             if (!Global::iPause) // podczas pauzy klawisze nie działają
                 if (KeyEvents[i])
+#ifdef EU07_USE_OLD_GROUNDCODE
                     Ground.AddToQuery(KeyEvents[i], NULL);
+#else
+                    simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
+#endif
         }
         else // zapamiętywanie kamery może działać podczas pauzy
             if (FreeFlyModeFlag) // w trybie latania można przeskakiwać do ustawionych kamer
@@ -685,8 +707,7 @@ void TWorld::OnKeyDown(int cKey)
                                          temp->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->play_sound( Train->dsbSwitch );
                     }
             }
         }
@@ -715,8 +736,7 @@ void TWorld::OnKeyDown(int cKey)
                     tmp->iLights[CouplNr] = (tmp->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->play_sound( Train->dsbSwitch );
                     }
                 }
             }
@@ -736,8 +756,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->play_sound( Train->dsbPneumaticRelay );
                         }
             }
         }
@@ -756,8 +775,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->play_sound( Train->dsbPneumaticRelay );
                         }
             }
         }
@@ -1045,10 +1063,14 @@ bool TWorld::Update()
         TSubModel::iInstance = 0;
     }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
     Ground.CheckQuery();
+#else
+    simulation::Events.CheckQuery();
+#endif
 
     Ground.Update_Hidden();
-    Ground.Update_Lights();
+    simulation::Lights.update();
 
     // render time routines follow:
 
@@ -1818,19 +1840,24 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " scenery" + " rcvd");
 			Ground.WyslijString(Global::SceneryFile, 1); // nazwa scenerii
             break;
-        case 2: // event
-            CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " " +
-                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            if (Global::iMultiplayer)
-            { // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
+        case 2: {
+            // event
+            CommLog( Now() + " " + std::to_string( pRozkaz->iComm ) + " " +
+                std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) + " rcvd" );
+/*
+            // TODO: re-enable when messaging module is in place
+            if( Global::iMultiplayer ) {
+                // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
-                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
-                if (e)
-                    if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
-                        (e->evJoined != 0))  // tylko jawne albo niejawne Multiple
-                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu brak
+                    std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+                if( e )
+                    if( ( e->Type == tp_Multiple ) || ( e->Type == tp_Lights ) ||
+                        ( e->evJoined != 0 ) )  // tylko jawne albo niejawne Multiple
+                        Ground.AddToQuery( e, NULL ); // drugi parametr to dynamic wywołujący - tu brak
             }
+*/
             break;
+        }
         case 3: // rozkaz dla AI
             if (Global::iMultiplayer)
             {

@@ -65,3 +65,47 @@ private:
 // members:
     typemap_map                          m_maps;             // list of object maps of types specified so far
 };
+
+template <typename Type_>
+class basic_table {
+
+public:
+// destructor
+    ~basic_table() {
+        for( auto *item : m_items ) {
+            delete item; } }
+// methods
+    // adds provided item to the collection. returns: true if there's no duplicate with the same name, false otherwise
+    bool
+        insert( Type_ *Item ) {
+            m_items.emplace_back( Item );
+            auto const itemname = Item->name();
+            if( ( true == itemname.empty() ) || ( itemname == "none" ) ) {
+                return true;
+            }
+            auto const itemhandle { m_items.size() - 1 };
+            // add item name to the map
+            auto mapping = m_itemmap.emplace( itemname, itemhandle );
+            if( true == mapping.second ) {
+                return true;
+            }
+            // cell with this name already exists; update mapping to point to the new one, for backward compatibility
+            mapping.first->second = itemhandle;
+            return false; }
+    // locates item with specified name. returns pointer to the item, or nullptr
+    Type_ *
+        find( std::string const &Name ) {
+            auto lookup = m_itemmap.find( Name );
+            return (
+                lookup != m_itemmap.end() ?
+                    m_items[ lookup->second ] :
+                    nullptr ); }
+
+protected:
+// types
+    using type_sequence = std::deque<Type_ *>;
+    using type_map = std::unordered_map<std::string, std::size_t>;
+// members
+    type_sequence m_items;
+    type_map m_itemmap;
+};

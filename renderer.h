@@ -15,12 +15,14 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
+#include "scene.h"
 #include "world.h"
 #include "memcell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
+//#define EU07_USE_DEBUG_CULLING
 
 struct opengl_light {
 
@@ -84,7 +86,7 @@ public:
     void
         update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview );
     bool
-        visible( bounding_area const &Area ) const;
+        visible( scene::bounding_area const &Area ) const;
     bool
         visible( TDynamicObject const *Dynamic ) const;
     inline
@@ -225,7 +227,13 @@ private:
         diffuse
     };
 
-    typedef std::pair< double, TSubRect * > distancesubcell_pair;
+#ifdef EU07_USE_OLD_GROUNDCODE
+    using distancesubcell_pair = std::pair< double, TSubRect * >;
+#else
+    using section_sequence = std::vector<scene::basic_section *>;
+    using distancecell_pair = std::pair<double, scene::basic_cell *>;
+    using cell_sequence = std::vector<distancecell_pair>;
+#endif
 
     struct renderpass_config {
 
@@ -266,12 +274,25 @@ private:
         Render_reflections();
     bool
         Render( world_environment *Environment );
+#ifdef EU07_USE_OLD_GROUNDCODE
     bool
         Render( TGround *Ground );
     bool
         Render( TGroundRect *Groundcell );
     bool
         Render( TSubRect *Groundsubcell );
+#else
+    void
+        Render( scene::basic_region &Region );
+    void
+        Render( section_sequence::iterator First, section_sequence::iterator Last );
+    void
+        Render( cell_sequence::iterator First, cell_sequence::iterator Last );
+    void
+        Render( scene::shape_node const &Shape );
+    void
+        Render( TAnimModel *Instance );
+#endif
     bool
         Render( TGroundNode *Node );
     bool
@@ -288,10 +309,21 @@ private:
         Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
+#ifdef EU07_USE_OLD_GROUNDCODE
     bool
         Render_Alpha( TGround *Ground );
     bool
         Render_Alpha( TSubRect *Groundsubcell );
+#else
+    void
+        Render_Alpha( scene::basic_region &Region );
+    void
+        Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last );
+    void
+        Render_Alpha( TAnimModel *Instance );
+    void
+        Render_Alpha( TTraction *Traction );
+#endif
     bool
         Render_Alpha( TGroundNode *Node );
     bool
@@ -361,13 +393,18 @@ private:
     std::string m_pickdebuginfo;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
-    glm::vec4 m_shadowcolor { 0.5f, 0.5f, 0.5f, 1.f };
+    glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
 
     renderpass_config m_renderpass;
-    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
+#ifdef EU07_USE_OLD_GROUNDCODE
+    std::vector<distancesubcell_pair> m_cellqueue; // list of subcells to be drawn in current render pass
+#else
+    section_sequence m_sectionqueue; // list of sections in current render pass
+    cell_sequence m_cellqueue;
+#endif
 
     std::vector<TGroundNode const *> m_picksceneryitems;
     std::vector<TSubModel const *> m_pickcontrolsitems;

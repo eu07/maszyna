@@ -10,14 +10,16 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "GL/glew.h"
-#include "dumb3d.h"
-#include "openglgeometrybank.h"
+
+#include "scenenode.h"
+#include "Segment.h"
+#include "material.h"
+#include "names.h"
 
 class TTractionPowerSource;
 
-class TTraction
-{ // drut zasilający, dla wskaźników używać przedrostka "hv"
+class TTraction : public editor::basic_node {
+
     friend class opengl_renderer;
 
   public: // na razie
@@ -29,7 +31,7 @@ class TTraction
   public:
     glm::dvec3 pPoint1, pPoint2, pPoint3, pPoint4;
     glm::dvec3 vParametric; // współczynniki równania parametrycznego odcinka
-    double fHeightDifference { 0.0 }; //,fMiddleHeight;
+    double fHeightDifference { 0.0 };
     int iNumSections { 0 };
     float NominalVoltage { 0.0f };
     float MaxCurrent { 0.0f };
@@ -47,11 +49,22 @@ class TTraction
     int iTries { 0 };
     int PowerState { 0 }; // type of incoming power, if any
     // visualization data
+    glm::dvec3 m_origin;
     geometry_handle m_geometry;
 
+    TTraction( scene::node_data const &Nodedata );
+    // legacy constructor
+    TTraction( std::string Name );
+    virtual ~TTraction() = default;
+
+    void Load( cParser *parser, glm::dvec3 const &pOrigin );
+    // set origin point
+    void
+        origin( glm::dvec3 Origin ) {
+            m_origin = Origin; }
     // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
     // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
-    std::size_t create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin );
+    std::size_t create_geometry( geometrybank_handle const &Bank );
     int TestPoint(glm::dvec3 const &Point);
     void Connect(int my, TTraction *with, int to);
     void Init();
@@ -61,6 +74,17 @@ class TTraction
     double VoltageGet(double u, double i);
 private:
     glm::vec3 wire_color() const;
+};
+
+
+
+// collection of virtual tracks and roads present in the scene
+class traction_table : public basic_table<TTraction> {
+
+public:
+    // legacy method, initializes traction after deserialization from scenario file
+    void
+        InitTraction();
 };
 
 //---------------------------------------------------------------------------

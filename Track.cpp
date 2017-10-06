@@ -139,13 +139,12 @@ void TIsolated::Modify(int i, TDynamicObject *o)
 };
 
 // tworzenie nowego odcinka ruchu
-TTrack::TTrack(TGroundNode *g) :
-    pMyNode( g ) // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
-{
-    fRadiusTable[ 0 ] = 0.0;
-    fRadiusTable[ 1 ] = 0.0;
-    nFouling[ 0 ] = nullptr;
-    nFouling[ 1 ] = nullptr;
+TTrack::TTrack( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
+
+// legacy constructor
+TTrack::TTrack( std::string Name ) {
+
+    m_name = Name;
 }
 
 TTrack::~TTrack()
@@ -182,7 +181,7 @@ TTrack * TTrack::Create400m(int what, double dx)
 { // tworzenie toru do wstawiania taboru podczas konwersji na E3D
     TGroundNode *tmp = new TGroundNode(TP_TRACK); // node
     TTrack *trk = tmp->pTrack;
-    trk->bVisible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
+    trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
     trk->Init(); // utworzenie segmentu
     trk->Segment->Init(vector3(-dx, 0, 0), vector3(-dx, 0, 400), 10.0, 0, 0); // prosty
@@ -195,12 +194,10 @@ TTrack * TTrack::Create400m(int what, double dx)
 
 TTrack * TTrack::NullCreate(int dir)
 { // tworzenie toru wykolejającego od strony (dir), albo pętli dla samochodów
-    TGroundNode *tmp = new TGroundNode(TP_TRACK), *tmp2 = NULL; // node
+    TGroundNode *tmp = new TGroundNode( TP_TRACK );
+    TGroundNode *tmp2 = nullptr; // node
     TTrack *trk = tmp->pTrack; // tor; UWAGA! obrotnica może generować duże ilości tego
-    // tmp->iType=TP_TRACK;
-    // TTrack* trk=new TTrack(tmp); //tor; UWAGA! obrotnica może generować duże ilości tego
-    // tmp->pTrack=trk;
-    trk->bVisible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
+    trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     // trk->iTrapezoid=1; //są przechyłki do uwzględniania w rysowaniu
     trk->iCategoryFlag = (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
     float r1, r2;
@@ -216,25 +213,21 @@ TTrack * TTrack::NullCreate(int dir)
         case 0:
             p1 = Segment->FastGetPoint_0();
             p2 = p1 - 450.0 * Normalize(Segment->GetDirection1());
-            trk->Segment->Init(p1, p2, 5, -RadToDeg(r1),
-                               70.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk->Segment->Init(p1, p2, 5, -RadToDeg(r1), 70.0);
             ConnectPrevPrev(trk, 0);
             break;
         case 1:
             p1 = Segment->FastGetPoint_1();
             p2 = p1 - 450.0 * Normalize(Segment->GetDirection2());
-            trk->Segment->Init(p1, p2, 5, RadToDeg(r2),
-                               70.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk->Segment->Init(p1, p2, 5, RadToDeg(r2), 70.0);
             ConnectNextPrev(trk, 0);
             break;
         case 3: // na razie nie możliwe
             p1 = SwitchExtension->Segments[1]->FastGetPoint_1(); // koniec toru drugiego zwrotnicy
-            p2 = p1 -
-                 450.0 *
-                     Normalize(
-                         SwitchExtension->Segments[1]->GetDirection2()); // przedłużenie na wprost
-            trk->Segment->Init(p1, p2, 5, RadToDeg(r2),
-                               70.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            p2 = p1 - 450.0 * Normalize( SwitchExtension->Segments[1]->GetDirection2()); // przedłużenie na wprost
+            trk->Segment->Init(p1, p2, 5, RadToDeg(r2), 70.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
             ConnectNextPrev(trk, 0);
             // trk->ConnectPrevNext(trk,dir);
             SetConnections(1); // skopiowanie połączeń
@@ -251,13 +244,13 @@ TTrack * TTrack::NullCreate(int dir)
         TTrack *trk2 = tmp2->pTrack;
         trk2->iCategoryFlag =
             (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
-        trk2->bVisible = false;
+        trk2->m_visible = false;
         trk2->fVelocity = 20.0; // zawracanie powoli
         trk2->fRadius = 20.0; // promień, aby się dodawało do tabelki prędkości i liczyło
         // narastająco
         trk2->Init(); // utworzenie segmentu
-        trk->pMyNode->asName = pMyNode->asName + ":loopstart";
-        trk2->pMyNode->asName = pMyNode->asName + ":loopfinish";
+        trk->m_name = m_name + ":loopstart";
+        trk2->m_name = m_name + ":loopfinish";
         switch (dir)
         { //łączenie z nowym torem
         case 0:
@@ -320,8 +313,8 @@ void TTrack::ConnectPrevNext(TTrack *pTrack, int typ)
         iPrevDirection = typ | 1; // 1:zwykły lub pierwszy zwrotnicy, 3:drugi zwrotnicy
         pTrack->trNext = this;
         pTrack->iNextDirection = 0;
-        if (bVisible)
-            if (pTrack->bVisible)
+        if (m_visible)
+            if (pTrack->m_visible)
                 if (eType == tt_Normal) // jeśli łączone są dwa normalne
                     if (pTrack->eType == tt_Normal)
                         if ((fTrackWidth !=
@@ -340,8 +333,8 @@ void TTrack::ConnectNextPrev(TTrack *pTrack, int typ)
         iNextDirection = ((pTrack->eType == tt_Switch) ? 0 : (typ & 2));
         pTrack->trPrev = this;
         pTrack->iPrevDirection = 1;
-        if (bVisible)
-            if (pTrack->bVisible)
+        if (m_visible)
+            if (pTrack->m_visible)
                 if (eType == tt_Normal) // jeśli łączone są dwa normalne
                     if (pTrack->eType == tt_Normal)
                         if ((fTrackWidth !=
@@ -363,25 +356,15 @@ void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-vector3 MakeCPoint(vector3 p, double d, double a1, double a2)
-{
-    vector3 cp = vector3(0, 0, 1);
-    cp.RotateX(DegToRad(a2));
-    cp.RotateY(DegToRad(a1));
-    cp = cp * d + p;
-    return cp;
-}
-
 vector3 LoadPoint(cParser *parser)
 { // pobranie współrzędnych punktu
     vector3 p;
-    std::string token;
     parser->getTokens(3);
     *parser >> p.x >> p.y >> p.z;
     return p;
 }
 
-void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
+void TTrack::Load(cParser *parser, vector3 pOrigin)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
 	double a1, a2, r1, r2, r3, r4;
@@ -464,8 +447,8 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     }
     parser->getTokens();
     *parser >> token;
-    bVisible = (token.compare("vis") == 0); // visible
-    if (bVisible)
+    m_visible = (token.compare("vis") == 0); // visible
+    if (m_visible)
     {
         parser->getTokens();
         *parser >> str; // railtex
@@ -718,24 +701,28 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         }
         else if (str == "angle1")
         { // kąt ścięcia końca od strony 1
+            // NOTE: not used/implemented
             parser->getTokens();
             *parser >> a1;
-            Segment->AngleSet(0, a1);
+            //Segment->AngleSet(0, a1);
         }
         else if (str == "angle2")
         { // kąt ścięcia końca od strony 2
+          // NOTE: not used/implemented
             parser->getTokens();
             *parser >> a2;
-            Segment->AngleSet(1, a2);
+            //Segment->AngleSet(1, a2);
         }
         else if (str == "fouling1")
         { // wskazanie modelu ukresu w kierunku 1
+          // NOTE: not used/implemented
             parser->getTokens();
             *parser >> token;
             // nFouling[0]=
         }
         else if (str == "fouling2")
         { // wskazanie modelu ukresu w kierunku 2
+          // NOTE: not used/implemented
             parser->getTokens();
             *parser >> token;
             // nFouling[1]=
@@ -749,19 +736,26 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // ograniczenie dla pantografujących)
         }
         else
-            ErrorLog("Unknown property: \"" + str + "\" in track \"" + name + "\"");
+            ErrorLog("Unknown property: \"" + str + "\" in track \"" + m_name + "\"");
         parser->getTokens();
         *parser >> token;
 		str = token;
     }
     // alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
     if (!pIsolated)
-        if ((i = name.find("@")) != std::string::npos)
-            if (i < name.length()) // nie może być puste
+        if ((i = m_name.find("@")) != std::string::npos)
+            if (i < m_name.length()) // nie może być puste
             {
-                pIsolated = TIsolated::Find(name.substr(i + 1, name.length()));
-                name = name.substr(0, i - 1); // usunięcie z nazwy
+                pIsolated = TIsolated::Find(m_name.substr(i + 1, m_name.length()));
+                m_name = m_name.substr(0, i - 1); // usunięcie z nazwy
             }
+
+    // calculate path location
+    m_location = glm::dvec3{ (
+        CurrentSegment()->FastGetPoint_0()
+        + CurrentSegment()->FastGetPoint( 0.5 )
+        + CurrentSegment()->FastGetPoint_1() )
+        / 3.0 };
 }
 
 // TODO: refactor this mess
@@ -771,7 +765,7 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
 
     if( NewEvent0 == nullptr ) {
         if( false == asEvent0Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -789,7 +783,7 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
 
     if( NewEvent1 == nullptr ) {
         if( false == asEvent1Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -807,7 +801,7 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
 
     if( NewEvent2 == nullptr ) {
         if( false == asEvent2Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -832,7 +826,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
 
     if( NewEvent0 == nullptr ) {
         if( false == asEventall0Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -850,7 +844,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
 
     if( NewEvent1 == nullptr ) {
         if( false == asEventall1Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -868,7 +862,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
 
     if( NewEvent2 == nullptr ) {
         if( false == asEventall2Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
         }
     }
@@ -921,7 +915,7 @@ bool TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
     return false;
 };
 
-// ABu: przeniesione z Track.h i poprawione!!!
+// ABu: przeniesione z Path.h i poprawione!!!
 bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 { // dodanie pojazdu do trajektorii
     // Ra: tymczasowo wysyłanie informacji o zajętości konkretnego toru
@@ -935,9 +929,9 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         // jeśli multiplayer
         if( true == Dynamics.empty() ) {
             // pierwszy zajmujący
-            if( pMyNode->asName != "none" ) {
+            if( m_name != "none" ) {
                 // przekazanie informacji o zajętości toru
-                Global::pGround->WyslijString( pMyNode->asName, 8 );
+                Global::pGround->WyslijString( m_name, 8 );
             }
         }
     }
@@ -1027,9 +1021,9 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
         // jeśli multiplayer
         if( true == Dynamics.empty() ) {
             // jeśli już nie ma żadnego
-            if( pMyNode->asName != "none" ) {
+            if( m_name != "none" ) {
                 // przekazanie informacji o zwolnieniu toru
-                Global::pGround->WyslijString( pMyNode->asName, 9 ); 
+                Global::pGround->WyslijString( m_name, 9 ); 
             }
         }
     }
@@ -1079,7 +1073,12 @@ void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joi
 };
 
 // wypełnianie tablic VBO
+
+#ifdef EU07_USE_OLD_GROUNDCODE
+void TTrack::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
+#else
 void TTrack::create_geometry( geometrybank_handle const &Bank ) {
+#endif
     // Ra: trzeba rozdzielić szyny od podsypki, aby móc grupować wg tekstur
     auto const fHTW = 0.5f * std::abs(fTrackWidth);
     auto const side = std::abs(fTexWidth); // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -1116,7 +1115,11 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         normal2 = normal1;
     }
 
-    auto const origin { pMyNode->m_rootposition };
+#ifdef EU07_USE_OLD_GROUNDCODE
+    if( Bank != 0 ) {
+        m_origin = Origin;
+    }
+#endif
 
     float roll1, roll2;
     switch (iCategoryFlag & 15)
@@ -1326,7 +1329,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     }
                 }
                 vertex_array vertices;
-                Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -4 : 4, fTexLength);
+                Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -4 : 4, fTexLength);
                 if( ( Bank != 0 ) && ( true == Geometry2.empty() ) ) {
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
@@ -1339,18 +1342,18 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
                 vertex_array vertices;
                 if( ( Bank != 0 ) && ( true == Geometry1.empty() ) ) {
-                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Segment->RenderLoft( vertices, m_origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                     vertices.clear(); // reuse the scratchpad
-                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Segment->RenderLoft( vertices, m_origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
                 if( ( Bank == 0 ) && ( false == Geometry1.empty() ) ) {
                     // special variant, replace existing data for a turntable track
-                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Segment->RenderLoft( vertices, m_origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 0 ] );
                     vertices.clear(); // reuse the scratchpad
-                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Segment->RenderLoft( vertices, m_origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 1 ] );
                 }
             }
@@ -1392,27 +1395,27 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     vertex_array vertices;
                     if( m_material1 ) {
                         // fixed parts
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength, 1.0, 2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, 2 );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // left blade
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
                     if( m_material2 ) {
                         // fixed parts
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength, 1.0, 2 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, 2 );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // right blade
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1422,27 +1425,27 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     vertex_array vertices;
                     if( m_material1 ) {
                         // fixed parts
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // right blade
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
                     if( m_material2 ) {
                         // fixed parts
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength ); // prawa szyna normalnie cała
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength ); // prawa szyna normalnie cała
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // left blade
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1501,7 +1504,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
                 vertex_array vertices;
-                Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
+                Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
             if (m_material2)
@@ -1665,24 +1668,24 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony
                   // odcinka
                     if( ( fTexHeight1 >= 0.0 ) || ( slop != 0.0 ) ) {
-                        Segment->RenderLoft( vertices, origin, rpts1, -3, fTexLength ); // tylko jeśli jest z prawej
+                        Segment->RenderLoft( vertices, m_origin, rpts1, -3, fTexLength ); // tylko jeśli jest z prawej
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        Segment->RenderLoft( vertices, origin, rpts2, -3, fTexLength ); // tylko jeśli jest z lewej
+                        Segment->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength ); // tylko jeśli jest z lewej
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
                 }
                 else { // pobocza zwykłe, brak przechyłki
                     if( ( fTexHeight1 >= 0.0 ) || ( slop != 0.0 ) ) {
-                        Segment->RenderLoft( vertices, origin, rpts1, 3, fTexLength );
+                        Segment->RenderLoft( vertices, m_origin, rpts1, 3, fTexLength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        Segment->RenderLoft( vertices, origin, rpts2, 3, fTexLength );
+                        Segment->RenderLoft( vertices, m_origin, rpts2, 3, fTexLength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1915,22 +1918,22 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 if (SwitchExtension->iRoads == 4)
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        SwitchExtension->Segments[ 2 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
+                        SwitchExtension->Segments[ 2 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
                         }
-                        SwitchExtension->Segments[ 3 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
+                        SwitchExtension->Segments[ 3 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
                         }
-                        SwitchExtension->Segments[ 4 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
+                        SwitchExtension->Segments[ 4 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
                         }
-                        SwitchExtension->Segments[ 5 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
+                        SwitchExtension->Segments[ 5 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render );
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
@@ -1940,17 +1943,17 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 else {
                     // punkt 3 pokrywa się z punktem 1, jak w zwrotnicy; połączenie 1->2 nie musi być prostoliniowe
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        SwitchExtension->Segments[ 2 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P2 do P4
+                        SwitchExtension->Segments[ 2 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P2 do P4
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
                         }
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P4 do P3=P1 (odwrócony)
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P4 do P3=P1 (odwrócony)
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
                         }
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P1 do P2
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, &b, render ); // z P1 do P2
                         if( true == render ) {
                             Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                             vertices.clear();
@@ -1972,14 +1975,14 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 // we start with a vertex in the middle...
                 vertices.emplace_back(
                     glm::vec3{
-                        oxz.x - origin.x,
-                        oxz.y - origin.y,
-                        oxz.z - origin.z },
+                        oxz.x - m_origin.x,
+                        oxz.y - m_origin.y,
+                        oxz.z - m_origin.z },
                     glm::vec3{ 0.0f, 1.0f, 0.0f },
                     glm::vec2{ 0.5f, 0.5f } );
                 // ...and add one extra vertex to close the fan...
-                u = ( SwitchExtension->vPoints[ 0 ].x - oxz.x + origin.x ) / fTexLength;
-                v = ( SwitchExtension->vPoints[ 0 ].z - oxz.z + origin.z ) / ( fTexRatio1 * fTexLength );
+                u = ( SwitchExtension->vPoints[ 0 ].x - oxz.x + m_origin.x ) / fTexLength;
+                v = ( SwitchExtension->vPoints[ 0 ].z - oxz.z + m_origin.z ) / ( fTexRatio1 * fTexLength );
                 vertices.emplace_back(
                     glm::vec3 {
                         SwitchExtension->vPoints[ 0 ].x,
@@ -1993,8 +1996,8 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 // ...then draw the precalculated rest
                 for (int i = pointcount + SwitchExtension->iRoads - 1; i >= 0; --i) {
                     // mapowanie we współrzędnych scenerii
-                    u = ( SwitchExtension->vPoints[ i ].x - oxz.x + origin.x ) / fTexLength;
-                    v = ( SwitchExtension->vPoints[ i ].z - oxz.z + origin.z ) / ( fTexRatio1 * fTexLength );
+                    u = ( SwitchExtension->vPoints[ i ].x - oxz.x + m_origin.x ) / fTexLength;
+                    v = ( SwitchExtension->vPoints[ i ].z - oxz.z + m_origin.z ) / ( fTexRatio1 * fTexLength );
                     vertices.emplace_back(
                         glm::vec3 {
                             SwitchExtension->vPoints[ i ].x,
@@ -2068,7 +2071,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
                 vertex_array vertices;
-                Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
+                Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
             if (m_material2)
@@ -2128,19 +2131,19 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         {-rozp2, -fTexHeight2, 0.f},
                         normalup,
                         {0.0f, 0.f} }; // prawy brzeg prawego pobocza
-                    Segment->RenderLoft(vertices, origin, rpts1, -3, fTexLength);
+                    Segment->RenderLoft(vertices, m_origin, rpts1, -3, fTexLength);
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                     vertices.clear();
-                    Segment->RenderLoft(vertices, origin, rpts2, -3, fTexLength);
+                    Segment->RenderLoft(vertices, m_origin, rpts2, -3, fTexLength);
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                     vertices.clear();
                 }
                 else
                 { // pobocza zwykłe, brak przechyłki
-                    Segment->RenderLoft(vertices, origin, rpts1, 3, fTexLength);
+                    Segment->RenderLoft(vertices, m_origin, rpts1, 3, fTexLength);
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                     vertices.clear();
-                    Segment->RenderLoft(vertices, origin, rpts2, 3, fTexLength);
+                    Segment->RenderLoft(vertices, m_origin, rpts2, 3, fTexLength);
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                     vertices.clear();
                 }
@@ -2463,20 +2466,19 @@ TTrack * TTrack::RaAnimate()
                      {szyna[ i ].texture.x, 0.f} };
             }
 
-            auto const origin { pMyNode->m_rootposition };
             vertex_array vertices;
 
             if (SwitchExtension->RightSwitch)
             { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                 if( m_material1 ) {
                     // left blade
-                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
+                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // right blade
-                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
                     vertices.clear();
                 }
@@ -2484,13 +2486,13 @@ TTrack * TTrack::RaAnimate()
             else { // lewa działa lepiej niż prawa
                 if( m_material1 ) {
                     // right blade
-                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
+                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // left blade
-                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
+                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
                     vertices.clear();
                 }
@@ -2528,7 +2530,11 @@ TTrack * TTrack::RaAnimate()
                         dynamic->Move( 0.000001 );
                     }
                     // NOTE: passing empty handle is a bit of a hack here. could be refactored into something more elegant
+#ifdef EU07_USE_OLD_GROUNDCODE
+                    create_geometry( geometrybank_handle(), glm::dvec3() );
+#else
                     create_geometry( geometrybank_handle() );
+#endif
                 } // animacja trwa nadal
         }
         else
@@ -2650,14 +2656,6 @@ void TTrack::MovedUp1(float const dh)
     fTexHeight1 += dh;
 };
 
-std::string TTrack::NameGet()
-{ // ustalenie nazwy toru
-    if (this)
-        if (pMyNode)
-            return pMyNode->asName;
-    return "none";
-};
-
 void TTrack::VelocitySet(float v)
 { // ustawienie prędkości z ograniczeniem do pierwotnej wartości (zapisanej w scenerii)
     if (SwitchExtension ? SwitchExtension->fVelocity >= 0.0 : false)
@@ -2677,17 +2675,17 @@ double TTrack::VelocityGet()
 void TTrack::ConnectionsLog()
 { // wypisanie informacji o połączeniach
     int i;
-    WriteLog("--> tt_Cross named " + pMyNode->asName);
+    WriteLog("--> tt_Cross named " + m_name);
     if (eType == tt_Cross)
         for (i = 0; i < 2; ++i)
         {
             if (SwitchExtension->pPrevs[i])
                 WriteLog("Point " + std::to_string(i + i + 1) + " -> track " +
-                         SwitchExtension->pPrevs[i]->pMyNode->asName + ":" +
+                         SwitchExtension->pPrevs[i]->m_name + ":" +
                          std::to_string(int(SwitchExtension->iPrevDirection[i])));
             if (SwitchExtension->pNexts[i])
                 WriteLog("Point " + std::to_string(i + i + 2) + " -> track " +
-                         SwitchExtension->pNexts[i]->pMyNode->asName + ":" +
+                         SwitchExtension->pNexts[i]->m_name + ":" +
                          std::to_string(int(SwitchExtension->iNextDirection[i])));
         }
 };
@@ -2741,3 +2739,182 @@ TTrack * TTrack::Connected(int s, double &d) const
     }
     return NULL;
 };
+
+
+
+// legacy method, initializes tracks after deserialization from scenario file
+void
+path_table::InitTracks() {
+/*
+    TGroundNode *Model;
+	int iConnection;
+
+    for( auto *track : m_paths ) {
+
+        track->AssignEvents(
+            simulation::Events.FindEvent( track->asEvent0Name ),
+            simulation::Events.FindEvent( track->asEvent1Name ),
+            simulation::Events.FindEvent( track->asEvent2Name ) );
+        track->AssignallEvents(
+            simulation::Events.FindEvent( track->asEventall0Name ),
+            simulation::Events.FindEvent( track->asEventall1Name ),
+            simulation::Events.FindEvent( track->asEventall2Name ) );
+
+        auto const trackname { track->name() };
+
+        if( ( Global::iHiddenEvents & 1 )
+         && ( false == trackname.empty() ) ) {
+            // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
+            track->AssignEvents(
+                simulation::Events.FindEvent( trackname + ":event0" ),
+                simulation::Events.FindEvent( trackname + ":event1" ),
+                simulation::Events.FindEvent( trackname + ":event2" ) );
+            track->AssignallEvents(
+                simulation::Events.FindEvent( trackname + ":eventall0" ),
+                simulation::Events.FindEvent( trackname + ":eventall1" ),
+                simulation::Events.FindEvent( trackname + ":eventall2" ) );
+        }
+
+        switch (track->eType) {
+        case tt_Table: {
+            // obrotnicę też łączymy na starcie z innymi torami
+            // szukamy modelu o tej samej nazwie
+            Model = FindGroundNode(Current->asName, TP_MODEL);
+            // wiązanie toru z modelem obrotnicy
+            track->RaAssign(
+                Current,
+                ( Model ?
+                    Model->Model :
+                    nullptr ),
+                simulation::Events.FindEvent( trackname + ":done" ),
+                simulation::Events.FindEvent( trackname + ":joined" ) );
+            if( Model == nullptr ) {
+                // jak nie ma modelu to pewnie jest wykolejnica, a ta jest domyślnie zamknięta i wykoleja
+                break;
+            }
+            // jak coś pójdzie źle, to robimy z tego normalny tor
+        }
+        case tt_Normal: {
+            // tylko proste są podłączane do rozjazdów, stąd dwa rozjazdy się nie połączą ze sobą
+            if( track->CurrentPrev() == nullptr ) {
+                // tylko jeśli jeszcze nie podłączony
+                auto *matchingtrack = simulation::Region.FindTrack( track->CurrentSegment()->FastGetPoint_0(), iConnection, track );
+                switch( iConnection ) {
+                    case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
+                        // if ((Track->iCategoryFlag&1)==0) //jeśli nie jest torem szynowym
+                        // Track->ConnectPrevPrev(Track,0); //łączenie końca odcinka do samego siebie
+                        break;
+                    case 0:
+                        track->ConnectPrevPrev( matchingtrack, 0 );
+                        break;
+                    case 1:
+                        track->ConnectPrevNext( matchingtrack, 1 );
+                        break;
+                    case 2:
+                        track->ConnectPrevPrev( matchingtrack, 0 ); // do Point1 pierwszego
+                        matchingtrack->SetConnections( 0 ); // zapamiętanie ustawień w Segmencie
+                        break;
+                    case 3:
+                        track->ConnectPrevNext( matchingtrack, 1 ); // do Point2 pierwszego
+                        matchingtrack->SetConnections( 0 ); // zapamiętanie ustawień w Segmencie
+                        break;
+                    case 4:
+                        matchingtrack->Switch( 1 );
+                        track->ConnectPrevPrev( matchingtrack, 2 ); // do Point1 drugiego
+                        matchingtrack->SetConnections( 1 ); // robi też Switch(0)
+                        matchingtrack->Switch( 0 );
+                        break;
+                    case 5:
+                        matchingtrack->Switch( 1 );
+                        track->ConnectPrevNext( matchingtrack, 3 ); // do Point2 drugiego
+                        matchingtrack->SetConnections( 1 ); // robi też Switch(0)
+                        matchingtrack->Switch( 0 );
+                        break;
+                }
+            }
+            if( track->CurrentNext() == nullptr ) {
+                // tylko jeśli jeszcze nie podłączony
+                auto *matchingtrack = simulation::Region.FindTrack( track->CurrentSegment()->FastGetPoint_1(), iConnection, track );
+                switch( iConnection ) {
+                    case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
+                        // if ((Track->iCategoryFlag&1)==0) //jeśli nie jest torem szynowym
+                        // Track->ConnectNextNext(Track,1); //łączenie końca odcinka do samego siebie
+                        break;
+                    case 0:
+                        track->ConnectNextPrev( matchingtrack, 0 );
+                        break;
+                    case 1:
+                        track->ConnectNextNext( matchingtrack, 1 );
+                        break;
+                    case 2:
+                        track->ConnectNextPrev( matchingtrack, 0 );
+                        matchingtrack->SetConnections( 0 ); // zapamiętanie ustawień w Segmencie
+                        break;
+                    case 3:
+                        track->ConnectNextNext( matchingtrack, 1 );
+                        matchingtrack->SetConnections( 0 ); // zapamiętanie ustawień w Segmencie
+                        break;
+                    case 4:
+                        matchingtrack->Switch( 1 );
+                        track->ConnectNextPrev( matchingtrack, 2 );
+                        matchingtrack->SetConnections( 1 ); // robi też Switch(0)
+                        // tmp->Switch(0);
+                        break;
+                    case 5:
+                        matchingtrack->Switch( 1 );
+                        track->ConnectNextNext( matchingtrack, 3 );
+                        matchingtrack->SetConnections( 1 ); // robi też Switch(0)
+                        // tmp->Switch(0);
+                        break;
+                }
+            }
+            break;
+        }
+        case tt_Switch: {
+            // dla rozjazdów szukamy eventów sygnalizacji rozprucia
+            track->AssignForcedEvents(
+                simulation::Events.FindEvent( trackname + ":forced+" ),
+                simulation::Events.FindEvent( trackname + ":forced-" ) );
+            break;
+        }
+        default: {
+            break;
+        }
+        } // switch
+
+        // pobranie nazwy odcinka izolowanego
+        auto const isolatedname { track->IsolatedName() };
+        if( false == isolatedname.empty() ) {
+            // jeśli została zwrócona nazwa
+            track->IsolatedEventsAssign(
+                simulation::Events.FindEvent( isolatedname + ":busy" ),
+                simulation::Events.FindEvent( isolatedname + ":free" ) );
+        }
+
+        if( ( trackname[ 0 ] == '*' )
+         && ( !track->CurrentPrev() && track->CurrentNext() ) ) {
+            // możliwy portal, jeśli nie podłączony od strony 1
+            // ustawienie flagi portalu
+            track->iCategoryFlag |= 0x100;
+        }
+    }
+
+    TIsolated *isolated = TIsolated::Root();
+    while( isolated ) {
+        // jeśli się znajdzie, to podać wskaźnik
+        auto *memorycell = simulation::Memory.find( isolated->asName ); // czy jest komóka o odpowiedniej nazwie
+        if( memorycell != nullptr ) {
+            // przypisanie powiązanej komórki
+            isolated->pMemCell = memorycell;
+        }
+        else {
+            // utworzenie automatycznej komórki
+            // TODO: determine suitable location for this one, create and add world reference node
+            auto *memorycell = new TMemCell( isolated->asName ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
+            simulation::Memory.insert( memorycell );
+            isolated->pMemCell = memorycell; // wskaźnik komóki przekazany do odcinka izolowanego
+        }
+        isolated = isolated->Next();
+    }
+*/
+}

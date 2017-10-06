@@ -120,7 +120,7 @@ float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic fil
 bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
-bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
+bool Global::bSmoothTraction { true }; // wygładzanie drutów starym sposobem
 float Global::SplineFidelity { 1.f }; // determines segment size during conversion of splines to geometry
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
@@ -1008,7 +1008,11 @@ TDynamicObject *Global::CouplerNearest()
 
 bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 {
+#ifdef EU07_USE_OLD_GROUNDCODE
     return pGround->AddToQuery(event, who);
+#else
+    return simulation::Events.AddToQuery( event, who );
+#endif
 };
 //---------------------------------------------------------------------------
 

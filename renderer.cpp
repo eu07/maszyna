@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "globals.h"
 #include "timer.h"
+#include "simulation.h"
 #include "world.h"
 #include "train.h"
 #include "data.h"
@@ -53,9 +54,9 @@ opengl_camera::update_frustum( glm::mat4 const &Projection, glm::mat4 const &Mod
 
 // returns true if specified object is within camera frustum, false otherwise
 bool
-opengl_camera::visible( bounding_area const &Area ) const {
+opengl_camera::visible( scene::bounding_area const &Area ) const {
 
-    return ( m_frustum.sphere_inside( Area.center, Area.radius ) > 0.0f );
+    return ( m_frustum.sphere_inside( Area.center, Area.radius ) > 0.f );
 }
 
 bool
@@ -325,10 +326,10 @@ opengl_renderer::Render() {
     ++m_framestamp;
     Render_pass( rendermode::color );
 
-    m_drawcount = m_drawqueue.size();
+    m_drawcount = m_cellqueue.size();
     // accumulate last 20 frames worth of render time (cap at 1000 fps to prevent calculations going awry)
     m_drawtimecolorpass = std::max( 20.f, 0.95f * m_drawtimecolorpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - drawstartcolorpass ) ).count() / 1000.f );
-    m_debuginfo += "frame total: " + to_string( m_drawtimecolorpass / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors) ";
+    m_debuginfo += "frame total: " + to_string( m_drawtimecolorpass / 20.f, 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
 
     glfwSwapBuffers( m_window );
 
@@ -360,12 +361,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     m_worldcamera,
                     rendermode::color,
                     0.f,
-                    std::min(
-                        1.f,
-                        Global::shadowtune.depth / ( Global::BaseDrawRange * Global::fDistanceFactor )
-                        * std::max(
-                            1.f,
-                            Global::ZoomFactor * 0.5f ) ),
+                    1.0,
                     true );
 #endif
                 // setup shadowmap matrix
@@ -433,10 +429,18 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
 #endif
                 switch_units( true, true, true );
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Render( &World.Ground );
+#else
+                Render( simulation::Region );
+#endif
                 // ...translucent parts
                 setup_drawing( true );
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Render_Alpha( &World.Ground );
+#else
+                Render_Alpha( simulation::Region );
+#endif
                 if( World.Train != nullptr ) {
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, false, false );
@@ -486,7 +490,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #else
                 setup_units( false, false, false );
 #endif
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Render( &World.Ground );
+#else
+                Render( simulation::Region );
+#endif
                 // post-render restore
                 ::glDisable( GL_POLYGON_OFFSET_FILL );
                 ::glDisable( GL_SCISSOR_TEST );
@@ -494,7 +502,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
 
                 m_drawtimeshadowpass = 0.95f * m_drawtimeshadowpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - shadowdrawstart ) ).count() / 1000.f;
-                m_debuginfo += "shadows: " + to_string( m_drawtimeshadowpass / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors) ";
+                m_debuginfo += "shadows: " + to_string( m_drawtimeshadowpass / 20.f, 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
             }
             break;
         }
@@ -516,7 +524,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( true, true, true );
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Render( &World.Ground );
+#else
+                Render( simulation::Region );
+#endif
 /*
                 // reflections are limited to sky and ground only, the update rate is too low for anything else
                 // ...translucent parts
@@ -569,7 +581,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( false, false, false );
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Render( &World.Ground );
+#else
+                Render( simulation::Region );
+#endif
                 // post-render cleanup
             }
             break;
@@ -1337,12 +1353,11 @@ opengl_renderer::Texture( texture_handle const Texture ) const {
     return m_textures.texture( Texture );
 }
 
-
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
-    m_drawqueue.clear();
+    m_cellqueue.clear();
 
     glm::vec3 const cameraposition { m_renderpass.camera.position() };
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
@@ -1354,25 +1369,29 @@ opengl_renderer::Render( TGround *Ground ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::color: {
 
-            Update_Lights( Ground->m_lights );
+            Update_Lights( simulation::Lights );
 
             for( int column = originx; column <= originx + segmentcount; ++column ) {
                 for( int row = originz; row <= originz + segmentcount; ++row ) {
 
                     auto *cell = &Ground->Rects[ column ][ row ];
+#ifdef EU07_USE_DEBUG_CULLING
+                    if( m_worldcamera.camera.visible( cell->m_area ) ) {
+#else
                     if( m_renderpass.camera.visible( cell->m_area ) ) {
+#endif
                         Render( cell );
                     }
                 }
             }
             // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
             std::sort(
-                std::begin( m_drawqueue ),
-                std::end( m_drawqueue ),
+                std::begin( m_cellqueue ),
+                std::end( m_cellqueue ),
                 []( distancesubcell_pair const &Left, distancesubcell_pair const &Right ) {
                     return ( Left.first ) < ( Right.first ); } );
             // ...then render the opaque content of the visible subcells.
-            for( auto subcellpair : m_drawqueue ) {
+            for( auto subcellpair : m_cellqueue ) {
                 Render( subcellpair.second );
             }
             break;
@@ -1404,7 +1423,7 @@ opengl_renderer::Render( TGround *Ground ) {
             }
             // they can also skip queue sorting, as they only deal with opaque geometry
             // NOTE: there's benefit from rendering front-to-back, but is it significant enough? TODO: investigate
-            for( auto subcellpair : m_drawqueue ) {
+            for( auto subcellpair : m_cellqueue ) {
                 Render( subcellpair.second );
             }
             break;
@@ -1475,7 +1494,7 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
                     auto subcell = Groundcell->pSubRects + subcellindex;
                     if( subcell->iNodeCount ) {
                         // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                        m_drawqueue.emplace_back(
+                        m_cellqueue.emplace_back(
                             glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
                             subcell );
                     }
@@ -1577,6 +1596,407 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 
     return true;
 }
+#else
+void
+opengl_renderer::Render( scene::basic_region &Region ) {
+
+    m_sectionqueue.clear();
+    m_cellqueue.clear();
+
+    // build a list of region sections to render
+    glm::vec3 const cameraposition { m_renderpass.camera.position() };
+    auto const camerax = static_cast<int>( std::floor( cameraposition.x / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
+    auto const cameraz = static_cast<int>( std::floor( cameraposition.z / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
+    int const segmentcount = 2 * static_cast<int>( std::ceil( m_renderpass.draw_range * Global::fDistanceFactor / scene::EU07_SECTIONSIZE ) );
+    int const originx = camerax - segmentcount / 2;
+    int const originz = cameraz - segmentcount / 2;
+
+    for( int row = originz; row <= originz + segmentcount; ++row ) {
+        if( row < 0 ) { continue; }
+        if( row >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
+        for( int column = originx; column <= originx + segmentcount; ++column ) {
+            if( column < 0 ) { continue; }
+            if( column >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
+            auto &section { Region.m_sections[ row * scene::EU07_REGIONSIDESECTIONCOUNT + column ] };
+            if( ( true == section.m_active )
+#ifdef EU07_USE_DEBUG_CULLING
+             && ( m_worldcamera.camera.visible( section.m_area ) ) ) {
+#else
+             && ( m_renderpass.camera.visible( section.m_area ) ) ) {
+#endif
+                m_sectionqueue.emplace_back( &section );
+            }
+        }
+    }
+
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::color: {
+
+            Update_Lights( simulation::Lights );
+
+            Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
+/*
+            // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
+            // TODO: move sorting for translucent phase, for opaque geometry render cells in initial order to reduce vbo switching
+            std::sort(
+                std::begin( m_cellqueue ),
+                std::end( m_cellqueue ),
+                []( distancecell_pair const &Left, distancecell_pair const &Right ) {
+                    return ( Left.first < Right.first ); } );
+*/
+            // ...then render the opaque content of the visible cells.
+            Render( std::begin( m_cellqueue ), std::end( m_cellqueue ) );
+            break;
+        }
+        case rendermode::shadows:
+        case rendermode::pickscenery: {
+            // these render modes don't bother with lights
+            Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
+            // they can also skip queue sorting, as they only deal with opaque geometry
+            // NOTE: there's benefit from rendering front-to-back, but is it significant enough? TODO: investigate
+            Render( std::begin( m_cellqueue ), std::end( m_cellqueue ) );
+            break;
+        }
+        case rendermode::reflections: {
+            // for the time being reflections render only terrain geometry
+            Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
+            break;
+        }
+        case rendermode::pickcontrols:
+        default: {
+            // no need to render anything ourside of the cab in control picking mode
+            break;
+        }
+    }
+}
+
+void
+opengl_renderer::Render( section_sequence::iterator First, section_sequence::iterator Last ) {
+
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::color:
+        case rendermode::reflections: {
+
+            break;
+        }
+        case rendermode::shadows: {
+            // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
+            ::glDisable( GL_CULL_FACE );
+            break; }
+        case rendermode::pickscenery: {
+            // non-interactive scenery elements get neutral colour
+            ::glColor3fv( glm::value_ptr( colors::none ) );
+            break;
+        }
+        default: {
+            break; }
+    }
+
+    while( First != Last ) {
+
+        auto *section = *First;
+        section->create_geometry();
+
+        // render shapes held by the section
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::reflections:
+            case rendermode::shadows:
+            case rendermode::pickscenery: {
+                if( false == section->m_shapes.empty() ) {
+                    // since all shapes of the section share center point we can optimize out a few calls here
+                    ::glPushMatrix();
+                    auto const originoffset { section->m_area.center - m_renderpass.camera.position() };
+                    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+                    // render
+#ifdef EU07_USE_DEBUG_CULLING
+                    // debug
+                    float const width = scene::EU07_SECTIONSIZE * 0.5f;
+                    float const height = scene::EU07_SECTIONSIZE * 0.2f;
+                    glDisable( GL_LIGHTING );
+                    glDisable( GL_TEXTURE_2D );
+                    glColor3ub( 255, 128, 128 );
+                    glBegin( GL_LINE_LOOP );
+                    glVertex3f( -width, height, width );
+                    glVertex3f( -width, height, -width );
+                    glVertex3f( width, height, -width );
+                    glVertex3f( width, height, width );
+                    glEnd();
+                    glBegin( GL_LINE_LOOP );
+                    glVertex3f( -width, 0, width );
+                    glVertex3f( -width, 0, -width );
+                    glVertex3f( width, 0, -width );
+                    glVertex3f( width, 0, width );
+                    glEnd();
+                    glBegin( GL_LINES );
+                    glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
+                    glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
+                    glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
+                    glVertex3f( width, height, width ); glVertex3f( width, 0, width );
+                    glEnd();
+                    glColor3ub( 255, 255, 255 );
+                    glEnable( GL_TEXTURE_2D );
+                    glEnable( GL_LIGHTING );
+#endif
+                    // shapes
+                    for( auto const &shape : section->m_shapes ) { Render( shape ); }
+                    // post-render cleanup
+                    ::glPopMatrix();
+                }
+                break;
+            }
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+
+        // add the section's cells to the cell queue
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::shadows:
+            case rendermode::pickscenery: {
+                for( auto &cell : section->m_cells ) {
+                    if( ( true == cell.m_active )
+#ifdef EU07_USE_DEBUG_CULLING
+                     && ( m_worldcamera.camera.visible( cell.m_area ) ) ) {
+#else
+                     && ( m_renderpass.camera.visible( cell.m_area ) ) ) {
+#endif
+                        // store visible cells with content as well as their current distance, for sorting later
+                        m_cellqueue.emplace_back(
+                            glm::length2( m_renderpass.camera.position() - cell.m_area.center ),
+                            &cell );
+                    }
+                }
+                break;
+            }
+            case rendermode::reflections:
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+        // proceed to next section
+        ++First;
+    }
+
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // restore standard face cull mode
+            ::glEnable( GL_CULL_FACE );
+            break; }
+        default: {
+            break; }
+    }
+}
+
+void
+opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator Last ) {
+
+    // cache initial iterator for the second sweep
+    auto first { First };
+    // first pass draws elements which we know are located in section banks, to reduce vbo switching
+    while( First != Last ) {
+
+        auto const *cell = First->second;
+/*
+    // przeliczenia animacji torów w sektorze
+    Groundsubcell->RaAnimate( m_framestamp );
+*/
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color: {
+                // since all shapes of the section share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                // render
+#ifdef EU07_USE_DEBUG_CULLING
+                // debug
+                float const width = scene::EU07_CELLSIZE * 0.5f;
+                float const height = scene::EU07_CELLSIZE * 0.15f;
+                glDisable( GL_LIGHTING );
+                glDisable( GL_TEXTURE_2D );
+                glColor3ub( 255, 255, 0 );
+                glBegin( GL_LINE_LOOP );
+                glVertex3f( -width, height, width );
+                glVertex3f( -width, height, -width );
+                glVertex3f( width, height, -width );
+                glVertex3f( width, height, width );
+                glEnd();
+                glBegin( GL_LINE_LOOP );
+                glVertex3f( -width, 0, width );
+                glVertex3f( -width, 0, -width );
+                glVertex3f( width, 0, -width );
+                glVertex3f( width, 0, width );
+                glEnd();
+                glBegin( GL_LINES );
+                glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
+                glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
+                glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
+                glVertex3f( width, height, width ); glVertex3f( width, 0, width );
+                glEnd();
+                glColor3ub( 255, 255, 255 );
+                glEnable( GL_TEXTURE_2D );
+                glEnable( GL_LIGHTING );
+#endif
+                // opaque non-instanced shapes
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                // tracks
+                // TODO: update after path node refactoring
+                for( auto *path : cell->m_paths ) { Render( path ); }
+                // TODO: add other content types
+
+                // post-render cleanup
+                ::glPopMatrix();
+
+                break;
+            }
+            case rendermode::shadows: {
+                // since all shapes of the section share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                // render
+                // opaque non-instanced shapes
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                // TODO: add other content types
+
+                // post-render cleanup
+                ::glPopMatrix();
+
+                break;
+            }
+            case rendermode::pickscenery: {
+                // same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
+                // since all shapes of the section share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+                // render
+                // opaque non-instanced shapes
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                // tracks
+                // TODO: add path to the node picking list
+                for( auto *path : cell->m_paths ) { Render( path ); }
+                // TODO: add other content types
+                // post-render cleanup
+                ::glPopMatrix();
+
+                break;
+            }
+            case rendermode::reflections:
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+
+        ++First;
+    }
+    // second pass draws elements with their own vbos
+    while( first != Last ) {
+
+        auto const *cell = first->second;
+
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::shadows:
+            case rendermode::pickscenery: {
+                // render
+                // opaque parts of instanced models
+                for( auto *instance : cell->m_instancesopaque ) { Render( instance ); }
+                // TODO: add remaining content types
+                break;
+            }
+            case rendermode::reflections:
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+
+        ++first;
+    }
+}
+
+void
+opengl_renderer::Render( scene::shape_node const &Shape ) {
+
+    auto const &data { Shape.data() };
+    // setup
+    Bind_Material( data.material );
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::color:
+        case rendermode::reflections: {
+            ::glColor3fv( glm::value_ptr( data.lighting.diffuse ) );
+/*
+            // NOTE: ambient component is set by diffuse component
+            // NOTE: for the time being non-instanced shapes are rendered without specular component due to wrong/arbitrary values set in legacy scenarios
+            // TBD, TODO: find a way to resolve this with the least amount of tears?
+            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( data.lighting.specular * Global::DayLight.specular.a * m_specularopaquescalefactor ) );
+*/
+            break;
+        }
+        // pick modes are painted with custom colours, and shadow pass doesn't use any
+        case rendermode::shadows:
+        case rendermode::pickscenery:
+        case rendermode::pickcontrols:
+        default: {
+            break;
+        }
+    }
+    // render
+    m_geometry.draw( data.geometry );
+}
+
+void
+opengl_renderer::Render( TAnimModel *Instance ) {
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Instance->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Instance->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Instance->m_rangesquaredmin )
+     || ( distancesquared >= Instance->m_rangesquaredmax ) ) {
+        return;
+    }
+/*
+    // TODO: enable adding items to the picking list
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::pickscenery: {
+            // add the node to the pick list
+            m_picksceneryitems.emplace_back( Node );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+*/
+    Instance->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
+    Instance->RaPrepare();
+    if( Instance->pModel ) {
+        // renderowanie rekurencyjne submodeli
+        Render(
+            Instance->pModel,
+            Instance->Material(),
+            distancesquared,
+            Instance->m_location - m_renderpass.camera.position(),
+            Instance->vAngle );
+    }
+}
+#endif
 
 bool
 opengl_renderer::Render( TGroundNode *Node ) {
@@ -2272,6 +2692,9 @@ opengl_renderer::Render( TTrack *Track ) {
      && ( Track->m_material2 == 0 ) ) {
         return;
     }
+    if( false == Track->m_visible ) {
+        return;
+    }
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
@@ -2311,7 +2734,7 @@ void
 opengl_renderer::Render( TMemCell *Memcell ) {
 
     ::glPushMatrix();
-    auto const position = Memcell->Position() - m_renderpass.camera.position();
+    auto const position = Memcell->location() - m_renderpass.camera.position();
     ::glTranslated( position.x, position.y + 0.5, position.z );
 
     switch( m_renderpass.draw_mode ) {
@@ -2342,27 +2765,28 @@ opengl_renderer::Render( TMemCell *Memcell ) {
     ::glPopMatrix();
 }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 bool
 opengl_renderer::Render_Alpha( TGround *Ground ) {
 
     TGroundNode *node;
     TSubRect *tmp;
     // Ra: renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
+    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
         // przezroczyste trójkąty w oddzielnym cyklu przed modelami
         tmp = subcellpair->second;
         for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
             Render_Alpha( node );
         }
     }
-    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair )
+    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair )
     { // renderowanie przezroczystych modeli oraz pojazdów
         Render_Alpha( subcellpair->second );
     }
 
     ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
 
-    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
+    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
         // druty na końcu, żeby się nie robiły białe plamy na tle lasu
         tmp = subcellpair->second;
         for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
@@ -2391,7 +2815,177 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
 
     return true;
 }
+#else
+void
+opengl_renderer::Render_Alpha( scene::basic_region &Region ) {
 
+    // sort the nodes based on their distance to viewer
+    std::sort(
+        std::begin( m_cellqueue ),
+        std::end( m_cellqueue ),
+        []( distancecell_pair const &Left, distancecell_pair const &Right ) {
+            return ( Left.first ) < ( Right.first ); } );
+
+    Render_Alpha( std::rbegin( m_cellqueue ), std::rend( m_cellqueue ) );
+/*
+    ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
+    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
+        // druty na końcu, żeby się nie robiły białe plamy na tle lasu
+        tmp = subcellpair->second;
+        for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
+            Render_Alpha( node );
+        }
+    }
+    ::glEnable( GL_LIGHTING );
+*/
+}
+
+void
+opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last ) {
+
+    // first pass draws elements which we know are located in section banks, to reduce vbo switching
+    {
+        auto first { First };
+        while( first != Last ) {
+
+            auto const *cell = first->second;
+
+            if( false == cell->m_shapestranslucent.empty() ) {
+                // since all shapes of the cell share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset{ cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+                // render
+                // NOTE: we can reuse the method used to draw opaque geometry
+                for( auto const &shape : cell->m_shapestranslucent ) { Render( shape ); }
+                // post-render cleanup
+                ::glPopMatrix();
+            }
+
+            ++first;
+        }
+    }
+    // second pass draws elements with their own vbos
+    {
+        auto first { First };
+        while( first != Last ) {
+
+            auto const *cell = first->second;
+
+            // translucent parts of instanced models
+            for( auto *instance : cell->m_instancetranslucent ) { Render_Alpha( instance ); }
+            // TODO: add remaining content types
+
+            ++first;
+        }
+    }
+    // third pass draws the wires;
+    // wires use section vbos, but for the time being we want to draw them at the very end
+    {
+        auto first{ First };
+        while( first != Last ) {
+
+            auto const *cell = first->second;
+            // TODO: include lines here
+            if( false == cell->m_traction.empty() ) {
+                // since all shapes of the cell share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+                if( !Global::bSmoothTraction ) {
+                    // na liniach kiepsko wygląda - robi gradient
+                    ::glDisable( GL_LINE_SMOOTH );
+                }
+                Bind_Material( null_handle );
+                // render
+                for( auto *traction : cell->m_traction ) { Render_Alpha( traction ); }
+                // post-render cleanup
+                ::glLineWidth( 1.0 );
+                if( !Global::bSmoothTraction ) {
+                    ::glEnable( GL_LINE_SMOOTH );
+                }
+                ::glPopMatrix();
+            }
+
+            ++first;
+        }
+    }
+}
+
+void
+opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Instance->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Instance->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Instance->m_rangesquaredmin )
+     || ( distancesquared >= Instance->m_rangesquaredmax ) ) {
+        return;
+    }
+
+    Instance->RaPrepare();
+    if( Instance->pModel ) {
+        // renderowanie rekurencyjne submodeli
+        Render_Alpha(
+            Instance->pModel,
+            Instance->Material(),
+            distancesquared,
+            Instance->m_location - m_renderpass.camera.position(),
+            Instance->vAngle );
+    }
+}
+
+void
+opengl_renderer::Render_Alpha( TTraction *Traction ) {
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Traction->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Traction->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Traction->m_rangesquaredmin )
+     || ( distancesquared >= Traction->m_rangesquaredmax ) ) {
+        return;
+    }
+
+    if( false == Traction->m_visible ) {
+        return;
+    }
+    // rysuj jesli sa druty i nie zerwana
+    if( ( Traction->Wires == 0 )
+        || ( true == TestFlag( Traction->DamageFlag, 128 ) ) ) {
+        return;
+    }
+    // setup
+    float const linealpha = static_cast<float>(
+        std::min(
+            1.25,
+            5000 * Traction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
+    ::glLineWidth( linealpha );
+    // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+    auto const color { Traction->wire_color() };
+    ::glColor4f( color.r, color.g, color.b, linealpha );
+
+    // render
+    m_geometry.draw( Traction->m_geometry );
+}
+#endif
 bool
 opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
@@ -2856,6 +3450,8 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
         if( Submodel->iAlpha & Submodel->iFlags & 0x2F000000 )
             Render_Alpha( Submodel->Next );
 };
+
+
 
 // utility methods
 TSubModel const *

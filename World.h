@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "Camera.h"
 #include "Ground.h"
+#include "scene.h"
 #include "sky.h"
 #include "sun.h"
 #include "moon.h"

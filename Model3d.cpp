@@ -1023,7 +1023,7 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
 
     if( m_geometry == null_handle ) { return; }
 
-    std::size_t vertexcount { 0 };
+    int vertexcount { 0 };
     std::vector<TGroundVertex> importedvertices;
     TGroundVertex vertex, vertex1, vertex2;
     for( auto const &sourcevertex : GfxRenderer.Vertices( m_geometry ) ) {
@@ -1038,31 +1038,29 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
                 importedvertices.emplace_back( vertex2 );
                 importedvertices.emplace_back( vertex );
             }
+            // start a new triangle
+            vertexcount = -1;
         }
         ++vertexcount;
-        if( vertexcount > 2 ) { vertexcount = 0; } // start new triangle if needed
     }
     if( Groundnode.Piece == nullptr ) {
         Groundnode.Piece = new piece_node();
     }
     Groundnode.iNumVerts = importedvertices.size();
     if( Groundnode.iNumVerts > 0 ) {
-
+        // assign imported geometry to the node...
         Groundnode.Piece->vertices.swap( importedvertices );
-
+        // ...and calculate center...
         for( auto const &vertex : Groundnode.Piece->vertices ) {
             Groundnode.pCenter += vertex.position;
         }
         Groundnode.pCenter /= Groundnode.iNumVerts;
-
-        double r { 0.0 };
-        double tf;
+        // ...and bounding area
+        double squareradius { 0.0 };
         for( auto const &vertex : Groundnode.Piece->vertices ) {
-            tf = glm::length2( vertex.position - glm::dvec3{ Groundnode.pCenter } );
-            if( tf > r )
-                r = tf;
+            squareradius = std::max( squareradius, glm::length2( vertex.position - glm::dvec3{ Groundnode.pCenter } ) );
         }
-        Groundnode.fSquareRadius += r;
+        Groundnode.fSquareRadius += squareradius;
     }
 }
 

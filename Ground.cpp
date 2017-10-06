@@ -20,7 +20,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 #include "Timer.h"
-#include "renderer.h"
 #include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
@@ -34,9 +33,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Data.h"
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
-#include "Console.h"
-#include "Names.h"
-#include "world.h"
 #include "uilayer.h"
 
 //---------------------------------------------------------------------------
@@ -47,7 +43,6 @@ extern "C"
 }
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
-std::string LogComment;
 
 //---------------------------------------------------------------------------
 // Obiekt renderujący siatkę jest sztucznie tworzonym obiektem pomocniczym,
@@ -123,6 +118,8 @@ TGroundNode::~TGroundNode()
     case GL_TRIANGLES:
         SafeDelete( Piece );
         break;
+    default:
+        break;
     }
 }
 /*
@@ -144,7 +141,7 @@ TGroundNode::TGroundNode( TGroundNodeType t ) :
             break;
         }
         case TP_TRACK: {
-            pTrack = new TTrack( this );
+            pTrack = new TTrack( asName );
             break;
         }
         default: {
@@ -314,9 +311,8 @@ void TSubRect::NodeAdd(TGroundNode *Node)
 // przygotowanie sektora do renderowania
 void TSubRect::Sort() {
 
-    if( tTracks != nullptr ) {
-        SafeDelete( tTracks );
-    }
+    SafeDeleteArray( tTracks );
+
     if( iTracks > 0 ) {
         tTracks = new TTrack *[ iTracks ]; // tworzenie tabeli torów do renderowania pojazdów
         int i = 0;
@@ -414,12 +410,20 @@ void TSubRect::LoadNodes() {
                 break;
             }
             case TP_TRACK:
-                if( node->pTrack->bVisible ) { // bo tory zabezpieczające są niewidoczne
+                if( node->pTrack->visible() ) { // bo tory zabezpieczające są niewidoczne
+#ifdef EU07_USE_OLD_GROUNDCODE
+                    node->pTrack->create_geometry( m_geometrybank, node->m_rootposition );
+#else
                     node->pTrack->create_geometry( m_geometrybank );
+#endif
                 }
                 break;
             case TP_TRACTION:
+#ifdef EU07_USE_OLD_GROUNDCODE
                 node->hvTraction->create_geometry( m_geometrybank, node->m_rootposition );
+#else
+                node->hvTraction->create_geometry( m_geometrybank );
+#endif
                 break;
             default: { break; }
         }
@@ -448,16 +452,16 @@ TGroundRect::Init() {
     }
 
     pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
-    float const subrectsize = 1000.0f / iNumSubRects;
+    auto const subrectsize = 1000.0 / iNumSubRects;
     for( int column = 0; column < iNumSubRects; ++column ) {
         for( int row = 0; row < iNumSubRects; ++row ) {
             auto subcell = FastGetSubRect( column, row );
             auto &area = subcell->m_area;
             area.center =
                 m_area.center
-                - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
-                + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
-                + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
+                - glm::dvec3( 500.0, 0.0, 500.0 ) // 'upper left' corner of rectangle
+                + glm::dvec3( subrectsize * 0.5, 0.0, subrectsize * 0.5 ) // center of sub-rectangle
+                + glm::dvec3( subrectsize * column, 0.0, subrectsize * row );
             area.radius = subrectsize * M_SQRT2;
             // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
             subcell->m_geometrybank = m_geometrybank;
@@ -507,7 +511,7 @@ TGroundRect::NodeAdd( TGroundNode *Node ) {
 
 // compares two provided nodes, returns true if their content can be merged
 bool
-TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) {
+TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) const {
     // since view ranges and transparency type for all nodes put through this method are guaranteed to be equal,
     // we can skip their tests and only do the material check.
     // TODO, TBD: material as dedicated type, and refactor this method into a simple equality test
@@ -553,6 +557,7 @@ TGround::~TGround()
 
 void TGround::Free()
 {
+#ifdef EU07_USE_OLD_GROUNDCODE
     TEvent *tmp;
     for (TEvent *Current = RootEvent; Current;)
     {
@@ -560,6 +565,7 @@ void TGround::Free()
         Current = Current->evNext2;
         delete tmp;
     }
+#endif
     TGroundNode *tmpn;
     for (int i = 0; i < TP_LAST; ++i)
     {
@@ -598,7 +604,8 @@ TGroundNode * TGround::DynamicFind(std::string const &Name)
     return NULL;
 };
 
-void TGround::DynamicList(bool all)
+void
+TGround::DynamicList(bool all)
 { // odesłanie nazw pojazdów dostępnych na scenerii (nazwy, szczególnie wagonów, mogą się
     // powtarzać!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
@@ -607,45 +614,23 @@ void TGround::DynamicList(bool all)
     WyslijString("none", 6); // informacja o końcu listy
 };
 
-TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType)
-{ // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
-    if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
-    { // wyszukiwanie w drzewie binarnym
-/*
-        switch( iNodeType ) {
+// wyszukiwanie obiektu o podanej nazwie i konkretnym typie
+TGroundNode *
+TGround::FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType) {
 
-            case TP_TRACK: {
-                auto const lookup = m_trackmap.find( asNameToFind );
-                return
-                    lookup != m_trackmap.end() ?
-                    lookup->second :
-                    nullptr;
-            }
-            case TP_MODEL: {
-                auto const lookup = m_modelmap.find( asNameToFind );
-                return
-                    lookup != m_modelmap.end() ?
-                    lookup->second :
-                    nullptr;
-            }
-            case TP_MEMCELL: {
-                auto const lookup = m_memcellmap.find( asNameToFind );
-                return
-                    lookup != m_memcellmap.end() ?
-                    lookup->second :
-                    nullptr;
-            }
-        }
-        return nullptr;
-*/
-        return m_trackmap.Find( iNodeType, asNameToFind );
+    if( ( iNodeType == TP_TRACK )
+     || ( iNodeType == TP_MEMCELL )
+     || ( iNodeType == TP_MODEL ) ) {
+        // wyszukiwanie w drzewie binarnym
+        return m_nodemap.Find( iNodeType, asNameToFind );
     }
     // standardowe wyszukiwanie liniowe
-    TGroundNode *Current;
-    for (Current = nRootOfType[iNodeType]; Current; Current = Current->nNext)
-        if (Current->asName == asNameToFind)
+    for( TGroundNode *Current = nRootOfType[ iNodeType ]; Current != nullptr; Current = Current->nNext ) {
+        if( Current->asName == asNameToFind ) {
             return Current;
-    return NULL;
+        }
+    }
+    return nullptr;
 }
 
 TGroundRect *
@@ -905,7 +890,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     switch (tmp->iType)
     {
     case TP_TRACTION:
-        tmp->hvTraction = new TTraction();
+        tmp->hvTraction = new TTraction( tmp->asName );
         parser->getTokens();
         *parser >> token;
         tmp->hvTraction->asPowerSupplyName = token; // nazwa zasilacza
@@ -989,8 +974,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if (token.compare("endtraction") != 0)
             Error("ENDTRACTION delimiter missing! " + str2 + " found instead.");
         tmp->hvTraction->Init(); // przeliczenie parametrów
-        // if (Global::bLoadTraction)
-        // tmp->hvTraction->Optimize(); //generowanie DL dla wszystkiego przy wczytywaniu?
         tmp->pCenter = interpolate( tmp->hvTraction->pPoint2, tmp->hvTraction->pPoint1, 0.5 );
         break;
     case TP_TRACTIONPOWERSOURCE:
@@ -1015,7 +998,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->MemCell->Load(parser);
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if( false == m_trackmap.Add( TP_MEMCELL, tmp->asName, tmp ) ) {
+            if( false == m_nodemap.Add( TP_MEMCELL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated memcell: " + tmp->asName ); // to zgłaszać duplikat
             }
@@ -1033,14 +1016,14 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->EvLaunch->Load(parser);
         break;
     case TP_TRACK:
-        tmp->pTrack = new TTrack(tmp);
+        tmp->pTrack = new TTrack( tmp->asName );
         if (Global::iWriteLogEnabled & 4)
             if (!tmp->asName.empty())
                 WriteLog(tmp->asName);
-        tmp->pTrack->Load(parser, pOrigin, tmp->asName); // w nazwie może być nazwa odcinka izolowanego
+        tmp->pTrack->Load(parser, pOrigin); // w nazwie może być nazwa odcinka izolowanego
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if( false == m_trackmap.Add( TP_TRACK, tmp->asName, tmp ) ) {
+            if( false == m_nodemap.Add( TP_TRACK, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated track: " + tmp->asName ); // to zgłaszać duplikat
             }
@@ -1148,22 +1131,18 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                             if (fTrainSetDist < 8.0) // i raczej nie sięga
                                 fTrainSetDist =
                                     8.0; // przesuwamy około pół EU07 dla wstecznej zgodności
-            // WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-            /* //Ra: to jednak robi duże problemy - przesunięcie w dynamic jest przesunięciem do
-               tyłu, odwrotnie niż w trainset
-                if (!iTrainSetWehicleNumber) //dla pierwszego jest to przesunięcie (ujemne = do
-               tyłu)
-                 if (tf1!=-1.0) //-1 wyjątkowo oznacza odwrócenie
-                  tf1=-tf1; //a dla kolejnych odległość między sprzęgami (ujemne = wbite)
-            */
-            tf3 = tmp->DynamicObject->Init(asNodeName, str1, Skin, str3, Track,
-                                           (tf1 == -1.0 ? fTrainSetDist : fTrainSetDist - tf1),
-                                           DriverType, tf3, asTrainName, int2, str2, (tf1 == -1.0),
-                                           str4);
-            if (tf3 != 0.0) // zero oznacza błąd
+
+            auto const length =
+                tmp->DynamicObject->Init(
+                    asNodeName, str1, Skin, str3, Track,
+                    ( tf1 == -1.0 ?
+                        fTrainSetDist :
+                        fTrainSetDist - tf1 ),
+                    DriverType, tf3, asTrainName, int2, str2, (tf1 == -1.0), str4);
+            if (length != 0.0) // zero oznacza błąd
             {
                 // przesunięcie dla kolejnego, minus bo idziemy w stronę punktu 1
-                fTrainSetDist -= tf3;
+                fTrainSetDist -= length;
                 tmp->pCenter = tmp->DynamicObject->GetPosition();
                 // automatically establish permanent connections for couplers which specify them in their definitions
                 if( TempConnectionType[ iTrainSetWehicleNumber ] ) {
@@ -1208,7 +1187,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
             // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
             //       don't have security systems fitted
-            m_lights.insert( tmp->DynamicObject );
+            simulation::Lights.insert( tmp->DynamicObject );
         }
 
         break;
@@ -1257,7 +1236,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         else if( !tmp->asName.empty() ) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+            if( false == m_nodemap.Add( TP_MODEL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
             }
@@ -1310,7 +1289,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 
             tmp->iFlags = 0x200; // flaga usuwania
             tmp->Model = new TAnimModel();
-            tmp->Model->RaAnglesSet( aRotate.x, tf1 + aRotate.y, aRotate.z ); // dostosowanie do pochylania linii
+            tmp->Model->RaAnglesSet( glm::vec3{ aRotate.x, tf1 + aRotate.y, aRotate.z } ); // dostosowanie do pochylania linii
             if( false == tmp->Model->Load( parser, false ) ) {
                 // model nie wczytał się - ignorowanie node
                 delete tmp;
@@ -1320,7 +1299,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->iFlags |= tmp->Model->Flags(); // ustalenie, czy przezroczysty
             if( false == tmp->asName.empty() ) { // jest pusta gdy "none"
                 // dodanie do wyszukiwarki
-                if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+                if( false == m_nodemap.Add( TP_MODEL, tmp->asName, tmp ) ) {
                     // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                     ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
                 }
@@ -1652,6 +1631,7 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
     return (Rects[bc][br].SafeGetSubRect(sc, sr)); // pobranie małego kwadratu
 }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 TEvent * TGround::FindEvent(const std::string &asEventName)
 {
     if( asEventName.empty() ) { return nullptr; }
@@ -1662,24 +1642,7 @@ TEvent * TGround::FindEvent(const std::string &asEventName)
             lookup->second :
             nullptr );
 }
-
-TEvent * TGround::FindEventScan( std::string const &asEventName )
-{ // wyszukanie eventu z opcją utworzenia niejawnego dla komórek skanowanych
-    auto const lookup = m_eventmap.find( asEventName );
-    auto e = (
-        lookup != m_eventmap.end() ?
-            lookup->second :
-            nullptr );
-    if (e)
-        return e; // jak istnieje, to w porządku
-    if (asEventName.rfind(":scan") != std::string::npos) // jeszcze może być event niejawny
-    { // no to szukamy komórki pamięci o nazwie zawartej w evencie
-        std::string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
-        if( m_trackmap.Find( TP_MEMCELL, n ) != nullptr ) // jeśli jest takowa komórka pamięci
-            e = new TEvent(n); // utworzenie niejawnego eventu jej odczytu
-    }
-    return e; // utworzony albo się nie udało
-}
+#endif
 
 void TGround::FirstInit()
 { // ustalanie zależności na scenerii przed wczytaniem pojazdów
@@ -1747,14 +1710,14 @@ void TGround::FirstInit()
 
     WriteLog("InitNormals OK");
 
+#ifdef EU07_USE_OLD_GROUNDCODE
     InitTracks(); //łączenie odcinków ze sobą i przyklejanie eventów
     WriteLog("InitTracks OK");
-
     InitTraction(); //łączenie drutów ze sobą
     WriteLog("InitTraction OK");
-
     InitEvents();
-    WriteLog("InitEvents OK");
+    WriteLog( "InitEvents OK" );
+#endif
 
     InitLaunchers();
     WriteLog("InitLaunchers OK");
@@ -1919,8 +1882,9 @@ bool TGround::Init(std::string File)
         }
         else if (str == "event")
         {
+#ifdef EU07_USE_OLD_GROUNDCODE
             TEvent *tmp = new TEvent();
-            tmp->Load(&parser, &pOrigin);
+            tmp->Load(&parser, pOrigin);
             if (tmp->Type == tp_Unknown)
                 delete tmp;
             else
@@ -1983,6 +1947,7 @@ bool TGround::Init(std::string File)
                     }
                 }
             }
+#endif
         }
         else if (str == "rotate")
         {
@@ -2211,7 +2176,7 @@ bool TGround::Init(std::string File)
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 bool TGround::InitEvents()
 { //łączenie eventów z pozostałymi obiektami
     TGroundNode *tmp, *trk;
@@ -2347,13 +2312,13 @@ bool TGround::InitEvents()
         case tp_Visible: // ukrycie albo przywrócenie obiektu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // najpierw model
             if (!tmp)
-                tmp = FindGroundNode(Current->asNodeName, TP_TRACTION); // może druty?
-            if (!tmp)
                 tmp = FindGroundNode(Current->asNodeName, TP_TRACK); // albo tory?
+            if (!tmp)
+                tmp = FindGroundNode(Current->asNodeName, TP_TRACTION); // może druty?
             if (tmp)
                 Current->Params[9].nGroundNode = tmp;
             else
-                ErrorLog("Bad event: visibility event \"" + Current->asName + "\" cannot find model \"" + Current->asNodeName + "\"");
+                ErrorLog("Bad event: visibility event \"" + Current->asName + "\" cannot find item \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_Switch: // przełożenie zwrotnicy albo zmiana stanu obrotnicy
@@ -2490,7 +2455,6 @@ void TGround::InitTracks()
 	int iConnection;
 
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext) {
-
         Track = Current->pTrack;
         // assign track events
         Track->AssignEvents(
@@ -2513,7 +2477,6 @@ void TGround::InitTracks()
                 FindEvent( Current->asName + ":eventall1" ),
                 FindEvent( Current->asName + ":eventall2" ) );
         }
-
         switch (Track->eType)
         {
         case tt_Table: // obrotnicę też łączymy na starcie z innymi torami
@@ -2523,8 +2486,8 @@ void TGround::InitTracks()
                 // Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wiązanie toru z modelem
                 // obrotnicy
                 Track->RaAssign(
-                    Current, Model ? Model->Model : NULL, FindEvent(Current->asName + ":done"),
-                    FindEvent(Current->asName + ":joined")); // wiązanie toru z modelem obrotnicy
+                    Current, Model ? Model->Model : NULL, simulation::Events.FindEvent(Current->asName + ":done"),
+                    simulation::Events.FindEvent(Current->asName + ":joined")); // wiązanie toru z modelem obrotnicy
                 // break; //jednak połączę z sąsiednim, jak ma się wysypywać null track
             }
             if (!Model) // jak nie ma modelu
@@ -2607,15 +2570,18 @@ void TGround::InitTracks()
             }
             break;
         case tt_Switch: // dla rozjazdów szukamy eventów sygnalizacji rozprucia
-            Track->AssignForcedEvents(FindEvent(Current->asName + ":forced+"),
-                                      FindEvent(Current->asName + ":forced-"));
+            Track->AssignForcedEvents(
+                FindEvent( Current->asName + ":forced+" ),
+                FindEvent( Current->asName + ":forced-" ) );
             break;
         }
         std::string const name = Track->IsolatedName(); // pobranie nazwy odcinka izolowanego
-        if (!name.empty()) // jeśli została zwrócona nazwa
-            Track->IsolatedEventsAssign(FindEvent(name + ":busy"), FindEvent(name + ":free"));
-        if (Current->asName.substr(0, 1) ==
-            "*") // możliwy portal, jeśli nie podłączony od striny 1
+        if( !name.empty() ) // jeśli została zwrócona nazwa
+            Track->IsolatedEventsAssign(
+                FindEvent( name + ":busy" ),
+                FindEvent( name + ":free" ) );
+        // możliwy portal, jeśli nie podłączony od striny 1
+        if (Current->asName.substr(0, 1) == "*")
             if (!Track->CurrentPrev() && Track->CurrentNext())
                 Track->iCategoryFlag |= 0x100; // ustawienie flagi portalu
     }
@@ -2631,7 +2597,7 @@ void TGround::InitTracks()
             Current = new TGroundNode(); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
             // Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
             Current->MemCell = new TMemCell(NULL); // nowa komórka
-            m_trackmap.Add( TP_MEMCELL, p->asName, Current );
+            m_nodemap.Add( TP_MEMCELL, p->asName, Current );
             Current->nNext =
                 nRootOfType[TP_MEMCELL]; // to nie powinno tutaj być, bo robi się śmietnik
             nRootOfType[TP_MEMCELL] = Current;
@@ -2639,9 +2605,6 @@ void TGround::InitTracks()
         }
         p = p->Next();
     }
-    // for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
-    // if (Current->pTrack->eType==tt_Cross)
-    //  Current->pTrack->ConnectionsLog(); //zalogowanie informacji o połączeniach
 }
 
 void TGround::InitTraction()
@@ -2849,7 +2812,7 @@ void TGround::InitTraction()
     }
     delete[] nEnds; // nie potrzebne już
 };
-
+#endif
 void TGround::TrackJoin(TGroundNode *Current)
 { // wyszukiwanie sąsiednich torów do podłączenia (wydzielone na użytek obrotnicy)
     TTrack *Track = Current->pTrack;
@@ -2903,13 +2866,13 @@ bool TGround::InitLaunchers()
                     MessageBox(0, "Cannot find Memory Cell for Event Launcher", "Error", MB_OK);
             }
             else
-                EventLauncher->MemCell = NULL;
-        EventLauncher->Event1 = (EventLauncher->asEvent1Name != "none") ?
-                                    FindEvent(EventLauncher->asEvent1Name) :
-                                    NULL;
-        EventLauncher->Event2 = (EventLauncher->asEvent2Name != "none") ?
-                                    FindEvent(EventLauncher->asEvent2Name) :
-                                    NULL;
+                EventLauncher->MemCell = nullptr;
+        EventLauncher->Event1 = ( EventLauncher->asEvent1Name != "none") ?
+                                    simulation::Events.FindEvent(EventLauncher->asEvent1Name) :
+                                    nullptr;
+        EventLauncher->Event2 = ( EventLauncher->asEvent2Name != "none") ?
+                                    simulation::Events.FindEvent(EventLauncher->asEvent2Name) :
+                                    nullptr;
     }
     return true;
 }
@@ -3039,6 +3002,7 @@ TTraction * TGround::TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n)
     return (nBest ? nBest->hvTraction : nullptr);
 };
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
     if( Event->bEnabled ) {
@@ -3107,8 +3071,9 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
     return true;
 }
 
-bool TGround::EventConditon(TEvent *e)
-{ // sprawdzenie spelnienia warunków dla eventu
+// sprawdzenie spelnienia warunków dla eventu
+bool TGround::EventConditon(TEvent *e){
+
     if (e->iFlags <= update_only)
         return true; // bezwarunkowo
 
@@ -3122,56 +3087,51 @@ bool TGround::EventConditon(TEvent *e)
         WriteLog("Random integer: " + std::to_string(rprobability) + " / " + std::to_string(e->Params[10].asdouble));
         return (e->Params[10].asdouble > rprobability);
     }
-    else if (e->iFlags & conditional_memcompare)
-    { // porównanie wartości
+    else if( e->iFlags & conditional_memcompare ) {
+        // porównanie wartości
         if( nullptr == e->Params[9].asMemCell ) {
 
             ErrorLog( "Event " + e->asName + " trying conditional_memcompare with nonexistent memcell" );
             return true; // though this is technically error, we report success to maintain backward compatibility
         }
-        if (tmpEvent->Params[9].asMemCell->Compare( ( e->Params[ 10 ].asText != nullptr ? e->Params[10].asText : "" ), e->Params[11].asdouble, e->Params[12].asdouble, e->iFlags) ) {
-            //logowanie spełnionych warunków
-			LogComment = e->Params[9].asMemCell->Text() + " " +
-                         to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
-                         to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
-                         " = ";
-            if (TestFlag(e->iFlags, conditional_memstring))
-                LogComment += std::string(tmpEvent->Params[10].asText);
-            else
-                LogComment += "*";
-            if (TestFlag(tmpEvent->iFlags, conditional_memval1))
-                LogComment += " " + to_string(tmpEvent->Params[11].asdouble, 2, 8);
-            else
-                LogComment += " *";
-            if (TestFlag(tmpEvent->iFlags, conditional_memval2))
-                LogComment += " " + to_string(tmpEvent->Params[12].asdouble, 2, 8);
-            else
-                LogComment += " *";
-			WriteLog(LogComment);
-            return true;
-			}
-        //else if (Global::iWriteLogEnabled && DebugModeFlag) //zawsze bo to bardzo istotne w debugowaniu scenariuszy
-		else
-        { // nie zgadza się, więc sprawdzmy, co
-            LogComment = e->Params[9].asMemCell->Text() + " " +
-                         to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
-                         to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
-                         " != ";
-            if (TestFlag(e->iFlags, conditional_memstring))
-                LogComment += (tmpEvent->Params[10].asText);
-            else
-                LogComment += "*";
-            if (TestFlag(tmpEvent->iFlags, conditional_memval1))
-                LogComment += " " + to_string(tmpEvent->Params[11].asdouble, 2, 8);
-            else
-                LogComment += " *";
-            if (TestFlag(tmpEvent->iFlags, conditional_memval2))
-                LogComment += " " + to_string(tmpEvent->Params[12].asdouble, 2, 8);
-            else
-                LogComment += " *";
-            WriteLog(LogComment);
-        }
+        auto const comparisonresult =
+            tmpEvent->Params[ 9 ].asMemCell->Compare(
+                ( e->Params[ 10 ].asText != nullptr ?
+                    e->Params[ 10 ].asText :
+                    "" ),
+                e->Params[ 11 ].asdouble,
+                e->Params[ 12 ].asdouble,
+                e->iFlags );
+
+        std::string comparisonlog = "Type: MemCompare - ";
+
+        comparisonlog +=
+               "[" + e->Params[ 9 ].asMemCell->Text() + "]"
+            + " [" + to_string( e->Params[ 9 ].asMemCell->Value1(), 2 ) + "]"
+            + " [" + to_string( tmpEvent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]";
+
+        comparisonlog += (
+            true == comparisonresult ?
+                " == " :
+                " != " );
+
+        comparisonlog += (
+            TestFlag( e->iFlags, conditional_memstring ) ?
+                "[" + std::string( tmpEvent->Params[ 10 ].asText ) + "]" :
+                "[*]" );
+        comparisonlog += (
+            TestFlag( tmpEvent->iFlags, conditional_memval1 ) ?
+                " [" + to_string( tmpEvent->Params[ 11 ].asdouble, 2 ) + "]" :
+                " [*]" );
+        comparisonlog += (
+            TestFlag( tmpEvent->iFlags, conditional_memval2 ) ?
+                " [" + to_string( tmpEvent->Params[ 12 ].asdouble, 2 ) + "]" :
+                " [*]" );
+
+        WriteLog( comparisonlog );
+        return comparisonresult;
     }
+    // unrecognized request
     return false;
 };
 
@@ -3227,16 +3187,16 @@ bool TGround::CheckQuery()
                                 &tmpEvent->Params[ 4 ].nGroundNode->pCenter );
                         }
                         //if (DebugModeFlag)
-                        WriteLog("Type: UpdateValues & Track command - " +
-                            tmpEvent->Params[5].asMemCell->Text() + " " +
-                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
-                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
+                        WriteLog("Type: UpdateValues & Track command - [" +
+                            tmpEvent->Params[5].asMemCell->Text() + "] [" +
+                            to_string( tmpEvent->Params[ 5 ].asMemCell->Value1(), 2 ) + "] [" +
+                            to_string( tmpEvent->Params[ 5 ].asMemCell->Value2(), 2 ) + "]" );
                     }
                     else //if (DebugModeFlag) 
-                        WriteLog("Type: UpdateValues - " +
-                            tmpEvent->Params[5].asMemCell->Text() + " " +
-                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
-                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
+                        WriteLog("Type: UpdateValues - [" +
+                            tmpEvent->Params[5].asMemCell->Text() + "] [" +
+                            to_string( tmpEvent->Params[ 5 ].asMemCell->Value1(), 2 ) + "] [" +
+                            to_string( tmpEvent->Params[ 5 ].asMemCell->Value2(), 2 ) + "]" );
                 }
                 break;
             case tp_GetValues:
@@ -3255,24 +3215,26 @@ bool TGround::CheckQuery()
                 WriteLog("Type: GetValues");
                 break;
             case tp_PutValues:
-                if (tmpEvent->Activator)
-                {
-                    loc.X =
-                        -tmpEvent->Params[3].asdouble; // zamiana, bo fizyka ma inaczej niż sceneria
-                    loc.Y = tmpEvent->Params[5].asdouble;
-                    loc.Z = tmpEvent->Params[4].asdouble;
+                if (tmpEvent->Activator) {
+                    // zamiana, bo fizyka ma inaczej niż sceneria
+                    loc.X = -tmpEvent->Params[3].asdouble;
+                    loc.Y =  tmpEvent->Params[5].asdouble;
+                    loc.Z =  tmpEvent->Params[4].asdouble;
                     if (tmpEvent->Activator->Mechanik) // przekazanie rozkazu do AI
                         tmpEvent->Activator->Mechanik->PutCommand(
                             tmpEvent->Params[0].asText, tmpEvent->Params[1].asdouble,
                             tmpEvent->Params[2].asdouble, loc);
-                    else
-                    { // przekazanie do pojazdu
+                    else {
+                        // przekazanie do pojazdu
                         tmpEvent->Activator->MoverParameters->PutCommand(
                             tmpEvent->Params[0].asText, tmpEvent->Params[1].asdouble,
                             tmpEvent->Params[2].asdouble, loc);
                     }
+                    WriteLog("Type: PutValues - [" +
+                        std::string(tmpEvent->Params[0].asText) + "] [" +
+                        to_string( tmpEvent->Params[ 1 ].asdouble, 2 ) + "] [" +
+                        to_string( tmpEvent->Params[ 2 ].asdouble, 2 ) + "]" );
                 }
-                WriteLog("Type: PutValues");
                 break;
             case tp_Lights:
                 if (tmpEvent->Params[9].asModel)
@@ -3342,11 +3304,10 @@ bool TGround::CheckQuery()
                 if (tmpEvent->Params[9].asTrack)
                 { // prędkość na zwrotnicy może być ograniczona z góry we wpisie, większej się nie
                     // ustawi eventem
-                    WriteLog("type: TrackVel");
-                    // WriteLog("Vel: ",tmpEvent->Params[0].asdouble);
+                    WriteLog("Type: TrackVel");
                     tmpEvent->Params[9].asTrack->VelocitySet(tmpEvent->Params[0].asdouble);
                     if (DebugModeFlag) // wyświetlana jest ta faktycznie ustawiona
-                        WriteLog("vel: ", tmpEvent->Params[9].asTrack->VelocityGet());
+                        WriteLog(" - velocity: ", tmpEvent->Params[9].asTrack->VelocityGet());
                 }
                 break;
             case tp_DynVel:
@@ -3358,7 +3319,7 @@ bool TGround::CheckQuery()
                 if (bCondition || (tmpEvent->iFlags &
                                    conditional_anyelse)) // warunek spelniony albo było użyte else
                 {
-                    WriteLog("Multiple passed");
+                    WriteLog("Type: Multi-event");
                     for (i = 0; i < 8; ++i) {
                         // dodawane do kolejki w kolejności zapisania
                         if( tmpEvent->Params[ i ].asEvent ) {
@@ -3413,7 +3374,7 @@ bool TGround::CheckQuery()
                             tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
 
                         WriteLog(
-                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                              "Type: WhoIs (" + to_string( tmpEvent->iFlags ) + ") - "
                             + "[name: " + tmpEvent->Activator->MoverParameters->TypeName + "], "
                             + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
                             + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
@@ -3427,7 +3388,7 @@ bool TGround::CheckQuery()
                             tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
 
                         WriteLog(
-                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                              "Type: WhoIs (" + to_string( tmpEvent->iFlags ) + ") - "
                             + "[load type: " + tmpEvent->Activator->MoverParameters->LoadType + "], "
                             + "[current load: " + to_string( tmpEvent->Activator->MoverParameters->Load, 2 ) + "], "
                             + "[max load: " + to_string( tmpEvent->Activator->MoverParameters->MaxLoad, 2 ) + "]" );
@@ -3442,7 +3403,7 @@ bool TGround::CheckQuery()
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
 
                         WriteLog(
-                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                              "Type: WhoIs (" + to_string( tmpEvent->iFlags ) + ") - "
                             + "[destination: " + tmpEvent->Activator->asDestination + "], "
                             + "[direction: " + to_string( tmpEvent->Activator->DirectionGet() ) + "], "
                             + "[engine power: " + to_string( tmpEvent->Activator->MoverParameters->Power, 2 ) + "]" );
@@ -3476,12 +3437,12 @@ bool TGround::CheckQuery()
             case tp_Voltage: // zmiana napięcia w zasilaczu (TractionPowerSource)
                 if (tmpEvent->Params[9].psPower)
                 { // na razie takie chamskie ustawienie napięcia zasilania
-                    WriteLog("type: Voltage");
+                    WriteLog("Type: Voltage");
                     tmpEvent->Params[9].psPower->VoltageSet(tmpEvent->Params[0].asdouble);
                 }
             case tp_Friction: // zmiana tarcia na scenerii
             { // na razie takie chamskie ustawienie napięcia zasilania
-                WriteLog("type: Friction");
+                WriteLog("Type: Friction");
                 Global::fFriction = (tmpEvent->Params[0].asdouble);
             }
             break;
@@ -3492,6 +3453,7 @@ bool TGround::CheckQuery()
     } // while
     return true;
 }
+#endif
 
 void TGround::UpdatePhys(double dt, int iter)
 { // aktualizacja fizyki stałym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeń
@@ -3573,13 +3535,6 @@ bool TGround::Update(double dt, int iter)
     }
     return true;
 };
-
-// updates scene lights array
-void
-TGround::Update_Lights() {
-
-    m_lights.update();
-}
 
 void
 TGround::Update_Hidden() {
@@ -4179,7 +4134,7 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
                 (*n) = node->nNext; // pominięcie na liście
                 Global::TrainDelete(d);
                 // remove potential entries in the light array
-                m_lights.remove( d );
+                simulation::Lights.remove( d );
                 d = d->Next(); // przejście do kolejnego pojazdu, póki jeszcze jest
                 delete node; // usuwanie fizyczne z pamięci
             }

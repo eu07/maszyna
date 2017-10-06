@@ -1568,7 +1568,7 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                         // sound feedback, engine start for diesel vehicle
                         Train->play_sound( Train->dsbDieselIgnition );
                         // side-effects
-                        Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                        Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
                         Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
                     }
                 }

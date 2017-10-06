@@ -10,16 +10,13 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "GL/glew.h"
-#include "openglgeometrybank.h"
-#include "VBO.h"
+
 #include "Classes.h"
-#include "ResourceManager.h"
 #include "material.h"
 #include "dumb3d.h"
-#include "Float3d.h"
 #include "Names.h"
 #include "lightarray.h"
+#include "simulation.h"
 
 typedef int TGroundNodeType;
 // Ra: zmniejszone liczby, aby zrobić tabelkę i zoptymalizować wyszukiwanie
@@ -97,7 +94,7 @@ struct TGroundVertex
 // ground node holding single, unique piece of 3d geometry. TBD, TODO: unify this with basic 3d model node
 struct piece_node {
     std::vector<TGroundVertex> vertices;
-    geometry_handle geometry { 0,0 }; // geometry prepared for drawing
+    geometry_handle geometry { 0, 0 }; // geometry prepared for drawing
 };
 
 // obiekt scenerii
@@ -142,9 +139,9 @@ public:
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     material_handle m_material; // główna (jedna) tekstura obiektu
     glm::vec3
-        Ambient{ 1.0f, 1.0f, 1.0f },
-        Diffuse{ 1.0f, 1.0f, 1.0f },
-        Specular{ 1.0f, 1.0f, 1.0f }; // oświetlenie
+        Ambient{ 0.2f },
+        Diffuse{ 1.0f },
+        Specular{ 0.0f }; // oświetlenie
     double fLineThickness; // McZapkie-120702: grubosc linii
     bool bVisible;
 
@@ -155,17 +152,17 @@ public:
     void InitNormals();
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
 };
-
+/*
 struct bounding_area {
 
     glm::vec3 center; // mid point of the rectangle
     float radius { 0.0f }; // radius of the bounding sphere
 };
-
+*/
 class TSubRect : /*public Resource,*/ public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
-    bounding_area m_area;
+    scene::bounding_area m_area;
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
     int iTracks = 0; // ilość torów w (tTracks)
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
@@ -219,6 +216,7 @@ private:
 public:
     virtual ~TGroundRect();
     // pobranie wskaźnika do małego kwadratu, utworzenie jeśli trzeba
+    inline
     TSubRect * SafeGetSubRect(int iCol, int iRow) {
         if( !pSubRects ) {
             // utworzenie małych kwadratów
@@ -227,6 +225,7 @@ public:
         return pSubRects + iRow * iNumSubRects + iCol; // zwrócenie właściwego
     };
     // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
+    inline
     TSubRect *FastGetSubRect(int iCol, int iRow) const {
         return (
             pSubRects ?
@@ -234,8 +233,9 @@ public:
                 nullptr); };
     void NodeAdd( TGroundNode *Node ); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     // compares two provided nodes, returns true if their content can be merged
-    bool mergeable( TGroundNode const &Left, TGroundNode const &Right );
+    bool mergeable( TGroundNode const &Left, TGroundNode const &Right ) const;
     // optymalizacja obiektów w sektorach
+    inline
     void Optimize() {
         if( pSubRects ) {
             for( int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i ) {
@@ -253,20 +253,23 @@ class TGround
     TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     TGroundNode *nRootDynamic = nullptr; // lista pojazdów
     TGroundNode *nRootOfType[ TP_LAST ]; // tablica grupująca obiekty, przyspiesza szukanie
+#ifdef EU07_USE_OLD_GROUNDCODE
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
            *tmpEvent = nullptr;
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
-    TNames<TGroundNode *> m_trackmap;
-    light_array m_lights; // collection of dynamic light sources present in the scene
+#endif
+    TNames<TGroundNode *> m_nodemap;
 
     vector3 pOrigin;
     vector3 aRotate;
     bool bInitDone = false;
 
   private: // metody prywatne
-    bool EventConditon(TEvent *e);
+#ifdef EU07_USE_OLD_GROUNDCODE
+      bool EventConditon(TEvent *e);
+#endif
 
   public:
     bool bDynamicRemove = false; // czy uruchomić procedurę usuwania pojazdów
@@ -276,9 +279,11 @@ class TGround
     void Free();
     bool Init( std::string File );
     void FirstInit();
+#ifdef EU07_USE_OLD_GROUNDCODE
     void InitTracks();
     void InitTraction();
     bool InitEvents();
+#endif
     bool InitLaunchers();
     TTrack * FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude);
@@ -286,15 +291,16 @@ class TGround
     TGroundNode * AddGroundNode(cParser *parser);
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
-    void Update_Lights(); // updates scene lights array
     void Update_Hidden(); // updates invisible elements of the scene
-    bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
+#ifdef EU07_USE_OLD_GROUNDCODE
+    bool AddToQuery( TEvent *Event, TDynamicObject *Node );
     bool CheckQuery();
+#endif
     TGroundNode * DynamicFindAny(std::string const &Name);
     TGroundNode * DynamicFind(std::string const &Name);
     void DynamicList(bool all = false);
-    TGroundNode * FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType);
+    TGroundNode * FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType);
     TGroundRect * GetRect( double x, double z );
     TSubRect * GetSubRect( int iCol, int iRow );
     inline
@@ -310,8 +316,9 @@ class TGround
     inline
     int GetColFromX(double x) {
         return (int)(x / fSubRectSize + fHalfTotalNumSubRects); };
+#ifdef EU07_USE_OLD_GROUNDCODE
     TEvent * FindEvent(const std::string &asEventName);
-    TEvent * FindEventScan(const std::string &asEventName);
+#endif
     void TrackJoin(TGroundNode *Current);
 
   private:
@@ -330,10 +337,8 @@ class TGround
 	void WyslijUszkodzenia(const std::string &t, char fl);
 	void WyslijObsadzone(); // -> skladanie wielu pojazdow    
 	void RadioStop(vector3 pPosition);
-    TDynamicObject * DynamicNearest(vector3 pPosition, double distance = 20.0,
-                                              bool mech = false);
-    TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0,
-                                              bool mech = false);
+    TDynamicObject * DynamicNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
+    TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
     void DynamicRemove(TDynamicObject *dyn);
     void TerrainRead(std::string const &f);
     void TerrainWrite();
