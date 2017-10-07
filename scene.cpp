@@ -119,8 +119,6 @@ basic_cell::center( glm::dvec3 Center ) {
 void
 basic_section::insert( shape_node Shape ) {
 
-    m_active = true;
-
     auto const &shapedata = Shape.data();
     if( ( true == shapedata.translucent )
      || ( shapedata.rangesquared_max <= 90000.0 )
@@ -147,7 +145,6 @@ basic_section::insert( shape_node Shape ) {
 void
 basic_section::insert( TTrack *Path ) {
 
-    m_active = true;
     // pass the node to the appropriate partitioning cell
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     cell( Path->location() ).insert( Path );
@@ -157,7 +154,6 @@ basic_section::insert( TTrack *Path ) {
 void
 basic_section::insert( TTraction *Traction ) {
 
-    m_active = true;
     // pass the node to the appropriate partitioning cell
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     cell( Traction->location() ).insert( Traction );
@@ -167,7 +163,6 @@ basic_section::insert( TTraction *Traction ) {
 void
 basic_section::insert( TAnimModel *Instance ) {
 
-    m_active = true;
     // pass the node to the appropriate partitioning cell
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     cell( Instance->location() ).insert( Instance );
@@ -203,8 +198,6 @@ basic_section::create_geometry() {
         m_geometrycreated = true;
     }
 
-    if( false == m_active ) { return; } // nothing to do here
-
     // since sections can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
@@ -235,6 +228,8 @@ basic_section::cell( glm::dvec3 const &Location ) {
 
 basic_region::basic_region() {
 
+    m_sections.fill( nullptr );
+/*
     // initialize centers of sections:
     // calculate center of 'top left' region section...
     auto const centeroffset = -( EU07_REGIONSIDESECTIONCOUNT / 2 * EU07_SECTIONSIZE ) + EU07_SECTIONSIZE / 2;
@@ -248,6 +243,12 @@ basic_region::basic_region() {
             column = 0;
         }
     }
+*/
+}
+
+basic_region::~basic_region() {
+
+    for( auto section : m_sections ) { if( section != nullptr ) { delete section; } }
 }
 
 void
@@ -568,10 +569,21 @@ basic_region::section( glm::dvec3 const &Location ) {
     auto const column = static_cast<int>( std::floor( Location.x / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) );
     auto const row = static_cast<int>( std::floor( Location.z / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) );
 
-    return
+    auto &section =
         m_sections[
               clamp( row,    0, EU07_REGIONSIDESECTIONCOUNT - 1 ) * EU07_REGIONSIDESECTIONCOUNT
             + clamp( column, 0, EU07_REGIONSIDESECTIONCOUNT - 1 ) ] ;
+
+    if( section == nullptr ) {
+        // there's no guarantee the section exists at this point, so check and if needed, create it
+        section = new basic_section();
+        // assign center of the section
+        auto const centeroffset = -( EU07_REGIONSIDESECTIONCOUNT / 2 * EU07_SECTIONSIZE ) + EU07_SECTIONSIZE / 2;
+        glm::dvec3 regioncornercenter { centeroffset, 0, centeroffset };
+        section->center( regioncornercenter + glm::dvec3{ column * EU07_SECTIONSIZE, 0.0, row * EU07_SECTIONSIZE } );
+    }
+
+    return *section;
 }
 
 } // scene

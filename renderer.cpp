@@ -1598,7 +1598,7 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 }
 #else
 void
-opengl_renderer::Render( scene::basic_region &Region ) {
+opengl_renderer::Render( scene::basic_region *Region ) {
 
     m_sectionqueue.clear();
     m_cellqueue.clear();
@@ -1617,14 +1617,14 @@ opengl_renderer::Render( scene::basic_region &Region ) {
         for( int column = originx; column <= originx + segmentcount; ++column ) {
             if( column < 0 ) { continue; }
             if( column >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
-            auto &section { Region.m_sections[ row * scene::EU07_REGIONSIDESECTIONCOUNT + column ] };
-            if( ( true == section.m_active )
+            auto *section { Region->m_sections[ row * scene::EU07_REGIONSIDESECTIONCOUNT + column ] };
+            if( ( section != nullptr )
 #ifdef EU07_USE_DEBUG_CULLING
-             && ( m_worldcamera.camera.visible( section.m_area ) ) ) {
+             && ( m_worldcamera.camera.visible( section->m_area ) ) ) {
 #else
-             && ( m_renderpass.camera.visible( section.m_area ) ) ) {
+             && ( m_renderpass.camera.visible( section->m_area ) ) ) {
 #endif
-                m_sectionqueue.emplace_back( &section );
+                m_sectionqueue.emplace_back( section );
             }
         }
     }
@@ -2817,7 +2817,7 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
 }
 #else
 void
-opengl_renderer::Render_Alpha( scene::basic_region &Region ) {
+opengl_renderer::Render_Alpha( scene::basic_region *Region ) {
 
     // sort the nodes based on their distance to viewer
     std::sort(
@@ -2827,17 +2827,6 @@ opengl_renderer::Render_Alpha( scene::basic_region &Region ) {
             return ( Left.first ) < ( Right.first ); } );
 
     Render_Alpha( std::rbegin( m_cellqueue ), std::rend( m_cellqueue ) );
-/*
-    ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
-    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
-        // druty na końcu, żeby się nie robiły białe plamy na tle lasu
-        tmp = subcellpair->second;
-        for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
-            Render_Alpha( node );
-        }
-    }
-    ::glEnable( GL_LIGHTING );
-*/
 }
 
 void
@@ -2882,6 +2871,8 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
     // third pass draws the wires;
     // wires use section vbos, but for the time being we want to draw them at the very end
     {
+        ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
+
         auto first{ First };
         while( first != Last ) {
 
@@ -2909,6 +2900,8 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 
             ++first;
         }
+
+        ::glEnable( GL_LIGHTING );
     }
 }
 

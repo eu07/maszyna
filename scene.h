@@ -114,7 +114,6 @@ private:
 // members
     // placement and visibility
     scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_SECTIONSIZE + 0.25 * EU07_SECTIONSIZE ) };
-    bool m_active { false }; // whether the section holds any actual data, itself or in the cells
     // content
     cell_array m_cells; // partitioning scheme
     shapenode_sequence m_shapes; // large pieces of opaque geometry and (legacy) terrain
@@ -132,6 +131,8 @@ class basic_region {
 public:
 // constructors
     basic_region();
+// destructor
+    ~basic_region();
 // methods
     // inserts provided shape in the region
     void
@@ -149,7 +150,7 @@ public:
 
 private:
 // types
-    using section_array = std::array<basic_section, EU07_REGIONSIDESECTIONCOUNT * EU07_REGIONSIDESECTIONCOUNT>;
+    using section_array = std::array<basic_section *, EU07_REGIONSIDESECTIONCOUNT * EU07_REGIONSIDESECTIONCOUNT>;
 
 // methods
     // checks whether specified point is within boundaries of the region

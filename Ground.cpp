@@ -2485,9 +2485,15 @@ void TGround::InitTracks()
             { // jak coś pójdzie źle, to robimy z tego normalny tor
                 // Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wiązanie toru z modelem
                 // obrotnicy
+#ifdef EU07_USE_OLD_GROUNDCODE
+                Track->RaAssign(
+                    Current, Model ? Model->Model : NULL, FindEvent( Current->asName + ":done" ),
+                    FindEvent( Current->asName + ":joined" ) ); // wiązanie toru z modelem obrotnicy
+#else
                 Track->RaAssign(
                     Current, Model ? Model->Model : NULL, simulation::Events.FindEvent(Current->asName + ":done"),
                     simulation::Events.FindEvent(Current->asName + ":joined")); // wiązanie toru z modelem obrotnicy
+#endif
                 // break; //jednak połączę z sąsiednim, jak ma się wysypywać null track
             }
             if (!Model) // jak nie ma modelu
@@ -2867,12 +2873,21 @@ bool TGround::InitLaunchers()
             }
             else
                 EventLauncher->MemCell = nullptr;
+#ifdef EU07_USE_OLD_GROUNDCODE
+        EventLauncher->Event1 = ( EventLauncher->asEvent1Name != "none") ?
+                                    FindEvent(EventLauncher->asEvent1Name) :
+                                    nullptr;
+        EventLauncher->Event2 = ( EventLauncher->asEvent2Name != "none") ?
+                                    FindEvent(EventLauncher->asEvent2Name) :
+                                    nullptr;
+#else
         EventLauncher->Event1 = ( EventLauncher->asEvent1Name != "none") ?
                                     simulation::Events.FindEvent(EventLauncher->asEvent1Name) :
                                     nullptr;
         EventLauncher->Event2 = ( EventLauncher->asEvent2Name != "none") ?
                                     simulation::Events.FindEvent(EventLauncher->asEvent2Name) :
                                     nullptr;
+#endif
     }
     return true;
 }
@@ -3526,7 +3541,7 @@ bool TGround::Update(double dt, int iter)
     if (bDynamicRemove)
     { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-            if (!Current->DynamicObject->bEnabled)
+            if ( false == Current->DynamicObject->bEnabled)
             {
                 DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
                 Current = nRootDynamic; // sprawdzanie listy od początku

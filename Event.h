@@ -30,7 +30,7 @@ enum TEventType {
     tp_TrackVel,
     tp_Multiple,
     tp_AddValues,
-    tp_Ignored,
+//    tp_Ignored, // NOTE: refactored to separate flag
     tp_CopyValues,
     tp_WhoIs,
     tp_LogValues,
@@ -84,6 +84,7 @@ class TEvent // zmienne: ev*
 
   public:
     std::string asName;
+    bool m_ignored { false }; // replacement for tp_ignored
     bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
     int iQueued = 0; // ile razy dodany do kolejki
     TEvent *evNext = nullptr; // następny w kolejce
@@ -99,7 +100,8 @@ class TEvent // zmienne: ev*
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
     TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378
     double fRandomDelay = 0.0; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
-  public: // metody
+public:
+    // metody
     TEvent(std::string const &m = "");
     ~TEvent();
     void Init();

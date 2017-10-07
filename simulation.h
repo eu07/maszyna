@@ -66,7 +66,8 @@ extern path_table Paths;
 extern traction_table Traction;
 extern instance_manager Instances;
 extern light_array Lights;
-extern scene::basic_region Region;
+
+extern scene::basic_region *Region;
 
 } // simulation
 

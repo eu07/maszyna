@@ -210,13 +210,12 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
 
     parser->getTokens();
     *parser >> token;
-    // str = AnsiString(token.c_str());
 
     if (token != "none")
         asNodeName = token; // nazwa obiektu powiązanego
 
     if (asName.substr(0, 5) == "none_")
-        Type = tp_Ignored; // Ra: takie są ignorowane
+        m_ignored = true; // Ra: takie są ignorowane
 
     switch (Type)
     {
@@ -226,7 +225,7 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
         // if (Type==tp_UpdateValues) iFlags=0; //co modyfikować
         parser->getTokens(1, false); // case sensitive
         *parser >> token;
-        Params[0].asText = new char[token.size() + 1]; // BUG: source of memory leak
+        Params[0].asText = new char[token.size() + 1];
         strcpy(Params[0].asText, token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
             iFlags |= update_memstring;
@@ -605,7 +604,7 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             // str = AnsiString(token.c_str());
         } while (token != "endevent");
         break;
-    case tp_Ignored: // ignorowany
+//    case tp_Ignored: // ignorowany
     case tp_Unknown: // nieznany
         do
         {
@@ -777,10 +776,7 @@ event_manager::insert( TEvent *Event ) {
             // can be cleaned up if pointers to events were replaced with handles
             ErrorLog( "Bad event: encountered duplicated event, \"" + Event->asName + "\"" );
             duplicate->Append( Event ); // doczepka (taki wirtualny multiple bez warunków)
-            // BUG: source of memory leak.
-            // erasing original type of event prevents it from proper resource de-allocation on exit
-            // TODO: mark ignored event with separate flag or ideally refactor the whole thing
-            duplicate->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na wsteczną zgodność
+            duplicate->m_ignored = true; // dezaktywacja pierwotnego - taka proteza na wsteczną zgodność
         }
     }
 
@@ -788,7 +784,7 @@ event_manager::insert( TEvent *Event ) {
     if( lookup == m_eventmap.end() ) {
         // if it's first event with such name, it's potential candidate for the execution queue
         m_eventmap.emplace( Event->asName, m_events.size() - 1 );
-        if( ( Event->Type != tp_Ignored )
+        if( ( Event->m_ignored != true )
          && ( Event->asName.find( "onstart" ) != std::string::npos ) ) {
             // event uruchamiany automatycznie po starcie
             AddToQuery( Event, nullptr );
@@ -815,7 +811,7 @@ event_manager::FindEvent( std::string const &Name ) {
 bool
 event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
 
-    if( Event->bEnabled ) {
+    if( ( false == Event->m_ignored ) && ( true == Event->bEnabled ) ) {
         // jeśli może być dodany do kolejki (nie używany w skanowaniu)
         if( !Event->iQueued ) // jeśli nie dodany jeszcze do kolejki
         { // kolejka eventów jest posortowana względem (fStartTime)
@@ -902,8 +898,8 @@ event_manager::CheckQuery() {
         }
         else // a jak nazwa jest unikalna, to kolejka idzie dalej
             QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
-        if (m_workevent->bEnabled)
-        { // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
+        if( ( false == m_workevent->m_ignored ) && ( true == m_workevent->bEnabled ) ) {
+            // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
             --m_workevent->iQueued; // teraz moze być ponownie dodany do kolejki
             WriteLog( "EVENT LAUNCHED" + ( m_workevent->Activator ? ( " by " + m_workevent->Activator->asName ) : "" ) + ": " + m_workevent->asName );
             switch (m_workevent->Type)
@@ -1270,7 +1266,7 @@ event_manager::InitEvents() {
             }
             else {
                 // nie ma komórki, to nie będzie działał poprawnie
-                Current->Type = tp_Ignored; // deaktywacja
+                Current->m_ignored = true; // deaktywacja
                 ErrorLog( "Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"" );
             }
             break;
@@ -1297,7 +1293,7 @@ event_manager::InitEvents() {
             }
             else {
                 // nie ma komórki, to nie będzie działał poprawnie
-                Current->Type = tp_Ignored; // deaktywacja
+                Current->m_ignored = true; // deaktywacja
                 ErrorLog( "Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"" );
             }
             break;

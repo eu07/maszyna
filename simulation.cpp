@@ -22,10 +22,15 @@ path_table Paths;
 traction_table Traction;
 instance_manager Instances;
 light_array Lights;
-scene::basic_region Region;
+
+scene::basic_region *Region { nullptr };
 
 bool
 state_manager::deserialize( std::string const &Scenariofile ) {
+
+    // TODO: move initialization to separate routine so we can reuse it
+    SafeDelete( Region );
+    Region = new scene::basic_region();
 
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
@@ -245,7 +250,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         auto *path { deserialize_path( Input, Scratchpad, nodedata ) };
         // duplicates of named tracks are currently experimentally allowed
         if( simulation::Paths.insert( path ) ) {
-            simulation::Region.insert_path( path, Scratchpad );
+            simulation::Region->insert_path( path, Scratchpad );
         }
         else {
             ErrorLog( "Bad scenario: track with duplicate name, \"" + path->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
@@ -262,7 +267,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         auto *traction { deserialize_traction( Input, Scratchpad, nodedata ) };
         // duplicates of named tracks are currently discarded
         if( simulation::Traction.insert( traction ) ) {
-            simulation::Region.insert_traction( traction, Scratchpad );
+            simulation::Region->insert_traction( traction, Scratchpad );
         }
         else {
             ErrorLog( "Bad scenario: traction piece with duplicate name, \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
@@ -286,7 +291,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             if( instance == nullptr ) { return; }
 
             if( simulation::Instances.insert( instance ) ) {
-                   simulation::Region.insert_instance( instance, Scratchpad );
+                   simulation::Region->insert_instance( instance, Scratchpad );
             }
             else {
                 ErrorLog( "Bad scenario: 3d model instance with duplicate name, \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
@@ -297,7 +302,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
           || ( nodedata.type == "triangle_strip" )
           || ( nodedata.type == "triangle_fan" ) ) {
 
-        simulation::Region.insert_shape( scene::shape_node().deserialize( Input, nodedata ), Scratchpad );
+        simulation::Region->insert_shape( scene::shape_node().deserialize( Input, nodedata ), Scratchpad );
     }
     else if( ( nodedata.type == "lines" )
           || ( nodedata.type == "line_strip" )

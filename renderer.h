@@ -283,7 +283,7 @@ private:
         Render( TSubRect *Groundsubcell );
 #else
     void
-        Render( scene::basic_region &Region );
+        Render( scene::basic_region *Region );
     void
         Render( section_sequence::iterator First, section_sequence::iterator Last );
     void
@@ -316,7 +316,7 @@ private:
         Render_Alpha( TSubRect *Groundsubcell );
 #else
     void
-        Render_Alpha( scene::basic_region &Region );
+        Render_Alpha( scene::basic_region *Region );
     void
         Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last );
     void

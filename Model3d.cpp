@@ -1147,7 +1147,8 @@ TModel3d::~TModel3d() {
 
 	if (iFlags & 0x0200) {
         // wczytany z pliku tekstowego, submodele sprzątają same
-        Root = nullptr;
+        SafeDelete( Root );
+//        Root = nullptr;
 	}
 	else {
         // wczytano z pliku binarnego (jest właścicielem tablic)
