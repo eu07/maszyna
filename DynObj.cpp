@@ -4659,10 +4659,10 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						>> token
 						>> attenuation;
 					rsSilnik = sound_man->create_sound(token);
+   					parser.getTokens( 4, false );
                     if (rsSilnik)
                     {
                         rsSilnik->dist(attenuation);
-    					parser.getTokens( 4, false );
 
     					parser >> rsSilnik->gain_mul;
     					if( MoverParameters->EngineType == DieselEngine ) {
@@ -4695,10 +4695,10 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						>> token
 						>> attenuation;
 					rsWentylator = sound_man->create_sound(token);
+   					parser.getTokens( 4, false );
                     if (rsWentylator)
                     {
                         rsWentylator->dist(attenuation);
-    					parser.getTokens( 4, false );
     					parser
     						>> rsWentylator->gain_mul
     						>> rsWentylator->gain_off
