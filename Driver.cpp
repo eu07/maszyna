@@ -73,7 +73,8 @@ double GetDistanceToEvent(TTrack const *track, TEvent const *event, double scan_
     { // przejście na inny tor
         track = track->Connected(int(sd), sd);
         start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
-        if( track->eType == tt_Cross ) {
+        if( ( track != nullptr )
+         && ( track->eType == tt_Cross ) ) {
             // NOTE: tracing through crossroads currently poses risk of tracing through wrong segment
             // as it's possible to be performerd before setting a route through the crossroads
             // as a stop-gap measure we don't trace through crossroads which should be reasonable in most cases
@@ -312,7 +313,7 @@ bool TSpeedPos::Update()
 std::string TSpeedPos::GetName()
 {
 	if (iFlags & spTrack) // jeśli tor
-        return trTrack->NameGet();
+        return trTrack->name();
     else if( iFlags & spEvent ) // jeśli event
         return evEvent->asName;
     else
@@ -526,7 +527,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         if (pTrack != tLast) // ostatni zapisany w tabelce nie był jeszcze sprawdzony
         { // jeśli tor nie był jeszcze sprawdzany
             if( Global::iWriteLogEnabled & 8 ) {
-                WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->NameGet() );
+                WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->name() );
             }
 
             if( ( pEvent = CheckTrackEvent( pTrack, fLastDir ) ) != nullptr ) // jeśli jest semafor na tym torze
@@ -723,7 +724,7 @@ void TController::TableCheck(double fDistance)
                 if (sSpeedTable[i].Update())
                 {
                     if( Global::iWriteLogEnabled & 8 ) {
-                        WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (generating fresh trace)" );
+                        WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->name() + " (generating fresh trace)" );
                     }
                     // usuwamy wszystko za tym torem
                     while (sSpeedTable.back().trTrack != sSpeedTable[i].trTrack)
@@ -827,7 +828,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             WriteLog(
                                 pVehicle->asName + " as " + TrainParams->TrainName
                                 + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
-                                + " skipped " + asNextStop); // informacja
+                                + " passed " + asNextStop); // informacja
 #endif
                             // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 + 0.001 * fLength;
@@ -3651,6 +3652,14 @@ TController::UpdateSituation(double dt) {
         // dla nastawienia G koniecznie należy wydłużyć drogę na czas reakcji
         fBrakeDist += 2 * mvOccupied->Vel;
     }
+/*
+    // take into account effect of gravity (but to stay on safe side of calculations, only downhill)
+    if( fAccGravity > 0.025 ) {
+        fBrakeDist *= ( 1.0 + fAccGravity );
+        // TBD: use version which shortens route going uphill, too
+        //fBrakeDist = std::max( fBrakeDist, fBrakeDist * ( 1.0 + fAccGravity ) );
+    }
+*/
     // route scan
     double routescanrange = (
         mvOccupied->Vel > 5.0 ?
@@ -4461,6 +4470,7 @@ TController::UpdateSituation(double dt) {
 				AbsAccS /= fMass;
 			}
 			AbsAccS_pub = AbsAccS;
+            AbsAccS_avg = interpolate( AbsAccS_avg, mvOccupied->AccS * iDirection, 0.25 );
 
 #if LOGVELOCITY
             // WriteLog("VelDesired="+AnsiString(VelDesired)+",
@@ -4589,26 +4599,53 @@ TController::UpdateSituation(double dt) {
 
             // decisions based on current speed
             if( mvOccupied->CategoryFlag == 1 ) {
-                // try to estimate increase of current velocity before engaged brakes start working
-                auto const speedestimate = vel + vel * ( 1.0 - fBrake_a0[ 0 ] ) * AbsAccS;
-                if( speedestimate > VelDesired ) {
-                    // jesli jedzie za szybko do AKTUALNEGO
-                    if( VelDesired == 0.0 ) {
-                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                        AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
-                    }
-                    else {
-                        if( speedestimate > ( VelDesired + fVelPlus ) ) {
-                            // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
-                            AccDesired = std::min( AccDesired, -0.25 );
+
+                if( fAccGravity < 0.025 ) {
+                    // on flats on uphill we can be less careful
+                    if( vel > VelDesired ) {
+                        // jesli jedzie za szybko do AKTUALNEGO
+                        if( VelDesired == 0.0 ) {
+                            // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                            AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
                         }
                         else {
-                            // close enough to target to stop accelerating
-                            AccDesired = std::min(
-                                AccDesired, // but don't override decceleration for VelNext 
-                                interpolate( // ease off as you close to the target velocity
-                                    -0.06, AccPreferred,
-                                    clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                            // slow down, not full stop
+                            if( vel > ( VelDesired + fVelPlus ) ) {
+                                // hamuj tak średnio
+                                AccDesired = std::min( AccDesired, -0.25 );
+                            }
+                            else {
+                                // o 5 km/h to olej (zacznij luzować)
+                                AccDesired = std::min(
+                                    AccDesired, // but don't override decceleration for VelNext 
+                                    std::max( 0.0, AccPreferred ) );
+                            }
+                        }
+                    }
+                }
+                else {
+                    // going sharply downhill we may need to start braking sooner than usual
+                    // try to estimate increase of current velocity before engaged brakes start working
+                    auto const speedestimate = vel + ( 1.0 - fBrake_a0[ 0 ] ) * 30.0 * AbsAccS;
+                    if( speedestimate > VelDesired ) {
+                        // jesli jedzie za szybko do AKTUALNEGO
+                        if( VelDesired == 0.0 ) {
+                            // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                            AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
+                        }
+                        else {
+                            if( speedestimate > ( VelDesired + fVelPlus ) ) {
+                                // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
+                                AccDesired = std::min( AccDesired, -0.25 );
+                            }
+                            else {
+                                // close enough to target to stop accelerating
+                                AccDesired = std::min(
+                                    AccDesired, // but don't override decceleration for VelNext 
+                                    interpolate( // ease off as you close to the target velocity
+                                        -0.06, AccPreferred,
+                                        clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                            }
                         }
                     }
                 }
@@ -4640,8 +4677,10 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
-            if( mvOccupied->CategoryFlag == 1 ) {
-                // also take into account impact of gravity
+
+            if( ( mvOccupied->CategoryFlag == 1 )
+             && ( fAccGravity > 0.025 ) ) {
+                // going downhill also take into account impact of gravity
                 AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
             }
 
@@ -5164,7 +5203,7 @@ std::string TController::StopReasonText()
     if (eStopReason != 7) // zawalidroga będzie inaczej
         return StopReasonTable[eStopReason];
     else
-        return "Blocked by " + (pVehicles[0]->PrevAny()->GetName());
+        return "Blocked by " + (pVehicles[0]->PrevAny()->name());
 };
 
 //----------------------------------------------------------------------------------------------------------------------

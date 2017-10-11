@@ -6923,7 +6923,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     }
 
     if( true == extract_value( AirLeakRate, "AirLeakRate", line, "" ) ) {
-        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.001
+        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.01
         AirLeakRate *= 0.01;
     }
 }
@@ -7826,10 +7826,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_NP ) );
         else
             BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_RP ) );
+/*
+        // NOTE: disabled and left up to the driver, if there's any
         MainSwitch( false );
         PantFront( true );
         PantRear( true );
         MainSwitch( true );
+*/
         ActiveDir = 0; // Dir; //nastawnik kierunkowy - musi być ustawiane osobno!
         DirAbsolute = ActiveDir * CabNo; // kierunek jazdy względem sprzęgów
         LimPipePress = CntrlPipePress;

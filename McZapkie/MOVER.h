@@ -706,6 +706,7 @@ public:
         headlight_upper = 0x04,
         headlight_right = 0x10,
         redmarker_right = 0x20,
+        rearendsignals  = 0x40
     };
     int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
