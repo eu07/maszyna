@@ -996,10 +996,12 @@ void Global::TrainDelete(TDynamicObject *d)
         pWorld->TrainDelete(d);
 };
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 TDynamicObject *Global::DynamicNearest()
 { // ustalenie pojazdu najbliższego kamerze
     return pGround->DynamicNearest(pCamera->Pos);
 };
+#endif
 
 TDynamicObject *Global::CouplerNearest()
 { // ustalenie pojazdu najbliższego kamerze

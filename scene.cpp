@@ -10,10 +10,27 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scene.h"
 
+#include "globals.h"
 #include "renderer.h"
 #include "logs.h"
 
 namespace scene {
+
+// legacy method, updates sounds and polls event launchers within radius around specified point
+void
+basic_cell::update() {
+/*
+    // renderowanie obiektów aktywnych a niewidocznych
+    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+*/
+    // TBD, TODO: move to sound renderer
+    for( auto *path : m_paths ) {
+        // dźwięki pojazdów, również niewidocznych
+        path->RenderDynSounds();
+    }
+}
 
 // adds provided shape to the cell
 void
@@ -90,6 +107,131 @@ basic_cell::insert( TAnimModel *Instance ) {
     }
 }
 
+// registers provided path in the lookup directory of the cell
+void
+basic_cell::register_end( TTrack *Path ) {
+
+    m_directories.paths.emplace( Path );
+}
+
+// registers provided traction piece in the lookup directory of the cell
+void
+basic_cell::register_end( TTraction *Traction ) {
+
+    m_directories.traction.emplace( Traction );
+}
+
+// find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
+std::tuple<TDynamicObject *, float>
+basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+
+    TDynamicObject *vehiclenearest { nullptr };
+    float leastdistance { std::numeric_limits<float>::max() };
+    float distance;
+    float const distancecutoff { Radius * Radius }; // we'll ignore vehicles farther than this
+
+    for( auto *path : m_paths ) {
+        for( auto *vehicle : path->Dynamics ) {
+            if( ( true == Onlycontrolled )
+             && ( vehicle->Mechanik == nullptr ) ) {
+                continue;
+            }
+            distance = glm::length2( glm::dvec3{ vehicle->GetPosition() } - Point );
+            if( ( distance > distancecutoff )
+             || ( distance > leastdistance ) ){
+                continue;
+            }
+            std::tie( vehiclenearest, leastdistance ) = std::tie( vehicle, distance );
+        }
+    }
+    return std::tie( vehiclenearest, leastdistance );
+}
+
+// finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
+std::tuple<TTrack *, int>
+basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) {
+
+    Math3D::vector3 point { Point.x, Point.y, Point.z }; // sad workaround until math classes unification
+    int endpointid;
+
+    for( auto *path : m_directories.paths ) {
+
+        if( path == Exclude ) { continue; }
+
+        endpointid = path->TestPoint( &point );
+        if( endpointid >= 0 ) {
+
+            return std::tie( path, endpointid );
+        }
+    }
+    return { nullptr, -1 };
+}
+
+// finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
+std::tuple<TTraction *, int>
+basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) {
+
+    int endpointid;
+
+    for( auto *traction : m_directories.traction ) {
+
+        if( traction == Exclude ) { continue; }
+
+        endpointid = traction->TestPoint( Point );
+        if( endpointid >= 0 ) {
+
+            return std::tie( traction, endpointid );
+        }
+    }
+    return { nullptr, -1 };
+}
+
+// finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
+std::tuple<TTraction *, int, float>
+basic_cell::find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) {
+
+    TTraction
+        *tractionnearest { nullptr };
+    float
+        distance,
+        distancenearest { std::numeric_limits<float>::max() };
+    int endpoint,
+        endpointnearest { -1 };
+
+    for( auto *traction : m_directories.traction ) {
+
+        if( ( traction == Other )
+         || ( traction->psSection != Other->psSection )
+         || ( traction == Other->hvNext[ 0 ] )
+         || ( traction == Other->hvNext[ 1 ] ) ) {
+            // ignore pieces from different sections, and ones connected to the other piece
+            continue;
+        }
+        endpoint = (
+            glm::dot( traction->vParametric, Other->vParametric ) >= 0.0 ?
+                Currentdirection ^ 1 :
+                Currentdirection );
+        if( ( traction->psPower[ endpoint ] == nullptr )
+         || ( traction->fResistance[ endpoint ] < 0.0 ) ) {
+            continue;
+        }
+        distance = glm::length2( traction->location() - Point );
+        if( distance < distancenearest ) {
+            std::tie( tractionnearest, endpointnearest, distancenearest ) = std::tie( traction, endpoint, distance );
+        }
+    }
+    return { tractionnearest, endpointnearest, distancenearest };
+}
+
+// sets center point of the section
+void
+basic_cell::center( glm::dvec3 Center ) {
+
+    m_area.center = Center;
+    // NOTE: we should also update origin point for the contained nodes, but in practice we can skip this
+    // as all nodes will be added only after the proper center point was set, and won't change
+}
+
 // generates renderable version of held non-instanced geometry
 void
 basic_cell::create_geometry( geometrybank_handle const &Bank ) {
@@ -104,16 +246,22 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
 #endif
 }
 
-// sets center point of the section
+
+
+// legacy method, updates sounds and polls event launchers within radius around specified point
 void
-basic_cell::center( glm::dvec3 Center ) {
+basic_section::update( glm::dvec3 const &Location, float const Radius ) {
 
-    m_area.center = Center;
-    // NOTE: we should also update origin point for the contained nodes, but in practice we can skip this
-    // as all nodes will be added only after the proper center point was set, and won't change
+    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + Radius, 2 ) };
+
+    for( auto &cell : m_cells ) {
+
+        if( glm::length2( cell.area().center - Location ) < squaredradii ) {
+            // we reject cells which aren't within our area of interest
+            cell.update();
+        }
+    }
 }
-
-
 
 // adds provided shape to the section
 void
@@ -166,6 +314,96 @@ basic_section::insert( TAnimModel *Instance ) {
     // pass the node to the appropriate partitioning cell
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     cell( Instance->location() ).insert( Instance );
+}
+
+// registers specified end point of the provided path in the lookup directory of the region
+void
+basic_section::register_end( TTrack *Path, glm::dvec3 const &Point ) {
+
+    cell( Point ).register_end( Path );
+}
+
+// registers specified end point of the provided traction piece in the lookup directory of the region
+void
+basic_section::register_end( TTraction *Traction, glm::dvec3 const &Point ) {
+
+    cell( Point ).register_end( Traction );
+}
+
+// find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
+std::tuple<TDynamicObject *, float>
+basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+
+    // go through sections within radius of interest, and pick the nearest candidate
+    TDynamicObject
+        *vehiclefound,
+        *vehiclenearest { nullptr };
+    float
+        distancefound,
+        distancenearest { std::numeric_limits<float>::max() };
+
+    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + Radius, 2 ) };
+
+    for( auto &cell : m_cells ) {
+        // we reject early cells which aren't within our area of interest
+        if( glm::length2( cell.area().center - Point ) > squaredradii ) {
+            continue;
+        }
+        std::tie( vehiclefound, distancefound ) = cell.find( Point, Radius, Onlycontrolled );
+        if( ( vehiclefound != nullptr )
+         && ( distancefound < distancenearest ) ) {
+
+            std::tie( vehiclenearest, distancenearest ) = std::tie( vehiclefound, distancefound );
+        }
+    }
+    return std::tie( vehiclenearest, distancenearest );
+}
+
+// finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
+std::tuple<TTrack *, int>
+basic_section::find( glm::dvec3 const &Point, TTrack const *Exclude ) {
+
+    return cell( Point ).find( Point, Exclude );
+}
+
+// finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
+std::tuple<TTraction *, int>
+basic_section::find( glm::dvec3 const &Point, TTraction const *Exclude ) {
+
+    return cell( Point ).find( Point, Exclude );
+}
+
+// finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
+std::tuple<TTraction *, int, float>
+basic_section::find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) {
+
+    // go through sections within radius of interest, and pick the nearest candidate
+    TTraction
+        *tractionfound,
+        *tractionnearest { nullptr };
+    float
+        distancefound,
+        distancenearest { std::numeric_limits<float>::max() };
+    int
+        endpointfound,
+        endpointnearest { -1 };
+
+    auto const radius { 0.0 }; // { EU07_CELLSIZE * 0.5 }; // experimentally limited, check if it has any negative effect
+    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + radius, 2 ) };
+
+    for( auto &cell : m_cells ) {
+        // we reject early cells which aren't within our area of interest
+        if( glm::length2( cell.area().center - Point ) > squaredradii ) {
+            continue;
+        }
+        std::tie( tractionfound, endpointfound, distancefound ) = cell.find( Point, Other, Currentdirection );
+        if( ( tractionfound != nullptr )
+         && ( distancefound < distancenearest ) ) {
+
+            std::tie( tractionnearest, endpointnearest, distancenearest ) = std::tie( tractionfound, endpointfound, distancefound );
+        }
+    }
+    return { tractionnearest, endpointnearest, distancenearest };
 }
 
 // sets center point of the section
@@ -251,6 +489,17 @@ basic_region::~basic_region() {
     for( auto section : m_sections ) { if( section != nullptr ) { delete section; } }
 }
 
+// legacy method, updates sounds and polls event launchers around camera
+void
+basic_region::update() {
+    // render events and sounds from sectors near enough to the viewer
+    auto const range = 2750.f; // audible range of 100 db sound
+    auto const &sectionlist = sections( Global::pCameraPosition, range );
+    for( auto *section : sectionlist ) {
+        section->update( Global::pCameraPosition, range );
+    }
+}
+
 void
 basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad ) {
 
@@ -327,6 +576,11 @@ basic_region::insert_path( TTrack *Path, scratch_data &Scratchpad ) {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: track node \"" + Path->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
     }
+    // also register path ends in appropriate sections, for path merging lookups
+    // TODO: clean this up during track refactoring
+    for( auto &point : Path->endpoints() ) {
+        register_path( Path, point );
+    }
 }
 
 // inserts provided track in the region
@@ -344,6 +598,11 @@ basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: traction node \"" + Traction->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
     }
+    // also register traction ends in appropriate sections, for path merging lookups
+    // TODO: clean this up during track refactoring
+    for( auto &point : Traction->endpoints() ) {
+        register_traction( Traction, point );
+    }
 }
 
 // inserts provided instance of 3d model in the region
@@ -360,6 +619,154 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
     else {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+    }
+}
+
+// inserts provided sound in the region
+void
+basic_region::insert_sound( TTextSound *Sound, scratch_data &Scratchpad ) {
+
+/*
+    // TODO: implement
+    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
+    auto center = Sound->location();
+
+    if( point_inside( center ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( center ).insert( Instance );
+    }
+    else {
+        // tracks are guaranteed to hava a name so we can skip the check
+        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+    }
+*/
+}
+
+// find a vehicle located neares to specified location, within specified radius, optionally discarding vehicles without drivers
+std::tuple<TDynamicObject *, float>
+basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+
+    auto const &sectionlist = sections( Point, Radius );
+    // go through sections within radius of interest, and pick the nearest candidate
+    TDynamicObject
+        *foundvehicle,
+        *nearestvehicle { nullptr };
+    float
+        founddistance,
+        nearestdistance { std::numeric_limits<float>::max() };
+
+    for( auto *section : sectionlist ) {
+        std::tie( foundvehicle, founddistance ) = section->find( Point, Radius, Onlycontrolled );
+        if( ( foundvehicle != nullptr )
+         && ( founddistance < nearestdistance ) ) {
+
+            std::tie( nearestvehicle, nearestdistance ) = std::tie( foundvehicle, founddistance );
+        }
+    }
+    return std::tie( nearestvehicle, nearestdistance );
+}
+
+// finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
+std::tuple<TTrack *, int>
+basic_region::find_path( glm::dvec3 const &Point, TTrack const *Exclude ) {
+
+    // TBD: throw out of bounds exception instead of checks all over the place..?
+    if( point_inside( Point ) ) {
+
+        return section( Point ).find( Point, Exclude );
+    }
+
+    return std::make_tuple<TTrack *, int>( nullptr, -1 );
+}
+
+// finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
+std::tuple<TTraction *, int>
+basic_region::find_traction( glm::dvec3 const &Point, TTraction const *Exclude ) {
+
+    // TBD: throw out of bounds exception instead of checks all over the place..?
+    if( point_inside( Point ) ) {
+
+        return section( Point ).find( Point, Exclude );
+    }
+
+    return std::make_tuple<TTraction *, int>( nullptr, -1 );
+}
+
+// finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
+std::tuple<TTraction *, int>
+basic_region::find_traction( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) {
+
+    auto const &sectionlist = sections( Point, 0.f );
+    // go through sections within radius of interest, and pick the nearest candidate
+    TTraction
+        *tractionfound,
+        *tractionnearest { nullptr };
+    float
+        distancefound,
+        distancenearest { std::numeric_limits<float>::max() };
+    int
+        endpointfound,
+        endpointnearest { -1 };
+
+    for( auto *section : sectionlist ) {
+        std::tie( tractionfound, endpointfound, distancefound ) = section->find( Point, Other, Currentdirection );
+        if( ( tractionfound != nullptr )
+         && ( distancefound < distancenearest ) ) {
+
+            std::tie( tractionnearest, endpointnearest, distancenearest ) = std::tie( tractionfound, endpointfound, distancefound );
+        }
+    }
+    return { tractionnearest, endpointnearest };
+}
+
+// finds sections inside specified sphere. returns: list of sections
+std::vector<basic_section *> const &
+basic_region::sections( glm::dvec3 const &Point, float const Radius ) {
+
+    m_scratchpad.sections.clear();
+
+    auto const centerx { static_cast<int>( std::floor( Point.x / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) ) };
+    auto const centerz { static_cast<int>( std::floor( Point.z / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) ) };
+    auto const sectioncount { 2 * static_cast<int>( std::ceil( Radius / EU07_SECTIONSIZE ) ) };
+
+    int const originx = centerx - sectioncount / 2;
+    int const originz = centerz - sectioncount / 2;
+
+    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_SECTIONSIZE + 0.25 * EU07_SECTIONSIZE ) + Radius, 2 ) };
+
+    for( int row = originz; row <= originz + sectioncount; ++row ) {
+        if( row < 0 ) { continue; }
+        if( row >= EU07_REGIONSIDESECTIONCOUNT ) { break; }
+        for( int column = originx; column <= originx + sectioncount; ++column ) {
+            if( column < 0 ) { continue; }
+            if( column >= EU07_REGIONSIDESECTIONCOUNT ) { break; }
+
+            auto *section { m_sections[ row * EU07_REGIONSIDESECTIONCOUNT + column ] };
+            if( ( section != nullptr )
+             && ( glm::length2( section->area().center - Point ) < squaredradii ) ) {
+
+                m_scratchpad.sections.emplace_back( section );
+            }
+        }
+    }
+    return m_scratchpad.sections;
+}
+
+// registers specified path in the lookup directory of a cell enclosing specified point
+void
+basic_region::register_path( TTrack *Path, glm::dvec3 const &Point ) {
+
+    if( point_inside( Point ) ) {
+        section( Point ).register_end( Path, Point );
+    }
+}
+
+// registers specified end point of the provided traction piece in the lookup directory of the region
+void
+basic_region::register_traction( TTraction *Traction, glm::dvec3 const &Point ) {
+
+    if( point_inside( Point ) ) {
+        section( Point ).register_end( Traction, Point );
     }
 }
 
@@ -566,8 +973,8 @@ basic_region::RaTriangleDivider( shape_node &Shape, std::deque<shape_node> &Shap
 basic_section &
 basic_region::section( glm::dvec3 const &Location ) {
 
-    auto const column = static_cast<int>( std::floor( Location.x / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) );
-    auto const row = static_cast<int>( std::floor( Location.z / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) );
+    auto const column { static_cast<int>( std::floor( Location.x / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) ) };
+    auto const row    { static_cast<int>( std::floor( Location.z / EU07_SECTIONSIZE + EU07_REGIONSIDESECTIONCOUNT / 2 ) ) };
 
     auto &section =
         m_sections[

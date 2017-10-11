@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "MemCell.h"
 #include "Event.h"
+#include "simulation.h"
 
 // 101206 Ra: trapezoidalne drogi i tory
 // 110720 Ra: rozprucie zwrotnicy i odcinki izolowane
@@ -2651,6 +2652,31 @@ int TTrack::TestPoint(vector3 *Point)
     return -1;
 };
 
+// retrieves list of the track's end points
+std::vector<glm::dvec3>
+TTrack::endpoints() const {
+
+    switch( eType ) {
+        case tt_Normal:
+        case tt_Table: {
+            return {
+                glm::dvec3{ Segment->FastGetPoint_0() },
+                glm::dvec3{ Segment->FastGetPoint_1() } };
+        }
+        case tt_Switch:
+        case tt_Cross: {
+            return {
+                glm::dvec3{ SwitchExtension->Segments[ 0 ]->FastGetPoint_0() },
+                glm::dvec3{ SwitchExtension->Segments[ 0 ]->FastGetPoint_1() },
+                glm::dvec3{ SwitchExtension->Segments[ 1 ]->FastGetPoint_0() },
+                glm::dvec3{ SwitchExtension->Segments[ 1 ]->FastGetPoint_1() } };
+        }
+        default: {
+            return{};
+        }
+    }
+}
+
 void TTrack::MovedUp1(float const dh)
 { // poprawienie przechyłki wymaga wydłużenia podsypki
     fTexHeight1 += dh;
@@ -2745,11 +2771,11 @@ TTrack * TTrack::Connected(int s, double &d) const
 // legacy method, initializes tracks after deserialization from scenario file
 void
 path_table::InitTracks() {
-/*
-    TGroundNode *Model;
-	int iConnection;
 
-    for( auto *track : m_paths ) {
+    int connection { -1 };
+    TTrack *matchingtrack { nullptr };
+
+    for( auto *track : m_items ) {
 
         track->AssignEvents(
             simulation::Events.FindEvent( track->asEvent0Name ),
@@ -2776,30 +2802,32 @@ path_table::InitTracks() {
         }
 
         switch (track->eType) {
+/*
+        // TODO: re-enable
         case tt_Table: {
             // obrotnicę też łączymy na starcie z innymi torami
             // szukamy modelu o tej samej nazwie
-            Model = FindGroundNode(Current->asName, TP_MODEL);
+            auto *instance = simulation::Instances.find( trackname );
             // wiązanie toru z modelem obrotnicy
             track->RaAssign(
                 Current,
-                ( Model ?
-                    Model->Model :
-                    nullptr ),
+                instance,
                 simulation::Events.FindEvent( trackname + ":done" ),
                 simulation::Events.FindEvent( trackname + ":joined" ) );
-            if( Model == nullptr ) {
+            if( instance == nullptr ) {
                 // jak nie ma modelu to pewnie jest wykolejnica, a ta jest domyślnie zamknięta i wykoleja
                 break;
             }
+            // no break on purpose:
             // jak coś pójdzie źle, to robimy z tego normalny tor
         }
+*/
         case tt_Normal: {
             // tylko proste są podłączane do rozjazdów, stąd dwa rozjazdy się nie połączą ze sobą
             if( track->CurrentPrev() == nullptr ) {
                 // tylko jeśli jeszcze nie podłączony
-                auto *matchingtrack = simulation::Region.FindTrack( track->CurrentSegment()->FastGetPoint_0(), iConnection, track );
-                switch( iConnection ) {
+                std::tie( matchingtrack, connection ) = simulation::Region->find_path( track->CurrentSegment()->FastGetPoint_0(), track );
+                switch( connection ) {
                     case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
                         // if ((Track->iCategoryFlag&1)==0) //jeśli nie jest torem szynowym
                         // Track->ConnectPrevPrev(Track,0); //łączenie końca odcinka do samego siebie
@@ -2830,12 +2858,14 @@ path_table::InitTracks() {
                         matchingtrack->SetConnections( 1 ); // robi też Switch(0)
                         matchingtrack->Switch( 0 );
                         break;
+                    default:
+                        break;
                 }
             }
             if( track->CurrentNext() == nullptr ) {
                 // tylko jeśli jeszcze nie podłączony
-                auto *matchingtrack = simulation::Region.FindTrack( track->CurrentSegment()->FastGetPoint_1(), iConnection, track );
-                switch( iConnection ) {
+                std::tie( matchingtrack, connection ) = simulation::Region->find_path( track->CurrentSegment()->FastGetPoint_1(), track );
+                switch( connection ) {
                     case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
                         // if ((Track->iCategoryFlag&1)==0) //jeśli nie jest torem szynowym
                         // Track->ConnectNextNext(Track,1); //łączenie końca odcinka do samego siebie
@@ -2865,6 +2895,8 @@ path_table::InitTracks() {
                         track->ConnectNextNext( matchingtrack, 3 );
                         matchingtrack->SetConnections( 1 ); // robi też Switch(0)
                         // tmp->Switch(0);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -2910,11 +2942,12 @@ path_table::InitTracks() {
         else {
             // utworzenie automatycznej komórki
             // TODO: determine suitable location for this one, create and add world reference node
-            auto *memorycell = new TMemCell( isolated->asName ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
+            scene::node_data nodedata;
+            nodedata.name = isolated->asName;
+            auto *memorycell = new TMemCell( nodedata ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
             simulation::Memory.insert( memorycell );
             isolated->pMemCell = memorycell; // wskaźnik komóki przekazany do odcinka izolowanego
         }
         isolated = isolated->Next();
     }
-*/
 }

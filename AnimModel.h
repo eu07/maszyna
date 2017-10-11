@@ -176,7 +176,9 @@ private:
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
 };
 
-class instance_manager : public basic_table<TAnimModel> {
+
+
+class instance_table : public basic_table<TAnimModel> {
 
 };
 

@@ -119,7 +119,6 @@ class TTrack : public editor::basic_node {
     friend class opengl_renderer;
 
 private:
-//    TGroundNode * pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
@@ -234,6 +233,9 @@ public:
     void
         origin( glm::dvec3 Origin ) {
             m_origin = Origin; }
+    // retrieves list of the track's end points
+    std::vector<glm::dvec3>
+        endpoints() const;
 
 #ifdef EU07_USE_OLD_GROUNDCODE
     void create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ); // wypełnianie VBO

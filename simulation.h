@@ -9,14 +9,18 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "parser.h"
+#include "scene.h"
 #include "event.h"
 #include "memcell.h"
 #include "track.h"
 #include "traction.h"
+#include "tractionpower.h"
+#include "realsound.h"
 #include "animmodel.h"
-#include "scene.h"
+#include "dynobj.h"
+#include "driver.h"
 #include "lightarray.h"
-#include "parser.h"
 
 namespace simulation {
 
@@ -26,6 +30,9 @@ public:
 // types
 
 // methods
+    // legacy method, calculates changes in simulation state over specified time
+    void
+        update( double dt, int iter );
     bool
         deserialize( std::string const &Scenariofile );
 
@@ -51,8 +58,11 @@ private:
     void deserialize_endtrainset( cParser &Input, scene::scratch_data &Scratchpad );
     TTrack * deserialize_path( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TTraction * deserialize_traction( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
+    TTractionPowerSource * deserialize_tractionpowersource( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TMemCell * deserialize_memorycell( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TAnimModel * deserialize_model( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
+    TDynamicObject * deserialize_dynamic( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
+    TTextSound * deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     // skips content of stream until specified token
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
@@ -61,10 +71,13 @@ private:
 
 extern state_manager State;
 extern event_manager Events;
-extern memory_manager Memory;
+extern memory_table Memory;
 extern path_table Paths;
 extern traction_table Traction;
-extern instance_manager Instances;
+extern powergridsource_table Powergrid;
+extern sound_table Sounds;
+extern instance_table Instances;
+extern vehicle_table Vehicles;
 extern light_array Lights;
 
 extern scene::basic_region *Region;

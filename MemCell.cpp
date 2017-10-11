@@ -180,3 +180,15 @@ void TMemCell::AssignEvents(TEvent *e)
 { // powiązanie eventu
     OnSent = e;
 };
+
+
+
+// legacy method, initializes traction after deserialization from scenario file
+void
+memory_table::InitCells() {
+
+    for( auto *cell : m_items ) {
+        // Ra: eventy komórek pamięci, wykonywane po wysłaniu komendy do zatrzymanego pojazdu
+        cell->AssignEvents( simulation::Events.FindEvent( cell->name() + ":sent" ) );
+    }
+}

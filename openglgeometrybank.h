@@ -25,8 +25,8 @@ struct basic_vertex {
     glm::vec2 texture; // uv space
 
     basic_vertex() = default;
-    basic_vertex( glm::vec3 const &Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
-                         position( Position ),        normal( Normal ),       texture( Texture )
+    basic_vertex( glm::vec3 Position,  glm::vec3 Normal,  glm::vec2 Texture ) :
+                  position( Position ),  normal( Normal ), texture( Texture )
     {}
     void serialize( std::ostream& ) const;
     void deserialize( std::istream& );
@@ -58,8 +58,8 @@ struct geometry_handle {
     geometry_handle() :
         bank( 0 ), chunk( 0 )
     {}
-    geometry_handle( std::uint32_t const Bank, std::uint32_t const Chunk ) :
-                                   bank( Bank ),            chunk( Chunk )
+    geometry_handle( std::uint32_t Bank, std::uint32_t Chunk ) :
+                             bank( Bank ),      chunk( Chunk )
     {}
 // methods
     inline
@@ -121,8 +121,8 @@ protected:
         unsigned int type; // kind of geometry used by the chunk
         vertex_array vertices; // geometry data
         // NOTE: constructor doesn't copy provided vertex data, but moves it
-        geometry_chunk( vertex_array &Vertices, unsigned int const Type ) :
-                                                             type( Type )
+        geometry_chunk( vertex_array &Vertices, unsigned int Type ) :
+                                                       type( Type )
         {
             vertices.swap( Vertices );
         }

@@ -74,10 +74,6 @@ TEvent::~TEvent() {
 
 };
 
-void TEvent::Init(){
-
-};
-
 void TEvent::Conditions(cParser *parser, std::string s)
 { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
     if (s == "condition")
@@ -949,7 +945,7 @@ event_manager::CheckQuery() {
                     // TODO: re-enable when messaging module is in place
                     if( Global::iMultiplayer ) {
                         // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
-                        WyslijEvent( tmpEvent->asName, tmpEvent->Activator->GetName() );
+                        WyslijEvent( tmpEvent->asName, tmpEvent->Activator->name() );
                     }
 */
                     m_workevent->Params[ 9 ].asMemCell->PutCommand(
@@ -984,61 +980,105 @@ event_manager::CheckQuery() {
                 }
                 break;
             }
-            case tp_Lights:
-                if (m_workevent->Params[9].asModel)
-                    for (i = 0; i < iMaxNumLights; i++)
-                        if (m_workevent->Params[i].asdouble >= 0) //-1 zostawia bez zmiany
-                            m_workevent->Params[9].asModel->LightSet(
-                                i, m_workevent->Params[i].asdouble); // teraz też ułamek
-                break;
-            case tp_Visible:
-                if (m_workevent->Params[9].nGroundNode)
-                    m_workevent->Params[9].nGroundNode->bVisible = (m_workevent->Params[i].asInt > 0);
-                break;
-            case tp_Velocity:
-                Error("Not implemented yet :(");
-                break;
-            case tp_Exit:
-                MessageBox(0, m_workevent->asNodeName.c_str(), " THE END ", MB_OK);
-                Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
-                return false;
-            case tp_Sound:
-                switch (m_workevent->Params[0].asInt)
-                { // trzy możliwe przypadki:
-                case 0:
-                    m_workevent->Params[9].tsTextSound->Stop();
-                    break;
-                case 1:
-                    m_workevent->Params[9].tsTextSound->Play(
-                        1, 0, true, m_workevent->Params[9].tsTextSound->vSoundPosition);
-                    break;
-                case -1:
-                    m_workevent->Params[9].tsTextSound->Play(
-                        1, DSBPLAY_LOOPING, true, m_workevent->Params[9].tsTextSound->vSoundPosition);
-                    break;
+            case tp_Lights: {
+                if( m_workevent->Params[ 9 ].asModel ) {
+                    for( i = 0; i < iMaxNumLights; ++i ) {
+                        if( m_workevent->Params[ i ].asdouble >= 0 ) {
+                            // -1 zostawia bez zmiany
+                            m_workevent->Params[ 9 ].asModel->LightSet(
+                                i,
+                                m_workevent->Params[ i ].asdouble );
+                        }
+                    }
                 }
                 break;
+            }
+            case tp_Visible: {
+#ifdef EU07_USE_OLD_GROUNDCODE
+                if( m_workevent->Params[ 9 ].nGroundNode )
+                    m_workevent->Params[ 9 ].nGroundNode->bVisible = ( m_workevent->Params[ i ].asInt > 0 );
+#else
+                if( m_workevent->Params[ 9 ].asEditorNode )
+                    m_workevent->Params[ 9 ].asEditorNode->visible( m_workevent->Params[ i ].asInt > 0 );
+#endif
+                break;
+            }
+            case tp_Velocity: {
+                Error( "Not implemented yet :(" );
+                break;
+            }
+            case tp_Exit: {
+                MessageBox( 0, m_workevent->asNodeName.c_str(), " THE END ", MB_OK );
+                Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
+                return false;
+            }
+            case tp_Sound: {
+                switch( m_workevent->Params[ 0 ].asInt ) {
+                    // trzy możliwe przypadki:
+                    case 0: {
+                        m_workevent->Params[ 9 ].tsTextSound->Stop();
+                        break;
+                    }
+                    case 1: {
+                        m_workevent->Params[ 9 ].tsTextSound->Play(
+                            1,
+                            0,
+                            true,
+                            m_workevent->Params[ 9 ].tsTextSound->vSoundPosition );
+                        break;
+                    }
+                    case -1: {
+                        m_workevent->Params[ 9 ].tsTextSound->Play(
+                            1,
+                            DSBPLAY_LOOPING,
+                            true,
+                            m_workevent->Params[ 9 ].tsTextSound->vSoundPosition );
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                break;
+            }
             case tp_Disable:
                 Error("Not implemented yet :(");
                 break;
-            case tp_Animation: // Marcin: dorobic translacje - Ra: dorobiłem ;-)
-                if (m_workevent->Params[0].asInt == 1)
-                    m_workevent->Params[9].asAnimContainer->SetRotateAnim(
-                        Math3D::vector3(m_workevent->Params[1].asdouble, m_workevent->Params[2].asdouble,
-                                m_workevent->Params[3].asdouble),
-                        m_workevent->Params[4].asdouble);
-                else if (m_workevent->Params[0].asInt == 2)
-                    m_workevent->Params[9].asAnimContainer->SetTranslateAnim(
-                        Math3D::vector3(m_workevent->Params[1].asdouble, m_workevent->Params[2].asdouble,
-                                m_workevent->Params[3].asdouble),
-                        m_workevent->Params[4].asdouble);
-                else if (m_workevent->Params[0].asInt == 4)
-                    m_workevent->Params[9].asModel->AnimationVND(
-                        m_workevent->Params[8].asPointer,
-                        m_workevent->Params[1].asdouble, // tu mogą być dodatkowe parametry, np. od-do
-                        m_workevent->Params[2].asdouble, m_workevent->Params[3].asdouble,
-                        m_workevent->Params[4].asdouble);
+            case tp_Animation: {
+                switch( m_workevent->Params[ 0 ].asInt ) {
+                    case 1: {
+                        m_workevent->Params[ 9 ].asAnimContainer->SetRotateAnim(
+                            Math3D::vector3 {
+                                m_workevent->Params[ 1 ].asdouble,
+                                m_workevent->Params[ 2 ].asdouble,
+                                m_workevent->Params[ 3 ].asdouble },
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    case 2: {
+                        m_workevent->Params[ 9 ].asAnimContainer->SetTranslateAnim(
+                            Math3D::vector3 {
+                                m_workevent->Params[ 1 ].asdouble,
+                                m_workevent->Params[ 2 ].asdouble,
+                                m_workevent->Params[ 3 ].asdouble },
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    case 4: {
+                        m_workevent->Params[ 9 ].asModel->AnimationVND(
+                            m_workevent->Params[ 8 ].asPointer,
+                            m_workevent->Params[ 1 ].asdouble, // tu mogą być dodatkowe parametry, np. od-do
+                            m_workevent->Params[ 2 ].asdouble,
+                            m_workevent->Params[ 3 ].asdouble,
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
                 break;
+            }
             case tp_Switch: {
                 if( m_workevent->Params[ 9 ].asTrack ) {
                     m_workevent->Params[ 9 ].asTrack->Switch(
@@ -1057,13 +1097,15 @@ event_manager::CheckQuery() {
                 break;
             }
             case tp_TrackVel:
-                if (m_workevent->Params[9].asTrack)
-                { // prędkość na zwrotnicy może być ograniczona z góry we wpisie, większej się nie
-                    // ustawi eventem
-                    WriteLog("Type: TrackVel");
+                if (m_workevent->Params[9].asTrack) {
+                    // prędkość na zwrotnicy może być ograniczona z góry we wpisie, większej się nie ustawi eventem
                     m_workevent->Params[9].asTrack->VelocitySet(m_workevent->Params[0].asdouble);
-                    if (DebugModeFlag) // wyświetlana jest ta faktycznie ustawiona
-                        WriteLog(" - velocity: ", m_workevent->Params[9].asTrack->VelocityGet());
+                    // wyświetlana jest ta faktycznie ustawiona
+                    WriteLog( "Type: TrackVel - ["
+                        + to_string( m_workevent->Params[ 0 ].asdouble, 2 ) + "]"
+                        + ( DebugModeFlag ?
+                            ", actual [ " + to_string( m_workevent->Params[ 9 ].asTrack->VelocityGet(), 2 ) + "]" :
+                            "" ) );
                 }
                 break;
             case tp_DynVel:
@@ -1097,7 +1139,7 @@ event_manager::CheckQuery() {
                         if( ( m_workevent->iFlags & conditional_anyelse ) == 0 ) {
                             // jednoznaczne tylko, gdy nie było else
                             if( m_workevent->Activator ) {
-                                WyslijEvent( m_workevent->asName, m_workevent->Activator->GetName() );
+                                WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
                             }
                             else {
                                 WyslijEvent( m_workevent->asName, "" );
@@ -1175,8 +1217,9 @@ event_manager::CheckQuery() {
                         m_workevent->Params[ 9 ].asMemCell->UpdateValues(
 							m_workevent->Activator->Mechanik->TrainName(),
                             m_workevent->Activator->Mechanik->StationCount() - m_workevent->Activator->Mechanik->StationIndex(), // ile przystanków do końca
-                            m_workevent->Activator->Mechanik->IsStop() ? 1 :
-                                                                      0, // 1, gdy ma tu zatrzymanie
+                            m_workevent->Activator->Mechanik->IsStop() ?
+                                1 :
+                                0, // 1, gdy ma tu zatrzymanie
                             m_workevent->iFlags);
                         WriteLog("Train detected: " + m_workevent->Activator->Mechanik->TrainName());
                     }
@@ -1186,10 +1229,10 @@ event_manager::CheckQuery() {
                 // zapisanie zawartości komórki pamięci do logu
                 if( m_workevent->Params[ 9 ].asMemCell ) {
                     // jeśli była podana nazwa komórki
-                    WriteLog( "Memcell \"" + m_workevent->asNodeName + "\": "
-                        + m_workevent->Params[ 9 ].asMemCell->Text() + " "
-                        + std::to_string( m_workevent->Params[ 9 ].asMemCell->Value1() ) + " "
-                        + std::to_string( m_workevent->Params[ 9 ].asMemCell->Value2() ) );
+                    WriteLog( "Memcell \"" + m_workevent->asNodeName + "\": ["
+                        + m_workevent->Params[ 9 ].asMemCell->Text() + "] ["
+                        + to_string( m_workevent->Params[ 9 ].asMemCell->Value1(), 2 ) + "] ["
+                        + to_string( m_workevent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
                 }
                 else {
                     // TODO: re-enable when cell manager is in place
@@ -1237,7 +1280,7 @@ event_manager::InitEvents() {
         case tp_AddValues: // sumowanie wartości
         case tp_UpdateValues: { // zmiana wartości
             auto *cell = simulation::Memory.find( Current->asNodeName ); // nazwa komórki powiązanej z eventem
-            if( cell ) { // McZapkie-100302
+            if( cell != nullptr ) { // McZapkie-100302
                 if( Current->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
                     // jeśli chodzi o zajetosc toru (tor może być inny, niż wpisany w komórce)
                     // nazwa toru ta sama, co nazwa komórki
@@ -1281,7 +1324,7 @@ event_manager::InitEvents() {
         case tp_GetValues:
         case tp_WhoIs: {
             auto *cell = simulation::Memory.find( Current->asNodeName );
-            if( cell ) {
+            if( cell != nullptr ) {
                 Current->Params[ 8 ].asLocation = &( cell->location() );
                 Current->Params[ 9 ].asMemCell = cell;
                 if( ( Current->Type == tp_GetValues )
@@ -1301,7 +1344,7 @@ event_manager::InitEvents() {
         case tp_CopyValues: {
             // skopiowanie komórki do innej
             auto *cell = simulation::Memory.find( Current->asNodeName ); // komórka docelowa
-            if( cell ) {
+            if( cell != nullptr ) {
                 Current->Params[ 4 ].asLocation = &( cell->location() );
                 Current->Params[ 5 ].asMemCell = cell; // komórka docelowa
                 if( false == cell->asTrackName.empty() ) {
@@ -1338,7 +1381,7 @@ event_manager::InitEvents() {
             SafeDeleteArray( Current->Params[ 9 ].asText );
             // egzemplarz modelu do animowania
             auto *instance = simulation::Instances.find( Current->asNodeName );
-            if( instance ) {
+            if( instance != nullptr ) {
                 if( Current->Params[ 0 ].asInt == 4 ) {
                     // model dla całomodelowych animacji
                     Current->Params[ 9 ].asModel = instance;
@@ -1365,33 +1408,35 @@ event_manager::InitEvents() {
         case tp_Lights: {
             // zmiana świeteł modelu
             auto *instance = simulation::Instances.find( Current->asNodeName );
-            if( instance )
+            if( instance != nullptr )
                 Current->Params[ 9 ].asModel = instance;
             else
                 ErrorLog( "Bad event: lights event \"" + Current->asName + "\" cannot find model instance \"" + Current->asNodeName + "\"" );
             Current->asNodeName = "";
             break;
         }
-/*
         case tp_Visible: {
             // ukrycie albo przywrócenie obiektu
-            tmp = FindGroundNode( Current->asNodeName, TP_MODEL ); // najpierw model
-            if( !tmp )
-                tmp = FindGroundNode( Current->asNodeName, TP_TRACK ); // albo tory?
-            if( !tmp )
-                tmp = FindGroundNode( Current->asNodeName, TP_TRACTION ); // może druty?
-            if( tmp )
-                Current->Params[ 9 ].nGroundNode = tmp;
+            editor::basic_node *node = simulation::Instances.find( Current->asNodeName ); // najpierw model
+            if( node == nullptr ) {
+                // albo tory?
+                node = simulation::Paths.find( Current->asNodeName );
+            }
+            if( node == nullptr ) {
+                // może druty?
+                node = simulation::Traction.find( Current->asNodeName );
+            }
+            if( node != nullptr )
+                Current->Params[ 9 ].asEditorNode = node;
             else
                 ErrorLog( "Bad event: visibility event \"" + Current->asName + "\" cannot find item \"" + Current->asNodeName + "\"" );
             Current->asNodeName = "";
             break;
         }
-*/
         case tp_Switch: {
             // przełożenie zwrotnicy albo zmiana stanu obrotnicy
             auto *track = simulation::Paths.find( Current->asNodeName );
-            if( track ) {
+            if( track != nullptr ) {
                 // dowiązanie toru
                 if( track->iAction == NULL ) {
                     // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
@@ -1414,23 +1459,21 @@ event_manager::InitEvents() {
             Current->asNodeName = "";
             break;
         }
-/*
         case tp_Sound: {
             // odtworzenie dźwięku
-            tmp = FindGroundNode( Current->asNodeName, TP_SOUND );
-            if( tmp )
-                Current->Params[ 9 ].tsTextSound = tmp->tsStaticSound;
+            auto *sound = simulation::Sounds.find( Current->asNodeName );
+            if( sound != nullptr )
+                Current->Params[ 9 ].tsTextSound = sound;
             else
                 ErrorLog( "Bad event: sound event \"" + Current->asName + "\" cannot find static sound \"" + Current->asNodeName + "\"" );
             Current->asNodeName = "";
             break;
         }
-*/
         case tp_TrackVel: {
             // ustawienie prędkości na torze
             if( false == Current->asNodeName.empty() ) {
                 auto *track = simulation::Paths.find( Current->asNodeName );
-                if( track ) {
+                if( track != nullptr ) {
                     // flaga zmiany prędkości toru jest istotna dla skanowania
                     track->iAction |= 0x200;
                     Current->Params[ 9 ].asTrack = track;
@@ -1442,22 +1485,20 @@ event_manager::InitEvents() {
             Current->asNodeName = "";
             break;
         }
-/*
         case tp_DynVel: {
             // komunikacja z pojazdem o konkretnej nazwie
             if( Current->asNodeName == "activator" )
                 Current->Params[ 9 ].asDynamic = nullptr;
             else {
-                tmp = FindGroundNode( Current->asNodeName, TP_DYNAMIC );
-                if( tmp )
-                    Current->Params[ 9 ].asDynamic = tmp->DynamicObject;
+                auto *vehicle = simulation::Vehicles.find( Current->asNodeName );
+                if( vehicle != nullptr )
+                    Current->Params[ 9 ].asDynamic = vehicle;
                 else
                     Error( "Bad event: vehicle velocity event \"" + Current->asName + "\" cannot find vehicle \"" + Current->asNodeName + "\"" );
             }
             Current->asNodeName = "";
             break;
         }
-*/
         case tp_Multiple: {
             std::string cellastext;
             if( Current->Params[ 9 ].asText != nullptr ) { // przepisanie nazwy do bufora
@@ -1494,36 +1535,27 @@ event_manager::InitEvents() {
             }
             break;
         }
-/*
         case tp_Voltage: {
             // zmiana napięcia w zasilaczu (TractionPowerSource)
-            if( !Current->asNodeName.empty() ) {
-                tmp = FindGroundNode( Current->asNodeName, TP_TRACTIONPOWERSOURCE ); // podłączenie zasilacza
-                if( tmp )
-                    Current->Params[ 9 ].psPower = tmp->psTractionPowerSource;
+            if( false == Current->asNodeName.empty() ) {
+                auto *powersource = simulation::Powergrid.find( Current->asNodeName ); // podłączenie zasilacza
+                if( powersource != nullptr )
+                    Current->Params[ 9 ].psPower = powersource;
                 else
                     ErrorLog( "Bad event: voltage event \"" + Current->asName + "\" cannot find power source \"" + Current->asNodeName + "\"" );
             }
             Current->asNodeName = "";
             break;
         }
-*/
         case tp_Message: {
             // wyświetlenie komunikatu
             break;
         }
 
         } // switch
-        if( Current->fDelay < 0 ) {
-            AddToQuery( Current, nullptr );
-        }
+
+        if( Current->fDelay < 0 ) { AddToQuery( Current, nullptr ); }
     }
-/*
-    for (TGroundNode *Current = nRootOfType[TP_MEMCELL]; Current; Current = Current->nNext)
-    { // Ra: eventy komórek pamięci, wykonywane po wysłaniu komendy do zatrzymanego pojazdu
-        Current->MemCell->AssignEvents( FindEvent( Current->asName + ":sent" ) );
-    }
-*/
 }
 
 // legacy method, verifies condition for specified event

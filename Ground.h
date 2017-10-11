@@ -285,20 +285,24 @@ class TGround
     bool InitEvents();
 #endif
     bool InitLaunchers();
+#ifdef EU07_USE_OLD_GROUNDCODE
     TTrack * FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude);
     TTraction * TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n);
+#endif
     TGroundNode * AddGroundNode(cParser *parser);
+#ifdef EU07_USE_OLD_GROUNDCODE
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
     void Update_Hidden(); // updates invisible elements of the scene
+#endif
     bool GetTraction(TDynamicObject *model);
 #ifdef EU07_USE_OLD_GROUNDCODE
     bool AddToQuery( TEvent *Event, TDynamicObject *Node );
     bool CheckQuery();
-#endif
     TGroundNode * DynamicFindAny(std::string const &Name);
     TGroundNode * DynamicFind(std::string const &Name);
+#endif
     void DynamicList(bool all = false);
     TGroundNode * FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType);
     TGroundRect * GetRect( double x, double z );
@@ -325,7 +329,9 @@ class TGround
     // convert tp_terrain model to a series of triangle nodes
     void convert_terrain( TGroundNode const *Terrain );
     void convert_terrain( TSubModel const *Submodel );
+#ifdef EU07_USE_OLD_GROUNDCODE
     void RaTriangleDivider(TGroundNode *node);
+#endif
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
 
   public:

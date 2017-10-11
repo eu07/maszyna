@@ -12,6 +12,9 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "dumb3d.h"
 #include "classes.h"
+#include "names.h"
+#include "scenenode.h"
+#include "evlaunch.h"
 
 enum TEventType {
     tp_Unknown,
@@ -61,6 +64,7 @@ union TParam
     void *asPointer;
     TMemCell *asMemCell;
     TGroundNode *nGroundNode;
+    editor::basic_node *asEditorNode;
     glm::dvec3 const *asLocation;
     TTrack *asTrack;
     TAnimModel *asModel;
@@ -104,7 +108,6 @@ public:
     // metody
     TEvent(std::string const &m = "");
     ~TEvent();
-    void Init();
     void Load(cParser *parser, Math3D::vector3 const &org);
     static void AddToQuery( TEvent *Event, TEvent *&Start );
     std::string CommandGet();
@@ -123,9 +126,12 @@ public:
     ~event_manager();
 // methods
     // adds provided event to the collection. returns: true on success
-    // TODO: return handle instead of pointer
+    // TBD, TODO: return handle to the event
     bool
         insert( TEvent *Event );
+    bool
+        insert( TEventLauncher *Launcher ) {
+            return m_launchers.insert( Launcher ); }
     // legacy method, returns pointer to specified event, or null
     TEvent *
         FindEvent( std::string const &Name );
@@ -143,6 +149,7 @@ private:
 // types
     using event_sequence = std::deque<TEvent *>;
     using event_map = std::unordered_map<std::string, std::size_t>;
+    using eventlauncher_sequence = std::vector<TEventLauncher *>;
 
 // methods
     // legacy method, verifies condition for specified event
@@ -158,8 +165,9 @@ private:
     // legacy version of the above
     TEvent *QueryRootEvent { nullptr };
     TEvent *m_workevent { nullptr };
-
     event_map m_eventmap;
+    basic_table<TEventLauncher> m_launchers;
+    eventlauncher_sequence m_launcherqueue;
 };
 
 //---------------------------------------------------------------------------

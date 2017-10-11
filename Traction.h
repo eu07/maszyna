@@ -55,13 +55,16 @@ class TTraction : public editor::basic_node {
     TTraction( scene::node_data const &Nodedata );
     // legacy constructor
     TTraction( std::string Name );
-    virtual ~TTraction() = default;
 
     void Load( cParser *parser, glm::dvec3 const &pOrigin );
     // set origin point
     void
         origin( glm::dvec3 Origin ) {
             m_origin = Origin; }
+    // retrieves list of the track's end points
+    std::vector<glm::dvec3>
+        endpoints() const;
+
     // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
     // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
 #ifdef EU07_USE_OLD_GROUNDCODE

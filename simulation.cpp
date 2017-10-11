@@ -12,15 +12,19 @@ http://mozilla.org/MPL/2.0/.
 
 #include "globals.h"
 #include "logs.h"
+#include "uilayer.h"
 
 namespace simulation {
 
 state_manager State;
 event_manager Events;
-memory_manager Memory;
+memory_table Memory;
 path_table Paths;
 traction_table Traction;
-instance_manager Instances;
+powergridsource_table Powergrid;
+sound_table Sounds;
+instance_table Instances;
+vehicle_table Vehicles;
 light_array Lights;
 
 scene::basic_region *Region { nullptr };
@@ -42,6 +46,23 @@ state_manager::deserialize( std::string const &Scenariofile ) {
     // TODO: initialize links between loaded nodes
 
     return true;
+}
+
+// legacy method, calculates changes in simulation state over specified time
+void
+state_manager::update( double const Deltatime, int Iterationcount ) {
+    // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeń
+    if (Deltatime == 0.0) {
+        // jeśli załączona jest pauza, to tylko obsłużyć ruch w kabinie trzeba
+        return;
+    }
+
+    auto const totaltime { Deltatime * Iterationcount };
+    // NOTE: we perform animations first, as they can determine factors like contact with powergrid
+    TAnimModel::AnimUpdate( totaltime ); // wykonanie zakolejkowanych animacji
+
+    simulation::Powergrid.update( totaltime );
+    simulation::Vehicles.update( Deltatime, Iterationcount );
 }
 
 // restores class data from provided stream
@@ -79,7 +100,11 @@ state_manager::deserialize( cParser &Input ) {
     for( auto &function : functionlist ) {
         functionmap.emplace( function.first, std::bind( function.second, this, std::ref( Input ), std::ref( importscratchpad ) ) );
     }
+
     // deserialize content from the provided input
+    auto
+        timelast { std::chrono::steady_clock::now() },
+        timenow { timelast };
     std::string token { Input.getToken<std::string>() };
     while( false == token.empty() ) {
 
@@ -89,6 +114,14 @@ state_manager::deserialize( cParser &Input ) {
         }
         else {
             ErrorLog( "Bad scenario: unexpected token \"" + token + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
+        }
+
+        timenow = std::chrono::steady_clock::now();
+        if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 200 ) {
+            timelast = timenow;
+            glfwPollEvents();
+            UILayer.set_progress( Input.getProgress(), Input.getFullProgress() );
+            GfxRenderer.Render();
         }
 
         token = Input.getToken<std::string>();
@@ -218,6 +251,7 @@ state_manager::deserialize_firstinit( cParser &Input, scene::scratch_data &Scrat
     simulation::Paths.InitTracks();
     simulation::Traction.InitTraction();
     simulation::Events.InitEvents();
+    simulation::Memory.InitCells();
 }
 
 void
@@ -230,6 +264,8 @@ state_manager::deserialize_light( cParser &Input, scene::scratch_data &Scratchpa
 void
 state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad ) {
 
+    auto const inputline = Input.Line(); // cache in case we need to report error
+
     scene::node_data nodedata;
     // common data and node type indicator
     Input.getTokens( 4 );
@@ -240,12 +276,26 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         >> nodedata.type;
     // type-based deserialization. not elegant but it'll do
     if( nodedata.type == "dynamic" ) {
-        // TODO: implement
-        skip_until( Input, "enddynamic" );
+
+        auto *vehicle { deserialize_dynamic( Input, Scratchpad, nodedata ) };
+        // vehicle import can potentially fail
+        if( vehicle == nullptr ) { return; }
+
+        if( false == simulation::Vehicles.insert( vehicle ) ) {
+
+            ErrorLog( "Bad scenario: vehicle with duplicate name, \"" + vehicle->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
+
+        if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
+         && ( ( vehicle->MoverParameters->SecuritySystem.SystemType != 0 )
+           || ( vehicle->MoverParameters->SandCapacity > 0.0 ) ) ) {
+            // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
+            //       don't have security systems fitted
+            simulation::Lights.insert( vehicle );
+        }
     }
     else if( nodedata.type == "track" ) {
-
-        auto const inputline = Input.Line(); // cache in case we need to report error
 
         auto *path { deserialize_path( Input, Scratchpad, nodedata ) };
         // duplicates of named tracks are currently experimentally allowed
@@ -262,10 +312,10 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
     }
     else if( nodedata.type == "traction" ) {
 
-        auto const inputline = Input.Line(); // cache in case we need to report error
-
         auto *traction { deserialize_traction( Input, Scratchpad, nodedata ) };
-        // duplicates of named tracks are currently discarded
+        // traction loading is optional
+        if( traction == nullptr ) { return; }
+
         if( simulation::Traction.insert( traction ) ) {
             simulation::Region->insert_traction( traction, Scratchpad );
         }
@@ -274,18 +324,29 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         }
     }
     else if( nodedata.type == "tractionpowersource" ) {
-        // TODO: implement
-        skip_until( Input, "end" );
+
+        auto *powersource { deserialize_tractionpowersource( Input, Scratchpad, nodedata ) };
+        // traction loading is optional
+        if( powersource == nullptr ) { return; }
+
+        if( simulation::Powergrid.insert( powersource ) ) {
+/*
+            // TODO: implement this
+            simulation::Region.insert_powersource( powersource, Scratchpad );
+*/
+        }
+        else {
+            ErrorLog( "Bad scenario: power grid source with duplicate name, \"" + powersource->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
     }
     else if( nodedata.type == "model" ) {
 
         if( nodedata.range_min < 0.0 ) {
             // convert and import 3d terrain
+            // TODO: implement this
         }
         else {
             // regular instance of 3d mesh
-            auto const inputline = Input.Line(); // cache in case we need to report error
-
             auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
             // model import can potentially fail
             if( instance == nullptr ) { return; }
@@ -313,10 +374,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
     }
     else if( nodedata.type == "memcell" ) {
 
-        auto const inputline = Input.Line(); // cache in case we need to report error
-
         auto *memorycell { deserialize_memorycell( Input, Scratchpad, nodedata ) };
-        // duplicates of named tracks are currently discarded
         if( simulation::Memory.insert( memorycell ) ) {
 /*
             // TODO: implement this
@@ -325,10 +383,6 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         }
         else {
             ErrorLog( "Bad scenario: memory cell with duplicate name, \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
-/*
-            delete memorycell;
-            delete memorycellnode;
-*/
         }
     }
     else if( nodedata.type == "eventlauncher" ) {
@@ -336,8 +390,14 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         skip_until( Input, "end" );
     }
     else if( nodedata.type == "sound" ) {
-        // TODO: implement
-        skip_until( Input, "endsound" );
+
+        auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
+        if( simulation::Sounds.insert( sound ) ) {
+            simulation::Region->insert_sound( sound, Scratchpad );
+        }
+        else {
+            ErrorLog( "Bad scenario: sound node with duplicate name, \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
     }
 
 }
@@ -417,14 +477,68 @@ state_manager::deserialize_time( cParser &Input, scene::scratch_data &Scratchpad
 void
 state_manager::deserialize_trainset( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    // TODO: implement
-    skip_until( Input, "endtrainset" );
+    if( true == Scratchpad.trainset.is_open ) {
+        // shouldn't happen but if it does wrap up currently open trainset and report an error
+        deserialize_endtrainset( Input, Scratchpad );
+        ErrorLog( "Bad scenario: encountered nested trainset definitions in file \"" + Input.Name() + "\" (line " + to_string( Input.Line() ) + ")" );
+    }
+
+    Scratchpad.trainset = scene::scratch_data::trainset_data();
+    Scratchpad.trainset.is_open = true;
+
+    Input.getTokens( 4 );
+    Input
+        >> Scratchpad.trainset.name
+        >> Scratchpad.trainset.track
+        >> Scratchpad.trainset.offset
+        >> Scratchpad.trainset.velocity;
 }
 
 void
 state_manager::deserialize_endtrainset( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    // TODO: implement
+    if( ( false == Scratchpad.trainset.is_open )
+     || ( true == Scratchpad.trainset.vehicles.empty() ) ) {
+        // not bloody likely but we better check for it just the same
+        ErrorLog( "Bad trainset: empty trainset defined in file \"" + Input.Name() + "\" (line " + to_string( Input.Line() - 1 ) + ")" );
+        Scratchpad.trainset.is_open = false;
+        return;
+    }
+
+    std::size_t vehicleindex { 0 };
+    for( auto *vehicle : Scratchpad.trainset.vehicles ) {
+        // go through list of vehicles in the trainset, coupling them together and checking for potential driver
+        if( ( vehicle->Mechanik != nullptr )
+         && ( vehicle->Mechanik->Primary() ) ) {
+            // primary driver will receive the timetable for this trainset
+            Scratchpad.trainset.driver = vehicle;
+        }
+        if( vehicleindex > 0 ) {
+            // from second vehicle on couple it with the previous one
+            Scratchpad.trainset.vehicles[ vehicleindex - 1 ]->AttachPrev(
+                vehicle,
+                Scratchpad.trainset.couplings[ vehicleindex - 1 ] );
+        }
+        ++vehicleindex;
+    }
+
+    if( Scratchpad.trainset.driver != nullptr ) {
+        // if present, send timetable to the driver
+        // wysłanie komendy "Timetable" ustawia odpowiedni tryb jazdy
+        auto *controller = Scratchpad.trainset.driver->Mechanik;
+            controller->DirectionInitial();
+            controller->PutCommand(
+                "Timetable:" + Scratchpad.trainset.name,
+                Scratchpad.trainset.velocity,
+                0,
+                nullptr );
+    }
+    if( Scratchpad.trainset.couplings.back() == coupling::faux ) {
+        // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane (jak AI się odpali, to sobie poprawi)
+        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, TMoverParameters::light::rearendsignals );
+    }
+    // all done
+    Scratchpad.trainset.is_open = false;
 }
 
 // creates path and its wrapper, restoring class data from provided stream
@@ -448,6 +562,10 @@ state_manager::deserialize_path( cParser &Input, scene::scratch_data &Scratchpad
 TTraction *
 state_manager::deserialize_traction( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
 
+    if( false == Global::bLoadTraction ) {
+        skip_until( Input, "endtraction" );
+        return nullptr;
+    }
     // TODO: refactor track and wrapper classes and their de/serialization. do offset and rotation after deserialization is done
     auto *traction = new TTraction( Nodedata );
     auto offset = (
@@ -457,6 +575,22 @@ state_manager::deserialize_traction( cParser &Input, scene::scratch_data &Scratc
     traction->Load( &Input, offset );
 
     return traction;
+}
+
+TTractionPowerSource *
+state_manager::deserialize_tractionpowersource( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
+
+    if( false == Global::bLoadTraction ) {
+        skip_until( Input, "end" );
+        return nullptr;
+    }
+
+    auto *powersource = new TTractionPowerSource( Nodedata );
+    powersource->Load( &Input );
+    // adjust location
+    powersource->location( transform( powersource->location(), Scratchpad ) );
+
+    return powersource;
 }
 
 TMemCell *
@@ -481,7 +615,6 @@ state_manager::deserialize_model( cParser &Input, scene::scratch_data &Scratchpa
         >> location.y
         >> location.z
         >> rotation.y;
-    // adjust location
 
     auto *instance = new TAnimModel( Nodedata );
     instance->RaAnglesSet( Scratchpad.location_rotation + rotation ); // dostosowanie do pochylania linii
@@ -493,6 +626,147 @@ state_manager::deserialize_model( cParser &Input, scene::scratch_data &Scratchpa
     instance->location( transform( location, Scratchpad ) );
 
     return instance;
+}
+
+TDynamicObject *
+state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
+
+    if( false == Scratchpad.trainset.is_open ) {
+        // part of trainset data is used when loading standalone vehicles, so clear it just in case
+        Scratchpad.trainset = scene::scratch_data::trainset_data();
+    }
+    auto const inputline { Input.Line() }; // cache in case of errors
+    // basic attributes
+    auto const datafolder { Input.getToken<std::string>() };
+    auto const skinfile { Input.getToken<std::string>() };
+    auto const mmdfile { Input.getToken<std::string>() };
+    auto const pathname = (
+        Scratchpad.trainset.is_open ?
+            Scratchpad.trainset.track :
+            Input.getToken<std::string>() );
+    auto const offset { Input.getToken<double>( false ) };
+    auto const drivertype { Input.getToken<std::string>() };
+    auto const couplingparams = (
+        Scratchpad.trainset.is_open ?
+            Input.getToken<std::string>() :
+            "3" );
+    auto const velocity = (
+        Scratchpad.trainset.is_open ?
+            Scratchpad.trainset.velocity :
+            Input.getToken<float>( false ) );
+    // extract coupling type and optional parameters
+    auto const couplingparamsplit = couplingparams.find( '.' );
+    auto coupling = (
+        couplingparamsplit != std::string::npos ?
+            std::atoi( couplingparams.substr( 0, couplingparamsplit ).c_str() ) :
+            std::atoi( couplingparams.c_str() ) );
+    if( coupling < 0 ) {
+        // sprzęg zablokowany (pojazdy nierozłączalne przy manewrach)
+        coupling = ( -coupling ) | coupling::permanent;
+    }
+    if( ( offset != -1.0 )
+     && ( std::abs( offset ) > 0.5 ) ) { // maksymalna odległość między sprzęgami - do przemyślenia
+        // likwidacja sprzęgu, jeśli odległość zbyt duża - to powinno być uwzględniane w fizyce sprzęgów...
+        coupling = 0; 
+    }
+    auto const params = (
+        couplingparamsplit != std::string::npos ?
+            couplingparams.substr( couplingparamsplit + 1 ) :
+            "" );
+    // load amount and type
+    auto loadcount { Input.getToken<int>( false ) };
+    auto loadtype = (
+        loadcount ?
+            Input.getToken<std::string>() :
+            "" );
+    if( loadtype == "enddynamic" ) {
+        // idiotoodporność: ładunek bez podanego typu nie liczy się jako ładunek
+        loadcount = 0;
+        loadtype = "";
+    }
+
+    auto *path = simulation::Paths.find( pathname );
+    if( path == nullptr ) {
+
+        ErrorLog( "Bad scenario: vehicle \"" + Nodedata.name + "\" placed on nonexistent path \"" + pathname + "\" in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        skip_until( Input, "enddynamic" );
+        return nullptr;
+    }
+
+    if( ( true == Scratchpad.trainset.vehicles.empty() ) // jeśli pierwszy pojazd,
+     && ( false == path->asEvent0Name.empty() ) // tor ma Event0
+     && ( std::abs( velocity ) <= 1.f ) // a skład stoi
+     && ( Scratchpad.trainset.offset >= 0.0 ) // ale może nie sięgać na owy tor
+     && ( Scratchpad.trainset.offset <  8.0 ) ) { // i raczej nie sięga
+        // przesuwamy około pół EU07 dla wstecznej zgodności
+        Scratchpad.trainset.offset = 8.0;
+    }
+
+    auto *vehicle = new TDynamicObject();
+    
+    auto const length =
+        vehicle->Init(
+            Nodedata.name,
+            datafolder, skinfile, mmdfile,
+            path,
+            ( offset == -1.0 ?
+                Scratchpad.trainset.offset :
+                Scratchpad.trainset.offset - offset ),
+            drivertype,
+            velocity,
+            Scratchpad.trainset.name,
+            loadcount, loadtype,
+            ( offset == -1.0 ),
+            params );
+
+    if( length != 0.0 ) { // zero oznacza błąd
+        // przesunięcie dla kolejnego, minus bo idziemy w stronę punktu 1
+        Scratchpad.trainset.offset -= length;
+        // automatically establish permanent connections for couplers which specify them in their definitions
+        if( ( coupling != 0 )
+         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? 0 : 1 ) ].AllowedFlag & coupling::permanent ) ) {
+            coupling |= coupling::permanent;
+        }
+        if( true == Scratchpad.trainset.is_open ) {
+            Scratchpad.trainset.vehicles.emplace_back( vehicle );
+            Scratchpad.trainset.couplings.emplace_back( coupling );
+        }
+    }
+    else {
+        delete vehicle;
+        skip_until( Input, "enddynamic" );
+        return nullptr;
+    }
+
+    auto const destination { Input.getToken<std::string>() };
+    if( destination != "enddynamic" ) {
+        // optional vehicle destination parameter
+        vehicle->asDestination = Input.getToken<std::string>();
+        skip_until( Input, "enddynamic" );
+    }
+
+    return vehicle;
+}
+
+TTextSound *
+state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
+
+    glm::dvec3 location;
+    Input.getTokens( 3 );
+    Input
+        >> location.x
+        >> location.y
+        >> location.z;
+    // adjust location
+    location = transform( location, Scratchpad );
+
+    auto const soundname { Input.getToken<std::string>() };
+    auto *sound = new TTextSound( soundname, Nodedata.range_max, location.x, location.y, location.z, false, false, Nodedata.range_min );
+    sound->name( Nodedata.name );
+
+    skip_until( Input, "endsound" );
+
+    return sound;
 }
 
 // skips content of stream until specified token

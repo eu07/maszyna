@@ -103,7 +103,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     fStep = fNewStep;
     if (fLength <= 0) {
 
-        ErrorLog( "Bad geometry: zero length spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
+        ErrorLog( "Bad geometry: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
         fLength = 0.01; // crude workaround TODO: fix this properly
 /*
         return false; // zerowe nie mogą być
@@ -205,7 +205,7 @@ double TSegment::GetTFromS(double const s) const
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-    ErrorLog( "Bad geometry: shape estimation failed for spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
+    ErrorLog( "Bad geometry: shape estimation failed for spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };
@@ -323,23 +323,28 @@ Math3D::vector3 TSegment::GetPoint(double const fDistance) const
     }
 };
 
-void TSegment::RaPositionGet(double const fDistance, Math3D::vector3 &p, Math3D::vector3 &a) const
-{ // ustalenie pozycji osi na torze, przechyłki, pochylenia i kierunku jazdy
-    if (bCurve)
-    { // można by wprowadzić uproszczony wzór dla okręgów płaskich
-        double t = GetTFromS(fDistance); // aproksymacja dystansu na krzywej Beziera na parametr (t)
-        p = RaInterpolate(t);
-        a.x = (1.0 - t) * fRoll1 + (t)*fRoll2; // przechyłka w danym miejscu (zmienia się liniowo)
+// ustalenie pozycji osi na torze, przechyłki, pochylenia i kierunku jazdy
+void TSegment::RaPositionGet(double const fDistance, Math3D::vector3 &p, Math3D::vector3 &a) const {
+
+    if (bCurve) {
+        // można by wprowadzić uproszczony wzór dla okręgów płaskich
+        auto const t = GetTFromS(fDistance); // aproksymacja dystansu na krzywej Beziera na parametr (t)
+        p = FastGetPoint( t );
+        // przechyłka w danym miejscu (zmienia się liniowo)
+        a.x = interpolate<double>( fRoll1, fRoll2, t );
         // pochodna jest 3*A*t^2+2*B*t+C
-        a.y = atan(t * (t * 3.0 * vA.y + vB.y + vB.y) + vC.y); // pochylenie krzywej (w pionie)
-        a.z = -atan2(t * (t * 3.0 * vA.x + vB.x + vB.x) + vC.x,
-                     t * (t * 3.0 * vA.z + vB.z + vB.z) + vC.z); // kierunek krzywej w planie
+        auto const tangent = t * ( t * 3.0 * vA + vB + vB ) + vC;
+        // pochylenie krzywej (w pionie)
+        a.y = std::atan( tangent.y );
+        // kierunek krzywej w planie
+        a.z = -std::atan2( tangent.x, tangent.z );
     }
-    else
-    { // wyliczenie dla odcinka prostego jest prostsze
-        double t = fDistance / fLength; // zerowych torów nie ma
-        p = ((1.0 - t) * Point1 + (t)*Point2);
-        a.x = (1.0 - t) * fRoll1 + (t)*fRoll2; // przechyłka w danym miejscu (zmienia się liniowo)
+    else {
+        // wyliczenie dla odcinka prostego jest prostsze
+        auto const t = fDistance / fLength; // zerowych torów nie ma
+        p = FastGetPoint( t );
+        // przechyłka w danym miejscu (zmienia się liniowo)
+        a.x = interpolate<double>( fRoll1, fRoll2, t );
         a.y = fStoop; // pochylenie toru prostego
         a.z = fDirection; // kierunek toru w planie
     }

@@ -297,7 +297,9 @@ class Global
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(cParser &parser);
     static std::string GetNextSymbol();
+#ifdef EU07_USE_OLD_GROUNDCODE
     static TDynamicObject * DynamicNearest();
+#endif
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();

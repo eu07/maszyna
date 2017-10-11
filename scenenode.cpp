@@ -17,7 +17,7 @@ namespace scene {
 
 // restores content of the node from provded input stream
 shape_node &
-shape_node::deserialize( cParser &Input, node_data const &Nodedata ) {
+shape_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
 
     // import common data
     m_name = Nodedata.name;
@@ -290,7 +290,6 @@ basic_node::basic_node( scene::node_data const &Nodedata ) :
             Nodedata.range_max * Nodedata.range_max :
             std::numeric_limits<double>::max() );
 }
-
 
 } // editor
 //---------------------------------------------------------------------------

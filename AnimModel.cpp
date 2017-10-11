@@ -759,21 +759,27 @@ void TAnimModel::LightSet(int n, float v)
 { // ustawienie światła (n) na wartość (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
-    lsLights[n] = TLightState(int(v));
-    switch (lsLights[n])
-    { // interpretacja ułamka zależnie od typu
-    case 0: // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
-        break;
-    case 1: // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
-        break;
-    case 2: // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
-        break;
-    case 3: // zapalenie świateł zależne od oświetlenia scenerii
-        if (v > 3.0)
-            fDark = v - 3.0; // ustawienie indywidualnego progu zapalania
-        else
-            fDark = 0.25; // standardowy próg zaplania
-        break;
+    lsLights[ n ] = TLightState( static_cast<int>( v ) );
+    switch( lsLights[ n ] ) {
+        // interpretacja ułamka zależnie od typu
+        case ls_Off: {
+            // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
+            break;
+        }
+        case ls_On: {
+            // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
+            break;
+        }
+        case ls_Blink: {
+            // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
+            break;
+        }
+        case ls_Dark: {
+            // zapalenie świateł zależne od oświetlenia scenerii
+            if( v > 3.0 ) { fDark = v - 3.0; } // ustawienie indywidualnego progu zapalania
+            else          { fDark = 0.25; } // standardowy próg zaplania
+            break;
+        }
     }
 };
 //---------------------------------------------------------------------------

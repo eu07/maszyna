@@ -91,7 +91,6 @@ sekcji z sąsiedniego przęsła).
 */
 
 TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
-
 // legacy constructor
 TTraction::TTraction( std::string Name ) {
 
@@ -171,6 +170,13 @@ TTraction::Load( cParser *parser, glm::dvec3 const &pOrigin ) {
 
     // calculate traction location
     m_location = interpolate( pPoint2, pPoint1, 0.5 );
+}
+
+// retrieves list of the track's end points
+std::vector<glm::dvec3>
+TTraction::endpoints() const {
+
+    return { pPoint1, pPoint2 };
 }
 
 std::size_t
@@ -621,205 +627,213 @@ TTraction::wire_color() const {
 // legacy method, initializes traction after deserialization from scenario file
 void
 traction_table::InitTraction() {
-/*
+
  //łączenie drutów ze sobą oraz z torami i eventami
 //    TGroundNode *nCurrent, *nTemp;
 //    TTraction *tmp; // znalezione przęsło
-    int iConnection;
-    std::string name;
+
+    int connection { -1 };
+    TTraction *matchingtraction { nullptr };
+
     for( auto *traction : m_items ) {
         // podłączenie do zasilacza, żeby można było sumować prąd kilku pojazdów
         // a jednocześnie z jednego miejsca zmieniać napięcie eventem
         // wykonywane najpierw, żeby można było logować podłączenie 2 zasilaczy do jednego drutu
         // izolator zawieszony na przęśle jest ma być osobnym odcinkiem drutu o długości ok. 1m,
         // podłączonym do zasilacza o nazwie "*" (gwiazka); "none" nie będzie odpowiednie
-        nTemp = FindGroundNode(traction->asPowerSupplyName, TP_TRACTIONPOWERSOURCE);
-        if (nTemp) // jak zasilacz znaleziony
-            traction->PowerSet(nTemp->psTractionPowerSource); // to podłączyć do przęsła
-        else if (traction->asPowerSupplyName != "*") // gwiazdka dla przęsła z izolatorem
-            if (traction->asPowerSupplyName != "none") // dopuszczamy na razie brak podłączenia?
-            { // logowanie błędu i utworzenie zasilacza o domyślnej zawartości
-                ErrorLog("Missed TractionPowerSource: " + traction->asPowerSupplyName);
-                nTemp = new TGroundNode();
-                nTemp->iType = TP_TRACTIONPOWERSOURCE;
-                nTemp->asName = traction->asPowerSupplyName;
-                nTemp->psTractionPowerSource = new TTractionPowerSource(nTemp);
-                nTemp->psTractionPowerSource->Init(traction->NominalVoltage, traction->MaxCurrent);
-                nTemp->nNext = nRootOfType[nTemp->iType]; // ostatni dodany dołączamy na końcu
-                // nowego
-                nRootOfType[nTemp->iType] = nTemp; // ustawienie nowego na początku listy
+        auto *powersource = simulation::Powergrid.find( traction->asPowerSupplyName );
+        if( powersource ) {
+            // jak zasilacz znaleziony to podłączyć do przęsła
+            traction->PowerSet( powersource );
+        }
+        else {
+            if( ( traction->asPowerSupplyName != "*" ) // gwiazdka dla przęsła z izolatorem
+             && ( traction->asPowerSupplyName != "none" ) ) { // dopuszczamy na razie brak podłączenia?
+                // logowanie błędu i utworzenie zasilacza o domyślnej zawartości
+                ErrorLog( "Bad scenario: traction piece connected to nonexistent power source \"" + traction->asPowerSupplyName + "\"" );
+                scene::node_data nodedata;
+                nodedata.name = traction->asPowerSupplyName;
+                powersource = new TTractionPowerSource( nodedata );
+                powersource->Init( traction->NominalVoltage, traction->MaxCurrent );
+                simulation::Powergrid.insert( powersource );
             }
+        }
     }
 
     for( auto *traction : m_items ) {
 
-        if (!traction->hvNext[0]) // tylko jeśli jeszcze nie podłączony
-        {
-            tmp = FindTraction(traction->pPoint1, iConnection, nCurrent);
-            switch (iConnection)
-            {
-            case 0:
-                traction->Connect(0, tmp, 0);
-                break;
-            case 1:
-                traction->Connect(0, tmp, 1);
-                break;
+        if (!traction->hvNext[0]) {
+            // tylko jeśli jeszcze nie podłączony
+            std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint1, traction );
+            switch (connection) {
+                case 0: {
+                    traction->Connect( 0, matchingtraction, 0 );
+                    break;
+                }
+                case 1: {
+                    traction->Connect( 0, matchingtraction, 1 );
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
-            if (traction->hvNext[0]) // jeśli został podłączony
-                if (traction->psSection && tmp->psSection) // tylko przęsło z izolatorem może nie
-                    // mieć zasilania, bo ma 2, trzeba
-                    // sprawdzać sąsiednie
-                    if (traction->psSection !=
-                        tmp->psSection) // połączone odcinki mają różne zasilacze
-                    { // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo
-                        // błąd
-                        if (traction->psSection->bSection && !tmp->psSection->bSection)
-                        { //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
-                            tmp->PowerSet(traction->psSection); // zastąpienie wskazaniem sekcji
+            if( traction->hvNext[ 0 ] ) {
+                // jeśli został podłączony
+                if( ( traction->psSection != nullptr )
+                 && ( matchingtraction->psSection != nullptr ) ) {
+                    // tylko przęsło z izolatorem może nie mieć zasilania, bo ma 2, trzeba sprawdzać sąsiednie
+                    if( traction->psSection != matchingtraction->psSection ) {
+                        // połączone odcinki mają różne zasilacze
+                        // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo błąd
+                        if( ( true == traction->psSection->bSection )
+                         && ( false == matchingtraction->psSection->bSection ) ) {
+                            //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
+                            matchingtraction->PowerSet( traction->psSection ); // zastąpienie wskazaniem sekcji
                         }
-                        else if (!traction->psSection->bSection && tmp->psSection->bSection)
-                        { //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
-                            traction->PowerSet(tmp->psSection); // zastąpienie wskazaniem sekcji
+                        else if( ( false == traction->psSection->bSection ) &&
+                                 ( true == matchingtraction->psSection->bSection ) ) {
+                            //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
+                            traction->PowerSet( matchingtraction->psSection ); // zastąpienie wskazaniem sekcji
                         }
-                        else // jeśli obie to sekcje albo obie podstacje, to będzie błąd
-                            ErrorLog("Bad power: at " +
-                                     to_string(traction->pPoint1.x, 2, 6) + " " +
-                                     to_string(traction->pPoint1.y, 2, 6) + " " +
-                                     to_string(traction->pPoint1.z, 2, 6));
+                        else {
+                            // jeśli obie to sekcje albo obie podstacje, to będzie błąd
+                            ErrorLog( "Bad scenario: faulty traction power connection at location " + to_string( traction->pPoint1 ) );
+                        }
                     }
+                }
+            }
         }
-        if (!traction->hvNext[1]) // tylko jeśli jeszcze nie podłączony
-        {
-            tmp = FindTraction(traction->pPoint2, iConnection, nCurrent);
-            switch (iConnection)
-            {
-            case 0:
-                traction->Connect(1, tmp, 0);
-                break;
-            case 1:
-                traction->Connect(1, tmp, 1);
-                break;
+        if (!traction->hvNext[1]) {
+            // tylko jeśli jeszcze nie podłączony
+            std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint2, traction );
+            switch (connection) {
+                case 0: {
+                    traction->Connect( 1, matchingtraction, 0 );
+                    break;
+                }
+                case 1: {
+                    traction->Connect( 1, matchingtraction, 1 );
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
-            if (traction->hvNext[1]) // jeśli został podłączony
-                if (traction->psSection && tmp->psSection) // tylko przęsło z izolatorem może nie
-                    // mieć zasilania, bo ma 2, trzeba
-                    // sprawdzać sąsiednie
-                    if (traction->psSection != tmp->psSection)
-                    { // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo
-                        // błąd
-                        if (traction->psSection->bSection && !tmp->psSection->bSection)
-                        { //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
-                            tmp->PowerSet(traction->psSection); // zastąpienie wskazaniem sekcji
+            if( traction->hvNext[ 1 ] ) {
+                // jeśli został podłączony
+                if( ( traction->psSection != nullptr )
+                 && ( matchingtraction->psSection != nullptr ) ) {
+                    // tylko przęsło z izolatorem może nie mieć zasilania, bo ma 2, trzeba sprawdzać sąsiednie
+                    if( traction->psSection != matchingtraction->psSection ) {
+                        // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo błąd
+                        if( ( true == traction->psSection->bSection )
+                         && ( false == matchingtraction->psSection->bSection ) ) {
+                            //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
+                            matchingtraction->PowerSet( traction->psSection ); // zastąpienie wskazaniem sekcji
                         }
-                        else if (!traction->psSection->bSection && tmp->psSection->bSection)
-                        { //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
-                            traction->PowerSet(tmp->psSection); // zastąpienie wskazaniem sekcji
+                        else if( ( false == traction->psSection->bSection )
+                              && ( true == matchingtraction->psSection->bSection ) ) {
+                            //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
+                            traction->PowerSet( matchingtraction->psSection ); // zastąpienie wskazaniem sekcji
                         }
-                        else // jeśli obie to sekcje albo obie podstacje, to będzie błąd
-                            ErrorLog("Bad power: at " +
-                                     to_string(traction->pPoint2.x, 2, 6) + " " +
-                                     to_string(traction->pPoint2.y, 2, 6) + " " +
-                                     to_string(traction->pPoint2.z, 2, 6));
+                        else {
+                            // jeśli obie to sekcje albo obie podstacje, to będzie błąd
+                            ErrorLog( "Bad scenario: faulty traction power connection at location " + to_string( traction->pPoint2 ) );
+                        }
                     }
+                }
+            }
         }
     }
 
-    iConnection = 0; // teraz będzie licznikiem końców
+    auto endcount { 0 };
     for( auto *traction : m_items ) {
         // operacje mające na celu wykrywanie bieżni wspólnych i łączenie przęseł naprążania
-        if (traction->WhereIs()) // oznakowanie przedostatnich przęseł
-        { // poszukiwanie bieżni wspólnej dla przedostatnich przęseł, również w celu połączenia
-            // zasilania
-            // to się nie sprawdza, bo połączyć się mogą dwa niezasilane odcinki jako najbliższe
-            // sobie
-            // nCurrent->hvTraction->hvParallel=TractionNearestFind(nCurrent->pCenter,0,nCurrent);
-            // //szukanie najbliższego przęsła
-            // trzeba by zliczać końce, a potem wpisać je do tablicy, aby sukcesywnie podłączać do
-            // zasilaczy
+        if( traction->WhereIs() ) {
+            // true for outer pieces of the traction section
             traction->iTries = 5; // oznaczanie końcowych
-            ++iConnection;
+            ++endcount;
         }
-        if (traction->fResistance[0] == 0.0)
-        {
-            traction->ResistanceCalc(); // obliczanie przęseł w segmencie z bezpośrednim zasilaniem
-            // ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako
-            // niby błąd będzie bardziej widoczne
+        if (traction->fResistance[0] == 0.0) {
+            // obliczanie przęseł w segmencie z bezpośrednim zasilaniem
+            traction->ResistanceCalc();
             traction->iTries = 0; // nie potrzeba mu szukać zasilania
         }
-        // if (!Traction->hvParallel) //jeszcze utworzyć pętle z bieżni wspólnych
     }
-    int zg = 0; // zgodność kierunku przęseł, tymczasowo iterator do tabeli końców
-    // końców jest ok. 10 razy mniej niż wszystkich przęseł (Quark: 216)
-    TGroundNode **nEnds = new TGroundNode *[iConnection];
+
+    std::vector<TTraction *> ends; ends.reserve( endcount );
     for( auto *traction : m_items ) {
         //łączenie bieżni wspólnych, w tym oznaczanie niepodanych jawnie
-        if (!traction->asParallel.empty()) // będzie wskaźnik na inne przęsło
+        if( false == traction->asParallel.empty() ) {
+            // będzie wskaźnik na inne przęsło
             if( ( traction->asParallel == "none" )
              || ( traction->asParallel == "*" ) ) {
                 // jeśli nieokreślone
                 traction->iLast = 2; // jakby przedostatni - niech po prostu szuka (iLast już przeliczone)
             }
-            else if (!traction->hvParallel) // jeśli jeszcze nie został włączony w kółko
-            {
+            else if( traction->hvParallel == nullptr ) {
+                // jeśli jeszcze nie został włączony w kółko
                 auto *nTemp = find( traction->asParallel );
-                if (nTemp)
-                { // o ile zostanie znalezione przęsło o takiej nazwie
-                    if (!nTemp->hvParallel) // jeśli tamten jeszcze nie ma wskaźnika bieżni wspólnej
+                if( nTemp != nullptr ) {
+                    // o ile zostanie znalezione przęsło o takiej nazwie
+                    if( nTemp->hvParallel == nullptr ) {
+                        // jeśli tamten jeszcze nie ma wskaźnika bieżni wspólnej
                         traction->hvParallel = nTemp; // wpisać siebie i dalej dać mu wskaźnik zwrotny
-                    else // a jak ma, to albo dołączyć się do kółeczka
+                    }
+                    else {
+                        // a jak ma, to albo dołączyć się do kółeczka
                         traction->hvParallel = nTemp->hvParallel; // przjąć dotychczasowy wskaźnik od niego
+                    }
                     nTemp->hvParallel = traction; // i na koniec ustawienie wskaźnika zwrotnego
                 }
-                if (!traction->hvParallel)
-                    ErrorLog("Missed overhead: " + traction->asParallel); // logowanie braku
-            }
-        if (traction->iTries > 0) // jeśli zaznaczony do podłączenia
-            // if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
-            if (zg < iConnection) // zabezpieczenie
-                nEnds[zg++] = nCurrent; // wypełnianie tabeli końców w celu szukania im połączeń
-    }
-    while( zg < iConnection ) {
-        // zapełnienie do końca tablicy, jeśli by jakieś końce wypadły
-        nEnds[ zg++ ] = nullptr;
-    }
-    zg = 1; // nieefektywny przebieg kończy łączenie
-    while (zg)
-    { // ustalenie zastępczej rezystancji dla każdego przęsła
-        zg = 0; // flaga podłączonych przęseł końcowych: -1=puste wskaźniki, 0=coś zostało,
-        // 1=wykonano łączenie
-        for (int i = 0; i < iConnection; ++i)
-            if (nEnds[i]) // załatwione będziemy zerować
-            { // każdy przebieg to próba podłączenia końca segmentu naprężania do innego zasilanego
-                // przęsła
-                if (nEnds[i]->hvTraction->hvNext[0])
-                { // jeśli końcowy ma ciąg dalszy od strony 0 (Point1), szukamy odcinka najbliższego
-                    // do Point2
-                    if (TractionNearestFind(nEnds[i]->hvTraction->pPoint2, 0,
-                                            nEnds[i])) // poszukiwanie przęsła
-                    {
-                        nEnds[i] = NULL;
-                        zg = 1; // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo
-                        // dotrze
-                    }
-                }
-                else if (nEnds[i]->hvTraction->hvNext[1])
-                { // jeśli końcowy ma ciąg dalszy od strony 1 (Point2), szukamy odcinka najbliższego
-                    // do Point1
-                    if (TractionNearestFind(nEnds[i]->hvTraction->pPoint1, 1,
-                                            nEnds[i])) // poszukiwanie przęsła
-                    {
-                        nEnds[i] = NULL;
-                        zg = 1; // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo
-                        // dotrze
-                    }
-                }
-                else
-                { // gdy koniec jest samotny, to na razie nie zostanie podłączony (nie powinno
-                    // takich być)
-                    nEnds[i] = NULL;
+                if( traction->hvParallel == nullptr ) {
+                    ErrorLog( "Missed overhead: " + traction->asParallel ); // logowanie braku
                 }
             }
+        }
+        if( traction->iTries > 0 ) {
+            // jeśli zaznaczony do podłączenia
+            // wypełnianie tabeli końców w celu szukania im połączeń
+            ends.emplace_back( traction );
+        }
     }
-    delete[] nEnds; // nie potrzebne już
-*/
+
+    bool connected; // nieefektywny przebieg kończy łączenie
+    do {
+        // ustalenie zastępczej rezystancji dla każdego przęsła
+        // flaga podłączonych przęseł końcowych: -1=puste wskaźniki, 0=coś zostało, 1=wykonano łączenie
+        connected = false;
+        for( auto &end : ends ) {
+            // załatwione będziemy zerować
+            if( end == nullptr ) { continue; }
+            // każdy przebieg to próba podłączenia końca segmentu naprężania do innego zasilanego przęsła
+            if( end->hvNext[ 0 ] != nullptr ) {
+                // jeśli końcowy ma ciąg dalszy od strony 0 (Point1), szukamy odcinka najbliższego do Point2
+                std::tie( matchingtraction, connection ) = simulation::Region->find_traction( end->pPoint2, end, 0 );
+                if( matchingtraction != nullptr ) {
+                    // jak znalezione przęsło z zasilaniem, to podłączenie "równoległe"
+                    end->ResistanceCalc( 0, matchingtraction->fResistance[ connection ], matchingtraction->psPower[ connection ] );
+                    // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo dotrze
+                    connected = true;
+                    end = nullptr;
+                }
+            }
+            else if( end->hvNext[ 1 ] != nullptr ) {
+                // jeśli końcowy ma ciąg dalszy od strony 1 (Point2), szukamy odcinka najbliższego do Point1
+                std::tie( matchingtraction, connection ) = simulation::Region->find_traction( end->pPoint1, end, 1 );
+                if( matchingtraction != nullptr ) {
+                    // jak znalezione przęsło z zasilaniem, to podłączenie "równoległe"
+                    end->ResistanceCalc( 1, matchingtraction->fResistance[ connection ], matchingtraction->psPower[ connection ] );
+                    // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo dotrze
+                    connected = true;
+                    end = nullptr;
+                }
+            }
+            else {
+                // gdy koniec jest samotny, to na razie nie zostanie podłączony (nie powinno takich być)
+                end = nullptr;
+            }
+        }
+    } while( true == connected );
 }

@@ -1602,7 +1602,17 @@ opengl_renderer::Render( scene::basic_region *Region ) {
 
     m_sectionqueue.clear();
     m_cellqueue.clear();
-
+/*
+    for( auto *section : Region->sections( m_renderpass.camera.position(), m_renderpass.draw_range * Global::fDistanceFactor ) ) {
+#ifdef EU07_USE_DEBUG_CULLING
+        if( m_worldcamera.camera.visible( section->m_area ) ) {
+#else
+        if( m_renderpass.camera.visible( section->m_area ) ) {
+#endif
+            m_sectionqueue.emplace_back( section );
+        }
+    }
+*/
     // build a list of region sections to render
     glm::vec3 const cameraposition { m_renderpass.camera.position() };
     auto const camerax = static_cast<int>( std::floor( cameraposition.x / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
@@ -1903,11 +1913,22 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
-            case rendermode::shadows:
-            case rendermode::pickscenery: {
-                // render
+            case rendermode::shadows: {
                 // opaque parts of instanced models
                 for( auto *instance : cell->m_instancesopaque ) { Render( instance ); }
+                // opaque parts of vehicles
+                for( auto *path : cell->m_paths ) {
+                    for( auto *dynamic : path->Dynamics ) {
+                        Render( dynamic );
+                    }
+                }
+            }
+            case rendermode::pickscenery: {
+                // opaque parts of instanced models
+                for( auto *instance : cell->m_instancesopaque ) {
+                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
+                    Render( instance );
+                }
                 // TODO: add remaining content types
                 break;
             }
@@ -2863,7 +2884,12 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 
             // translucent parts of instanced models
             for( auto *instance : cell->m_instancetranslucent ) { Render_Alpha( instance ); }
-            // TODO: add remaining content types
+            // translucent parts of vehicles
+            for( auto *path : cell->m_paths ) {
+                for( auto *dynamic : path->Dynamics ) {
+                    Render_Alpha( dynamic );
+                }
+            }
 
             ++first;
         }

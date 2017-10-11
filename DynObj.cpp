@@ -4150,7 +4150,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smBrakeMode = mdModel->GetFromName(asAnimName.c_str());
+                    smBrakeMode = mdModel->GetFromName(asAnimName);
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4158,7 +4158,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smLoadMode = mdModel->GetFromName(asAnimName.c_str());
+                    smLoadMode = mdModel->GetFromName(asAnimName);
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4170,7 +4170,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // liczba osi
                     { // McZapkie-050402: wyszukiwanie kol o nazwie str*
                         asAnimName = token + std::to_string(i + 1);
-                        pAnimations[i].smAnimated = mdModel->GetFromName(asAnimName.c_str()); // ustalenie submodelu
+                        pAnimations[i].smAnimated = mdModel->GetFromName(asAnimName); // ustalenie submodelu
                         if (pAnimations[i].smAnimated)
                         { //++iAnimatedAxles;
                             pAnimations[i].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
@@ -4311,8 +4311,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                 }
                             }
                             else
-                                ErrorLog("Bad model: " + asFileName + " - missed submodel " +
-                                         asAnimName); // brak ramienia
+                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName); // brak ramienia
                         }
                 }
 
@@ -4346,10 +4345,9 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                 }
                             }
                             else
-								ErrorLog( "Bad model: " + asFileName + " - missed submodel " +
-								asAnimName ); // brak ramienia
+								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName ); // brak ramienia
 						}
-                        }
+                    }
                 }
 
 				else if( token == "animpantrg1prefix:" ) {
@@ -5392,4 +5390,60 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     }
     // ...if we're still here, report lack of power source
     return MoverParameters->EnginePowerSource.SourceType;
+}
+
+
+
+// legacy method, calculates changes in simulation state over specified time
+void
+vehicle_table::update( double Deltatime, int Iterationcount ) {
+    // Ra: w zasadzie to trzeba by utworzyć oddzielną listę taboru do liczenia fizyki
+    //    na którą by się zapisywały wszystkie pojazdy będące w ruchu
+    //    pojazdy stojące nie potrzebują aktualizacji, chyba że np. ktoś im zmieni nastawę hamulca
+    //    oddzielną listę można by zrobić na pojazdy z napędem, najlepiej posortowaną wg typu napędu
+    for( auto *vehicle : m_items ) {
+        // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
+        if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+/*
+            // TODO: re-implement
+            GetTraction( vehicle );
+*/
+        }
+        vehicle->MoverParameters->ComputeConstans();
+        vehicle->CoupleDist();
+    }
+    if( Iterationcount > 1 ) {
+        // ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+        for( int iteration = 0; iteration < ( Iterationcount - 1 ); ++iteration ) {
+            for( auto *vehicle : m_items ) {
+                vehicle->UpdateForce( Deltatime, Deltatime, false );
+            }
+            for( auto *vehicle : m_items ) {
+                vehicle->FastUpdate( Deltatime );
+            }
+        }
+    }
+
+    auto const totaltime { Deltatime * Iterationcount }; // całkowity czas
+
+    for( auto *vehicle : m_items ) {
+        vehicle->UpdateForce( Deltatime, totaltime, true );
+    }
+    for( auto *vehicle : m_items ) {
+        // Ra 2015-01: tylko tu przelicza sieć trakcyjną
+        vehicle->Update( Deltatime, totaltime );
+    }
+/*
+    // TODO: re-implement
+    if (bDynamicRemove)
+    { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
+        for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
+            if ( false == Current->DynamicObject->bEnabled)
+            {
+                DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
+                Current = nRootDynamic; // sprawdzanie listy od początku
+            }
+        bDynamicRemove = false; // na razie koniec
+    }
+*/
 }

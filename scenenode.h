@@ -72,7 +72,7 @@ class node_manager {
 struct node_data {
 
     double range_min { 0.0 };
-    double range_max { 0.0 };
+    double range_max { std::numeric_limits<double>::max() };
     std::string name;
     std::string type;
 };
@@ -86,7 +86,7 @@ public:
 // types
     struct shapenode_data {
         // placement and visibility
-        bounding_area area; // bounding area, in world coordinates
+        scene::bounding_area area; // bounding area, in world coordinates
         bool visible { true }; // visibility flag
         double rangesquared_min { 0.0 }; // visibility range, min
         double rangesquared_max { 0.0 }; // visibility range, max
@@ -103,7 +103,7 @@ public:
 // methods
     // restores content of the node from provded input stream
     shape_node &
-        deserialize( cParser &Input, node_data const &Nodedata );
+        deserialize( cParser &Input, scene::node_data const &Nodedata );
     // adds content of provided node to already enclosed geometry. returns: true if merge could be performed
     bool
         merge( shape_node &Shape );
@@ -229,12 +229,15 @@ public:
     std::string const &
         name() const {
             return m_name; }
-    glm::dvec3 const &
-        location() {
-            return m_location; };
     void
         location( glm::dvec3 const Location ) {
             m_location = Location; }
+    glm::dvec3 const &
+        location() const {
+            return m_location; };
+    void
+        visible( bool const Visible ) {
+            m_visible = Visible; }
     bool
         visible() const {
             return m_visible; }

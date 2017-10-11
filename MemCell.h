@@ -61,8 +61,14 @@ class TMemCell : public editor::basic_node {
     void AssignEvents(TEvent *e);
 };
 
-class memory_manager : public basic_table<TMemCell> {
 
+
+class memory_table : public basic_table<TMemCell> {
+
+public:
+    // legacy method, initializes traction after deserialization from scenario file
+    void
+        InitCells();
 };
 
 //---------------------------------------------------------------------------

@@ -205,23 +205,21 @@ std::string cParser::readToken(bool ToLower, const char *Break)
     if (token.compare("include") == 0)
     { // obsługa include
         std::string includefile = readToken(ToLower); // nazwa pliku
-        if (LoadTraction ? true : ((includefile.find("tr/") == std::string::npos) &&
-                                   (includefile.find("tra/") == std::string::npos)))
-        {
-            // std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
-            // if (trtest=="x") //jeśli nie wczytywać drutów
-            // trtest2=includefile; //kopiowanie ścieżki do pliku
+        if( ( true == LoadTraction )
+         || ( ( includefile.find( "tr/" ) == std::string::npos )
+           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+
             std::string parameter = readToken(false); // w parametrach nie zmniejszamy
             while( (parameter.empty() == false)
 				&& (parameter.compare("end") != 0) )
             {
-                parameters.push_back(parameter);
+                parameters.emplace_back(parameter);
                 parameter = readToken(false);
             }
             // if (trtest2.find("tr/")!=0)
             mIncludeParser = std::make_shared<cParser>(includefile, buffer_FILE, mPath, LoadTraction);
             if (mIncludeParser->mSize <= 0)
-                ErrorLog("Missed include: " + includefile);
+                ErrorLog("Bad include: can't open file \"" + includefile + "\"" );
         }
         else {
             while( token.compare( "end" ) != 0 ) {
