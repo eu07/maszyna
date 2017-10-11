@@ -3690,15 +3690,11 @@ void TDynamicObject::RenderSounds()
                 rsWentylator->stop();
             }
         }
-        if (MoverParameters->TrainType == dt_ET40 && rsPrzekladnia)
+        if (rsPrzekladnia)
         {
             if (MoverParameters->Vel > 0.1)
-            {
-                freq = MoverParameters->Vel;
-                rsPrzekladnia->pitch(freq);
-                vol = MoverParameters->Vel;
-                rsPrzekladnia->loop().position(GetPosition()).gain(vol).play();
-            }
+                rsPrzekladnia->pitch(MoverParameters->Vel).gain(MoverParameters->Vel)
+				              .position(GetPosition()).play();
             else
                 rsPrzekladnia->stop();
         }
@@ -4713,22 +4709,32 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     }
 				}
 
-				else if( ( token == "transmission:" )
-					  && ( MoverParameters->EngineType == ElectricSeriesMotor ) ) {
+				else if(token == "transmission:") {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
-					double attenuation;
-					parser.getTokens( 2, false );
-					parser
-						>> token
-						>> attenuation;
-					rsPrzekladnia = sound_man->create_sound(token);
+					std::string name;
+					float attenuation, gain_mul = 0.029f, gain_off = 0.1f, pitch_mul = 0.005f, pitch_off = 1.0f;
+					parser.getTokens(1, false);
+					if (parser.peek() != "{")
+					{
+						parser >> name;
+						parser.getTokens();
+						parser >> attenuation;
+					}
+					else
+					{
+						cParser extp(parser.getToken<std::string>(false, "}"));
+						extp.getTokens(6, false);
+						extp >> name >> attenuation >> gain_mul >> gain_off >> pitch_mul >> pitch_off;
+					}
+
+					rsPrzekladnia = sound_man->create_sound(name);
                     if (rsPrzekladnia)
                     {
                         rsPrzekladnia->dist(attenuation);
-                        rsPrzekladnia->gain_mul = 0.029;
-                        rsPrzekladnia->gain_off = 0.1;
-                        rsPrzekladnia->pitch_mul = 0.005;
-                        rsPrzekladnia->pitch_off = 1.0;
+                        rsPrzekladnia->gain_mul = gain_mul;
+                        rsPrzekladnia->gain_off = gain_off;
+                        rsPrzekladnia->pitch_mul = pitch_mul;
+                        rsPrzekladnia->pitch_off = pitch_off;
                     }
                 }
 
