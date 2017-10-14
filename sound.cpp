@@ -71,7 +71,10 @@ sound_manager::~sound_manager()
 
 sound_buffer* sound_manager::find_buffer(std::string name)
 {
-	name.erase(name.rfind('.'));
+	size_t pos = name.rfind('.');
+	if (pos != name.npos)
+		name.erase(pos);
+
 	std::replace(name.begin(), name.end(), '\\', '/');
 
 	auto search = buffers.find(name);
@@ -86,7 +89,10 @@ std::string sound_manager::find_file(std::string name)
 	if (FileExists(name))
 		return name;
 
-	name.erase(name.rfind('.'));
+    size_t pos = name.rfind('.');
+    if (pos != name.npos)  
+        name.erase(pos);
+
 	std::vector<std::string> exts { ".wav", ".WAV", ".flac", ".ogg" };
 	for (auto const &ext : exts)
 		if (FileExists(name + ext))
@@ -118,7 +124,9 @@ sound_buffer* sound_manager::get_buffer(std::string const &name)
 
 	buf = new sound_buffer(file);
 	
-	file.erase(file.rfind('.'));
+    size_t pos = file.rfind('.');
+    if (pos != file.npos)  
+        file.erase(pos);
 	buffers.emplace(file, buf);
 
 	return buf;
