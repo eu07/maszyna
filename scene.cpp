@@ -372,6 +372,10 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
     for( auto *path : m_paths )              { path->create_geometry( Bank ); }
     for( auto *traction : m_traction )       { traction->create_geometry( Bank ); }
 #endif
+    // arrange content by assigned materials to minimize state switching
+    std::sort(
+        std::begin( m_paths ), std::end( m_paths ),
+        TTrack::sort_by_material );
 }
 
 

@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_map>
 #include <string>
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 template <typename Type_>
 class TNames {
 
@@ -65,6 +66,7 @@ private:
 // members:
     typemap_map                          m_maps;             // list of object maps of types specified so far
 };
+#endif
 
 template <typename Type_>
 class basic_table {

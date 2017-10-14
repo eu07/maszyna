@@ -118,7 +118,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (evFree)
                 Global::AddToQuery(evFree, o); // dodanie zwolnienia do kolejki
             if (Global::iMultiplayer) // jeśli multiplayer
-                Global::pGround->WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
+                multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
                 update_memval2 ); //"zerujemy" ostatnią wartość
@@ -132,7 +132,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (evBusy)
                 Global::AddToQuery(evBusy, o); // dodanie zajętości do kolejki
             if (Global::iMultiplayer) // jeśli multiplayer
-                Global::pGround->WyslijString(asName, 11); // wysłanie pakietu o zajęciu
+                multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, update_memval2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
@@ -176,6 +176,13 @@ void TTrack::Init()
         Segment = std::make_shared<TSegment>(this);
         break;
     }
+}
+
+bool
+TTrack::sort_by_material( TTrack const *Left, TTrack const *Right ) {
+
+    return ( ( Left->m_material1 < Right->m_material1 )
+          && ( Left->m_material2 < Right->m_material2 ) );
 }
 
 TTrack * TTrack::Create400m(int what, double dx)
@@ -932,7 +939,7 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
             // pierwszy zajmujący
             if( m_name != "none" ) {
                 // przekazanie informacji o zajętości toru
-                Global::pGround->WyslijString( m_name, 8 );
+                multiplayer::WyslijString( m_name, 8 );
             }
         }
     }
@@ -1024,7 +1031,7 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
             // jeśli już nie ma żadnego
             if( m_name != "none" ) {
                 // przekazanie informacji o zwolnieniu toru
-                Global::pGround->WyslijString( m_name, 9 ); 
+                multiplayer::WyslijString( m_name, 9 );
             }
         }
     }
@@ -2158,7 +2165,6 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
 
 void TTrack::EnvironmentSet()
 { // ustawienie zmienionego światła
-    glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
     switch( eEnvironment ) {
         case e_canyon: {
             Global::DayLight.apply_intensity( 0.4f );

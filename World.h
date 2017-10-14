@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <GLFW/glfw3.h>
 #include <string>
+
 #include "Camera.h"
 #include "Ground.h"
 #include "scene.h"
@@ -20,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
+#include "messaging.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -104,7 +106,7 @@ TWorld();
     void OnKeyDown(int cKey);
     // void UpdateWindow();
     void OnMouseMove(double x, double y);
-    void OnCommandGet(DaneRozkaz *pRozkaz);
+    void OnCommandGet(multiplayer::DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
     TTrain const *

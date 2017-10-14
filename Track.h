@@ -186,6 +186,7 @@ public:
     virtual ~TTrack();
 
     void Init();
+    static bool sort_by_material( TTrack const *Left, TTrack const *Right );
     static TTrack * Create400m(int what, double dx);
     TTrack * NullCreate(int dir);
     inline bool IsEmpty() {

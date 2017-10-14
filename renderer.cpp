@@ -1598,6 +1598,212 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 
     return true;
 }
+
+bool
+opengl_renderer::Render( TGroundNode *Node ) {
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Node->fSquareMinRadius )
+     || ( distancesquared >= Node->fSquareRadius ) ) {
+        return false;
+    }
+
+    switch (Node->iType) {
+
+        case TP_TRACK: {
+            // setup
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::shadows: {
+                    return false;
+                }
+                case rendermode::pickscenery: {
+                    // add the node to the pick list
+                    m_picksceneryitems.emplace_back( Node );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+            // render
+            Render( Node->pTrack );
+            // debug
+            ++m_debugstats.paths;
+            ++m_debugstats.drawcalls;
+            // post-render cleanup
+            ::glPopMatrix();
+            return true;
+        }
+
+        case TP_MODEL: {
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::pickscenery: {
+                    // add the node to the pick list
+                    m_picksceneryitems.emplace_back( Node );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            Node->Model->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
+            Node->Model->RaPrepare();
+            if( Node->Model->pModel ) {
+                // renderowanie rekurencyjne submodeli
+                Render(
+                    Node->Model->pModel,
+                    Node->Model->Material(),
+                    distancesquared,
+                    Node->pCenter - m_renderpass.camera.position(),
+                    Node->Model->vAngle );
+            }
+            return true;
+        }
+
+        case GL_LINES: {
+            if( ( Node->Piece->geometry == null_handle )
+             || ( Node->fLineThickness > 0.0 ) ) {
+                return false;
+            }
+            // setup
+            auto const distance = std::sqrt( distancesquared );
+            auto const linealpha =
+                10.0 * Node->fLineThickness
+                / std::max(
+                    0.5 * Node->m_radius + 1.0,
+                    distance - ( 0.5 * Node->m_radius ) );
+            switch( m_renderpass.draw_mode ) {
+                // wire colouring is disabled for modes other than colour
+                case rendermode::color: {
+                    ::glColor4fv(
+                        glm::value_ptr(
+                            glm::vec4(
+                                Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                                1.0 ) ) ); // if the thickness is defined negative, lines are always drawn opaque
+                    break;
+                }
+                case rendermode::shadows:
+                case rendermode::pickcontrols:
+                case rendermode::pickscenery:
+                default: {
+                    break;
+                }
+            }
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( static_cast<float>( linewidth ) );
+            }
+
+            GfxRenderer.Bind_Material( null_handle );
+
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::pickscenery: {
+                    // add the node to the pick list
+                    m_picksceneryitems.emplace_back( Node );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            // render
+            m_geometry.draw( Node->Piece->geometry );
+            // debug
+//            ++m_debugstats.lines;
+//            ++m_debugstats.drawcalls;
+            // post-render cleanup
+            ::glPopMatrix();
+
+            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
+
+            return true;
+        }
+
+        case GL_TRIANGLES: {
+            if( ( Node->Piece->geometry == null_handle )
+             || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
+                return false;
+            }
+            // setup
+            Bind_Material( Node->m_material );
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::color: {
+                    ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
+                    break;
+                }
+                // pick modes get custom colours, and shadow pass doesn't use any
+                case rendermode::shadows:
+                case rendermode::pickcontrols:
+                case rendermode::pickscenery:
+                default: {
+                    break;
+                }
+            }
+
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::pickscenery: {
+                    // add the node to the pick list
+                    m_picksceneryitems.emplace_back( Node );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            // render
+            m_geometry.draw( Node->Piece->geometry );
+            // debug
+            ++m_debugstats.shapes;
+            ++m_debugstats.drawcalls;
+
+            // post-render cleanup
+            ::glPopMatrix();
+
+            return true;
+        }
+
+        case TP_MEMCELL: {
+            switch( m_renderpass.draw_mode ) {
+                case rendermode::pickscenery: {
+                    // add the node to the pick list
+                    m_picksceneryitems.emplace_back( Node );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            Render( Node->MemCell );
+            return true;
+        }
+
+        default: { break; }
+    }
+    // in theory we shouldn't ever get here but, eh
+    return false;
+}
 #else
 void
 opengl_renderer::Render( scene::basic_region *Region ) {
@@ -1848,7 +2054,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
                 // TODO: update after path node refactoring
-                for( auto *path : cell->m_paths ) { Render( path ); }
+                Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
                 // TODO: add other content types
 
                 // post-render cleanup
@@ -1880,10 +2086,14 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // render
                 // opaque non-instanced shapes
+                ::glColor3fv( glm::value_ptr( colors::none ) );
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
                 // TODO: add path to the node picking list
-                for( auto *path : cell->m_paths ) { Render( path ); }
+                for( auto *path : cell->m_paths ) {
+                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
+                    Render( path );
+                }
                 // TODO: add other content types
                 // post-render cleanup
                 ::glPopMatrix();
@@ -2052,212 +2262,6 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     }
 }
 #endif
-
-bool
-opengl_renderer::Render( TGroundNode *Node ) {
-
-    double distancesquared;
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-        default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-    }
-    if( ( distancesquared <  Node->fSquareMinRadius )
-     || ( distancesquared >= Node->fSquareRadius ) ) {
-        return false;
-    }
-
-    switch (Node->iType) {
-
-        case TP_TRACK: {
-            // setup
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::shadows: {
-                    return false;
-                }
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-            // render
-            Render( Node->pTrack );
-            // debug
-            ++m_debugstats.paths;
-            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-            return true;
-        }
-
-        case TP_MODEL: {
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            Node->Model->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
-            Node->Model->RaPrepare();
-            if( Node->Model->pModel ) {
-                // renderowanie rekurencyjne submodeli
-                Render(
-                    Node->Model->pModel,
-                    Node->Model->Material(),
-                    distancesquared,
-                    Node->pCenter - m_renderpass.camera.position(),
-                    Node->Model->vAngle );
-            }
-            return true;
-        }
-
-        case GL_LINES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( Node->fLineThickness > 0.0 ) ) {
-                return false;
-            }
-            // setup
-            auto const distance = std::sqrt( distancesquared );
-            auto const linealpha =
-                10.0 * Node->fLineThickness
-                / std::max(
-                    0.5 * Node->m_radius + 1.0,
-                    distance - ( 0.5 * Node->m_radius ) );
-            switch( m_renderpass.draw_mode ) {
-                // wire colouring is disabled for modes other than colour
-                case rendermode::color: {
-                    ::glColor4fv(
-                        glm::value_ptr(
-                            glm::vec4(
-                                Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
-                                1.0 ) ) ); // if the thickness is defined negative, lines are always drawn opaque
-                    break;
-                }
-                case rendermode::shadows:
-                case rendermode::pickcontrols:
-                case rendermode::pickscenery:
-                default: {
-                    break;
-                }
-            }
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
-            if( linewidth > 1.0 ) {
-                ::glLineWidth( static_cast<float>( linewidth ) );
-            }
-
-            GfxRenderer.Bind_Material( null_handle );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug
-//            ++m_debugstats.lines;
-//            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-
-            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
-
-            return true;
-        }
-
-        case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
-                return false;
-            }
-            // setup
-            Bind_Material( Node->m_material );
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::color: {
-                    ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
-                    break;
-                }
-                // pick modes get custom colours, and shadow pass doesn't use any
-                case rendermode::shadows:
-                case rendermode::pickcontrols:
-                case rendermode::pickscenery:
-                default: {
-                    break;
-                }
-            }
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug
-            ++m_debugstats.shapes;
-            ++m_debugstats.drawcalls;
-
-            // post-render cleanup
-            ::glPopMatrix();
-
-            return true;
-        }
-
-        case TP_MEMCELL: {
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            Render( Node->MemCell );
-            return true;
-        }
-
-        default: { break; }
-    }
-    // in theory we shouldn't ever get here but, eh
-    return false;
-}
 
 bool
 opengl_renderer::Render( TDynamicObject *Dynamic ) {
@@ -2794,6 +2798,83 @@ opengl_renderer::Render( TTrack *Track ) {
     }
 }
 
+// experimental, does track rendering in two passes, to take advantage of reduced texture switching
+void
+opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last ) {
+
+    ::glColor3fv( glm::value_ptr( colors::white ) );
+
+    // first pass, material 1
+    for( auto first { First }; first != Last; ++first ) {
+
+        auto const track { *first };
+
+        if( track->m_material1 == 0 )  {
+            continue;
+        }
+        if( false == track->m_visible ) {
+            continue;
+        }
+
+        ++m_debugstats.paths;
+        ++m_debugstats.drawcalls;
+
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::reflections: {
+                track->EnvironmentSet();
+                Bind_Material( track->m_material1 );
+                m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
+                track->EnvironmentReset();
+                break;
+            }
+            case rendermode::shadows: {
+                Bind_Material( track->m_material1 );
+                m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
+                break;
+            }
+            case rendermode::pickscenery: // pick scenery should use track-by-track approach
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+    }
+    // second pass, material 2
+    for( auto first { First }; first != Last; ++first ) {
+
+        auto const track { *first };
+
+        if( track->m_material2 == 0 ) {
+            continue;
+        }
+        if( false == track->m_visible ) {
+            continue;
+        }
+
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::reflections: {
+                track->EnvironmentSet();
+                Bind_Material( track->m_material2 );
+                m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
+                track->EnvironmentReset();
+                break;
+            }
+            case rendermode::shadows: {
+                Bind_Material( track->m_material2 );
+                m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
+                break;
+            }
+            case rendermode::pickscenery: // pick scenery should use track-by-track approach
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+    }
+}
+
 void
 opengl_renderer::Render( TMemCell *Memcell ) {
 
@@ -2878,6 +2959,162 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
     }
 
     return true;
+}
+
+bool
+opengl_renderer::Render_Alpha( TGroundNode *Node ) {
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Node->fSquareMinRadius )
+     || ( distancesquared >= Node->fSquareRadius ) ) {
+        return false;
+    }
+
+    switch (Node->iType)
+    {
+        case TP_TRACTION: {
+            if( Node->bVisible ) {
+                // rysuj jesli sa druty i nie zerwana
+                if( ( Node->hvTraction->Wires == 0 )
+                 || ( true == TestFlag( Node->hvTraction->DamageFlag, 128 ) ) ) {
+                    return false;
+                }
+                // setup
+                if( !Global::bSmoothTraction ) {
+                    // na liniach kiepsko wygląda - robi gradient
+                    ::glDisable( GL_LINE_SMOOTH );
+                }
+                float const linealpha = static_cast<float>(
+                    std::min(
+                        1.25,
+                        5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
+                ::glLineWidth( linealpha );
+                // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+                auto const color { Node->hvTraction->wire_color() };
+                ::glColor4f( color.r, color.g, color.b, linealpha );
+
+                Bind_Material( null_handle );
+
+                ::glPushMatrix();
+                auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                // render
+                m_geometry.draw( Node->hvTraction->m_geometry );
+                // debug data
+                ++m_debugstats.traction;
+                ++m_debugstats.drawcalls;
+
+                // post-render cleanup
+                ::glPopMatrix();
+
+                ::glLineWidth( 1.0 );
+                if( !Global::bSmoothTraction ) {
+                    ::glEnable( GL_LINE_SMOOTH );
+                }
+
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        case TP_MODEL: {
+
+            Node->Model->RaPrepare();
+            if( Node->Model->pModel ) {
+                // renderowanie rekurencyjne submodeli
+                Render_Alpha(
+                    Node->Model->pModel,
+                    Node->Model->Material(),
+                    distancesquared,
+                    Node->pCenter - m_renderpass.camera.position(),
+                    Node->Model->vAngle );
+            }
+            return true;
+        }
+
+        case GL_LINES: {
+            if( ( Node->Piece->geometry == null_handle )
+             || ( Node->fLineThickness < 0.0 ) ) {
+                return false;
+            }
+            // setup
+            auto const distance = std::sqrt( distancesquared );
+            auto const linealpha =
+                10.0 * Node->fLineThickness
+                / std::max(
+                    0.5 * Node->m_radius + 1.0,
+                    distance - ( 0.5 * Node->m_radius ) );
+            ::glColor4fv(
+                glm::value_ptr(
+                    glm::vec4(
+                        Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                        std::min( 1.0, linealpha ) ) ) );
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( static_cast<float>(linewidth) );
+            }
+
+            GfxRenderer.Bind_Material( null_handle );
+
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+            // render
+            m_geometry.draw( Node->Piece->geometry );
+//            ++m_debugstats.lines;
+//            ++m_debugstats.drawcalls;
+
+            // post-render cleanup
+            ::glPopMatrix();
+
+            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
+
+            return true;
+        }
+
+        case GL_TRIANGLES: {
+            if( ( Node->Piece->geometry == null_handle )
+             || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
+                return false;
+            }
+            // setup
+            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
+
+            Bind_Material( Node->m_material );
+
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+            // render
+            m_geometry.draw( Node->Piece->geometry );
+            // debug data
+            ++m_debugstats.shapes;
+            ++m_debugstats.drawcalls;
+            // post-render cleanup
+            ::glPopMatrix();
+
+            return true;
+        }
+
+        default: { break; }
+    }
+    // in theory we shouldn't ever get here but, eh
+    return false;
 }
 #else
 void
@@ -3051,162 +3288,6 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     ++m_debugstats.drawcalls;
 }
 #endif
-bool
-opengl_renderer::Render_Alpha( TGroundNode *Node ) {
-
-    double distancesquared;
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-        default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-    }
-    if( ( distancesquared <  Node->fSquareMinRadius )
-     || ( distancesquared >= Node->fSquareRadius ) ) {
-        return false;
-    }
-
-    switch (Node->iType)
-    {
-        case TP_TRACTION: {
-            if( Node->bVisible ) {
-                // rysuj jesli sa druty i nie zerwana
-                if( ( Node->hvTraction->Wires == 0 )
-                 || ( true == TestFlag( Node->hvTraction->DamageFlag, 128 ) ) ) {
-                    return false;
-                }
-                // setup
-                if( !Global::bSmoothTraction ) {
-                    // na liniach kiepsko wygląda - robi gradient
-                    ::glDisable( GL_LINE_SMOOTH );
-                }
-                float const linealpha = static_cast<float>(
-                    std::min(
-                        1.25,
-                        5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
-                ::glLineWidth( linealpha );
-                // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-                auto const color { Node->hvTraction->wire_color() };
-                ::glColor4f( color.r, color.g, color.b, linealpha );
-
-                Bind_Material( null_handle );
-
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-                // render
-                m_geometry.draw( Node->hvTraction->m_geometry );
-                // debug data
-                ++m_debugstats.traction;
-                ++m_debugstats.drawcalls;
-
-                // post-render cleanup
-                ::glPopMatrix();
-
-                ::glLineWidth( 1.0 );
-                if( !Global::bSmoothTraction ) {
-                    ::glEnable( GL_LINE_SMOOTH );
-                }
-
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        case TP_MODEL: {
-
-            Node->Model->RaPrepare();
-            if( Node->Model->pModel ) {
-                // renderowanie rekurencyjne submodeli
-                Render_Alpha(
-                    Node->Model->pModel,
-                    Node->Model->Material(),
-                    distancesquared,
-                    Node->pCenter - m_renderpass.camera.position(),
-                    Node->Model->vAngle );
-            }
-            return true;
-        }
-
-        case GL_LINES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( Node->fLineThickness < 0.0 ) ) {
-                return false;
-            }
-            // setup
-            auto const distance = std::sqrt( distancesquared );
-            auto const linealpha =
-                10.0 * Node->fLineThickness
-                / std::max(
-                    0.5 * Node->m_radius + 1.0,
-                    distance - ( 0.5 * Node->m_radius ) );
-            ::glColor4fv(
-                glm::value_ptr(
-                    glm::vec4(
-                        Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
-                        std::min( 1.0, linealpha ) ) ) );
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
-            if( linewidth > 1.0 ) {
-                ::glLineWidth( static_cast<float>(linewidth) );
-            }
-
-            GfxRenderer.Bind_Material( null_handle );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-//            ++m_debugstats.lines;
-//            ++m_debugstats.drawcalls;
-
-            // post-render cleanup
-            ::glPopMatrix();
-
-            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
-
-            return true;
-        }
-
-        case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
-                return false;
-            }
-            // setup
-            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
-
-            Bind_Material( Node->m_material );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug data
-            ++m_debugstats.shapes;
-            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-
-            return true;
-        }
-
-        default: { break; }
-    }
-    // in theory we shouldn't ever get here but, eh
-    return false;
-}
-
 bool
 opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 

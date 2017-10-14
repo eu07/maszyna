@@ -23,7 +23,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "mtable.h"
 #include "Sound.h"
-#include "Camera.h"
 #include "ResourceManager.h"
 #include "Event.h"
 #include "Train.h"
@@ -1079,7 +1078,7 @@ bool TWorld::Update() {
         // awaria PoKeys mogła włączyć pauzę - przekazać informację
         if( Global::iMultiplayer ) // dajemy znać do serwera o wykonaniu
             if( iPause != Global::iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
-                Ground.WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
+                multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
                 iPause = Global::iPause;
             }
 
@@ -1890,25 +1889,24 @@ TWorld::Update_UI() {
 }
 
 //---------------------------------------------------------------------------
-void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
+void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
 { // odebranie komunikatu z serwera
     if (pRozkaz->iSygn == MAKE_ID4('E','U','0','7') )
         switch (pRozkaz->iComm)
         {
         case 0: // odesłanie identyfikatora wersji
 			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " version" + " rcvd");
-			Ground.WyslijString(Global::asVersion, 0); // przedsatwienie się
+            multiplayer::WyslijString(Global::asVersion, 0); // przedsatwienie się
             break;
         case 1: // odesłanie identyfikatora wersji
 			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " scenery" + " rcvd");
-			Ground.WyslijString(Global::SceneryFile, 1); // nazwa scenerii
+            multiplayer::WyslijString(Global::SceneryFile, 1); // nazwa scenerii
             break;
         case 2: {
             // event
             CommLog( Now() + " " + std::to_string( pRozkaz->iComm ) + " " +
                 std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) + " rcvd" );
-/*
-            // TODO: re-enable when messaging module is in place
+#ifdef EU07_USE_OLD_GROUNDCODE
             if( Global::iMultiplayer ) {
                 // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
@@ -1918,7 +1916,20 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                         ( e->evJoined != 0 ) )  // tylko jawne albo niejawne Multiple
                         Ground.AddToQuery( e, NULL ); // drugi parametr to dynamic wywołujący - tu brak
             }
-*/
+#else
+            if( Global::iMultiplayer ) {
+                // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
+                auto *event = simulation::Events.FindEvent( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+                if( event != nullptr ) {
+                    if( ( event->Type == tp_Multiple )
+                     || ( event->Type == tp_Lights )
+                     || ( event->evJoined != 0 ) ) {
+                        // tylko jawne albo niejawne Multiple
+                        simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
+                    }
+                }
+            }
+#endif
             break;
         }
         case 3: // rozkaz dla AI
@@ -1961,17 +1972,23 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         {
             CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            TGroundNode *t = Ground.FindGroundNode(
-                std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
+#ifdef EU07_USE_OLD_GROUNDCODE
+            TGroundNode *t = Ground.FindGroundNode( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ), TP_TRACK );
             if (t)
                 if (t->pTrack->IsEmpty())
-                    Ground.WyslijWolny(t->asName);
+                    multiplayer::WyslijWolny(t->asName);
+#else
+            auto *track = simulation::Paths.find( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+            if( ( track != nullptr )
+             && ( track->IsEmpty() ) ) {
+                multiplayer::WyslijWolny( track->name() );
+            }
+#endif
         }
         break;
         case 5: // ustawienie parametrów
         {
-            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " +
-                    to_string(*pRozkaz->iPar) + " rcvd");
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " + to_string(*pRozkaz->iPar) + " rcvd");
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
@@ -1990,13 +2007,15 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         }
         break;
         case 6: // pobranie parametrów ruchu pojazdu
-            if (Global::iMultiplayer)
-            { // Ra 2014-12: to ma działać również dla pojazdów bez obsady
-                CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
-                        std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
-                        " rcvd");
-                if (pRozkaz->cString[0]) // jeśli długość nazwy jest niezerowa
-                { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
+            if (Global::iMultiplayer) {
+                // Ra 2014-12: to ma działać również dla pojazdów bez obsady
+                CommLog(
+                    Now() + " "
+                  + to_string( pRozkaz->iComm ) + " "
+                  + std::string{ pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) }
+                  + " rcvd" );
+                if (pRozkaz->cString[0]) {
+                    // jeśli długość nazwy jest niezerowa szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
 #ifdef EU07_USE_OLD_GROUNDCODE
                     TGroundNode *t;
                     if (pRozkaz->cString[1] == '*')
@@ -2006,14 +2025,22 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                         t = Ground.DynamicFindAny(std::string(
                             pRozkaz->cString + 1, (unsigned)pRozkaz->cString[0])); // nazwa pojazdu
                     if (t)
-                        Ground.WyslijNamiary(t); // wysłanie informacji o pojeździe
+                        multiplayer::WyslijNamiary(t); // wysłanie informacji o pojeździe
 #else
-                    // TODO: implement
+/*
+                    // TODO: re-enable when messaging component is in place
+                    auto *vehicle = (
+                        pRozkaz->cString[ 1 ] == '*' ?
+                            simulation::Vehicles.find( Global::asHumanCtrlVehicle ) :
+                            simulation::Vehicles.find( std::string{ pRozkaz->cString + 1, (unsigned)pRozkaz->cString[ 0 ] } ) );
+                    if( vehicle != nullptr ) {
+                        multiplayer::WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
+                    }
+*/
 #endif
                 }
-                else
-                { // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie,
-                    // to rozpoznać np. "*")
+                else {
+                    // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie, to rozpoznać np. "*")
                     Ground.DynamicList();
                 }
             }
@@ -2036,12 +2063,10 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             break;
 		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
-			Ground.WyslijObsadzone();
+            multiplayer::WyslijObsadzone();
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
-				 //            WriteLog("Przyszlo 13!");
-				 //            WriteLog(pRozkaz->cString);
                     CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                             std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
                             " rcvd");
@@ -2067,7 +2092,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                                 d->Damage( pRozkaz->cString[ 0 ] );
                                 d = d->Prev(); // w drugą stronę też
                             }
-                            Ground.WyslijUszkodzenia( t->asName, t->DynamicObject->MoverParameters->EngDmgFlag ); // zwrot informacji o pojeździe
+                            multiplayer::WyslijUszkodzenia( t->asName, t->DynamicObject->MoverParameters->EngDmgFlag ); // zwrot informacji o pojeździe
                         }
                     }
 #else

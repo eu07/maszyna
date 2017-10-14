@@ -42,30 +42,6 @@ const int TP_ISOLATED=22; //Ra
 const int TP_SUBMODEL = 22; // Ra: submodele terenu
 const int TP_LAST = 25; // rozmiar tablicy
 
-struct DaneRozkaz
-{ // struktura komunikacji z EU07.EXE
-    int iSygn; // sygnatura 'EU07'
-    int iComm; // rozkaz/status (kod ramki)
-    union
-    {
-        float fPar[62];
-        int iPar[62];
-        char cString[248]; // upakowane stringi
-    };
-};
-
-struct DaneRozkaz2
-{              // struktura komunikacji z EU07.EXE
-	int iSygn; // sygnatura 'EU07'
-	int iComm; // rozkaz/status (kod ramki)
-	union
-	{
-		float fPar[496];
-		int iPar[496];
-		char cString[1984]; // upakowane stringi
-	};
-};
-
 struct TGroundVertex
 {
     glm::dvec3 position;
@@ -259,9 +235,8 @@ class TGround
            *tmpEvent = nullptr;
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
-#endif
     TNames<TGroundNode *> m_nodemap;
-
+#endif
     vector3 pOrigin;
     vector3 aRotate;
     bool bInitDone = false;
@@ -300,7 +275,9 @@ class TGround
     TGroundNode * DynamicFind(std::string const &Name);
 #endif
     void DynamicList(bool all = false);
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode * FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType);
+#endif
     TGroundRect * GetRect( double x, double z );
     TSubRect * GetSubRect( int iCol, int iRow );
     inline
@@ -321,32 +298,25 @@ class TGround
 #endif
     void TrackJoin(TGroundNode *Current);
 
-  private:
+private:
     // convert tp_terrain model to a series of triangle nodes
     void convert_terrain( TGroundNode const *Terrain );
     void convert_terrain( TSubModel const *Submodel );
 #ifdef EU07_USE_OLD_GROUNDCODE
     void RaTriangleDivider(TGroundNode *node);
-#endif
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
+#endif
+public:
+    void TrackBusyList();
+    void IsolatedBusyList();
+    void IsolatedBusy( const std::string t );
 
-  public:
-    void WyslijEvent(const std::string &e, const std::string &d);
-    void WyslijString(const std::string &t, int n);
-    void WyslijWolny(const std::string &t);
-    void WyslijNamiary(TGroundNode *t);
-    void WyslijParam(int nr, int fl);
-	void WyslijUszkodzenia(const std::string &t, char fl);
-	void WyslijObsadzone(); // -> skladanie wielu pojazdow    
 	void RadioStop(vector3 pPosition);
     TDynamicObject * DynamicNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
     TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
     void DynamicRemove(TDynamicObject *dyn);
     void TerrainRead(std::string const &f);
     void TerrainWrite();
-    void TrackBusyList();
-    void IsolatedBusyList();
-    void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
 };
 

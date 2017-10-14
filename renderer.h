@@ -294,6 +294,8 @@ private:
         Render( TGroundRect *Groundcell );
     bool
         Render( TSubRect *Groundsubcell );
+    bool
+        Render( TGroundNode *Node );
 #else
     void
         Render( scene::basic_region *Region );
@@ -307,8 +309,6 @@ private:
         Render( TAnimModel *Instance );
 #endif
     bool
-        Render( TGroundNode *Node );
-    bool
         Render( TDynamicObject *Dynamic );
     bool
         Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
@@ -318,6 +318,8 @@ private:
         Render( TSubModel *Submodel );
     void
         Render( TTrack *Track );
+    void
+        Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last );
     bool
         Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
     void
@@ -327,6 +329,8 @@ private:
         Render_Alpha( TGround *Ground );
     bool
         Render_Alpha( TSubRect *Groundsubcell );
+    bool
+        Render_Alpha( TGroundNode *Node );
 #else
     void
         Render_Alpha( scene::basic_region *Region );
@@ -337,8 +341,6 @@ private:
     void
         Render_Alpha( TTraction *Traction );
 #endif
-    bool
-        Render_Alpha( TGroundNode *Node );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool

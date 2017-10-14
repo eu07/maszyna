@@ -685,7 +685,7 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
             Input.getToken<std::string>() );
     auto const offset { Input.getToken<double>( false ) };
     auto const drivertype { Input.getToken<std::string>() };
-    auto const couplingparams = (
+    auto const couplingdata = (
         Scratchpad.trainset.is_open ?
             Input.getToken<std::string>() :
             "3" );
@@ -694,11 +694,11 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
             Scratchpad.trainset.velocity :
             Input.getToken<float>( false ) );
     // extract coupling type and optional parameters
-    auto const couplingparamsplit = couplingparams.find( '.' );
+    auto const couplingdatawithparams = couplingdata.find( '.' );
     auto coupling = (
-        couplingparamsplit != std::string::npos ?
-            std::atoi( couplingparams.substr( 0, couplingparamsplit ).c_str() ) :
-            std::atoi( couplingparams.c_str() ) );
+        couplingdatawithparams != std::string::npos ?
+            std::atoi( couplingdata.substr( 0, couplingdatawithparams ).c_str() ) :
+            std::atoi( couplingdata.c_str() ) );
     if( coupling < 0 ) {
         // sprzęg zablokowany (pojazdy nierozłączalne przy manewrach)
         coupling = ( -coupling ) | coupling::permanent;
@@ -706,11 +706,11 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
     if( ( offset != -1.0 )
      && ( std::abs( offset ) > 0.5 ) ) { // maksymalna odległość między sprzęgami - do przemyślenia
         // likwidacja sprzęgu, jeśli odległość zbyt duża - to powinno być uwzględniane w fizyce sprzęgów...
-        coupling = 0; 
+        coupling = coupling::faux; 
     }
     auto const params = (
-        couplingparamsplit != std::string::npos ?
-            couplingparams.substr( couplingparamsplit + 1 ) :
+        couplingdatawithparams != std::string::npos ?
+            couplingdata.substr( couplingdatawithparams + 1 ) :
             "" );
     // load amount and type
     auto loadcount { Input.getToken<int>( false ) };
