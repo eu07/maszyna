@@ -203,7 +203,9 @@ public:
         Update_Pick_Node();
     // debug performance string
     std::string const &
-        Info() const;
+        info_times() const;
+    std::string const &
+        info_stats() const;
 
 // members
     GLenum static const sunlight{ GL_LIGHT0 };
@@ -225,6 +227,17 @@ private:
         shadows,
         normals,
         diffuse
+    };
+
+    struct debug_stats {
+        int dynamics { 0 };
+        int models { 0 };
+        int submodels { 0 };
+        int paths { 0 };
+        int traction { 0 };
+        int shapes { 0 };
+        int lines { 0 };
+        int drawcalls { 0 };
     };
 
 #ifdef EU07_USE_OLD_GROUNDCODE
@@ -289,7 +302,7 @@ private:
     void
         Render( cell_sequence::iterator First, cell_sequence::iterator Last );
     void
-        Render( scene::shape_node const &Shape );
+        Render( scene::shape_node const &Shape, bool const Ignorerange );
     void
         Render( TAnimModel *Instance );
 #endif
@@ -383,14 +396,12 @@ private:
     units_state m_unitstate;
 
     unsigned int m_framestamp; // id of currently rendered gfx frame
-    float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
-    std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
     float m_framerate;
-    float m_drawtimecolorpass { 1000.f / 30.f * 20.f };
-    float m_drawtimeshadowpass { 0.f };
     double m_updateaccumulator { 0.0 };
-    std::string m_debuginfo;
+    std::string m_debugtimestext;
     std::string m_pickdebuginfo;
+    debug_stats m_debugstats;
+    std::string m_debugstatstext;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };

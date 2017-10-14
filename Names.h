@@ -108,4 +108,11 @@ protected:
 // members
     type_sequence m_items;
     type_map m_itemmap;
+
+public:
+    // data access
+    typename type_sequence &
+        sequence() {
+            return m_items; }
+
 };

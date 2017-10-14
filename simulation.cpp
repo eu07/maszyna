@@ -43,8 +43,8 @@ state_manager::deserialize( std::string const &Scenariofile ) {
     if( false == scenarioparser.ok() ) { return false; }
 
     deserialize( scenarioparser );
-    // TODO: initialize links between loaded nodes
 
+    Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
 
@@ -125,6 +125,11 @@ state_manager::deserialize( cParser &Input ) {
         }
 
         token = Input.getToken<std::string>();
+    }
+
+    if( false == importscratchpad.initialized ) {
+        // manually perform scenario initialization
+        deserialize_firstinit( Input, importscratchpad );
     }
 }
 
@@ -247,11 +252,15 @@ state_manager::deserialize_event( cParser &Input, scene::scratch_data &Scratchpa
 void
 state_manager::deserialize_firstinit( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    // TODO: implement
+    if( true == Scratchpad.initialized ) { return; }
+
     simulation::Paths.InitTracks();
     simulation::Traction.InitTraction();
     simulation::Events.InitEvents();
+    simulation::Events.InitLaunchers();
     simulation::Memory.InitCells();
+
+    Scratchpad.initialized = true;
 }
 
 void
@@ -283,7 +292,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         if( false == simulation::Vehicles.insert( vehicle ) ) {
 
-            ErrorLog( "Bad scenario: vehicle with duplicate name, \"" + vehicle->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: vehicle with duplicate name \"" + vehicle->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
@@ -303,7 +312,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             simulation::Region->insert_path( path, Scratchpad );
         }
         else {
-            ErrorLog( "Bad scenario: track with duplicate name, \"" + path->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: track with duplicate name \"" + path->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
 /*
             delete path;
             delete pathnode;
@@ -320,7 +329,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             simulation::Region->insert_traction( traction, Scratchpad );
         }
         else {
-            ErrorLog( "Bad scenario: traction piece with duplicate name, \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: traction piece with duplicate name \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
     }
     else if( nodedata.type == "tractionpowersource" ) {
@@ -336,7 +345,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 */
         }
         else {
-            ErrorLog( "Bad scenario: power grid source with duplicate name, \"" + powersource->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: power grid source with duplicate name \"" + powersource->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
     }
     else if( nodedata.type == "model" ) {
@@ -355,7 +364,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
                    simulation::Region->insert_instance( instance, Scratchpad );
             }
             else {
-                ErrorLog( "Bad scenario: 3d model instance with duplicate name, \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+                ErrorLog( "Bad scenario: 3d model instance with duplicate name \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
             }
         }
     }
@@ -382,12 +391,25 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 */
         }
         else {
-            ErrorLog( "Bad scenario: memory cell with duplicate name, \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: memory cell with duplicate name \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
     }
     else if( nodedata.type == "eventlauncher" ) {
-        // TODO: implement
-        skip_until( Input, "end" );
+
+        auto *eventlauncher{ deserialize_eventlauncher( Input, Scratchpad, nodedata ) };
+        if( simulation::Events.insert( eventlauncher ) ) {
+            // event launchers can be either global, or local with limited range of activation
+            // each gets assigned different caretaker
+            if( true == eventlauncher->IsGlobal() ) {
+                simulation::Events.queue( eventlauncher );
+            }
+            else {
+                simulation::Region->insert_launcher( eventlauncher, Scratchpad );
+            }
+        }
+        else {
+            ErrorLog( "Bad scenario: event launcher with duplicate name \"" + eventlauncher->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
     }
     else if( nodedata.type == "sound" ) {
 
@@ -396,7 +418,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             simulation::Region->insert_sound( sound, Scratchpad );
         }
         else {
-            ErrorLog( "Bad scenario: sound node with duplicate name, \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
     }
 
@@ -602,6 +624,23 @@ state_manager::deserialize_memorycell( cParser &Input, scene::scratch_data &Scra
     memorycell->location( transform( memorycell->location(), Scratchpad ) );
 
     return memorycell;
+}
+
+TEventLauncher *
+state_manager::deserialize_eventlauncher( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
+
+    glm::dvec3 location;
+    Input.getTokens( 3 );
+    Input
+        >> location.x
+        >> location.y
+        >> location.z;
+
+    auto *eventlauncher = new TEventLauncher( Nodedata );
+    eventlauncher->Load( &Input );
+    eventlauncher->location( transform( location, Scratchpad ) );
+
+    return eventlauncher;
 }
 
 TAnimModel *

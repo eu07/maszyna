@@ -277,15 +277,13 @@ class TGround
     TGround();
     ~TGround();
     void Free();
+#ifdef EU07_USE_OLD_GROUNDCODE
     bool Init( std::string File );
     void FirstInit();
-#ifdef EU07_USE_OLD_GROUNDCODE
     void InitTracks();
     void InitTraction();
     bool InitEvents();
-#endif
     bool InitLaunchers();
-#ifdef EU07_USE_OLD_GROUNDCODE
     TTrack * FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude);
     TTraction * TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n);
@@ -295,9 +293,7 @@ class TGround
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
     void Update_Hidden(); // updates invisible elements of the scene
-#endif
     bool GetTraction(TDynamicObject *model);
-#ifdef EU07_USE_OLD_GROUNDCODE
     bool AddToQuery( TEvent *Event, TDynamicObject *Node );
     bool CheckQuery();
     TGroundNode * DynamicFindAny(std::string const &Name);

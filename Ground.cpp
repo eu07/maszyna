@@ -190,7 +190,7 @@ void TGroundNode::RenderHidden()
         }
         return;
     case TP_EVLAUNCH:
-        if (EvLaunch->Render())
+        if (EvLaunch->check_conditions())
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
                 WriteLog("Eventlauncher " + asName);
@@ -1006,7 +1006,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
         }
         break;
-#endif
     case TP_EVLAUNCH:
         parser->getTokens(3);
         *parser
@@ -1018,7 +1017,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->EvLaunch = new TEventLauncher();
         tmp->EvLaunch->Load(parser);
         break;
-#ifdef EU07_USE_OLD_GROUNDCODE
     case TP_TRACK:
         tmp->pTrack = new TTrack( tmp->asName );
         if (Global::iWriteLogEnabled & 4)
@@ -1600,7 +1598,6 @@ TEvent * TGround::FindEvent(const std::string &asEventName)
             lookup->second :
             nullptr );
 }
-#endif
 
 void TGround::FirstInit()
 { // ustalanie zależności na scenerii przed wczytaniem pojazdów
@@ -1668,18 +1665,14 @@ void TGround::FirstInit()
 
     WriteLog("InitNormals OK");
 
-#ifdef EU07_USE_OLD_GROUNDCODE
     InitTracks(); //łączenie odcinków ze sobą i przyklejanie eventów
     WriteLog("InitTracks OK");
     InitTraction(); //łączenie drutów ze sobą
     WriteLog("InitTraction OK");
     InitEvents();
     WriteLog( "InitEvents OK" );
-#endif
-
     InitLaunchers();
     WriteLog("InitLaunchers OK");
-
     WriteLog("FirstInit is done");
 };
 
@@ -1839,7 +1832,6 @@ bool TGround::Init(std::string File)
         }
         else if (str == "event")
         {
-#ifdef EU07_USE_OLD_GROUNDCODE
             TEvent *tmp = new TEvent();
             tmp->Load(&parser, pOrigin);
             if (tmp->Type == tp_Unknown)
@@ -1904,7 +1896,6 @@ bool TGround::Init(std::string File)
                     }
                 }
             }
-#endif
         }
         else if (str == "rotate")
         {
@@ -2126,14 +2117,13 @@ bool TGround::Init(std::string File)
 
     if (!bInitDone)
         FirstInit(); // jeśli nie było w scenerii
-#ifdef EU07_USE_OLD_TERRAINCODE
+
     if (Global::pTerrainCompact)
         TerrainWrite(); // Ra: teraz można zapisać teren w jednym pliku
-#endif
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
-#ifdef EU07_USE_OLD_GROUNDCODE
+
 bool TGround::InitEvents()
 { //łączenie eventów z pozostałymi obiektami
     TGroundNode *tmp, *trk;
@@ -2816,7 +2806,7 @@ void TGround::TrackJoin(TGroundNode *Current)
         }
     }
 }
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 // McZapkie-070602: wyzwalacze zdarzen
 bool TGround::InitLaunchers()
 {
@@ -2837,26 +2827,16 @@ bool TGround::InitLaunchers()
             }
             else
                 EventLauncher->MemCell = nullptr;
-#ifdef EU07_USE_OLD_GROUNDCODE
         EventLauncher->Event1 = ( EventLauncher->asEvent1Name != "none") ?
                                     FindEvent(EventLauncher->asEvent1Name) :
                                     nullptr;
         EventLauncher->Event2 = ( EventLauncher->asEvent2Name != "none") ?
                                     FindEvent(EventLauncher->asEvent2Name) :
                                     nullptr;
-#else
-        EventLauncher->Event1 = ( EventLauncher->asEvent1Name != "none") ?
-                                    simulation::Events.FindEvent(EventLauncher->asEvent1Name) :
-                                    nullptr;
-        EventLauncher->Event2 = ( EventLauncher->asEvent2Name != "none") ?
-                                    simulation::Events.FindEvent(EventLauncher->asEvent2Name) :
-                                    nullptr;
-#endif
     }
     return true;
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
 TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego toru kończącego się w (Point)
     TTrack *tmp;
@@ -3539,7 +3519,7 @@ TGround::Update_Hidden() {
         }
     }
 }
-#endif
+
 // Winger 170204 - szukanie trakcji nad pantografami
 bool TGround::GetTraction(TDynamicObject *model)
 { // aktualizacja drutu zasilającego dla każdego pantografu, żeby odczytać napięcie
@@ -3774,7 +3754,7 @@ bool TGround::GetTraction(TDynamicObject *model)
 
     return true;
 };
-
+#endif
 #ifdef _WINDOWS
 //---------------------------------------------------------------------------
 void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)

@@ -63,7 +63,9 @@ union TParam
 {
     void *asPointer;
     TMemCell *asMemCell;
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode *nGroundNode;
+#endif
     editor::basic_node *asEditorNode;
     glm::dvec3 const *asLocation;
     TTrack *asTrack;
@@ -125,6 +127,12 @@ public:
 // destructor
     ~event_manager();
 // methods
+    // adds specified event launcher to the list of global launchers
+    void
+        queue( TEventLauncher *Launcher );
+    // legacy method, updates event queues
+    void
+        update();
     // adds provided event to the collection. returns: true on success
     // TBD, TODO: return handle to the event
     bool
@@ -144,6 +152,9 @@ public:
     // legacy method, initializes events after deserialization from scenario file
     void
         InitEvents();
+    // legacy method, initializes event launchers after deserialization from scenario file
+    void
+        InitLaunchers();
 
 private:
 // types

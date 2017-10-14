@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 
 #include "globals.h"
+#include "timer.h"
 #include "renderer.h"
 #include "logs.h"
 
@@ -19,16 +20,113 @@ namespace scene {
 // legacy method, updates sounds and polls event launchers within radius around specified point
 void
 basic_cell::update() {
-/*
-    // renderowanie obiektów aktywnych a niewidocznych
-    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
-        node->RenderHidden();
+
+    // sounds
+    auto const deltatime = Timer::GetDeltaTime();
+    for( auto *sound : m_sounds ) {
+
+        if( ( sound->GetStatus() & DSBSTATUS_PLAYING ) == DSBPLAY_LOOPING ) {
+            sound->Play( 1, DSBPLAY_LOOPING, true, sound->vSoundPosition );
+            sound->AdjFreq( 1.0, deltatime );
+        }
     }
-*/
+    // event launchers
+    for( auto *launcher : m_eventlaunchers ) {
+        if( ( true == launcher->check_conditions() )
+         && ( SquareMagnitude( launcher->location() - Global::pCameraPosition ) < launcher->dRadius ) ) {
+
+            WriteLog( "Eventlauncher " + launcher->name() );
+            if( ( true == Global::shiftState )
+             && ( launcher->Event2 != nullptr ) ) {
+                simulation::Events.AddToQuery( launcher->Event2, nullptr );
+            }
+            else if( launcher->Event1 ) {
+                simulation::Events.AddToQuery( launcher->Event1, nullptr );
+            }
+        }
+    }
+
     // TBD, TODO: move to sound renderer
     for( auto *path : m_paths ) {
         // dźwięki pojazdów, również niewidocznych
         path->RenderDynSounds();
+    }
+}
+
+// legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+void
+basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
+    // Winger 170204 - szukanie trakcji nad pantografami
+    auto const vFront = glm::make_vec3( Vehicle->VectorFront().getArray() ); // wektor normalny dla płaszczyzny ruchu pantografu
+    auto const vUp = glm::make_vec3( Vehicle->VectorUp().getArray() ); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    auto const vLeft = glm::make_vec3( Vehicle->VectorLeft().getArray() ); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = glm::dvec3 { Vehicle->GetPosition() }; // współrzędne środka pojazdu
+
+    auto pantograph = Vehicle->pants[ Pantographindex ].fParamPants;
+    auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
+    
+    for( auto *traction : m_traction ) {
+
+        // współczynniki równania parametrycznego
+        auto const paramfrontdot = glm::dot( traction->vParametric, vFront );
+        auto const fRaParam =
+            -( glm::dot( traction->pPoint1, vFront ) - glm::dot( pantographposition, vFront ) )
+            / ( paramfrontdot != 0.0 ?
+                    paramfrontdot :
+                    0.001 ); // div0 trap
+
+        if( ( fRaParam < -0.001 )
+         || ( fRaParam >  1.001 ) ) { continue; }
+        // jeśli tylko jest w przedziale, wyznaczyć odległość wzdłuż wektorów vUp i vLeft
+        // punkt styku płaszczyzny z drutem (dla generatora łuku el.)
+        auto const vStyk = traction->pPoint1 + fRaParam * traction->vParametric;
+        // wektor musi się mieścić w przedziale ruchu pantografu
+        auto const vGdzie = vStyk - pantographposition;
+        auto fVertical = glm::dot( vGdzie, vUp );
+        if( fVertical >= 0.0 ) {
+            // jeśli ponad pantografem (bo może łapać druty spod wiaduktu)
+            auto const fHorizontal = std::abs( glm::dot( vGdzie, vLeft ) ) - pantograph->fWidth;
+
+            if( ( Global::bEnableTraction )
+             && ( fVertical < pantograph->PantWys - 0.15 ) ) {
+                // jeśli drut jest niżej niż 15cm pod ślizgiem przełączamy w tryb połamania, o ile jedzie;
+                // (bEnableTraction) aby dało się jeździć na koślawych sceneriach
+                // i do tego jeszcze wejdzie pod ślizg
+                if( fHorizontal <= 0.0 ) {
+                    // 0.635 dla AKP-1 AKP-4E
+                    pantograph->PantWys = -1.0; // ujemna liczba oznacza połamanie
+                    pantograph->hvPowerWire = nullptr; // bo inaczej się zasila w nieskończoność z połamanego
+                    if( Vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) {
+                        // liczba pantografów teraz będzie mniejsza
+                        --Vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo;
+                    }
+                    if( DebugModeFlag ) {
+                        ErrorLog( "Bad traction: " + Vehicle->name() + " broke pantograph at " + to_string( pantographposition ) );
+                    }
+                }
+            }
+            else if( fVertical < pantograph->PantTraction ) {
+                // ale niżej, niż poprzednio znaleziony
+                if( fHorizontal <= 0.0 ) {
+                    // 0.635 dla AKP-1 AKP-4E
+                    // to się musi mieścić w przedziale zaleznym od szerokości pantografu
+                    pantograph->hvPowerWire = traction; // jakiś znaleziony
+                    pantograph->PantTraction = fVertical; // zapamiętanie nowej wysokości
+                }
+                else if( fHorizontal < pantograph->fWidthExtra ) {
+                    // czy zmieścił się w zakresie nabieżnika? problem jest, gdy nowy drut jest wyżej,
+                    // wtedy pantograf odłącza się od starego, a na podniesienie do nowego potrzebuje czasu
+                    // korekta wysokości o nabieżnik - drut nad nabieżnikiem jest geometrycznie jakby nieco wyżej
+                    fVertical += 0.15 * fHorizontal / pantograph->fWidthExtra;
+                    if( fVertical < pantograph->PantTraction ) {
+                        // gdy po korekcie jest niżej, niż poprzednio znaleziony
+                        // gdyby to wystarczyło, to możemy go uznać
+                        pantograph->hvPowerWire = traction; // może być
+                        pantograph->PantTraction = fVertical; // na razie liniowo na nabieżniku, dokładność poprawi się później
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -107,18 +205,48 @@ basic_cell::insert( TAnimModel *Instance ) {
     }
 }
 
+// adds provided sound instance to the cell
+void
+basic_cell::insert( TTextSound *Sound ) {
+
+    m_active = true;
+
+    m_sounds.emplace_back( Sound );
+}
+
+// adds provided sound instance to the cell
+void
+basic_cell::insert( TEventLauncher *Launcher ) {
+
+    m_active = true;
+
+    m_eventlaunchers.emplace_back( Launcher );
+}
+
 // registers provided path in the lookup directory of the cell
 void
 basic_cell::register_end( TTrack *Path ) {
 
-    m_directories.paths.emplace( Path );
+    m_directories.paths.emplace_back( Path );
+    // eliminate potential duplicates
+    m_directories.paths.erase(
+        std::unique(
+            std::begin( m_directories.paths ),
+            std::end( m_directories.paths ) ),
+        std::end( m_directories.paths ) );
 }
 
 // registers provided traction piece in the lookup directory of the cell
 void
 basic_cell::register_end( TTraction *Traction ) {
 
-    m_directories.traction.emplace( Traction );
+    m_directories.traction.emplace_back( Traction );
+    // eliminate potential duplicates
+    m_directories.traction.erase(
+        std::unique(
+            std::begin( m_directories.traction ),
+            std::end( m_directories.traction ) ),
+        std::end( m_directories.traction ) );
 }
 
 // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
@@ -263,6 +391,29 @@ basic_section::update( glm::dvec3 const &Location, float const Radius ) {
     }
 }
 
+// legacy method, finds and assigns traction piece(s) to pantographs of provided vehicle
+void
+basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
+
+    auto const vFront = glm::make_vec3( Vehicle->VectorFront().getArray() ); // wektor normalny dla płaszczyzny ruchu pantografu
+    auto const vUp = glm::make_vec3( Vehicle->VectorUp().getArray() ); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    auto const vLeft = glm::make_vec3( Vehicle->VectorLeft().getArray() ); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = glm::dvec3{ Vehicle->GetPosition() }; // współrzędne środka pojazdu
+
+    auto pantograph = Vehicle->pants[ Pantographindex ].fParamPants;
+    auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
+
+    auto const radius { 0.0 }; // { EU07_CELLSIZE * 0.5 }; // experimentally limited, check if it has any negative effect
+    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + radius, 2 ) };
+
+    for( auto &cell : m_cells ) {
+        // we reject early cells which aren't within our area of interest
+        if( glm::length2( cell.area().center - pantographposition ) < squaredradii ) {
+            cell.update_traction( Vehicle, Pantographindex );
+        }
+    }
+}
+
 // adds provided shape to the section
 void
 basic_section::insert( shape_node Shape ) {
@@ -287,47 +438,6 @@ basic_section::insert( shape_node Shape ) {
         Shape.origin( m_area.center );
         m_shapes.emplace_back( Shape );
     }
-}
-
-// adds provided path to the section
-void
-basic_section::insert( TTrack *Path ) {
-
-    // pass the node to the appropriate partitioning cell
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    cell( Path->location() ).insert( Path );
-}
-
-// adds provided path to the section
-void
-basic_section::insert( TTraction *Traction ) {
-
-    // pass the node to the appropriate partitioning cell
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    cell( Traction->location() ).insert( Traction );
-}
-
-// adds provided model instance to the section
-void
-basic_section::insert( TAnimModel *Instance ) {
-
-    // pass the node to the appropriate partitioning cell
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    cell( Instance->location() ).insert( Instance );
-}
-
-// registers specified end point of the provided path in the lookup directory of the region
-void
-basic_section::register_end( TTrack *Path, glm::dvec3 const &Point ) {
-
-    cell( Point ).register_end( Path );
-}
-
-// registers specified end point of the provided traction piece in the lookup directory of the region
-void
-basic_section::register_end( TTraction *Traction, glm::dvec3 const &Point ) {
-
-    cell( Point ).register_end( Traction );
 }
 
 // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
@@ -467,26 +577,11 @@ basic_section::cell( glm::dvec3 const &Location ) {
 basic_region::basic_region() {
 
     m_sections.fill( nullptr );
-/*
-    // initialize centers of sections:
-    // calculate center of 'top left' region section...
-    auto const centeroffset = -( EU07_REGIONSIDESECTIONCOUNT / 2 * EU07_SECTIONSIZE ) + EU07_SECTIONSIZE / 2;
-    glm::dvec3 regioncornercenter { centeroffset, 0, centeroffset };
-    auto row { 0 }, column { 0 };
-    // ...move through section array assigning centers left to right, front/top to back/bottom
-    for( auto &section : m_sections ) {
-        section.center( regioncornercenter + glm::dvec3{ column * EU07_SECTIONSIZE, 0.0, row * EU07_SECTIONSIZE } );
-        if( ++column >= EU07_REGIONSIDESECTIONCOUNT ) {
-            ++row;
-            column = 0;
-        }
-    }
-*/
 }
 
 basic_region::~basic_region() {
 
-    for( auto section : m_sections ) { if( section != nullptr ) { delete section; } }
+    for( auto *section : m_sections ) { if( section != nullptr ) { delete section; } }
 }
 
 // legacy method, updates sounds and polls event launchers around camera
@@ -497,6 +592,25 @@ basic_region::update() {
     auto const &sectionlist = sections( Global::pCameraPosition, range );
     for( auto *section : sectionlist ) {
         section->update( Global::pCameraPosition, range );
+    }
+}
+
+// legacy method, finds and assigns traction piece(s) to pantographs of provided vehicle
+void
+basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
+    // TODO: convert vectors to transformation matrix and pass them down the chain along with calculated position
+    auto const vFront = glm::make_vec3( Vehicle->VectorFront().getArray() ); // wektor normalny dla płaszczyzny ruchu pantografu
+    auto const vUp = glm::make_vec3( Vehicle->VectorUp().getArray() ); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    auto const vLeft = glm::make_vec3( Vehicle->VectorLeft().getArray() ); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = glm::dvec3 { Vehicle->GetPosition() }; // współrzędne środka pojazdu
+
+    auto p = Vehicle->pants[ Pantographindex ].fParamPants;
+    auto const pant0 = position + ( vLeft * p->vPos.z ) + ( vUp * p->vPos.y ) + ( vFront * p->vPos.x );
+    p->PantTraction = std::numeric_limits<double>::max(); // taka za duża wartość
+
+    auto const &sectionlist = sections( pant0, 0.0 );
+    for( auto *section : sectionlist ) {
+        section->update_traction( Vehicle, Pantographindex );
     }
 }
 
@@ -566,15 +680,15 @@ void
 basic_region::insert_path( TTrack *Path, scratch_data &Scratchpad ) {
 
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto center = Path->location();
+    auto location = Path->location();
 
-    if( point_inside( center ) ) {
+    if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
-        section( center ).insert( Path );
+        section( location ).insert( Path );
     }
     else {
         // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: track node \"" + Path->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+        ErrorLog( "Bad scenario: track node \"" + Path->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
     // also register path ends in appropriate sections, for path merging lookups
     // TODO: clean this up during track refactoring
@@ -588,15 +702,15 @@ void
 basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
 
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto center = Traction->location();
+    auto location = Traction->location();
 
-    if( point_inside( center ) ) {
+    if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
-        section( center ).insert( Traction );
+        section( location ).insert( Traction );
     }
     else {
         // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: traction node \"" + Traction->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+        ErrorLog( "Bad scenario: traction node \"" + Traction->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
     // also register traction ends in appropriate sections, for path merging lookups
     // TODO: clean this up during track refactoring
@@ -610,15 +724,15 @@ void
 basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) {
 
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto center = Instance->location();
+    auto location = Instance->location();
 
-    if( point_inside( center ) ) {
+    if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
-        section( center ).insert( Instance );
+        section( location ).insert( Instance );
     }
     else {
         // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
 }
 
@@ -626,20 +740,34 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
 void
 basic_region::insert_sound( TTextSound *Sound, scratch_data &Scratchpad ) {
 
-/*
-    // TODO: implement
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto center = Sound->location();
+    auto location = Sound->location();
 
-    if( point_inside( center ) ) {
+    if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
-        section( center ).insert( Instance );
+        section( location ).insert( Sound );
     }
     else {
         // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( center ) + ")" );
+        ErrorLog( "Bad scenario: sound node \"" + Sound->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
-*/
+}
+
+// inserts provided event launcher in the region
+void
+basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad ) {
+
+    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
+    auto location = Launcher->location();
+
+    if( point_inside( location ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( location ).insert( Launcher );
+    }
+    else {
+        // tracks are guaranteed to hava a name so we can skip the check
+        ErrorLog( "Bad scenario: event launcher \"" + Launcher->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
+    }
 }
 
 // find a vehicle located neares to specified location, within specified radius, optionally discarding vehicles without drivers
@@ -757,7 +885,7 @@ void
 basic_region::register_path( TTrack *Path, glm::dvec3 const &Point ) {
 
     if( point_inside( Point ) ) {
-        section( Point ).register_end( Path, Point );
+        section( Point ).register_node( Path, Point );
     }
 }
 
@@ -766,7 +894,7 @@ void
 basic_region::register_traction( TTraction *Traction, glm::dvec3 const &Point ) {
 
     if( point_inside( Point ) ) {
-        section( Point ).register_end( Traction, Point );
+        section( Point ).register_node( Traction, Point );
     }
 }
 

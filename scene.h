@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include <deque>
 #include <array>
 #include <stack>
+#include <unordered_set>
 
 #include "parser.h"
 #include "openglgeometrybank.h"
@@ -24,7 +25,7 @@ namespace scene {
 
 int const EU07_CELLSIZE = 250;
 int const EU07_SECTIONSIZE = 1000;
-int const EU07_REGIONSIDESECTIONCOUNT = 500; // number of 1km sections along a side of square region
+int const EU07_REGIONSIDESECTIONCOUNT = 500; // number of sections along a side of square region
 
 struct scratch_data {
 
@@ -42,6 +43,8 @@ struct scratch_data {
         TDynamicObject * driver { nullptr };
         bool is_open { false };
     } trainset;
+
+    bool initialized { false };
 };
 
 // basic element of rudimentary partitioning scheme for the section. fixed size, no further subdivision
@@ -55,6 +58,9 @@ public:
     // legacy method, updates sounds and polls event launchers within radius around specified point
     void
         update();
+    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+    void
+        update_traction( TDynamicObject *Vehicle, int const Pantographindex );
     // adds provided shape to the cell
     void
         insert( shape_node Shape );
@@ -67,6 +73,12 @@ public:
     // adds provided model instance to the cell
     void
         insert( TAnimModel *Instance );
+    // adds provided sound instance to the cell
+    void
+        insert( TTextSound *Sound );
+    // adds provided event launcher to the cell
+    void
+        insert( TEventLauncher *Launcher );
     // registers provided path in the lookup directory of the cell
     void
         register_end( TTrack *Path );
@@ -100,10 +112,12 @@ private:
 // types
     using shapenode_sequence = std::vector<shape_node>;
     using path_sequence = std::vector<TTrack *>;
-    using path_set = std::set<TTrack *>;
+//    using path_set = std::unordered_set<TTrack *>;
     using traction_sequence = std::vector<TTraction *>;
-    using traction_set = std::set<TTraction *>;
+//    using traction_set = std::unordered_set<TTraction *>;
     using instance_sequence = std::vector<TAnimModel *>;
+    using sound_sequence = std::vector<TTextSound *>;
+    using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // members
     scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) };
     bool m_active { false }; // whether the cell holds any actual data
@@ -114,10 +128,12 @@ private:
     instance_sequence m_instancesopaque;
     instance_sequence m_instancetranslucent;
     traction_sequence m_traction;
+    sound_sequence m_sounds;
+    eventlauncher_sequence m_eventlaunchers;
     // search helpers
     struct lookup_data {
-        path_set paths;
-        traction_set traction;
+        path_sequence paths;
+        traction_sequence traction;
     } m_directories;
 };
 
@@ -131,24 +147,22 @@ public:
     // legacy method, updates sounds and polls event launchers within radius around specified point
     void
         update( glm::dvec3 const &Location, float const Radius );
+    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+    void
+        update_traction( TDynamicObject *Vehicle, int const Pantographindex );
     // adds provided shape to the section
     void
         insert( shape_node Shape );
-    // adds provided path to the section
+    // adds provided node to the section
+    template <class Type_>
     void
-        insert( TTrack *Path );
-    // adds provided path to the section
+        insert( Type_ *Node ) {
+            cell( Node->location() ).insert( Node ); }
+    // registers provided node in the lookup directory of the section enclosing specified point
+    template <class Type_>
     void
-        insert( TTraction *Traction );
-    // adds provided model instance to the section
-    void
-        insert( TAnimModel *Instance );
-    // registers specified end point of the provided path in the lookup directory of the region
-    void
-        register_end( TTrack *Path, glm::dvec3 const &Point );
-    // registers specified end point of the provided traction piece in the lookup directory of the region
-    void
-        register_end( TTraction *Traction, glm::dvec3 const &Point );
+        register_node( Type_ *Node, glm::dvec3 const &Point ) {
+            cell( Point ).register_end( Node ); }
     // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled );
@@ -206,6 +220,9 @@ public:
     // legacy method, updates sounds and polls event launchers around camera
     void
         update();
+    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+    void
+        update_traction( TDynamicObject *Vehicle, int const Pantographindex );
     // inserts provided shape in the region
     void
         insert_shape( shape_node Shape, scratch_data &Scratchpad );
@@ -221,6 +238,9 @@ public:
     // inserts provided sound in the region
     void
         insert_sound( TTextSound *Sound, scratch_data &Scratchpad );
+    // inserts provided event launcher in the region
+    void
+        insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );
     // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled );

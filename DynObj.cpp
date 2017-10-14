@@ -2613,77 +2613,36 @@ bool TDynamicObject::Update(double dt, double dt1)
                 NoVoltTime = 0;
                 tmpTraction.TractionVoltage = v;
             }
-            else
-            {
-                /*
-                      if (MoverParameters->Vel>0.1f) //jeśli jedzie
-                       if (NoVoltTime==0.0) //tylko przy pierwszym zaniku napięcia
-                        if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp)
-                        //if
-                   ((pants[0].fParamPants->PantTraction>1.0)||(pants[1].fParamPants->PantTraction>1.0))
-                        {//wspomagacz usuwania problemów z siecią
-                         if (!Global::iPause)
-                         {//Ra: tymczasowa teleportacja do miejsca, gdzie brakuje prądu
-                          Global::SetCameraPosition(vPosition+vector3(0,0,5)); //nowa
-                   pozycja dla
-                   generowania obiektów
-                          Global::pCamera->Init(vPosition+vector3(0,0,5),Global::pFreeCameraInitAngle[0]);
-                   //przestawienie
-                         }
-                         Global:l::pGround->Silence(Global::pCamera->Pos); //wyciszenie
-                   wszystkiego
-                   z poprzedniej pozycji
-                          Globa:iPause|=1; //tymczasowe zapauzowanie, gdy problem z
-                   siecią
-                        }
-                */
-                NoVoltTime = NoVoltTime + dt;
-                if (NoVoltTime > 0.2) // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod
-                // izolatorem daje 0.15s)
-                { // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało
-                    // WS pod
-                    // izolatorem
-                    if (MoverParameters->Vel > 0.5) // jeśli jedzie
-                        if (MoverParameters->PantFrontUp ||
-                            MoverParameters->PantRearUp) // Ra 2014-07: doraźna blokada logowania
-                            // zimnych lokomotyw - zrobić to trzeba
-                            // inaczej
+            else {
+                NoVoltTime += dt;
+                if( NoVoltTime > 0.2 ) {
+                    // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
+                    // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem
+                    if( MoverParameters->Vel > 0.5 ) {
+                        // jeśli jedzie
+                        // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
+                        if( MoverParameters->PantFrontUp || MoverParameters->PantRearUp )
                             // if (NoVoltTime>0.02) //tu można ograniczyć czas rozłączenia
                             // if (DebugModeFlag) //logowanie nie zawsze
-                            if ((MoverParameters->Mains) &&
-                               ((MoverParameters->EngineType != ElectricInductionMotor)
-                                || (MoverParameters->GetTrainsetVoltage() < 0.1f)))
-                            { // Ra 15-01: logować tylko, jeśli WS załączony
-                              // yB 16-03: i nie jest to asynchron zasilany z daleka 
-                                // if (MoverParameters->PantFrontUp&&pants)
+                            if( ( MoverParameters->Mains )
+                             && ( ( MoverParameters->EngineType != ElectricInductionMotor )
+                               || ( MoverParameters->GetTrainsetVoltage() < 0.1f ) ) ) {
+                                // Ra 15-01: logować tylko, jeśli WS załączony
+                                // yB 16-03: i nie jest to asynchron zasilany z daleka 
                                 // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
                                 // więc lepiej się tego nie zaloguje
-                                ErrorLog("Voltage loss: by " + MoverParameters->Name + " at " +
-                                         to_string(vPosition.x, 2, 7) + " " +
-                                         to_string(vPosition.y, 2, 7) + " " +
-                                         to_string(vPosition.z, 2, 7) + ", time " +
-                                         to_string(NoVoltTime, 2, 7));
-                                // if (MoverParameters->PantRearUp)
-                                // if (iAnimType[ANIM_PANTS]>1)
-                                //  if (pants[1])
-                                //   ErrorLog("Voltage loss: by "+MoverParameters->Name+" at
-                                //   "+FloatToStrF(vPosition.x,ffFixed,7,2)+"
-                                //   "+FloatToStrF(vPosition.y,ffFixed,7,2)+"
-                                //   "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time
-                                //   "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+                                ErrorLog(
+                                      "Bad traction: " + MoverParameters->Name
+                                    + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
+                                    + to_string( glm::dvec3{ vPosition } ) );
                             }
-                    // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo
-                    // zmienna była
+                    }
+                    // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo zmienna była
                     // tymczasowa, a napięcie zerowane od razu
                     tmpTraction.TractionVoltage = 0; // Ra 2013-12: po co tak?
-                    // pControlled->MainSwitch(false); //może tak?
                 }
             }
         }
-        // else //Ra: nie no, trzeba podnieść pantografy, jak nie będzie drutu, to
-        // będą miały prąd
-        // po osiągnięciu 1.4m
-        // tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
     }
     else
         tmpTraction.TractionVoltage = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
@@ -3199,22 +3158,22 @@ bool TDynamicObject::Update(double dt, double dt1)
                 else if ( ( true == MoverParameters->PantRearUp )
                        && ( PantDiff < 0.01 ) )
                 {
-                    if ((MoverParameters->PantRearVolt == 0.0) &&
-                        (MoverParameters->PantFrontVolt == 0.0))
-                        sPantUp.Play(vol, 0, MechInside, vPosition);
-                    if (p->hvPowerWire) // TODO: wyliczyć trzeba prąd przypadający na
-                    // pantograf i
-                    // wstawić do GetVoltage()
-                    {
-                        MoverParameters->PantRearVolt =
-                            p->hvPowerWire->VoltageGet(MoverParameters->Voltage, fPantCurrent);
+                    if( ( MoverParameters->PantRearVolt == 0.0 )
+                     && ( MoverParameters->PantFrontVolt == 0.0 ) ) {
+                        sPantUp.Play( vol, 0, MechInside, vPosition );
+                    }
+                    if (p->hvPowerWire) {
+                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
+                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                     }
                     else
                         MoverParameters->PantRearVolt = 0.0;
                 }
-                else
+                else {
+//                    Global::iPause ^= 2;
                     MoverParameters->PantRearVolt = 0.0;
+                }
                 break;
             } // pozostałe na razie nie obsługiwane
             if( MoverParameters->PantPress > (
@@ -3281,8 +3240,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     p->fAngleU = acos((p->fLenL1 * cos(k) + p->fHoriz) / p->fLenU1); // górne ramię
                     // wyliczyć aktualną wysokość z wzoru sinusowego
                     // h=a*sin()+b*sin()
-                    p->PantWys = p->fLenL1 * sin(k) + p->fLenU1 * sin(p->fAngleU) +
-                                 p->fHeight; // wysokość całości
+                    // wysokość całości
+                    p->PantWys = p->fLenL1 * sin(k) + p->fLenU1 * sin(p->fAngleU) + p->fHeight;
                 }
             }
         } // koniec pętli po pantografach
@@ -4438,10 +4397,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                             // pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów
                             // asymetrycznych
 							pants[ i ].fParamPants->PantTraction = pants[ i ].fParamPants->PantWys;
-							pants[ i ].fParamPants->fWidth =
-                                0.5 *
-                                MoverParameters->EnginePowerSource.CollectorParameters
-                                    .CSW; // połowa szerokości ślizgu; jest w "Power: CSW="
+                            // połowa szerokości ślizgu; jest w "Power: CSW="
+							pants[ i ].fParamPants->fWidth = 0.5 * MoverParameters->EnginePowerSource.CollectorParameters.CSW;
                         }
                 }
                 }
@@ -4932,7 +4889,12 @@ void TDynamicObject::RadioStop()
         if( ( MoverParameters->SecuritySystem.RadioStop )
          && ( MoverParameters->Radio ) ) {
             // jeśli pojazd ma RadioStop i jest on aktywny
+#ifdef EU07_USE_OLD_GROUNDCODE
             Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
+#else
+            // HAX cast until math types unification
+            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &static_cast<glm::dvec3>(vPosition), stopRadio );
+#endif
             // add onscreen notification for human driver
             // TODO: do it selectively for the 'local' driver once the multiplayer is in
             if( false == Mechanik->AIControllFlag ) {
@@ -5404,10 +5366,8 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
     for( auto *vehicle : m_items ) {
         // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
         if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
-/*
             // TODO: re-implement
-            GetTraction( vehicle );
-*/
+            update_traction( vehicle );
         }
         vehicle->MoverParameters->ComputeConstans();
         vehicle->CoupleDist();
@@ -5446,4 +5406,98 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
         bDynamicRemove = false; // na razie koniec
     }
 */
+}
+
+// legacy method, checks for presence and height of traction wire for specified vehicle
+void
+vehicle_table::update_traction( TDynamicObject *Vehicle ) {
+
+    auto const vFront = glm::make_vec3( Vehicle->VectorFront().getArray() ); // wektor normalny dla płaszczyzny ruchu pantografu
+    auto const vUp = glm::make_vec3( Vehicle->VectorUp().getArray() ); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    auto const vLeft = glm::make_vec3( Vehicle->VectorLeft().getArray() ); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = glm::dvec3 { Vehicle->GetPosition() }; // współrzędne środka pojazdu
+
+    for( int pantographindex = 0; pantographindex < Vehicle->iAnimType[ ANIM_PANTS ]; ++pantographindex ) {
+        // pętla po pantografach
+        auto pantograph { Vehicle->pants[ pantographindex ].fParamPants };
+        if( true == (
+                pantographindex == TMoverParameters::side::front ?
+                    Vehicle->MoverParameters->PantFrontUp :
+                    Vehicle->MoverParameters->PantRearUp ) ) {
+            // jeśli pantograf podniesiony
+            auto const pant0 { position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x ) };
+            if( pantograph->hvPowerWire != nullptr ) {
+                // jeżeli znamy drut z poprzedniego przebiegu
+                for( int attempts = 0; attempts < 30; ++attempts ) {
+                    // powtarzane aż do znalezienia odpowiedniego odcinka na liście dwukierunkowej
+                    if( pantograph->hvPowerWire->iLast & 0x3 ) {
+                        // dla ostatniego i przedostatniego przęsła wymuszamy szukanie innego
+                        // nie to, że nie ma, ale trzeba sprawdzić inne
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                    if( pantograph->hvPowerWire->hvParallel ) {
+                        // jeśli przęsło tworzy bieżnię wspólną, to trzeba sprawdzić pozostałe
+                        // nie to, że nie ma, ale trzeba sprawdzić inne
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                    // obliczamy wyraz wolny równania płaszczyzny (to miejsce nie jest odpowienie)
+                    // podstawiamy równanie parametryczne drutu do równania płaszczyzny pantografu
+                    auto const fRaParam =
+                        -( glm::dot( pantograph->hvPowerWire->pPoint1, vFront ) - glm::dot( pant0, vFront ) )
+                         / glm::dot( pantograph->hvPowerWire->vParametric, vFront );
+
+                    if( fRaParam < -0.001 ) {
+                        // histereza rzędu 7cm na 70m typowego przęsła daje 1 promil
+                        pantograph->hvPowerWire = pantograph->hvPowerWire->hvNext[ 0 ];
+                        continue;
+                    }
+                    if( fRaParam > 1.001 ) {
+                        pantograph->hvPowerWire = pantograph->hvPowerWire->hvNext[ 1 ];
+                        continue;
+                    }
+                    // jeśli t jest w przedziale, wyznaczyć odległość wzdłuż wektorów vUp i vLeft
+                    // punkt styku płaszczyzny z drutem (dla generatora łuku el.)
+                    auto const vStyk { pantograph->hvPowerWire->pPoint1 + fRaParam * pantograph->hvPowerWire->vParametric };
+                    auto const vGdzie { vStyk - pant0 }; // wektor
+                    // odległość w pionie musi być w zasięgu ruchu "pionowego" pantografu
+                    // musi się mieścić w przedziale ruchu pantografu
+                    auto const fVertical { glm::dot( vGdzie, vUp ) };
+                    // odległość w bok powinna być mniejsza niż pół szerokości pantografu
+                    // to się musi mieścić w przedziale zależnym od szerokości pantografu
+                    auto const fHorizontal { std::abs( glm::dot( vGdzie, vLeft ) ) - pantograph->fWidth };
+                    // jeśli w pionie albo w bok jest za daleko, to dany drut jest nieużyteczny
+                    if( fHorizontal <= 0.0 ) {
+                        // koniec pętli, aktualny drut pasuje
+                        pantograph->PantTraction = fVertical;
+                        break;
+                    }
+                    else {
+                        // the wire is outside contact area and as of now we don't have good detection of parallel sections
+                        // as such there's no guaratee there isn't parallel section present.
+                        // therefore we don't bother checking if the wire is still within range of guide horns
+                        // but simply force area search for potential better option
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                }
+            }
+
+            if( pantograph->hvPowerWire == nullptr ) {
+                // look in the region for a suitable traction piece if we don't already have any
+                simulation::Region->update_traction( Vehicle, pantographindex );
+            }
+
+            if( ( pantograph->hvPowerWire == nullptr )
+             && ( false == Global::bLiveTraction ) ) {
+                // jeśli drut nie znaleziony ale można oszukiwać to dajemy coś tam dla picu
+                Vehicle->pants[ pantographindex ].fParamPants->PantTraction = 1.4;
+            }
+        }
+        else {
+            // pantograph is down
+            pantograph->hvPowerWire = nullptr;
+        }
+    }
 }

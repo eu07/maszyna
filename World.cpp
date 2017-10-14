@@ -953,6 +953,7 @@ void TWorld::FollowView(bool wycisz) {
 bool TWorld::Update() {
 
     Timer::UpdateTimers(Global::iPause != 0);
+    Timer::subsystem.sim_total.start();
 
     if( (Global::iPause == false)
      || (m_init == false) ) {
@@ -1026,6 +1027,7 @@ bool TWorld::Update() {
     // this means at count > 20 simulation and render are going to desync. is that right?
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
+    Timer::subsystem.sim_dynamics.start();
 #ifdef EU07_USE_OLD_GROUNDCODE
     if( true == Global::FullPhysics ) {
         // mixed calculation mode, steps calculated in ~0.05s chunks
@@ -1067,6 +1069,7 @@ bool TWorld::Update() {
         simulation::State.update( stepdeltatime, updatecount );
     }
 #endif
+    Timer::subsystem.sim_dynamics.stop();
 
     // secondary fixed step simulation time routines
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
@@ -1110,7 +1113,7 @@ bool TWorld::Update() {
     Ground.CheckQuery();
     Ground.Update_Hidden();
 #else
-    simulation::Events.CheckQuery();
+    simulation::Events.update();
     simulation::Region->update();
 #endif
 
@@ -1143,6 +1146,8 @@ bool TWorld::Update() {
     // variable step render time routines
 
     Update_Camera( dt );
+
+    Timer::subsystem.sim_total.stop();
 
     GfxRenderer.Update( dt );
     ResourceSweep();
@@ -1659,20 +1664,14 @@ TWorld::Update_UI() {
                     "VBO" :
                     "Display Lists" )
                 + " ";
-            // dump last opengl error, if any
-            GLenum glerror = ::glGetError();
-            if( glerror != GL_NO_ERROR ) {
-                std::string glerrorstring( (char *)::gluErrorString( glerror ) );
-                win1250_to_ascii( glerrorstring );
-                Global::LastGLError = std::to_string( glerror ) + " (" + glerrorstring + ")";
-            }
             if( false == Global::LastGLError.empty() ) {
                 uitextline2 +=
                     "Last openGL error: "
                     + Global::LastGLError;
             }
             // renderer stats
-            uitextline3 = GfxRenderer.Info();
+            uitextline3 = GfxRenderer.info_times();
+            uitextline4 = GfxRenderer.info_stats();
 
             break;
         }
@@ -1683,6 +1682,9 @@ TWorld::Update_UI() {
             if( Global::iMultiplayer ) {
                 uitextline1 += " (multiplayer mode is active)";
             }
+            uitextline3 =
+                  "vehicles: " + to_string( Timer::subsystem.sim_dynamics.average(), 2 ) + " msec"
+                + " update total: " + to_string( Timer::subsystem.sim_total.average(), 2 ) + " msec";
 
             break;
         }

@@ -492,6 +492,9 @@ public:
     // legacy method, calculates changes in simulation state over specified time
     void
         update( double dt, int iter );
+    // legacy method, checks for presence and height of traction wire for specified vehicle
+    void
+        update_traction( TDynamicObject *Vehicle );
 };
 
 //---------------------------------------------------------------------------

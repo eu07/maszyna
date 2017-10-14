@@ -2985,20 +2985,27 @@ void TController::RecognizeCommand()
     c->Command = ""; // usunięcie obsłużonej komendy
 }
 
-void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                             const TLocation &NewLocation, TStopReason reason)
+void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason)
 { // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu
     // bezpośrednio
+#ifdef EU07_USE_OLD_GROUNDCODE
     vector3 sl;
     sl.x = -NewLocation.X; // zamiana na współrzędne scenerii
     sl.z = NewLocation.Y;
     sl.y = NewLocation.Z;
+#else
+    // zamiana na współrzędne scenerii
+    glm::dvec3 sl { -NewLocation.X, NewLocation.Y, NewLocation.Z };
+#endif
     if (!PutCommand(NewCommand, NewValue1, NewValue2, &sl, reason))
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
 }
 
-bool TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                             const vector3 *NewLocation, TStopReason reason)
+#ifdef EU07_USE_OLD_GROUNDCODE
+bool TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const vector3 *NewLocation, TStopReason reason)
+#else
+bool TController::PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason )
+#endif
 { // analiza komendy
     if (NewCommand == "CabSignal")
     { // SHP wyzwalane jest przez człon z obsadą, ale obsługiwane przez silnikowy
@@ -4229,13 +4236,12 @@ TController::UpdateSituation(double dt) {
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     if (fabs(VelSignal) >=
                         1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
-                        PutCommand("SetVelocity", VelSignal, VelNext,
-                                    NULL); // komenda robi dodatkowe operacje
+                        PutCommand("SetVelocity", VelSignal, VelNext, nullptr); // komenda robi dodatkowe operacje
                 break;
             case cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
-                    PutCommand("ShuntVelocity", VelSignal, VelNext, NULL);
+                    PutCommand("ShuntVelocity", VelSignal, VelNext, nullptr);
                 else if (iCoupler) // jeśli jedzie w celu połączenia
                     SetVelocity(VelSignal, VelNext);
                 break;
@@ -5306,7 +5312,11 @@ TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, 
 }
 
 // sprawdzanie zdarzeń semaforów i ograniczeń szlakowych
+#ifdef EU07_USE_OLD_GROUNDCODE
 void TController::SetProximityVelocity(double dist, double vel, const vector3 *pos)
+#else
+void TController::SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos )
+#endif
 { // Ra:przeslanie do AI prędkości
     /*
      //!!!! zastąpić prawidłową reakcją AI na SetProximityVelocity !!!!
@@ -5318,7 +5328,7 @@ void TController::SetProximityVelocity(double dist, double vel, const vector3 *p
      if ((vel<0)?true:dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
      {//jeśli jest dalej od umownej drogi hamowania
     */
-    PutCommand("SetProximityVelocity", dist, vel, pos);
+    PutCommand( "SetProximityVelocity", dist, vel, pos );
     /*
      }
      else

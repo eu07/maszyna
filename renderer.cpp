@@ -315,23 +315,32 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 bool
 opengl_renderer::Render() {
 
-    if( m_drawstart != std::chrono::steady_clock::time_point() ) {
-        m_drawtime = std::max( 20.f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_drawstart ) ).count() / 1000.f );
-    }
-    m_drawstart = std::chrono::steady_clock::now();
-    auto const drawstartcolorpass = m_drawstart;
+    Timer::subsystem.gfx_total.stop();
+    Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
+    Timer::subsystem.gfx_color.start();
 
     m_renderpass.draw_mode = rendermode::none; // force setup anew
-    m_debuginfo.clear();
-    ++m_framestamp;
+    m_debugtimestext.clear();
+    m_debugstats = debug_stats();
     Render_pass( rendermode::color );
+    Timer::subsystem.gfx_color.stop();
+
+    Timer::subsystem.gfx_swap.start();
+    glfwSwapBuffers( m_window );
+    Timer::subsystem.gfx_swap.stop();
 
     m_drawcount = m_cellqueue.size();
-    // accumulate last 20 frames worth of render time (cap at 1000 fps to prevent calculations going awry)
-    m_drawtimecolorpass = std::max( 20.f, 0.95f * m_drawtimecolorpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - drawstartcolorpass ) ).count() / 1000.f );
-    m_debuginfo += "frame total: " + to_string( m_drawtimecolorpass / 20.f, 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
+    m_debugtimestext
+        += "frame: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) "
+        += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec "
+        += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec total)";
+    m_debugstatstext =
+        "drawcalls: " + to_string( m_debugstats.drawcalls )
+        + "; dyn: " + to_string( m_debugstats.dynamics ) + " mod: " + to_string( m_debugstats.models ) + " sub: " + to_string( m_debugstats.submodels )
+        + "; trk: " + to_string( m_debugstats.paths ) + " shp: " + to_string( m_debugstats.shapes )
+        + " trc: " + to_string( m_debugstats.traction ) + " lin: " + to_string( m_debugstats.lines );
 
-    glfwSwapBuffers( m_window );
+    ++m_framestamp;
 
     return true; // for now always succeed
 }
@@ -464,7 +473,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             if( World.InitPerformed() ) {
                 // setup
-                auto const shadowdrawstart = std::chrono::steady_clock::now();
+                Timer::subsystem.gfx_shadows.start();
 
                 ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_shadowframebuffer );
 
@@ -500,9 +509,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glDisable( GL_SCISSOR_TEST );
 
                 ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
-
-                m_drawtimeshadowpass = 0.95f * m_drawtimeshadowpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - shadowdrawstart ) ).count() / 1000.f;
-                m_debuginfo += "shadows: " + to_string( m_drawtimeshadowpass / 20.f, 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
+                Timer::subsystem.gfx_shadows.stop();
+                m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
             }
             break;
         }
@@ -602,7 +610,7 @@ bool
 opengl_renderer::Render_reflections() {
 
     auto const &time = simulation::Time.data();
-    auto const timestamp = time.wDay * 60 * 24 + time.wHour * 60 + time.wMinute;
+    auto const timestamp = time.wDay * 24 * 60 + time.wHour * 60 + time.wMinute;
     if( ( timestamp - m_environmentupdatetime < 5 )
      && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
         // run update every 5+ mins of simulation time, or at least 1km from the last location
@@ -1477,12 +1485,6 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
             break;
         }
     }
-#ifdef EU07_USE_OLD_TERRAINCODE
-    if( Groundcell->nTerrain ) {
-
-        Render( Groundcell->nTerrain );
-    }
-#endif
 
     // add the subcells of the cell to the draw queue
     switch( m_renderpass.draw_mode ) {
@@ -1645,16 +1647,7 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             Update_Lights( simulation::Lights );
 
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
-/*
-            // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
-            // TODO: move sorting for translucent phase, for opaque geometry render cells in initial order to reduce vbo switching
-            std::sort(
-                std::begin( m_cellqueue ),
-                std::end( m_cellqueue ),
-                []( distancecell_pair const &Left, distancecell_pair const &Right ) {
-                    return ( Left.first < Right.first ); } );
-*/
-            // ...then render the opaque content of the visible cells.
+            // draw queue is filled while rendering sections
             Render( std::begin( m_cellqueue ), std::end( m_cellqueue ) );
             break;
         }
@@ -1749,7 +1742,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                     glEnable( GL_LIGHTING );
 #endif
                     // shapes
-                    for( auto const &shape : section->m_shapes ) { Render( shape ); }
+                    for( auto const &shape : section->m_shapes ) { Render( shape, true ); }
                     // post-render cleanup
                     ::glPopMatrix();
                 }
@@ -1852,7 +1845,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 glEnable( GL_LIGHTING );
 #endif
                 // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
                 // TODO: update after path node refactoring
                 for( auto *path : cell->m_paths ) { Render( path ); }
@@ -1871,7 +1864,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 // render
                 // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // TODO: add other content types
 
                 // post-render cleanup
@@ -1887,7 +1880,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // render
                 // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape ); }
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
                 // TODO: add path to the node picking list
                 for( auto *path : cell->m_paths ) { Render( path ); }
@@ -1922,6 +1915,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                         Render( dynamic );
                     }
                 }
+                break;
             }
             case rendermode::pickscenery: {
                 // opaque parts of instanced models
@@ -1944,9 +1938,46 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 }
 
 void
-opengl_renderer::Render( scene::shape_node const &Shape ) {
+opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange ) {
+/*
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  Node->fSquareMinRadius )
+        || ( distancesquared >= Node->fSquareRadius ) ) {
+        return false;
+    }
+*/
+    auto const &data{ Shape.data() };
 
-    auto const &data { Shape.data() };
+    if( false == Ignorerange ) {
+        double distancesquared;
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::shadows: {
+                // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+                distancesquared = SquareMagnitude( ( data.area.center - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+                break;
+            }
+            default: {
+                distancesquared = SquareMagnitude( ( data.area.center - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+                break;
+            }
+        }
+        if( ( distancesquared <  data.rangesquared_min )
+         || ( distancesquared >= data.rangesquared_max ) ) {
+            return;
+        }
+    }
+
     // setup
     Bind_Material( data.material );
     switch( m_renderpass.draw_mode ) {
@@ -1971,6 +2002,9 @@ opengl_renderer::Render( scene::shape_node const &Shape ) {
     }
     // render
     m_geometry.draw( data.geometry );
+    // debug data
+    ++m_debugstats.shapes;
+    ++m_debugstats.drawcalls;
 }
 
 void
@@ -2021,19 +2055,7 @@ opengl_renderer::Render( TAnimModel *Instance ) {
 
 bool
 opengl_renderer::Render( TGroundNode *Node ) {
-#ifdef EU07_USE_OLD_TERRAINCODE
-    switch (Node->iType)
-    { // obiekty renderowane niezależnie od odległości
-    case TP_SUBMODEL:
-        ::glPushMatrix();
-        auto const originoffset = Node->pCenter - m_renderpass.camera.position();
-        ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-        TSubModel::fSquareDist = 0;
-        Render( Node->smTerrain );
-        ::glPopMatrix();
-        return true;
-    }
-#endif
+
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
@@ -2073,6 +2095,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
             // render
             Render( Node->pTrack );
+            // debug
+            ++m_debugstats.paths;
+            ++m_debugstats.drawcalls;
             // post-render cleanup
             ::glPopMatrix();
             return true;
@@ -2155,7 +2180,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
             }
             // render
             m_geometry.draw( Node->Piece->geometry );
-
+            // debug
+//            ++m_debugstats.lines;
+//            ++m_debugstats.drawcalls;
             // post-render cleanup
             ::glPopMatrix();
 
@@ -2201,6 +2228,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
             }
             // render
             m_geometry.draw( Node->Piece->geometry );
+            // debug
+            ++m_debugstats.shapes;
+            ++m_debugstats.drawcalls;
 
             // post-render cleanup
             ::glPopMatrix();
@@ -2236,6 +2266,9 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     if( false == Dynamic->renderme ) {
         return false;
     }
+    // debug data
+    ++m_debugstats.dynamics;
+
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
     glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
@@ -2437,6 +2470,9 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, float c
     // render
     Render( Model->Root );
 
+    // debug data
+    ++m_debugstats.models;
+
     // post-render cleanup
 
     return true;
@@ -2467,6 +2503,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
     if( ( Submodel->iVisible )
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
+
+        // debug data
+        ++m_debugstats.submodels;
+        ++m_debugstats.drawcalls;
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -2717,6 +2757,9 @@ opengl_renderer::Render( TTrack *Track ) {
         return;
     }
 
+    ++m_debugstats.paths;
+    ++m_debugstats.drawcalls;
+
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
         case rendermode::reflections: {
@@ -2867,7 +2910,7 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // render
                 // NOTE: we can reuse the method used to draw opaque geometry
-                for( auto const &shape : cell->m_shapestranslucent ) { Render( shape ); }
+                for( auto const &shape : cell->m_shapestranslucent ) { Render( shape, false ); }
                 // post-render cleanup
                 ::glPopMatrix();
             }
@@ -3003,6 +3046,9 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
 
     // render
     m_geometry.draw( Traction->m_geometry );
+    // debug data
+    ++m_debugstats.traction;
+    ++m_debugstats.drawcalls;
 }
 #endif
 bool
@@ -3056,6 +3102,9 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
                 // render
                 m_geometry.draw( Node->hvTraction->m_geometry );
+                // debug data
+                ++m_debugstats.traction;
+                ++m_debugstats.drawcalls;
 
                 // post-render cleanup
                 ::glPopMatrix();
@@ -3116,6 +3165,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
             // render
             m_geometry.draw( Node->Piece->geometry );
+//            ++m_debugstats.lines;
+//            ++m_debugstats.drawcalls;
 
             // post-render cleanup
             ::glPopMatrix();
@@ -3141,7 +3192,9 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
             // render
             m_geometry.draw( Node->Piece->geometry );
-
+            // debug data
+            ++m_debugstats.shapes;
+            ++m_debugstats.drawcalls;
             // post-render cleanup
             ::glPopMatrix();
 
@@ -3284,6 +3337,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
     if( ( Submodel->iVisible )
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
+
+        // debug data
+        ++m_debugstats.submodels;
+        ++m_debugstats.drawcalls;
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -3580,10 +3637,10 @@ opengl_renderer::Update( double const Deltatime ) {
     }
 
     m_updateaccumulator = 0.0;
-    m_framerate = 1000.f / ( m_drawtime / 20.f );
+    m_framerate = 1000.f / ( Timer::subsystem.gfx_total.average() );
 
     // adjust draw ranges etc, based on recent performance
-    auto const framerate = 1000.f / (m_drawtimecolorpass / 20.f);
+    auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
 
     float targetfactor;
          if( framerate > 90.0 ) { targetfactor = 3.0f; }
@@ -3620,7 +3677,7 @@ opengl_renderer::Update( double const Deltatime ) {
     }
 
     if( true == DebugModeFlag ) {
-        m_debuginfo += m_textures.info();
+        m_debugtimestext += m_textures.info();
     }
 
     if( ( true  == Global::ControlPicking )
@@ -3639,13 +3696,26 @@ opengl_renderer::Update( double const Deltatime ) {
     else {
         m_picksceneryitem = nullptr;
     }
-};
+    // dump last opengl error, if any
+    auto const glerror = ::glGetError();
+    if( glerror != GL_NO_ERROR ) {
+        std::string glerrorstring( ( char * )::gluErrorString( glerror ) );
+        win1250_to_ascii( glerrorstring );
+        Global::LastGLError = std::to_string( glerror ) + " (" + glerrorstring + ")";
+    }
+}
 
 // debug performance string
 std::string const &
-opengl_renderer::Info() const {
+opengl_renderer::info_times() const {
 
-    return m_debuginfo;
+    return m_debugtimestext;
+}
+
+std::string const &
+opengl_renderer::info_stats() const {
+
+    return m_debugstatstext;
 }
 
 void

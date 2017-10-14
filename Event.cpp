@@ -727,6 +727,32 @@ event_manager::~event_manager() {
     }
 }
 
+// adds specified event launcher to the list of global launchers
+void
+event_manager::queue( TEventLauncher *Launcher ) {
+
+    m_launcherqueue.emplace_back( Launcher );
+}
+
+// legacy method, updates event queues
+void
+event_manager::update() {
+
+    // process currently queued events
+    CheckQuery();
+    // test list of global events for possible new additions to the queue
+    for( auto *launcher : m_launcherqueue ) {
+
+        if( true == launcher->check_conditions() ) {
+            // NOTE: we're presuming global events aren't going to use event2
+            WriteLog( "Eventlauncher " + launcher->name() );
+            if( launcher->Event1 ) {
+                Global::AddToQuery( launcher->Event1, nullptr );
+            }
+        }
+    }
+}
+
 // adds provided event to the collection. returns: true on success
 // TODO: return handle instead of pointer
 bool
@@ -826,7 +852,11 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                         for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
                             Event->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
+#ifdef EU07_USE_OLD_GROUNDCODE
                                 &Event->Params[ 4 ].nGroundNode->pCenter );
+#else
+                                Event->Params[ 4 ].asLocation );
+#endif
                         }
                         //if (DebugModeFlag)
                         WriteLog(
@@ -924,7 +954,11 @@ event_manager::CheckQuery() {
                         for( auto dynamic : m_workevent->Params[ 6 ].asTrack->Dynamics ) {
                             m_workevent->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
+#ifdef EU07_USE_OLD_GROUNDCODE
                                 &m_workevent->Params[ 4 ].nGroundNode->pCenter );
+#else
+                                m_workevent->Params[ 4 ].asLocation );
+#endif
                         }
                         //if (DebugModeFlag)
                         WriteLog("Type: UpdateValues & Track command - [" +
@@ -950,7 +984,11 @@ event_manager::CheckQuery() {
 */
                     m_workevent->Params[ 9 ].asMemCell->PutCommand(
                         m_workevent->Activator->Mechanik,
+#ifdef EU07_USE_OLD_GROUNDCODE
                         &m_workevent->Params[ 8 ].nGroundNode->pCenter );
+#else
+                        m_workevent->Params[ 8 ].asLocation );
+#endif
                 }
                 WriteLog( "Type: GetValues" );
                 break;
@@ -1273,263 +1311,263 @@ void
 event_manager::InitEvents() {
 
     //łączenie eventów z pozostałymi obiektami
-    for( auto *Current : m_events ) {
+    for( auto *event : m_events ) {
 
-        switch (Current->Type) {
+        switch( event->Type ) {
 
         case tp_AddValues: // sumowanie wartości
         case tp_UpdateValues: { // zmiana wartości
-            auto *cell = simulation::Memory.find( Current->asNodeName ); // nazwa komórki powiązanej z eventem
+            auto *cell = simulation::Memory.find( event->asNodeName ); // nazwa komórki powiązanej z eventem
             if( cell != nullptr ) { // McZapkie-100302
-                if( Current->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
+                if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
                     // jeśli chodzi o zajetosc toru (tor może być inny, niż wpisany w komórce)
                     // nazwa toru ta sama, co nazwa komórki
-                    Current->Params[ 9 ].asTrack = simulation::Paths.find( Current->asNodeName );
-                    if( Current->Params[ 9 ].asTrack == nullptr ) {
-                        ErrorLog( "Bad event: track \"" + Current->asNodeName + "\" referenced in event \"" + Current->asName + "\" doesn't exist" );
+                    event->Params[ 9 ].asTrack = simulation::Paths.find( event->asNodeName );
+                    if( event->Params[ 9 ].asTrack == nullptr ) {
+                        ErrorLog( "Bad event: track \"" + event->asNodeName + "\" referenced in event \"" + event->asName + "\" doesn't exist" );
                     }
                 }
-                Current->Params[ 4 ].asLocation = &( cell->location() );
-                Current->Params[ 5 ].asMemCell = cell; // komórka do aktualizacji
-                if( Current->iFlags & ( conditional_memcompare ) ) {
+                event->Params[ 4 ].asLocation = &( cell->location() );
+                event->Params[ 5 ].asMemCell = cell; // komórka do aktualizacji
+                if( event->iFlags & ( conditional_memcompare ) ) {
                     // komórka do badania warunku
-                    Current->Params[ 9 ].asMemCell = cell;
+                    event->Params[ 9 ].asMemCell = cell;
                 }
                 if( false == cell->asTrackName.empty() ) {
                     // tor powiązany z komórką powiązaną z eventem
                     // tu potrzebujemy wskaźnik do komórki w (tmp)
-                    Current->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
-                    if( Current->Params[ 6 ].asTrack == nullptr ) {
+                    event->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
+                    if( event->Params[ 6 ].asTrack == nullptr ) {
                         ErrorLog( "Bad memcell: track \"" + cell->asTrackName + "\" referenced in memcell \"" + cell->name() + "\" doesn't exist" );
                     }
                 }
                 else {
-                    Current->Params[ 6 ].asTrack = nullptr;
+                    event->Params[ 6 ].asTrack = nullptr;
                 }
             }
             else {
                 // nie ma komórki, to nie będzie działał poprawnie
-                Current->m_ignored = true; // deaktywacja
-                ErrorLog( "Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"" );
+                event->m_ignored = true; // deaktywacja
+                ErrorLog( "Bad event: event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
             }
             break;
         }
         case tp_LogValues: {
             // skojarzenie z memcell
-            if( Current->asNodeName.empty() ) { // brak skojarzenia daje logowanie wszystkich
-                Current->Params[ 9 ].asMemCell = nullptr;
+            if( event->asNodeName.empty() ) { // brak skojarzenia daje logowanie wszystkich
+                event->Params[ 9 ].asMemCell = nullptr;
                 break;
             }
         }
         case tp_GetValues:
         case tp_WhoIs: {
-            auto *cell = simulation::Memory.find( Current->asNodeName );
+            auto *cell = simulation::Memory.find( event->asNodeName );
             if( cell != nullptr ) {
-                Current->Params[ 8 ].asLocation = &( cell->location() );
-                Current->Params[ 9 ].asMemCell = cell;
-                if( ( Current->Type == tp_GetValues )
+                event->Params[ 8 ].asLocation = &( cell->location() );
+                event->Params[ 9 ].asMemCell = cell;
+                if( ( event->Type == tp_GetValues )
                  && ( cell->IsVelocity() ) ) {
                     // jeśli odczyt komórki a komórka zawiera komendę SetVelocity albo ShuntVelocity
                     // to event nie będzie dodawany do kolejki
-                    Current->bEnabled = false;
+                    event->bEnabled = false;
                 }
             }
             else {
                 // nie ma komórki, to nie będzie działał poprawnie
-                Current->m_ignored = true; // deaktywacja
-                ErrorLog( "Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"" );
+                event->m_ignored = true; // deaktywacja
+                ErrorLog( "Bad event: event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
             }
             break;
         }
         case tp_CopyValues: {
             // skopiowanie komórki do innej
-            auto *cell = simulation::Memory.find( Current->asNodeName ); // komórka docelowa
+            auto *cell = simulation::Memory.find( event->asNodeName ); // komórka docelowa
             if( cell != nullptr ) {
-                Current->Params[ 4 ].asLocation = &( cell->location() );
-                Current->Params[ 5 ].asMemCell = cell; // komórka docelowa
+                event->Params[ 4 ].asLocation = &( cell->location() );
+                event->Params[ 5 ].asMemCell = cell; // komórka docelowa
                 if( false == cell->asTrackName.empty() ) {
                     // tor powiązany z komórką powiązaną z eventem
                     // tu potrzebujemy wskaźnik do komórki w (tmp)
-                    Current->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
-                    if( Current->Params[ 6 ].asTrack == nullptr ) {
+                    event->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
+                    if( event->Params[ 6 ].asTrack == nullptr ) {
                         ErrorLog( "Bad memcell: track \"" + cell->asTrackName + "\" referenced in memcell \"" + cell->name() + "\" doesn't exists" );
                     }
                 }
                 else {
-                    Current->Params[ 6 ].asTrack = nullptr;
+                    event->Params[ 6 ].asTrack = nullptr;
                 }
             }
             else {
-                ErrorLog( "Bad event: copyvalues event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"" );
+                ErrorLog( "Bad event: copyvalues event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
             }
-            std::string const cellastext { Current->Params[ 9 ].asText };
-            cell = simulation::Memory.find( Current->Params[ 9 ].asText ); // komórka źódłowa
-            SafeDeleteArray( Current->Params[ 9 ].asText ); // usunięcie nazwy komórki
+            std::string const cellastext { event->Params[ 9 ].asText };
+            cell = simulation::Memory.find( event->Params[ 9 ].asText ); // komórka źódłowa
+            SafeDeleteArray( event->Params[ 9 ].asText ); // usunięcie nazwy komórki
             if( cell != nullptr ) {
-                Current->Params[ 8 ].asLocation = &( cell->location() );
-                Current->Params[ 9 ].asMemCell = cell; // komórka źródłowa
+                event->Params[ 8 ].asLocation = &( cell->location() );
+                event->Params[ 9 ].asMemCell = cell; // komórka źródłowa
             }
             else {
-                ErrorLog( "Bad event: copyvalues event \"" + Current->asName + "\" cannot find memcell \"" + cellastext + "\"" );
+                ErrorLog( "Bad event: copyvalues event \"" + event->asName + "\" cannot find memcell \"" + cellastext + "\"" );
             }
             break;
         }
         case tp_Animation: {
             // animacja modelu
             // retrieve target name parameter
-            std::string const cellastext = Current->Params[ 9 ].asText;
-            SafeDeleteArray( Current->Params[ 9 ].asText );
+            std::string const cellastext = event->Params[ 9 ].asText;
+            SafeDeleteArray( event->Params[ 9 ].asText );
             // egzemplarz modelu do animowania
-            auto *instance = simulation::Instances.find( Current->asNodeName );
+            auto *instance = simulation::Instances.find( event->asNodeName );
             if( instance != nullptr ) {
-                if( Current->Params[ 0 ].asInt == 4 ) {
+                if( event->Params[ 0 ].asInt == 4 ) {
                     // model dla całomodelowych animacji
-                    Current->Params[ 9 ].asModel = instance;
+                    event->Params[ 9 ].asModel = instance;
                 }
                 else {
                     // standardowo przypisanie submodelu
-                    Current->Params[ 9 ].asAnimContainer = instance->GetContainer( cellastext ); // submodel
-                    if( Current->Params[ 9 ].asAnimContainer ) {
-                        Current->Params[ 9 ].asAnimContainer->WillBeAnimated(); // oflagowanie animacji
-                        if( Current->Params[ 9 ].asAnimContainer->Event() == nullptr ) {
+                    event->Params[ 9 ].asAnimContainer = instance->GetContainer( cellastext ); // submodel
+                    if( event->Params[ 9 ].asAnimContainer ) {
+                        event->Params[ 9 ].asAnimContainer->WillBeAnimated(); // oflagowanie animacji
+                        if( event->Params[ 9 ].asAnimContainer->Event() == nullptr ) {
                             // nie szukać, gdy znaleziony
-                            Current->Params[ 9 ].asAnimContainer->EventAssign(
-                                FindEvent( Current->asNodeName + "." + cellastext + ":done" ) );
+                            event->Params[ 9 ].asAnimContainer->EventAssign(
+                                FindEvent( event->asNodeName + "." + cellastext + ":done" ) );
                         }
                     }
                 }
             }
             else {
-                ErrorLog( "Bad event: animation event \"" + Current->asName + "\" cannot find model instance \"" + Current->asNodeName + "\"" );
+                ErrorLog( "Bad event: animation event \"" + event->asName + "\" cannot find model instance \"" + event->asNodeName + "\"" );
             }
-            Current->asNodeName = "";
+            event->asNodeName = "";
             break;
         }
         case tp_Lights: {
             // zmiana świeteł modelu
-            auto *instance = simulation::Instances.find( Current->asNodeName );
+            auto *instance = simulation::Instances.find( event->asNodeName );
             if( instance != nullptr )
-                Current->Params[ 9 ].asModel = instance;
+                event->Params[ 9 ].asModel = instance;
             else
-                ErrorLog( "Bad event: lights event \"" + Current->asName + "\" cannot find model instance \"" + Current->asNodeName + "\"" );
-            Current->asNodeName = "";
+                ErrorLog( "Bad event: lights event \"" + event->asName + "\" cannot find model instance \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
             break;
         }
         case tp_Visible: {
             // ukrycie albo przywrócenie obiektu
-            editor::basic_node *node = simulation::Instances.find( Current->asNodeName ); // najpierw model
+            editor::basic_node *node = simulation::Instances.find( event->asNodeName ); // najpierw model
             if( node == nullptr ) {
                 // albo tory?
-                node = simulation::Paths.find( Current->asNodeName );
+                node = simulation::Paths.find( event->asNodeName );
             }
             if( node == nullptr ) {
                 // może druty?
-                node = simulation::Traction.find( Current->asNodeName );
+                node = simulation::Traction.find( event->asNodeName );
             }
             if( node != nullptr )
-                Current->Params[ 9 ].asEditorNode = node;
+                event->Params[ 9 ].asEditorNode = node;
             else
-                ErrorLog( "Bad event: visibility event \"" + Current->asName + "\" cannot find item \"" + Current->asNodeName + "\"" );
-            Current->asNodeName = "";
+                ErrorLog( "Bad event: visibility event \"" + event->asName + "\" cannot find item \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
             break;
         }
         case tp_Switch: {
             // przełożenie zwrotnicy albo zmiana stanu obrotnicy
-            auto *track = simulation::Paths.find( Current->asNodeName );
+            auto *track = simulation::Paths.find( event->asNodeName );
             if( track != nullptr ) {
                 // dowiązanie toru
                 if( track->iAction == NULL ) {
                     // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
                     track->iAction |= 0x100;
                 }
-                Current->Params[ 9 ].asTrack = track;
-                if( ( Current->Params[ 0 ].asInt == 0 )
-                 && ( Current->Params[ 2 ].asdouble >= 0.0 ) ) {
+                event->Params[ 9 ].asTrack = track;
+                if( ( event->Params[ 0 ].asInt == 0 )
+                 && ( event->Params[ 2 ].asdouble >= 0.0 ) ) {
                     // jeśli przełącza do stanu 0 & jeśli jest zdefiniowany dodatkowy ruch iglic
                     // przesłanie parametrów
-                    Current->Params[ 9 ].asTrack->Switch(
-                        Current->Params[ 0 ].asInt,
-                        Current->Params[ 1 ].asdouble,
-                        Current->Params[ 2 ].asdouble );
+                    event->Params[ 9 ].asTrack->Switch(
+                        event->Params[ 0 ].asInt,
+                        event->Params[ 1 ].asdouble,
+                        event->Params[ 2 ].asdouble );
                 }
             }
             else {
-                ErrorLog( "Bad event: switch event \"" + Current->asName + "\" cannot find track \"" + Current->asNodeName + "\"" );
+                ErrorLog( "Bad event: switch event \"" + event->asName + "\" cannot find track \"" + event->asNodeName + "\"" );
             }
-            Current->asNodeName = "";
+            event->asNodeName = "";
             break;
         }
         case tp_Sound: {
             // odtworzenie dźwięku
-            auto *sound = simulation::Sounds.find( Current->asNodeName );
+            auto *sound = simulation::Sounds.find( event->asNodeName );
             if( sound != nullptr )
-                Current->Params[ 9 ].tsTextSound = sound;
+                event->Params[ 9 ].tsTextSound = sound;
             else
-                ErrorLog( "Bad event: sound event \"" + Current->asName + "\" cannot find static sound \"" + Current->asNodeName + "\"" );
-            Current->asNodeName = "";
+                ErrorLog( "Bad event: sound event \"" + event->asName + "\" cannot find static sound \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
             break;
         }
         case tp_TrackVel: {
             // ustawienie prędkości na torze
-            if( false == Current->asNodeName.empty() ) {
-                auto *track = simulation::Paths.find( Current->asNodeName );
+            if( false == event->asNodeName.empty() ) {
+                auto *track = simulation::Paths.find( event->asNodeName );
                 if( track != nullptr ) {
                     // flaga zmiany prędkości toru jest istotna dla skanowania
                     track->iAction |= 0x200;
-                    Current->Params[ 9 ].asTrack = track;
+                    event->Params[ 9 ].asTrack = track;
                 }
                 else {
-                    ErrorLog( "Bad event: track velocity event \"" + Current->asName + "\" cannot find track \"" + Current->asNodeName + "\"" );
+                    ErrorLog( "Bad event: track velocity event \"" + event->asName + "\" cannot find track \"" + event->asNodeName + "\"" );
                 }
             }
-            Current->asNodeName = "";
+            event->asNodeName = "";
             break;
         }
         case tp_DynVel: {
             // komunikacja z pojazdem o konkretnej nazwie
-            if( Current->asNodeName == "activator" )
-                Current->Params[ 9 ].asDynamic = nullptr;
+            if( event->asNodeName == "activator" )
+                event->Params[ 9 ].asDynamic = nullptr;
             else {
-                auto *vehicle = simulation::Vehicles.find( Current->asNodeName );
+                auto *vehicle = simulation::Vehicles.find( event->asNodeName );
                 if( vehicle != nullptr )
-                    Current->Params[ 9 ].asDynamic = vehicle;
+                    event->Params[ 9 ].asDynamic = vehicle;
                 else
-                    Error( "Bad event: vehicle velocity event \"" + Current->asName + "\" cannot find vehicle \"" + Current->asNodeName + "\"" );
+                    ErrorLog( "Bad event: vehicle velocity event \"" + event->asName + "\" cannot find vehicle \"" + event->asNodeName + "\"" );
             }
-            Current->asNodeName = "";
+            event->asNodeName = "";
             break;
         }
         case tp_Multiple: {
             std::string cellastext;
-            if( Current->Params[ 9 ].asText != nullptr ) { // przepisanie nazwy do bufora
-                cellastext = Current->Params[ 9 ].asText;
-                SafeDeleteArray( Current->Params[ 9 ].asText );
-                Current->Params[ 9 ].asPointer = nullptr; // zerowanie wskaźnika, aby wykryć brak obeiktu
+            if( event->Params[ 9 ].asText != nullptr ) { // przepisanie nazwy do bufora
+                cellastext = event->Params[ 9 ].asText;
+                SafeDeleteArray( event->Params[ 9 ].asText );
+                event->Params[ 9 ].asPointer = nullptr; // zerowanie wskaźnika, aby wykryć brak obeiktu
             }
-            if( Current->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
+            if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
                 // jeśli chodzi o zajetosc toru
-                Current->Params[ 9 ].asTrack = simulation::Paths.find( cellastext );
-                if( Current->Params[ 9 ].asTrack == nullptr ) {
-                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find track \"" + cellastext + "\"" );
-                    Current->iFlags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
+                event->Params[ 9 ].asTrack = simulation::Paths.find( cellastext );
+                if( event->Params[ 9 ].asTrack == nullptr ) {
+                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find track \"" + cellastext + "\"" );
+                    event->iFlags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
                 }
             }
-            else if( Current->iFlags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
+            else if( event->iFlags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
                 // jeśli chodzi o komorke pamieciową
-                Current->Params[ 9 ].asMemCell = simulation::Memory.find( cellastext );
-                if( Current->Params[ 9 ].asMemCell == nullptr ) {
-                    ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
-                    Current->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
+                event->Params[ 9 ].asMemCell = simulation::Memory.find( cellastext );
+                if( event->Params[ 9 ].asMemCell == nullptr ) {
+                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
+                    event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
                 }
             }
             for( int i = 0; i < 8; ++i ) {
-                if( Current->Params[ i ].asText != nullptr ) {
-                    cellastext = Current->Params[ i ].asText;
-                    SafeDeleteArray( Current->Params[ i ].asText );
-                    Current->Params[ i ].asEvent = FindEvent( cellastext );
-                    if( Current->Params[ i ].asEvent == nullptr ) {
+                if( event->Params[ i ].asText != nullptr ) {
+                    cellastext = event->Params[ i ].asText;
+                    SafeDeleteArray( event->Params[ i ].asText );
+                    event->Params[ i ].asEvent = FindEvent( cellastext );
+                    if( event->Params[ i ].asEvent == nullptr ) {
                         // Ra: tylko w logu informacja o braku
-                        ErrorLog( "Bad event: multi-event \"" + Current->asName + "\" cannot find event \"" + cellastext + "\"" );
+                        ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find event \"" + cellastext + "\"" );
                     }
                 }
             }
@@ -1537,14 +1575,14 @@ event_manager::InitEvents() {
         }
         case tp_Voltage: {
             // zmiana napięcia w zasilaczu (TractionPowerSource)
-            if( false == Current->asNodeName.empty() ) {
-                auto *powersource = simulation::Powergrid.find( Current->asNodeName ); // podłączenie zasilacza
+            if( false == event->asNodeName.empty() ) {
+                auto *powersource = simulation::Powergrid.find( event->asNodeName ); // podłączenie zasilacza
                 if( powersource != nullptr )
-                    Current->Params[ 9 ].psPower = powersource;
+                    event->Params[ 9 ].psPower = powersource;
                 else
-                    ErrorLog( "Bad event: voltage event \"" + Current->asName + "\" cannot find power source \"" + Current->asNodeName + "\"" );
+                    ErrorLog( "Bad event: voltage event \"" + event->asName + "\" cannot find power source \"" + event->asNodeName + "\"" );
             }
-            Current->asNodeName = "";
+            event->asNodeName = "";
             break;
         }
         case tp_Message: {
@@ -1554,7 +1592,37 @@ event_manager::InitEvents() {
 
         } // switch
 
-        if( Current->fDelay < 0 ) { AddToQuery( Current, nullptr ); }
+        if( event->fDelay < 0 ) { AddToQuery( event, nullptr ); }
+    }
+}
+
+// legacy method, initializes event launchers after deserialization from scenario file
+void
+event_manager::InitLaunchers() {
+
+    for( auto *launcher : m_launchers.sequence() ) {
+
+        if( launcher->iCheckMask != 0 ) {
+            if( launcher->asMemCellName != "none" ) {
+                // jeśli jest powiązana komórka pamięci
+                launcher->MemCell = simulation::Memory.find( launcher->asMemCellName );
+                if( launcher->MemCell == nullptr ) {
+                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find memcell \"" + launcher->asMemCellName + "\"" );
+                }
+            }
+            else {
+                launcher->MemCell = nullptr;
+            }
+        }
+
+        launcher->Event1 = (
+            launcher->asEvent1Name != "none" ?
+                simulation::Events.FindEvent( launcher->asEvent1Name ) :
+                nullptr );
+        launcher->Event2 = (
+            launcher->asEvent2Name != "none" ?
+                simulation::Events.FindEvent( launcher->asEvent2Name ) :
+                nullptr );
     }
 }
 

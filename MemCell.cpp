@@ -129,7 +129,11 @@ bool TMemCell::Load(cParser *parser)
     return true;
 }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
+#else
+void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc )
+#endif
 { // wysłanie zawartości komórki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
