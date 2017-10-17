@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "vertex.h"
 #include "openglgeometrybank.h"
 #include "parser.h"
+#include "model3d.h"
 
 struct lighting_data {
 
@@ -104,6 +105,9 @@ public:
     // restores content of the node from provded input stream
     shape_node &
         deserialize( cParser &Input, scene::node_data const &Nodedata );
+    // imports data from provided submodel
+    shape_node &
+        convert( TSubModel const *Submodel );
     // adds content of provided node to already enclosed geometry. returns: true if merge could be performed
     bool
         merge( shape_node &Shape );
@@ -132,6 +136,59 @@ private:
     shapenode_data m_data;
 };
 
+// holds a group of untextured lines
+class lines_node {
+
+    friend class basic_region; // region might want to modify node content when it's being inserted
+
+public:
+// types
+    struct linesnode_data {
+        // placement and visibility
+        scene::bounding_area area; // bounding area, in world coordinates
+        bool visible { true }; // visibility flag
+        double rangesquared_min { 0.0 }; // visibility range, min
+        double rangesquared_max { 0.0 }; // visibility range, max
+        // material data
+        lighting_data lighting;
+        float line_width; // thickness of stored lines
+        // geometry data
+        std::vector<world_vertex> vertices; // world space source data of the geometry
+        glm::dvec3 origin; // world position of the relative coordinate system origin
+        geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
+    };
+
+// methods
+    // restores content of the node from provded input stream
+    lines_node &
+        deserialize( cParser &Input, scene::node_data const &Nodedata );
+    // adds content of provided node to already enclosed geometry. returns: true if merge could be performed
+    bool
+        merge( lines_node &Lines );
+    // generates renderable version of held non-instanced geometry in specified geometry bank
+    void
+        create_geometry( geometrybank_handle const &Bank );
+    // calculates shape's bounding radius
+    void
+        compute_radius();
+    // set visibility
+    void
+        visible( bool State ) {
+            m_data.visible = State; }
+    // set origin point
+    void
+        origin( glm::dvec3 Origin ) {
+            m_data.origin = Origin; }
+    // data access
+    linesnode_data const &
+        data() const {
+            return m_data; }
+
+private:
+// members
+    std::string m_name;
+    linesnode_data m_data;
+};
 
 /*
 // holds geometry for specific piece of track/road/waterway

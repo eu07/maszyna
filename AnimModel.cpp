@@ -232,9 +232,14 @@ void TAnimContainer::UpdateModel() {
                 fTranslateSpeed = 0.0; // wyłączenie przeliczania wektora
                 if (LengthSquared3(vTranslation) <= 0.0001) // jeśli jest w punkcie początkowym
                     iAnim &= ~2; // wyłączyć zmianę pozycji submodelu
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+#ifdef EU07_USE_OLD_GROUNDCODE
+                    Global::AddToQuery( evDone, NULL );
+#else
+                    simulation::Events.AddToQuery( evDone, nullptr );
+#endif
+                }
             }
         }
         if (fRotateSpeed != 0.0)
@@ -299,9 +304,14 @@ void TAnimContainer::UpdateModel() {
             if (!anim)
             { // nie potrzeba przeliczać już
                 fRotateSpeed = 0.0;
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+#ifdef EU07_USE_OLD_GROUNDCODE
+                    Global::AddToQuery( evDone, NULL );
+#else
+                    simulation::Events.AddToQuery( evDone, nullptr );
+#endif
+                }
             }
         }
         if( fAngleSpeed != 0.f ) {
@@ -330,7 +340,11 @@ void TAnimContainer::PrepareModel()
                     fAngleSpeed = 0.0; // wyłączenie przeliczania wektora
                     if( evDone ) {
                         // wykonanie eventu informującego o zakończeniu
+#ifdef EU07_USE_OLD_GROUNDCODE
                         Global::AddToQuery( evDone, NULL );
+#else
+                        simulation::Events.AddToQuery( evDone, nullptr );
+#endif
                     }
                 }
                 else

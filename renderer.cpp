@@ -349,6 +349,15 @@ opengl_renderer::Render() {
 void
 opengl_renderer::Render_pass( rendermode const Mode ) {
 
+#ifdef EU07_USE_DEBUG_CAMERA
+    // setup world camera for potential visualization
+    setup_pass(
+        m_worldcamera,
+        rendermode::color,
+        0.f,
+        1.0,
+        true );
+#endif
     setup_pass( m_renderpass, Mode );
     switch( m_renderpass.draw_mode ) {
 
@@ -365,14 +374,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #endif
                 shadowcamera = m_renderpass.camera; // cache shadow camera placement for visualization
                 setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
-#ifdef EU07_USE_DEBUG_CAMERA
-                setup_pass(
-                    m_worldcamera,
-                    rendermode::color,
-                    0.f,
-                    1.0,
-                    true );
-#endif
                 // setup shadowmap matrix
                 m_shadowtexturematrix =
                     //bias from [-1, 1] to [0, 1] };
@@ -383,7 +384,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                         glm::mat4{ glm::mat3{ shadowcamera.modelview() } },
                         glm::vec3{ m_renderpass.camera.position() - shadowcamera.position() } );
             }
-
             if( ( true == m_environmentcubetexturesupport )
              && ( true == World.InitPerformed() ) ) {
                 // potentially update environmental cube map
@@ -391,7 +391,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
                 }
             }
-
             ::glViewport( 0, 0, Global::iWindowWidth, Global::iWindowHeight );
 
             if( World.InitPerformed() ) {
@@ -420,7 +419,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
                     ::glDisable( GL_LIGHTING );
                     ::glDisable( GL_TEXTURE_2D );
-                    shadowcamera.draw( m_renderpass.camera.position() - shadowcamera.position() );
+                    if( true == Global::RenderShadows ) {
+                        shadowcamera.draw( m_renderpass.camera.position() - shadowcamera.position() );
+                    }
                     if( DebugCameraFlag ) {
                         ::glColor4f( 0.8f, 1.f, 0.9f, 1.f );
                         m_worldcamera.camera.draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
@@ -1920,7 +1921,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                     // render
 #ifdef EU07_USE_DEBUG_CULLING
                     // debug
-                    float const width = scene::EU07_SECTIONSIZE * 0.5f;
+                    float const width = section->m_area.radius;
                     float const height = scene::EU07_SECTIONSIZE * 0.2f;
                     glDisable( GL_LIGHTING );
                     glDisable( GL_TEXTURE_2D );
@@ -2008,11 +2009,10 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
     // first pass draws elements which we know are located in section banks, to reduce vbo switching
     while( First != Last ) {
 
-        auto const *cell = First->second;
-/*
-    // przeliczenia animacji torów w sektorze
-    Groundsubcell->RaAnimate( m_framestamp );
-*/
+        auto *cell = First->second;
+        // przeliczenia animacji torów w sektorze
+        cell->RaAnimate( m_framestamp );
+
         switch( m_renderpass.draw_mode ) {
             case rendermode::color: {
                 // since all shapes of the section share center point we can optimize out a few calls here
@@ -2023,7 +2023,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // render
 #ifdef EU07_USE_DEBUG_CULLING
                 // debug
-                float const width = scene::EU07_CELLSIZE * 0.5f;
+                float const width = cell->m_area.radius;
                 float const height = scene::EU07_CELLSIZE * 0.15f;
                 glDisable( GL_LIGHTING );
                 glDisable( GL_TEXTURE_2D );
@@ -2149,25 +2149,8 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
 void
 opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange ) {
-/*
-    double distancesquared;
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-        default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-    }
-    if( ( distancesquared <  Node->fSquareMinRadius )
-        || ( distancesquared >= Node->fSquareRadius ) ) {
-        return false;
-    }
-*/
-    auto const &data{ Shape.data() };
+
+    auto const &data { Shape.data() };
 
     if( false == Ignorerange ) {
         double distancesquared;
@@ -3075,8 +3058,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
             // render
             m_geometry.draw( Node->Piece->geometry );
-//            ++m_debugstats.lines;
-//            ++m_debugstats.drawcalls;
+            ++m_debugstats.lines;
+            ++m_debugstats.drawcalls;
 
             // post-render cleanup
             ::glPopMatrix();
@@ -3183,8 +3166,9 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
         while( first != Last ) {
 
             auto const *cell = first->second;
-            // TODO: include lines here
-            if( false == cell->m_traction.empty() ) {
+
+            if( ( false == cell->m_traction.empty()
+             || ( false == cell->m_lines.empty() ) ) ) {
                 // since all shapes of the cell share center point we can optimize out a few calls here
                 ::glPushMatrix();
                 auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
@@ -3196,6 +3180,7 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
                 Bind_Material( null_handle );
                 // render
                 for( auto *traction : cell->m_traction ) { Render_Alpha( traction ); }
+                for( auto &lines : cell->m_lines )       { Render_Alpha( lines ); }
                 // post-render cleanup
                 ::glLineWidth( 1.0 );
                 if( !Global::bSmoothTraction ) {
@@ -3285,6 +3270,48 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     m_geometry.draw( Traction->m_geometry );
     // debug data
     ++m_debugstats.traction;
+    ++m_debugstats.drawcalls;
+}
+
+void
+opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
+
+    auto const &data { Lines.data() };
+
+    double distancesquared;
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+            distancesquared = SquareMagnitude( ( data.area.center - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+        default: {
+            distancesquared = SquareMagnitude( ( data.area.center - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            break;
+        }
+    }
+    if( ( distancesquared <  data.rangesquared_min )
+     || ( distancesquared >= data.rangesquared_max ) ) {
+        return;
+    }
+    // setup
+    auto const distance { static_cast<float>( std::sqrt( distancesquared ) ) };
+    auto const linealpha = (
+        data.line_width > 0.f ?
+            10.f * data.line_width
+            / std::max(
+                0.5f * data.area.radius + 1.f,
+                distance - ( 0.5f * data.area.radius ) ) :
+            1.f ); // negative width means the lines are always opague
+    ::glColor4fv(
+        glm::value_ptr(
+            glm::vec4{
+                glm::vec3{ data.lighting.diffuse * Global::DayLight.ambient }, // w zaleznosci od koloru swiatla
+                std::min( 1.f, linealpha ) } ) );
+    ::glLineWidth( clamp( 0.5f * linealpha + data.line_width * data.area.radius / 1000.f, 1.f, 8.f ) );
+    // render
+    m_geometry.draw( data.geometry );
+    ++m_debugstats.lines;
     ++m_debugstats.drawcalls;
 }
 #endif

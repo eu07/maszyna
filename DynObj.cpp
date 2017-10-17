@@ -5501,3 +5501,18 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
         }
     }
 }
+
+// legacy method, sends list of vehicles over network
+void
+vehicle_table::DynamicList( bool const Onlycontrolled ) const {
+    // odesłanie nazw pojazdów dostępnych na scenerii (nazwy, szczególnie wagonów, mogą się powtarzać!)
+    for( auto const *vehicle : m_items ) {
+        if( ( false == Onlycontrolled )
+         || ( vehicle->Mechanik != nullptr ) ) {
+            // same nazwy pojazdów
+            multiplayer::WyslijString( vehicle->asName, 6 );
+        }
+    }
+    // informacja o końcu listy
+    multiplayer::WyslijString( "none", 6 );
+}

@@ -19,7 +19,9 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
+#ifdef EU07_USE_OLD_GROUNDCODE
 #include "ground.h"
+#endif
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
@@ -988,11 +990,11 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
 
     // data offset is used to determine data offset of each submodel into single shared geometry bank
     // (the offsets are part of legacy system which we now need to work around for backward compatibility)
-
     if( Child )
         Child->create_geometry( Dataoffset, Bank );
 
     if( false == Vertices.empty() ) {
+
         tVboPtr = static_cast<int>( Dataoffset );
         Dataoffset += Vertices.size();
         // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
@@ -1003,10 +1005,29 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
         m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
     }
 
+    if( m_geometry != NULL ) {
+        // calculate bounding radius while we're at it
+        // NOTE: doesn't take into account transformation hierarchy TODO: implement it
+        float squaredradius{ 0.f };
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            squaredradius = static_cast<float>( glm::length2( vertex.position ) );
+            if( squaredradius > m_boundingradius ) {
+                m_boundingradius = squaredradius;
+            }
+        }
+        if( m_boundingradius > 0.f ) { m_boundingradius = std::sqrt( m_boundingradius ); }
+        if( Parent ) {
+            // propagate radius up the chain
+            Parent->m_boundingradius = std::max(
+                Parent->m_boundingradius,
+                m_boundingradius );
+        }
+    }
+
     if( Next )
         Next->create_geometry( Dataoffset, Bank );
 }
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 // places contained geometry in provided ground node
 void
 TSubModel::convert( TGroundNode &Groundnode ) const {
@@ -1063,7 +1084,7 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
         Groundnode.fSquareRadius += squareradius;
     }
 }
-
+#endif
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
     f4Ambient = glm::vec4( Ambient, 1.0f );
@@ -1759,18 +1780,11 @@ void TModel3d::Init()
 		return; // operacje zostały już wykonane
 	if (Root)
 	{
-		if (iFlags & 0x0200) // jeśli wczytano z pliku tekstowego
-		{ // jest jakiś dziwny błąd, że obkręcany ma być tylko ostatni submodel
-		  // głównego łańcucha
-		  // TSubModel *p=Root;
-		  // do
-		  //{p->InitialRotate(true); //ostatniemu należy się konwersja układu
-		  // współrzędnych
-		  // p=p->NextGet();
-		  //}
-		  // while (p->NextGet())
-		  // Root->InitialRotate(false); //a poprzednim tylko optymalizacja
-			Root->InitialRotate(true); // argumet określa, czy wykonać pierwotny obrót
+		if (iFlags & 0x0200) {
+            // jeśli wczytano z pliku tekstowego jest jakiś dziwny błąd,
+            // że obkręcany ma być tylko ostatni submodel głównego łańcucha
+            // argumet określa, czy wykonać pierwotny obrót
+			Root->InitialRotate(true);
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
@@ -1786,11 +1800,6 @@ void TModel3d::Init()
             asBinary = ""; // zablokowanie powtórnego zapisu
         }
     }
-};
-
-void TModel3d::BreakHierarhy()
-{
-	Error("Not implemented yet :(");
 };
 
 //-----------------------------------------------------------------------------

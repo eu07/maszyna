@@ -61,9 +61,21 @@ public:
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, triggers radio-stop procedure for all vehicles located on paths in the cell
+    void
+        radio_stop();
+    // legacy method, adds specified path to the list of pieces undergoing state change
+    bool
+        RaTrackAnimAdd( TTrack *Track );
+    // legacy method, updates geometry for pieces in the animation list
+    void
+        RaAnimate( unsigned int const Framestamp );
     // adds provided shape to the cell
     void
         insert( shape_node Shape );
+    // adds provided lines to the cell
+    void
+        insert( lines_node Lines );
     // adds provided path to the cell
     void
         insert( TTrack *Path );
@@ -85,9 +97,9 @@ public:
     // registers provided traction piece in the lookup directory of the cell
     void
         register_end( TTraction *Traction );
-    // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
+    // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
-        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled );
+        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
     // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
     std::tuple<TTrack *, int>
         find( glm::dvec3 const &Point, TTrack const *Exclude );
@@ -111,19 +123,19 @@ public:
 private:
 // types
     using shapenode_sequence = std::vector<shape_node>;
+    using linesnode_sequence = std::vector<lines_node>;
     using path_sequence = std::vector<TTrack *>;
-//    using path_set = std::unordered_set<TTrack *>;
     using traction_sequence = std::vector<TTraction *>;
-//    using traction_set = std::unordered_set<TTraction *>;
     using instance_sequence = std::vector<TAnimModel *>;
     using sound_sequence = std::vector<TTextSound *>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // members
-    scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) };
+    scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE ) };
     bool m_active { false }; // whether the cell holds any actual data
     // content
     shapenode_sequence m_shapesopaque; // opaque pieces of geometry
     shapenode_sequence m_shapestranslucent; // translucent pieces of geometry
+    linesnode_sequence m_lines;
     path_sequence m_paths; // path pieces
     instance_sequence m_instancesopaque;
     instance_sequence m_instancetranslucent;
@@ -135,6 +147,10 @@ private:
         path_sequence paths;
         traction_sequence traction;
     } m_directories;
+    // animation of owned items (legacy code, clean up along with track refactoring)
+    bool m_geometrycreated { false };
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
+    TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
 };
 
 // basic scene partitioning structure, holds terrain geometry and collection of cells
@@ -150,22 +166,33 @@ public:
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
+    void
+        radio_stop( glm::dvec3 const &Location, float const Radius );
     // adds provided shape to the section
     void
         insert( shape_node Shape );
+    // adds provided lines to the section
+    void
+        insert( lines_node Lines );
     // adds provided node to the section
     template <class Type_>
     void
         insert( Type_ *Node ) {
-            cell( Node->location() ).insert( Node ); }
+            auto &targetcell { cell( Node->location() ) };
+            targetcell.insert( Node );
+            // some node types can extend bounding area of the target cell
+            m_area.radius = std::max<float>(
+                m_area.radius,
+                glm::length( m_area.center - targetcell.area().center ) + targetcell.area().radius ); }
     // registers provided node in the lookup directory of the section enclosing specified point
     template <class Type_>
     void
         register_node( Type_ *Node, glm::dvec3 const &Point ) {
             cell( Point ).register_end( Node ); }
-    // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
+    // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
-        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled );
+        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
     // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
     std::tuple<TTrack *, int>
         find( glm::dvec3 const &Point, TTrack const *Exclude );
@@ -223,9 +250,18 @@ public:
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, links specified path piece with potential neighbours
+    void
+        TrackJoin( TTrack *Track );
+    // legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
+    void
+        RadioStop( glm::dvec3 const &Location );
     // inserts provided shape in the region
     void
-        insert_shape( shape_node Shape, scratch_data &Scratchpad );
+        insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
+    // inserts provided lines in the region
+    void
+        insert_lines( lines_node Lines, scratch_data &Scratchpad );
     // inserts provided track in the region
     void
         insert_path( TTrack *Path, scratch_data &Scratchpad );
@@ -241,9 +277,9 @@ public:
     // inserts provided event launcher in the region
     void
         insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );
-    // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
+    // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
-        find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled );
+        find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
     // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
     std::tuple<TTrack *, int>
         find_path( glm::dvec3 const &Point, TTrack const *Exclude );

@@ -46,8 +46,7 @@ TEvent::~TEvent() {
     switch (Type)
     { // sprzątanie
     case tp_Multiple:
-        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa obiektu powiązanego zamieniana na
-        // wskaźnik
+        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa obiektu powiązanego zamieniana na wskaźnik
         if (iFlags & conditional_memstring) // o ile jest łańcuch do porównania w memcompare
             SafeDeleteArray(Params[10].asText);
         break;
@@ -82,8 +81,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
         if (!asNodeName.empty())
         { // podczepienie łańcucha, jeśli nie jest pusty
 			// BUG: source of a memory leak -- the array never gets deleted. fix the destructor
-            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na
-            // wskaźnik
+            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na wskaźnik
             strcpy(Params[9].asText, asNodeName.c_str());
         }
         parser->getTokens();
@@ -860,17 +858,17 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                         }
                         //if (DebugModeFlag)
                         WriteLog(
-                            "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues & Track command ( "
-                            + std::string( Event->Params[ 0 ].asText ) + " "
-                            + std::to_string( Event->Params[ 1 ].asdouble ) + " "
-                            + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
+                            "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues & Track command - ["
+                            + std::string{ Event->Params[ 0 ].asText } + "] ["
+                            + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                            + to_string( Event->Params[ 2 ].asdouble, 2 ) + " ]" );
                     }
                     //else if (DebugModeFlag)
                     WriteLog(
-                        "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues ( "
-                        + std::string( Event->Params[ 0 ].asText ) + " "
-                        + std::to_string( Event->Params[ 1 ].asdouble ) + " "
-                        + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
+                        "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues - ["
+                        + std::string( Event->Params[ 0 ].asText ) + "] ["
+                        + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                        + to_string( Event->Params[ 2 ].asdouble, 2 ) + "]" );
                 }
                 // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
                 do {
@@ -975,13 +973,11 @@ event_manager::CheckQuery() {
                 break;
             case tp_GetValues: {
                 if( m_workevent->Activator ) {
-/*
                     // TODO: re-enable when messaging module is in place
                     if( Global::iMultiplayer ) {
                         // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
-                        WyslijEvent( tmpEvent->asName, tmpEvent->Activator->name() );
+                        multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
                     }
-*/
                     m_workevent->Params[ 9 ].asMemCell->PutCommand(
                         m_workevent->Activator->Mechanik,
 #ifdef EU07_USE_OLD_GROUNDCODE
@@ -1124,13 +1120,10 @@ event_manager::CheckQuery() {
                         m_workevent->Params[ 1 ].asdouble,
                         m_workevent->Params[ 2 ].asdouble );
                 }
-/*
-                // TODO: re-enable when messaging module is in place
                 if( Global::iMultiplayer ) {
                     // dajemy znać do serwera o przełożeniu
-                    WyslijEvent( m_workevent->asName, "" ); // wysłanie nazwy eventu przełączajacego
+                    multiplayer::WyslijEvent( m_workevent->asName, "" ); // wysłanie nazwy eventu przełączajacego
                 }
-*/
                 // Ra: bardziej by się przydała nazwa toru, ale nie ma do niej stąd dostępu
                 break;
             }
@@ -1170,21 +1163,18 @@ event_manager::CheckQuery() {
                             }
                         }
                     }
-/*
-                    // TODO: re-enable when messaging component is in place
                     if( Global::iMultiplayer ) {
                         // dajemy znać do serwera o wykonaniu
                         if( ( m_workevent->iFlags & conditional_anyelse ) == 0 ) {
                             // jednoznaczne tylko, gdy nie było else
                             if( m_workevent->Activator ) {
-                                WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
+                                multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
                             }
                             else {
-                                WyslijEvent( m_workevent->asName, "" );
+                                multiplayer::WyslijEvent( m_workevent->asName, "" );
                             }
                         }
                     }
-*/
                 }
                 break;
             }
@@ -1273,8 +1263,8 @@ event_manager::CheckQuery() {
                         + to_string( m_workevent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
                 }
                 else {
-                    // TODO: re-enable when cell manager is in place
 /*
+                    // TODO: re-enable when cell manager is in place
                     // lista wszystkich
                     for( TGroundNode *Current = nRootOfType[ TP_MEMCELL ]; Current; Current = Current->nNext ) {
                         WriteLog( "Memcell \"" + Current->asName + "\": "

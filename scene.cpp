@@ -130,6 +130,44 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
     }
 }
 
+// legacy method, triggers radio-stop procedure for all vehicles located on paths in the cell
+void
+basic_cell::radio_stop() {
+
+    for( auto *path : m_paths ) {
+        path->RadioStop();
+    }
+}
+
+// legacy method, adds specified path to the list of pieces undergoing state change
+bool
+basic_cell::RaTrackAnimAdd( TTrack *Track ) {
+
+    if( false == m_geometrycreated ) {
+        // nie ma animacji, gdy nie widać
+        return true;
+    }
+    if (tTrackAnim)
+        tTrackAnim->RaAnimListAdd(Track);
+    else
+        tTrackAnim = Track;
+    return false; // będzie animowane...
+}
+
+// legacy method, updates geometry for pieces in the animation list
+void
+basic_cell::RaAnimate( unsigned int const Framestamp ) {
+
+    if( ( tTrackAnim == nullptr )
+     || ( Framestamp == m_framestamp ) ) {
+        // nie ma nic do animowania
+        return;
+    }
+    tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
+
+    m_framestamp = Framestamp;
+}
+
 // adds provided shape to the cell
 void
 basic_cell::insert( shape_node Shape ) {
@@ -160,15 +198,51 @@ basic_cell::insert( shape_node Shape ) {
     shapes.emplace_back( Shape );
 }
 
+// adds provided lines to the cell
+void
+basic_cell::insert( lines_node Lines ) {
+
+    m_active = true;
+
+    auto const &linesdata { Lines.data() };
+    for( auto &targetlines : m_lines ) {
+        // try to merge shapes with matching view ranges...
+        auto const &targetlinesdata { targetlines.data() };
+        if( ( linesdata.rangesquared_min == targetlinesdata.rangesquared_min )
+         && ( linesdata.rangesquared_max == targetlinesdata.rangesquared_max )
+        // ...and located close to each other (within arbitrary limit of 10m)
+         && ( glm::length( linesdata.area.center - targetlinesdata.area.center ) < 10.0 ) ) {
+
+            if( true == targetlines.merge( Lines ) ) {
+                // if the shape was merged there's nothing left to do
+                return;
+            }
+        }
+    }
+    // otherwise add the shape to the relevant list
+    Lines.origin( m_area.center );
+    m_lines.emplace_back( Lines );
+}
+
 // adds provided path to the cell
 void
 basic_cell::insert( TTrack *Path ) {
 
     m_active = true;
 
-    // TODO: add animation hook
     Path->origin( m_area.center );
     m_paths.emplace_back( Path );
+    // animation hook
+#ifndef EU07_USE_OLD_GROUNDCODE
+    Path->RaOwnerSet( this );
+#endif
+    // re-calculate cell radius, in case track extends outside the cell's boundaries
+    auto endpoints = Path->endpoints();
+    for( auto &endpoint : endpoints ) {
+        m_area.radius = std::max<float>(
+            m_area.radius,
+            glm::length( m_area.center - endpoint ) + 25.f ); // extra margin to prevent driven vehicle from flicking
+    }
 }
 
 // adds provided traction piece to the cell
@@ -179,6 +253,13 @@ basic_cell::insert( TTraction *Traction ) {
 
     Traction->origin( m_area.center );
     m_traction.emplace_back( Traction );
+    // re-calculate cell radius, in case traction piece extends outside the cell's boundaries
+    auto endpoints = Traction->endpoints();
+    for( auto &endpoint : endpoints ) {
+        m_area.radius = std::max<float>(
+            m_area.radius,
+            glm::length( m_area.center - endpoint ) ); // adding arbitrary safety margin
+    }
 }
 
 // adds provided model instance to the cell
@@ -202,6 +283,15 @@ basic_cell::insert( TAnimModel *Instance ) {
     if( alpha & flags & 0x1F1F001F ) {
         // opaque pieces
         m_instancesopaque.emplace_back( Instance );
+    }
+   // re-calculate cell radius, in case model extends outside the cell's boundaries
+    if( Instance->Model() ) {
+        auto const modelradius{ Instance->Model()->bounding_radius() };
+        if( modelradius > 0.f ) {
+            m_area.radius = std::max<float>(
+                m_area.radius,
+                glm::length( m_area.center - Instance->location() ) + modelradius ); // adding arbitrary safety margin
+        }
     }
 }
 
@@ -251,7 +341,7 @@ basic_cell::register_end( TTraction *Traction ) {
 
 // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
 std::tuple<TDynamicObject *, float>
-basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) {
 
     TDynamicObject *vehiclenearest { nullptr };
     float leastdistance { std::numeric_limits<float>::max() };
@@ -264,7 +354,16 @@ basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlyco
              && ( vehicle->Mechanik == nullptr ) ) {
                 continue;
             }
-            distance = glm::length2( glm::dvec3{ vehicle->GetPosition() } - Point );
+            if( false == Findbycoupler ) {
+                // basic search, checks vehicles' center points
+                distance = glm::length2( glm::dvec3{ vehicle->GetPosition() } - Point );
+            }
+            else {
+                // alternative search, checks positions of vehicles' couplers
+                distance = std::min(
+                    glm::length2( glm::dvec3{ vehicle->HeadPosition() } - Point ),
+                    glm::length2( glm::dvec3{ vehicle->RearPosition() } - Point ) );
+            }
             if( ( distance > distancecutoff )
              || ( distance > leastdistance ) ){
                 continue;
@@ -372,10 +471,13 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
     for( auto *path : m_paths )              { path->create_geometry( Bank ); }
     for( auto *traction : m_traction )       { traction->create_geometry( Bank ); }
 #endif
+    for( auto &lines : m_lines )             { lines.create_geometry( Bank ); }
     // arrange content by assigned materials to minimize state switching
     std::sort(
         std::begin( m_paths ), std::end( m_paths ),
         TTrack::sort_by_material );
+
+    m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
 
@@ -384,11 +486,9 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
 void
 basic_section::update( glm::dvec3 const &Location, float const Radius ) {
 
-    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + Radius, 2 ) };
-
     for( auto &cell : m_cells ) {
 
-        if( glm::length2( cell.area().center - Location ) < squaredradii ) {
+        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
             // we reject cells which aren't within our area of interest
             cell.update();
         }
@@ -408,12 +508,24 @@ basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographind
     auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
 
     auto const radius { 0.0 }; // { EU07_CELLSIZE * 0.5 }; // experimentally limited, check if it has any negative effect
-    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + radius, 2 ) };
 
     for( auto &cell : m_cells ) {
         // we reject early cells which aren't within our area of interest
-        if( glm::length2( cell.area().center - pantographposition ) < squaredradii ) {
+        if( glm::length2( cell.area().center - pantographposition ) < ( ( cell.area().radius + radius ) * ( cell.area().radius + radius ) ) ) {
             cell.update_traction( Vehicle, Pantographindex );
+        }
+    }
+}
+
+// legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
+void
+basic_section::radio_stop( glm::dvec3 const &Location, float const Radius ) {
+
+    for( auto &cell : m_cells ) {
+
+        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
+            // we reject cells which aren't within our area of interest
+            cell.radio_stop();
         }
     }
 }
@@ -444,9 +556,16 @@ basic_section::insert( shape_node Shape ) {
     }
 }
 
+// adds provided lines to the section
+void
+basic_section::insert( lines_node Lines ) {
+
+    cell( Lines.data().area.center ).insert( Lines );
+}
+
 // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
 std::tuple<TDynamicObject *, float>
-basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) {
 
     // go through sections within radius of interest, and pick the nearest candidate
     TDynamicObject
@@ -456,14 +575,12 @@ basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onl
         distancefound,
         distancenearest { std::numeric_limits<float>::max() };
 
-    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + Radius, 2 ) };
-
     for( auto &cell : m_cells ) {
         // we reject early cells which aren't within our area of interest
-        if( glm::length2( cell.area().center - Point ) > squaredradii ) {
+        if( glm::length2( cell.area().center - Point ) > ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
             continue;
         }
-        std::tie( vehiclefound, distancefound ) = cell.find( Point, Radius, Onlycontrolled );
+        std::tie( vehiclefound, distancefound ) = cell.find( Point, Radius, Onlycontrolled, Findbycoupler );
         if( ( vehiclefound != nullptr )
          && ( distancefound < distancenearest ) ) {
 
@@ -503,11 +620,10 @@ basic_section::find( glm::dvec3 const &Point, TTraction const *Other, int const 
         endpointnearest { -1 };
 
     auto const radius { 0.0 }; // { EU07_CELLSIZE * 0.5 }; // experimentally limited, check if it has any negative effect
-    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_CELLSIZE + 0.25 * EU07_CELLSIZE ) + radius, 2 ) };
 
     for( auto &cell : m_cells ) {
         // we reject early cells which aren't within our area of interest
-        if( glm::length2( cell.area().center - Point ) > squaredradii ) {
+        if( glm::length2( cell.area().center - Point ) > ( ( cell.area().radius + radius ) * ( cell.area().radius + radius ) ) ) {
             continue;
         }
         std::tie( tractionfound, endpointfound, distancefound ) = cell.find( Point, Other, Currentdirection );
@@ -618,8 +734,49 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
     }
 }
 
+// legacy method, links specified path piece with potential neighbours
 void
-basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad ) {
+basic_region::TrackJoin( TTrack *Track ) {
+    // wyszukiwanie sąsiednich torów do podłączenia (wydzielone na użytek obrotnicy)
+    TTrack *matchingtrack;
+    int endpointid;
+    if( Track->CurrentPrev() == nullptr ) {
+        std::tie( matchingtrack, endpointid ) = find_path( Track->CurrentSegment()->FastGetPoint_0(), Track );
+        switch( endpointid ) {
+            case 0:
+                Track->ConnectPrevPrev( matchingtrack, 0 );
+                break;
+            case 1:
+                Track->ConnectPrevNext( matchingtrack, 1 );
+                break;
+        }
+    }
+    if( Track->CurrentNext() == nullptr ) {
+        std::tie( matchingtrack, endpointid ) = find_path( Track->CurrentSegment()->FastGetPoint_1(), Track );
+        switch( endpointid ) {
+            case 0:
+                Track->ConnectNextPrev( matchingtrack, 0 );
+                break;
+            case 1:
+                Track->ConnectNextNext( matchingtrack, 1 );
+                break;
+        }
+    }
+}
+
+// legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
+void
+basic_region::RadioStop( glm::dvec3 const &Location ) {
+
+    auto const range = 2000.f;
+    auto const &sectionlist = sections( Location, range );
+    for( auto *section : sectionlist ) {
+        section->radio_stop( Location, range );
+    }
+}
+
+void
+basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
 
     // shape might need to be split into smaller pieces, so we create list of nodes instead of just single one
     // using deque so we can do single pass iterating and addding generated pieces without invalidating anything
@@ -628,38 +785,41 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad ) {
     if( shape.m_data.vertices.empty() ) { return; }
 
     // adjust input if necessary:
-    if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
-        // rotate...
-        auto const rotation = glm::radians( Scratchpad.location_rotation );
-        for( auto &vertex : shape.m_data.vertices ) {
-            vertex.position = glm::rotateZ<double>( vertex.position, rotation.z );
-            vertex.position = glm::rotateX<double>( vertex.position, rotation.x );
-            vertex.position = glm::rotateY<double>( vertex.position, rotation.y );
-            vertex.normal = glm::rotateZ( vertex.normal, rotation.z );
-            vertex.normal = glm::rotateX( vertex.normal, rotation.x );
-            vertex.normal = glm::rotateY( vertex.normal, rotation.y );
+    if( true == Transform ) {
+        // shapes generated from legacy terrain come with world space coordinates and don't need processing
+        if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
+            // rotate...
+            auto const rotation = glm::radians( Scratchpad.location_rotation );
+            for( auto &vertex : shape.m_data.vertices ) {
+                vertex.position = glm::rotateZ<double>( vertex.position, rotation.z );
+                vertex.position = glm::rotateX<double>( vertex.position, rotation.x );
+                vertex.position = glm::rotateY<double>( vertex.position, rotation.y );
+                vertex.normal = glm::rotateZ( vertex.normal, rotation.z );
+                vertex.normal = glm::rotateX( vertex.normal, rotation.x );
+                vertex.normal = glm::rotateY( vertex.normal, rotation.y );
+            }
         }
-    }
-    if( ( false == Scratchpad.location_offset.empty() )
-     && ( Scratchpad.location_offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
-        // ...and move
-        auto const offset = Scratchpad.location_offset.top();
-        for( auto &vertex : shape.m_data.vertices ) {
-            vertex.position += offset;
+        if( ( false == Scratchpad.location_offset.empty() )
+         && ( Scratchpad.location_offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
+               // ...and move
+            auto const offset = Scratchpad.location_offset.top();
+            for( auto &vertex : shape.m_data.vertices ) {
+                vertex.position += offset;
+            }
         }
-    }
-    // calculate bounding area
-    for( auto const &vertex : shape.m_data.vertices ) {
-        shape.m_data.area.center += vertex.position;
-    }
-    shape.m_data.area.center /= shape.m_data.vertices.size();
-    // trim the shape if needed. trimmed parts will be added to list as separate nodes
-    for( std::size_t index = 0; index < shapes.size(); ++index ) {
-        while( true == RaTriangleDivider( shapes[ index ], shapes ) ) {
-            ; // all work is done during expression check
+        // calculate bounding area
+        for( auto const &vertex : shape.m_data.vertices ) {
+            shape.m_data.area.center += vertex.position;
         }
-        // with the trimming done we can calculate shape's bounding radius
-        shape.compute_radius();
+        shape.m_data.area.center /= shape.m_data.vertices.size();
+        // trim the shape if needed. trimmed parts will be added to list as separate nodes
+        for( std::size_t index = 0; index < shapes.size(); ++index ) {
+            while( true == RaTriangleDivider( shapes[ index ], shapes ) ) {
+                ; // all work is done during expression check
+            }
+            // with the trimming done we can calculate shape's bounding radius
+            shape.compute_radius();
+        }
     }
     // move the data into appropriate section(s)
     for( auto &shape : shapes ) {
@@ -676,6 +836,50 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad ) {
                         " \"" + shape.m_name + "\"" )
                 + " placed in location outside region bounds (" + to_string( shape.m_data.area.center ) + ")" );
         }
+    }
+}
+
+// inserts provided lines in the region
+void
+basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
+
+    if( Lines.m_data.vertices.empty() ) { return; }
+    // transform point coordinates if needed
+    if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
+        // rotate...
+        auto const rotation = glm::radians( Scratchpad.location_rotation );
+        for( auto &vertex : Lines.m_data.vertices ) {
+            vertex.position = glm::rotateZ<double>( vertex.position, rotation.z );
+            vertex.position = glm::rotateX<double>( vertex.position, rotation.x );
+            vertex.position = glm::rotateY<double>( vertex.position, rotation.y );
+        }
+    }
+    if( ( false == Scratchpad.location_offset.empty() )
+     && ( Scratchpad.location_offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
+        // ...and move
+        auto const offset = Scratchpad.location_offset.top();
+        for( auto &vertex : Lines.m_data.vertices ) {
+            vertex.position += offset;
+        }
+    }
+    // calculate bounding area
+    for( auto const &vertex : Lines.m_data.vertices ) {
+        Lines.m_data.area.center += vertex.position;
+    }
+    Lines.m_data.area.center /= Lines.m_data.vertices.size();
+    Lines.compute_radius();
+    // move the data into appropriate section
+    if( point_inside( Lines.m_data.area.center ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( Lines.m_data.area.center ).insert( Lines );
+    }
+    else {
+        ErrorLog(
+            "Bad scenario: lines node" + (
+                Lines.m_name.empty() ?
+                    "" :
+                    " \"" + Lines.m_name + "\"" )
+            + " placed in location outside region bounds (" + to_string( Lines.m_data.area.center ) + ")" );
     }
 }
 
@@ -776,7 +980,7 @@ basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpa
 
 // find a vehicle located neares to specified location, within specified radius, optionally discarding vehicles without drivers
 std::tuple<TDynamicObject *, float>
-basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled ) {
+basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) {
 
     auto const &sectionlist = sections( Point, Radius );
     // go through sections within radius of interest, and pick the nearest candidate
@@ -788,7 +992,7 @@ basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool co
         nearestdistance { std::numeric_limits<float>::max() };
 
     for( auto *section : sectionlist ) {
-        std::tie( foundvehicle, founddistance ) = section->find( Point, Radius, Onlycontrolled );
+        std::tie( foundvehicle, founddistance ) = section->find( Point, Radius, Onlycontrolled, Findbycoupler );
         if( ( foundvehicle != nullptr )
          && ( founddistance < nearestdistance ) ) {
 

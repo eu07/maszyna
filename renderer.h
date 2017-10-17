@@ -340,6 +340,8 @@ private:
         Render_Alpha( TAnimModel *Instance );
     void
         Render_Alpha( TTraction *Traction );
+    void
+        Render_Alpha( scene::lines_node const &Lines );
 #endif
     bool
         Render_Alpha( TDynamicObject *Dynamic );

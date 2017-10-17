@@ -299,8 +299,8 @@ class Global
     static std::string GetNextSymbol();
 #ifdef EU07_USE_OLD_GROUNDCODE
     static TDynamicObject * DynamicNearest();
-#endif
     static TDynamicObject * CouplerNearest();
+#endif
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);

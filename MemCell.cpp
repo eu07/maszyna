@@ -176,8 +176,14 @@ void TMemCell::StopCommandSent()
     if (!bCommand)
         return;
     bCommand = false;
-    if (OnSent) // jeśli jest event
-        Global::AddToQuery(OnSent, NULL);
+    if( OnSent ) {
+        // jeśli jest event
+#ifdef EU07_USE_OLD_GROUNDCODE
+        Global::AddToQuery( OnSent, NULL );
+#else
+        simulation::Events.AddToQuery( OnSent, nullptr );
+#endif
+    }
 };
 
 void TMemCell::AssignEvents(TEvent *e)

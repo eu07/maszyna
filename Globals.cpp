@@ -1001,13 +1001,12 @@ TDynamicObject *Global::DynamicNearest()
 { // ustalenie pojazdu najbliższego kamerze
     return pGround->DynamicNearest(pCamera->Pos);
 };
-#endif
 
 TDynamicObject *Global::CouplerNearest()
 { // ustalenie pojazdu najbliższego kamerze
     return pGround->CouplerNearest(pCamera->Pos);
 };
-
+#endif
 bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 {
 #ifdef EU07_USE_OLD_GROUNDCODE
@@ -1016,6 +1015,7 @@ bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
     return simulation::Events.AddToQuery( event, who );
 #endif
 };
+
 //---------------------------------------------------------------------------
 
 bool Global::DoEvents()

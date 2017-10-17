@@ -352,7 +352,29 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         if( nodedata.range_min < 0.0 ) {
             // convert and import 3d terrain
-            // TODO: implement this
+            auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
+            // model import can potentially fail
+            if( instance == nullptr ) { return; }
+            // go through submodels, and import them as shapes
+            auto const cellcount = instance->TerrainCount() + 1; // zliczenie submodeli
+            for( auto i = 1; i < cellcount; ++i ) {
+                auto *submodel = instance->TerrainSquare( i - 1 );
+                simulation::Region->insert_shape(
+                    scene::shape_node().convert( submodel ),
+                    Scratchpad,
+                    false );
+                // if there's more than one group of triangles in the cell they're held as children of the primary submodel
+                submodel = submodel->ChildGet();
+                while( submodel != nullptr ) {
+                    simulation::Region->insert_shape(
+                        scene::shape_node().convert( submodel ),
+                        Scratchpad,
+                        false );
+                    submodel = submodel->NextGet();
+                }
+            }
+            // with the import done we can get rid of the source model
+            delete instance;
         }
         else {
             // regular instance of 3d mesh
@@ -372,14 +394,20 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
           || ( nodedata.type == "triangle_strip" )
           || ( nodedata.type == "triangle_fan" ) ) {
 
-        simulation::Region->insert_shape( scene::shape_node().deserialize( Input, nodedata ), Scratchpad );
+        simulation::Region->insert_shape(
+            scene::shape_node().deserialize(
+                Input, nodedata ),
+            Scratchpad,
+            true );
     }
     else if( ( nodedata.type == "lines" )
           || ( nodedata.type == "line_strip" )
           || ( nodedata.type == "line_loop" ) ) {
 
-        // TODO: implement
-        skip_until( Input, "endline" );
+        simulation::Region->insert_lines(
+            scene::lines_node().deserialize(
+                Input, nodedata ),
+            Scratchpad );
     }
     else if( nodedata.type == "memcell" ) {
 

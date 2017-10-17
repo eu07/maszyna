@@ -84,16 +84,14 @@ TIsolated::TIsolated(std::string const &n, TIsolated *i) :
     // utworznie obwodu izolowanego. nothing to do here.
 };
 
-// TODO: put this in the cleanup routine on exit
-    /*
-     TIsolated *p=pRoot;
-     while (pRoot)
-     {
-      p=pRoot;
-      p->pNext=NULL;
-      delete p;
-     }
-    */
+void TIsolated::DeleteAll() {
+
+    while( pRoot ) {
+        auto *next = pRoot->Next();
+        delete pRoot;
+        pRoot = next;
+    }
+}
 
 TIsolated * TIsolated::Find(std::string const &n)
 { // znalezienie obiektu albo utworzenie nowego
@@ -1065,7 +1063,11 @@ bool TTrack::InMovement()
     return false;
 };
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
+#else
+void TTrack::RaAssign( scene::basic_cell *gn, TAnimModel *am, TEvent *done, TEvent *joined )
+#endif
 { // Ra: wiązanie toru z modelem obrotnicy
     if (eType == tt_Table)
     {
@@ -2259,7 +2261,7 @@ bool TTrack::Switch(int i, float const t, float const d)
         }
         else if (eType == tt_Table)
         { // blokowanie (0, szukanie torów) lub odblokowanie (1, rozłączenie) obrotnicy
-            if (i)
+            if (i) // NOTE: this condition seems opposite to intention/comment? TODO: investigate this
             { // 0: rozłączenie sąsiednich torów od obrotnicy
                 if (trPrev) // jeśli jest tor od Point1 obrotnicy
                     if (iPrevDirection) // 0:dołączony Point1, 1:dołączony Point2
@@ -2276,25 +2278,34 @@ bool TTrack::Switch(int i, float const t, float const d)
                 fVelocity = 0.0; // AI, nie ruszaj się!
                 if (SwitchExtension->pOwner)
                     SwitchExtension->pOwner->RaTrackAnimAdd(this); // dodanie do listy animacyjnej
+                // TODO: unregister path ends in the owner cell
             }
             else
             { // 1: ustalenie finalnego położenia (gdy nie było animacji)
                 RaAnimate(); // ostatni etap animowania
                 // zablokowanie pozycji i połączenie do sąsiednich torów
+                // TODO: register new position of the path endpoints with the region
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Global::pGround->TrackJoin(SwitchExtension->pMyNode);
+#else
+                simulation::Region->TrackJoin( this );
+#endif
                 if (trNext || trPrev)
                 {
                     fVelocity = 6.0; // jazda dozwolona
-                    if (trPrev)
-                        if (trPrev->fVelocity ==
-                            0.0) // ustawienie 0 da możliwość zatrzymania AI na obrotnicy
-                            trPrev->VelocitySet(6.0); // odblokowanie dołączonego toru do jazdy
-                    if (trNext)
-                        if (trNext->fVelocity == 0.0)
-                            trNext->VelocitySet(6.0);
-                    if (SwitchExtension->evPlus) // w starych sceneriach może nie być
-                        Global::AddToQuery(SwitchExtension->evPlus,
-                                           NULL); // potwierdzenie wykonania (np. odpala WZ)
+                    if( ( trPrev )
+                     && ( trPrev->fVelocity == 0.0 ) ) {
+                        // ustawienie 0 da możliwość zatrzymania AI na obrotnicy
+                        trPrev->VelocitySet( 6.0 ); // odblokowanie dołączonego toru do jazdy
+                    }
+                    if( ( trNext )
+                     && ( trNext->fVelocity == 0.0 ) ) {
+                        trNext->VelocitySet( 6.0 );
+                    }
+                    if( SwitchExtension->evPlus ) { // w starych sceneriach może nie być
+                        // potwierdzenie wykonania (np. odpala WZ)
+                        Global::AddToQuery( SwitchExtension->evPlus, nullptr );
+                    }
                 }
             }
             SwitchExtension->CurrentIndex = i; // zapamiętanie stanu zablokowania
@@ -2528,7 +2539,11 @@ TTrack * TTrack::RaAnimate()
                            cosa = -hlen * std::cos(glm::radians(SwitchExtension->fOffset));
                     SwitchExtension->vTrans = ac->TransGet();
                     vector3 middle =
+#ifdef EU07_USE_OLD_GROUNDCODE
                         SwitchExtension->pMyNode->pCenter +
+#else
+                        SwitchExtension->pMyNode->area().center +
+#endif
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
                     Segment->Init(middle + vector3(sina, 0.0, cosa),
                                   middle - vector3(sina, 0.0, cosa), 5.0); // nowy odcinek
@@ -2774,6 +2789,11 @@ TTrack * TTrack::Connected(int s, double &d) const
 
 
 
+path_table::~path_table() {
+
+    TIsolated::DeleteAll();
+}
+
 // legacy method, initializes tracks after deserialization from scenario file
 void
 path_table::InitTracks() {
@@ -2956,4 +2976,47 @@ path_table::InitTracks() {
         }
         isolated = isolated->Next();
     }
+}
+
+// legacy method, sends list of occupied paths over network
+void
+path_table::TrackBusyList() const {
+    // wysłanie informacji o wszystkich zajętych odcinkach
+    for( auto const *path : m_items ) {
+        if( ( false == path->name().empty() ) // musi być nazwa
+         && ( false == path->Dynamics.empty() ) ) {
+            // zajęty
+            multiplayer::WyslijString( path->name(), 8 );
+        }
+    }
+}
+
+// legacy method, sends list of occupied path sections over network
+void
+path_table::IsolatedBusyList() const {
+    // wysłanie informacji o wszystkich odcinkach izolowanych
+    TIsolated *Current;
+    for( Current = TIsolated::Root(); Current; Current = Current->Next() ) {
+
+        if( Current->Busy() ) { multiplayer::WyslijString( Current->asName, 11 ); }
+        else                  { multiplayer::WyslijString( Current->asName, 10 ); }
+    }
+    multiplayer::WyslijString( "none", 10 ); // informacja o końcu listy
+}
+
+// legacy method, sends state of specified path section over network
+void
+path_table::IsolatedBusy( std::string const &Name ) const {
+    // wysłanie informacji o odcinku izolowanym (t)
+    // Ra 2014-06: do wyszukania użyć drzewka nazw
+    TIsolated *Current;
+    for( Current = TIsolated::Root(); Current; Current = Current->Next() ) {
+        if( Current->asName == Name ) {
+            if( Current->Busy() ) { multiplayer::WyslijString( Current->asName, 11 ); }
+            else                  { multiplayer::WyslijString( Current->asName, 10 ); }
+            // nie sprawdzaj dalszych
+            return;
+        }
+    }
+    multiplayer::WyslijString( Name, 10 ); // wolny (technically not found but, eh)
 }

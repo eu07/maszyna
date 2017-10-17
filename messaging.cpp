@@ -93,6 +93,7 @@ WyslijWolny(const std::string &t)
     WyslijString(t, 4); // tor wolny
 }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 void
 WyslijNamiary(TGroundNode *t)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
@@ -169,6 +170,84 @@ WyslijNamiary(TGroundNode *t)
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
 }
+#else
+void
+WyslijNamiary(TDynamicObject const *Vehicle)
+{ // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
+    // WriteLog("Wysylam pojazd");
+    DaneRozkaz r;
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iComm = 7; // 7 - dane pojazdu
+	int i = 32;
+	size_t j = Vehicle->asName.length();
+    r.iPar[0] = i; // ilość danych liczbowych
+    r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
+    r.fPar[2] = Vehicle->MoverParameters->Loc.X; // pozycja X
+    r.fPar[3] = Vehicle->MoverParameters->Loc.Y; // pozycja Y
+    r.fPar[4] = Vehicle->MoverParameters->Loc.Z; // pozycja Z
+    r.fPar[5] = Vehicle->MoverParameters->V; // prędkość ruchu X
+    r.fPar[6] = Vehicle->MoverParameters->nrot * M_PI *
+                Vehicle->MoverParameters->WheelDiameter; // prędkość obrotowa kóŁ
+    r.fPar[7] = 0; // prędkość ruchu Z
+    r.fPar[8] = Vehicle->MoverParameters->AccS; // przyspieszenie X
+    r.fPar[9] = Vehicle->MoverParameters->AccN; // przyspieszenie Y //na razie nie
+    r.fPar[10] = Vehicle->MoverParameters->AccV; // przyspieszenie Z
+    r.fPar[11] = Vehicle->MoverParameters->DistCounter; // przejechana odległość w km
+    r.fPar[12] = Vehicle->MoverParameters->PipePress; // ciśnienie w PG
+    r.fPar[13] = Vehicle->MoverParameters->ScndPipePress; // ciśnienie w PZ
+    r.fPar[14] = Vehicle->MoverParameters->BrakePress; // ciśnienie w CH
+    r.fPar[15] = Vehicle->MoverParameters->Compressor; // ciśnienie w ZG
+    r.fPar[16] = Vehicle->MoverParameters->Itot; // Prąd całkowity
+    r.iPar[17] = Vehicle->MoverParameters->MainCtrlPos; // Pozycja NJ
+    r.iPar[18] = Vehicle->MoverParameters->ScndCtrlPos; // Pozycja NB
+    r.iPar[19] = Vehicle->MoverParameters->MainCtrlActualPos; // Pozycja jezdna
+    r.iPar[20] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
+    r.iPar[21] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
+    r.iPar[22] = Vehicle->MoverParameters->ResistorsFlag * 1 +
+                 Vehicle->MoverParameters->ConverterFlag * 2 +
+                 +Vehicle->MoverParameters->CompressorFlag * 4 +
+                 Vehicle->MoverParameters->Mains * 8 +
+                 +Vehicle->MoverParameters->DoorLeftOpened * 16 +
+                 Vehicle->MoverParameters->DoorRightOpened * 32 +
+                 +Vehicle->MoverParameters->FuseFlag * 64 +
+                 Vehicle->MoverParameters->DepartureSignal * 128;
+    // WriteLog("Zapisalem stare");
+    // WriteLog("Mam patykow "+IntToStr(t->DynamicObject->iAnimType[ANIM_PANTS]));
+    for (int p = 0; p < 4; p++)
+    {
+        //   WriteLog("Probuje pant "+IntToStr(p));
+        if (p < Vehicle->iAnimType[ANIM_PANTS])
+        {
+            r.fPar[23 + p] = Vehicle->pants[p].fParamPants->PantWys; // stan pantografów 4
+            //     WriteLog("Zapisalem pant "+IntToStr(p));
+        }
+        else
+        {
+            r.fPar[23 + p] = -2;
+            //     WriteLog("Nie mam pant "+IntToStr(p));
+        }
+    }
+    // WriteLog("Zapisalem pantografy");
+    for (int p = 0; p < 3; p++)
+        r.fPar[27 + p] =
+            Vehicle->MoverParameters->ShowCurrent(p + 1); // amperomierze kolejnych grup
+    // WriteLog("zapisalem prady");
+    r.iPar[30] = Vehicle->MoverParameters->WarningSignal; // trabienie
+    r.fPar[31] = Vehicle->MoverParameters->RunningTraction.TractionVoltage; // napiecie WN
+    // WriteLog("Parametry gotowe");
+    i <<= 2; // ilość bajtów
+    r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
+    strcpy(r.cString + i + 1, Vehicle->asName.c_str()); // zakończony zerem
+    COPYDATASTRUCT cData;
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
+    cData.lpData = &r;
+    // WriteLog("Ramka gotowa");
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    // WriteLog("Ramka poszla!");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + Vehicle->asName + " sent");
+}
+#endif
 
 void
 WyslijObsadzone()

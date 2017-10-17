@@ -11,7 +11,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 class TGroundNode;
+#else
+class TDynamicObject;
+#endif
 
 namespace multiplayer {
 
@@ -40,7 +44,11 @@ void Navigate( std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lPa
 void WyslijEvent( const std::string &e, const std::string &d );
 void WyslijString( const std::string &t, int n );
 void WyslijWolny( const std::string &t );
+#ifdef EU07_USE_OLD_GROUNDCODE
 void WyslijNamiary( TGroundNode *t );
+#else
+void WyslijNamiary( TDynamicObject const *Vehicle );
+#endif
 void WyslijParam( int nr, int fl );
 void WyslijUszkodzenia( const std::string &t, char fl );
 void WyslijObsadzone(); // -> skladanie wielu pojazdow    

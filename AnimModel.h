@@ -149,6 +149,10 @@ public:
     material_data const *
         Material() const {
             return &m_materialdata; }
+    inline
+    TModel3d *
+        Model() {
+            return pModel; }
 // members
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
 

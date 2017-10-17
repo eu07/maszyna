@@ -318,6 +318,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
         Controlled = NULL;
         mvControlled = NULL;
         Camera.Type = tp_Free;
+        DebugCamera = Camera;
+        Global::DebugCameraPosition = DebugCamera.Pos;
     }
 
     // if (!Global::bMultiplayer) //na razie włączone
@@ -543,7 +545,7 @@ void TWorld::OnKeyDown(int cKey)
 #ifdef EU07_USE_OLD_GROUNDCODE
                 TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //łapiemy z obsadą
 #else
-                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 50, true ) );
+                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 50, true, false ) );
 #endif
                 if( ( tmp != nullptr )
                  && ( tmp != Controlled ) ) {
@@ -688,8 +690,12 @@ void TWorld::OnKeyDown(int cKey)
     }
     else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) && ( Global::shiftState ) ) {
         //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy // added shift to prevent odd issue with glfw producing pause presses on its own
-		if (Controlled->MoverParameters->Radio)
-			Ground.RadioStop(Camera.Pos);
+        if( Controlled->MoverParameters->Radio )
+#ifdef EU07_USE_OLD_GROUNDCODE
+            Ground.RadioStop( Camera.Pos );
+#else
+            simulation::Region->RadioStop( Camera.Pos );
+#endif
 	}
     else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie działa, F4 tak
         if (Train)
@@ -725,7 +731,7 @@ void TWorld::OnKeyDown(int cKey)
 #ifdef EU07_USE_OLD_GROUNDCODE
                 TDynamicObject *temp = Global::DynamicNearest();
 #else
-                TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false ) );
+                TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) );
 #endif
             if (temp)
             {
@@ -739,7 +745,11 @@ void TWorld::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_EndSign])
         { // Ra 2014-07: zabrane z kabiny
+#ifdef EU07_USE_OLD_GROUNDCODE
             TDynamicObject *tmp = Global::CouplerNearest(); // domyślnie wyszukuje do 20m
+#else
+            TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, true ) );
+#endif
             if (tmp)
             {
                 int CouplNr = (LengthSquared3(tmp->HeadPosition() - Camera.Pos) >
@@ -772,7 +782,7 @@ void TWorld::OnKeyDown(int cKey)
 #ifdef EU07_USE_OLD_GROUNDCODE
             TDynamicObject *temp = Global::DynamicNearest();
 #else
-            TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false ) );
+            TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) );
 #endif
             if (temp)
             {
@@ -795,7 +805,7 @@ void TWorld::OnKeyDown(int cKey)
 #ifdef EU07_USE_OLD_GROUNDCODE
             TDynamicObject *temp = Global::DynamicNearest();
 #else
-            TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false ) );
+            TDynamicObject *temp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) );
 #endif
             if (temp)
             {
@@ -835,6 +845,8 @@ void TWorld::InOutKey( bool const Near )
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
+        DebugCamera = Camera;
+        Global::DebugCameraPosition = DebugCamera.Pos;
     }
     else
     { // jazda w kabinie
@@ -1172,9 +1184,9 @@ TWorld::Update_Camera( double const Deltatime ) {
                 if( !d )
                     d = Ground.DynamicNearest( Camera.Pos, 1000 ); // dalej szukanie, jesli bliżej nie ma
 #else
-                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 300, false ) );
+                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 300, false, false ) );
                 if( !d )
-                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 1000, false ) ); // dalej szukanie, jesli bliżej nie ma
+                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
 #endif
                 if( d && pDynamicNearest ) {
                     // jeśli jakiś jest znaleziony wcześniej
@@ -1361,7 +1373,7 @@ TWorld::Update_UI() {
 #ifdef EU07_USE_OLD_GROUNDCODE
                 Ground.DynamicNearest( Camera.Pos ) :
 #else
-                std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false ) ) :
+                std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
 #endif
                 Controlled ); // w trybie latania lokalizujemy wg mapy
 
@@ -1446,7 +1458,7 @@ TWorld::Update_UI() {
 #ifdef EU07_USE_OLD_GROUNDCODE
                     Ground.DynamicNearest( Camera.Pos ) :
 #else
-                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false ) ) :
+                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
 #endif
                     Controlled ); // w trybie latania lokalizujemy wg mapy
 
@@ -1714,7 +1726,7 @@ TWorld::Update_UI() {
 #ifdef EU07_USE_OLD_GROUNDCODE
                         Ground.DynamicNearest( Camera.Pos ) :
 #else
-                        std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false ) ) :
+                        std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
 #endif
                         Controlled ); // w trybie latania lokalizujemy wg mapy
                 if( tmp == nullptr ) {
@@ -1908,7 +1920,6 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                 std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) + " rcvd" );
 #ifdef EU07_USE_OLD_GROUNDCODE
             if( Global::iMultiplayer ) {
-                // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
                     std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
                 if( e )
@@ -1918,7 +1929,6 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             }
 #else
             if( Global::iMultiplayer ) {
-                // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 auto *event = simulation::Events.FindEvent( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
                 if( event != nullptr ) {
                     if( ( event->Type == tp_Multiple )
@@ -2027,7 +2037,6 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                     if (t)
                         multiplayer::WyslijNamiary(t); // wysłanie informacji o pojeździe
 #else
-/*
                     // TODO: re-enable when messaging component is in place
                     auto *vehicle = (
                         pRozkaz->cString[ 1 ] == '*' ?
@@ -2036,27 +2045,42 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                     if( vehicle != nullptr ) {
                         multiplayer::WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
                     }
-*/
 #endif
                 }
                 else {
                     // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie, to rozpoznać np. "*")
+#ifdef EU07_USE_OLD_GROUNDCODE
                     Ground.DynamicList();
+#else
+                    simulation::Vehicles.DynamicList();
+#endif
                 }
             }
             break;
         case 8: // ponowne wysłanie informacji o zajętych odcinkach toru
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
-			Ground.TrackBusyList();
+#ifdef EU07_USE_OLD_GROUNDCODE
+            Ground.TrackBusyList();
+#else
+            simulation::Paths.TrackBusyList();
+#endif
             break;
         case 9: // ponowne wysłanie informacji o zajętych odcinkach izolowanych
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
-			Ground.IsolatedBusyList();
+#ifdef EU07_USE_OLD_GROUNDCODE
+            Ground.IsolatedBusyList();
+#else
+            simulation::Paths.IsolatedBusyList();
+#endif
             break;
         case 10: // badanie zajętości jednego odcinka izolowanego
             CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+#ifdef EU07_USE_OLD_GROUNDCODE
             Ground.IsolatedBusy(std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
+#else
+            simulation::Paths.IsolatedBusy( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+#endif
             break;
         case 11: // ustawienie parametrów ruchu pojazdu
             //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
@@ -2096,7 +2120,25 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                         }
                     }
 #else
-                    // TODO: implement
+                    if( pRozkaz->cString[ 1 ] ) // jeśli długość nazwy jest niezerowa
+                    { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
+                        auto *lookup = (
+                            pRozkaz->cString[ 2 ] == '*' ?
+                                simulation::Vehicles.find( Global::asHumanCtrlVehicle ) : // nazwa pojazdu użytkownika
+                                simulation::Vehicles.find( std::string( pRozkaz->cString + 2, (unsigned)pRozkaz->cString[ 1 ] ) ) ); // nazwa pojazdu
+                        if( lookup == nullptr ) { break; } // nothing found, nothing to do
+                        auto *d { lookup };
+                        while( d != nullptr ) {
+                            d->Damage( pRozkaz->cString[ 0 ] );
+                            d = d->Next(); // pozostałe też
+                        }
+                        d = lookup->Prev();
+                        while( d != nullptr ) {
+                            d->Damage( pRozkaz->cString[ 0 ] );
+                            d = d->Prev(); // w drugą stronę też
+                        }
+                        multiplayer::WyslijUszkodzenia( lookup->asName, lookup->MoverParameters->EngDmgFlag ); // zwrot informacji o pojeździe
+                    }
 #endif
 			break;
 		}

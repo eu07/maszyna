@@ -128,14 +128,8 @@ public:
     void InitNormals();
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
 };
-/*
-struct bounding_area {
 
-    glm::vec3 center; // mid point of the rectangle
-    float radius { 0.0f }; // radius of the bounding sphere
-};
-*/
-class TSubRect : /*public Resource,*/ public CMesh
+class TSubRect : public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
     scene::bounding_area m_area;
@@ -165,8 +159,10 @@ class TSubRect : /*public Resource,*/ public CMesh
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
+#ifdef EU07_USE_OLD_GROUNDCODE
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji torów
+#endif
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
@@ -273,9 +269,6 @@ class TGround
     bool CheckQuery();
     TGroundNode * DynamicFindAny(std::string const &Name);
     TGroundNode * DynamicFind(std::string const &Name);
-#endif
-    void DynamicList(bool all = false);
-#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode * FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType);
 #endif
     TGroundRect * GetRect( double x, double z );
@@ -295,25 +288,23 @@ class TGround
         return (int)(x / fSubRectSize + fHalfTotalNumSubRects); };
 #ifdef EU07_USE_OLD_GROUNDCODE
     TEvent * FindEvent(const std::string &asEventName);
-#endif
     void TrackJoin(TGroundNode *Current);
-
 private:
     // convert tp_terrain model to a series of triangle nodes
     void convert_terrain( TGroundNode const *Terrain );
     void convert_terrain( TSubModel const *Submodel );
-#ifdef EU07_USE_OLD_GROUNDCODE
     void RaTriangleDivider(TGroundNode *node);
-    void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
 #endif
 public:
+#ifdef EU07_USE_OLD_GROUNDCODE
+    void DynamicList( bool all = false );
     void TrackBusyList();
     void IsolatedBusyList();
     void IsolatedBusy( const std::string t );
-
 	void RadioStop(vector3 pPosition);
     TDynamicObject * DynamicNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
     TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0, bool mech = false);
+#endif
     void DynamicRemove(TDynamicObject *dyn);
     void TerrainRead(std::string const &f);
     void TerrainWrite();

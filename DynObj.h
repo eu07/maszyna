@@ -495,6 +495,9 @@ public:
     // legacy method, checks for presence and height of traction wire for specified vehicle
     void
         update_traction( TDynamicObject *Vehicle );
+    // legacy method, sends list of vehicles over network
+    void
+        DynamicList( bool const Onlycontrolled = false ) const;
 };
 
 //---------------------------------------------------------------------------

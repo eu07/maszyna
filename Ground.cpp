@@ -243,7 +243,9 @@ void TSubRect::NodeAdd(TGroundNode *Node)
         break;
     case TP_TRACK: // TODO: tory z cieniem (tunel, canyon) też dać bez łączenia?
         ++iTracks; // jeden tor więcej
+#ifdef EU07_USE_OLD_GROUNDCODE
         Node->pTrack->RaOwnerSet(this); // do którego sektora ma zgłaszać animację
+#endif
         // NOTE: track merge/sort temporarily disabled to simplify unification of render code
         // TODO: refactor sorting as universal part of drawing process in the renderer
         Node->nNext3 = nRenderRect;
@@ -340,6 +342,7 @@ TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
     return NULL;
 };
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 bool TSubRect::RaTrackAnimAdd(TTrack *t)
 { // aktywacja animacji torów w VBO (zwrotnica, obrotnica)
     if( false == m_geometrycreated ) {
@@ -365,6 +368,7 @@ void TSubRect::RaAnimate( unsigned int const Framestamp ) {
 
     m_framestamp = Framestamp;
 };
+#endif
 
 TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude)
 { // szukanie przęsła w sektorze, którego koniec jest najbliższy (*Point)
@@ -604,7 +608,7 @@ TGroundNode * TGround::DynamicFind(std::string const &Name)
                 return Current;
     return NULL;
 };
-#endif
+
 void
 TGround::DynamicList(bool all)
 { // odesłanie nazw pojazdów dostępnych na scenerii (nazwy, szczególnie wagonów, mogą się
@@ -614,7 +618,7 @@ TGround::DynamicList(bool all)
             multiplayer::WyslijString(Current->asName, 6); // same nazwy pojazdów
     multiplayer::WyslijString("none", 6); // informacja o końcu listy
 };
-#ifdef EU07_USE_OLD_GROUNDCODE
+
 // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
 TGroundNode *
 TGround::FindGroundNode(std::string const &asNameToFind, TGroundNodeType const iNodeType) {
@@ -648,7 +652,7 @@ TGround::GetRect( double x, double z ) {
         return nullptr;
     }
 };
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 // convert tp_terrain model to a series of triangle nodes
 void
 TGround::convert_terrain( TGroundNode const *Terrain ) {
@@ -683,7 +687,7 @@ TGround::convert_terrain( TSubModel const *Submodel ) {
         delete groundnode;
     }
 }
-
+#endif
 double fTrainSetVel = 0;
 double fTrainSetDir = 0;
 double fTrainSetDist = 0; // odległość składu od punktu 1 w stronę punktu 2
@@ -2766,7 +2770,7 @@ void TGround::InitTraction()
     }
     delete[] nEnds; // nie potrzebne już
 };
-#endif
+
 void TGround::TrackJoin(TGroundNode *Current)
 { // wyszukiwanie sąsiednich torów do podłączenia (wydzielone na użytek obrotnicy)
     TTrack *Track = Current->pTrack;
@@ -2774,11 +2778,7 @@ void TGround::TrackJoin(TGroundNode *Current)
     int iConnection;
     if (!Track->CurrentPrev())
     {
-#ifdef EU07_USE_OLD_GROUNDCODE
         tmp = FindTrack(Track->CurrentSegment()->FastGetPoint_0(), iConnection, Current); // Current do pominięcia
-#else
-        std::tie( tmp, iConnection ) = simulation::Region->find_path( Track->CurrentSegment()->FastGetPoint_0(), Track );
-#endif
         switch (iConnection)
         {
         case 0:
@@ -2791,11 +2791,7 @@ void TGround::TrackJoin(TGroundNode *Current)
     }
     if (!Track->CurrentNext())
     {
-#ifdef EU07_USE_OLD_GROUNDCODE
         tmp = FindTrack(Track->CurrentSegment()->FastGetPoint_1(), iConnection, Current);
-#else
-        std::tie( tmp, iConnection ) = simulation::Region->find_path( Track->CurrentSegment()->FastGetPoint_1(), Track );
-#endif
         switch (iConnection)
         {
         case 0:
@@ -2807,7 +2803,7 @@ void TGround::TrackJoin(TGroundNode *Current)
         }
     }
 }
-#ifdef EU07_USE_OLD_GROUNDCODE
+
 // McZapkie-070602: wyzwalacze zdarzen
 bool TGround::InitLaunchers()
 {
@@ -3755,7 +3751,7 @@ bool TGround::GetTraction(TDynamicObject *model)
 
     return true;
 };
-#endif
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -3800,6 +3796,7 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
                         }
     return dyn;
 };
+
 TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
 { // wyszukanie pojazdu, którego sprzęg jest najbliżej względem (pPosition)
     TGroundNode *node;
@@ -3829,6 +3826,7 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
                         }
     return dyn;
 };
+#endif
 //---------------------------------------------------------------------------
 void TGround::DynamicRemove(TDynamicObject *dyn)
 { // Ra: usunięcie pojazdów ze scenerii (gdy dojadą na koniec i nie sa potrzebne)
@@ -3951,7 +3949,7 @@ void TGround::TerrainWrite()
 };
 
 //---------------------------------------------------------------------------
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 void TGround::TrackBusyList()
 { // wysłanie informacji o wszystkich zajętych odcinkach
     TGroundNode *Current;
@@ -3987,6 +3985,7 @@ void TGround::IsolatedBusy(const std::string t)
             }
     multiplayer::WyslijString(t, 10); // wolny
 };
+#endif
 //---------------------------------------------------------------------------
 
 void TGround::Silence(vector3 gdzie)

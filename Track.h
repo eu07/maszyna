@@ -13,10 +13,14 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <deque>
 
-#include "scenenode.h"
 #include "Segment.h"
 #include "material.h"
+#include "scenenode.h"
 #include "names.h"
+
+namespace scene {
+class basic_cell;
+}
 
 enum TTrackType {
     tt_Unknown,
@@ -71,7 +75,11 @@ class TSwitchExtension
         };
         struct
         { // zmienne potrzebne tylko dla obrotnicy/przesuwnicy
+#ifdef EU07_USE_OLD_GROUNDCODE
             TGroundNode *pMyNode; // dla obrotnicy do wtórnego podłączania torów
+#else
+            scene::basic_cell *pMyNode; // TODO: convert this to observer pattern
+#endif
             // TAnimContainer *pAnim; //animator modelu dla obrotnicy
             TAnimModel *pModel; // na razie model
         };
@@ -83,7 +91,11 @@ class TSwitchExtension
         };
     };
     bool bMovement = false; // czy w trakcie animacji
+#ifdef EU07_USE_OLD_GROUNDCODE
     TSubRect *pOwner = nullptr; // sektor, któremu trzeba zgłosić animację
+#else
+    scene::basic_cell *pOwner = nullptr; // TODO: convert this to observer pattern
+#endif
     TTrack *pNextAnim = nullptr; // następny tor do animowania
     TEvent *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
@@ -103,6 +115,7 @@ class TIsolated
     TMemCell *pMemCell = nullptr; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
+    static void DeleteAll();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
     bool Busy() {
@@ -245,11 +258,20 @@ public:
 #endif
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
+#ifdef EU07_USE_OLD_GROUNDCODE
     void RaOwnerSet(TSubRect *o) {
         if (SwitchExtension)
             SwitchExtension->pOwner = o; };
+#else
+    void RaOwnerSet( scene::basic_cell *o ) {
+        if( SwitchExtension ) { SwitchExtension->pOwner = o; } };
+#endif
     bool InMovement(); // czy w trakcie animacji?
+#ifdef EU07_USE_OLD_GROUNDCODE
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
+#else
+    void RaAssign( scene::basic_cell *gn, TAnimModel *am, TEvent *done, TEvent *joined );
+#endif
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
 
@@ -278,9 +300,19 @@ public:
 class path_table : public basic_table<TTrack> {
 
 public:
+    ~path_table();
     // legacy method, initializes tracks after deserialization from scenario file
     void
         InitTracks();
+    // legacy method, sends list of occupied paths over network
+    void
+        TrackBusyList() const;
+    // legacy method, sends list of occupied path sections over network
+    void
+        IsolatedBusyList() const;
+    // legacy method, sends state of specified path section over network
+    void
+        IsolatedBusy( std::string const &Name ) const;
 };
 
 //---------------------------------------------------------------------------
