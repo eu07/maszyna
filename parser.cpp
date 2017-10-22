@@ -156,9 +156,8 @@ std::string cParser::readToken(bool ToLower, const char *Break)
         token = mIncludeParser->readToken(ToLower, Break);
         if (!token.empty())
         {
-            pos = token.find("(p");
             // check if the token is a parameter which should be replaced with stored true value
-            if (pos != std::string::npos) //!=npos to znalezione
+            while((pos = token.find("(p")) != std::string::npos) //!=npos to znalezione
             {
                 std::string parameter =
                     token.substr(pos + 2, token.find(")", pos) - pos + 2); // numer parametru
