@@ -1921,8 +1921,9 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                     // render
 #ifdef EU07_USE_DEBUG_CULLING
                     // debug
+                    ::glLineWidth( 2.f );
                     float const width = section->m_area.radius;
-                    float const height = scene::EU07_SECTIONSIZE * 0.2f;
+                    float const height = section->m_area.radius * 0.2f;
                     glDisable( GL_LIGHTING );
                     glDisable( GL_TEXTURE_2D );
                     glColor3ub( 255, 128, 128 );
@@ -1947,6 +1948,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                     glColor3ub( 255, 255, 255 );
                     glEnable( GL_TEXTURE_2D );
                     glEnable( GL_LIGHTING );
+                    glLineWidth( 1.f );
 #endif
                     // shapes
                     for( auto const &shape : section->m_shapes ) { Render( shape, true ); }
@@ -2024,7 +2026,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 #ifdef EU07_USE_DEBUG_CULLING
                 // debug
                 float const width = cell->m_area.radius;
-                float const height = scene::EU07_CELLSIZE * 0.15f;
+                float const height = cell->m_area.radius * 0.15f;
                 glDisable( GL_LIGHTING );
                 glDisable( GL_TEXTURE_2D );
                 glColor3ub( 255, 255, 0 );
@@ -3253,7 +3255,7 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     }
     // rysuj jesli sa druty i nie zerwana
     if( ( Traction->Wires == 0 )
-        || ( true == TestFlag( Traction->DamageFlag, 128 ) ) ) {
+     || ( true == TestFlag( Traction->DamageFlag, 128 ) ) ) {
         return;
     }
     // setup

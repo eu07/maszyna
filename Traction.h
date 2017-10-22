@@ -27,7 +27,7 @@ class TTraction : public editor::basic_node {
     TTractionPowerSource *psPowered { nullptr }; // ustawione tylko dla bezpośrednio zasilanego przęsła
     TTraction *hvNext[ 2 ] { nullptr, nullptr }; //łączenie drutów w sieć
     int iNext[ 2 ] { 0, 0 }; // do którego końca się łączy
-    int iLast { 1 }; //że niby ostatni drut // ustawiony bit 0, jeśli jest ostatnim drutem w sekcji; bit1 - przedostatni
+    int iLast { 0 }; //że niby ostatni drut // ustawiony bit 0, jeśli jest ostatnim drutem w sekcji; bit1 - przedostatni
   public:
     glm::dvec3 pPoint1, pPoint2, pPoint3, pPoint4;
     glm::dvec3 vParametric; // współczynniki równania parametrycznego odcinka
@@ -46,7 +46,7 @@ class TTraction : public editor::basic_node {
     std::string asParallel; // nazwa przęsła, z którym może być bieżnia wspólna
     TTraction *hvParallel { nullptr }; // jednokierunkowa i zapętlona lista przęseł ewentualnej bieżni wspólnej
     float fResistance[ 2 ] { -1.0f, -1.0f }; // rezystancja zastępcza do punktu zasilania (0: przęsło zasilane, <0: do policzenia)
-    int iTries { 0 };
+    int iTries { 1 }; // 0 is used later down the road to mark directly powered pieces
     int PowerState { 0 }; // type of incoming power, if any
     // visualization data
     glm::dvec3 m_origin;

@@ -162,8 +162,8 @@ class TSubRect : public CMesh
 #ifdef EU07_USE_OLD_GROUNDCODE
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji torów
-#endif
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
+#endif
 };
 
 // Ra: trzeba sprawdzić wydajność siatki
@@ -243,7 +243,6 @@ class TGround
 #endif
 
   public:
-    bool bDynamicRemove = false; // czy uruchomić procedurę usuwania pojazdów
 
     TGround();
     ~TGround();
@@ -308,7 +307,9 @@ public:
     void DynamicRemove(TDynamicObject *dyn);
     void TerrainRead(std::string const &f);
     void TerrainWrite();
+#ifdef EU07_USE_OLD_GROUNDCODE
     void Silence(vector3 gdzie);
+#endif
 };
 
 //---------------------------------------------------------------------------

@@ -25,7 +25,6 @@ http://mozilla.org/MPL/2.0/.
 #include "AirCoupler.h"
 
 #include "TractionPower.h"
-#include "Ground.h" //bo Global::pGround->bDynamicRemove
 #include "Event.h"
 #include "Driver.h"
 #include "Camera.h" //bo likwidujemy trzęsienie
@@ -49,6 +48,7 @@ std::string const TDynamicObject::MED_labels[] = {
     "masa: ", "amax: ", "Fzad: ", "FmPN: ", "FmED: ", "FrED: ", "FzPN: ", "nPrF: "
 };
 
+bool TDynamicObject::bDynamicRemove { false };
 
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
@@ -2922,7 +2922,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
-        Global::pGround->bDynamicRemove = true; // sprawdzić
+        bDynamicRemove = true; // sprawdzić
         return false;
     }
     Global::ABuDebug = dDOMoveLen / dt1;
@@ -5364,6 +5364,7 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
     //    pojazdy stojące nie potrzebują aktualizacji, chyba że np. ktoś im zmieni nastawę hamulca
     //    oddzielną listę można by zrobić na pojazdy z napędem, najlepiej posortowaną wg typu napędu
     for( auto *vehicle : m_items ) {
+        if( false == vehicle->bEnabled ) { continue; }
         // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
         if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
             // TODO: re-implement
@@ -5395,7 +5396,7 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
     }
 /*
     // TODO: re-implement
-    if (bDynamicRemove)
+    if (TDynamicObject::bDynamicRemove)
     { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
             if ( false == Current->DynamicObject->bEnabled)
@@ -5403,7 +5404,7 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
                 DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
                 Current = nRootDynamic; // sprawdzanie listy od początku
             }
-        bDynamicRemove = false; // na razie koniec
+        TDynamicObject::bDynamicRemove = false; // na razie koniec
     }
 */
 }

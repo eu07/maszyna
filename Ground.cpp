@@ -435,12 +435,13 @@ void TSubRect::LoadNodes() {
         node = node->nNext2; // następny z sektora
     }
 }
-
+#ifdef EU07_USE_OLD_GROUNDCODE
 void TSubRect::RenderSounds()
 { // aktualizacja dźwięków w pojazdach sektora (sektor może nie być wyświetlany)
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynSounds(); // dźwięki pojazdów idą niezależnie od wyświetlania
 };
+#endif
 //---------------------------------------------------------------------------
 //------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
@@ -2723,7 +2724,7 @@ void TGround::InitTraction()
                 if (!Traction->hvParallel)
                     ErrorLog("Missed overhead: " + Traction->asParallel); // logowanie braku
             }
-        if (Traction->iTries > 0) // jeśli zaznaczony do podłączenia
+        if (Traction->iTries == 5) // jeśli zaznaczony do podłączenia
             // if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
             if (zg < iConnection) // zabezpieczenie
                 nEnds[zg++] = nCurrent; // wypełnianie tabeli końców w celu szukania im połączeń
@@ -3466,7 +3467,7 @@ bool TGround::Update(double dt, int iter)
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
             Current->DynamicObject->Update(dt, dt); // Ra 2015-01: tylko tu przelicza sieć trakcyjną
     }
-    if (bDynamicRemove)
+    if (TDynamicObject::bDynamicRemove)
     { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
             if ( false == Current->DynamicObject->bEnabled)
@@ -3474,7 +3475,7 @@ bool TGround::Update(double dt, int iter)
                 DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
                 Current = nRootDynamic; // sprawdzanie listy od początku
             }
-        bDynamicRemove = false; // na razie koniec
+        TDynamicObject::bDynamicRemove = false; // na razie koniec
     }
     return true;
 };
@@ -3985,7 +3986,6 @@ void TGround::IsolatedBusy(const std::string t)
             }
     multiplayer::WyslijString(t, 10); // wolny
 };
-#endif
 //---------------------------------------------------------------------------
 
 void TGround::Silence(vector3 gdzie)
@@ -4006,4 +4006,5 @@ void TGround::Silence(vector3 gdzie)
                 tmp->RenderSounds(); // dźwięki pojazdów by się przydało wyłączyć
             }
 };
+#endif
 //---------------------------------------------------------------------------

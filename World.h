@@ -122,7 +122,9 @@ private:
 
     TCamera Camera;
     TCamera DebugCamera;
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGround Ground;
+#endif
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;

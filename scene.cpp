@@ -65,7 +65,7 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
     auto pantograph = Vehicle->pants[ Pantographindex ].fParamPants;
     auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
     
-    for( auto *traction : m_traction ) {
+    for( auto *traction : m_directories.traction ) {
 
         // współczynniki równania parametrycznego
         auto const paramfrontdot = glm::dot( traction->vParametric, vFront );
@@ -173,6 +173,11 @@ void
 basic_cell::insert( shape_node Shape ) {
 
     m_active = true;
+
+    // re-calculate cell radius, in case shape geometry extends outside the cell's boundaries
+    m_area.radius = std::max<float>(
+        m_area.radius,
+        glm::length( m_area.center - Shape.data().area.center ) + Shape.data().area.radius );
 
     auto const &shapedata { Shape.data() };
     auto &shapes = (
@@ -507,7 +512,7 @@ basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographind
     auto pantograph = Vehicle->pants[ Pantographindex ].fParamPants;
     auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
 
-    auto const radius { 0.0 }; // { EU07_CELLSIZE * 0.5 }; // experimentally limited, check if it has any negative effect
+    auto const radius { EU07_CELLSIZE * 0.5 };
 
     for( auto &cell : m_cells ) {
         // we reject early cells which aren't within our area of interest
@@ -728,7 +733,7 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
     auto const pant0 = position + ( vLeft * p->vPos.z ) + ( vUp * p->vPos.y ) + ( vFront * p->vPos.x );
     p->PantTraction = std::numeric_limits<double>::max(); // taka za duża wartość
 
-    auto const &sectionlist = sections( pant0, 0.0 );
+    auto const &sectionlist = sections( pant0, EU07_CELLSIZE * 0.5 );
     for( auto *section : sectionlist ) {
         section->update_traction( Vehicle, Pantographindex );
     }

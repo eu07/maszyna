@@ -374,55 +374,59 @@ TTraction::create_geometry( geometrybank_handle const &Bank ) {
 
 int TTraction::TestPoint(glm::dvec3 const &Point)
 { // sprawdzanie, czy przęsła można połączyć
-    if (!hvNext[0])
-        if( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) )
-            return 0;
-    if (!hvNext[1])
-        if( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) )
-            return 1;
+    if( ( hvNext[ 0 ] == nullptr )
+     && ( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) ) ) {
+        return 0;
+    }
+    if( ( hvNext[ 1 ] == nullptr )
+     && ( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) ) ) {
+        return 1;
+    }
     return -1;
 };
 
-void TTraction::Connect(int my, TTraction *with, int to)
-{ //łączenie segmentu (with) od strony (my) do jego (to)
-    if (my)
-    { // do mojego Point2
-        hvNext[1] = with;
-        iNext[1] = to;
-    }
-    else
-    { // do mojego Point1
-        hvNext[0] = with;
-        iNext[0] = to;
-    }
-    if (to)
-    { // do jego Point2
-        with->hvNext[1] = this;
-        with->iNext[1] = my;
-    }
-    else
-    { // do jego Point1
-        with->hvNext[0] = this;
-        with->iNext[0] = my;
-    }
-    if (hvNext[0]) // jeśli z obu stron podłączony
-        if (hvNext[1])
-            iLast = 0; // to nie jest ostatnim
-    if (with->hvNext[0]) // temu też, bo drugi raz łączenie się nie nie wykona
-        if (with->hvNext[1])
-            with->iLast = 0; // to nie jest ostatnim
-};
+//łączenie segmentu (with) od strony (my) do jego (to)
+void
+TTraction::Connect(int my, TTraction *with, int to) {
 
-bool TTraction::WhereIs()
-{ // ustalenie przedostatnich przęseł
-    if (iLast)
-        return (iLast == 1); // ma już ustaloną informację o położeniu
-    if (hvNext[0] ? hvNext[0]->iLast == 1 : false) // jeśli poprzedni jest ostatnim
-        iLast = 2; // jest przedostatnim
-    else if (hvNext[1] ? hvNext[1]->iLast == 1 : false) // jeśli następny jest ostatnim
-        iLast = 2; // jest przedostatnim
-    return (iLast == 1); // ostatnie będą dostawać zasilanie
-};
+    hvNext[ my ] = with;
+    iNext[ my ] = to;
+
+    if( ( hvNext[ 0 ] != nullptr )
+     && ( hvNext[ 1 ] != nullptr ) ) {
+        // jeśli z obu stron podłączony to nie jest ostatnim
+        iLast = 0;
+    }
+
+    with->hvNext[ to ] = this;
+    with->iNext[ to ] = my;
+
+    if( ( with->hvNext[ 0 ] != nullptr )
+     && ( with->hvNext[ 1 ] != nullptr ) ) {
+        // temu też, bo drugi raz łączenie się nie nie wykona
+        with->iLast = 0;
+    }
+}
+
+// ustalenie przedostatnich przęseł
+bool TTraction::WhereIs() { 
+
+    if( iLast ) {
+        // ma już ustaloną informację o położeniu
+        return ( iLast & 1 );
+    }
+    for( int endindex = 0; endindex < 2; ++endindex ) {
+        if( hvNext[ endindex ] == nullptr ) {
+            // no neighbour piece means this one is last
+            iLast |= 1;
+        }
+        else if( hvNext[ endindex ]->hvNext[ 1 - iNext[ endindex ] ] == nullptr ) {
+            // otherwise if that neighbour has no further connection on the opposite end then this piece is second-last
+            iLast |= 2;
+        }
+    }
+    return (iLast & 1); // ostatnie będą dostawać zasilanie
+}
 
 void TTraction::Init()
 { // przeliczenie parametrów
@@ -585,30 +589,41 @@ TTraction::wire_color() const {
 
             case 1: {
                 // czerwone z podłączonym zasilaniem 1
-                color.r = 1.0f;
-                color.g = 0.0f;
-                color.b = 0.0f;
+//                color.r = 1.0f;
+//                color.g = 0.0f;
+//                color.b = 0.0f;
+                // cyan
+                color = glm::vec3 { 0.f, 174.f / 255.f, 239.f / 255.f };
                 break;
             }
             case 2: {
                 // zielone z podłączonym zasilaniem 2
-                color.r = 0.0f;
-                color.g = 1.0f;
-                color.b = 0.0f;
+//                color.r = 0.0f;
+//                color.g = 1.0f;
+//                color.b = 0.0f;
+                // yellow
+                color = glm::vec3 { 240.f / 255.f, 228.f / 255.f, 0.f };
                 break;
             }
             case 3: {
                 //żółte z podłączonym zasilaniem z obu stron
-                color.r = 1.0f;
-                color.g = 1.0f;
-                color.b = 0.0f;
+//                color.r = 1.0f;
+//                color.g = 1.0f;
+//                color.b = 0.0f;
+                // green
+                color = glm::vec3 { 0.f, 239.f / 255.f, 118.f / 255.f };
                 break;
             }
             case 4: {
                 // niebieskie z podłączonym zasilaniem
-                color.r = 0.5f;
-                color.g = 0.5f;
-                color.b = 1.0f;
+//                color.r = 0.5f;
+//                color.g = 0.5f;
+//                color.b = 1.0f;
+                // white for powered, red for ends
+                color = (
+                    psPowered != nullptr ?
+                        glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f } :
+                        glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f } );
                 break;
             }
             default: { break; }
@@ -618,6 +633,46 @@ TTraction::wire_color() const {
             color.g *= 0.6f;
             color.b *= 0.6f;
         }
+/*
+        switch( iTries ) {
+            case 0: {
+                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
+                break;
+            }
+            case 1: {
+                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
+                break;
+            }
+            case 5: {
+                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
+                break;
+            }
+            default: {
+                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
+                break;
+            }
+        }
+*/
+/*
+        switch( iLast ) {
+            case 0: {
+                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
+                break;
+            }
+            case 1: {
+                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
+                break;
+            }
+            case 2: {
+                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
+                break;
+            }
+            default: {
+                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
+                break;
+            }
+        }
+*/
     }
     return color;
 }
@@ -660,18 +715,21 @@ traction_table::InitTraction() {
         }
     }
 
+#ifdef EU07_IGNORE_LEGACYPROCESSINGORDER
     for( auto *traction : m_items ) {
-
-        if (!traction->hvNext[0]) {
+#else
+    // NOTE: legacy code peformed item operations last-to-first due to way the items were added to the list
+    // this had impact in situations like two possible connection candidates, where only the first one would be used
+    for( auto first = std::rbegin(m_items); first != std::rend(m_items); ++first ) {
+        auto *traction = *first;
+#endif
+        if( traction->hvNext[ 0 ] == nullptr ) {
             // tylko jeśli jeszcze nie podłączony
             std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint1, traction );
             switch (connection) {
-                case 0: {
-                    traction->Connect( 0, matchingtraction, 0 );
-                    break;
-                }
+                case 0:
                 case 1: {
-                    traction->Connect( 0, matchingtraction, 1 );
+                    traction->Connect( 0, matchingtraction, connection );
                     break;
                 }
                 default: {
@@ -691,8 +749,8 @@ traction_table::InitTraction() {
                             //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
                             matchingtraction->PowerSet( traction->psSection ); // zastąpienie wskazaniem sekcji
                         }
-                        else if( ( false == traction->psSection->bSection ) &&
-                                 ( true == matchingtraction->psSection->bSection ) ) {
+                        else if( ( false == traction->psSection->bSection )
+                              && ( true == matchingtraction->psSection->bSection ) ) {
                             //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
                             traction->PowerSet( matchingtraction->psSection ); // zastąpienie wskazaniem sekcji
                         }
@@ -704,16 +762,13 @@ traction_table::InitTraction() {
                 }
             }
         }
-        if (!traction->hvNext[1]) {
+        if( traction->hvNext[ 1 ] == nullptr ) {
             // tylko jeśli jeszcze nie podłączony
             std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint2, traction );
             switch (connection) {
-                case 0: {
-                    traction->Connect( 1, matchingtraction, 0 );
-                    break;
-                }
+                case 0:
                 case 1: {
-                    traction->Connect( 1, matchingtraction, 1 );
+                    traction->Connect( 1, matchingtraction, connection );
                     break;
                 }
                 default: {
@@ -770,7 +825,7 @@ traction_table::InitTraction() {
             if( ( traction->asParallel == "none" )
              || ( traction->asParallel == "*" ) ) {
                 // jeśli nieokreślone
-                traction->iLast = 2; // jakby przedostatni - niech po prostu szuka (iLast już przeliczone)
+                traction->iLast |= 2; // jakby przedostatni - niech po prostu szuka (iLast już przeliczone)
             }
             else if( traction->hvParallel == nullptr ) {
                 // jeśli jeszcze nie został włączony w kółko
@@ -792,7 +847,7 @@ traction_table::InitTraction() {
                 }
             }
         }
-        if( traction->iTries > 0 ) {
+        if( traction->iTries == 5 ) {
             // jeśli zaznaczony do podłączenia
             // wypełnianie tabeli końców w celu szukania im połączeń
             ends.emplace_back( traction );

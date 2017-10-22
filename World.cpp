@@ -465,7 +465,11 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
+#ifdef EU07_USE_OLD_GROUNDCODE
+                    // NOTE: does it even work? it seems to render the sounds before the camera is actually moved
+                    // so the listener is still in range...
                     Ground.Silence( Global::pCameraPosition ); // wyciszenie wszystkiego z poprzedniej pozycji
+#endif
                     Global::SetCameraPosition( Global::FreeCameraInit[i] ); // nowa pozycja dla generowania obiektów
                     Camera.Init(Global::FreeCameraInit[i],
                                 Global::FreeCameraInitAngle[i]); // przestawienie
@@ -918,8 +922,9 @@ void TWorld::FollowView(bool wycisz) {
 
     if (Controlled) // jest pojazd do prowadzenia?
     {
+#ifdef EU07_USE_OLD_GROUNDCODE
         Ground.Silence( Camera.Pos ); // wyciszenie dźwięków z poprzedniej pozycji
-
+#endif
         if (FreeFlyModeFlag)
         { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
             if( Train ) {
@@ -937,7 +942,9 @@ void TWorld::FollowView(bool wycisz) {
             if( wycisz ) {
                 // wyciszenie dźwięków z poprzedniej pozycji
                 // trzymanie prawego w kabinie daje marny efekt
+#ifdef EU07_USE_OLD_GROUNDCODE
                 Ground.Silence( Camera.Pos );
+#endif
             }
             Camera.Pos = Train->pMechPosition;
             Camera.Roll = std::atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki

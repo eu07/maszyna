@@ -1268,7 +1268,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // jeśli ma stać, dostaje komendę od razu
                                     go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
-                                else if( sSpeedTable[ i ].fDist <= 20.0 ) {
+                                else if( sSpeedTable[ i ].fDist <= fMaxProximityDist ) {
                                     // jeśli ma dociągnąć, to niech dociąga
                                     // (moveStopCloser dotyczy dociągania do W4, nie semafora)
                                     go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
@@ -2412,7 +2412,7 @@ bool TController::IncBrake()
         }
         case Pneumatic: {
             // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
-            bool standalone{ true };
+            bool standalone { true };
             if( ( mvOccupied->TrainType == dt_ET41 )
              || ( mvOccupied->TrainType == dt_ET42 ) ) {
                    // NOTE: we're doing simplified checks full of presuptions here.
@@ -2427,9 +2427,24 @@ bool TController::IncBrake()
                 }
             }
             else {
+/*
                 standalone =
                     ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
                    && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
+*/
+                if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
+                    // more detailed version, will use manual braking also for coupled sets of controlled vehicles
+                    auto *vehicle = pVehicles[ 0 ]; // start from first
+                    while( ( true == standalone )
+                        && ( vehicle != nullptr ) ) {
+                        // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
+                        // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
+                        standalone =
+                            ( ( ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag & coupling::control ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag & coupling::control ) ) );
+                        vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+                    }
+                }
             }
             if( true == standalone ) {
                 OK = mvOccupied->IncLocalBrakeLevel(
@@ -2986,8 +3001,7 @@ void TController::RecognizeCommand()
 }
 
 void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason)
-{ // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu
-    // bezpośrednio
+{ // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu bezpośrednio
 #ifdef EU07_USE_OLD_GROUNDCODE
     vector3 sl;
     sl.x = -NewLocation.X; // zamiana na współrzędne scenerii
@@ -2995,7 +3009,7 @@ void TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
     sl.y = NewLocation.Z;
 #else
     // zamiana na współrzędne scenerii
-    glm::dvec3 sl { -NewLocation.X, NewLocation.Y, NewLocation.Z };
+    glm::dvec3 sl { -NewLocation.X, NewLocation.Z, NewLocation.Y };
 #endif
     if (!PutCommand(NewCommand, NewValue1, NewValue2, &sl, reason))
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
@@ -3840,8 +3854,11 @@ TController::UpdateSituation(double dt) {
                     CheckVehicles(); // sprawdzić światła nowego składu
                     JumpToNextOrder(); // wykonanie następnej komendy
                 }
+/*
+                // NOTE: disabled as speed limit is decided in another place based on distance to potential target
                 else
                     SetVelocity(2.0, 0.0); // jazda w ustawionym kierunku z prędkością 2 (18s)
+*/
             } // if (AIControllFlag) //koniec zblokowania, bo była zmienna lokalna
         }
         else {
@@ -4329,7 +4346,12 @@ TController::UpdateSituation(double dt) {
                                 if( OrderCurrentGet() & Connect ) {
                                     // jeśli spinanie, to jechać dalej
                                     AccPreferred = std::min( 0.25, AccPreferred ); // nie hamuj
-                                    VelDesired = Global::Min0RSpeed( 20.0, VelDesired );
+                                    VelDesired =
+                                        Global::Min0RSpeed(
+                                            VelDesired,
+                                            ( vehicle->fTrackBlock > 150.0 ?
+                                                20.0:
+                                                4.0 ) );
                                     VelNext = 2.0; // i pakuj się na tamtego
                                 }
                                 else {
@@ -4372,7 +4394,12 @@ TController::UpdateSituation(double dt) {
                         else {
                             if( OrderCurrentGet() & Connect ) {
                                 // if there's something nearby in the connect mode don't speed up too much
-                                VelDesired = Global::Min0RSpeed( 20.0, VelDesired );
+                                VelDesired =
+                                    Global::Min0RSpeed(
+                                        VelDesired,
+                                        ( vehicle->fTrackBlock > 150.0 ?
+                                            20.0 :
+                                            4.0 ) );
                             }
                         }
                     }

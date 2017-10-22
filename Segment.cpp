@@ -103,7 +103,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     fStep = fNewStep;
     if (fLength <= 0) {
 
-        ErrorLog( "Bad geometry: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
+        ErrorLog( "Bad track: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
         fLength = 0.01; // crude workaround TODO: fix this properly
 /*
         return false; // zerowe nie mogą być
@@ -205,7 +205,7 @@ double TSegment::GetTFromS(double const s) const
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-    ErrorLog( "Bad geometry: shape estimation failed for spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
+    ErrorLog( "Bad track: shape estimation failed for spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };

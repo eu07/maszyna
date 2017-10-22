@@ -308,16 +308,14 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         auto *path { deserialize_path( Input, Scratchpad, nodedata ) };
         // duplicates of named tracks are currently experimentally allowed
-        if( simulation::Paths.insert( path ) ) {
-            simulation::Region->insert_path( path, Scratchpad );
-        }
-        else {
+        if( false == simulation::Paths.insert( path ) ) {
             ErrorLog( "Bad scenario: track with duplicate name \"" + path->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
 /*
             delete path;
             delete pathnode;
 */
         }
+        simulation::Region->insert_path( path, Scratchpad );
     }
     else if( nodedata.type == "traction" ) {
 
@@ -325,12 +323,10 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         // traction loading is optional
         if( traction == nullptr ) { return; }
 
-        if( simulation::Traction.insert( traction ) ) {
-            simulation::Region->insert_traction( traction, Scratchpad );
-        }
-        else {
+        if( false == simulation::Traction.insert( traction ) ) {
             ErrorLog( "Bad scenario: traction piece with duplicate name \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+        simulation::Region->insert_traction( traction, Scratchpad );
     }
     else if( nodedata.type == "tractionpowersource" ) {
 
@@ -338,15 +334,13 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         // traction loading is optional
         if( powersource == nullptr ) { return; }
 
-        if( simulation::Powergrid.insert( powersource ) ) {
-/*
-            // TODO: implement this
-            simulation::Region.insert_powersource( powersource, Scratchpad );
-*/
-        }
-        else {
+        if( false == simulation::Powergrid.insert( powersource ) ) {
             ErrorLog( "Bad scenario: power grid source with duplicate name \"" + powersource->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+/*
+        // TODO: implement this
+        simulation::Region.insert_powersource( powersource, Scratchpad );
+*/
     }
     else if( nodedata.type == "model" ) {
 
@@ -382,12 +376,10 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             // model import can potentially fail
             if( instance == nullptr ) { return; }
 
-            if( simulation::Instances.insert( instance ) ) {
-                   simulation::Region->insert_instance( instance, Scratchpad );
-            }
-            else {
+            if( false == simulation::Instances.insert( instance ) ) {
                 ErrorLog( "Bad scenario: 3d model instance with duplicate name \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
             }
+            simulation::Region->insert_instance( instance, Scratchpad );
         }
     }
     else if( ( nodedata.type == "triangles" )
@@ -412,42 +404,36 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
     else if( nodedata.type == "memcell" ) {
 
         auto *memorycell { deserialize_memorycell( Input, Scratchpad, nodedata ) };
-        if( simulation::Memory.insert( memorycell ) ) {
-/*
-            // TODO: implement this
-            simulation::Region.insert_memorycell( memorycell, Scratchpad );
-*/
-        }
-        else {
+        if( false == simulation::Memory.insert( memorycell ) ) {
             ErrorLog( "Bad scenario: memory cell with duplicate name \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+/*
+        // TODO: implement this
+        simulation::Region.insert_memorycell( memorycell, Scratchpad );
+*/
     }
     else if( nodedata.type == "eventlauncher" ) {
 
-        auto *eventlauncher{ deserialize_eventlauncher( Input, Scratchpad, nodedata ) };
-        if( simulation::Events.insert( eventlauncher ) ) {
+        auto *eventlauncher { deserialize_eventlauncher( Input, Scratchpad, nodedata ) };
+        if( false == simulation::Events.insert( eventlauncher ) ) {
+            ErrorLog( "Bad scenario: event launcher with duplicate name \"" + eventlauncher->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
             // event launchers can be either global, or local with limited range of activation
             // each gets assigned different caretaker
-            if( true == eventlauncher->IsGlobal() ) {
-                simulation::Events.queue( eventlauncher );
-            }
-            else {
-                simulation::Region->insert_launcher( eventlauncher, Scratchpad );
-            }
+        if( true == eventlauncher->IsGlobal() ) {
+            simulation::Events.queue( eventlauncher );
         }
         else {
-            ErrorLog( "Bad scenario: event launcher with duplicate name \"" + eventlauncher->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            simulation::Region->insert_launcher( eventlauncher, Scratchpad );
         }
     }
     else if( nodedata.type == "sound" ) {
 
         auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
-        if( simulation::Sounds.insert( sound ) ) {
-            simulation::Region->insert_sound( sound, Scratchpad );
-        }
-        else {
+        if( false == simulation::Sounds.insert( sound ) ) {
             ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+        simulation::Region->insert_sound( sound, Scratchpad );
     }
 
 }
@@ -476,7 +462,7 @@ state_manager::deserialize_endorigin( cParser &Input, scene::scratch_data &Scrat
         Scratchpad.location_offset.pop();
     }
     else {
-        ErrorLog( "Bad origin: endorigin instruction with empty origin stack in file \"" + Input.Name() + "\" (line " + to_string( Input.Line() - 1 ) + ")" );
+        ErrorLog( "Bad origin: endorigin instruction with empty origin stack in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
     }
 }
 
@@ -530,7 +516,7 @@ state_manager::deserialize_trainset( cParser &Input, scene::scratch_data &Scratc
     if( true == Scratchpad.trainset.is_open ) {
         // shouldn't happen but if it does wrap up currently open trainset and report an error
         deserialize_endtrainset( Input, Scratchpad );
-        ErrorLog( "Bad scenario: encountered nested trainset definitions in file \"" + Input.Name() + "\" (line " + to_string( Input.Line() ) + ")" );
+        ErrorLog( "Bad scenario: encountered nested trainset definitions in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() ) + ")" );
     }
 
     Scratchpad.trainset = scene::scratch_data::trainset_data();
@@ -550,7 +536,7 @@ state_manager::deserialize_endtrainset( cParser &Input, scene::scratch_data &Scr
     if( ( false == Scratchpad.trainset.is_open )
      || ( true == Scratchpad.trainset.vehicles.empty() ) ) {
         // not bloody likely but we better check for it just the same
-        ErrorLog( "Bad trainset: empty trainset defined in file \"" + Input.Name() + "\" (line " + to_string( Input.Line() - 1 ) + ")" );
+        ErrorLog( "Bad trainset: empty trainset defined in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
         Scratchpad.trainset.is_open = false;
         return;
     }

@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 const int iMaxNumLights = 8;
+float const DefaultDarkThresholdLevel { 0.325f };
 
 // typy stanu świateł
 enum TLightState
@@ -174,7 +175,7 @@ private:
     std::string asText; // tekst dla wyświetlacza znakowego
     TAnimAdvanced *pAdvanced { nullptr };
     TLightState lsLights[ iMaxNumLights ];
-    float fDark { 0.25f }; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
+    float fDark { DefaultDarkThresholdLevel }; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
     float fOnTime { 0.66f };
     float fOffTime { 0.66f + 0.66f }; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame

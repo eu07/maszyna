@@ -151,6 +151,9 @@ class TDynamicObject { // klasa pojazdu
 
     friend class opengl_renderer;
 
+public:
+    static bool bDynamicRemove; // moved from ground
+
 private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
     Math3D::vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych

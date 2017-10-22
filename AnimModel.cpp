@@ -791,7 +791,7 @@ void TAnimModel::LightSet(int n, float v)
         case ls_Dark: {
             // zapalenie świateł zależne od oświetlenia scenerii
             if( v > 3.0 ) { fDark = v - 3.0; } // ustawienie indywidualnego progu zapalania
-            else          { fDark = 0.25; } // standardowy próg zaplania
+            else          { fDark = DefaultDarkThresholdLevel; } // standardowy próg zaplania
             break;
         }
     }
