@@ -2322,7 +2322,6 @@ void TWorld::ChangeDynamic() {
     }
     Global::changeDynObj = NULL;
 }
-//---------------------------------------------------------------------------
 
 void
 TWorld::ToggleDaylight() {
@@ -2338,6 +2337,30 @@ TWorld::ToggleDaylight() {
         Environment.time();
     }
 }
+
+// calculates current season of the year based on set simulation date
+void
+TWorld::compute_season( int const Yearday ) const {
+
+    using dayseasonpair = std::pair<int, std::string>;
+
+    std::vector<dayseasonpair> seasonsequence {
+        {  65, "winter" },
+        { 158, "spring" },
+        { 252, "summer" },
+        { 341, "autumn" },
+        { 366, "winter" } };
+    auto const lookup =
+        std::lower_bound(
+            std::begin( seasonsequence ), std::end( seasonsequence ),
+            clamp( Yearday, 1, seasonsequence.back().first ),
+            []( dayseasonpair const &Left, const int Right ) {
+                return Left.first < Right; } );
+    
+    Global::Season = lookup->second + ":";
+}
+
+
 
 void
 world_environment::init() {

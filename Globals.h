@@ -150,16 +150,32 @@ private:
     void Update(); 
 };
 
-class Global
-{
-  private:
-  public:
+class Global {
+
+public:
+// methods
+    static void LoadIniFile(std::string asFileName);
+    static void ConfigParse( cParser &parser );
+    static void InitKeys();
+    inline static Math3D::vector3 GetCameraPosition() { return pCameraPosition; };
+    static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
+    static void SetCameraRotation(double Yaw);
+    static void TrainDelete(TDynamicObject *d);
+#ifdef EU07_USE_OLD_GROUNDCODE
+    static TDynamicObject * DynamicNearest();
+    static TDynamicObject * CouplerNearest();
+#endif
+    static bool AddToQuery(TEvent *event, TDynamicObject *who);
+    static bool DoEvents();
+    static std::string Bezogonkow(std::string str, bool _ = false);
+	static double Min0RSpeed(double vel1, double vel2);
+
+// members
     static int Keys[MaxKeys];
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
     static Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
-    static double
-        pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
+    static double pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
     static std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
     static std::vector<Math3D::vector3> FreeCameraInitAngle;
@@ -179,27 +195,24 @@ class Global
     static bool bLiveTraction;
     static float Global::fMouseXScale;
     static float Global::fMouseYScale;
-    static double fFogStart;
-    static double fFogEnd;
+#ifdef EU07_USE_OLD_GROUNDCODE
     static TGround *pGround;
+#endif
     static std::string szDefaultExt;
     static std::string SceneryFile;
     static std::string AppName;
     static std::string asCurrentSceneryPath;
     static std::string asCurrentTexturePath;
     static std::string asCurrentDynamicPath;
-    // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
-    static std::string asHumanCtrlVehicle;
-    static void LoadIniFile(std::string asFileName);
-    static void InitKeys();
-    inline static Math3D::vector3 GetCameraPosition() { return pCameraPosition; };
-    static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
-    static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     static bool MultipleLogs;
-    // McZapkie-221002: definicja swiatla dziennego
-    static GLfloat FogColor[];
+    // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
+    static std::string asHumanCtrlVehicle;
+    // world environment
     static float Overcast;
+    static double fFogStart;
+    static double fFogEnd;
+    static std::string Season; // season of the year, based on simulation date
 
     // TODO: put these things in the renderer
     static float BaseDrawRange;
@@ -222,6 +235,9 @@ class Global
     static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+    static bool bSmoothTraction; // wygładzanie drutów
+    static float SplineFidelity; // determines segment size during conversion of splines to geometry
+    static GLfloat FogColor[];
 
     static bool FullPhysics; // full calculations performed for each simulation step
     static int iSlowMotion;
@@ -248,8 +264,6 @@ class Global
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
     static double fMoveLight; // numer dnia w roku albo -1
     static bool FakeLight; // toggle between fixed and dynamic daylight
-    static bool bSmoothTraction; // wygładzanie drutów
-    static float SplineFidelity; // determines segment size during conversion of splines to geometry
     static double fTimeSpeed; // przyspieszenie czasu, zmienna do testów
     static double fTimeAngleDeg; // godzina w postaci kąta
     static float fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
@@ -292,19 +306,6 @@ class Global
 
     //randomizacja
     static std::mt19937 random_engine;
-
-	// metody
-    static void TrainDelete(TDynamicObject *d);
-    static void ConfigParse(cParser &parser);
-    static std::string GetNextSymbol();
-#ifdef EU07_USE_OLD_GROUNDCODE
-    static TDynamicObject * DynamicNearest();
-    static TDynamicObject * CouplerNearest();
-#endif
-    static bool AddToQuery(TEvent *event, TDynamicObject *who);
-    static bool DoEvents();
-    static std::string Bezogonkow(std::string str, bool _ = false);
-	static double Min0RSpeed(double vel1, double vel2);
 
     // maciek001: zmienne dla MWD
 	static bool bMWDmasterEnable;           // główne włączenie portu COM

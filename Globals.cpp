@@ -26,8 +26,9 @@ http://mozilla.org/MPL/2.0/.
 // namespace Global {
 
 // parametry do użytku wewnętrznego
-// double Global::tSinceStart=0;
+#ifdef EU07_USE_OLD_GROUNDCODE
 TGround *Global::pGround = NULL;
+#endif
 std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
@@ -75,6 +76,8 @@ GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+std::string Global::Season; // season of the year, based on simulation date
+
 float Global::BaseDrawRange { 2500.f };
 opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
@@ -190,19 +193,6 @@ int Global::iMWDdivider = 5;
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-
-std::string Global::GetNextSymbol()
-{ // pobranie tokenu z aktualnego parsera
-
-    std::string token;
-    if (pParser != nullptr)
-    {
-
-        pParser->getTokens();
-        *pParser >> token;
-    };
-    return token;
-};
 
 void Global::LoadIniFile(std::string asFileName)
 {
@@ -465,6 +455,7 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
+            Global::pWorld->compute_season( Global::fMoveLight );
         }
         else if( token == "dynamiclights" ) {
             // number of dynamic lights in the scene

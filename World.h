@@ -113,6 +113,9 @@ TWorld();
         train() const { return Train; }
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
+    // calculates current season of the year based on set simulation date
+    void compute_season( int const Yearday ) const;
+
 
 private:
     void Update_Environment();

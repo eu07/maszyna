@@ -365,6 +365,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             opengl_camera shadowcamera; // temporary helper, remove once ortho shadowmap code is done
             if( ( true == Global::RenderShadows )
+             && ( false == Global::bWireFrame )
              && ( true == World.InitPerformed() )
              && ( m_shadowcolor != colors::white ) ) {
                 // run shadowmap pass before color
@@ -857,7 +858,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         Active_Texture( m_helpertextureunit );
 
         if( ( true == Reflections )
-         || ( ( true == Global::RenderShadows ) && ( true == Shadows ) ) ) {
+         || ( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) ) {
             // we need to have texture on the helper for either the reflection and shadow generation (or both)
             if( true == m_environmentcubetexturesupport ) {
                 // bind dynamic environment cube if it's enabled...
@@ -880,7 +881,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
             }
         }
 
-        if( ( true == Global::RenderShadows ) && ( true == Shadows ) ) {
+        if( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) {
 
             ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
             ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( m_shadowcolor ) ); // TODO: dynamically calculated shadow colour, based on sun height
@@ -938,6 +939,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     if( m_shadowtextureunit >= 0 ) {
         if( ( true == Global::RenderShadows )
          && ( true == Shadows )
+         && ( false == Global::bWireFrame )
          && ( m_shadowcolor != colors::white ) ) {
 
             Active_Texture( m_shadowtextureunit );
@@ -1049,6 +1051,7 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows )
            && ( true == Shadows )
+           && ( false == Global::bWireFrame )
            && ( m_shadowcolor != colors::white ) ) ) {
             if( true == m_environmentcubetexturesupport ) {
                 ::glEnable( GL_TEXTURE_CUBE_MAP );
@@ -1068,7 +1071,7 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     }
     // shadow texture unit.
     if( m_shadowtextureunit >= 0 ) {
-        if( ( true == Global::RenderShadows ) && ( true == Shadows ) ) {
+        if( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) {
 
             Active_Texture( m_shadowtextureunit );
             ::glEnable( GL_TEXTURE_2D );

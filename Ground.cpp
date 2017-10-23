@@ -533,8 +533,9 @@ BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotn
 
 TGround::TGround()
 {
+#ifdef EU07_USE_OLD_GROUNDCODE
     Global::pGround = this;
-
+#endif
     for( int i = 0; i < TP_LAST; ++i ) {
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
