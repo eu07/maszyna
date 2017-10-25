@@ -3456,7 +3456,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
         temp = 0.0; // odetnij
     else
         temp = 1.0; // połącz
-    Pipe->Flow(temp * Hamulec->GetPF(temp * PipePress, dt, Vel) + GetDVc(dt));
+    Pipe->Flow( temp * Hamulec->GetPF( temp * PipePress, dt, Vel ) + GetDVc( dt ) );
 
     if (ASBType == 128)
         Hamulec->ASB(int(SlippingWheels));

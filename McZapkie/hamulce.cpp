@@ -413,6 +413,7 @@ void TBrake::ForceEmptiness()
 {
     ValveRes->CreatePress(0);
     BrakeRes->CreatePress(0);
+
     ValveRes->Act();
     BrakeRes->Act();
 }
@@ -755,6 +756,17 @@ void TESt::EStParams( double const i_crc )
 double TESt::GetCRP()
 {
     return CntrlRes->P();
+}
+
+void TESt::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
 }
 
 //---EP2---
@@ -1721,6 +1733,17 @@ double TCV1::GetCRP()
     return CntrlRes->P();
 }
 
+void TCV1::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
+}
+
 //---CV1-L-TR---
 
 void TCV1L_TR::SetLBP( double const P )
@@ -2088,6 +2111,21 @@ void TKE::SetRM( double const RMR )
 void TKE::SetLBP( double const P )
 {
     LBP = P;
+}
+
+void TKE::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+    ImplsRes->CreatePress( 0 );
+    Brak2Res->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
+    ImplsRes->Act();
+    Brak2Res->Act();
 }
 
 //---KRANY---
