@@ -19,60 +19,73 @@ TAirCoupler::~TAirCoupler()
 {
 }
 
+// zwraca 1, jeśli istnieje model prosty, 2 gdy skośny
+/**
+ * Returns 0 when straight model exists,
+ * 2 when oblique model exists, and 0 when neither of them exist.
+ */
 int TAirCoupler::GetStatus()
-{ // zwraca 1, jeśli istnieje model prosty, 2 gdy skośny
-    int x = 0;
-    if (pModelOn)
-        x = 1;
-    if (pModelxOn)
-        x = 2;
-    return x;
+{
+    if (ModelOn) return 1;
+    if (ModelxOn) return 2;
+    return 0;
 }
 
+// zerowanie wskaźników
+/**
+ * Reset pointers.
+ */
 void TAirCoupler::Clear()
-{ // zerowanie wskaźników
-    pModelOn = NULL;
-    pModelOff = NULL;
-    pModelxOn = NULL;
-    bOn = false;
-    bxOn = false;
+{
+    ModelOn = NULL;
+    ModelOff = NULL;
+    ModelxOn = NULL;
+    On = false;
+    xOn = false;
 }
-
-void TAirCoupler::Init(std::string const &asName, TModel3d *pModel)
-{ // wyszukanie submodeli
-    if (!pModel)
+// wyszukanie submodeli
+/**
+ * Looks for submodels.
+ */
+void TAirCoupler::Init(std::string const &asName, TModel3d *Model)
+{
+    if (!Model)
         return; // nie ma w czym szukać
-    pModelOn = pModel->GetFromName( asName + "_on" ); // połączony na wprost
-    pModelOff = pModel->GetFromName( asName + "_off" ); // odwieszony
-    pModelxOn = pModel->GetFromName( asName + "_xon" ); // połączony na skos
+    // polaczony na wprost
+    /** Straight connect. */
+    ModelOn = Model->GetFromName(asName + "_on");
+    // odwieszony
+    /** Not connected. Hung up. */
+    ModelOff = Model->GetFromName(asName + "_off");
+    // polaczony na skos
+    /** Oblique connect. */
+    ModelxOn = Model->GetFromName(asName + "_xon");
 }
 
-void TAirCoupler::Load(cParser *Parser, TModel3d *pModel)
+void TAirCoupler::Load(cParser *Parser, TModel3d *Model)
 {
 	std::string name = Parser->getToken<std::string>();
-	if( pModel ) {
-
-		Init( name, pModel );
+    if(Model)
+    {
+		Init(name, Model);
 	}
     else
     {
-        pModelOn = NULL;
-        pModelxOn = NULL;
-        pModelOff = NULL;
+        ModelOn = NULL;
+        ModelxOn = NULL;
+        ModelOff = NULL;
     }
 }
 
 void TAirCoupler::Update()
 {
-    //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
+    //  if ((pModelOn!=NULL) && (pModelOn!=NULL)) // legacy bullshitt alert
     {
-        if (pModelOn)
-            pModelOn->iVisible = bOn;
-        if (pModelOff)
-            pModelOff->iVisible = !(bOn || bxOn);
-        if (pModelxOn)
-            pModelxOn->iVisible = bxOn;
+        if (ModelOn)
+            ModelOn->iVisible = On;
+        if (ModelOff)
+            ModelOff->iVisible = !(On || xOn);
+        if (ModelxOn)
+            ModelxOn->iVisible = xOn;
     }
 }
-
-//---------------------------------------------------------------------------

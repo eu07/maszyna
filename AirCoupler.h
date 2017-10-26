@@ -14,40 +14,38 @@ http://mozilla.org/MPL/2.0/.
 
 class TAirCoupler
 {
-  private:
-    //    TButtonType eType;
-    TSubModel *pModelOn, *pModelOff, *pModelxOn;
-    bool bOn;
-    bool bxOn;
+private:
+    // TButtonType eType; //?
+    TSubModel *ModelOn, *ModelOff, *ModelxOn;
+    bool On;
+    bool xOn;
     void Update();
 
-  public:
+public:
     TAirCoupler();
     ~TAirCoupler();
+
     void Clear();
+    void Init(std::string const &asName, TModel3d *Model);
+    void Load(cParser *Parser, TModel3d *Model);
+    //  inline bool Active() { if ((ModelOn)||(ModelOff)) return true; return false;};
+    int GetStatus();
     inline void TurnOn()
     {
-        bOn = true;
-        bxOn = false;
+        On = true;
+        xOn = false;
         Update();
     };
     inline void TurnOff()
     {
-        bOn = false;
-        bxOn = false;
+        On = false;
+        xOn = false;
         Update();
     };
     inline void TurnxOn()
     {
-        bOn = false;
-        bxOn = true;
+        On = false;
+        xOn = true;
         Update();
     };
-    //  inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
-    int GetStatus();
-    void Init(std::string const &asName, TModel3d *pModel);
-    void Load(cParser *Parser, TModel3d *pModel);
-    //  bool Render();
 };
-
-//---------------------------------------------------------------------------
