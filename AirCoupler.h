@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 class TAirCoupler
 {
 private:
-    // TButtonType eType; //?
+    // TButtonType eType;
     TSubModel *ModelOn, *ModelOff, *ModelxOn;
     bool On;
     bool xOn;
@@ -28,7 +28,6 @@ public:
     void Clear();
     void Init(std::string const &asName, TModel3d *Model);
     void Load(cParser *Parser, TModel3d *Model);
-    //  inline bool Active() { if ((ModelOn)||(ModelOff)) return true; return false;};
     int GetStatus();
     inline void TurnOn()
     {

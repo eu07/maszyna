@@ -79,13 +79,10 @@ void TAirCoupler::Load(cParser *Parser, TModel3d *Model)
 
 void TAirCoupler::Update()
 {
-    //  if ((pModelOn!=NULL) && (pModelOn!=NULL)) // legacy bullshitt alert
-    {
-        if (ModelOn)
-            ModelOn->iVisible = On;
-        if (ModelOff)
-            ModelOff->iVisible = !(On || xOn);
-        if (ModelxOn)
-            ModelxOn->iVisible = xOn;
-    }
+    if (ModelOn)
+        ModelOn->iVisible = On;
+    if (ModelOff)
+        ModelOff->iVisible = !(On || xOn);
+    if (ModelxOn)
+        ModelxOn->iVisible = xOn;
 }
