@@ -10,12 +10,12 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AirCoupler.h"
 
-TAirCoupler::TAirCoupler()
+AirCoupler::AirCoupler()
 {
     Clear();
 }
 
-TAirCoupler::~TAirCoupler()
+AirCoupler::~AirCoupler()
 {
 }
 
@@ -24,7 +24,7 @@ TAirCoupler::~TAirCoupler()
  * Returns 0 when straight model exists,
  * 2 when oblique model exists, and 0 when neither of them exist.
  */
-int TAirCoupler::GetStatus()
+int AirCoupler::GetStatus()
 {
     if (ModelOn) return 1;
     if (ModelxOn) return 2;
@@ -35,7 +35,7 @@ int TAirCoupler::GetStatus()
 /**
  * Reset pointers.
  */
-void TAirCoupler::Clear()
+void AirCoupler::Clear()
 {
     ModelOn = NULL;
     ModelOff = NULL;
@@ -47,7 +47,7 @@ void TAirCoupler::Clear()
 /**
  * Looks for submodels.
  */
-void TAirCoupler::Init(std::string const &asName, TModel3d *Model)
+void AirCoupler::Init(std::string const &asName, TModel3d *Model)
 {
     if (!Model)
         return; // nie ma w czym szukać
@@ -62,7 +62,7 @@ void TAirCoupler::Init(std::string const &asName, TModel3d *Model)
     ModelxOn = Model->GetFromName(asName + "_xon");
 }
 
-void TAirCoupler::Load(cParser *Parser, TModel3d *Model)
+void AirCoupler::Load(cParser *Parser, TModel3d *Model)
 {
 	std::string name = Parser->getToken<std::string>();
     if(Model)
@@ -77,7 +77,7 @@ void TAirCoupler::Load(cParser *Parser, TModel3d *Model)
     }
 }
 
-void TAirCoupler::Update()
+void AirCoupler::Update()
 {
     if (ModelOn)
         ModelOn->iVisible = On;

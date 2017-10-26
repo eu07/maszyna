@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "parser.h"
 
-class TAirCoupler
+class AirCoupler
 {
 private:
     // TButtonType eType;
@@ -22,8 +22,8 @@ private:
     void Update();
 
 public:
-    TAirCoupler();
-    ~TAirCoupler();
+    AirCoupler();
+    ~AirCoupler();
 
     void Clear();
     void Init(std::string const &asName, TModel3d *Model);
