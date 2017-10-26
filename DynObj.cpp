@@ -415,14 +415,22 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
     // Ra: te współczynniki są bez sensu, bo modyfikują wektor przesunięcia
     // w efekcie drzwi otwierane na zewnątrz będą odlatywac dowolnie daleko :)
     // ograniczyłem zakres ruchu funkcją max
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
+    if (pAnim->smAnimated) {
+
+        if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR)));
-        else
+                vector3{
+                    0.0,
+                    0.0,
+                    dDoorMoveR } );
+        }
+        else {
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL)));
+                vector3{
+                    0.0,
+                    0.0,
+                    dDoorMoveL } );
+        }
     }
 };
 
@@ -493,18 +501,30 @@ void TDynamicObject::UpdatePant(TAnim *pAnim)
 
 void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
 { // animacja drzwi - odskokprzesuw
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
+    if (pAnim->smAnimated) {
+
+        if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3(Min0R(dDoorMoveR * 2, MoverParameters->DoorMaxPlugShift), 0,
-                        Max0R(0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR) -
-                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
-        else
+                vector3 {
+                    std::min(
+                        dDoorMoveR * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveR - MoverParameters->DoorMaxPlugShift * 0.5 ) } );
+        }
+        else {
             pAnim->smAnimated->SetTranslate(
-                vector3(Min0R(dDoorMoveL * 2, MoverParameters->DoorMaxPlugShift), 0,
-                        Max0R(0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL) -
-                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
+                vector3 {
+                    std::min(
+                        dDoorMoveL * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveL - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
+        }
     }
 };
 
@@ -1745,8 +1765,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
             if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
             {
-                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
             if (ActPar.find('E') != std::string::npos) // oprozniony
             {
@@ -1770,16 +1790,16 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
-                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 }
             }
             if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
-                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 }
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
@@ -5367,7 +5387,6 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
         if( false == vehicle->bEnabled ) { continue; }
         // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
         if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
-            // TODO: re-implement
             update_traction( vehicle );
         }
         vehicle->MoverParameters->ComputeConstans();

@@ -1263,16 +1263,8 @@ event_manager::CheckQuery() {
                         + to_string( m_workevent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
                 }
                 else {
-/*
-                    // TODO: re-enable when cell manager is in place
                     // lista wszystkich
-                    for( TGroundNode *Current = nRootOfType[ TP_MEMCELL ]; Current; Current = Current->nNext ) {
-                        WriteLog( "Memcell \"" + Current->asName + "\": "
-                            + Current->MemCell->Text() + " "
-                            + std::to_string( Current->MemCell->Value1() ) + " "
-                            + std::to_string( Current->MemCell->Value2() ) );
-                    }
-*/
+                    simulation::Memory.log_all();
                 }
                 break;
             }

@@ -192,14 +192,22 @@ public:
     // utility methods
     TSubModel const *
         Pick_Control() const { return m_pickcontrolitem; }
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode const *
+#else
+    editor::basic_node const *
+#endif
         Pick_Node() const { return m_picksceneryitem; }
     // maintenance jobs
     void
         Update( double const Deltatime );
     TSubModel const *
         Update_Pick_Control();
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode const *
+#else
+    editor::basic_node const *
+#endif
         Update_Pick_Node();
     // debug performance string
     std::string const &
@@ -420,11 +428,15 @@ private:
     section_sequence m_sectionqueue; // list of sections in current render pass
     cell_sequence m_cellqueue;
 #endif
-
-    std::vector<TGroundNode const *> m_picksceneryitems;
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
+#ifdef EU07_USE_OLD_GROUNDCODE
+    std::vector<TGroundNode const *> m_picksceneryitems;
     TGroundNode const *m_picksceneryitem { nullptr };
+#else
+    std::vector<editor::basic_node const *> m_picksceneryitems;
+    editor::basic_node const *m_picksceneryitem { nullptr };
+#endif
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif

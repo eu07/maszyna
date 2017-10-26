@@ -583,16 +583,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             >> fTexHeight1
             >> fTexWidth
             >> fTexSlope;
-        if( fTexLength != 4.f ) {
-            // force defaults for malformed track definitions
-            bool paramsvalid { true };
-            if( fTexHeight1 == 0.f ) { fTexHeight1 = 0.6f; paramsvalid = false; }
-            if( fTexWidth == 0.f )   { fTexWidth   = 0.9f; paramsvalid = false; }
-            if( fTexSlope == 0.f )   { fTexSlope   = 0.9f; paramsvalid = false; }
-            if( false == paramsvalid ) {
-                ErrorLog( "Bad track: one or more of texture dimensions set to 0 for track \"" + name() + "\" in file \"" + parser->Name() + "\" (line " + std::to_string( parser->Line() - 1 ) + ")" );
-            }
-        }
+
         if (iCategoryFlag & 4)
             fTexHeight1 = -fTexHeight1; // rzeki mają wysokość odwrotnie niż drogi
     }
@@ -1185,13 +1176,15 @@ bool TTrack::InMovement()
 #ifdef EU07_USE_OLD_GROUNDCODE
 void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
 #else
-void TTrack::RaAssign( scene::basic_cell *gn, TAnimModel *am, TEvent *done, TEvent *joined )
+void TTrack::RaAssign( TAnimModel *am, TEvent *done, TEvent *joined )
 #endif
 { // Ra: wiązanie toru z modelem obrotnicy
     if (eType == tt_Table)
     {
         SwitchExtension->pModel = am;
+#ifdef EU07_USE_OLD_GROUNDCODE
         SwitchExtension->pMyNode = gn;
+#endif
         SwitchExtension->evMinus = done; // event zakończenia animacji (zadanie nowej przedłuża)
         SwitchExtension->evPlus =
             joined; // event potwierdzenia połączenia (gdy nie znajdzie, to się nie połączy)
@@ -1218,6 +1211,10 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         hypot1 = 1.f;
     glm::vec3 const normalup{ 0.f, 1.f, 0.f };
     glm::vec3 normal1 { fTexHeight1 / hypot1, fTexSlope / hypot1, 0.f }; // wektor normalny
+    if( glm::length( normal1 ) == 0.f ) {
+        // fix normal for vertical surfaces
+        normal1 = glm::vec3 { 1.f, 0.f, 0.f };
+    }
     glm::vec3 normal2;
     float fHTW2, side2, slop2, rozp2, fTexHeight2, hypot2;
     if( iTrapezoid & 2 ) {
@@ -1232,6 +1229,10 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         if( hypot2 == 0.f )
             hypot2 = 1.f;
         normal2 = { fTexHeight2 / hypot2, trNext->fTexSlope / hypot2, 0.f };
+        if( glm::length( normal2 ) == 0.f ) {
+            // fix normal for vertical surfaces
+            normal2 = glm::vec3 { 1.f, 0.f, 0.f };
+        }
     }
     else {
         // gdy nie ma następnego albo jest nieodpowiednim końcem podpięty
@@ -1645,7 +1646,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 { // standardowo: od zewnątrz pochylenie, a od wewnątrz poziomo
                     rpts1[ 0 ] = {
                         {rozp, -fTexHeight1, 0.f},
-                        normalup,
+                        { 1.f, 0.f, 0.f },
                         {0.f, 0.f} }; // lewy brzeg podstawy
                     rpts1[ 1 ] = {
                         {bpts1[ 0 ].position.x + side, bpts1[ 0 ].position.y, 0.f},
@@ -1665,13 +1666,13 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         {0.5f, 0.f} }; // prawa krawędź załamania
                     rpts2[ 2 ] = {
                         {-rozp, -fTexHeight1, 0.f},
-                        normalup,
+                        { -1.f, 0.f, 0.f },
                         {0.f, 0.f} }; // prawy brzeg podstawy
                     if (iTrapezoid) {
                         // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
                         rpts1[ 3 ] = {
                             {rozp2, -fTexHeight2, 0.f},
-                            normalup,
+                            { 1.f, 0.f, 0.f },
                             {0.f, 0.f} }; // lewy brzeg lewego pobocza
                         rpts1[ 4 ] = {
                             {bpts1[ 2 ].position.x + side2, bpts1[ 2 ].position.y, 0.f},
@@ -1691,7 +1692,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.5f, 0.f} };
                         rpts2[ 5 ] = {
                             {-rozp2, -fTexHeight2, 0.f},
-                            normalup,
+                            { -1.f, 0.f, 0.f },
                             {0.f, 0.f} }; // prawy brzeg prawego pobocza
                     }
                 }
@@ -1728,11 +1729,11 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         {0.515625f, 0.f} }; // prawy krawężnik u góry
                     rpts1[ 2 ] = {
                         {bpts1[ 0 ].position.x, bpts1[ 0 ].position.y, 0.f},
-                        normalup,
+                        { -1.f, 0.f, 0.f },
                         {0.515625f - d / 2.56f, 0.f} }; // prawy krawężnik u dołu
                     rpts2[ 0 ] = {
                         {bpts1[ 1 ].position.x, bpts1[ 1 ].position.y, 0.f},
-                        normalup,
+                        { 1.f, 0.f, 0.f },
                         {0.484375f + d / 2.56f, 0.f} }; // lewy krawężnik u dołu
                     rpts2[ 1 ] = {
                         {bpts1[ 1 ].position.x - d, bpts1[ 1 ].position.y + h1l, 0.f},
@@ -1776,11 +1777,11 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.515625f, 0.f} }; // prawy krawężnik u góry
                         rpts1[ 5 ] = {
                             {bpts1[ 2 ].position.x, bpts1[ 2 ].position.y, 0.f},
-                            normalup,
+                            { -1.f, 0.f, 0.f },
                             {0.515625f - d / 2.56f, 0.f} }; // prawy krawężnik u dołu
                         rpts2[ 3 ] = {
                             {bpts1[ 3 ].position.x, bpts1[ 3 ].position.y, 0.f},
-                            normalup,
+                            { 1.f, 0.f, 0.f },
                             {0.484375f + d / 2.56f, 0.f} }; // lewy krawężnik u dołu
                         rpts2[ 4 ] = {
                             {bpts1[ 3 ].position.x - d, bpts1[ 3 ].position.y + h2l, 0.f},
@@ -1912,7 +1913,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 { // standardowo: od zewnątrz pochylenie, a od wewnątrz poziomo
                     rpts1[ 0 ] = {
                         {rozp, -fTexHeight1, 0.f},
-                        normalup,
+                        { 1.f, 0.f, 0.f },
                         {0.f, 0.f} }; // lewy brzeg podstawy
                     rpts1[ 1 ] = {
                         {bpts1[ 0 ].position.x + side, bpts1[ 0 ].position.y, 0.f},
@@ -1932,13 +1933,13 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         {0.5f, 0.f} }; // prawa krawędź załamania
                     rpts2[ 2 ] = {
                         {-rozp, -fTexHeight1, 0.f},
-                        normalup,
+                        { -1.f, 0.f, 0.f },
                         {0.f, 0.f} }; // prawy brzeg podstawy
                     // if (iTrapezoid) //trapez albo przechyłki
                     { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
                         rpts1[ 3 ] = {
                             {rozp2, -fTexHeight2, 0.f},
-                            normalup,
+                            { 1.f, 0.f, 0.f },
                             {0.f, 0.f} }; // lewy brzeg lewego pobocza
                         rpts1[ 4 ] = {
                             {bpts1[ 2 ].position.x + side2, bpts1[ 2 ].position.y, 0.f},
@@ -1958,7 +1959,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.5f, 0.f} };
                         rpts2[ 5 ] = {
                             {-rozp2, -fTexHeight2, 0.f},
-                            normalup,
+                            { -1.f, 0.f, 0.f },
                             {0.f, 0.f} }; // prawy brzeg prawego pobocza
                     }
                 }
@@ -1987,11 +1988,11 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         {0.515625f, 0.f} }; // prawy krawężnik u góry
                     rpts1[ 2 ] = {
                         {bpts1[ 0 ].position.x, bpts1[ 0 ].position.y, 0.f},
-                        normalup,
+                        { -1.f, 0.f, 0.f },
                         {0.515625f - d / 2.56f, 0.f} }; // prawy krawężnik u dołu
                     rpts2[ 0 ] = {
                         {bpts1[ 1 ].position.x, bpts1[ 1 ].position.y, 0.f},
-                        normalup,
+                        { 1.f, 0.f, 0.f },
                         {0.484375f + d / 2.56f, 0.f} }; // lewy krawężnik u dołu
                     rpts2[ 1 ] = {
                         {bpts1[ 1 ].position.x - d, bpts1[ 1 ].position.y - fTexHeight1, 0.f},
@@ -2026,11 +2027,11 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.515625f, 0.f} }; // prawy krawężnik u góry
                         rpts1[ 5 ] = {
                             {bpts1[ 2 ].position.x, bpts1[ 2 ].position.y, 0.f},
-                            normalup,
+                            { -1.f, 0.f, 0.f },
                             {0.515625f - d / 2.56f, 0.f} }; // prawy krawężnik u dołu
                         rpts2[ 3 ] = {
                             {bpts1[ 3 ].position.x, bpts1[ 3 ].position.y, 0.f},
-                            normalup,
+                            { 1.f, 0.f, 0.f },
                             {0.484375f + d / 2.56, 0.f} }; // lewy krawężnik u dołu
                         rpts2[ 4 ] = {
                             {bpts1[ 3 ].position.x - d, bpts1[ 3 ].position.y - fTexHeight2, 0.f},
@@ -2664,11 +2665,11 @@ TTrack * TTrack::RaAnimate()
 #ifdef EU07_USE_OLD_GROUNDCODE
                         SwitchExtension->pMyNode->pCenter +
 #else
-                        SwitchExtension->pMyNode->area().center +
+                        location() +
 #endif
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
                     Segment->Init(middle + vector3(sina, 0.0, cosa),
-                                  middle - vector3(sina, 0.0, cosa), 5.0); // nowy odcinek
+                                  middle - vector3(sina, 0.0, cosa), 10.0); // nowy odcinek
                     for( auto dynamic : Dynamics ) {
                         // minimalny ruch, aby przeliczyć pozycję
                         dynamic->Move( 0.000001 );
@@ -2957,18 +2958,19 @@ path_table::InitTracks() {
         }
 
         switch (track->eType) {
-/*
         // TODO: re-enable
         case tt_Table: {
             // obrotnicę też łączymy na starcie z innymi torami
             // szukamy modelu o tej samej nazwie
             auto *instance = simulation::Instances.find( trackname );
             // wiązanie toru z modelem obrotnicy
+#ifdef EU07_USE_OLD_GROUNDCODE
+#else
             track->RaAssign(
-                Current,
                 instance,
                 simulation::Events.FindEvent( trackname + ":done" ),
                 simulation::Events.FindEvent( trackname + ":joined" ) );
+#endif
             if( instance == nullptr ) {
                 // jak nie ma modelu to pewnie jest wykolejnica, a ta jest domyślnie zamknięta i wykoleja
                 break;
@@ -2976,7 +2978,6 @@ path_table::InitTracks() {
             // no break on purpose:
             // jak coś pójdzie źle, to robimy z tego normalny tor
         }
-*/
         case tt_Normal: {
             // tylko proste są podłączane do rozjazdów, stąd dwa rozjazdy się nie połączą ze sobą
             if( track->CurrentPrev() == nullptr ) {

@@ -5367,43 +5367,47 @@ void TController::SetProximityVelocity( double dist, double vel, glm::dvec3 cons
 
 TCommandType TController::BackwardScan()
 { // sprawdzanie zdarzeń semaforów z tyłu pojazdu, zwraca komendę
-    // dzięki temu będzie można stawać za wskazanym sygnalizatorem, a zwłaszcza jeśli będzie jazda
-    // na kozioł
-    // ograniczenia prędkości nie są wtedy istotne, również koniec toru jest do niczego nie
-    // przydatny
+    // dzięki temu będzie można stawać za wskazanym sygnalizatorem, a zwłaszcza jeśli będzie jazda na kozioł
+    // ograniczenia prędkości nie są wtedy istotne, również koniec toru jest do niczego nie przydatny
     // zwraca true, jeśli należy odwrócić kierunek jazdy pojazdu
-    if ((OrderList[OrderPos] & ~(Shunt | Connect)))
-        return cm_Unknown; // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na
-    // rozkazy
+    if( ( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
+        // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na rozkazy
+        return cm_Unknown;
+    }
     vector3 sl;
-    int startdir =
-        -pVehicles[0]->DirectionGet(); // kierunek jazdy względem sprzęgów pojazdu na czele
-    if (startdir == 0) // jeśli kabina i kierunek nie jest określony
-        return cm_Unknown; // nie robimy nic
-    double scandir =
-        startdir * pVehicles[0]->RaDirectionGet(); // szukamy od pierwszej osi w wybranym kierunku
-    if (scandir !=
-        0.0) // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
-    { // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
-        // scanback=pVehicles[1]->NextDistance(fLength+1000.0); //odległość do następnego pojazdu,
-        // 1000 gdy nic nie ma
+    // kierunek jazdy względem sprzęgów pojazdu na czele
+    int const startdir = -pVehicles[0]->DirectionGet();
+    if( startdir == 0 ) {
+        // jeśli kabina i kierunek nie jest określony nie robimy nic
+        return cm_Unknown;
+    }
+    // szukamy od pierwszej osi w wybranym kierunku
+    double scandir = startdir * pVehicles[0]->RaDirectionGet();
+    if (scandir != 0.0) {
+        // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
+        // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
         double scanmax = 1000; // 1000m do tyłu, żeby widział przeciwny koniec stacji
         double scandist = scanmax; // zmodyfikuje na rzeczywiście przeskanowane
         TEvent *e = NULL; // event potencjalnie od semafora
-        // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru
-        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(),
-                                               e); // wg drugiej osi w kierunku ruchu
-        vector3 dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
-        if (!scantrack) // jeśli wstecz wykryto koniec toru
-            return cm_Unknown; // to raczej nic się nie da w takiej sytuacji zrobić
-        else
-        { // a jeśli są dalej tory
+        // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
+        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(), e);
+        vector3 const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
+        if( !scantrack ) {
+            // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
+            return cm_Unknown;
+        }
+        else {
+            // a jeśli są dalej tory
             double vmechmax; // prędkość ustawiona semaforem
-            if (e)
-            { // jeśli jest jakiś sygnał na widoku
+            if( e != nullptr ) {
+                // jeśli jest jakiś sygnał na widoku
 #if LOGBACKSCAN
-                AnsiString edir =
-                    pVehicle->asName + " - " + AnsiString((scandir > 0) ? "Event2 " : "Event1 ");
+                std::string edir {
+                    "Backward scan by "
+                    + pVehicle->asName + " - "
+                    + ( ( scandir > 0 ) ?
+                        "Event2 " :
+                        "Event1 " ) };
 #endif
                 // najpierw sprawdzamy, czy semafor czy inny znak został przejechany
                 vector3 pos = pVehicles[1]->RearPosition(); // pozycja tyłu
@@ -5411,66 +5415,67 @@ TCommandType TController::BackwardScan()
                 if (e->Type == tp_GetValues)
                 { // przesłać info o zbliżającym się semaforze
 #if LOGBACKSCAN
-                    edir += "(" + (e->Params[8].asGroundNode->asName) + "): ";
+                    edir += "(" + ( e->asNodeName ) + ")";
 #endif
                     sl = e->PositionGet(); // położenie komórki pamięci
                     sem = sl - pos; // wektor do komórki pamięci od końca składu
-                    // sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamięci
-                    if (dir.x * sem.x + dir.z * sem.z < 0) // jeśli został minięty
-                    // if ((mvOccupied->CategoryFlag&1)?(VelNext!=0.0):true) //dla pociągu wymagany
-                    // sygnał zezwalający
-                    { // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
+                    if (dir.x * sem.x + dir.z * sem.z < 0) {
+                        // jeśli został minięty
+                        // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
 #if LOGBACKSCAN
-                        WriteLog(edir + "- ignored as not passed yet");
+                        WriteLog(edir + " - ignored as not passed yet");
 #endif
                         return cm_Unknown; // nic
                     }
                     vmechmax = e->ValueGet(1); // prędkość przy tym semaforze
-                    // przeliczamy odległość od semafora - potrzebne by były współrzędne początku
-                    // składu
-                    // scandist=(pos-e->Params[8].asGroundNode->pCenter).Length()-0.5*mvOccupied->Dim.L-10;
-                    // //10m luzu
+                    // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
                     scandist = sem.Length() - 2; // 2m luzu przy manewrach wystarczy
-                    if (scandist < 0)
-                        scandist = 0; // ujemnych nie ma po co wysyłać
+                    if( scandist < 0 ) {
+                        // ujemnych nie ma po co wysyłać
+                        scandist = 0;
+                    }
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if (e->Command() == cm_SetVelocity)
-                        if ((vmechmax == 0.0) ? (OrderCurrentGet() & (Shunt | Connect)) :
-                                                (OrderCurrentGet() &
-                                                 Connect)) // przy podczepianiu ignorować wyjazd?
+                    if( e->Command() == cm_SetVelocity ) {
+                        if( ( vmechmax == 0.0 ) ?
+                                ( OrderCurrentGet() & ( Shunt | Connect ) ) :
+                                ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
                             move = true; // AI w trybie manewerowym ma dociągnąć pod S1
-                        else
-                        { //
-                            if ((scandist > fMinProximityDist) ?
-                                    (mvOccupied->Vel > 0.0) && (OrderCurrentGet() != Shunt) :
-                                    false)
-                            { // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o
-// zmianie prędkości
-// jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
-// Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+                        }
+                        else {
+                            if( ( scandist > fMinProximityDist )
+                             && ( ( mvOccupied->Vel > 0.0 )
+                               && ( OrderCurrentGet() != Shunt ) ) ) {
+                                // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
+                                // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
 #if LOGBACKSCAN
-                                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+"
-                                // "+AnsiString(vmechmax));
+                                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist) + AnsiString(vmechmax));
                                 WriteLog(edir);
 #endif
                                 // SetProximityVelocity(scandist,vmechmax,&sl);
-                                return (vmechmax > 0) ? cm_SetVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_SetVelocity :
+                                        cm_Unknown );
                             }
-                            else // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma
-                            // stać
-                            // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli stoi lub ma
-                            // stanąć/stać
-                            { // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma
-// stanąć, albo nie ruszać
-// stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-// PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
+                            else {
+                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
+                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli stoi lub ma stanąć/stać
+                                // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma stanąć, albo nie ruszać
+                                // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
+                                // PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                                WriteLog(edir + "SetVelocity " + AnsiString(vmechmax) + " " +
-                                         AnsiString(e->Params[9].asMemCell->Value2()));
+                                WriteLog(
+                                    edir + " - [SetVelocity] ["
+                                    + to_string( vmechmax, 2 ) + "] ["
+                                    + to_string( e->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
 #endif
-                                return (vmechmax > 0) ? cm_SetVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_SetVelocity :
+                                        cm_Unknown );
                             }
                         }
+                    }
                     if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
@@ -5497,28 +5502,34 @@ TCommandType TController::BackwardScan()
                                     // to można zmienić kierunek
                                 }
                             }
-                            else // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo
-                            // ma stać pod tarczą
-                            { // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli jedzie
-                                // lub ma stanąć/stać
+                            else {
+                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo ma stać pod tarczą
+                             // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
+                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli jedzie lub ma stanąć/stać
                                 { // nie dostanie komendy jeśli jedzie i ma jechać
-// PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
+                                  // PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                                    WriteLog(edir + "ShuntVelocity " + AnsiString(vmechmax) + " " +
-                                             AnsiString(e->ValueGet(2)));
+                                    WriteLog(
+                                        edir + " - [ShuntVelocity] ["
+                                        + to_string( vmechmax, 2 ) + "] ["
+                                        + to_string( e->ValueGet( 2 ), 2 ) + "]" );
 #endif
-                                    return (vmechmax > 0) ? cm_ShuntVelocity : cm_Unknown;
+                                    return (
+                                        vmechmax > 0 ?
+                                            cm_ShuntVelocity :
+                                            cm_Unknown );
                                 }
                             }
-                            if ((vmechmax != 0.0) && (scandist < 100.0))
-                            { // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od
-// razu ją ignorujemy, aby móc szukać kolejnej
-// eSignSkip=e; //wtedy uznajemy ignorowaną przy poszukiwaniu nowej
+                            if ((vmechmax != 0.0) && (scandist < 100.0)) {
+                                // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od razu ją ignorujemy, aby móc szukać kolejnej
+                                // eSignSkip=e; //wtedy uznajemy ignorowaną przy poszukiwaniu nowej
 #if LOGBACKSCAN
-                                WriteLog(edir + "- will be ignored due to Ms2");
+                                WriteLog(edir + " - will be ignored due to Ms2");
 #endif
-                                return (vmechmax > 0) ? cm_ShuntVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_ShuntVelocity :
+                                        cm_Unknown );
                             }
                         } // if (move?...
                     } // if (OrderCurrentGet()==Shunt)

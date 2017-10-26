@@ -202,3 +202,16 @@ memory_table::InitCells() {
         cell->AssignEvents( simulation::Events.FindEvent( cell->name() + ":sent" ) );
     }
 }
+
+// legacy method, sends content of all cells to the log
+void
+memory_table::log_all() {
+
+    for( auto *cell : m_items ) {
+
+        WriteLog( "Memcell \"" + cell->name() + "\": ["
+            + cell->Text() + "] ["
+            + to_string( cell->Value1(), 2 ) + "] ["
+            + to_string( cell->Value2(), 2 ) + "]" );
+    }
+}

@@ -1312,7 +1312,7 @@ void
 TWorld::Update_UI() {
 
     UITable->text_lines.clear();
-    std::string  uitextline1, uitextline2, uitextline3, uitextline4;
+    std::string uitextline1, uitextline2, uitextline3, uitextline4;
     UILayer.set_tooltip( "" );
 
     if( ( Train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
@@ -1328,7 +1328,14 @@ TWorld::Update_UI() {
     }
     if( ( true == Global::ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
         auto const scenerynode = GfxRenderer.Pick_Node();
+#ifdef EU07_USE_OLD_GROUNDCODE
         UILayer.set_tooltip( ( scenerynode ? scenerynode->asName : "" ) );
+#else
+        UILayer.set_tooltip(
+            ( scenerynode ?
+                scenerynode->name() :
+                "" ) );
+#endif
     }
 
     switch( Global::iTextMode ) {

@@ -1200,7 +1200,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
 
         break;
-#endif
     case TP_MODEL: {
         if( rmin < 0 ) {
             // legacy leftover: special case, terrain provided as 3d model
@@ -1234,7 +1233,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
         }
         else {
-#ifdef EU07_USE_OLD_GROUNDCODE
             // regular 3d model
             parser->getTokens( 3 );
             *parser
@@ -1265,11 +1263,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                     ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
                 }
             }
-#endif
         }
         break;
     }
-#ifdef EU07_USE_OLD_GROUNDCODE
     // case TP_GEOMETRY :
     case GL_TRIANGLES:
     case GL_TRIANGLE_STRIP:
@@ -1472,7 +1468,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         } // koniec wczytywania trójkątów
         break;
     }
-#endif
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP: {
@@ -1566,6 +1561,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
             break;
         }
+#endif
     }
     return tmp;
 }
@@ -1933,7 +1929,12 @@ bool TGround::Init(std::string File)
         }
         else if (str == "endorigin")
         {
-            OriginStack.pop();
+            if( true == OriginStack.empty() ) {
+                // report error here
+            }
+            else {
+                OriginStack.pop();
+            }
             pOrigin = ( OriginStack.empty() ?
                 Math3D::vector3() :
                 OriginStack.top() );

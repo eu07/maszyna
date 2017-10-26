@@ -73,6 +73,9 @@ public:
     // legacy method, initializes traction after deserialization from scenario file
     void
         InitCells();
+    // legacy method, sends content of all cells to the log
+    void
+        log_all();
 };
 
 //---------------------------------------------------------------------------

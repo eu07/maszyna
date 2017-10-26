@@ -2060,7 +2060,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // tracks
                 // TODO: update after path node refactoring
                 Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
-                // TODO: add other content types
 
                 // post-render cleanup
                 ::glPopMatrix();
@@ -2076,7 +2075,8 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // render
                 // opaque non-instanced shapes
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
-                // TODO: add other content types
+                // tracks
+                Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
 
                 // post-render cleanup
                 ::glPopMatrix();
@@ -2091,6 +2091,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // render
                 // opaque non-instanced shapes
+                // non-interactive scenery elements get neutral colour
                 ::glColor3fv( glm::value_ptr( colors::none ) );
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
@@ -2099,7 +2100,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( path );
                 }
-                // TODO: add other content types
+
                 // post-render cleanup
                 ::glPopMatrix();
 
@@ -2134,11 +2135,12 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
             }
             case rendermode::pickscenery: {
                 // opaque parts of instanced models
+                // same procedure like with regular render, but each node receives custom colour used for picking
                 for( auto *instance : cell->m_instancesopaque ) {
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( instance );
                 }
-                // TODO: add remaining content types
+                // vehicles aren't included in scenery picking for the time being
                 break;
             }
             case rendermode::reflections:
@@ -2224,19 +2226,18 @@ opengl_renderer::Render( TAnimModel *Instance ) {
      || ( distancesquared >= Instance->m_rangesquaredmax ) ) {
         return;
     }
-/*
-    // TODO: enable adding items to the picking list
+
     switch( m_renderpass.draw_mode ) {
         case rendermode::pickscenery: {
             // add the node to the pick list
-            m_picksceneryitems.emplace_back( Node );
+            m_picksceneryitems.emplace_back( Instance );
             break;
         }
         default: {
             break;
         }
     }
-*/
+
     Instance->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
     Instance->RaPrepare();
     if( Instance->pModel ) {
@@ -2767,8 +2768,15 @@ opengl_renderer::Render( TTrack *Track ) {
             Track->EnvironmentReset();
             break;
         }
-        case rendermode::shadows:
+        case rendermode::shadows: {
+            // shadow pass includes trackbeds but not tracks themselves due to low resolution of the map
+            // TODO: implement
+            break;
+        }
         case rendermode::pickscenery: {
+            // add the node to the pick list
+            m_picksceneryitems.emplace_back( Track );
+
             if( Track->m_material1 != 0 ) {
                 Bind_Material( Track->m_material1 );
                 m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
@@ -2816,12 +2824,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 track->EnvironmentReset();
                 break;
             }
-            case rendermode::shadows: {
-                Bind_Material( track->m_material1 );
-                m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
-                break;
-            }
-            case rendermode::pickscenery: // pick scenery should use track-by-track approach
+            case rendermode::shadows: // shadows are calculated only for trackbeds
+            case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
             case rendermode::pickcontrols:
             default: {
                 break;
@@ -2850,11 +2854,16 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 break;
             }
             case rendermode::shadows: {
+                if( ( track->iCategoryFlag != 1 )
+                 || ( track->eType != tt_Normal ) ) {
+                    // shadows are only calculated for trackbeds
+                    continue;
+                }
                 Bind_Material( track->m_material2 );
                 m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
                 break;
             }
-            case rendermode::pickscenery: // pick scenery should use track-by-track approach
+            case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
             case rendermode::pickcontrols:
             default: {
                 break;
@@ -3121,6 +3130,7 @@ opengl_renderer::Render_Alpha( scene::basic_region *Region ) {
 void
 opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last ) {
 
+    // NOTE: this method is launched only during color pass therefore we don't bother with mode test here
     // first pass draws elements which we know are located in section banks, to reduce vbo switching
     {
         auto first { First };
@@ -3690,7 +3700,11 @@ opengl_renderer::Update_Pick_Control() {
     return control;
 }
 
+#ifdef EU07_USE_OLD_GROUNDCODE
 TGroundNode const *
+#else
+editor::basic_node const *
+#endif
 opengl_renderer::Update_Pick_Node() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3725,7 +3739,11 @@ opengl_renderer::Update_Pick_Node() {
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
     auto const nodeindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
+#ifdef EU07_USE_OLD_GROUNDCODE
     TGroundNode const *node { nullptr };
+#else
+    editor::basic_node const *node { nullptr };
+#endif
     if( ( nodeindex > 0 )
      && ( nodeindex <= m_picksceneryitems.size() ) ) {
         node = m_picksceneryitems[ nodeindex - 1 ];

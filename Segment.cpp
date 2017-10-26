@@ -386,7 +386,12 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
     fOffset = 0.1 / fLength; // pierwsze 10cm
     pos1 = glm::dvec3{ FastGetPoint( t ) - Origin }; // wektor początku segmentu
     dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // wektor kierunku
-    parallel1 = glm::normalize( glm::vec3{ -dir.z, 0.f, dir.x } ); // wektor poprzeczny
+    parallel1 = glm::vec3{ -dir.z, 0.f, dir.x }; // wektor poprzeczny
+    if( glm::length2( parallel1 ) == 0.f ) {
+        // temporary workaround for malformed situations with control points placed above endpoints
+        parallel1 = glm::vec3{ glm::dvec3{ FastGetPoint_1() - FastGetPoint_0() } };
+    }
+    parallel1 = glm::normalize( parallel1 );
     if( iEnd == 0 )
         iEnd = iSegCount;
     fEnd = fLength * double( iEnd ) / double( iSegCount );
@@ -416,7 +421,12 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
         pos2 = glm::dvec3{ FastGetPoint( t ) - Origin };
         dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // nowy wektor kierunku
-        parallel2 = glm::normalize( glm::vec3{ -dir.z, 0.f, dir.x } ); // wektor poprzeczny
+        parallel2 = glm::vec3{ -dir.z, 0.f, dir.x }; // wektor poprzeczny
+        if( glm::length2( parallel2 ) == 0.f ) {
+            // temporary workaround for malformed situations with control points placed above endpoints
+            parallel2 = glm::vec3{ glm::dvec3{ FastGetPoint_1() - FastGetPoint_0() } };
+        }
+        parallel2 = glm::normalize( parallel2 );
 
         if( trapez ) {
             for( int j = 0; j < iNumShapePoints; ++j ) {

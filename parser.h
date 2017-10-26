@@ -28,7 +28,7 @@ class cParser //: public std::stringstream
         buffer_TEXT
     };
     // constructors:
-    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true );
+    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true, std::vector<std::string> Parameters = std::vector<std::string>() );
     // destructor:
     virtual ~cParser();
     // methods:

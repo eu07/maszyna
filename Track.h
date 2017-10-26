@@ -75,13 +75,11 @@ class TSwitchExtension
         };
         struct
         { // zmienne potrzebne tylko dla obrotnicy/przesuwnicy
+          // TAnimContainer *pAnim; //animator modelu dla obrotnicy
+            TAnimModel *pModel; // na razie model
 #ifdef EU07_USE_OLD_GROUNDCODE
             TGroundNode *pMyNode; // dla obrotnicy do wtórnego podłączania torów
-#else
-            scene::basic_cell *pMyNode; // TODO: convert this to observer pattern
 #endif
-            // TAnimContainer *pAnim; //animator modelu dla obrotnicy
-            TAnimModel *pModel; // na razie model
         };
         struct
         { // zmienne dla skrzyżowania
@@ -270,7 +268,7 @@ public:
 #ifdef EU07_USE_OLD_GROUNDCODE
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
 #else
-    void RaAssign( scene::basic_cell *gn, TAnimModel *am, TEvent *done, TEvent *joined );
+    void RaAssign( TAnimModel *am, TEvent *done, TEvent *joined );
 #endif
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
