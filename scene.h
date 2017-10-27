@@ -29,8 +29,16 @@ int const EU07_REGIONSIDESECTIONCOUNT = 500; // number of sections along a side 
 
 struct scratch_data {
 
-    std::stack<glm::dvec3> location_offset;
-    glm::vec3 location_rotation;
+    struct binary_data {
+
+        bool terrain{ false };
+    } binary;
+
+    struct location_data {
+
+        std::stack<glm::dvec3> offset;
+        glm::vec3 rotation;
+    } location;
 
     struct trainset_data {
 
@@ -129,6 +137,9 @@ private:
     using instance_sequence = std::vector<TAnimModel *>;
     using sound_sequence = std::vector<TTextSound *>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
+// methods
+    void
+        enclose_area( editor::basic_node *Node );
 // members
     scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE ) };
     bool m_active { false }; // whether the cell holds any actual data
@@ -182,9 +193,9 @@ public:
             auto &targetcell { cell( Node->location() ) };
             targetcell.insert( Node );
             // some node types can extend bounding area of the target cell
-            m_area.radius = std::max<float>(
+            m_area.radius = std::max(
                 m_area.radius,
-                glm::length( m_area.center - targetcell.area().center ) + targetcell.area().radius ); }
+                static_cast<float>( glm::length( m_area.center - targetcell.area().center ) + targetcell.area().radius ) ); }
     // registers provided node in the lookup directory of the section enclosing specified point
     template <class Type_>
     void
@@ -223,7 +234,7 @@ private:
         cell( glm::dvec3 const &Location );
 // members
     // placement and visibility
-    scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_SECTIONSIZE + 0.25 * EU07_SECTIONSIZE ) };
+    scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_SECTIONSIZE ) };
     // content
     cell_array m_cells; // partitioning scheme
     shapenode_sequence m_shapes; // large pieces of opaque geometry and (legacy) terrain
@@ -250,6 +261,12 @@ public:
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // stores content of the class in file with specified name
+    void
+        serialize( std::string const &Scenariofile );
+    // restores content of the class from file with specified name. returns: true on success, false otherwise
+    bool
+        deserialize( std::string const &Scenariofile );
     // legacy method, links specified path piece with potential neighbours
     void
         TrackJoin( TTrack *Track );

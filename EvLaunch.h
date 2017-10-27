@@ -37,6 +37,11 @@ public:
     int iCheckMask { 0 };
     double dRadius { 0.0 };
 
+protected:
+    // calculates node's bounding radius
+    void
+        radius_();
+
 private:
 // members
     int iKey { 0 };

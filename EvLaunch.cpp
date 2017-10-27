@@ -121,7 +121,7 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
     }
     return true;
-};
+}
 
 bool TEventLauncher::check_conditions()
 { //"renderowanie" wyzwalacza
@@ -184,6 +184,13 @@ bool TEventLauncher::IsGlobal() const {
           && ( iHour >= 0 )
           && ( iMinute >= 0 )
           && ( dRadius < 0.0 ) ); // bez ograniczenia zasięgu
-};
+}
+
+// calculates node's bounding radius
+void
+TEventLauncher::radius_() {
+
+    m_area.radius = std::sqrt( dRadius );
+}
 
 //---------------------------------------------------------------------------

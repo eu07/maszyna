@@ -867,11 +867,11 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             }
 
     // calculate path location
-    m_location = glm::dvec3{ (
+    m_area.center = ( glm::dvec3{ (
         CurrentSegment()->FastGetPoint_0()
         + CurrentSegment()->FastGetPoint( 0.5 )
         + CurrentSegment()->FastGetPoint_1() )
-        / 3.0 };
+        / 3.0 } );
 }
 
 // TODO: refactor this mess
@@ -2818,6 +2818,18 @@ TTrack::endpoints() const {
         default: {
             return{};
         }
+    }
+}
+
+// calculates path's bounding radius
+void
+TTrack::radius_() {
+
+    auto const points = endpoints();
+    for( auto &point : points ) {
+        m_area.radius = std::max(
+            m_area.radius,
+            static_cast<float>( glm::length( m_area.center - point ) ) ); // extra margin to prevent driven vehicle from flicking
     }
 }
 

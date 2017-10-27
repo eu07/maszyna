@@ -288,10 +288,12 @@ public:
             return m_name; }
     void
         location( glm::dvec3 const Location ) {
-            m_location = Location; }
+            m_area.center = Location; }
     glm::dvec3 const &
         location() const {
-            return m_location; };
+            return m_area.center; };
+    float const &
+        radius();
     void
         visible( bool const Visible ) {
             m_visible = Visible; }
@@ -300,8 +302,11 @@ public:
             return m_visible; }
 
 protected:
+// methods
+    // radius() subclass details, calculates node's bounding radius
+    virtual void radius_();
 // members
-    glm::dvec3 m_location;
+    scene::bounding_area m_area;
     bool m_visible { true };
     double m_rangesquaredmin { 0.0 }; // visibility range, min
     double m_rangesquaredmax { 0.0 }; // visibility range, max

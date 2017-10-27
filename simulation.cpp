@@ -38,11 +38,16 @@ state_manager::deserialize( std::string const &Scenariofile ) {
 
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
+    scene::scratch_data importscratchpad;
+    importscratchpad.binary.terrain = Region->deserialize( Scenariofile );
+    // NOTE: for the time being import from text format is a given, since we don't have full binary serialization
     cParser scenarioparser( Scenariofile, cParser::buffer_FILE, Global::asCurrentSceneryPath, Global::bLoadTraction );
 
     if( false == scenarioparser.ok() ) { return false; }
 
-    deserialize( scenarioparser );
+    deserialize( scenarioparser, importscratchpad );
+    // if we didn't find usable binary version of the scenario files, create them now for future use
+    if( false == importscratchpad.binary.terrain ) { Region->serialize( Scenariofile ); }
 
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
@@ -67,9 +72,8 @@ state_manager::update( double const Deltatime, int Iterationcount ) {
 
 // restores class data from provided stream
 void
-state_manager::deserialize( cParser &Input ) {
+state_manager::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    scene::scratch_data importscratchpad;
     // prepare deserialization function table
     // since all methods use the same objects, we can have simple, hard-coded binds or lambdas for the task
     using deserializefunction = void(state_manager::*)(cParser &, scene::scratch_data &);
@@ -98,7 +102,7 @@ state_manager::deserialize( cParser &Input ) {
         std::string,
         deserializefunctionbind> functionmap;
     for( auto &function : functionlist ) {
-        functionmap.emplace( function.first, std::bind( function.second, this, std::ref( Input ), std::ref( importscratchpad ) ) );
+        functionmap.emplace( function.first, std::bind( function.second, this, std::ref( Input ), std::ref( Scratchpad ) ) );
     }
 
     // deserialize content from the provided input
@@ -127,9 +131,9 @@ state_manager::deserialize( cParser &Input ) {
         token = Input.getToken<std::string>();
     }
 
-    if( false == importscratchpad.initialized ) {
+    if( false == Scratchpad.initialized ) {
         // manually perform scenario initialization
-        deserialize_firstinit( Input, importscratchpad );
+        deserialize_firstinit( Input, Scratchpad );
     }
 }
 
@@ -236,12 +240,12 @@ state_manager::deserialize_event( cParser &Input, scene::scratch_data &Scratchpa
     // TODO: refactor event class and its de/serialization. do offset and rotation after deserialization is done
     auto *event = new TEvent();
     Math3D::vector3 offset = (
-        Scratchpad.location_offset.empty() ?
+        Scratchpad.location.offset.empty() ?
             Math3D::vector3() :
             Math3D::vector3(
-                Scratchpad.location_offset.top().x,
-                Scratchpad.location_offset.top().y,
-                Scratchpad.location_offset.top().z ) );
+                Scratchpad.location.offset.top().x,
+                Scratchpad.location.offset.top().y,
+                Scratchpad.location.offset.top().z ) );
     event->Load( &Input, offset );
 
     if( false == simulation::Events.insert( event ) ) {
@@ -386,20 +390,34 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
           || ( nodedata.type == "triangle_strip" )
           || ( nodedata.type == "triangle_fan" ) ) {
 
-        simulation::Region->insert_shape(
-            scene::shape_node().deserialize(
-                Input, nodedata ),
-            Scratchpad,
-            true );
+        if( false == Scratchpad.binary.terrain ) {
+
+            simulation::Region->insert_shape(
+                scene::shape_node().deserialize(
+                    Input, nodedata ),
+                Scratchpad,
+                true );
+        }
+        else {
+            // all shapes were already loaded from the binary version of the file
+            skip_until( Input, "endtri" );
+        }
     }
     else if( ( nodedata.type == "lines" )
           || ( nodedata.type == "line_strip" )
           || ( nodedata.type == "line_loop" ) ) {
 
-        simulation::Region->insert_lines(
-            scene::lines_node().deserialize(
-                Input, nodedata ),
-            Scratchpad );
+        if( false == Scratchpad.binary.terrain ) {
+
+            simulation::Region->insert_lines(
+                scene::lines_node().deserialize(
+                    Input, nodedata ),
+                Scratchpad );
+        }
+        else {
+            // all lines were already loaded from the binary version of the file
+            skip_until( Input, "endline" );
+        }
     }
     else if( nodedata.type == "memcell" ) {
 
@@ -448,18 +466,18 @@ state_manager::deserialize_origin( cParser &Input, scene::scratch_data &Scratchp
         >> offset.y
         >> offset.z;
     // sumowanie całkowitego przesunięcia
-    Scratchpad.location_offset.emplace(
+    Scratchpad.location.offset.emplace(
         offset + (
-            Scratchpad.location_offset.empty() ?
+            Scratchpad.location.offset.empty() ?
                 glm::dvec3() :
-                Scratchpad.location_offset.top() ) );
+                Scratchpad.location.offset.top() ) );
 }
 
 void
 state_manager::deserialize_endorigin( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    if( false == Scratchpad.location_offset.empty() ) {
-        Scratchpad.location_offset.pop();
+    if( false == Scratchpad.location.offset.empty() ) {
+        Scratchpad.location.offset.pop();
     }
     else {
         ErrorLog( "Bad origin: endorigin instruction with empty origin stack in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
@@ -471,9 +489,9 @@ state_manager::deserialize_rotate( cParser &Input, scene::scratch_data &Scratchp
 
     Input.getTokens( 3 );
     Input
-        >> Scratchpad.location_rotation.x
-        >> Scratchpad.location_rotation.y
-        >> Scratchpad.location_rotation.z;
+        >> Scratchpad.location.rotation.x
+        >> Scratchpad.location.rotation.y
+        >> Scratchpad.location.rotation.z;
 }
 
 void
@@ -584,12 +602,12 @@ state_manager::deserialize_path( cParser &Input, scene::scratch_data &Scratchpad
     // TODO: refactor track and wrapper classes and their de/serialization. do offset and rotation after deserialization is done
     auto *track = new TTrack( Nodedata );
     Math3D::vector3 offset = (
-        Scratchpad.location_offset.empty() ?
+        Scratchpad.location.offset.empty() ?
         Math3D::vector3() :
         Math3D::vector3(
-            Scratchpad.location_offset.top().x,
-            Scratchpad.location_offset.top().y,
-            Scratchpad.location_offset.top().z ) );
+            Scratchpad.location.offset.top().x,
+            Scratchpad.location.offset.top().y,
+            Scratchpad.location.offset.top().z ) );
     track->Load( &Input, offset );
 
     return track;
@@ -605,9 +623,9 @@ state_manager::deserialize_traction( cParser &Input, scene::scratch_data &Scratc
     // TODO: refactor track and wrapper classes and their de/serialization. do offset and rotation after deserialization is done
     auto *traction = new TTraction( Nodedata );
     auto offset = (
-        Scratchpad.location_offset.empty() ?
+        Scratchpad.location.offset.empty() ?
             glm::dvec3() :
-            Scratchpad.location_offset.top() );
+            Scratchpad.location.offset.top() );
     traction->Load( &Input, offset );
 
     return traction;
@@ -670,7 +688,7 @@ state_manager::deserialize_model( cParser &Input, scene::scratch_data &Scratchpa
         >> rotation.y;
 
     auto *instance = new TAnimModel( Nodedata );
-    instance->RaAnglesSet( Scratchpad.location_rotation + rotation ); // dostosowanie do pochylania linii
+    instance->RaAnglesSet( Scratchpad.location.rotation + rotation ); // dostosowanie do pochylania linii
 
     if( false == instance->Load( &Input, false ) ) {
         // model nie wczytał się - ignorowanie node
@@ -838,12 +856,12 @@ state_manager::skip_until( cParser &Input, std::string const &Token ) {
 glm::dvec3
 state_manager::transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad ) {
 
-    if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
-        auto const rotation = glm::radians( Scratchpad.location_rotation );
+    if( Scratchpad.location.rotation != glm::vec3( 0, 0, 0 ) ) {
+        auto const rotation = glm::radians( Scratchpad.location.rotation );
         Location = glm::rotateY<double>( Location, rotation.y ); // Ra 2014-11: uwzględnienie rotacji
     }
-    if( false == Scratchpad.location_offset.empty() ) {
-        Location += Scratchpad.location_offset.top();
+    if( false == Scratchpad.location.offset.empty() ) {
+        Location += Scratchpad.location.offset.top();
     }
     return Location;
 }

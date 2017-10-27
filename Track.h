@@ -182,9 +182,9 @@ public:
     TEnvironmentType eEnvironment = e_flat; // dźwięk i oświetlenie
     int iAction = 0; // czy modyfikowany eventami (specjalna obsługa przy skanowaniu)
     float fOverhead = -1.0; // można normalnie pobierać prąd (0 dla jazdy bezprądowej po danym odcinku, >0-z opuszczonym i ograniczeniem prędkości)
-  private:
+private:
     double fVelocity = -1.0; // ograniczenie prędkości // prędkość dla AI (powyżej rośnie prawdopowobieństwo wykolejenia)
-  public:
+public:
     // McZapkie-100502:
     double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
     double fRadius = 0.0; // promień, dla zwrotnicy kopiowany z tabeli
@@ -287,7 +287,12 @@ public:
     double VelocityGet();
     void ConnectionsLog();
 
-  private:
+protected:
+    // calculates path's bounding radius
+    void
+        radius_();
+
+private:
     void EnvironmentSet();
     void EnvironmentReset();
 };

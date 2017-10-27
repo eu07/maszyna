@@ -42,9 +42,9 @@ bool TTractionPowerSource::Load(cParser *parser) {
 #else
     parser->getTokens( 10, false );
     *parser
-        >> m_location.x
-        >> m_location.y
-        >> m_location.z
+        >> m_area.center.x
+        >> m_area.center.y
+        >> m_area.center.z
 #endif
         >> NominalVoltage
         >> VoltageFrequency

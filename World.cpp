@@ -1352,7 +1352,8 @@ TWorld::Update_UI() {
                 uitextline1 += " (paused)";
             }
 
-            if( Controlled && ( Controlled->Mechanik != nullptr ) ) {
+            if( ( Controlled != nullptr ) 
+             && ( Controlled->Mechanik != nullptr ) ) {
 
                 auto const &mover = Controlled->MoverParameters;
                 auto const &driver = Controlled->Mechanik;
@@ -1374,6 +1375,11 @@ TWorld::Update_UI() {
                     uitextline3 +=
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
+
+                    auto const trackblockdistance{ std::abs( Controlled->Mechanik->TrackBlock() ) };
+                    if( trackblockdistance <= 75.0 ) {
+                        uitextline4 = "                 Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
+                    }
                 }
             }
 

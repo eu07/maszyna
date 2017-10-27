@@ -1008,7 +1008,10 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
     if( m_geometry != NULL ) {
         // calculate bounding radius while we're at it
         // NOTE: doesn't take into account transformation hierarchy TODO: implement it
-        float squaredradius{ 0.f };
+        float squaredradius { 0.f };
+        // if this happens to be root node it may already have non-squared radius of the largest child
+        // since we're comparing squared radii, we need to square it back for correct results
+        m_boundingradius *= m_boundingradius;
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             squaredradius = static_cast<float>( glm::length2( vertex.position ) );
             if( squaredradius > m_boundingradius ) {
@@ -1016,12 +1019,15 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
             }
         }
         if( m_boundingradius > 0.f ) { m_boundingradius = std::sqrt( m_boundingradius ); }
-        if( Parent ) {
-            // propagate radius up the chain
-            Parent->m_boundingradius = std::max(
-                Parent->m_boundingradius,
-                m_boundingradius );
+        // adjust overall radius if needed
+        // NOTE: the method to access root submodel is... less than ideal
+        auto *root { this };
+        while( root->Parent != nullptr ) {
+            root = root->Parent;
         }
+        root->m_boundingradius = std::max(
+            root->m_boundingradius,
+            m_boundingradius );
     }
 
     if( Next )

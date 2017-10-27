@@ -7029,7 +7029,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 /*
     TGauge *gg { nullptr }; // roboczy wskaźnik na obiekt animujący gałkę
 */
-    std::unordered_map<std::string, TGauge &> gauges = {
+    std::unordered_map<std::string, TGauge &> const gauges = {
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },
         { "dirkey:" , ggDirKey },

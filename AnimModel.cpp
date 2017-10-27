@@ -583,6 +583,15 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
     m_framestamp = Framestamp;
 };
 
+// calculates piece's bounding radius
+void
+TAnimModel::radius_() {
+
+    if( pModel != nullptr ) {
+        m_area.radius = pModel->bounding_radius();
+    }
+}
+
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
     bool state; // stan światła

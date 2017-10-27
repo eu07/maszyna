@@ -420,7 +420,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
                     ::glDisable( GL_LIGHTING );
                     ::glDisable( GL_TEXTURE_2D );
-                    if( true == Global::RenderShadows ) {
+                    if( ( true == Global::RenderShadows ) && ( false == Global::bWireFrame ) ) {
                         shadowcamera.draw( m_renderpass.camera.position() - shadowcamera.position() );
                     }
                     if( DebugCameraFlag ) {
@@ -2214,11 +2214,11 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Instance->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Instance->location() - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = SquareMagnitude( ( Instance->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Instance->location() - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
@@ -2246,7 +2246,7 @@ opengl_renderer::Render( TAnimModel *Instance ) {
             Instance->pModel,
             Instance->Material(),
             distancesquared,
-            Instance->m_location - m_renderpass.camera.position(),
+            Instance->location() - m_renderpass.camera.position(),
             Instance->vAngle );
     }
 }
@@ -2799,6 +2799,17 @@ void
 opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last ) {
 
     ::glColor3fv( glm::value_ptr( colors::white ) );
+    // setup
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            // NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
+            ::glDisable( GL_CULL_FACE );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 
     // first pass, material 1
     for( auto first { First }; first != Last; ++first ) {
@@ -2824,7 +2835,16 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 track->EnvironmentReset();
                 break;
             }
-            case rendermode::shadows: // shadows are calculated only for trackbeds
+            case rendermode::shadows: {
+                if( ( std::abs( track->fTexHeight1 ) < 0.35f )
+                 || ( track->iCategoryFlag != 2 ) ) {
+                    // shadows are only calculated for high enough roads, typically meaning track platforms
+                    continue;
+                }
+                Bind_Material( track->m_material1 );
+                m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
+                break;
+            }
             case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
             case rendermode::pickcontrols:
             default: {
@@ -2854,9 +2874,10 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 break;
             }
             case rendermode::shadows: {
-                if( ( track->iCategoryFlag != 1 )
-                 || ( track->eType != tt_Normal ) ) {
-                    // shadows are only calculated for trackbeds
+                if( ( std::abs( track->fTexHeight1 ) < 0.35f )
+                 || ( ( track->iCategoryFlag == 1 )
+                   && ( track->eType != tt_Normal ) ) ) {
+                    // shadows are only calculated for high enough trackbeds
                     continue;
                 }
                 Bind_Material( track->m_material2 );
@@ -2868,6 +2889,16 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
             default: {
                 break;
             }
+        }
+    }
+    // post-render reset
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::shadows: {
+            ::glEnable( GL_CULL_FACE );
+            break;
+        }
+        default: {
+            break;
         }
     }
 }
@@ -3218,11 +3249,11 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Instance->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Instance->location() - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = SquareMagnitude( ( Instance->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Instance->location() - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
@@ -3238,7 +3269,7 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
             Instance->pModel,
             Instance->Material(),
             distancesquared,
-            Instance->m_location - m_renderpass.camera.position(),
+            Instance->location() - m_renderpass.camera.position(),
             Instance->vAngle );
     }
 }
@@ -3250,11 +3281,11 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Traction->m_location - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Traction->location() - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = SquareMagnitude( ( Traction->m_location - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
+            distancesquared = SquareMagnitude( ( Traction->location() - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
@@ -3272,15 +3303,29 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
         return;
     }
     // setup
+/*
     float const linealpha = static_cast<float>(
         std::min(
             1.25,
             5000 * Traction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
     ::glLineWidth( linealpha );
+*/
+    auto const distance { static_cast<float>( std::sqrt( distancesquared ) ) };
+    auto const linealpha {
+        20.f * Traction->WireThickness
+        / std::max(
+            0.5f * Traction->radius() + 1.f,
+            distance - ( 0.5f * Traction->radius() ) ) };
+    ::glLineWidth(
+        clamp(
+            0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f,
+            1.f, 1.5f ) );
     // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-    auto const color { Traction->wire_color() };
-    ::glColor4f( color.r, color.g, color.b, linealpha );
-
+    ::glColor4fv(
+        glm::value_ptr(
+            glm::vec4{
+                Traction->wire_color(),
+                linealpha } ) );
     // render
     m_geometry.draw( Traction->m_geometry );
     // debug data
@@ -3318,12 +3363,15 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
                 0.5f * data.area.radius + 1.f,
                 distance - ( 0.5f * data.area.radius ) ) :
             1.f ); // negative width means the lines are always opague
+    ::glLineWidth(
+        clamp(
+            0.5f * linealpha + data.line_width * data.area.radius / 1000.f,
+            1.f, 8.f ) );
     ::glColor4fv(
         glm::value_ptr(
             glm::vec4{
                 glm::vec3{ data.lighting.diffuse * Global::DayLight.ambient }, // w zaleznosci od koloru swiatla
                 std::min( 1.f, linealpha ) } ) );
-    ::glLineWidth( clamp( 0.5f * linealpha + data.line_width * data.area.radius / 1000.f, 1.f, 8.f ) );
     // render
     m_geometry.draw( data.geometry );
     ++m_debugstats.lines;

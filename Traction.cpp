@@ -169,7 +169,7 @@ TTraction::Load( cParser *parser, glm::dvec3 const &pOrigin ) {
     Init(); // przeliczenie parametrów
 
     // calculate traction location
-    m_location = interpolate( pPoint2, pPoint1, 0.5 );
+    location( interpolate( pPoint2, pPoint1, 0.5 ) );
 }
 
 // retrieves list of the track's end points
@@ -542,6 +542,18 @@ double TTraction::VoltageGet(double u, double i)
         return psPower[1]->CurrentGet(res + r1t) * res;
     return 0.0; // gdy nie podłączony wcale?
 };
+
+// calculates path's bounding radius
+void
+TTraction::radius_() {
+
+    auto const points = endpoints();
+    for( auto &point : points ) {
+        m_area.radius = std::max(
+            m_area.radius,
+            static_cast<float>( glm::length( m_area.center - point ) ) );
+    }
+}
 
 glm::vec3
 TTraction::wire_color() const {

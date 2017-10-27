@@ -1562,6 +1562,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             break;
         }
 #endif
+        default: {
+            break;
+        }
     }
     return tmp;
 }

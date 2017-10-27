@@ -259,9 +259,9 @@ shape_node::convert( TSubModel const *Submodel ) {
             squareradius,
             glm::length2( vertex.position - m_data.area.center ) );
     }
-    m_data.area.radius = std::max<float>(
+    m_data.area.radius = std::max(
         m_data.area.radius,
-        std::sqrt( squareradius ) );
+        static_cast<float>( std::sqrt( squareradius ) ) );
 
     return *this;
 }
@@ -495,6 +495,24 @@ basic_node::basic_node( scene::node_data const &Nodedata ) :
         Nodedata.range_max >= 0.0 ?
             Nodedata.range_max * Nodedata.range_max :
             std::numeric_limits<double>::max() );
+}
+
+float const &
+basic_node::radius() {
+
+    if( m_area.radius == -1.0 ) {
+        // calculate if needed
+        radius_();
+    }
+    return m_area.radius;
+}
+
+// radius() subclass details, calculates node's bounding radius
+// by default nodes are 'virtual don't extend from their center point
+void
+basic_node::radius_() {
+    
+    m_area.radius = 0.f;
 }
 
 } // editor

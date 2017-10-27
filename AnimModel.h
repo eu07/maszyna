@@ -157,6 +157,11 @@ public:
 // members
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
 
+protected:
+    // calculates piece's bounding radius
+    void
+        radius_();
+
 private:
 // methods
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu

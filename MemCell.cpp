@@ -29,8 +29,8 @@ http://mozilla.org/MPL/2.0/.
 TMemCell::TMemCell(vector3 *p)
 {
     fValue1 = fValue2 = 0;
-    m_location =
-        p ? *p : glm::dvec3(); // ustawienie współrzędnych, bo do TGroundNode nie ma dostępu
+    location(
+        p ? *p : glm::dvec3() ); // ustawienie współrzędnych, bo do TGroundNode nie ma dostępu
     bCommand = false; // komenda wysłana
     OnSent = NULL;
 }
@@ -110,9 +110,9 @@ bool TMemCell::Load(cParser *parser)
 #else
     parser->getTokens( 6, false );
     *parser
-        >> m_location.x
-        >> m_location.y
-        >> m_location.z
+        >> m_area.center.x
+        >> m_area.center.y
+        >> m_area.center.z
 #endif
         >> szText
         >> fValue1

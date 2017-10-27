@@ -242,12 +242,9 @@ basic_cell::insert( TTrack *Path ) {
     Path->RaOwnerSet( this );
 #endif
     // re-calculate cell radius, in case track extends outside the cell's boundaries
-    auto endpoints = Path->endpoints();
-    for( auto &endpoint : endpoints ) {
-        m_area.radius = std::max<float>(
-            m_area.radius,
-            glm::length( m_area.center - endpoint ) + 25.f ); // extra margin to prevent driven vehicle from flicking
-    }
+    m_area.radius = std::max(
+        m_area.radius,
+        static_cast<float>( glm::length( m_area.center - Path->location() ) + Path->radius() + 25.f ) ); // extra margin to prevent driven vehicle from flicking
 }
 
 // adds provided traction piece to the cell
@@ -258,13 +255,8 @@ basic_cell::insert( TTraction *Traction ) {
 
     Traction->origin( m_area.center );
     m_traction.emplace_back( Traction );
-    // re-calculate cell radius, in case traction piece extends outside the cell's boundaries
-    auto endpoints = Traction->endpoints();
-    for( auto &endpoint : endpoints ) {
-        m_area.radius = std::max<float>(
-            m_area.radius,
-            glm::length( m_area.center - endpoint ) ); // adding arbitrary safety margin
-    }
+    // re-calculate cell bounding area, in case traction piece extends outside the cell's boundaries
+    enclose_area( Traction );
 }
 
 // adds provided model instance to the cell
@@ -289,15 +281,8 @@ basic_cell::insert( TAnimModel *Instance ) {
         // opaque pieces
         m_instancesopaque.emplace_back( Instance );
     }
-   // re-calculate cell radius, in case model extends outside the cell's boundaries
-    if( Instance->Model() ) {
-        auto const modelradius{ Instance->Model()->bounding_radius() };
-        if( modelradius > 0.f ) {
-            m_area.radius = std::max<float>(
-                m_area.radius,
-                glm::length( m_area.center - Instance->location() ) + modelradius ); // adding arbitrary safety margin
-        }
-    }
+   // re-calculate cell bounding area, in case model extends outside the cell's boundaries
+    enclose_area( Instance );
 }
 
 // adds provided sound instance to the cell
@@ -316,6 +301,8 @@ basic_cell::insert( TEventLauncher *Launcher ) {
     m_active = true;
 
     m_eventlaunchers.emplace_back( Launcher );
+    // re-calculate cell bounding area, in case launcher range extends outside the cell's boundaries
+    enclose_area( Launcher );
 }
 
 // registers provided path in the lookup directory of the cell
@@ -485,6 +472,15 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
     m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
+// adjusts cell bounding area to enclose specified node
+void
+basic_cell::enclose_area( editor::basic_node *Node ) {
+
+    m_area.radius = std::max(
+        m_area.radius,
+        static_cast<float>( glm::length( m_area.center - Node->location() ) + Node->radius() ) );
+}
+
 
 
 // legacy method, updates sounds and polls event launchers within radius around specified point
@@ -512,7 +508,7 @@ basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographind
     auto pantograph = Vehicle->pants[ Pantographindex ].fParamPants;
     auto const pantographposition = position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x );
 
-    auto const radius { EU07_CELLSIZE * 0.5 };
+    auto const radius { EU07_CELLSIZE * 0.5 }; // redius around point of interest
 
     for( auto &cell : m_cells ) {
         // we reject early cells which aren't within our area of interest
@@ -548,6 +544,11 @@ basic_section::insert( shape_node Shape ) {
     }
     else {
         // large, opaque shapes are placed on section level
+        // re-calculate section radius, in case shape geometry extends outside the section's boundaries
+        m_area.radius = std::max<float>(
+            m_area.radius,
+            static_cast<float>( glm::length( m_area.center - Shape.data().area.center ) + Shape.data().area.radius ) );
+
         for( auto &shape : m_shapes ) {
             // check first if the shape can't be merged with one of the shapes already present in the section
             if( true == shape.merge( Shape ) ) {
@@ -739,6 +740,19 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
     }
 }
 
+// stores content of the class in file with specified name
+void
+basic_region::serialize( std::string const &Scenariofile ) {
+    // TODO: implement
+}
+
+// restores content of the class from file with specified name. returns: true on success, false otherwise
+bool
+basic_region::deserialize( std::string const &Scenariofile ) {
+    // TODO: implement
+    return false;
+}
+
 // legacy method, links specified path piece with potential neighbours
 void
 basic_region::TrackJoin( TTrack *Track ) {
@@ -792,9 +806,9 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool con
     // adjust input if necessary:
     if( true == Transform ) {
         // shapes generated from legacy terrain come with world space coordinates and don't need processing
-        if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
+        if( Scratchpad.location.rotation != glm::vec3( 0, 0, 0 ) ) {
             // rotate...
-            auto const rotation = glm::radians( Scratchpad.location_rotation );
+            auto const rotation = glm::radians( Scratchpad.location.rotation );
             for( auto &vertex : shape.m_data.vertices ) {
                 vertex.position = glm::rotateZ<double>( vertex.position, rotation.z );
                 vertex.position = glm::rotateX<double>( vertex.position, rotation.x );
@@ -804,10 +818,10 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool con
                 vertex.normal = glm::rotateY( vertex.normal, rotation.y );
             }
         }
-        if( ( false == Scratchpad.location_offset.empty() )
-         && ( Scratchpad.location_offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
-               // ...and move
-            auto const offset = Scratchpad.location_offset.top();
+        if( ( false == Scratchpad.location.offset.empty() )
+         && ( Scratchpad.location.offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
+            // ...and move
+            auto const offset = Scratchpad.location.offset.top();
             for( auto &vertex : shape.m_data.vertices ) {
                 vertex.position += offset;
             }
@@ -850,19 +864,19 @@ basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
 
     if( Lines.m_data.vertices.empty() ) { return; }
     // transform point coordinates if needed
-    if( Scratchpad.location_rotation != glm::vec3( 0, 0, 0 ) ) {
+    if( Scratchpad.location.rotation != glm::vec3( 0, 0, 0 ) ) {
         // rotate...
-        auto const rotation = glm::radians( Scratchpad.location_rotation );
+        auto const rotation = glm::radians( Scratchpad.location.rotation );
         for( auto &vertex : Lines.m_data.vertices ) {
             vertex.position = glm::rotateZ<double>( vertex.position, rotation.z );
             vertex.position = glm::rotateX<double>( vertex.position, rotation.x );
             vertex.position = glm::rotateY<double>( vertex.position, rotation.y );
         }
     }
-    if( ( false == Scratchpad.location_offset.empty() )
-     && ( Scratchpad.location_offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
+    if( ( false == Scratchpad.location.offset.empty() )
+     && ( Scratchpad.location.offset.top() != glm::dvec3( 0, 0, 0 ) ) ) {
         // ...and move
-        auto const offset = Scratchpad.location_offset.top();
+        auto const offset = Scratchpad.location.offset.top();
         for( auto &vertex : Lines.m_data.vertices ) {
             vertex.position += offset;
         }
@@ -1073,7 +1087,7 @@ basic_region::sections( glm::dvec3 const &Point, float const Radius ) {
     int const originx = centerx - sectioncount / 2;
     int const originz = centerz - sectioncount / 2;
 
-    auto const squaredradii { std::pow( ( 0.5 * M_SQRT2 * EU07_SECTIONSIZE + 0.25 * EU07_SECTIONSIZE ) + Radius, 2 ) };
+    auto const padding { 0.0 }; // { EU07_SECTIONSIZE * 0.25 }; // TODO: check if we can get away with padding of 0
 
     for( int row = originz; row <= originz + sectioncount; ++row ) {
         if( row < 0 ) { continue; }
@@ -1084,7 +1098,7 @@ basic_region::sections( glm::dvec3 const &Point, float const Radius ) {
 
             auto *section { m_sections[ row * EU07_REGIONSIDESECTIONCOUNT + column ] };
             if( ( section != nullptr )
-             && ( glm::length2( section->area().center - Point ) < squaredradii ) ) {
+             && ( glm::length2( section->area().center - Point ) <= ( ( section->area().radius + padding + Radius ) * ( section->area().radius + padding + Radius ) ) ) ) {
 
                 m_scratchpad.sections.emplace_back( section );
             }

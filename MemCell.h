@@ -16,16 +16,7 @@ http://mozilla.org/MPL/2.0/.
 
 class TMemCell : public editor::basic_node {
 
-  private:
-    // content
-    std::string szText;
-    double fValue1 { 0.0 };
-    double fValue2 { 0.0 };
-    // other
-    TCommandType eCommand { cm_Unknown };
-    bool bCommand { false }; // czy zawiera komendę dla zatrzymanego AI
-    TEvent *OnSent { nullptr }; // event dodawany do kolejki po wysłaniu komendy zatrzymującej skład
-  public:
+public:
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
 
     TMemCell( scene::node_data const &Nodedata );
@@ -63,6 +54,16 @@ class TMemCell : public editor::basic_node {
     TCommandType CommandCheck();
     bool IsVelocity();
     void AssignEvents(TEvent *e);
+
+private:
+    // content
+    std::string szText;
+    double fValue1 { 0.0 };
+    double fValue2 { 0.0 };
+    // other
+    TCommandType eCommand { cm_Unknown };
+    bool bCommand { false }; // czy zawiera komendę dla zatrzymanego AI
+    TEvent *OnSent { nullptr }; // event dodawany do kolejki po wysłaniu komendy zatrzymującej skład
 };
 
 

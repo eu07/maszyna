@@ -64,7 +64,6 @@ class TTraction : public editor::basic_node {
     // retrieves list of the track's end points
     std::vector<glm::dvec3>
         endpoints() const;
-
     // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
     // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
 #ifdef EU07_USE_OLD_GROUNDCODE
@@ -79,6 +78,12 @@ class TTraction : public editor::basic_node {
     void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = nullptr);
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
+
+protected:
+    // calculates piece's bounding radius
+    void
+        radius_();
+
 private:
     glm::vec3 wire_color() const;
 };
