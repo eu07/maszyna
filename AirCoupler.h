@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 class AirCoupler
 {
 private:
-    // TButtonType eType;
     TSubModel *ModelOn, *ModelOff, *ModelxOn;
     bool On;
     bool xOn;
@@ -24,24 +23,26 @@ private:
 public:
     AirCoupler();
     ~AirCoupler();
-
+    ///Reset members.
     void Clear();
+    ///Looks for submodels.
     void Init(std::string const &asName, TModel3d *Model);
+    ///Loads info about coupler.
     void Load(cParser *Parser, TModel3d *Model);
     int GetStatus();
-    inline void TurnOn()
+    inline void TurnOn() ///Turns on straight coupler.
     {
         On = true;
         xOn = false;
         Update();
     };
-    inline void TurnOff()
+    inline void TurnOff() ///Turns on disconnected coupler.
     {
         On = false;
         xOn = false;
         Update();
     };
-    inline void TurnxOn()
+    inline void TurnxOn() ///Turns on slanted coupler.
     {
         On = false;
         xOn = true;

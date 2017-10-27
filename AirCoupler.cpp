@@ -19,10 +19,10 @@ AirCoupler::~AirCoupler()
 {
 }
 
-// zwraca 1, jeśli istnieje model prosty, 2 gdy skośny
 /**
- * Returns 0 when straight model exists,
- * 2 when oblique model exists, and 0 when neither of them exist.
+ * \return 1 when \(straight\) TModel3d \c ModelOn exists
+ * \return 2 when \(slanted\) TModel3d \c ModelxOn exists
+ * \return 0 when neither of them exist
  */
 int AirCoupler::GetStatus()
 {
@@ -31,9 +31,8 @@ int AirCoupler::GetStatus()
     return 0;
 }
 
-// zerowanie wskaźników
 /**
- * Reset pointers.
+ * Reset pointers and variables.
  */
 void AirCoupler::Clear()
 {
@@ -43,25 +42,23 @@ void AirCoupler::Clear()
     On = false;
     xOn = false;
 }
-// wyszukanie submodeli
+
 /**
- * Looks for submodels.
+ * Looks for submodels in the model and updates pointers.
  */
 void AirCoupler::Init(std::string const &asName, TModel3d *Model)
 {
     if (!Model)
-        return; // nie ma w czym szukać
-    // polaczony na wprost
-    /** Straight connect. */
-    ModelOn = Model->GetFromName(asName + "_on");
-    // odwieszony
-    /** Not connected. Hung up. */
-    ModelOff = Model->GetFromName(asName + "_off");
-    // polaczony na skos
-    /** Oblique connect. */
-    ModelxOn = Model->GetFromName(asName + "_xon");
+        return;
+    ModelOn = Model->GetFromName(asName + "_on"); // Straight connect.
+    ModelOff = Model->GetFromName(asName + "_off"); // Not connected. Hung up.
+    ModelxOn = Model->GetFromName(asName + "_xon"); // Slanted connect.
 }
-
+/**
+ * Gets name of submodel \(from cParser \b *Parser\),
+ * looks for it in the TModel3d \b *Model and update pointers.
+ * If submodel is not found, reset pointers.
+*/
 void AirCoupler::Load(cParser *Parser, TModel3d *Model)
 {
 	std::string name = Parser->getToken<std::string>();
@@ -77,6 +74,7 @@ void AirCoupler::Load(cParser *Parser, TModel3d *Model)
     }
 }
 
+// Update submodels visibility.
 void AirCoupler::Update()
 {
     if (ModelOn)
