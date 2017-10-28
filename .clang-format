@@ -10,6 +10,8 @@ BreakBeforeTernaryOperators: false
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
-ColumnLimit: 100
+ColumnLimit: 200
 SortIncludes: false
+UseTab: ForIndentation
+TabWidth: 4
 ---
