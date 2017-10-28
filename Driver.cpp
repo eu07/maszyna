@@ -21,7 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "DynObj.h"
 #include "Event.h"
-#include "Ground.h"
 #include "MemCell.h"
 #include "World.h"
 #include "McZapkie/mctools.h"
@@ -73,7 +72,8 @@ double GetDistanceToEvent(TTrack const *track, TEvent const *event, double scan_
     { // przejście na inny tor
         track = track->Connected(int(sd), sd);
         start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
-        if( track->eType == tt_Cross ) {
+        if( ( track != nullptr )
+         && ( track->eType == tt_Cross ) ) {
             // NOTE: tracing through crossroads currently poses risk of tracing through wrong segment
             // as it's possible to be performerd before setting a route through the crossroads
             // as a stop-gap measure we don't trace through crossroads which should be reasonable in most cases
@@ -312,7 +312,7 @@ bool TSpeedPos::Update()
 std::string TSpeedPos::GetName()
 {
 	if (iFlags & spTrack) // jeśli tor
-        return trTrack->NameGet();
+        return trTrack->name();
     else if( iFlags & spEvent ) // jeśli event
         return evEvent->asName;
     else
@@ -526,7 +526,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         if (pTrack != tLast) // ostatni zapisany w tabelce nie był jeszcze sprawdzony
         { // jeśli tor nie był jeszcze sprawdzany
             if( Global::iWriteLogEnabled & 8 ) {
-                WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->NameGet() );
+                WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->name() );
             }
 
             if( ( pEvent = CheckTrackEvent( pTrack, fLastDir ) ) != nullptr ) // jeśli jest semafor na tym torze
@@ -723,7 +723,7 @@ void TController::TableCheck(double fDistance)
                 if (sSpeedTable[i].Update())
                 {
                     if( Global::iWriteLogEnabled & 8 ) {
-                        WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (generating fresh trace)" );
+                        WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->name() + " (generating fresh trace)" );
                     }
                     // usuwamy wszystko za tym torem
                     while (sSpeedTable.back().trTrack != sSpeedTable[i].trTrack)
@@ -827,7 +827,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             WriteLog(
                                 pVehicle->asName + " as " + TrainParams->TrainName
                                 + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
-                                + " skipped " + asNextStop); // informacja
+                                + " passed " + asNextStop); // informacja
 #endif
                             // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 + 0.001 * fLength;
@@ -1267,7 +1267,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // jeśli ma stać, dostaje komendę od razu
                                     go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
-                                else if( sSpeedTable[ i ].fDist <= 20.0 ) {
+                                else if( sSpeedTable[ i ].fDist <= fMaxProximityDist ) {
                                     // jeśli ma dociągnąć, to niech dociąga
                                     // (moveStopCloser dotyczy dociągania do W4, nie semafora)
                                     go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
@@ -2411,7 +2411,7 @@ bool TController::IncBrake()
         }
         case Pneumatic: {
             // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
-            bool standalone{ true };
+            bool standalone { true };
             if( ( mvOccupied->TrainType == dt_ET41 )
              || ( mvOccupied->TrainType == dt_ET42 ) ) {
                    // NOTE: we're doing simplified checks full of presuptions here.
@@ -2426,9 +2426,24 @@ bool TController::IncBrake()
                 }
             }
             else {
+/*
                 standalone =
                     ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
                    && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
+*/
+                if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
+                    // more detailed version, will use manual braking also for coupled sets of controlled vehicles
+                    auto *vehicle = pVehicles[ 0 ]; // start from first
+                    while( ( true == standalone )
+                        && ( vehicle != nullptr ) ) {
+                        // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
+                        // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
+                        standalone =
+                            ( ( ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag & coupling::control ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag & coupling::control ) ) );
+                        vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+                    }
+                }
             }
             if( true == standalone ) {
                 OK = mvOccupied->IncLocalBrakeLevel(
@@ -2984,20 +2999,15 @@ void TController::RecognizeCommand()
     c->Command = ""; // usunięcie obsłużonej komendy
 }
 
-void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                             const TLocation &NewLocation, TStopReason reason)
-{ // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu
-    // bezpośrednio
-    vector3 sl;
-    sl.x = -NewLocation.X; // zamiana na współrzędne scenerii
-    sl.z = NewLocation.Y;
-    sl.y = NewLocation.Z;
+void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason)
+{ // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu bezpośrednio
+    // zamiana na współrzędne scenerii
+    glm::dvec3 sl { -NewLocation.X, NewLocation.Z, NewLocation.Y };
     if (!PutCommand(NewCommand, NewValue1, NewValue2, &sl, reason))
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
 }
 
-bool TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                             const vector3 *NewLocation, TStopReason reason)
+bool TController::PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason )
 { // analiza komendy
     if (NewCommand == "CabSignal")
     { // SHP wyzwalane jest przez człon z obsadą, ale obsługiwane przez silnikowy
@@ -3651,6 +3661,14 @@ TController::UpdateSituation(double dt) {
         // dla nastawienia G koniecznie należy wydłużyć drogę na czas reakcji
         fBrakeDist += 2 * mvOccupied->Vel;
     }
+/*
+    // take into account effect of gravity (but to stay on safe side of calculations, only downhill)
+    if( fAccGravity > 0.025 ) {
+        fBrakeDist *= ( 1.0 + fAccGravity );
+        // TBD: use version which shortens route going uphill, too
+        //fBrakeDist = std::max( fBrakeDist, fBrakeDist * ( 1.0 + fAccGravity ) );
+    }
+*/
     // route scan
     double routescanrange = (
         mvOccupied->Vel > 5.0 ?
@@ -3824,8 +3842,11 @@ TController::UpdateSituation(double dt) {
                     CheckVehicles(); // sprawdzić światła nowego składu
                     JumpToNextOrder(); // wykonanie następnej komendy
                 }
+/*
+                // NOTE: disabled as speed limit is decided in another place based on distance to potential target
                 else
                     SetVelocity(2.0, 0.0); // jazda w ustawionym kierunku z prędkością 2 (18s)
+*/
             } // if (AIControllFlag) //koniec zblokowania, bo była zmienna lokalna
         }
         else {
@@ -4220,13 +4241,12 @@ TController::UpdateSituation(double dt) {
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     if (fabs(VelSignal) >=
                         1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
-                        PutCommand("SetVelocity", VelSignal, VelNext,
-                                    NULL); // komenda robi dodatkowe operacje
+                        PutCommand("SetVelocity", VelSignal, VelNext, nullptr); // komenda robi dodatkowe operacje
                 break;
             case cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
-                    PutCommand("ShuntVelocity", VelSignal, VelNext, NULL);
+                    PutCommand("ShuntVelocity", VelSignal, VelNext, nullptr);
                 else if (iCoupler) // jeśli jedzie w celu połączenia
                     SetVelocity(VelSignal, VelNext);
                 break;
@@ -4314,7 +4334,12 @@ TController::UpdateSituation(double dt) {
                                 if( OrderCurrentGet() & Connect ) {
                                     // jeśli spinanie, to jechać dalej
                                     AccPreferred = std::min( 0.25, AccPreferred ); // nie hamuj
-                                    VelDesired = Global::Min0RSpeed( 20.0, VelDesired );
+                                    VelDesired =
+                                        Global::Min0RSpeed(
+                                            VelDesired,
+                                            ( vehicle->fTrackBlock > 150.0 ?
+                                                20.0:
+                                                4.0 ) );
                                     VelNext = 2.0; // i pakuj się na tamtego
                                 }
                                 else {
@@ -4357,7 +4382,12 @@ TController::UpdateSituation(double dt) {
                         else {
                             if( OrderCurrentGet() & Connect ) {
                                 // if there's something nearby in the connect mode don't speed up too much
-                                VelDesired = Global::Min0RSpeed( 20.0, VelDesired );
+                                VelDesired =
+                                    Global::Min0RSpeed(
+                                        VelDesired,
+                                        ( vehicle->fTrackBlock > 150.0 ?
+                                            20.0 :
+                                            4.0 ) );
                             }
                         }
                     }
@@ -4461,6 +4491,7 @@ TController::UpdateSituation(double dt) {
 				AbsAccS /= fMass;
 			}
 			AbsAccS_pub = AbsAccS;
+            AbsAccS_avg = interpolate( AbsAccS_avg, mvOccupied->AccS * iDirection, 0.25 );
 
 #if LOGVELOCITY
             // WriteLog("VelDesired="+AnsiString(VelDesired)+",
@@ -4589,26 +4620,53 @@ TController::UpdateSituation(double dt) {
 
             // decisions based on current speed
             if( mvOccupied->CategoryFlag == 1 ) {
-                // try to estimate increase of current velocity before engaged brakes start working
-                auto const speedestimate = vel + vel * ( 1.0 - fBrake_a0[ 0 ] ) * AbsAccS;
-                if( speedestimate > VelDesired ) {
-                    // jesli jedzie za szybko do AKTUALNEGO
-                    if( VelDesired == 0.0 ) {
-                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                        AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
-                    }
-                    else {
-                        if( speedestimate > ( VelDesired + fVelPlus ) ) {
-                            // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
-                            AccDesired = std::min( AccDesired, -0.25 );
+
+                if( fAccGravity < 0.025 ) {
+                    // on flats on uphill we can be less careful
+                    if( vel > VelDesired ) {
+                        // jesli jedzie za szybko do AKTUALNEGO
+                        if( VelDesired == 0.0 ) {
+                            // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                            AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
                         }
                         else {
-                            // close enough to target to stop accelerating
-                            AccDesired = std::min(
-                                AccDesired, // but don't override decceleration for VelNext 
-                                interpolate( // ease off as you close to the target velocity
-                                    -0.06, AccPreferred,
-                                    clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                            // slow down, not full stop
+                            if( vel > ( VelDesired + fVelPlus ) ) {
+                                // hamuj tak średnio
+                                AccDesired = std::min( AccDesired, -0.25 );
+                            }
+                            else {
+                                // o 5 km/h to olej (zacznij luzować)
+                                AccDesired = std::min(
+                                    AccDesired, // but don't override decceleration for VelNext 
+                                    std::max( 0.0, AccPreferred ) );
+                            }
+                        }
+                    }
+                }
+                else {
+                    // going sharply downhill we may need to start braking sooner than usual
+                    // try to estimate increase of current velocity before engaged brakes start working
+                    auto const speedestimate = vel + ( 1.0 - fBrake_a0[ 0 ] ) * 30.0 * AbsAccS;
+                    if( speedestimate > VelDesired ) {
+                        // jesli jedzie za szybko do AKTUALNEGO
+                        if( VelDesired == 0.0 ) {
+                            // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                            AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
+                        }
+                        else {
+                            if( speedestimate > ( VelDesired + fVelPlus ) ) {
+                                // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
+                                AccDesired = std::min( AccDesired, -0.25 );
+                            }
+                            else {
+                                // close enough to target to stop accelerating
+                                AccDesired = std::min(
+                                    AccDesired, // but don't override decceleration for VelNext 
+                                    interpolate( // ease off as you close to the target velocity
+                                        -0.06, AccPreferred,
+                                        clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                            }
                         }
                     }
                 }
@@ -4640,8 +4698,10 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
-            if( mvOccupied->CategoryFlag == 1 ) {
-                // also take into account impact of gravity
+
+            if( ( mvOccupied->CategoryFlag == 1 )
+             && ( fAccGravity > 0.025 ) ) {
+                // going downhill also take into account impact of gravity
                 AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
             }
 
@@ -5164,7 +5224,7 @@ std::string TController::StopReasonText()
     if (eStopReason != 7) // zawalidroga będzie inaczej
         return StopReasonTable[eStopReason];
     else
-        return "Blocked by " + (pVehicles[0]->PrevAny()->GetName());
+        return "Blocked by " + (pVehicles[0]->PrevAny()->name());
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -5267,7 +5327,7 @@ TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, 
 }
 
 // sprawdzanie zdarzeń semaforów i ograniczeń szlakowych
-void TController::SetProximityVelocity(double dist, double vel, const vector3 *pos)
+void TController::SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos )
 { // Ra:przeslanie do AI prędkości
     /*
      //!!!! zastąpić prawidłową reakcją AI na SetProximityVelocity !!!!
@@ -5279,7 +5339,7 @@ void TController::SetProximityVelocity(double dist, double vel, const vector3 *p
      if ((vel<0)?true:dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
      {//jeśli jest dalej od umownej drogi hamowania
     */
-    PutCommand("SetProximityVelocity", dist, vel, pos);
+    PutCommand( "SetProximityVelocity", dist, vel, pos );
     /*
      }
      else
@@ -5291,43 +5351,47 @@ void TController::SetProximityVelocity(double dist, double vel, const vector3 *p
 
 TCommandType TController::BackwardScan()
 { // sprawdzanie zdarzeń semaforów z tyłu pojazdu, zwraca komendę
-    // dzięki temu będzie można stawać za wskazanym sygnalizatorem, a zwłaszcza jeśli będzie jazda
-    // na kozioł
-    // ograniczenia prędkości nie są wtedy istotne, również koniec toru jest do niczego nie
-    // przydatny
+    // dzięki temu będzie można stawać za wskazanym sygnalizatorem, a zwłaszcza jeśli będzie jazda na kozioł
+    // ograniczenia prędkości nie są wtedy istotne, również koniec toru jest do niczego nie przydatny
     // zwraca true, jeśli należy odwrócić kierunek jazdy pojazdu
-    if ((OrderList[OrderPos] & ~(Shunt | Connect)))
-        return cm_Unknown; // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na
-    // rozkazy
+    if( ( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
+        // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na rozkazy
+        return cm_Unknown;
+    }
     vector3 sl;
-    int startdir =
-        -pVehicles[0]->DirectionGet(); // kierunek jazdy względem sprzęgów pojazdu na czele
-    if (startdir == 0) // jeśli kabina i kierunek nie jest określony
-        return cm_Unknown; // nie robimy nic
-    double scandir =
-        startdir * pVehicles[0]->RaDirectionGet(); // szukamy od pierwszej osi w wybranym kierunku
-    if (scandir !=
-        0.0) // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
-    { // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
-        // scanback=pVehicles[1]->NextDistance(fLength+1000.0); //odległość do następnego pojazdu,
-        // 1000 gdy nic nie ma
+    // kierunek jazdy względem sprzęgów pojazdu na czele
+    int const startdir = -pVehicles[0]->DirectionGet();
+    if( startdir == 0 ) {
+        // jeśli kabina i kierunek nie jest określony nie robimy nic
+        return cm_Unknown;
+    }
+    // szukamy od pierwszej osi w wybranym kierunku
+    double scandir = startdir * pVehicles[0]->RaDirectionGet();
+    if (scandir != 0.0) {
+        // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
+        // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
         double scanmax = 1000; // 1000m do tyłu, żeby widział przeciwny koniec stacji
         double scandist = scanmax; // zmodyfikuje na rzeczywiście przeskanowane
         TEvent *e = NULL; // event potencjalnie od semafora
-        // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru
-        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(),
-                                               e); // wg drugiej osi w kierunku ruchu
-        vector3 dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
-        if (!scantrack) // jeśli wstecz wykryto koniec toru
-            return cm_Unknown; // to raczej nic się nie da w takiej sytuacji zrobić
-        else
-        { // a jeśli są dalej tory
+        // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
+        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(), e);
+        vector3 const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
+        if( !scantrack ) {
+            // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
+            return cm_Unknown;
+        }
+        else {
+            // a jeśli są dalej tory
             double vmechmax; // prędkość ustawiona semaforem
-            if (e)
-            { // jeśli jest jakiś sygnał na widoku
+            if( e != nullptr ) {
+                // jeśli jest jakiś sygnał na widoku
 #if LOGBACKSCAN
-                AnsiString edir =
-                    pVehicle->asName + " - " + AnsiString((scandir > 0) ? "Event2 " : "Event1 ");
+                std::string edir {
+                    "Backward scan by "
+                    + pVehicle->asName + " - "
+                    + ( ( scandir > 0 ) ?
+                        "Event2 " :
+                        "Event1 " ) };
 #endif
                 // najpierw sprawdzamy, czy semafor czy inny znak został przejechany
                 vector3 pos = pVehicles[1]->RearPosition(); // pozycja tyłu
@@ -5335,66 +5399,67 @@ TCommandType TController::BackwardScan()
                 if (e->Type == tp_GetValues)
                 { // przesłać info o zbliżającym się semaforze
 #if LOGBACKSCAN
-                    edir += "(" + (e->Params[8].asGroundNode->asName) + "): ";
+                    edir += "(" + ( e->asNodeName ) + ")";
 #endif
                     sl = e->PositionGet(); // położenie komórki pamięci
                     sem = sl - pos; // wektor do komórki pamięci od końca składu
-                    // sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamięci
-                    if (dir.x * sem.x + dir.z * sem.z < 0) // jeśli został minięty
-                    // if ((mvOccupied->CategoryFlag&1)?(VelNext!=0.0):true) //dla pociągu wymagany
-                    // sygnał zezwalający
-                    { // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
+                    if (dir.x * sem.x + dir.z * sem.z < 0) {
+                        // jeśli został minięty
+                        // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
 #if LOGBACKSCAN
-                        WriteLog(edir + "- ignored as not passed yet");
+                        WriteLog(edir + " - ignored as not passed yet");
 #endif
                         return cm_Unknown; // nic
                     }
                     vmechmax = e->ValueGet(1); // prędkość przy tym semaforze
-                    // przeliczamy odległość od semafora - potrzebne by były współrzędne początku
-                    // składu
-                    // scandist=(pos-e->Params[8].asGroundNode->pCenter).Length()-0.5*mvOccupied->Dim.L-10;
-                    // //10m luzu
+                    // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
                     scandist = sem.Length() - 2; // 2m luzu przy manewrach wystarczy
-                    if (scandist < 0)
-                        scandist = 0; // ujemnych nie ma po co wysyłać
+                    if( scandist < 0 ) {
+                        // ujemnych nie ma po co wysyłać
+                        scandist = 0;
+                    }
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if (e->Command() == cm_SetVelocity)
-                        if ((vmechmax == 0.0) ? (OrderCurrentGet() & (Shunt | Connect)) :
-                                                (OrderCurrentGet() &
-                                                 Connect)) // przy podczepianiu ignorować wyjazd?
+                    if( e->Command() == cm_SetVelocity ) {
+                        if( ( vmechmax == 0.0 ) ?
+                                ( OrderCurrentGet() & ( Shunt | Connect ) ) :
+                                ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
                             move = true; // AI w trybie manewerowym ma dociągnąć pod S1
-                        else
-                        { //
-                            if ((scandist > fMinProximityDist) ?
-                                    (mvOccupied->Vel > 0.0) && (OrderCurrentGet() != Shunt) :
-                                    false)
-                            { // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o
-// zmianie prędkości
-// jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
-// Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+                        }
+                        else {
+                            if( ( scandist > fMinProximityDist )
+                             && ( ( mvOccupied->Vel > 0.0 )
+                               && ( OrderCurrentGet() != Shunt ) ) ) {
+                                // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
+                                // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
 #if LOGBACKSCAN
-                                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+"
-                                // "+AnsiString(vmechmax));
+                                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist) + AnsiString(vmechmax));
                                 WriteLog(edir);
 #endif
                                 // SetProximityVelocity(scandist,vmechmax,&sl);
-                                return (vmechmax > 0) ? cm_SetVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_SetVelocity :
+                                        cm_Unknown );
                             }
-                            else // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma
-                            // stać
-                            // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli stoi lub ma
-                            // stanąć/stać
-                            { // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma
-// stanąć, albo nie ruszać
-// stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-// PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
+                            else {
+                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
+                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli stoi lub ma stanąć/stać
+                                // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma stanąć, albo nie ruszać
+                                // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
+                                // PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                                WriteLog(edir + "SetVelocity " + AnsiString(vmechmax) + " " +
-                                         AnsiString(e->Params[9].asMemCell->Value2()));
+                                WriteLog(
+                                    edir + " - [SetVelocity] ["
+                                    + to_string( vmechmax, 2 ) + "] ["
+                                    + to_string( e->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
 #endif
-                                return (vmechmax > 0) ? cm_SetVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_SetVelocity :
+                                        cm_Unknown );
                             }
                         }
+                    }
                     if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
@@ -5421,28 +5486,34 @@ TCommandType TController::BackwardScan()
                                     // to można zmienić kierunek
                                 }
                             }
-                            else // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo
-                            // ma stać pod tarczą
-                            { // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli jedzie
-                                // lub ma stanąć/stać
+                            else {
+                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo ma stać pod tarczą
+                             // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
+                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli jedzie lub ma stanąć/stać
                                 { // nie dostanie komendy jeśli jedzie i ma jechać
-// PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
+                                  // PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                                    WriteLog(edir + "ShuntVelocity " + AnsiString(vmechmax) + " " +
-                                             AnsiString(e->ValueGet(2)));
+                                    WriteLog(
+                                        edir + " - [ShuntVelocity] ["
+                                        + to_string( vmechmax, 2 ) + "] ["
+                                        + to_string( e->ValueGet( 2 ), 2 ) + "]" );
 #endif
-                                    return (vmechmax > 0) ? cm_ShuntVelocity : cm_Unknown;
+                                    return (
+                                        vmechmax > 0 ?
+                                            cm_ShuntVelocity :
+                                            cm_Unknown );
                                 }
                             }
-                            if ((vmechmax != 0.0) && (scandist < 100.0))
-                            { // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od
-// razu ją ignorujemy, aby móc szukać kolejnej
-// eSignSkip=e; //wtedy uznajemy ignorowaną przy poszukiwaniu nowej
+                            if ((vmechmax != 0.0) && (scandist < 100.0)) {
+                                // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od razu ją ignorujemy, aby móc szukać kolejnej
+                                // eSignSkip=e; //wtedy uznajemy ignorowaną przy poszukiwaniu nowej
 #if LOGBACKSCAN
-                                WriteLog(edir + "- will be ignored due to Ms2");
+                                WriteLog(edir + " - will be ignored due to Ms2");
 #endif
-                                return (vmechmax > 0) ? cm_ShuntVelocity : cm_Unknown;
+                                return (
+                                    vmechmax > 0 ?
+                                        cm_ShuntVelocity :
+                                        cm_Unknown );
                             }
                         } // if (move?...
                     } // if (OrderCurrentGet()==Shunt)

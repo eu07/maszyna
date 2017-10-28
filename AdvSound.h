@@ -13,13 +13,13 @@ http://mozilla.org/MPL/2.0/.
 #include "RealSound.h"
 #include "parser.h"
 
-typedef enum
-{
+enum TSoundState {
+
     ss_Off,
     ss_Starting,
     ss_Commencing,
     ss_ShuttingDown
-} TSoundState;
+};
 
 class TAdvancedSound
 { // klasa dźwięków mających początek, dowolnie długi środek oraz zakończenie (np. Rp1)
@@ -36,13 +36,12 @@ class TAdvancedSound
   public:
     TAdvancedSound() = default;
     ~TAdvancedSound();
-	void Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation, vector3 const &pPosition);
-    void Load(cParser &Parser, vector3 const &pPosition);
-    void TurnOn(bool ListenerInside, vector3 NewPosition);
-    void TurnOff(bool ListenerInside, vector3 NewPosition);
-    void Free();
-    void Update(bool ListenerInside, vector3 NewPosition);
-    void UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
+	void Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation, Math3D::vector3 const &pPosition);
+    void Load(cParser &Parser, Math3D::vector3 const &pPosition);
+    void TurnOn(bool ListenerInside, Math3D::vector3 NewPosition);
+    void TurnOff(bool ListenerInside, Math3D::vector3 NewPosition);
+    void Update(bool ListenerInside, Math3D::vector3 NewPosition);
+    void UpdateAF(double A, double F, bool ListenerInside, Math3D::vector3 NewPosition);
     void CopyIfEmpty(TAdvancedSound &s);
 };
 

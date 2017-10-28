@@ -7,14 +7,14 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TractionPowerH
-#define TractionPowerH
+#pragma once
+
+#include "scenenode.h"
 #include "parser.h" //Tolaris-010603
+#include "names.h"
 
-class TGroundNode;
+class TTractionPowerSource : public editor::basic_node {
 
-class TTractionPowerSource
-{
   private:
     double NominalVoltage = 0.0;
     double VoltageFrequency = 0.0;
@@ -33,27 +33,34 @@ class TTractionPowerSource
     bool SlowFuse = false;
     double FuseTimer = 0.0;
     int FuseCounter = 0;
-    TGroundNode const *gMyNode = nullptr; // wskaźnik na węzeł rodzica
 
-  protected:
-  public: // zmienne publiczne
-    TTractionPowerSource *psNode[2]; // zasilanie na końcach dla sekcji
+public:
+    // zmienne publiczne
+    TTractionPowerSource *psNode[ 2 ] = { nullptr, nullptr }; // zasilanie na końcach dla sekcji
     bool bSection = false; // czy jest sekcją
-  public:
-    // AnsiString asName;
-    TTractionPowerSource(TGroundNode const *node);
-    ~TTractionPowerSource();
+
+    TTractionPowerSource( scene::node_data const &Nodedata );
+    // legacy constructor
+    TTractionPowerSource( std::string Name );
+
     void Init(double const u, double const i);
     bool Load(cParser *parser);
-    bool Render();
     bool Update(double dt);
     double CurrentGet(double res);
-    void VoltageSet(double const v)
-    {
-        NominalVoltage = v;
-    };
+    void VoltageSet(double const v) {
+        NominalVoltage = v; };
     void PowerSet(TTractionPowerSource *ps);
 };
 
+
+
+// collection of generators for power grid present in the scene
+class powergridsource_table : public basic_table<TTractionPowerSource> {
+
+public:
+    // legacy method, calculates changes in simulation state over specified time
+    void
+        update( double const Deltatime );
+};
+
 //---------------------------------------------------------------------------
-#endif

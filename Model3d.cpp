@@ -19,7 +19,6 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
-#include "ground.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
@@ -988,11 +987,11 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
 
     // data offset is used to determine data offset of each submodel into single shared geometry bank
     // (the offsets are part of legacy system which we now need to work around for backward compatibility)
-
     if( Child )
         Child->create_geometry( Dataoffset, Bank );
 
     if( false == Vertices.empty() ) {
+
         tVboPtr = static_cast<int>( Dataoffset );
         Dataoffset += Vertices.size();
         // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
@@ -1003,67 +1002,33 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
         m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
     }
 
-    if( Next )
-        Next->create_geometry( Dataoffset, Bank );
-}
-
-// places contained geometry in provided ground node
-void
-TSubModel::convert( TGroundNode &Groundnode ) const {
-
-    Groundnode.asName = pName;
-    Groundnode.Ambient = f4Ambient;
-    Groundnode.Diffuse = f4Diffuse;
-    Groundnode.Specular = f4Specular;
-    Groundnode.m_material = m_material;
-    Groundnode.iFlags = (
-        ( true == GfxRenderer.Material( m_material ).has_alpha ) ?
-            0x20 :
-            0x10 );
-
-    if( m_geometry == null_handle ) { return; }
-
-    std::size_t vertexcount { 0 };
-    std::vector<TGroundVertex> importedvertices;
-    TGroundVertex vertex, vertex1, vertex2;
-    for( auto const &sourcevertex : GfxRenderer.Vertices( m_geometry ) ) {
-        vertex.position = sourcevertex.position;
-        vertex.normal   = sourcevertex.normal;
-        vertex.texture  = sourcevertex.texture;
-             if( vertexcount == 0 ) { vertex1 = vertex; }
-        else if( vertexcount == 1 ) { vertex2 = vertex; }
-        else if( vertexcount >= 2 ) {
-            if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
-                importedvertices.emplace_back( vertex1 );
-                importedvertices.emplace_back( vertex2 );
-                importedvertices.emplace_back( vertex );
+    if( m_geometry != NULL ) {
+        // calculate bounding radius while we're at it
+        // NOTE: doesn't take into account transformation hierarchy TODO: implement it
+        float squaredradius { 0.f };
+        // if this happens to be root node it may already have non-squared radius of the largest child
+        // since we're comparing squared radii, we need to square it back for correct results
+        m_boundingradius *= m_boundingradius;
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            squaredradius = static_cast<float>( glm::length2( vertex.position ) );
+            if( squaredradius > m_boundingradius ) {
+                m_boundingradius = squaredradius;
             }
         }
-        ++vertexcount;
-        if( vertexcount > 2 ) { vertexcount = 0; } // start new triangle if needed
-    }
-    if( Groundnode.Piece == nullptr ) {
-        Groundnode.Piece = new piece_node();
-    }
-    Groundnode.iNumVerts = importedvertices.size();
-    if( Groundnode.iNumVerts > 0 ) {
-
-        Groundnode.Piece->vertices.swap( importedvertices );
-
-        for( auto const &vertex : Groundnode.Piece->vertices ) {
-            Groundnode.pCenter += vertex.position;
+        if( m_boundingradius > 0.f ) { m_boundingradius = std::sqrt( m_boundingradius ); }
+        // adjust overall radius if needed
+        // NOTE: the method to access root submodel is... less than ideal
+        auto *root { this };
+        while( root->Parent != nullptr ) {
+            root = root->Parent;
         }
-        Groundnode.pCenter /= Groundnode.iNumVerts;
-
-        double r { 0.0 };
-        double tf;
-        for( auto const &vertex : Groundnode.Piece->vertices ) {
-            tf = glm::length2( vertex.position - glm::dvec3{ Groundnode.pCenter } );
-            if( tf > r )
-                r = tf;
-        }
-        Groundnode.fSquareRadius += r;
+        root->m_boundingradius = std::max(
+            root->m_boundingradius,
+            m_boundingradius );
     }
+
+    if( Next )
+        Next->create_geometry( Dataoffset, Bank );
 }
 
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
@@ -1149,7 +1114,8 @@ TModel3d::~TModel3d() {
 
 	if (iFlags & 0x0200) {
         // wczytany z pliku tekstowego, submodele sprzątają same
-        Root = nullptr;
+        SafeDelete( Root );
+//        Root = nullptr;
 	}
 	else {
         // wczytano z pliku binarnego (jest właścicielem tablic)
@@ -1642,7 +1608,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             }
         }
         else {
-            ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
+            ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
             m_material = null_handle;
         }
     }
@@ -1760,18 +1726,11 @@ void TModel3d::Init()
 		return; // operacje zostały już wykonane
 	if (Root)
 	{
-		if (iFlags & 0x0200) // jeśli wczytano z pliku tekstowego
-		{ // jest jakiś dziwny błąd, że obkręcany ma być tylko ostatni submodel
-		  // głównego łańcucha
-		  // TSubModel *p=Root;
-		  // do
-		  //{p->InitialRotate(true); //ostatniemu należy się konwersja układu
-		  // współrzędnych
-		  // p=p->NextGet();
-		  //}
-		  // while (p->NextGet())
-		  // Root->InitialRotate(false); //a poprzednim tylko optymalizacja
-			Root->InitialRotate(true); // argumet określa, czy wykonać pierwotny obrót
+		if (iFlags & 0x0200) {
+            // jeśli wczytano z pliku tekstowego jest jakiś dziwny błąd,
+            // że obkręcany ma być tylko ostatni submodel głównego łańcucha
+            // argumet określa, czy wykonać pierwotny obrót
+			Root->InitialRotate(true);
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
@@ -1787,11 +1746,6 @@ void TModel3d::Init()
             asBinary = ""; // zablokowanie powtórnego zapisu
         }
     }
-};
-
-void TModel3d::BreakHierarhy()
-{
-	Error("Not implemented yet :(");
 };
 
 //-----------------------------------------------------------------------------

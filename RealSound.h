@@ -7,24 +7,25 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef RealSoundH
-#define RealSoundH
+#pragma once
 
 #include <string>
-#include "Sound.h"
-#include "Geometry.h"
 
-class TRealSound
-{
-  protected:
+#include "Sound.h"
+#include "dumb3d.h"
+#include "names.h"
+
+class TRealSound {
+
+protected:
     PSound pSound = nullptr;
-//  char *Nazwa; // dla celow odwszawiania NOTE: currently not used anywhere
-    double fDistance = 0.0,
-           fPreviousDistance = 0.0; // dla liczenia Dopplera
+    double fDistance = 0.0;
+    double fPreviousDistance = 0.0; // dla liczenia Dopplera
     float fFrequency = 22050.0; // częstotliwość samplowania pliku
     int iDoppler = 0; // Ra 2014-07: możliwość wyłączenia efektu Dopplera np. dla śpiewu ptaków
-  public:
-    vector3 vSoundPosition; // polozenie zrodla dzwieku
+public:
+    std::string m_name;
+    Math3D::vector3 vSoundPosition; // polozenie zrodla dzwieku
     double dSoundAtt = -1.0; // odleglosc polowicznego zaniku dzwieku
     double AM = 0.0; // mnoznik amplitudy
     double AA = 0.0; // offset amplitudy
@@ -32,36 +33,42 @@ class TRealSound
     double FA = 0.0; // offset czestotliwosci
     bool bLoopPlay = false; // czy zapętlony dźwięk jest odtwarzany
     TRealSound() = default;
-	TRealSound( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
-		bool freqmod = false, double rmin = 0.0);
+    TRealSound( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod = false, double rmin = 0.0 );
     ~TRealSound();
-    void Free();
-    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
-              bool freqmod = false, double rmin = 0.0);
-    double ListenerDistance(vector3 ListenerPosition);
-    void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
-    void Start();
+    void Init( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod = false, double rmin = 0.0 );
+    double ListenerDistance( Math3D::vector3 ListenerPosition);
+    void Play(double Volume, int Looping, bool ListenerInside, Math3D::vector3 NewPosition);
     void Stop();
     void AdjFreq(double Freq, double dt);
     void SetPan(int Pan);
     double GetWaveTime(); // McZapkie TODO: dorobic dla roznych bps
     int GetStatus();
     void ResetPosition();
-    // void FreqReset(float f=22050.0) {fFrequency=f;};
     bool Empty() { return ( pSound == nullptr ); }
+    void
+        name( std::string Name ) {
+            m_name = Name; }
+    std::string const &
+        name() const {
+            return m_name; }
+    glm::dvec3
+        location() const {
+            return vSoundPosition; };
 };
 
-class TTextSound : public TRealSound
-{ // dźwięk ze stenogramem
+
+
+class TTextSound : public TRealSound {
+    // dźwięk ze stenogramem
     std::string asText;
     float fTime; // czas trwania
-  public:
-    TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
-               bool Dynamic, bool freqmod = false, double rmin = 0.0);
-    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
-              bool Dynamic, bool freqmod = false, double rmin = 0.0);
-    void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
+public:
+    TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod = false, double rmin = 0.0);
+    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod = false, double rmin = 0.0);
+    void Play(double Volume, int Looping, bool ListenerInside, Math3D::vector3 NewPosition);
 };
+
+
 
 class TSynthSound
 { // klasa generująca sygnał odjazdu (Rp12, Rp13), potem rozbudować o pracę manewrowego...
@@ -74,10 +81,16 @@ class TSynthSound
     // 41 - "tysiące"
     // 42 - indeksy początkowe dla "odjazd"
     // 43 - indeksy początkowe dla "gotów"
-    PSound *sSound; // posortowana tablica dźwięków, rozmiar zależny od liczby znalezionych plików
+    PSound sSound; // posortowana tablica dźwięków, rozmiar zależny od liczby znalezionych plików
     // a może zamiast wielu plików/dźwięków zrobić jeden połączony plik i posługiwać się czasem
     // od..do?
 };
 
+
+
+// collection of generators for power grid present in the scene
+class sound_table : public basic_table<TTextSound> {
+
+};
+
 //---------------------------------------------------------------------------
-#endif

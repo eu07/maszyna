@@ -21,13 +21,14 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction ) :
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction, std::vector<std::string> Parameters ) :
     mPath(Path),
     LoadTraction( Loadtraction ) {
     // build comments map
     mComments.insert(commentmap::value_type("/*", "*/"));
     mComments.insert(commentmap::value_type("//", "\n"));
     // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie używane
+
     // store to calculate sub-sequent includes from relative path
     if( Type == buffertype::buffer_FILE ) {
         mFile = Stream;
@@ -58,6 +59,10 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
             mStream->rdbuf()->pubseekoff( 0, std::ios_base::beg );
             mLine = 1;
         }
+    }
+    // set parameter set if one was provided
+    if( false == Parameters.empty() ) {
+        parameters.swap( Parameters );
     }
 }
 
@@ -145,91 +150,83 @@ bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
         return true;
 }
 
-std::string cParser::readToken(bool ToLower, const char *Break)
-{
-    std::string token = "";
-    size_t pos; // początek podmienianego ciągu
-    // see if there's include parsing going on. clean up when it's done.
-    if (mIncludeParser)
-    {
-        token = mIncludeParser->readToken(ToLower, Break);
-        if (!token.empty())
-        {
-            pos = token.find("(p");
-            // check if the token is a parameter which should be replaced with stored true value
-            if (pos != std::string::npos) //!=npos to znalezione
-            {
-                std::string parameter =
-                    token.substr(pos + 2, token.find(")", pos) - pos + 2); // numer parametru
-                token.erase(pos, token.find(")", pos) - pos + 1); // najpierw usunięcie "(pN)"
-                size_t nr = atoi(parameter.c_str()) - 1;
-                if (nr < parameters.size())
-                {
-                    token.insert(pos, parameters.at(nr)); // wklejenie wartości parametru
-                    if (ToLower)
-                        for (; pos < token.length(); ++pos)
-                            token[pos] = tolower(token[pos]);
-                }
-                else
-                    token.insert(pos, "none"); // zabezpieczenie przed brakiem parametru
-            }
-            return token;
-        }
-        else
-        {
-            mIncludeParser = NULL;
-            parameters.clear();
+std::string cParser::readToken( bool ToLower, const char *Break ) {
+
+    std::string token;
+    if( mIncludeParser ) {
+        // see if there's include parsing going on. clean up when it's done.
+        token = mIncludeParser->readToken( ToLower, Break );
+        if( true == token.empty() ) {
+            mIncludeParser = nullptr;
         }
     }
-    // get the token yourself if there's no child to delegate it to.
-    char c { 0 };
-    do
-    {
-        while (mStream->peek() != EOF && strchr(Break, c = mStream->get()) == NULL)
-        {
-            if (ToLower)
-                c = tolower(c);
-            token += c;
-            if (findQuotes(token)) // do glue together words enclosed in quotes
-                break;
-            if (trimComments(token)) // don't glue together words separated with comment
-                break;
-        }
-        if( c == '\n' ) {
-            // update line counter
-            ++mLine;
-        }
-    } while (token == "" && mStream->peek() != EOF); // double check to deal with trailing spaces
-    // launch child parser if include directive found.
-    // NOTE: parameter collecting uses default set of token separators.
-    if (token.compare("include") == 0)
-    { // obsługa include
-        std::string includefile = readToken(ToLower); // nazwa pliku
-        if (LoadTraction ? true : ((includefile.find("tr/") == std::string::npos) &&
-                                   (includefile.find("tra/") == std::string::npos)))
-        {
-            // std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
-            // if (trtest=="x") //jeśli nie wczytywać drutów
-            // trtest2=includefile; //kopiowanie ścieżki do pliku
-            std::string parameter = readToken(false); // w parametrach nie zmniejszamy
-            while( (parameter.empty() == false)
-				&& (parameter.compare("end") != 0) )
-            {
-                parameters.push_back(parameter);
-                parameter = readToken(false);
+    if( true == token.empty() ) {
+        // get the token yourself if the delegation attempt failed
+        char c { 0 };
+        do {
+            while( mStream->peek() != EOF && strchr( Break, c = mStream->get() ) == NULL ) {
+                if( ToLower )
+                    c = tolower( c );
+                token += c;
+                if( findQuotes( token ) ) // do glue together words enclosed in quotes
+                    break;
+                if( trimComments( token ) ) // don't glue together words separated with comment
+                    break;
             }
-            // if (trtest2.find("tr/")!=0)
-            mIncludeParser = std::make_shared<cParser>(includefile, buffer_FILE, mPath, LoadTraction);
-            if (mIncludeParser->mSize <= 0)
-                ErrorLog("Missed include: " + includefile);
+            if( c == '\n' ) {
+                // update line counter
+                ++mLine;
+            }
+        } while( token == "" && mStream->peek() != EOF ); // double check to deal with trailing spaces
+    }
+
+    if( false == parameters.empty() ) {
+        // if there's parameter list, check the token for potential parameters to replace
+        size_t pos; // początek podmienianego ciągu
+        while( ( pos = token.find( "(p" ) ) != std::string::npos ) {
+            // check if the token is a parameter which should be replaced with stored true value
+            auto const parameter{ token.substr( pos + 2, token.find( ")", pos ) - ( pos + 2 ) ) }; // numer parametru
+            token.erase( pos, token.find( ")", pos ) - pos + 1 ); // najpierw usunięcie "(pN)"
+            size_t nr = atoi( parameter.c_str() ) - 1;
+            if( nr < parameters.size() ) {
+                token.insert( pos, parameters.at( nr ) ); // wklejenie wartości parametru
+                if( ToLower )
+                    for( ; pos < parameters.at( nr ).size(); ++pos )
+                        token[ pos ] = tolower( token[ pos ] );
+            }
+            else
+                token.insert( pos, "none" ); // zabezpieczenie przed brakiem parametru
+        }
+    }
+
+    if( token == "include" ) {
+        // launch child parser if include directive found.
+        // NOTE: parameter collecting uses default set of token separators.
+        std::string includefile = readToken(ToLower); // nazwa pliku
+        if( ( true == LoadTraction )
+         || ( ( includefile.find( "tr/" ) == std::string::npos )
+           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+            // get parameter list for the child parser
+            std::vector<std::string> includeparameters;
+            std::string parameter = readToken( false ); // w parametrach nie zmniejszamy
+            while( ( parameter.empty() == false )
+                && ( parameter != "end" ) ) {
+                includeparameters.emplace_back( parameter );
+                parameter = readToken( false );
+            }
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, includeparameters );
+            if( mIncludeParser->mSize <= 0 ) {
+                ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
+            }
         }
         else {
-            while( token.compare( "end" ) != 0 ) {
+            while( token != "end" ) {
                 token = readToken( true ); // minimize risk of case mismatch on comparison
             }
         }
         token = readToken(ToLower, Break);
     }
+    // all done
     return token;
 }
 

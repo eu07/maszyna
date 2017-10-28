@@ -357,14 +357,6 @@ TTrain::TTrain() {
             fPress[ i ][ j ] = 0.0;
 }
 
-TTrain::~TTrain()
-{
-    if (DynamicObject)
-        if (DynamicObject->Mechanik)
-            DynamicObject->Mechanik->TakeControl(
-                true); // likwidacja kabiny wymaga przejęcia przez AI
-}
-
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powiązanie ręcznego sterowania kabiną z pojazdem
     // Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzęsienia
@@ -1568,7 +1560,7 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                         // sound feedback, engine start for diesel vehicle
                         Train->play_sound( Train->dsbDieselIgnition );
                         // side-effects
-                        Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                        Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
                         Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
                     }
                 }
@@ -3587,7 +3579,7 @@ bool TTrain::Update( double const Deltatime )
                 iDoorNo[i] = p->iAnimType[ANIM_DOORS];
                 iUnits[i] = iUnitNo;
                 cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length()];
-                asCarName[i] = p->GetName();
+                asCarName[i] = p->name();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
                 bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
 				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow);
@@ -6259,7 +6251,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             }
             else if (token == "pyscreen:")
             {
-                pyScreens.init(*parser, DynamicObject->mdKabina, DynamicObject->GetName(),
+                pyScreens.init(*parser, DynamicObject->mdKabina, DynamicObject->name(),
                                NewCabNo);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
@@ -7037,7 +7029,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 /*
     TGauge *gg { nullptr }; // roboczy wskaźnik na obiekt animujący gałkę
 */
-    std::unordered_map<std::string, TGauge &> gauges = {
+    std::unordered_map<std::string, TGauge &> const gauges = {
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },
         { "dirkey:" , ggDirKey },

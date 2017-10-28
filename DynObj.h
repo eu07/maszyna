@@ -151,6 +151,9 @@ class TDynamicObject { // klasa pojazdu
 
     friend class opengl_renderer;
 
+public:
+    static bool bDynamicRemove; // moved from ground
+
 private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
     Math3D::vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
@@ -160,19 +163,17 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     TTrackParam tp; // parametry toru przekazywane do fizyki
     TTrackFollower Axle0; // oś z przodu (od sprzęgu 0)
     TTrackFollower Axle1; // oś z tyłu (od sprzęgu 1)
-    int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oś wiążąca pojazd z torem i wyzwalająca
-    // eventy)
+    int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oś wiążąca pojazd z torem i wyzwalająca eventy)
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
-    // bool bCameraNear; //blisko kamer są potrzebne dodatkowe obliczenia szczegółów
     TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
-public: // parametry położenia pojazdu dostępne publicznie
+public:
+    // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
     Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
-    // TMoverParameters *pControlled; //wskaźnik do sterowanego członu silnikowego
     TDynamicObject *NextConnected; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
     TDynamicObject *PrevConnected; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
     int NextConnectedNo; // numer sprzęgu podłączonego z tyłu
@@ -182,7 +183,7 @@ public: // parametry położenia pojazdu dostępne publicznie
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
-public: // modele składowe pojazdu
+    // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
@@ -201,28 +202,26 @@ public: // modele składowe pojazdu
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
-  private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
+private:
+    // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
     material_data m_materialdata;
 
-  public:
+public:
     inline
     material_data const
         *Material() const {
             return &m_materialdata; }
     // tymczasowo udostępnione do wyszukiwania drutu
     int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
-  private:
+private:
     int iAnimations; // liczba obiektów animujących
 /*
     TAnim *pAnimations; // obiekty animujące (zawierają wskaźnik do funkcji wykonującej animację)
 */
     std::vector<TAnim> pAnimations;
-    TSubModel **
-        pAnimated; // lista animowanych submodeli (może być ich więcej niż obiektów animujących)
-    double dWheelAngle[3]; // kąty obrotu kół: 0=przednie toczne, 1=napędzające i wiązary, 2=tylne
-    // toczne
-    void
-    UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
+    TSubModel ** pAnimated; // lista animowanych submodeli (może być ich więcej niż obiektów animujących)
+    double dWheelAngle[3]; // kąty obrotu kół: 0=przednie toczne, 1=napędzające i wiązary, 2=tylne toczne
+    void UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
     void UpdateAxle(TAnim *pAnim); // animacja osi
     void UpdateBoogie(TAnim *pAnim); // animacja wózka
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
@@ -268,8 +267,7 @@ public: // modele składowe pojazdu
 
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
-    TAirCoupler
-        btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
+    TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
     TAirCoupler btCPneumatic2;
     TAirCoupler btCPneumatic1r; // ABu: to zeby nie bylo problemow przy laczeniu wagonow,
     TAirCoupler btCPneumatic2r; //     jesli beda polaczone sprzegami 1<->1 lub 0<->0
@@ -300,8 +298,6 @@ public: // modele składowe pojazdu
     TButton btHeadSignals23;
 	TButton btMechanik1;
 	TButton btMechanik2;
-    //TSubModel *smMechanik0; // Ra: mechanik wbudowany w model jako submodel?
-    //TSubModel *smMechanik1; // mechanik od strony sprzęgu 1
     double enginevolume; // MC: pomocnicze zeby gladziej silnik buczal
 
     int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
@@ -325,7 +321,6 @@ public: // modele składowe pojazdu
 	TAdvancedSound sReleaser;
 
     // Winger 010304
-    //    TRealSound rsPanTup; //PSound sPantUp;
     TRealSound sPantUp;
     TRealSound sPantDown;
     TRealSound rsDoorOpen; // Ra: przeniesione z kabiny
@@ -352,8 +347,6 @@ public: // modele składowe pojazdu
     int iHornWarning; // numer syreny do użycia po otrzymaniu sygnału do jazdy
     bool bEnabled; // Ra: wyjechał na portal i ma być usunięty
   protected:
-    // TTrackFollower Axle2; //dwie osie z czterech (te są protected)
-    // TTrackFollower Axle3; //Ra: wyłączyłem, bo kąty są liczone w Segment.cpp
     int iNumAxles; // ilość osi
     std::string asModel;
 
@@ -373,26 +366,18 @@ public: // modele składowe pojazdu
 	TDynamicObject * PrevC(int C);
 	TDynamicObject * NextC(int C);
     double NextDistance(double d = -1.0);
-    void SetdMoveLen(double dMoveLen)
-    {
-        MoverParameters->dMoveLen = dMoveLen;
-    }
-    void ResetdMoveLen()
-    {
-        MoverParameters->dMoveLen = 0;
-    }
-    double GetdMoveLen()
-    {
-        return MoverParameters->dMoveLen;
-    }
+    void SetdMoveLen(double dMoveLen) {
+        MoverParameters->dMoveLen = dMoveLen; }
+    void ResetdMoveLen() {
+        MoverParameters->dMoveLen = 0; }
+    double GetdMoveLen() {
+        return MoverParameters->dMoveLen; }
 
     int GetPneumatic(bool front, bool red);
     void SetPneumatic(bool front, bool red);
     std::string asName;
-    std::string GetName()
-    {
-        return this ? asName : std::string("");
-    };
+    std::string name() const {
+        return this ? asName : std::string(); };
 
     TRealSound rsDiesielInc; // youBy
     TRealSound rscurve; // youBy
@@ -405,7 +390,6 @@ public: // modele składowe pojazdu
     TDynamicObject * ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
                                                     int &CouplNr);
     TDynamicObject * GetFirstDynamic(int cpl_type, int cf = 1);
-    // TDynamicObject* GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake( Math3D::vector3 mShake);
 
     // McZapkie-010302
@@ -437,104 +421,86 @@ public: // modele składowe pojazdu
     void Move(double fDistance);
     void FastMove(double fDistance);
     void RenderSounds();
-    inline Math3D::vector3 GetPosition() const
-    {
-        return vPosition;
-    };
-    inline Math3D::vector3 HeadPosition()
-    {
-        return vCoulpler[iDirection ^ 1];
-    }; // pobranie współrzędnych czoła
-    inline Math3D::vector3 RearPosition()
-    {
-        return vCoulpler[iDirection];
-    }; // pobranie współrzędnych tyłu
-    inline Math3D::vector3 AxlePositionGet()
-    {
-        return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
-    };
-    inline Math3D::vector3 VectorFront() const
-    {
-        return vFront;
-    };
-    inline Math3D::vector3 VectorUp()
-    {
-        return vUp;
-    };
-    inline Math3D::vector3 VectorLeft() const
-    {
-        return vLeft;
-    };
-    inline double * Matrix()
-    {
-        return mMatrix.getArray();
-    };
-    inline double GetVelocity()
-    {
-        return MoverParameters->Vel;
-    };
-    inline double GetLength() const
-    {
-        return MoverParameters->Dim.L;
-    };
-    inline double GetWidth() const
-    {
-        return MoverParameters->Dim.W;
-    };
-    inline TTrack * GetTrack()
-    {
-        return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack());
-    };
-    // void UpdatePos();
+    inline Math3D::vector3 GetPosition() const {
+        return vPosition; };
+    // pobranie współrzędnych czoła
+    inline Math3D::vector3 HeadPosition() {
+        return vCoulpler[iDirection ^ 1]; };
+    // pobranie współrzędnych tyłu
+    inline Math3D::vector3 RearPosition() {
+        return vCoulpler[iDirection]; };
+    inline Math3D::vector3 AxlePositionGet() {
+        return iAxleFirst ? Axle1.pPosition : Axle0.pPosition; };
+    inline Math3D::vector3 VectorFront() const {
+        return vFront; };
+    inline Math3D::vector3 VectorUp() {
+        return vUp; };
+    inline Math3D::vector3 VectorLeft() const {
+        return vLeft; };
+    inline double * Matrix() {
+        return mMatrix.getArray(); };
+    inline double GetVelocity() {
+        return MoverParameters->Vel; };
+    inline double GetLength() const {
+        return MoverParameters->Dim.L; };
+    inline double GetWidth() const {
+        return MoverParameters->Dim.W; };
+    inline TTrack * GetTrack() {
+        return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack()); };
 
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
-    inline double ABuGetDirection() const // ABu.
-    {
-        return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
-    };
-    // inline double ABuGetTranslation() //ABu.
-    // {//zwraca przesunięcie wózka względem Point1 toru
-    //  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
-    // };
-    inline double RaDirectionGet()
-    { // zwraca kierunek pojazdu na torze z aktywną osą
-        return iAxleFirst ? Axle1.GetDirection() : Axle0.GetDirection();
-    };
-    inline double RaTranslationGet()
-    { // zwraca przesunięcie wózka względem Point1 toru z aktywną osią
-        return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation();
-    };
-    inline TTrack * RaTrackGet()
-    { // zwraca tor z aktywną osią
-        return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack();
-    };
+    inline double ABuGetDirection() const { // ABu.
+        return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection()); };
+    // zwraca kierunek pojazdu na torze z aktywną osą
+    inline double RaDirectionGet() {
+        return iAxleFirst ? Axle1.GetDirection() : Axle0.GetDirection(); };
+    // zwraca przesunięcie wózka względem Point1 toru z aktywną osią
+    inline double RaTranslationGet() {
+        return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation(); };
+    // zwraca tor z aktywną osią
+    inline TTrack * RaTrackGet() {
+        return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack(); };
     void CouplersDettach(double MinDist, int MyScanDir);
     void RadioStop();
 	void Damage(char flag);
 	void RaLightsSet(int head, int rear);
-    // void RaAxleEvent(TEvent *e);
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie
-    int DirectionGet()
-    {
-        return iDirection + iDirection - 1;
-    }; // odczyt kierunku w składzie
+    // odczyt kierunku w składzie
+    int DirectionGet() {
+        return iDirection + iDirection - 1; };
     int DettachStatus(int dir);
     int Dettach(int dir);
     TDynamicObject * Neightbour(int &dir);
     void CoupleDist();
     TDynamicObject * ControlledFind();
     void ParamSet(int what, int into);
-    int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzyżowania
-    // jechać
+    // zapytanie do AI, po którym segmencie skrzyżowania jechać
+    int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
     std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
+};
+
+
+
+class vehicle_table : public basic_table<TDynamicObject> {
+
+public:
+    // legacy method, calculates changes in simulation state over specified time
+    void
+        update( double dt, int iter );
+    // legacy method, checks for presence and height of traction wire for specified vehicle
+    void
+        update_traction( TDynamicObject *Vehicle );
+    // legacy method, sends list of vehicles over network
+    void
+        DynamicList( bool const Onlycontrolled = false ) const;
 };
 
 //---------------------------------------------------------------------------

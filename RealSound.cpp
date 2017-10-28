@@ -21,8 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mczapkie/mctools.h"
 #include "usefull.h"
 
-TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
-	bool freqmod, double rmin)
+TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod, double rmin)
 {
 	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
 }
@@ -32,12 +31,7 @@ TRealSound::~TRealSound()
     // if (this) if (pSound) pSound->Stop();
 }
 
-void TRealSound::Free()
-{
-}
-
-void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, double X, double Y, double Z,
-                      bool Dynamic, bool freqmod, double rmin)
+void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadziała, (SoundName) jest tymczasowe
     pSound = TSoundsManager::GetFromName(SoundName, Dynamic, &fFrequency);
@@ -71,7 +65,7 @@ void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, 
         dSoundAtt = -1;
 };
 
-double TRealSound::ListenerDistance(vector3 ListenerPosition)
+double TRealSound::ListenerDistance( Math3D::vector3 ListenerPosition)
 {
     if (dSoundAtt == -1)
     {
@@ -83,7 +77,7 @@ double TRealSound::ListenerDistance(vector3 ListenerPosition)
     }
 }
 
-void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
+void TRealSound::Play(double Volume, int Looping, bool ListenerInside, Math3D::vector3 NewPosition)
 {
     if (!pSound)
         return;
@@ -153,11 +147,6 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
             */
         }
     }
-};
-
-void TRealSound::Start(){
-    // włączenie dźwięku
-
 };
 
 void TRealSound::Stop()
@@ -231,17 +220,14 @@ void TRealSound::ResetPosition()
         pSound->SetCurrentPosition(0);
 }
 
-TTextSound::TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
-	bool Dynamic, bool freqmod, double rmin)
-	: TRealSound(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin)
+TTextSound::TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod, double rmin) :
+    TRealSound(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin)
 {
 	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
 }
 
-void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
-                      bool Dynamic, bool freqmod, double rmin)
+void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
-    //TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
     fTime = GetWaveTime();
     std::string txt(SoundName);
 	txt.erase( txt.rfind( '.' ) ); // obcięcie rozszerzenia
@@ -253,15 +239,11 @@ void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, dou
         txt = "sounds\\" + txt; //ścieżka może nie być podana
     if (FileExists(txt))
     { // wczytanie
-/*      TFileStream *ts = new TFileStream(txt, fmOpenRead);
-        asText = AnsiString::StringOfChar(' ', ts->Size);
-        ts->Read(asText.c_str(), ts->Size);
-        delete ts;
-*/		std::ifstream inputfile( txt );
+		std::ifstream inputfile( txt );
 		asText.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
 	}
 };
-void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
+void TTextSound::Play(double Volume, int Looping, bool ListenerInside, Math3D::vector3 NewPosition)
 {
     if (false == asText.empty())
     { // jeśli ma powiązany tekst

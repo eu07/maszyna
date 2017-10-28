@@ -18,9 +18,6 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-// TViewPyramid TCamera::OrgViewPyramid;
-//={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
-
 void TCamera::Init(vector3 NPos, vector3 NAngle)
 {
 
@@ -37,8 +34,8 @@ void TCamera::Init(vector3 NPos, vector3 NAngle)
 void TCamera::OnCursorMove(double x, double y)
 {
     // McZapkie-170402: zeby mysz dzialala zawsze    if (Type==tp_Follow)
-    Pitch += y;
-    Yaw += -x;
+    Yaw -= x;
+    Pitch -= y;
     if (Yaw > M_PI)
         Yaw -= 2 * M_PI;
     else if (Yaw < -M_PI)
@@ -62,7 +59,7 @@ TCamera::OnCommand( command_data const &Command ) {
 
             OnCursorMove(
                 reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global::fMouseXScale / Global::ZoomFactor,
-                reinterpret_cast<double const &>( Command.param2 ) * -0.01  * Global::fMouseYScale / Global::ZoomFactor );
+                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global::fMouseYScale / Global::ZoomFactor );
             break;
         }
 

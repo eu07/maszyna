@@ -11,9 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "dumb3d.h"
-#include "Classes.h"
-
-using namespace Math3D;
+#include "classes.h"
+#include "names.h"
+#include "scenenode.h"
+#include "evlaunch.h"
 
 enum TEventType {
     tp_Unknown,
@@ -32,7 +33,7 @@ enum TEventType {
     tp_TrackVel,
     tp_Multiple,
     tp_AddValues,
-    tp_Ignored,
+//    tp_Ignored, // NOTE: refactored to separate flag
     tp_CopyValues,
     tp_WhoIs,
     tp_LogValues,
@@ -62,7 +63,8 @@ union TParam
 {
     void *asPointer;
     TMemCell *asMemCell;
-    TGroundNode *nGroundNode;
+    editor::basic_node *asEditorNode;
+    glm::dvec3 const *asLocation;
     TTrack *asTrack;
     TAnimModel *asModel;
     TAnimContainer *asAnimContainer;
@@ -85,11 +87,10 @@ class TEvent // zmienne: ev*
 
   public:
     std::string asName;
+    bool m_ignored { false }; // replacement for tp_ignored
     bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
     int iQueued = 0; // ile razy dodany do kolejki
-    // bool bIsHistory;
     TEvent *evNext = nullptr; // następny w kolejce
-    TEvent *evNext2 = nullptr;
     TEventType Type = tp_Unknown;
     double fStartTime = 0.0;
     double fDelay = 0.0;
@@ -99,19 +100,79 @@ class TEvent // zmienne: ev*
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
     TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378
     double fRandomDelay = 0.0; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
-  public: // metody
+public:
+    // metody
     TEvent(std::string const &m = "");
     ~TEvent();
-    void Init();
-    void Load(cParser *parser, vector3 *org);
+    void Load(cParser *parser, Math3D::vector3 const &org);
     static void AddToQuery( TEvent *Event, TEvent *&Start );
     std::string CommandGet();
     TCommandType Command();
     double ValueGet(int n);
-    vector3 PositionGet() const;
+    glm::dvec3 PositionGet() const;
     bool StopCommand();
     void StopCommandSent();
     void Append(TEvent *e);
+};
+
+class event_manager {
+
+public:
+// destructor
+    ~event_manager();
+// methods
+    // adds specified event launcher to the list of global launchers
+    void
+        queue( TEventLauncher *Launcher );
+    // legacy method, updates event queues
+    void
+        update();
+    // adds provided event to the collection. returns: true on success
+    // TBD, TODO: return handle to the event
+    bool
+        insert( TEvent *Event );
+    bool
+        insert( TEventLauncher *Launcher ) {
+            return m_launchers.insert( Launcher ); }
+    // legacy method, returns pointer to specified event, or null
+    TEvent *
+        FindEvent( std::string const &Name );
+    // legacy method, inserts specified event in the event query
+    bool
+        AddToQuery( TEvent *Event, TDynamicObject *Owner );
+    // legacy method, executes queued events
+    bool
+        CheckQuery();
+    // legacy method, initializes events after deserialization from scenario file
+    void
+        InitEvents();
+    // legacy method, initializes event launchers after deserialization from scenario file
+    void
+        InitLaunchers();
+
+private:
+// types
+    using event_sequence = std::deque<TEvent *>;
+    using event_map = std::unordered_map<std::string, std::size_t>;
+    using eventlauncher_sequence = std::vector<TEventLauncher *>;
+
+// methods
+    // legacy method, verifies condition for specified event
+    bool
+        EventConditon( TEvent *Event );
+
+// members
+    event_sequence m_events;
+/*
+    // NOTE: disabled until event class refactoring
+    event_sequence m_eventqueue;
+*/
+    // legacy version of the above
+    TEvent *QueryRootEvent { nullptr };
+    TEvent *m_workevent { nullptr };
+    event_map m_eventmap;
+    basic_table<TEventLauncher> m_launchers;
+    eventlauncher_sequence m_launcherqueue;
 };
 
 //---------------------------------------------------------------------------

@@ -12,22 +12,17 @@ http://mozilla.org/MPL/2.0/.
 
 */
 #include "stdafx.h"
+#include "globals.h"
 
-#include "Globals.h"
-#include "usefull.h"
-//#include "Mover.h"
+#include "world.h"
+#include "simulation.h"
+#include "logs.h"
 #include "Console.h"
-#include "Driver.h"
-#include "Logs.h"
 #include "PyInt.h"
-#include "World.h"
-#include "parser.h"
 
 // namespace Global {
 
 // parametry do użytku wewnętrznego
-// double Global::tSinceStart=0;
-TGround *Global::pGround = NULL;
 std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
@@ -75,6 +70,8 @@ GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+std::string Global::Season; // season of the year, based on simulation date
+
 float Global::BaseDrawRange { 2500.f };
 opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
@@ -120,7 +117,7 @@ float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic fil
 bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
-bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
+bool Global::bSmoothTraction { true }; // wygładzanie drutów starym sposobem
 float Global::SplineFidelity { 1.f }; // determines segment size during conversion of splines to geometry
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
@@ -190,19 +187,6 @@ int Global::iMWDdivider = 5;
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-
-std::string Global::GetNextSymbol()
-{ // pobranie tokenu z aktualnego parsera
-
-    std::string token;
-    if (pParser != nullptr)
-    {
-
-        pParser->getTokens();
-        *pParser >> token;
-    };
-    return token;
-};
 
 void Global::LoadIniFile(std::string asFileName)
 {
@@ -465,6 +449,7 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
+            Global::pWorld->compute_season( Global::fMoveLight );
         }
         else if( token == "dynamiclights" ) {
             // number of dynamic lights in the scene
@@ -996,20 +981,6 @@ void Global::TrainDelete(TDynamicObject *d)
         pWorld->TrainDelete(d);
 };
 
-TDynamicObject *Global::DynamicNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->DynamicNearest(pCamera->Pos);
-};
-
-TDynamicObject *Global::CouplerNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->CouplerNearest(pCamera->Pos);
-};
-
-bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
-{
-    return pGround->AddToQuery(event, who);
-};
 //---------------------------------------------------------------------------
 
 bool Global::DoEvents()

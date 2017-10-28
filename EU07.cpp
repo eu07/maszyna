@@ -20,18 +20,16 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include <png.h>
 #endif
 
+#include "World.h"
+#include "simulation.h"
 #include "Globals.h"
+#include "timer.h"
 #include "Logs.h"
 #include "keyboardinput.h"
 #include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
-#include "World.h"
-#include "Mover.h"
-#include "usefull.h"
-#include "timer.h"
-#include "resource.h"
 #include "uilayer.h"
 
 #ifdef EU07_BUILD_STATIC
@@ -400,16 +398,6 @@ int main(int argc, char *argv[])
     BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
-
-    const HANDLE icon = ::LoadImage(
-        ::GetModuleHandle( 0 ),
-        MAKEINTRESOURCE( IDI_ICON1 ),
-        IMAGE_ICON,
-        ::GetSystemMetrics( SM_CXSMICON ),
-        ::GetSystemMetrics( SM_CYSMICON ),
-        0 );
-    if( icon )
-        ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
     if( ( false == GfxRenderer.Init( window ) )
@@ -466,7 +454,8 @@ int main(int argc, char *argv[])
     Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
 
 	TPythonInterpreter::killInstance();
-	delete pConsole;
+	SafeDelete( pConsole );
+    SafeDelete( simulation::Region );
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

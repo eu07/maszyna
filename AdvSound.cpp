@@ -19,12 +19,7 @@ TAdvancedSound::~TAdvancedSound()
     // SoundShut.Stop();
 }
 
-void TAdvancedSound::Free()
-{
-}
-
-void TAdvancedSound::Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation,
-                          vector3 const &pPosition)
+void TAdvancedSound::Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation, Math3D::vector3 const &pPosition)
 {
     SoundStart.Init(NameOn, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
     SoundCommencing.Init(Name, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
@@ -47,7 +42,7 @@ void TAdvancedSound::Init( std::string const &NameOn, std::string const &Name, s
     SoundShut.FA = 0.0;
 }
 
-void TAdvancedSound::Load(cParser &Parser, vector3 const &pPosition)
+void TAdvancedSound::Load(cParser &Parser, Math3D::vector3 const &pPosition)
 {
 	std::string nameon, name, nameoff;
 	double attenuation;
@@ -62,7 +57,7 @@ void TAdvancedSound::Load(cParser &Parser, vector3 const &pPosition)
 	Init( nameon, name, nameoff, attenuation, pPosition );
 }
 
-void TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::TurnOn(bool ListenerInside, Math3D::vector3 NewPosition)
 {
     // hunter-311211: nie trzeba czekac na ponowne odtworzenie dzwieku, az sie wylaczy
     if ((State == ss_Off || State == ss_ShuttingDown) && (SoundStart.AM > 0))
@@ -76,7 +71,7 @@ void TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void TAdvancedSound::TurnOff(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::TurnOff(bool ListenerInside, Math3D::vector3 NewPosition)
 {
     if ((State == ss_Commencing || State == ss_Starting) && (SoundShut.AM > 0))
     {
@@ -90,7 +85,7 @@ void TAdvancedSound::TurnOff(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::Update(bool ListenerInside, Math3D::vector3 NewPosition)
 {
     if ((State == ss_Commencing) && (SoundCommencing.AM > 0))
     {
@@ -126,7 +121,7 @@ void TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside, Math3D::vector3 NewPosition)
 { // update, ale z amplituda i czestotliwoscia
     if( State == ss_Off ) {
         return;

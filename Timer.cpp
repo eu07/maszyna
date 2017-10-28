@@ -11,8 +11,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Globals.h"
 
-namespace Timer
-{
+namespace Timer {
+
+subsystem_stopwatches subsystem;
 
 double DeltaTime, DeltaRenderTime;
 double fFPS{ 0.0f };

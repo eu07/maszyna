@@ -15,15 +15,12 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
-#include "Globals.h"
-#include "Logs.h"
-#include "usefull.h"
-#include "McZapkie/mctools.h"
-#include "Timer.h"
 #include "MdlMngr.h"
-// McZapkie:
-#include "renderer.h"
-//---------------------------------------------------------------------------
+#include "simulation.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "Logs.h"
+
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
 TAnimAdvanced::TAnimAdvanced(){};
@@ -232,9 +229,10 @@ void TAnimContainer::UpdateModel() {
                 fTranslateSpeed = 0.0; // wyłączenie przeliczania wektora
                 if (LengthSquared3(vTranslation) <= 0.0001) // jeśli jest w punkcie początkowym
                     iAnim &= ~2; // wyłączyć zmianę pozycji submodelu
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+                    simulation::Events.AddToQuery( evDone, nullptr );
+                }
             }
         }
         if (fRotateSpeed != 0.0)
@@ -299,9 +297,10 @@ void TAnimContainer::UpdateModel() {
             if (!anim)
             { // nie potrzeba przeliczać już
                 fRotateSpeed = 0.0;
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+                    simulation::Events.AddToQuery( evDone, nullptr );
+                }
             }
         }
         if( fAngleSpeed != 0.f ) {
@@ -330,7 +329,7 @@ void TAnimContainer::PrepareModel()
                     fAngleSpeed = 0.0; // wyłączenie przeliczania wektora
                     if( evDone ) {
                         // wykonanie eventu informującego o zakończeniu
-                        Global::AddToQuery( evDone, NULL );
+                        simulation::Events.AddToQuery( evDone, nullptr );
                     }
                 }
                 else
@@ -406,23 +405,20 @@ void TAnimContainer::EventAssign(TEvent *ev)
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-TAnimModel::TAnimModel()
-{
-    pRoot = NULL;
-    pModel = NULL;
-    iNumLights = 0;
-    fBlinkTimer = 0;
-
-    for (int i = 0; i < iMaxNumLights; ++i)
-    {
-        LightsOn[i] = LightsOff[i] = nullptr; // normalnie nie ma
-        lsLights[i] = ls_Off; // a jeśli są, to wyłączone
+TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {
+    // TODO: wrap these in a tuple and move to underlying model
+    for( int index = 0; index < iMaxNumLights; ++index ) {
+        LightsOn[ index ] = LightsOff[ index ] = nullptr; // normalnie nie ma
+        lsLights[ index ] = ls_Off; // a jeśli są, to wyłączone
     }
-    vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
-    pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25f; // standardowy próg zaplania
-    fOnTime = 0.66f;
-    fOffTime = fOnTime + 0.66f;
+}
+
+TAnimModel::TAnimModel() {
+    // TODO: wrap these in a tuple and move to underlying model
+    for( int index = 0; index < iMaxNumLights; ++index ) {
+        LightsOn[index] = LightsOff[index] = nullptr; // normalnie nie ma
+        lsLights[index] = ls_Off; // a jeśli są, to wyłączone
+    }
 }
 
 TAnimModel::~TAnimModel()
@@ -571,6 +567,15 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
 
     m_framestamp = Framestamp;
 };
+
+// calculates piece's bounding radius
+void
+TAnimModel::radius_() {
+
+    if( pModel != nullptr ) {
+        m_area.radius = pModel->bounding_radius();
+    }
+}
 
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
@@ -762,21 +767,27 @@ void TAnimModel::LightSet(int n, float v)
 { // ustawienie światła (n) na wartość (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
-    lsLights[n] = TLightState(int(v));
-    switch (lsLights[n])
-    { // interpretacja ułamka zależnie od typu
-    case 0: // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
-        break;
-    case 1: // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
-        break;
-    case 2: // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
-        break;
-    case 3: // zapalenie świateł zależne od oświetlenia scenerii
-        if (v > 3.0)
-            fDark = v - 3.0; // ustawienie indywidualnego progu zapalania
-        else
-            fDark = 0.25; // standardowy próg zaplania
-        break;
+    lsLights[ n ] = TLightState( static_cast<int>( v ) );
+    switch( lsLights[ n ] ) {
+        // interpretacja ułamka zależnie od typu
+        case ls_Off: {
+            // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
+            break;
+        }
+        case ls_On: {
+            // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
+            break;
+        }
+        case ls_Blink: {
+            // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
+            break;
+        }
+        case ls_Dark: {
+            // zapalenie świateł zależne od oświetlenia scenerii
+            if( v > 3.0 ) { fDark = v - 3.0; } // ustawienie indywidualnego progu zapalania
+            else          { fDark = DefaultDarkThresholdLevel; } // standardowy próg zaplania
+            break;
+        }
     }
 };
 //---------------------------------------------------------------------------

@@ -14,37 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "usefull.h"
 
-// 110405 Ra: klasa punktów przekroju z normalnymi
-/*
-class vector6 : public Math3D::vector3
-{ // punkt przekroju wraz z wektorem normalnym
-  public:
-    Math3D::vector3 n;
-    vector6()
-    {
-        x = y = z = n.x = n.z = 0.0;
-        n.y = 1.0;
-    };
-    vector6(double a, double b, double c, double d, double e, double f)
-    {
-        x = a;
-        y = b;
-        z = c;
-        n.x = 0.0;
-        n.y = 1.0;
-        n.z = 0.0;
-    }; // Ra: bo na razie są z tym problemy
-    vector6(double a, double b, double c)
-    {
-        x = a;
-        y = b;
-        z = c;
-        n.x = 0.0;
-        n.y = 1.0;
-        n.z = 0.0;
-    };
-};
-*/
 class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
   private:
@@ -60,7 +29,6 @@ class TSegment
     double fStoop = 0.0; // Ra: kąt wzniesienia; dla łuku od Point1
     Math3D::vector3 vA, vB, vC; // współczynniki wielomianów trzeciego stopnia vD==Point1
     TTrack *pOwner = nullptr; // wskaźnik na właściciela
-    double fAngle[ 2 ] = { 0.0, 0.0 }; // kąty zakończenia drogi na przejazdach
 
     Math3D::vector3
         GetFirstDerivative(double const fTime) const;
@@ -140,10 +108,6 @@ public:
     int
         RaSegCount() const {
             return fTsBuffer ? iSegCount : 1; };
-    inline
-    void
-        AngleSet(int const i, double const a) {
-            fAngle[i] = a; };
 };
 
 //---------------------------------------------------------------------------
