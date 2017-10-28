@@ -12,23 +12,17 @@ http://mozilla.org/MPL/2.0/.
 
 */
 #include "stdafx.h"
+#include "globals.h"
 
-#include "Globals.h"
-#include "usefull.h"
-//#include "Mover.h"
+#include "world.h"
+#include "simulation.h"
+#include "logs.h"
 #include "Console.h"
-#include "Driver.h"
-#include "Logs.h"
 #include "PyInt.h"
-#include "World.h"
-#include "parser.h"
 
 // namespace Global {
 
 // parametry do użytku wewnętrznego
-#ifdef EU07_USE_OLD_GROUNDCODE
-TGround *Global::pGround = NULL;
-#endif
 std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
@@ -985,26 +979,6 @@ void Global::TrainDelete(TDynamicObject *d)
 { // usunięcie pojazdu prowadzonego przez użytkownika
     if (pWorld)
         pWorld->TrainDelete(d);
-};
-
-#ifdef EU07_USE_OLD_GROUNDCODE
-TDynamicObject *Global::DynamicNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->DynamicNearest(pCamera->Pos);
-};
-
-TDynamicObject *Global::CouplerNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->CouplerNearest(pCamera->Pos);
-};
-#endif
-bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
-{
-#ifdef EU07_USE_OLD_GROUNDCODE
-    return pGround->AddToQuery(event, who);
-#else
-    return simulation::Events.AddToQuery( event, who );
-#endif
 };
 
 //---------------------------------------------------------------------------

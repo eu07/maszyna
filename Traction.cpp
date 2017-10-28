@@ -14,10 +14,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Traction.h"
+
+#include "simulation.h"
 #include "Globals.h"
 #include "logs.h"
-#include "mctools.h"
-#include "TractionPower.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -180,20 +180,10 @@ TTraction::endpoints() const {
 }
 
 std::size_t
-#ifdef EU07_USE_OLD_GROUNDCODE
-TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
-#else
 TTraction::create_geometry( geometrybank_handle const &Bank ) {
-#endif
     if( m_geometry != null_handle ) {
         return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
-
-#ifdef EU07_USE_OLD_GROUNDCODE
-    if( Bank != 0 ) {
-        m_origin = Origin;
-    }
-#endif
 
     vertex_array vertices;
 

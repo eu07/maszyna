@@ -20,17 +20,16 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include <png.h>
 #endif
 
+#include "World.h"
+#include "simulation.h"
 #include "Globals.h"
+#include "timer.h"
 #include "Logs.h"
 #include "keyboardinput.h"
 #include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
-#include "World.h"
-#include "Mover.h"
-#include "usefull.h"
-#include "timer.h"
 #include "uilayer.h"
 
 #ifdef EU07_BUILD_STATIC

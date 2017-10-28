@@ -15,15 +15,12 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
-#include "Globals.h"
-#include "Logs.h"
-#include "usefull.h"
-#include "McZapkie/mctools.h"
-#include "Timer.h"
 #include "MdlMngr.h"
-// McZapkie:
-#include "renderer.h"
-//---------------------------------------------------------------------------
+#include "simulation.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "Logs.h"
+
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
 TAnimAdvanced::TAnimAdvanced(){};
@@ -234,11 +231,7 @@ void TAnimContainer::UpdateModel() {
                     iAnim &= ~2; // wyłączyć zmianę pozycji submodelu
                 if( evDone ) {
                     // wykonanie eventu informującego o zakończeniu
-#ifdef EU07_USE_OLD_GROUNDCODE
-                    Global::AddToQuery( evDone, NULL );
-#else
                     simulation::Events.AddToQuery( evDone, nullptr );
-#endif
                 }
             }
         }
@@ -306,11 +299,7 @@ void TAnimContainer::UpdateModel() {
                 fRotateSpeed = 0.0;
                 if( evDone ) {
                     // wykonanie eventu informującego o zakończeniu
-#ifdef EU07_USE_OLD_GROUNDCODE
-                    Global::AddToQuery( evDone, NULL );
-#else
                     simulation::Events.AddToQuery( evDone, nullptr );
-#endif
                 }
             }
         }
@@ -340,11 +329,7 @@ void TAnimContainer::PrepareModel()
                     fAngleSpeed = 0.0; // wyłączenie przeliczania wektora
                     if( evDone ) {
                         // wykonanie eventu informującego o zakończeniu
-#ifdef EU07_USE_OLD_GROUNDCODE
-                        Global::AddToQuery( evDone, NULL );
-#else
                         simulation::Events.AddToQuery( evDone, nullptr );
-#endif
                     }
                 }
                 else

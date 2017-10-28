@@ -63,9 +63,6 @@ union TParam
 {
     void *asPointer;
     TMemCell *asMemCell;
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode *nGroundNode;
-#endif
     editor::basic_node *asEditorNode;
     glm::dvec3 const *asLocation;
     TTrack *asTrack;
@@ -94,9 +91,6 @@ class TEvent // zmienne: ev*
     bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
     int iQueued = 0; // ile razy dodany do kolejki
     TEvent *evNext = nullptr; // następny w kolejce
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TEvent *evNext2 = nullptr;
-#endif
     TEventType Type = tp_Unknown;
     double fStartTime = 0.0;
     double fDelay = 0.0;

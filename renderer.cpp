@@ -440,18 +440,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
 #endif
                 switch_units( true, true, true );
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Render( &World.Ground );
-#else
                 Render( simulation::Region );
-#endif
                 // ...translucent parts
                 setup_drawing( true );
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Render_Alpha( &World.Ground );
-#else
                 Render_Alpha( simulation::Region );
-#endif
                 if( World.Train != nullptr ) {
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, false, false );
@@ -501,11 +493,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #else
                 setup_units( false, false, false );
 #endif
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Render( &World.Ground );
-#else
                 Render( simulation::Region );
-#endif
                 // post-render restore
                 ::glDisable( GL_POLYGON_OFFSET_FILL );
                 ::glDisable( GL_SCISSOR_TEST );
@@ -534,11 +522,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( true, true, true );
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Render( &World.Ground );
-#else
                 Render( simulation::Region );
-#endif
 /*
                 // reflections are limited to sky and ground only, the update rate is too low for anything else
                 // ...translucent parts
@@ -591,11 +575,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( false, false, false );
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Render( &World.Ground );
-#else
                 Render( simulation::Region );
-#endif
                 // post-render cleanup
             }
             break;
@@ -1365,450 +1345,6 @@ opengl_renderer::Texture( texture_handle const Texture ) const {
     return m_textures.texture( Texture );
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-bool
-opengl_renderer::Render( TGround *Ground ) {
-
-    m_cellqueue.clear();
-
-    glm::vec3 const cameraposition { m_renderpass.camera.position() };
-    int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
-    int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
-    int const segmentcount = 2 * static_cast<int>(std::ceil( m_renderpass.draw_range * Global::fDistanceFactor / 1000.0f ));
-    int const originx = std::max( 0, camerax - segmentcount / 2 );
-    int const originz = std::max( 0, cameraz - segmentcount / 2 );
-
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::color: {
-
-            Update_Lights( simulation::Lights );
-
-            for( int column = originx; column <= originx + segmentcount; ++column ) {
-                for( int row = originz; row <= originz + segmentcount; ++row ) {
-
-                    auto *cell = &Ground->Rects[ column ][ row ];
-#ifdef EU07_USE_DEBUG_CULLING
-                    if( m_worldcamera.camera.visible( cell->m_area ) ) {
-#else
-                    if( m_renderpass.camera.visible( cell->m_area ) ) {
-#endif
-                        Render( cell );
-                    }
-                }
-            }
-            // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
-            std::sort(
-                std::begin( m_cellqueue ),
-                std::end( m_cellqueue ),
-                []( distancesubcell_pair const &Left, distancesubcell_pair const &Right ) {
-                    return ( Left.first ) < ( Right.first ); } );
-            // ...then render the opaque content of the visible subcells.
-            for( auto subcellpair : m_cellqueue ) {
-                Render( subcellpair.second );
-            }
-            break;
-        }
-        case rendermode::reflections: {
-            // reflections render only terrain geometry
-            for( int column = originx; column <= originx + segmentcount; ++column ) {
-                for( int row = originz; row <= originz + segmentcount; ++row ) {
-
-                    auto *cell = &Ground->Rects[ column ][ row ];
-                    if( m_renderpass.camera.visible( cell->m_area ) ) {
-                        Render( cell );
-                    }
-                }
-            }
-            break;
-        }
-        case rendermode::shadows:
-        case rendermode::pickscenery: {
-            // these render modes don't bother with anything non-visual, or lights
-            for( int column = originx; column <= originx + segmentcount; ++column ) {
-                for( int row = originz; row <= originz + segmentcount; ++row ) {
-
-                    auto *cell = &Ground->Rects[ column ][ row ];
-                    if( m_renderpass.camera.visible( cell->m_area ) ) {
-                        Render( cell );
-                    }
-                }
-            }
-            // they can also skip queue sorting, as they only deal with opaque geometry
-            // NOTE: there's benefit from rendering front-to-back, but is it significant enough? TODO: investigate
-            for( auto subcellpair : m_cellqueue ) {
-                Render( subcellpair.second );
-            }
-            break;
-        }
-        case rendermode::pickcontrols:
-        default: {
-            break;
-        }
-    }
-
-    return true;
-}
-
-bool
-opengl_renderer::Render( TGroundRect *Groundcell ) {
-
-    bool result { false }; // will be true if we do any rendering
-
-    Groundcell->LoadNodes(); // ewentualne tworzenie siatek
-
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::pickscenery: {
-            // non-interactive scenery elements get neutral colour
-            ::glColor3fv( glm::value_ptr( colors::none ) );
-        }
-        case rendermode::color:
-        case rendermode::reflections: {
-            if( Groundcell->nRenderRect != nullptr ) {
-                // nieprzezroczyste trójkąty kwadratu kilometrowego
-                for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                    Render( node );
-                }
-                result = true;
-            }
-            break;
-        }
-        case rendermode::shadows: {
-            if( Groundcell->nRenderRect != nullptr ) {
-                // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
-                ::glDisable( GL_CULL_FACE );
-                // nieprzezroczyste trójkąty kwadratu kilometrowego
-                for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                    Render( node );
-                }
-                result = true;
-                ::glEnable( GL_CULL_FACE );
-            }
-        }
-        case rendermode::pickcontrols:
-        default: {
-            break;
-        }
-    }
-
-    // add the subcells of the cell to the draw queue
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::color:
-        case rendermode::shadows:
-        case rendermode::pickscenery: {
-            if( Groundcell->pSubRects != nullptr ) {
-                for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
-                    auto subcell = Groundcell->pSubRects + subcellindex;
-                    if( subcell->iNodeCount ) {
-                        // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                        m_cellqueue.emplace_back(
-                            glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
-                            subcell );
-                    }
-                }
-            }
-            break;
-        }
-        case rendermode::reflections:
-        case rendermode::pickcontrols:
-        default: {
-            break;
-        }
-    }
-    return result;
-}
-
-bool
-opengl_renderer::Render( TSubRect *Groundsubcell ) {
-
-    // oznaczanie aktywnych sektorów
-    Groundsubcell->LoadNodes();
-
-    // przeliczenia animacji torów w sektorze
-    Groundsubcell->RaAnimate( m_framestamp );
-
-    TGroundNode *node;
-
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::color:
-        case rendermode::shadows: {
-            // nieprzezroczyste obiekty terenu
-            for( node = Groundsubcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                Render( node );
-            }
-            // nieprzezroczyste obiekty (oprócz pojazdów)
-            for( node = Groundsubcell->nRender; node != nullptr; node = node->nNext3 ) {
-                Render( node );
-            }
-            // nieprzezroczyste z mieszanych modeli
-            for( node = Groundsubcell->nRenderMixed; node != nullptr; node = node->nNext3 ) {
-                Render( node );
-            }
-            // nieprzezroczyste fragmenty pojazdów na torach
-            for( int trackidx = 0; trackidx < Groundsubcell->iTracks; ++trackidx ) {
-                for( auto dynamic : Groundsubcell->tTracks[ trackidx ]->Dynamics ) {
-                    Render( dynamic );
-                }
-            }
-#ifdef EU07_SCENERY_EDITOR
-            // memcells
-            if( EditorModeFlag ) {
-                for( auto const memcell : Groundsubcell->m_memcells ) {
-                    Render( memcell );
-                }
-            }
-#endif
-            break;
-        }
-        case rendermode::pickscenery: {
-            // same procedure like with regular render, but each node receives custom colour used for picking
-            // nieprzezroczyste obiekty terenu
-            for( node = Groundsubcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                Render( node );
-            }
-            // nieprzezroczyste obiekty (oprócz pojazdów)
-            for( node = Groundsubcell->nRender; node != nullptr; node = node->nNext3 ) {
-                ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                Render( node );
-            }
-            // nieprzezroczyste z mieszanych modeli
-            for( node = Groundsubcell->nRenderMixed; node != nullptr; node = node->nNext3 ) {
-                ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                Render( node );
-            }
-            // nieprzezroczyste fragmenty pojazdów na torach
-            for( int trackidx = 0; trackidx < Groundsubcell->iTracks; ++trackidx ) {
-                for( auto dynamic : Groundsubcell->tTracks[ trackidx ]->Dynamics ) {
-                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                    Render( dynamic );
-                }
-            }
-#ifdef EU07_SCENERY_EDITOR
-            // memcells
-            if( EditorModeFlag ) {
-                for( auto const memcell : Groundsubcell->m_memcells ) {
-                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                    Render( memcell );
-                }
-            }
-#endif
-            break;
-        }
-        case rendermode::pickcontrols:
-        default: {
-            break;
-        }
-    }
-
-    return true;
-}
-
-bool
-opengl_renderer::Render( TGroundNode *Node ) {
-
-    double distancesquared;
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-        default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-    }
-    if( ( distancesquared <  Node->fSquareMinRadius )
-     || ( distancesquared >= Node->fSquareRadius ) ) {
-        return false;
-    }
-
-    switch (Node->iType) {
-
-        case TP_TRACK: {
-            // setup
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::shadows: {
-                    return false;
-                }
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-            // render
-            Render( Node->pTrack );
-            // debug
-            ++m_debugstats.paths;
-            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-            return true;
-        }
-
-        case TP_MODEL: {
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            Node->Model->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
-            Node->Model->RaPrepare();
-            if( Node->Model->pModel ) {
-                // renderowanie rekurencyjne submodeli
-                Render(
-                    Node->Model->pModel,
-                    Node->Model->Material(),
-                    distancesquared,
-                    Node->pCenter - m_renderpass.camera.position(),
-                    Node->Model->vAngle );
-            }
-            return true;
-        }
-
-        case GL_LINES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( Node->fLineThickness > 0.0 ) ) {
-                return false;
-            }
-            // setup
-            auto const distance = std::sqrt( distancesquared );
-            auto const linealpha =
-                10.0 * Node->fLineThickness
-                / std::max(
-                    0.5 * Node->m_radius + 1.0,
-                    distance - ( 0.5 * Node->m_radius ) );
-            switch( m_renderpass.draw_mode ) {
-                // wire colouring is disabled for modes other than colour
-                case rendermode::color: {
-                    ::glColor4fv(
-                        glm::value_ptr(
-                            glm::vec4(
-                                Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
-                                1.0 ) ) ); // if the thickness is defined negative, lines are always drawn opaque
-                    break;
-                }
-                case rendermode::shadows:
-                case rendermode::pickcontrols:
-                case rendermode::pickscenery:
-                default: {
-                    break;
-                }
-            }
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
-            if( linewidth > 1.0 ) {
-                ::glLineWidth( static_cast<float>( linewidth ) );
-            }
-
-            GfxRenderer.Bind_Material( null_handle );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug
-//            ++m_debugstats.lines;
-//            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-
-            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
-
-            return true;
-        }
-
-        case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
-                return false;
-            }
-            // setup
-            Bind_Material( Node->m_material );
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::color: {
-                    ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
-                    break;
-                }
-                // pick modes get custom colours, and shadow pass doesn't use any
-                case rendermode::shadows:
-                case rendermode::pickcontrols:
-                case rendermode::pickscenery:
-                default: {
-                    break;
-                }
-            }
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug
-            ++m_debugstats.shapes;
-            ++m_debugstats.drawcalls;
-
-            // post-render cleanup
-            ::glPopMatrix();
-
-            return true;
-        }
-
-        case TP_MEMCELL: {
-            switch( m_renderpass.draw_mode ) {
-                case rendermode::pickscenery: {
-                    // add the node to the pick list
-                    m_picksceneryitems.emplace_back( Node );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            Render( Node->MemCell );
-            return true;
-        }
-
-        default: { break; }
-    }
-    // in theory we shouldn't ever get here but, eh
-    return false;
-}
-#else
 void
 opengl_renderer::Render( scene::basic_region *Region ) {
 
@@ -2060,7 +1596,15 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // tracks
                 // TODO: update after path node refactoring
                 Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
-
+#ifdef EU07_SCENERY_EDITOR
+                // TODO: re-implement
+                // memcells
+                if( EditorModeFlag ) {
+                    for( auto const memcell : Groundsubcell->m_memcells ) {
+                        Render( memcell );
+                    }
+                }
+#endif
                 // post-render cleanup
                 ::glPopMatrix();
 
@@ -2095,12 +1639,20 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 ::glColor3fv( glm::value_ptr( colors::none ) );
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
-                // TODO: add path to the node picking list
                 for( auto *path : cell->m_paths ) {
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( path );
                 }
-
+#ifdef EU07_SCENERY_EDITOR
+                // memcells
+                // TODO: re-implement
+                if( EditorModeFlag ) {
+                    for( auto const memcell : Groundsubcell->m_memcells ) {
+                        ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
+                        Render( memcell );
+                    }
+                }
+#endif
                 // post-render cleanup
                 ::glPopMatrix();
 
@@ -2250,7 +1802,6 @@ opengl_renderer::Render( TAnimModel *Instance ) {
             Instance->vAngle );
     }
 }
-#endif
 
 bool
 opengl_renderer::Render( TDynamicObject *Dynamic ) {
@@ -2938,213 +2489,6 @@ opengl_renderer::Render( TMemCell *Memcell ) {
     ::glPopMatrix();
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-bool
-opengl_renderer::Render_Alpha( TGround *Ground ) {
-
-    TGroundNode *node;
-    TSubRect *tmp;
-    // Ra: renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
-        // przezroczyste trójkąty w oddzielnym cyklu przed modelami
-        tmp = subcellpair->second;
-        for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
-            Render_Alpha( node );
-        }
-    }
-    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair )
-    { // renderowanie przezroczystych modeli oraz pojazdów
-        Render_Alpha( subcellpair->second );
-    }
-
-    ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
-
-    for( auto subcellpair = std::rbegin( m_cellqueue ); subcellpair != std::rend( m_cellqueue ); ++subcellpair ) {
-        // druty na końcu, żeby się nie robiły białe plamy na tle lasu
-        tmp = subcellpair->second;
-        for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
-            Render_Alpha( node );
-        }
-    }
-
-    ::glEnable( GL_LIGHTING );
-
-    return true;
-}
-
-bool
-opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
-
-    TGroundNode *node;
-    for( node = Groundsubcell->nRenderMixed; node; node = node->nNext3 )
-        Render_Alpha( node ); // przezroczyste z mieszanych modeli
-    for( node = Groundsubcell->nRenderAlpha; node; node = node->nNext3 )
-        Render_Alpha( node ); // przezroczyste modele
-    for( int trackidx = 0; trackidx < Groundsubcell->iTracks; ++trackidx ) {
-        for( auto dynamic : Groundsubcell->tTracks[ trackidx ]->Dynamics ) {
-            Render_Alpha( dynamic ); // przezroczyste fragmenty pojazdów na torach
-        }
-    }
-
-    return true;
-}
-
-bool
-opengl_renderer::Render_Alpha( TGroundNode *Node ) {
-
-    double distancesquared;
-    switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-        default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
-            break;
-        }
-    }
-    if( ( distancesquared <  Node->fSquareMinRadius )
-     || ( distancesquared >= Node->fSquareRadius ) ) {
-        return false;
-    }
-
-    switch (Node->iType)
-    {
-        case TP_TRACTION: {
-            if( Node->bVisible ) {
-                // rysuj jesli sa druty i nie zerwana
-                if( ( Node->hvTraction->Wires == 0 )
-                 || ( true == TestFlag( Node->hvTraction->DamageFlag, 128 ) ) ) {
-                    return false;
-                }
-                // setup
-                if( !Global::bSmoothTraction ) {
-                    // na liniach kiepsko wygląda - robi gradient
-                    ::glDisable( GL_LINE_SMOOTH );
-                }
-                float const linealpha = static_cast<float>(
-                    std::min(
-                        1.25,
-                        5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
-                ::glLineWidth( linealpha );
-                // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-                auto const color { Node->hvTraction->wire_color() };
-                ::glColor4f( color.r, color.g, color.b, linealpha );
-
-                Bind_Material( null_handle );
-
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-                // render
-                m_geometry.draw( Node->hvTraction->m_geometry );
-                // debug data
-                ++m_debugstats.traction;
-                ++m_debugstats.drawcalls;
-
-                // post-render cleanup
-                ::glPopMatrix();
-
-                ::glLineWidth( 1.0 );
-                if( !Global::bSmoothTraction ) {
-                    ::glEnable( GL_LINE_SMOOTH );
-                }
-
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        case TP_MODEL: {
-
-            Node->Model->RaPrepare();
-            if( Node->Model->pModel ) {
-                // renderowanie rekurencyjne submodeli
-                Render_Alpha(
-                    Node->Model->pModel,
-                    Node->Model->Material(),
-                    distancesquared,
-                    Node->pCenter - m_renderpass.camera.position(),
-                    Node->Model->vAngle );
-            }
-            return true;
-        }
-
-        case GL_LINES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( Node->fLineThickness < 0.0 ) ) {
-                return false;
-            }
-            // setup
-            auto const distance = std::sqrt( distancesquared );
-            auto const linealpha =
-                10.0 * Node->fLineThickness
-                / std::max(
-                    0.5 * Node->m_radius + 1.0,
-                    distance - ( 0.5 * Node->m_radius ) );
-            ::glColor4fv(
-                glm::value_ptr(
-                    glm::vec4(
-                        Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
-                        std::min( 1.0, linealpha ) ) ) );
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
-            if( linewidth > 1.0 ) {
-                ::glLineWidth( static_cast<float>(linewidth) );
-            }
-
-            GfxRenderer.Bind_Material( null_handle );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            ++m_debugstats.lines;
-            ++m_debugstats.drawcalls;
-
-            // post-render cleanup
-            ::glPopMatrix();
-
-            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
-
-            return true;
-        }
-
-        case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == null_handle )
-             || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
-                return false;
-            }
-            // setup
-            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
-
-            Bind_Material( Node->m_material );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            // render
-            m_geometry.draw( Node->Piece->geometry );
-            // debug data
-            ++m_debugstats.shapes;
-            ++m_debugstats.drawcalls;
-            // post-render cleanup
-            ::glPopMatrix();
-
-            return true;
-        }
-
-        default: { break; }
-    }
-    // in theory we shouldn't ever get here but, eh
-    return false;
-}
-#else
 void
 opengl_renderer::Render_Alpha( scene::basic_region *Region ) {
 
@@ -3377,7 +2721,7 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
     ++m_debugstats.lines;
     ++m_debugstats.drawcalls;
 }
-#endif
+
 bool
 opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
@@ -3748,11 +3092,7 @@ opengl_renderer::Update_Pick_Control() {
     return control;
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-TGroundNode const *
-#else
 editor::basic_node const *
-#endif
 opengl_renderer::Update_Pick_Node() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3787,11 +3127,7 @@ opengl_renderer::Update_Pick_Node() {
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
     auto const nodeindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode const *node { nullptr };
-#else
     editor::basic_node const *node { nullptr };
-#endif
     if( ( nodeindex > 0 )
      && ( nodeindex <= m_picksceneryitems.size() ) ) {
         node = m_picksceneryitems[ nodeindex - 1 ];

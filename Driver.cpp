@@ -21,7 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "DynObj.h"
 #include "Event.h"
-#include "Ground.h"
 #include "MemCell.h"
 #include "World.h"
 #include "McZapkie/mctools.h"
@@ -3002,24 +3001,13 @@ void TController::RecognizeCommand()
 
 void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason)
 { // wysłanie komendy przez event PutValues, jak pojazd ma obsadę, to wysyła tutaj, a nie do pojazdu bezpośrednio
-#ifdef EU07_USE_OLD_GROUNDCODE
-    vector3 sl;
-    sl.x = -NewLocation.X; // zamiana na współrzędne scenerii
-    sl.z = NewLocation.Y;
-    sl.y = NewLocation.Z;
-#else
     // zamiana na współrzędne scenerii
     glm::dvec3 sl { -NewLocation.X, NewLocation.Z, NewLocation.Y };
-#endif
     if (!PutCommand(NewCommand, NewValue1, NewValue2, &sl, reason))
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-bool TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const vector3 *NewLocation, TStopReason reason)
-#else
 bool TController::PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason )
-#endif
 { // analiza komendy
     if (NewCommand == "CabSignal")
     { // SHP wyzwalane jest przez człon z obsadą, ale obsługiwane przez silnikowy
@@ -5339,11 +5327,7 @@ TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, 
 }
 
 // sprawdzanie zdarzeń semaforów i ograniczeń szlakowych
-#ifdef EU07_USE_OLD_GROUNDCODE
-void TController::SetProximityVelocity(double dist, double vel, const vector3 *pos)
-#else
 void TController::SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos )
-#endif
 { // Ra:przeslanie do AI prędkości
     /*
      //!!!! zastąpić prawidłową reakcją AI na SetProximityVelocity !!!!

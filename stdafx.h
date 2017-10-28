@@ -94,5 +94,3 @@
 #include <glm/gtx/norm.hpp>
 
 #include "openglmatrixstack.h"
-
-//#define EU07_USE_OLD_GROUNDCODE

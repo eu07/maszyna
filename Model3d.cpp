@@ -19,9 +19,6 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
-#ifdef EU07_USE_OLD_GROUNDCODE
-#include "ground.h"
-#endif
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
@@ -1033,64 +1030,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
     if( Next )
         Next->create_geometry( Dataoffset, Bank );
 }
-#ifdef EU07_USE_OLD_GROUNDCODE
-// places contained geometry in provided ground node
-void
-TSubModel::convert( TGroundNode &Groundnode ) const {
 
-    Groundnode.asName = pName;
-    Groundnode.Ambient = f4Ambient;
-    Groundnode.Diffuse = f4Diffuse;
-    Groundnode.Specular = f4Specular;
-    Groundnode.m_material = m_material;
-    Groundnode.iFlags = (
-        ( true == GfxRenderer.Material( m_material ).has_alpha ) ?
-            0x20 :
-            0x10 );
-
-    if( m_geometry == null_handle ) { return; }
-
-    int vertexcount { 0 };
-    std::vector<TGroundVertex> importedvertices;
-    TGroundVertex vertex, vertex1, vertex2;
-    for( auto const &sourcevertex : GfxRenderer.Vertices( m_geometry ) ) {
-        vertex.position = sourcevertex.position;
-        vertex.normal   = sourcevertex.normal;
-        vertex.texture  = sourcevertex.texture;
-             if( vertexcount == 0 ) { vertex1 = vertex; }
-        else if( vertexcount == 1 ) { vertex2 = vertex; }
-        else if( vertexcount >= 2 ) {
-            if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
-                importedvertices.emplace_back( vertex1 );
-                importedvertices.emplace_back( vertex2 );
-                importedvertices.emplace_back( vertex );
-            }
-            // start a new triangle
-            vertexcount = -1;
-        }
-        ++vertexcount;
-    }
-    if( Groundnode.Piece == nullptr ) {
-        Groundnode.Piece = new piece_node();
-    }
-    Groundnode.iNumVerts = importedvertices.size();
-    if( Groundnode.iNumVerts > 0 ) {
-        // assign imported geometry to the node...
-        Groundnode.Piece->vertices.swap( importedvertices );
-        // ...and calculate center...
-        for( auto const &vertex : Groundnode.Piece->vertices ) {
-            Groundnode.pCenter += vertex.position;
-        }
-        Groundnode.pCenter /= Groundnode.iNumVerts;
-        // ...and bounding area
-        double squareradius { 0.0 };
-        for( auto const &vertex : Groundnode.Piece->vertices ) {
-            squareradius = std::max( squareradius, glm::length2( vertex.position - glm::dvec3{ Groundnode.pCenter } ) );
-        }
-        Groundnode.fSquareRadius += squareradius;
-    }
-}
-#endif
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
     f4Ambient = glm::vec4( Ambient, 1.0f );

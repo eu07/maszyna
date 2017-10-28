@@ -13,7 +13,6 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 
 #include "Camera.h"
-#include "Ground.h"
 #include "scene.h"
 #include "sky.h"
 #include "sun.h"
@@ -125,9 +124,6 @@ private:
 
     TCamera Camera;
     TCamera DebugCamera;
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGround Ground;
-#endif
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;

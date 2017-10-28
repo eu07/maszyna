@@ -15,8 +15,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "TractionPower.h"
+
 #include "Logs.h"
-#include "Ground.h"
 
 //---------------------------------------------------------------------------
 
@@ -36,16 +36,11 @@ void TTractionPowerSource::Init(double const u, double const i)
 
 bool TTractionPowerSource::Load(cParser *parser) {
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-    parser->getTokens( 7, false );
-    *parser
-#else
     parser->getTokens( 10, false );
     *parser
         >> m_area.center.x
         >> m_area.center.y
         >> m_area.center.z
-#endif
         >> NominalVoltage
         >> VoltageFrequency
         >> InternalRes

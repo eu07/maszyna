@@ -66,11 +66,7 @@ class TTraction : public editor::basic_node {
         endpoints() const;
     // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
     // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
-#ifdef EU07_USE_OLD_GROUNDCODE
-    std::size_t create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ); // wypełnianie VBO
-#else
     std::size_t create_geometry( geometrybank_handle const &Bank );
-#endif
     int TestPoint(glm::dvec3 const &Point);
     void Connect(int my, TTraction *with, int to);
     void Init();

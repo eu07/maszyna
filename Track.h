@@ -77,9 +77,6 @@ class TSwitchExtension
         { // zmienne potrzebne tylko dla obrotnicy/przesuwnicy
           // TAnimContainer *pAnim; //animator modelu dla obrotnicy
             TAnimModel *pModel; // na razie model
-#ifdef EU07_USE_OLD_GROUNDCODE
-            TGroundNode *pMyNode; // dla obrotnicy do wtórnego podłączania torów
-#endif
         };
         struct
         { // zmienne dla skrzyżowania
@@ -89,11 +86,7 @@ class TSwitchExtension
         };
     };
     bool bMovement = false; // czy w trakcie animacji
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TSubRect *pOwner = nullptr; // sektor, któremu trzeba zgłosić animację
-#else
     scene::basic_cell *pOwner = nullptr; // TODO: convert this to observer pattern
-#endif
     TTrack *pNextAnim = nullptr; // następny tor do animowania
     TEvent *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
@@ -249,27 +242,13 @@ public:
     std::vector<glm::dvec3>
         endpoints() const;
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-    void create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ); // wypełnianie VBO
-#else
     void create_geometry( geometrybank_handle const &Bank ); // wypełnianie VBO
-#endif
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-    void RaOwnerSet(TSubRect *o) {
-        if (SwitchExtension)
-            SwitchExtension->pOwner = o; };
-#else
     void RaOwnerSet( scene::basic_cell *o ) {
         if( SwitchExtension ) { SwitchExtension->pOwner = o; } };
-#endif
     bool InMovement(); // czy w trakcie animacji?
-#ifdef EU07_USE_OLD_GROUNDCODE
-    void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
-#else
     void RaAssign( TAnimModel *am, TEvent *done, TEvent *joined );
-#endif
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
 

@@ -28,11 +28,7 @@ public:
     bool
         Load(cParser *parser);
     void
-#ifdef EU07_USE_OLD_GROUNDCODE
-        PutCommand( TController *Mech, Math3D::vector3 *Loc );
-#else
         PutCommand( TController *Mech, glm::dvec3 const *Loc );
-#endif
     bool
         Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask );
     std::string const &

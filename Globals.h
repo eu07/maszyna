@@ -161,11 +161,6 @@ public:
     static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static void TrainDelete(TDynamicObject *d);
-#ifdef EU07_USE_OLD_GROUNDCODE
-    static TDynamicObject * DynamicNearest();
-    static TDynamicObject * CouplerNearest();
-#endif
-    static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
@@ -195,9 +190,6 @@ public:
     static bool bLiveTraction;
     static float Global::fMouseXScale;
     static float Global::fMouseYScale;
-#ifdef EU07_USE_OLD_GROUNDCODE
-    static TGround *pGround;
-#endif
     static std::string szDefaultExt;
     static std::string SceneryFile;
     static std::string AppName;

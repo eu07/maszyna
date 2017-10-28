@@ -192,22 +192,14 @@ public:
     // utility methods
     TSubModel const *
         Pick_Control() const { return m_pickcontrolitem; }
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode const *
-#else
     editor::basic_node const *
-#endif
         Pick_Node() const { return m_picksceneryitem; }
     // maintenance jobs
     void
         Update( double const Deltatime );
     TSubModel const *
         Update_Pick_Control();
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode const *
-#else
     editor::basic_node const *
-#endif
         Update_Pick_Node();
     // debug performance string
     std::string const &
@@ -248,13 +240,9 @@ private:
         int drawcalls { 0 };
     };
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-    using distancesubcell_pair = std::pair< double, TSubRect * >;
-#else
     using section_sequence = std::vector<scene::basic_section *>;
     using distancecell_pair = std::pair<double, scene::basic_cell *>;
     using cell_sequence = std::vector<distancecell_pair>;
-#endif
 
     struct renderpass_config {
 
@@ -295,16 +283,6 @@ private:
         Render_reflections();
     bool
         Render( world_environment *Environment );
-#ifdef EU07_USE_OLD_GROUNDCODE
-    bool
-        Render( TGround *Ground );
-    bool
-        Render( TGroundRect *Groundcell );
-    bool
-        Render( TSubRect *Groundsubcell );
-    bool
-        Render( TGroundNode *Node );
-#else
     void
         Render( scene::basic_region *Region );
     void
@@ -315,7 +293,6 @@ private:
         Render( scene::shape_node const &Shape, bool const Ignorerange );
     void
         Render( TAnimModel *Instance );
-#endif
     bool
         Render( TDynamicObject *Dynamic );
     bool
@@ -332,14 +309,6 @@ private:
         Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
-#ifdef EU07_USE_OLD_GROUNDCODE
-    bool
-        Render_Alpha( TGround *Ground );
-    bool
-        Render_Alpha( TSubRect *Groundsubcell );
-    bool
-        Render_Alpha( TGroundNode *Node );
-#else
     void
         Render_Alpha( scene::basic_region *Region );
     void
@@ -350,7 +319,6 @@ private:
         Render_Alpha( TTraction *Traction );
     void
         Render_Alpha( scene::lines_node const &Lines );
-#endif
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
@@ -422,21 +390,12 @@ private:
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
 
     renderpass_config m_renderpass;
-#ifdef EU07_USE_OLD_GROUNDCODE
-    std::vector<distancesubcell_pair> m_cellqueue; // list of subcells to be drawn in current render pass
-#else
     section_sequence m_sectionqueue; // list of sections in current render pass
     cell_sequence m_cellqueue;
-#endif
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
-#ifdef EU07_USE_OLD_GROUNDCODE
-    std::vector<TGroundNode const *> m_picksceneryitems;
-    TGroundNode const *m_picksceneryitem { nullptr };
-#else
     std::vector<editor::basic_node const *> m_picksceneryitems;
     editor::basic_node const *m_picksceneryitem { nullptr };
-#endif
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif

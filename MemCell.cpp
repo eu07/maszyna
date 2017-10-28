@@ -14,14 +14,10 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "MemCell.h"
+#include "memcell.h"
 
-#include "Globals.h"
-#include "Logs.h"
-#include "Usefull.h"
-#include "Driver.h"
-#include "Event.h"
-#include "parser.h"
+#include "simulation.h"
+#include "logs.h"
 
 //---------------------------------------------------------------------------
 
@@ -104,16 +100,11 @@ TCommandType TMemCell::CommandCheck()
 bool TMemCell::Load(cParser *parser)
 {
     std::string token;
-#ifdef EU07_USE_OLD_GROUNDCODE
-    parser->getTokens( 3, false );
-    *parser
-#else
     parser->getTokens( 6, false );
     *parser
         >> m_area.center.x
         >> m_area.center.y
         >> m_area.center.z
-#endif
         >> szText
         >> fValue1
         >> fValue2;
@@ -129,11 +120,7 @@ bool TMemCell::Load(cParser *parser)
     return true;
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
-#else
 void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc )
-#endif
 { // wysłanie zawartości komórki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
@@ -178,11 +165,7 @@ void TMemCell::StopCommandSent()
     bCommand = false;
     if( OnSent ) {
         // jeśli jest event
-#ifdef EU07_USE_OLD_GROUNDCODE
-        Global::AddToQuery( OnSent, NULL );
-#else
         simulation::Events.AddToQuery( OnSent, nullptr );
-#endif
     }
 };
 

@@ -13,20 +13,12 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Track.h"
-#include "Globals.h"
-#include "Logs.h"
-#include "Usefull.h"
-#include "renderer.h"
-#include "Timer.h"
-#include "Ground.h"
-#include "parser.h"
-#include "Mover.h"
-#include "DynObj.h"
-#include "AnimModel.h"
-#include "MemCell.h"
-#include "Event.h"
+#include "track.h"
+
 #include "simulation.h"
+#include "globals.h"
+#include "timer.h"
+#include "logs.h"
 
 // 101206 Ra: trapezoidalne drogi i tory
 // 110720 Ra: rozprucie zwrotnicy i odcinki izolowane
@@ -37,13 +29,11 @@ static float const fMaxOffset = 0.1f; // double(0.1f)==0.100000001490116
 const int iLewo4[4] = {5, 3, 4, 6}; // segmenty (1..6) do skręcania w lewo
 const int iPrawo4[4] = {-4, -6, -3, -5}; // segmenty (1..6) do skręcania w prawo
 const int iProsto4[4] = {1, -1, 2, -2}; // segmenty (1..6) do jazdy prosto
-const int iEnds4[13] = {3, 0, 2, 1, 2, 0, -1,
-                        1, 3, 2, 0, 3, 1}; // numer sąsiedniego toru na końcu segmentu "-1"
+const int iEnds4[13] = {3, 0, 2, 1, 2, 0, -1, 1, 3, 2, 0, 3, 1}; // numer sąsiedniego toru na końcu segmentu "-1"
 const int iLewo3[4] = {1, 3, 2, 1}; // segmenty do skręcania w lewo
 const int iPrawo3[4] = {-2, -1, -3, -2}; // segmenty do skręcania w prawo
 const int iProsto3[4] = {1, -1, 2, 1}; // segmenty do jazdy prosto
-const int iEnds3[13] = {3, 0, 2, 1, 2, 0, -1,
-                        1, 0, 2, 0, 3, 1}; // numer sąsiedniego toru na końcu segmentu "-1"
+const int iEnds3[13] = {3, 0, 2, 1, 2, 0, -1, 1, 0, 2, 0, 3, 1}; // numer sąsiedniego toru na końcu segmentu "-1"
 TIsolated *TIsolated::pRoot = NULL;
 
 TSwitchExtension::TSwitchExtension(TTrack *owner, int const what)
@@ -114,7 +104,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         if (!iAxles)
         { // jeśli po zmianie nie ma żadnej osi na odcinku izolowanym
             if (evFree)
-                Global::AddToQuery(evFree, o); // dodanie zwolnienia do kolejki
+                simulation::Events.AddToQuery(evFree, o); // dodanie zwolnienia do kolejki
             if (Global::iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
@@ -128,7 +118,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         if (iAxles)
         {
             if (evBusy)
-                Global::AddToQuery(evBusy, o); // dodanie zajętości do kolejki
+                simulation::Events.AddToQuery(evBusy, o); // dodanie zajętości do kolejki
             if (Global::iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
@@ -185,18 +175,6 @@ TTrack::sort_by_material( TTrack const *Left, TTrack const *Right ) {
 
 TTrack * TTrack::Create400m(int what, double dx)
 { // tworzenie toru do wstawiania taboru podczas konwersji na E3D
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode *tmp = new TGroundNode(TP_TRACK); // node
-    TTrack *trk = tmp->pTrack;
-    trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
-    trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
-    trk->Init(); // utworzenie segmentu
-    trk->Segment->Init(vector3(-dx, 0, 0), vector3(-dx, 0, 400), 10.0, 0, 0); // prosty
-    tmp->pCenter = vector3(-dx, 0, 200); //środek, aby się mogło wyświetlić
-    TSubRect *r = Global::pGround->GetSubRect(tmp->pCenter.x, tmp->pCenter.z);
-    r->NodeAdd(tmp); // dodanie toru do segmentu
-    r->Sort(); //żeby wyświetlał tabor z dodanego toru
-#else
     auto *trk = new TTrack( "auto_400m" );
     trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
@@ -205,112 +183,11 @@ TTrack * TTrack::Create400m(int what, double dx)
     trk->location( glm::dvec3{ -dx, 0, 200 } ); //środek, aby się mogło wyświetlić
     simulation::Paths.insert( trk );
     simulation::Region->insert_path( trk, scene::scratch_data() );
-#endif
     return trk;
 };
 
 TTrack * TTrack::NullCreate(int dir)
 { // tworzenie toru wykolejającego od strony (dir), albo pętli dla samochodów
-#ifdef EU07_USE_OLD_GROUNDCODE
-    TGroundNode *tmp = new TGroundNode( TP_TRACK );
-    TGroundNode *tmp2 = nullptr; // node
-    TTrack *trk = tmp->pTrack; // tor; UWAGA! obrotnica może generować duże ilości tego
-    trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
-    // trk->iTrapezoid=1; //są przechyłki do uwzględniania w rysowaniu
-    trk->iCategoryFlag = (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
-    float r1, r2;
-    Segment->GetRolls(r1, r2); // pobranie przechyłek na początku toru
-    vector3 p1, cv1, cv2, p2; // będziem tworzyć trajektorię lotu
-    if (iCategoryFlag & 1)
-    { // tylko dla kolei
-        trk->iDamageFlag = 128; // wykolejenie
-        trk->fVelocity = 0.0; // koniec jazdy
-        trk->Init(); // utworzenie segmentu
-        switch (dir)
-        { //łączenie z nowym torem
-        case 0:
-            p1 = Segment->FastGetPoint_0();
-            p2 = p1 - 450.0 * Normalize(Segment->GetDirection1());
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p2, 5, -RadToDeg(r1), 70.0);
-            ConnectPrevPrev(trk, 0);
-            break;
-        case 1:
-            p1 = Segment->FastGetPoint_1();
-            p2 = p1 - 450.0 * Normalize(Segment->GetDirection2());
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p2, 5, RadToDeg(r2), 70.0);
-            ConnectNextPrev(trk, 0);
-            break;
-        case 3: // na razie nie możliwe
-            p1 = SwitchExtension->Segments[1]->FastGetPoint_1(); // koniec toru drugiego zwrotnicy
-            p2 = p1 - 450.0 * Normalize( SwitchExtension->Segments[1]->GetDirection2()); // przedłużenie na wprost
-            trk->Segment->Init(p1, p2, 5, RadToDeg(r2), 70.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            ConnectNextPrev(trk, 0);
-            // trk->ConnectPrevNext(trk,dir);
-            SetConnections(1); // skopiowanie połączeń
-            Switch(1); // bo się przełączy na 0, a to coś chce się przecież wykoleić na bok
-            break; // do drugiego zwrotnicy... nie zadziała?
-        }
-    }
-    else
-    { // tworznie pętelki dla samochodów
-        trk->fVelocity = 20.0; // zawracanie powoli
-        trk->fRadius = 20.0; // promień, aby się dodawało do tabelki prędkości i liczyło narastająco
-        trk->Init(); // utworzenie segmentu
-        tmp2 = new TGroundNode(TP_TRACK); // drugi odcinek do zapętlenia
-        TTrack *trk2 = tmp2->pTrack;
-        trk2->iCategoryFlag =
-            (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
-        trk2->m_visible = false;
-        trk2->fVelocity = 20.0; // zawracanie powoli
-        trk2->fRadius = 20.0; // promień, aby się dodawało do tabelki prędkości i liczyło
-        // narastająco
-        trk2->Init(); // utworzenie segmentu
-        trk->m_name = m_name + ":loopstart";
-        trk2->m_name = m_name + ":loopfinish";
-        switch (dir)
-        { //łączenie z nowym torem
-        case 0:
-            p1 = Segment->FastGetPoint_0();
-            cv1 = -20.0 * Normalize(Segment->GetDirection1()); // pierwszy wektor kontrolny
-            p2 = p1 + cv1 + cv1; // 40m
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, -RadToDeg(r1), 0.0);
-            ConnectPrevPrev(trk, 0);
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, -RadToDeg(r1), 0.0);
-            trk2->iPrevDirection = 0; // zwrotnie do tego samego odcinka
-            break;
-        case 1:
-            p1 = Segment->FastGetPoint_1();
-            cv1 = -20.0 * Normalize(Segment->GetDirection2()); // pierwszy wektor kontrolny
-            p2 = p1 + cv1 + cv1;
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, RadToDeg(r2), 0.0);
-            ConnectNextPrev(trk, 0);
-            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, RadToDeg(r2), 0.0);
-            trk2->iPrevDirection = 1; // zwrotnie do tego samego odcinka
-            break;
-        }
-        trk2->trPrev = this;
-        trk->ConnectNextNext(trk2, 1); // połączenie dwóch dodatkowych odcinków punktami 2
-        tmp2->pCenter = (0.5 * (p1 + p2)); //środek, aby się mogło wyświetlić
-    }
-    // trzeba jeszcze dodać do odpowiedniego segmentu, aby się renderowały z niego pojazdy
-    tmp->pCenter = (0.5 * (p1 + p2)); //środek, aby się mogło wyświetlić
-    if (tmp2)
-        tmp2->pCenter = tmp->pCenter; // ten sam środek jest
-    // Ra: to poniżej to porażka, ale na razie się nie da inaczej
-    TSubRect *r = Global::pGround->GetSubRect(tmp->pCenter.x, tmp->pCenter.z);
-    if( r != nullptr ) {
-        r->NodeAdd( tmp ); // dodanie toru do segmentu
-        if( tmp2 )
-            r->NodeAdd( tmp2 ); // drugiego też
-        r->Sort(); //żeby wyświetlał tabor z dodanego toru
-    }
-#else
     TTrack
         *trk { nullptr },
         *trk2 { nullptr };
@@ -403,7 +280,6 @@ TTrack * TTrack::NullCreate(int dir)
         simulation::Paths.insert( trk2 );
         simulation::Region->insert_path( trk2, scene::scratch_data() );
     }
-#endif
     return trk;
 };
 
@@ -1173,18 +1049,11 @@ bool TTrack::InMovement()
     return false;
 };
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
-#else
 void TTrack::RaAssign( TAnimModel *am, TEvent *done, TEvent *joined )
-#endif
 { // Ra: wiązanie toru z modelem obrotnicy
     if (eType == tt_Table)
     {
         SwitchExtension->pModel = am;
-#ifdef EU07_USE_OLD_GROUNDCODE
-        SwitchExtension->pMyNode = gn;
-#endif
         SwitchExtension->evMinus = done; // event zakończenia animacji (zadanie nowej przedłuża)
         SwitchExtension->evPlus =
             joined; // event potwierdzenia połączenia (gdy nie znajdzie, to się nie połączy)
@@ -1195,12 +1064,7 @@ void TTrack::RaAssign( TAnimModel *am, TEvent *done, TEvent *joined )
 };
 
 // wypełnianie tablic VBO
-
-#ifdef EU07_USE_OLD_GROUNDCODE
-void TTrack::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
-#else
 void TTrack::create_geometry( geometrybank_handle const &Bank ) {
-#endif
     // Ra: trzeba rozdzielić szyny od podsypki, aby móc grupować wg tekstur
     auto const fHTW = 0.5f * std::abs(fTrackWidth);
     auto const side = std::abs(fTexWidth); // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -1244,12 +1108,6 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         hypot2 = hypot1;
         normal2 = normal1;
     }
-
-#ifdef EU07_USE_OLD_GROUNDCODE
-    if( Bank != 0 ) {
-        m_origin = Origin;
-    }
-#endif
 
     float roll1, roll2;
     switch (iCategoryFlag & 15)
@@ -2287,9 +2145,6 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
 
 void TTrack::EnvironmentSet()
 { // ustawienie zmienionego światła
-#ifdef EU07_USE_OLD_GROUNDCODE
-    ::glColor4f( 1.f, 1.f, 1.f, 1.f );
-#endif
     switch( eEnvironment ) {
         case e_canyon: {
             Global::DayLight.apply_intensity( 0.4f );
@@ -2408,11 +2263,7 @@ bool TTrack::Switch(int i, float const t, float const d)
                 RaAnimate(); // ostatni etap animowania
                 // zablokowanie pozycji i połączenie do sąsiednich torów
                 // TODO: register new position of the path endpoints with the region
-#ifdef EU07_USE_OLD_GROUNDCODE
-                Global::pGround->TrackJoin(SwitchExtension->pMyNode);
-#else
                 simulation::Region->TrackJoin( this );
-#endif
                 if (trNext || trPrev)
                 {
                     fVelocity = 6.0; // jazda dozwolona
@@ -2427,7 +2278,7 @@ bool TTrack::Switch(int i, float const t, float const d)
                     }
                     if( SwitchExtension->evPlus ) { // w starych sceneriach może nie być
                         // potwierdzenie wykonania (np. odpala WZ)
-                        Global::AddToQuery( SwitchExtension->evPlus, nullptr );
+                        simulation::Events.AddToQuery( SwitchExtension->evPlus, nullptr );
                     }
                 }
             }
@@ -2463,11 +2314,11 @@ bool TTrack::SwitchForced(int i, TDynamicObject *o)
                 {
                 case 0:
                     if (SwitchExtension->evPlus)
-                        Global::AddToQuery(SwitchExtension->evPlus, o); // dodanie do kolejki
+                        simulation::Events.AddToQuery(SwitchExtension->evPlus, o); // dodanie do kolejki
                     break;
                 case 1:
                     if (SwitchExtension->evMinus)
-                        Global::AddToQuery(SwitchExtension->evMinus, o); // dodanie do kolejki
+                        simulation::Events.AddToQuery(SwitchExtension->evMinus, o); // dodanie do kolejki
                     break;
                 }
                 Switch(i); // jeśli się tu nie przełączy, to każdy pojazd powtórzy event rozrprucia
@@ -2662,11 +2513,7 @@ TTrack * TTrack::RaAnimate()
                            cosa = -hlen * std::cos(glm::radians(SwitchExtension->fOffset));
                     SwitchExtension->vTrans = ac->TransGet();
                     vector3 middle =
-#ifdef EU07_USE_OLD_GROUNDCODE
-                        SwitchExtension->pMyNode->pCenter +
-#else
                         location() +
-#endif
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
                     Segment->Init(middle + vector3(sina, 0.0, cosa),
                                   middle - vector3(sina, 0.0, cosa), 10.0); // nowy odcinek
@@ -2675,11 +2522,7 @@ TTrack * TTrack::RaAnimate()
                         dynamic->Move( 0.000001 );
                     }
                     // NOTE: passing empty handle is a bit of a hack here. could be refactored into something more elegant
-#ifdef EU07_USE_OLD_GROUNDCODE
-                    create_geometry( geometrybank_handle(), glm::dvec3() );
-#else
                     create_geometry( geometrybank_handle() );
-#endif
                 } // animacja trwa nadal
         }
         else
@@ -2976,19 +2819,16 @@ path_table::InitTracks() {
             // szukamy modelu o tej samej nazwie
             auto *instance = simulation::Instances.find( trackname );
             // wiązanie toru z modelem obrotnicy
-#ifdef EU07_USE_OLD_GROUNDCODE
-#else
             track->RaAssign(
                 instance,
                 simulation::Events.FindEvent( trackname + ":done" ),
                 simulation::Events.FindEvent( trackname + ":joined" ) );
-#endif
             if( instance == nullptr ) {
                 // jak nie ma modelu to pewnie jest wykolejnica, a ta jest domyślnie zamknięta i wykoleja
                 break;
             }
             // no break on purpose:
-            // jak coś pójdzie źle, to robimy z tego normalny tor
+            // "jak coś pójdzie źle, to robimy z tego normalny tor"
         }
         case tt_Normal: {
             // tylko proste są podłączane do rozjazdów, stąd dwa rozjazdy się nie połączą ze sobą

@@ -16,18 +16,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "event.h"
 
-#include "Globals.h"
-#include "Logs.h"
-#include "Usefull.h"
-#include "parser.h"
-#include "Timer.h"
-#include "MemCell.h"
-#include "Ground.h"
-#include "McZapkie\mctools.h"
-#include "animmodel.h"
-#include "dynobj.h"
-#include "driver.h"
-#include "tractionpower.h"
+#include "simulation.h"
+#include "globals.h"
+#include "timer.h"
+#include "logs.h"
 
 TEvent::TEvent( std::string const &m ) :
                        asNodeName( m )
@@ -745,7 +737,7 @@ event_manager::update() {
             // NOTE: we're presuming global events aren't going to use event2
             WriteLog( "Eventlauncher " + launcher->name() );
             if( launcher->Event1 ) {
-                Global::AddToQuery( launcher->Event1, nullptr );
+                AddToQuery( launcher->Event1, nullptr );
             }
         }
     }
@@ -850,11 +842,7 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                         for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
                             Event->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
-#ifdef EU07_USE_OLD_GROUNDCODE
-                                &Event->Params[ 4 ].nGroundNode->pCenter );
-#else
                                 Event->Params[ 4 ].asLocation );
-#endif
                         }
                         //if (DebugModeFlag)
                         WriteLog(
@@ -952,11 +940,7 @@ event_manager::CheckQuery() {
                         for( auto dynamic : m_workevent->Params[ 6 ].asTrack->Dynamics ) {
                             m_workevent->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
-#ifdef EU07_USE_OLD_GROUNDCODE
-                                &m_workevent->Params[ 4 ].nGroundNode->pCenter );
-#else
                                 m_workevent->Params[ 4 ].asLocation );
-#endif
                         }
                         //if (DebugModeFlag)
                         WriteLog("Type: UpdateValues & Track command - [" +
@@ -980,11 +964,7 @@ event_manager::CheckQuery() {
                     }
                     m_workevent->Params[ 9 ].asMemCell->PutCommand(
                         m_workevent->Activator->Mechanik,
-#ifdef EU07_USE_OLD_GROUNDCODE
-                        &m_workevent->Params[ 8 ].nGroundNode->pCenter );
-#else
                         m_workevent->Params[ 8 ].asLocation );
-#endif
                 }
                 WriteLog( "Type: GetValues" );
                 break;
@@ -1028,13 +1008,8 @@ event_manager::CheckQuery() {
                 break;
             }
             case tp_Visible: {
-#ifdef EU07_USE_OLD_GROUNDCODE
-                if( m_workevent->Params[ 9 ].nGroundNode )
-                    m_workevent->Params[ 9 ].nGroundNode->bVisible = ( m_workevent->Params[ i ].asInt > 0 );
-#else
                 if( m_workevent->Params[ 9 ].asEditorNode )
                     m_workevent->Params[ 9 ].asEditorNode->visible( m_workevent->Params[ i ].asInt > 0 );
-#endif
                 break;
             }
             case tp_Velocity: {

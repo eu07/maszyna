@@ -10,9 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scene.h"
 
+#include "simulation.h"
 #include "globals.h"
 #include "timer.h"
-#include "renderer.h"
 #include "logs.h"
 
 namespace scene {
@@ -238,9 +238,7 @@ basic_cell::insert( TTrack *Path ) {
     Path->origin( m_area.center );
     m_paths.emplace_back( Path );
     // animation hook
-#ifndef EU07_USE_OLD_GROUNDCODE
     Path->RaOwnerSet( this );
-#endif
     // re-calculate cell radius, in case track extends outside the cell's boundaries
     m_area.radius = std::max(
         m_area.radius,
@@ -459,10 +457,8 @@ basic_cell::create_geometry( geometrybank_handle const &Bank ) {
 
     for( auto &shape : m_shapesopaque )      { shape.create_geometry( Bank ); }
     for( auto &shape : m_shapestranslucent ) { shape.create_geometry( Bank ); }
-#ifndef EU07_USE_OLD_GROUNDCODE
     for( auto *path : m_paths )              { path->create_geometry( Bank ); }
     for( auto *traction : m_traction )       { traction->create_geometry( Bank ); }
-#endif
     for( auto &lines : m_lines )             { lines.create_geometry( Bank ); }
     // arrange content by assigned materials to minimize state switching
     std::sort(

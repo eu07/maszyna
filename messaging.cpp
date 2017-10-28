@@ -12,7 +12,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "globals.h"
 #include "simulation.h"
-#include "ground.h"
 #include "mtable.h"
 #include "logs.h"
 
@@ -93,84 +92,6 @@ WyslijWolny(const std::string &t)
     WyslijString(t, 4); // tor wolny
 }
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-void
-WyslijNamiary(TGroundNode *t)
-{ // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
-    // WriteLog("Wysylam pojazd");
-    DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
-    r.iComm = 7; // 7 - dane pojazdu
-	int i = 32;
-	size_t j = t->asName.length();
-    r.iPar[0] = i; // ilość danych liczbowych
-    r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
-    r.fPar[2] = t->DynamicObject->MoverParameters->Loc.X; // pozycja X
-    r.fPar[3] = t->DynamicObject->MoverParameters->Loc.Y; // pozycja Y
-    r.fPar[4] = t->DynamicObject->MoverParameters->Loc.Z; // pozycja Z
-    r.fPar[5] = t->DynamicObject->MoverParameters->V; // prędkość ruchu X
-    r.fPar[6] = t->DynamicObject->MoverParameters->nrot * M_PI *
-                t->DynamicObject->MoverParameters->WheelDiameter; // prędkość obrotowa kóŁ
-    r.fPar[7] = 0; // prędkość ruchu Z
-    r.fPar[8] = t->DynamicObject->MoverParameters->AccS; // przyspieszenie X
-    r.fPar[9] = t->DynamicObject->MoverParameters->AccN; // przyspieszenie Y //na razie nie
-    r.fPar[10] = t->DynamicObject->MoverParameters->AccV; // przyspieszenie Z
-    r.fPar[11] = t->DynamicObject->MoverParameters->DistCounter; // przejechana odległość w km
-    r.fPar[12] = t->DynamicObject->MoverParameters->PipePress; // ciśnienie w PG
-    r.fPar[13] = t->DynamicObject->MoverParameters->ScndPipePress; // ciśnienie w PZ
-    r.fPar[14] = t->DynamicObject->MoverParameters->BrakePress; // ciśnienie w CH
-    r.fPar[15] = t->DynamicObject->MoverParameters->Compressor; // ciśnienie w ZG
-    r.fPar[16] = t->DynamicObject->MoverParameters->Itot; // Prąd całkowity
-    r.iPar[17] = t->DynamicObject->MoverParameters->MainCtrlPos; // Pozycja NJ
-    r.iPar[18] = t->DynamicObject->MoverParameters->ScndCtrlPos; // Pozycja NB
-    r.iPar[19] = t->DynamicObject->MoverParameters->MainCtrlActualPos; // Pozycja jezdna
-    r.iPar[20] = t->DynamicObject->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
-    r.iPar[21] = t->DynamicObject->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
-    r.iPar[22] = t->DynamicObject->MoverParameters->ResistorsFlag * 1 +
-                 t->DynamicObject->MoverParameters->ConverterFlag * 2 +
-                 +t->DynamicObject->MoverParameters->CompressorFlag * 4 +
-                 t->DynamicObject->MoverParameters->Mains * 8 +
-                 +t->DynamicObject->MoverParameters->DoorLeftOpened * 16 +
-                 t->DynamicObject->MoverParameters->DoorRightOpened * 32 +
-                 +t->DynamicObject->MoverParameters->FuseFlag * 64 +
-                 t->DynamicObject->MoverParameters->DepartureSignal * 128;
-    // WriteLog("Zapisalem stare");
-    // WriteLog("Mam patykow "+IntToStr(t->DynamicObject->iAnimType[ANIM_PANTS]));
-    for (int p = 0; p < 4; p++)
-    {
-        //   WriteLog("Probuje pant "+IntToStr(p));
-        if (p < t->DynamicObject->iAnimType[ANIM_PANTS])
-        {
-            r.fPar[23 + p] = t->DynamicObject->pants[p].fParamPants->PantWys; // stan pantografów 4
-            //     WriteLog("Zapisalem pant "+IntToStr(p));
-        }
-        else
-        {
-            r.fPar[23 + p] = -2;
-            //     WriteLog("Nie mam pant "+IntToStr(p));
-        }
-    }
-    // WriteLog("Zapisalem pantografy");
-    for (int p = 0; p < 3; p++)
-        r.fPar[27 + p] =
-            t->DynamicObject->MoverParameters->ShowCurrent(p + 1); // amperomierze kolejnych grup
-    // WriteLog("zapisalem prady");
-    r.iPar[30] = t->DynamicObject->MoverParameters->WarningSignal; // trabienie
-    r.fPar[31] = t->DynamicObject->MoverParameters->RunningTraction.TractionVoltage; // napiecie WN
-    // WriteLog("Parametry gotowe");
-    i <<= 2; // ilość bajtów
-    r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
-    strcpy(r.cString + i + 1, t->asName.c_str()); // zakończony zerem
-    COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
-    cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
-    cData.lpData = &r;
-    // WriteLog("Ramka gotowa");
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
-    // WriteLog("Ramka poszla!");
-	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
-}
-#else
 void
 WyslijNamiary(TDynamicObject const *Vehicle)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
@@ -247,7 +168,6 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + Vehicle->asName + " sent");
 }
-#endif
 
 void
 WyslijObsadzone()

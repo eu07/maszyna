@@ -314,11 +314,7 @@ private:
     Mtable::TTrainParameters *Timetable() {
         return TrainParams; };
     void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason = stopComm);
-#ifdef EU07_USE_OLD_GROUNDCODE
-    bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const vector3 *NewLocation, TStopReason reason = stopComm);
-#else
     bool PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason = stopComm );
-#endif
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     // procedury dotyczace rozkazow dla maszynisty
     // uaktualnia informacje o prędkości
@@ -378,11 +374,7 @@ private:
     bool BackwardTrackBusy(TTrack *Track);
     TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
     TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event);
-#ifdef EU07_USE_OLD_GROUNDCODE
-    void SetProximityVelocity(double dist, double vel, const vector3 *pos);
-#else
     void SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos );
-#endif
     TCommandType BackwardScan();
 
   public:

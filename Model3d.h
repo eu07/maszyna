@@ -50,9 +50,6 @@ enum TAnimType // rodzaj animacji
 	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
 };
 
-#ifdef EU07_USE_OLD_GROUNDCODE
-class TGroundNode;
-#endif
 namespace scene {
 class shape_node;
 }
@@ -216,9 +213,6 @@ public:
 		std::vector<float4x4>&);
     void serialize_geometry( std::ostream &Output ) const;
     // places contained geometry in provided ground node
-#ifdef EU07_USE_OLD_GROUNDCODE
-    void convert( TGroundNode &Groundnode ) const;
-#endif
 };
 
 class TModel3d : public CMesh

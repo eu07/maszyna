@@ -15,31 +15,17 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "DynObj.h"
 
-#include "logs.h"
-#include "MdlMngr.h"
-#include "Timer.h"
-#include "Usefull.h"
-// McZapkie-260202
+#include "simulation.h"
 #include "Globals.h"
-#include "renderer.h"
-#include "AirCoupler.h"
-
-#include "TractionPower.h"
-#include "Event.h"
-#include "Driver.h"
-#include "Camera.h" //bo likwidujemy trzęsienie
+#include "Timer.h"
+#include "logs.h"
 #include "Console.h"
-#include "Traction.h"
+#include "MdlMngr.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
 #define vWorldUp Math3D::vector3(0, 1, 0)
 #define vWorldLeft CrossProduct(vWorldUp, vWorldFront)
-
-// Ra: bo te poniżej to się powielały w każdym module odobno
-// vector3 vWorldFront=vector3(0,0,1);
-// vector3 vWorldUp=vector3(0,1,0);
-// vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 #define M_2PI 6.283185307179586476925286766559;
 const float maxrot = (float)(M_PI / 3.0); // 60°
@@ -4909,12 +4895,8 @@ void TDynamicObject::RadioStop()
         if( ( MoverParameters->SecuritySystem.RadioStop )
          && ( MoverParameters->Radio ) ) {
             // jeśli pojazd ma RadioStop i jest on aktywny
-#ifdef EU07_USE_OLD_GROUNDCODE
-            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
-#else
             // HAX cast until math types unification
             Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &static_cast<glm::dvec3>(vPosition), stopRadio );
-#endif
             // add onscreen notification for human driver
             // TODO: do it selectively for the 'local' driver once the multiplayer is in
             if( false == Mechanik->AIControllFlag ) {
