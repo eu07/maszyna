@@ -1423,7 +1423,7 @@ TWorld::Update_UI() {
                 uitextline2 +=
                     "; Ft: " + to_string( vehicle->MoverParameters->Ft * 0.001f * vehicle->MoverParameters->ActiveCab, 1 )
                     + ", Fb: " + to_string( vehicle->MoverParameters->Fb * 0.001f, 1 )
-                    + ", Fr: " + to_string( vehicle->MoverParameters->RunningTrack.friction, 2 )
+                    + ", Fr: " + to_string( vehicle->MoverParameters->Adhesive( vehicle->MoverParameters->RunningTrack.friction ), 2 )
                     + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" );
 
                 if( vehicle->Mechanik ) {
@@ -1625,15 +1625,15 @@ TWorld::Update_UI() {
                 if( vehicle == nullptr ) {
                     break;
                 }
-
-                uitextline1 =
-                    "vel: " + to_string( vehicle->GetVelocity(), 2 ) + " km/h" + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" )
-                    + "; dist: " + to_string( vehicle->MoverParameters->DistCounter, 2 ) + " km"
-                    + "; pos: ("
-                    + to_string( vehicle->GetPosition().x, 2 ) + ", "
-                    + to_string( vehicle->GetPosition().y, 2 ) + ", "
-                    + to_string( vehicle->GetPosition().z, 2 )
-                    + ")";
+				uitextline1 =
+					"vel: " + to_string(vehicle->GetVelocity(), 2) + "/" + to_string(vehicle->MoverParameters->nrot* M_PI * vehicle->MoverParameters->WheelDiameter * 3.6, 2)
+					+ " km/h" + (vehicle->MoverParameters->SlippingWheels ? " (!)" : "    ")
+					+ "; dist: " + to_string(vehicle->MoverParameters->DistCounter, 2) + " km"
+					+ "; pos: ("
+					+ to_string(vehicle->GetPosition().x, 2) + ", "
+					+ to_string(vehicle->GetPosition().y, 2) + ", "
+					+ to_string(vehicle->GetPosition().z, 2) + "), PM="
+					+ to_string(vehicle->MoverParameters->WheelFlat, 1) + " mm";
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )

@@ -472,11 +472,13 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
     PyDict_SetItemString( dict, "slipping_wheels", PyGetBool( mover->SlippingWheels ) );
+	PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SandDose ));
     // electric current data
     PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mover->RunningTraction.TractionVoltage ) );
     PyDict_SetItemString( dict, "voltage", PyGetFloat( mover->Voltage ) );
     PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
     PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
+	PyDict_SetItemString( dict, "epfuse", PyGetBool( mover->EpFuse ));
     // induction motor state data
     char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
@@ -516,6 +518,7 @@ PyObject *TTrain::GetTrainState() {
         PyDict_SetItemString( dict, ( std::string( "code_" ) + std::to_string( i + 1 ) ).c_str(), PyGetString( std::string( std::to_string( iUnits[ i ] ) +
             cCode[ i ] ).c_str() ) );
         PyDict_SetItemString( dict, ( std::string( "car_name" ) + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
+		PyDict_SetItemString( dict, ( std::string( "slip_" ) + std::to_string( i + 1 )).c_str(), PyGetBool( bSlip[i]) );
     }
     // ai state data
     auto const &driver = DynamicObject->Mechanik;
@@ -3281,19 +3284,33 @@ if
                     d = d->Prev(); // w drugą stronę też
                 }
             }
-            else if (cKey == GLFW_KEY_RIGHT_BRACKET)
-            {
-                while (d)
-                {
-                    d->Move(-100.0 * d->DirectionGet());
-                    d = d->Next(); // pozostałe też
-                }
-                d = DynamicObject->Prev();
-                while (d)
-                {
-                    d->Move(-100.0 * d->DirectionGet());
-                    d = d->Prev(); // w drugą stronę też
-                }
+			else if (cKey == GLFW_KEY_RIGHT_BRACKET)
+			{
+				while (d)
+				{
+					d->Move(-100.0 * d->DirectionGet());
+					d = d->Next(); // pozostałe też
+				}
+				d = DynamicObject->Prev();
+				while (d)
+				{
+					d->Move(-100.0 * d->DirectionGet());
+					d = d->Prev(); // w drugą stronę też
+				}
+			}
+			else if (cKey == GLFW_KEY_TAB)
+			{
+				while (d)
+				{
+					d->MoverParameters->V+= d->DirectionGet()*2.78;
+					d = d->Next(); // pozostałe też
+				}
+				d = DynamicObject->Prev();
+				while (d)
+				{
+					d->MoverParameters->V += d->DirectionGet()*2.78;
+					d = d->Prev(); // w drugą stronę też
+				}
             }
         }
         if (cKey == GLFW_KEY_MINUS)
@@ -3578,21 +3595,22 @@ bool TTrain::Update( double const Deltatime )
                 bDoors[i][2] = (p->dDoorMoveL > 0.001);
                 iDoorNo[i] = p->iAnimType[ANIM_DOORS];
                 iUnits[i] = iUnitNo;
-                cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length()];
+                cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length() - 1];
                 asCarName[i] = p->name();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
                 bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
 				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow);
+				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)
                 {
 					bComp[iUnitNo - 1][1] = (bComp[iUnitNo - 1][1] || p->MoverParameters->CompressorFlag);
                 }
                 if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
                 {
-                    fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fr];
+                    fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fmax];
                     fEIMParams[1 + in][1] = Max0R(fEIMParams[1 + in][0], 0);
                     fEIMParams[1 + in][2] = -Min0R(fEIMParams[1 + in][0], 0);
-                    fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fr] /
+                    fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fmax] /
                                             Max0R(p->MoverParameters->eimv[eimv_Fful], 1);
                     fEIMParams[1 + in][4] = Max0R(fEIMParams[1 + in][3], 0);
                     fEIMParams[1 + in][5] = -Min0R(fEIMParams[1 + in][3], 0);
@@ -3624,6 +3642,7 @@ bool TTrain::Update( double const Deltatime )
                 bDoors[i][0] = false;
                 bDoors[i][1] = false;
                 bDoors[i][2] = false;
+				bSlip[i] = false;
                 iUnits[i] = 0;
                 cCode[i] = 0; //'0';
                 asCarName[i] = "";

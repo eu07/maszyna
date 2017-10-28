@@ -2713,9 +2713,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                        1000; // chwilowy max ED -> do rozdzialu sil
 				FfulED = std::min(p->MoverParameters->eimv[eimv_Fful], 0.0) *
 					1000; // chwilowy max ED -> do rozdzialu sil
-				FrED -= std::min(p->MoverParameters->eimv[eimv_Fr], 0.0) *
+				FrED -= std::min(p->MoverParameters->eimv[eimv_Fmax], 0.0) *
                         1000; // chwilowo realizowane ED -> do pneumatyki
-				Frj += std::max(p->MoverParameters->eimv[eimv_Fr], 0.0) *
+				Frj += std::max(p->MoverParameters->eimv[eimv_Fmax], 0.0) *
 					1000;// chwilowo realizowany napęd -> do utrzymującego
 				masa += p->MoverParameters->TotalMass;
 				osie += p->MoverParameters->NAxles;
@@ -2814,10 +2814,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if ((FzEP[i] > 0.01) &&
                         (FzEP[i] >
                          p->MoverParameters->TotalMass * p->MoverParameters->eimc[eimc_p_eped] +
-                             Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000) &&
+                             Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) * 1000) &&
                         (!PrzekrF[i]))
                     {
-                        float przek1 = -Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000 +
+                        float przek1 = -Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) * 1000 +
                                        FzEP[i] -
                                        p->MoverParameters->TotalMass *
                                            p->MoverParameters->eimc[eimc_p_eped] * 0.999;
