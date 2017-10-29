@@ -3511,7 +3511,7 @@ void TDynamicObject::RenderSounds()
     // McZapkie-010302: ulepszony dzwiek silnika
     double freq;
     double vol = 0;
-    double dt = Timer::GetDeltaTime();
+    double dt = Timer::GetDeltaRenderTime();
 
     //    double sounddist;
     //    sounddist=SquareMagnitude(Global::pCameraPosition-vPosition);

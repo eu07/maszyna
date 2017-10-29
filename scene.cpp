@@ -17,42 +17,6 @@ http://mozilla.org/MPL/2.0/.
 
 namespace scene {
 
-// legacy method, updates sounds and polls event launchers within radius around specified point
-void
-basic_cell::update() {
-
-    // sounds
-    auto const deltatime = Timer::GetDeltaTime();
-    for( auto *sound : m_sounds ) {
-
-        if( ( sound->GetStatus() & DSBSTATUS_PLAYING ) == DSBPLAY_LOOPING ) {
-            sound->Play( 1, DSBPLAY_LOOPING, true, sound->vSoundPosition );
-            sound->AdjFreq( 1.0, deltatime );
-        }
-    }
-    // event launchers
-    for( auto *launcher : m_eventlaunchers ) {
-        if( ( true == launcher->check_conditions() )
-         && ( SquareMagnitude( launcher->location() - Global::pCameraPosition ) < launcher->dRadius ) ) {
-
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( ( true == Global::shiftState )
-             && ( launcher->Event2 != nullptr ) ) {
-                simulation::Events.AddToQuery( launcher->Event2, nullptr );
-            }
-            else if( launcher->Event1 ) {
-                simulation::Events.AddToQuery( launcher->Event1, nullptr );
-            }
-        }
-    }
-
-    // TBD, TODO: move to sound renderer
-    for( auto *path : m_paths ) {
-        // dźwięki pojazdów, również niewidocznych
-        path->RenderDynSounds();
-    }
-}
-
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
 void
 basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
@@ -127,6 +91,47 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
                 }
             }
         }
+    }
+}
+
+// legacy method, updates sounds and polls event launchers within radius around specified point
+void
+basic_cell::update_events() {
+
+    // event launchers
+    for( auto *launcher : m_eventlaunchers ) {
+        if( ( true == launcher->check_conditions() )
+         && ( SquareMagnitude( launcher->location() - Global::pCameraPosition ) < launcher->dRadius ) ) {
+
+            WriteLog( "Eventlauncher " + launcher->name() );
+            if( ( true == Global::shiftState )
+             && ( launcher->Event2 != nullptr ) ) {
+                simulation::Events.AddToQuery( launcher->Event2, nullptr );
+            }
+            else if( launcher->Event1 ) {
+                simulation::Events.AddToQuery( launcher->Event1, nullptr );
+            }
+        }
+    }
+}
+
+// legacy method, updates sounds and polls event launchers within radius around specified point
+void
+basic_cell::update_sounds() {
+
+    // sounds
+    auto const deltatime = Timer::GetDeltaRenderTime();
+    for( auto *sound : m_sounds ) {
+
+        if( ( sound->GetStatus() & DSBSTATUS_PLAYING ) == DSBPLAY_LOOPING ) {
+            sound->Play( 1, DSBPLAY_LOOPING, true, sound->vSoundPosition );
+            sound->AdjFreq( 1.0, deltatime );
+        }
+    }
+    // TBD, TODO: move to sound renderer
+    for( auto *path : m_paths ) {
+        // dźwięki pojazdów, również niewidocznych
+        path->RenderDynSounds();
     }
 }
 
@@ -479,19 +484,6 @@ basic_cell::enclose_area( editor::basic_node *Node ) {
 
 
 
-// legacy method, updates sounds and polls event launchers within radius around specified point
-void
-basic_section::update( glm::dvec3 const &Location, float const Radius ) {
-
-    for( auto &cell : m_cells ) {
-
-        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
-            // we reject cells which aren't within our area of interest
-            cell.update();
-        }
-    }
-}
-
 // legacy method, finds and assigns traction piece(s) to pantographs of provided vehicle
 void
 basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
@@ -510,6 +502,32 @@ basic_section::update_traction( TDynamicObject *Vehicle, int const Pantographind
         // we reject early cells which aren't within our area of interest
         if( glm::length2( cell.area().center - pantographposition ) < ( ( cell.area().radius + radius ) * ( cell.area().radius + radius ) ) ) {
             cell.update_traction( Vehicle, Pantographindex );
+        }
+    }
+}
+
+// legacy method, polls event launchers within radius around specified point
+void
+basic_section::update_events( glm::dvec3 const &Location, float const Radius ) {
+
+    for( auto &cell : m_cells ) {
+
+        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
+            // we reject cells which aren't within our area of interest
+            cell.update_events();
+        }
+    }
+}
+
+// legacy method, updates sounds within radius around specified point
+void
+basic_section::update_sounds( glm::dvec3 const &Location, float const Radius ) {
+
+    for( auto &cell : m_cells ) {
+
+        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
+            // we reject cells which aren't within our area of interest
+            cell.update_sounds();
         }
     }
 }
@@ -706,14 +724,25 @@ basic_region::~basic_region() {
     for( auto *section : m_sections ) { if( section != nullptr ) { delete section; } }
 }
 
+// legacy method, polls event launchers around camera
+void
+basic_region::update_events() {
+    // render events and sounds from sectors near enough to the viewer
+    auto const range = EU07_SECTIONSIZE; // arbitrary range
+    auto const &sectionlist = sections( Global::pCameraPosition, range );
+    for( auto *section : sectionlist ) {
+        section->update_events( Global::pCameraPosition, range );
+    }
+}
+
 // legacy method, updates sounds and polls event launchers around camera
 void
-basic_region::update() {
+basic_region::update_sounds() {
     // render events and sounds from sectors near enough to the viewer
     auto const range = 2750.f; // audible range of 100 db sound
     auto const &sectionlist = sections( Global::pCameraPosition, range );
     for( auto *section : sectionlist ) {
-        section->update( Global::pCameraPosition, range );
+        section->update_sounds( Global::pCameraPosition, range );
     }
 }
 
