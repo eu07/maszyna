@@ -57,7 +57,7 @@ protected:
 
 public:
     // data access
-    typename type_sequence &
+    type_sequence &
         sequence() {
             return m_items; }
 

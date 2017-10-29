@@ -47,7 +47,7 @@ struct scratch_data {
         float offset { 0.f };
         float velocity { 0.f };
         std::vector<TDynamicObject *> vehicles;
-        std::vector<std::int8_t> couplings;
+        std::vector<int> couplings;
         TDynamicObject * driver { nullptr };
         bool is_open { false };
     } trainset;

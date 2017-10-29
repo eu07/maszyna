@@ -1461,7 +1461,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
         if( distance < 100.0 ) {
             // at short distances start to calculate range between couplers directly
             // odległość do najbliższego pojazdu w linii prostej
-            fTrackBlock = std::min( fTrackBlock, MoverParameters->Couplers[ mycoupler ].CoupleDist );
+            fTrackBlock = MoverParameters->Couplers[ mycoupler ].CoupleDist;
         }
         if( ( false == TestFlag( track->iCategoryFlag, 1 ) )
          && ( distance > 50.0 ) ) {
@@ -2605,14 +2605,14 @@ bool TDynamicObject::Update(double dt, double dt1)
         // if (Global::bLiveTraction)
         { // Ra 2013-12: to niżej jest chyba trochę bez sensu
             double v = MoverParameters->PantRearVolt;
-            if (v == 0.0)
-            {
+            if (v == 0.0) {
                 v = MoverParameters->PantFrontVolt;
-                if (v == 0.0)
-                    if ((MoverParameters->TrainType & (dt_EZT | dt_ET40 | dt_ET41 | dt_ET42)) &&
-                        MoverParameters->EngineType !=
-                            ElectricInductionMotor) // dwuczłony mogą mieć sprzęg WN
+                if( v == 0.0 ) {
+                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
+                        // dwuczłony mogą mieć sprzęg WN
                         v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
+                    }
+                }
             }
             if (v != 0.0)
             { // jeśli jest zasilanie
@@ -2627,21 +2627,21 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if( MoverParameters->Vel > 0.5 ) {
                         // jeśli jedzie
                         // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
-                        if( MoverParameters->PantFrontUp || MoverParameters->PantRearUp )
-                            // if (NoVoltTime>0.02) //tu można ograniczyć czas rozłączenia
-                            // if (DebugModeFlag) //logowanie nie zawsze
+                        if( MoverParameters->PantFrontUp
+                         || MoverParameters->PantRearUp ) {
+
                             if( ( MoverParameters->Mains )
-                             && ( ( MoverParameters->EngineType != ElectricInductionMotor )
-                               || ( MoverParameters->GetTrainsetVoltage() < 0.1f ) ) ) {
-                                // Ra 15-01: logować tylko, jeśli WS załączony
-                                // yB 16-03: i nie jest to asynchron zasilany z daleka 
-                                // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
-                                // więc lepiej się tego nie zaloguje
+                             && ( MoverParameters->GetTrainsetVoltage() < 0.1f ) ) {
+                                   // Ra 15-01: logować tylko, jeśli WS załączony
+                                   // yB 16-03: i nie jest to asynchron zasilany z daleka 
+                                   // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
+                                   // więc lepiej się tego nie zaloguje
                                 ErrorLog(
-                                      "Bad traction: " + MoverParameters->Name
+                                    "Bad traction: " + MoverParameters->Name
                                     + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
                                     + to_string( glm::dvec3{ vPosition } ) );
                             }
+                        }
                     }
                     // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo zmienna była
                     // tymczasowa, a napięcie zerowane od razu

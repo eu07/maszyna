@@ -4323,11 +4323,11 @@ TController::UpdateSituation(double dt) {
                         vehicle->fTrackBlock );
                     double k = coupler->Connected->Vel; // prędkość pojazdu z przodu (zakładając,
                     // że jedzie w tę samą stronę!!!)
-                    if( k < vel + 10 ) {
+                    if( k - vel < 10 ) {
                         // porównanie modułów prędkości [km/h]
                         // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
                         double const distance = vehicle->fTrackBlock - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
-                        if( distance < 0 ) {
+                        if( distance < 0.0 ) {
                             // jeśli odległość jest zbyt mała
                             if( k < 10.0 ) // k - prędkość tego z przodu
                             { // jeśli tamten porusza się z niewielką prędkością albo stoi
@@ -4533,10 +4533,19 @@ TController::UpdateSituation(double dt) {
 */
                             if( VelNext == 0.0 ) {
                                 if( mvOccupied->CategoryFlag & 1 ) {
-                                    // hamowanie tak, aby stanąć
-                                    VelDesired = VelNext;
-                                    AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
-                                    AccDesired = std::min( AccDesired, fAccThreshold );
+                                    // trains
+                                    if( ( OrderCurrentGet() & Shunt )
+                                     && ( pVehicles[0]->fTrackBlock < 50.0 ) ) {
+                                        // crude detection of edge case, if approaching another vehicle coast slowly until min distance
+                                        // this should allow to bunch up trainsets more on sidings
+                                        VelDesired = Global::Min0RSpeed( VelDesired, 5.0 );
+                                    }
+                                    else {
+                                        // hamowanie tak, aby stanąć
+                                        VelDesired = VelNext;
+                                        AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
+                                        AccDesired = std::min( AccDesired, fAccThreshold );
+                                    }
                                 }
                                 else {
                                     // for cars (and others) coast at low speed until we hit min proximity range
