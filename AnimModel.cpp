@@ -413,14 +413,6 @@ TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedat
     }
 }
 
-TAnimModel::TAnimModel() {
-    // TODO: wrap these in a tuple and move to underlying model
-    for( int index = 0; index < iMaxNumLights; ++index ) {
-        LightsOn[index] = LightsOff[index] = nullptr; // normalnie nie ma
-        lsLights[index] = ls_Off; // a jeśli są, to wyłączone
-    }
-}
-
 TAnimModel::~TAnimModel()
 {
     delete pAdvanced; // nie ma zaawansowanej animacji

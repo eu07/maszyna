@@ -53,8 +53,6 @@ class TTraction : public editor::basic_node {
     geometry_handle m_geometry;
 
     TTraction( scene::node_data const &Nodedata );
-    // legacy constructor
-    TTraction( std::string Name );
 
     void Load( cParser *parser, glm::dvec3 const &pOrigin );
     // set origin point

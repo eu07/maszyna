@@ -130,12 +130,6 @@ void TIsolated::Modify(int i, TDynamicObject *o)
 // tworzenie nowego odcinka ruchu
 TTrack::TTrack( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
 
-// legacy constructor
-TTrack::TTrack( std::string Name ) {
-
-    m_name = Name;
-}
-
 TTrack::~TTrack()
 { // likwidacja odcinka
 	if( eType == tt_Cross ) {
@@ -175,7 +169,9 @@ TTrack::sort_by_material( TTrack const *Left, TTrack const *Right ) {
 
 TTrack * TTrack::Create400m(int what, double dx)
 { // tworzenie toru do wstawiania taboru podczas konwersji na E3D
-    auto *trk = new TTrack( "auto_400m" );
+    scene::node_data nodedata;
+    nodedata.name = "auto_400m"; // track isn't visible so only name is needed
+    auto *trk = new TTrack( nodedata );
     trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
     trk->Init(); // utworzenie segmentu
@@ -191,7 +187,9 @@ TTrack * TTrack::NullCreate(int dir)
     TTrack
         *trk { nullptr },
         *trk2 { nullptr };
-    trk = new TTrack( "auto_null" );
+    scene::node_data nodedata;
+    nodedata.name = "auto_null"; // track isn't visible so only name is needed
+    trk = new TTrack( nodedata );
     trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
     float r1, r2;
@@ -234,7 +232,7 @@ TTrack * TTrack::NullCreate(int dir)
         trk->fVelocity = 20.0; // zawracanie powoli
         trk->fRadius = 20.0; // promień, aby się dodawało do tabelki prędkości i liczyło narastająco
         trk->Init(); // utworzenie segmentu
-        trk2 = new TTrack( "auto_null" );
+        trk2 = new TTrack( nodedata );
         trk2->iCategoryFlag =
             (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
         trk2->m_visible = false;

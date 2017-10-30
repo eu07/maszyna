@@ -40,8 +40,6 @@ public:
     bool bSection = false; // czy jest sekcją
 
     TTractionPowerSource( scene::node_data const &Nodedata );
-    // legacy constructor
-    TTractionPowerSource( std::string Name );
 
     void Init(double const u, double const i);
     bool Load(cParser *parser);

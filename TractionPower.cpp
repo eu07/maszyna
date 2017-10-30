@@ -22,10 +22,6 @@ http://mozilla.org/MPL/2.0/.
 
 TTractionPowerSource::TTractionPowerSource( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
 // legacy constructor
-TTractionPowerSource::TTractionPowerSource( std::string Name ) {
-
-    m_name = Name;
-}
 
 void TTractionPowerSource::Init(double const u, double const i)
 { // ustawianie zasilacza przy braku w scenerii

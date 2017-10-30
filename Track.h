@@ -185,8 +185,6 @@ public:
     TGroundNode *nFouling[ 2 ] = { nullptr, nullptr }; // współrzędne ukresu albo oporu kozła
 
     TTrack( scene::node_data const &Nodedata );
-    // legacy constructor
-    TTrack( std::string Name );
     virtual ~TTrack();
 
     void Init();

@@ -29,12 +29,14 @@ bool
 operator==( lighting_data const &Left, lighting_data const &Right ) {
     return ( ( Left.diffuse  == Right.diffuse )
           && ( Left.ambient  == Right.ambient )
-          && ( Left.specular == Right.specular ) ); }
+          && ( Left.specular == Right.specular ) );
+}
 
 inline
 bool
 operator!=( lighting_data const &Left, lighting_data const &Right ) {
-    return !( Left == Right ); }
+    return !( Left == Right );
+}
 
 namespace scene {
 
@@ -49,26 +51,6 @@ struct bounding_area {
         radius( Radius )
         {}
 };
-/*
-enum nodetype {
-
-    unknown,
-    model,
-    triangles,
-    lines,
-    dynamic,
-    track,
-    traction,
-    powersource,
-    sound,
-    memorycell,
-    eventlauncher
-};
-
-class node_manager {
-
-};
-*/
 
 struct node_data {
 
@@ -119,22 +101,40 @@ public:
         compute_radius();
     // set visibility
     void
-        visible( bool State ) {
-            m_data.visible = State; }
+        visible( bool State );
     // set origin point
     void
-        origin( glm::dvec3 Origin ) {
-            m_data.origin = Origin; }
+        origin( glm::dvec3 Origin );
     // data access
     shapenode_data const &
-        data() const {
-            return m_data; }
+        data() const;
 
 private:
 // members
     std::string m_name;
     shapenode_data m_data;
 };
+
+// set visibility
+inline
+void
+shape_node::visible( bool State ) {
+    m_data.visible = State;
+}
+// set origin point
+inline
+void
+shape_node::origin( glm::dvec3 Origin ) {
+    m_data.origin = Origin;
+}
+// data access
+inline
+shape_node::shapenode_data const &
+shape_node::data() const {
+    return m_data;
+}
+
+
 
 // holds a group of untextured lines
 class lines_node {
@@ -173,22 +173,39 @@ public:
         compute_radius();
     // set visibility
     void
-        visible( bool State ) {
-            m_data.visible = State; }
+        visible( bool State );
     // set origin point
     void
-        origin( glm::dvec3 Origin ) {
-            m_data.origin = Origin; }
+        origin( glm::dvec3 Origin );
     // data access
     linesnode_data const &
-        data() const {
-            return m_data; }
+        data() const;
 
 private:
 // members
     std::string m_name;
     linesnode_data m_data;
 };
+
+// set visibility
+inline
+void
+lines_node::visible( bool State ) {
+    m_data.visible = State;
+}
+// set origin point
+inline
+void
+lines_node::origin( glm::dvec3 Origin ) {
+    m_data.origin = Origin;
+}
+// data access
+inline
+lines_node::linesnode_data const &
+lines_node::data() const {
+    return m_data;
+}
+
 
 /*
 // holds geometry for specific piece of track/road/waterway
@@ -238,38 +255,9 @@ private:
     TTrack * m_path;
 };
 */
-/*
-// holds reference to memory cell
-class memorycell_node {
-
-    friend class basic_region; // region might want to modify node content when it's being inserted
-
-public:
-// types
-    struct memorynode_data {
-        // placement and visibility
-        bounding_area area; // bounding area, in world coordinates
-        bool visible { false }; // visibility flag
-    };
-// methods
-    // restores content of the node from provded input stream
-    // TODO: implement
-    memory_node &
-        deserialize( cParser &Input, node_data const &Nodedata );
-    void
-        cell( TMemCell *Cell ) {
-            m_memorycell = Cell; }
-    TMemCell *
-        cell() {
-            return m_memorycell; }
-
-private:
-// members
-    memorynode_data m_data;
-    TMemCell * m_memorycell;
-};
-*/
 } // scene
+
+
 
 namespace editor {
 
@@ -278,28 +266,22 @@ struct basic_node {
 
 public:
 // constructor
-    basic_node() = default; // TODO: remove after refactor
     basic_node( scene::node_data const &Nodedata );
 // destructor
     virtual ~basic_node() = default;
 // methods
     std::string const &
-        name() const {
-            return m_name; }
+        name() const;
     void
-        location( glm::dvec3 const Location ) {
-            m_area.center = Location; }
+        location( glm::dvec3 const Location );
     glm::dvec3 const &
-        location() const {
-            return m_area.center; };
+        location() const;
     float const &
         radius();
     void
-        visible( bool const Visible ) {
-            m_visible = Visible; }
+        visible( bool const Visible );
     bool
-        visible() const {
-            return m_visible; }
+        visible() const;
 
 protected:
 // methods
@@ -312,6 +294,36 @@ protected:
     double m_rangesquaredmax { 0.0 }; // visibility range, max
     std::string m_name;
 };
+
+inline
+std::string const &
+basic_node::name() const {
+    return m_name;
+}
+
+inline
+void
+basic_node::location( glm::dvec3 const Location ) {
+    m_area.center = Location;
+}
+
+inline
+glm::dvec3 const &
+basic_node::location() const {
+    return m_area.center;
+}
+
+inline
+void
+basic_node::visible( bool const Visible ) {
+    m_visible = Visible;
+}
+
+inline
+bool
+basic_node::visible() const {
+    return m_visible;
+}
 
 } // editor
 
