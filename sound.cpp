@@ -348,6 +348,13 @@ sound& sound::position(glm::vec3 p)
 	return *this;
 }
 
+glm::vec3 sound::location()
+{
+	if (mode == global)
+		throw std::runtime_error("sound: bad state, no position");
+	return pos;
+}
+
 sound& sound::position(Math3D::vector3 const &pos)
 {
 	position((glm::vec3)glm::make_vec3(&pos.x));

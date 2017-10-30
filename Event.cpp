@@ -14,15 +14,12 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Event.h"
+
+#include "event.h"
+#include "simulation.h"
 #include "Globals.h"
-#include "Logs.h"
-#include "usefull.h"
-#include "parser.h"
 #include "Timer.h"
-#include "MemCell.h"
-#include "Ground.h"
-#include "McZapkie/mctools.h"
+#include "Logs.h"
 
 TEvent::TEvent( std::string const &m ) :
                        asNodeName( m )
@@ -36,13 +33,12 @@ TEvent::TEvent( std::string const &m ) :
     }
 };
 
-TEvent::~TEvent()
-{
+TEvent::~TEvent() {
+
     switch (Type)
     { // sprzątanie
     case tp_Multiple:
-        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa obiektu powiązanego zamieniana na
-        // wskaźnik
+        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa obiektu powiązanego zamieniana na wskaźnik
         if (iFlags & conditional_memstring) // o ile jest łańcuch do porównania w memcompare
             SafeDeleteArray(Params[10].asText);
         break;
@@ -53,20 +49,16 @@ TEvent::~TEvent()
             SafeDeleteArray(Params[10].asText);
         break;
     case tp_Animation: // nic
-        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa jest zamieniana na wskaźnik do
-        // submodelu
-        if (Params[0].asInt == 4) // jeśli z pliku VMD
-            delete[] (char*)(Params[8].asPointer); // zwolnić obszar
+		break;
     case tp_GetValues: // nic
         break;
 	case tp_PutValues: // params[0].astext stores the token
 		SafeDeleteArray( Params[ 0 ].asText );
 		break;
+    default:
+        break;
     }
-    evJoined = NULL; // nie usuwać podczepionych tutaj
-};
-
-void TEvent::Init(){
+    evJoined = nullptr; // nie usuwać podczepionych tutaj
 
 };
 
@@ -78,8 +70,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
         if (!asNodeName.empty())
         { // podczepienie łańcucha, jeśli nie jest pusty
 			// BUG: source of a memory leak -- the array never gets deleted. fix the destructor
-            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na
-            // wskaźnik
+            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na wskaźnik
             strcpy(Params[9].asText, asNodeName.c_str());
         }
         parser->getTokens();
@@ -138,7 +129,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
     }
 };
 
-void TEvent::Load(cParser *parser, vector3 *org)
+void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
 {
     std::string token;
 
@@ -202,13 +193,12 @@ void TEvent::Load(cParser *parser, vector3 *org)
 
     parser->getTokens();
     *parser >> token;
-    // str = AnsiString(token.c_str());
 
     if (token != "none")
         asNodeName = token; // nazwa obiektu powiązanego
 
     if (asName.substr(0, 5) == "none_")
-        Type = tp_Ignored; // Ra: takie są ignorowane
+        m_ignored = true; // Ra: takie są ignorowane
 
     switch (Type)
     {
@@ -218,7 +208,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         // if (Type==tp_UpdateValues) iFlags=0; //co modyfikować
         parser->getTokens(1, false); // case sensitive
         *parser >> token;
-        Params[0].asText = new char[token.size() + 1]; // BUG: source of memory leak
+        Params[0].asText = new char[token.size() + 1];
         strcpy(Params[0].asText, token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
             iFlags |= update_memstring;
@@ -294,12 +284,12 @@ void TEvent::Load(cParser *parser, vector3 *org)
         parser->getTokens(3);
         *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; // położenie
         // X,Y,Z
-        if (org)
+        if ( !(org == Math3D::vector3()) )
         { // przesunięcie
             // tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzględnienie rotacji
-            Params[3].asdouble += org->x; // współrzędne w scenerii
-            Params[4].asdouble += org->y;
-            Params[5].asdouble += org->z;
+            Params[3].asdouble += org.x; // współrzędne w scenerii
+            Params[4].asdouble += org.y;
+            Params[5].asdouble += org.z;
         }
         // Params[12].asInt=0;
         parser->getTokens(1, false); // komendy 'case sensitive'
@@ -597,7 +587,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
             // str = AnsiString(token.c_str());
         } while (token != "endevent");
         break;
-    case tp_Ignored: // ignorowany
+//    case tp_Ignored: // ignorowany
     case tp_Unknown: // nieznany
         do
         {
@@ -679,16 +669,16 @@ double TEvent::ValueGet(int n)
     return 0.0; // inne eventy się nie liczą
 };
 
-vector3 TEvent::PositionGet() const
+glm::dvec3 TEvent::PositionGet() const
 { // pobranie współrzędnych eventu
     switch (Type)
     { //
     case tp_GetValues:
-        return Params[9].asMemCell->Position(); // współrzędne podłączonej komórki pamięci
+        return Params[9].asMemCell->location(); // współrzędne podłączonej komórki pamięci
     case tp_PutValues:
-        return vector3(Params[3].asdouble, Params[4].asdouble, Params[5].asdouble);
+        return glm::dvec3(Params[3].asdouble, Params[4].asdouble, Params[5].asdouble);
     }
-    return vector3(0, 0, 0); // inne eventy się nie liczą
+    return glm::dvec3(0, 0, 0); // inne eventy się nie liczą
 };
 
 bool TEvent::StopCommand()
@@ -714,3 +704,937 @@ void TEvent::Append(TEvent *e)
         e->bEnabled = true; // ten doczepiony może być tylko kolejkowany
     }
 };
+
+
+
+event_manager::~event_manager() {
+
+    for( auto *event : m_events ) {
+        delete event;
+    }
+}
+
+// adds specified event launcher to the list of global launchers
+void
+event_manager::queue( TEventLauncher *Launcher ) {
+
+    m_launcherqueue.emplace_back( Launcher );
+}
+
+// legacy method, updates event queues
+void
+event_manager::update() {
+
+    // process currently queued events
+    CheckQuery();
+    // test list of global events for possible new additions to the queue
+    for( auto *launcher : m_launcherqueue ) {
+
+        if( true == launcher->check_conditions() ) {
+            // NOTE: we're presuming global events aren't going to use event2
+            WriteLog( "Eventlauncher " + launcher->name() );
+            if( launcher->Event1 ) {
+                AddToQuery( launcher->Event1, nullptr );
+            }
+        }
+    }
+}
+
+// adds provided event to the collection. returns: true on success
+// TODO: return handle instead of pointer
+bool
+event_manager::insert( TEvent *Event ) {
+
+    if( Event->Type == tp_Unknown ) { return false; }
+
+    // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
+    auto lookup = m_eventmap.find( Event->asName );
+    if( lookup != m_eventmap.end() ) {
+        // duplicate of already existing event
+        auto const size = Event->asName.size();
+        // zawsze jeden znak co najmniej jest
+        if( Event->asName[ 0 ] == '#' ) {
+            // utylizacja duplikatu z krzyżykiem
+            return false;
+        }
+        // tymczasowo wyjątki:
+        else if( ( size > 8 )
+              && ( Event->asName.substr( 0, 9 ) == "lineinfo:" ) ) {
+            // tymczasowa utylizacja duplikatów W5
+            return false;
+        }
+        else if( ( size > 8 )
+              && ( Event->asName.substr( size - 8 ) == "_warning" ) ) {
+            // tymczasowa utylizacja duplikatu z trąbieniem
+            return false;
+        }
+        else if( ( size > 4 )
+              && ( Event->asName.substr( size - 4 ) == "_shp" ) ) {
+            // nie podlegają logowaniu
+            // tymczasowa utylizacja duplikatu SHP
+            return false;
+        }
+
+        auto *duplicate = m_events[ lookup->second ];
+        if( Global::bJoinEvents ) {
+            // doczepka (taki wirtualny multiple bez warunków)
+            duplicate->Append( Event );
+        }
+        else {
+            // NOTE: somewhat convoluted way to deal with 'replacing' events without leaving dangling pointers
+            // can be cleaned up if pointers to events were replaced with handles
+            ErrorLog( "Bad event: encountered duplicated event, \"" + Event->asName + "\"" );
+            duplicate->Append( Event ); // doczepka (taki wirtualny multiple bez warunków)
+            duplicate->m_ignored = true; // dezaktywacja pierwotnego - taka proteza na wsteczną zgodność
+        }
+    }
+
+    m_events.emplace_back( Event );
+    if( lookup == m_eventmap.end() ) {
+        // if it's first event with such name, it's potential candidate for the execution queue
+        m_eventmap.emplace( Event->asName, m_events.size() - 1 );
+        if( ( Event->m_ignored != true )
+         && ( Event->asName.find( "onstart" ) != std::string::npos ) ) {
+            // event uruchamiany automatycznie po starcie
+            AddToQuery( Event, nullptr );
+        }
+    }
+
+    return true;
+}
+
+// legacy method, returns pointer to specified event, or null
+TEvent *
+event_manager::FindEvent( std::string const &Name ) {
+
+    if( Name.empty() ) { return nullptr; }
+
+    auto const lookup = m_eventmap.find( Name );
+    return (
+        lookup != m_eventmap.end() ?
+            m_events[ lookup->second ] :
+            nullptr );
+}
+
+// legacy method, inserts specified event in the event query
+bool
+event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
+
+    if( ( false == Event->m_ignored ) && ( true == Event->bEnabled ) ) {
+        // jeśli może być dodany do kolejki (nie używany w skanowaniu)
+        if( !Event->iQueued ) // jeśli nie dodany jeszcze do kolejki
+        { // kolejka eventów jest posortowana względem (fStartTime)
+            Event->Activator = Owner;
+            if( ( Event->Type == tp_AddValues )
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
+                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
+                // wykonującą eventy i ją wywołać
+                if( EventConditon( Event ) ) { // teraz mogą być warunki do tych eventów
+                    Event->Params[ 5 ].asMemCell->UpdateValues(
+                        Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
+                        Event->Params[ 2 ].asdouble, Event->iFlags );
+                    if( Event->Params[ 6 ].asTrack ) { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
+                        // wszystkich 'dynamic' na danym torze
+                        for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
+                            Event->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                Event->Params[ 4 ].asLocation );
+                        }
+                        //if (DebugModeFlag)
+                        WriteLog(
+                            "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues & Track command - ["
+                            + std::string{ Event->Params[ 0 ].asText } + "] ["
+                            + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                            + to_string( Event->Params[ 2 ].asdouble, 2 ) + " ]" );
+                    }
+                    //else if (DebugModeFlag)
+                    WriteLog(
+                        "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues - ["
+                        + std::string( Event->Params[ 0 ].asText ) + "] ["
+                        + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                        + to_string( Event->Params[ 2 ].asdouble, 2 ) + "]" );
+                }
+                // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
+                do {
+                    Event = Event->evJoined;
+                    // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
+                    // TODO: refactor this arrangement, it's hardly optimal
+                } while( ( Event != nullptr )
+                    && ( ( false == Event->bEnabled )
+                      || ( Event->iQueued > 0 ) ) );
+            }
+            if( Event != nullptr ) {
+                // standardowe dodanie do kolejki
+                ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
+                WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
+                Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+                if( Event->fRandomDelay > 0.0 ) {
+                    // doliczenie losowego czasu opóźnienia
+                    Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
+                }
+                if( QueryRootEvent != nullptr ) {
+                    TEvent::AddToQuery( Event, QueryRootEvent );
+                }
+                else {
+                    QueryRootEvent = Event;
+                    QueryRootEvent->evNext = nullptr;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+// legacy method, executes queued events
+bool
+event_manager::CheckQuery() {
+
+    TLocation loc;
+    int i;
+    while( ( QueryRootEvent != nullptr )
+        && ( QueryRootEvent->fStartTime < Timer::GetTime() ) )
+    { // eventy są posortowana wg czasu wykonania
+        m_workevent = QueryRootEvent; // wyjęcie eventu z kolejki
+        if (QueryRootEvent->evJoined) // jeśli jest kolejny o takiej samej nazwie
+        { // to teraz on będzie następny do wykonania
+            QueryRootEvent = QueryRootEvent->evJoined; // następny będzie ten doczepiony
+            QueryRootEvent->evNext = m_workevent->evNext; // pamiętając o następnym z kolejki
+            QueryRootEvent->fStartTime = m_workevent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
+            QueryRootEvent->Activator = m_workevent->Activator; // pojazd aktywujący
+            QueryRootEvent->iQueued = 1;
+            // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg czasu wykonania
+        }
+        else // a jak nazwa jest unikalna, to kolejka idzie dalej
+            QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
+        if( ( false == m_workevent->m_ignored ) && ( true == m_workevent->bEnabled ) ) {
+            // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
+            --m_workevent->iQueued; // teraz moze być ponownie dodany do kolejki
+            WriteLog( "EVENT LAUNCHED" + ( m_workevent->Activator ? ( " by " + m_workevent->Activator->asName ) : "" ) + ": " + m_workevent->asName );
+            switch (m_workevent->Type)
+            {
+            case tp_CopyValues: // skopiowanie wartości z innej komórki
+                m_workevent->Params[5].asMemCell->UpdateValues(
+                    m_workevent->Params[9].asMemCell->Text(),
+                    m_workevent->Params[9].asMemCell->Value1(),
+                    m_workevent->Params[9].asMemCell->Value2(),
+                    m_workevent->iFlags // flagi określają, co ma być skopiowane
+                    );
+            // break; //żeby się wysłało do torów i nie było potrzeby na AddValues * 0 0
+            case tp_AddValues: // różni się jedną flagą od UpdateValues
+            case tp_UpdateValues:
+                if (EventConditon(m_workevent))
+                { // teraz mogą być warunki do tych eventów
+                    if (m_workevent->Type != tp_CopyValues) // dla CopyValues zrobiło się wcześniej
+                        m_workevent->Params[5].asMemCell->UpdateValues(
+                            m_workevent->Params[0].asText,
+                            m_workevent->Params[1].asdouble,
+                            m_workevent->Params[2].asdouble,
+                            m_workevent->iFlags);
+                    if (m_workevent->Params[6].asTrack)
+                    { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
+                        // wszystkich 'dynamic' na danym torze
+                        for( auto dynamic : m_workevent->Params[ 6 ].asTrack->Dynamics ) {
+                            m_workevent->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                m_workevent->Params[ 4 ].asLocation );
+                        }
+                        //if (DebugModeFlag)
+                        WriteLog("Type: UpdateValues & Track command - [" +
+                            m_workevent->Params[5].asMemCell->Text() + "] [" +
+                            to_string( m_workevent->Params[ 5 ].asMemCell->Value1(), 2 ) + "] [" +
+                            to_string( m_workevent->Params[ 5 ].asMemCell->Value2(), 2 ) + "]" );
+                    }
+                    else //if (DebugModeFlag) 
+                        WriteLog("Type: UpdateValues - [" +
+                            m_workevent->Params[5].asMemCell->Text() + "] [" +
+                            to_string( m_workevent->Params[ 5 ].asMemCell->Value1(), 2 ) + "] [" +
+                            to_string( m_workevent->Params[ 5 ].asMemCell->Value2(), 2 ) + "]" );
+                }
+                break;
+            case tp_GetValues: {
+                if( m_workevent->Activator ) {
+                    // TODO: re-enable when messaging module is in place
+                    if( Global::iMultiplayer ) {
+                        // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
+                        multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
+                    }
+                    m_workevent->Params[ 9 ].asMemCell->PutCommand(
+                        m_workevent->Activator->Mechanik,
+                        m_workevent->Params[ 8 ].asLocation );
+                }
+                WriteLog( "Type: GetValues" );
+                break;
+            }
+            case tp_PutValues: {
+                if (m_workevent->Activator) {
+                    // zamiana, bo fizyka ma inaczej niż sceneria
+                    loc.X = -m_workevent->Params[3].asdouble;
+                    loc.Y =  m_workevent->Params[5].asdouble;
+                    loc.Z =  m_workevent->Params[4].asdouble;
+                    if( m_workevent->Activator->Mechanik ) {
+                        // przekazanie rozkazu do AI
+                        m_workevent->Activator->Mechanik->PutCommand(
+                            m_workevent->Params[0].asText, m_workevent->Params[1].asdouble,
+                            m_workevent->Params[2].asdouble, loc);
+                    }
+                    else {
+                        // przekazanie do pojazdu
+                        m_workevent->Activator->MoverParameters->PutCommand(
+                            m_workevent->Params[0].asText, m_workevent->Params[1].asdouble,
+                            m_workevent->Params[2].asdouble, loc);
+                    }
+                    WriteLog("Type: PutValues - [" +
+                        std::string(m_workevent->Params[0].asText) + "] [" +
+                        to_string( m_workevent->Params[ 1 ].asdouble, 2 ) + "] [" +
+                        to_string( m_workevent->Params[ 2 ].asdouble, 2 ) + "]" );
+                }
+                break;
+            }
+            case tp_Lights: {
+                if( m_workevent->Params[ 9 ].asModel ) {
+                    for( i = 0; i < iMaxNumLights; ++i ) {
+                        if( m_workevent->Params[ i ].asdouble >= 0 ) {
+                            // -1 zostawia bez zmiany
+                            m_workevent->Params[ 9 ].asModel->LightSet(
+                                i,
+                                m_workevent->Params[ i ].asdouble );
+                        }
+                    }
+                }
+                break;
+            }
+            case tp_Visible: {
+                if( m_workevent->Params[ 9 ].asEditorNode )
+                    m_workevent->Params[ 9 ].asEditorNode->visible( m_workevent->Params[ i ].asInt > 0 );
+                break;
+            }
+            case tp_Velocity: {
+                Error( "Not implemented yet :(" );
+                break;
+            }
+            case tp_Exit: {
+                Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
+                return false;
+            }
+            case tp_Sound: {
+                switch( m_workevent->Params[ 0 ].asInt ) {
+                    // trzy możliwe przypadki:
+                    case 0: {
+                        m_workevent->Params[ 9 ].tsTextSound->stop();
+                        break;
+                    }
+                    case 1: {
+                        m_workevent->Params[ 9 ].tsTextSound->loop(false).play();
+                        break;
+                    }
+                    case -1: {
+                        m_workevent->Params[ 9 ].tsTextSound->loop().play();
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                break;
+            }
+            case tp_Disable:
+                Error("Not implemented yet :(");
+                break;
+            case tp_Animation: {
+                switch( m_workevent->Params[ 0 ].asInt ) {
+                    case 1: {
+                        m_workevent->Params[ 9 ].asAnimContainer->SetRotateAnim(
+                            Math3D::vector3 {
+                                m_workevent->Params[ 1 ].asdouble,
+                                m_workevent->Params[ 2 ].asdouble,
+                                m_workevent->Params[ 3 ].asdouble },
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    case 2: {
+                        m_workevent->Params[ 9 ].asAnimContainer->SetTranslateAnim(
+                            Math3D::vector3 {
+                                m_workevent->Params[ 1 ].asdouble,
+                                m_workevent->Params[ 2 ].asdouble,
+                                m_workevent->Params[ 3 ].asdouble },
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    case 4: {
+                        m_workevent->Params[ 9 ].asModel->AnimationVND(
+                            m_workevent->Params[ 8 ].asPointer,
+                            m_workevent->Params[ 1 ].asdouble, // tu mogą być dodatkowe parametry, np. od-do
+                            m_workevent->Params[ 2 ].asdouble,
+                            m_workevent->Params[ 3 ].asdouble,
+                            m_workevent->Params[ 4 ].asdouble );
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                break;
+            }
+            case tp_Switch: {
+                if( m_workevent->Params[ 9 ].asTrack ) {
+                    m_workevent->Params[ 9 ].asTrack->Switch(
+                        m_workevent->Params[ 0 ].asInt,
+                        m_workevent->Params[ 1 ].asdouble,
+                        m_workevent->Params[ 2 ].asdouble );
+                }
+                if( Global::iMultiplayer ) {
+                    // dajemy znać do serwera o przełożeniu
+                    multiplayer::WyslijEvent( m_workevent->asName, "" ); // wysłanie nazwy eventu przełączajacego
+                }
+                // Ra: bardziej by się przydała nazwa toru, ale nie ma do niej stąd dostępu
+                break;
+            }
+            case tp_TrackVel:
+                if (m_workevent->Params[9].asTrack) {
+                    // prędkość na zwrotnicy może być ograniczona z góry we wpisie, większej się nie ustawi eventem
+                    m_workevent->Params[9].asTrack->VelocitySet(m_workevent->Params[0].asdouble);
+                    // wyświetlana jest ta faktycznie ustawiona
+                    WriteLog( "Type: TrackVel - ["
+                        + to_string( m_workevent->Params[ 0 ].asdouble, 2 ) + "]"
+                        + ( DebugModeFlag ?
+                            ", actual [ " + to_string( m_workevent->Params[ 9 ].asTrack->VelocityGet(), 2 ) + "]" :
+                            "" ) );
+                }
+                break;
+            case tp_DynVel:
+                Error("Event \"DynVel\" is obsolete");
+                break;
+            case tp_Multiple: {
+                auto const bCondition = EventConditon(m_workevent);
+                if( ( bCondition )
+                 || ( m_workevent->iFlags & conditional_anyelse ) ) {
+                    // warunek spelniony albo było użyte else
+                    WriteLog("Type: Multi-event");
+                    for (i = 0; i < 8; ++i) {
+                        // dodawane do kolejki w kolejności zapisania
+                        if( m_workevent->Params[ i ].asEvent ) {
+                            if( bCondition != ( ( ( m_workevent->iFlags & ( conditional_else << i ) ) != 0 ) ) ) {
+                                if( m_workevent->Params[ i ].asEvent != m_workevent )
+                                    AddToQuery( m_workevent->Params[ i ].asEvent, m_workevent->Activator ); // normalnie dodać
+                                else {
+                                    // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
+                                    if( m_workevent->fDelay >= 5.0 ) {
+                                        AddToQuery( m_workevent, m_workevent->Activator );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if( Global::iMultiplayer ) {
+                        // dajemy znać do serwera o wykonaniu
+                        if( ( m_workevent->iFlags & conditional_anyelse ) == 0 ) {
+                            // jednoznaczne tylko, gdy nie było else
+                            if( m_workevent->Activator ) {
+                                multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
+                            }
+                            else {
+                                multiplayer::WyslijEvent( m_workevent->asName, "" );
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case tp_WhoIs: {
+                // pobranie nazwy pociągu do komórki pamięci
+                if (m_workevent->iFlags & update_load) {
+                    // jeśli pytanie o ładunek
+                    if( m_workevent->iFlags & update_memadd ) {
+                        // jeśli typ pojazdu
+                        // TODO: define and recognize individual request types
+                        auto const owner = (
+                            ( ( m_workevent->Activator->Mechanik != nullptr ) && ( m_workevent->Activator->Mechanik->Primary() ) ) ?
+                                m_workevent->Activator->Mechanik :
+                                m_workevent->Activator->ctOwner );
+                        auto const consistbrakelevel = (
+                            owner != nullptr ?
+                                owner->fReady :
+                                -1.0 );
+                        auto const collisiondistance = (
+                            owner != nullptr ?
+                                owner->TrackBlock() :
+                                -1.0 );
+
+                        m_workevent->Params[ 9 ].asMemCell->UpdateValues(
+                            m_workevent->Activator->MoverParameters->TypeName, // typ pojazdu
+                            consistbrakelevel,
+                            collisiondistance,
+                            m_workevent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
+
+                        WriteLog(
+                              "Type: WhoIs (" + to_string( m_workevent->iFlags ) + ") - "
+                            + "[name: " + m_workevent->Activator->MoverParameters->TypeName + "], "
+                            + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
+                            + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
+                    }
+                    else {
+                        // jeśli parametry ładunku
+                        m_workevent->Params[ 9 ].asMemCell->UpdateValues(
+                            m_workevent->Activator->MoverParameters->LoadType, // nazwa ładunku
+                            m_workevent->Activator->MoverParameters->Load, // aktualna ilość
+                            m_workevent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
+                            m_workevent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
+
+                        WriteLog(
+                              "Type: WhoIs (" + to_string( m_workevent->iFlags ) + ") - "
+                            + "[load type: " + m_workevent->Activator->MoverParameters->LoadType + "], "
+                            + "[current load: " + to_string( m_workevent->Activator->MoverParameters->Load, 2 ) + "], "
+                            + "[max load: " + to_string( m_workevent->Activator->MoverParameters->MaxLoad, 2 ) + "]" );
+                    }
+                }
+                else if (m_workevent->iFlags & update_memadd)
+                { // jeśli miejsce docelowe pojazdu
+                    m_workevent->Params[ 9 ].asMemCell->UpdateValues(
+                        m_workevent->Activator->asDestination, // adres docelowy
+                        m_workevent->Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
+                        m_workevent->Activator->MoverParameters->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                        m_workevent->iFlags & (update_memstring | update_memval1 | update_memval2));
+
+                        WriteLog(
+                              "Type: WhoIs (" + to_string( m_workevent->iFlags ) + ") - "
+                            + "[destination: " + m_workevent->Activator->asDestination + "], "
+                            + "[direction: " + to_string( m_workevent->Activator->DirectionGet() ) + "], "
+                            + "[engine power: " + to_string( m_workevent->Activator->MoverParameters->Power, 2 ) + "]" );
+                }
+                else if (m_workevent->Activator->Mechanik)
+                    if (m_workevent->Activator->Mechanik->Primary())
+                    { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
+                        m_workevent->Params[ 9 ].asMemCell->UpdateValues(
+							m_workevent->Activator->Mechanik->TrainName(),
+                            m_workevent->Activator->Mechanik->StationCount() - m_workevent->Activator->Mechanik->StationIndex(), // ile przystanków do końca
+                            m_workevent->Activator->Mechanik->IsStop() ?
+                                1 :
+                                0, // 1, gdy ma tu zatrzymanie
+                            m_workevent->iFlags);
+                        WriteLog("Train detected: " + m_workevent->Activator->Mechanik->TrainName());
+                    }
+                break;
+            }
+            case tp_LogValues: {
+                // zapisanie zawartości komórki pamięci do logu
+                if( m_workevent->Params[ 9 ].asMemCell ) {
+                    // jeśli była podana nazwa komórki
+                    WriteLog( "Memcell \"" + m_workevent->asNodeName + "\": ["
+                        + m_workevent->Params[ 9 ].asMemCell->Text() + "] ["
+                        + to_string( m_workevent->Params[ 9 ].asMemCell->Value1(), 2 ) + "] ["
+                        + to_string( m_workevent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
+                }
+                else {
+                    // lista wszystkich
+                    simulation::Memory.log_all();
+                }
+                break;
+            }
+            case tp_Voltage: // zmiana napięcia w zasilaczu (TractionPowerSource)
+                if (m_workevent->Params[9].psPower)
+                { // na razie takie chamskie ustawienie napięcia zasilania
+                    WriteLog("Type: Voltage");
+                    m_workevent->Params[9].psPower->VoltageSet(m_workevent->Params[0].asdouble);
+                }
+            case tp_Friction: // zmiana tarcia na scenerii
+            { // na razie takie chamskie ustawienie napięcia zasilania
+                WriteLog("Type: Friction");
+                Global::fFriction = (m_workevent->Params[0].asdouble);
+            }
+            break;
+            case tp_Message: // wyświetlenie komunikatu
+                break;
+			case tp_Lua:
+				((lua::eventhandler_t)m_workevent->Params[0].asPointer)(m_workevent, m_workevent->Activator);
+				break;
+            } // switch (tmpEvent->Type)
+        } // if (tmpEvent->bEnabled)
+    } // while
+    return true;
+}
+
+// legacy method, initializes events after deserialization from scenario file
+void
+event_manager::InitEvents() {
+
+    //łączenie eventów z pozostałymi obiektami
+    for( auto *event : m_events ) {
+
+        switch( event->Type ) {
+
+        case tp_AddValues: // sumowanie wartości
+        case tp_UpdateValues: { // zmiana wartości
+            auto *cell = simulation::Memory.find( event->asNodeName ); // nazwa komórki powiązanej z eventem
+            if( cell != nullptr ) { // McZapkie-100302
+                if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
+                    // jeśli chodzi o zajetosc toru (tor może być inny, niż wpisany w komórce)
+                    // nazwa toru ta sama, co nazwa komórki
+                    event->Params[ 9 ].asTrack = simulation::Paths.find( event->asNodeName );
+                    if( event->Params[ 9 ].asTrack == nullptr ) {
+                        ErrorLog( "Bad event: track \"" + event->asNodeName + "\" referenced in event \"" + event->asName + "\" doesn't exist" );
+                    }
+                }
+                event->Params[ 4 ].asLocation = &( cell->location() );
+                event->Params[ 5 ].asMemCell = cell; // komórka do aktualizacji
+                if( event->iFlags & ( conditional_memcompare ) ) {
+                    // komórka do badania warunku
+                    event->Params[ 9 ].asMemCell = cell;
+                }
+                if( false == cell->asTrackName.empty() ) {
+                    // tor powiązany z komórką powiązaną z eventem
+                    // tu potrzebujemy wskaźnik do komórki w (tmp)
+                    event->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
+                    if( event->Params[ 6 ].asTrack == nullptr ) {
+                        ErrorLog( "Bad memcell: track \"" + cell->asTrackName + "\" referenced in memcell \"" + cell->name() + "\" doesn't exist" );
+                    }
+                }
+                else {
+                    event->Params[ 6 ].asTrack = nullptr;
+                }
+            }
+            else {
+                // nie ma komórki, to nie będzie działał poprawnie
+                event->m_ignored = true; // deaktywacja
+                ErrorLog( "Bad event: event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
+            }
+            break;
+        }
+        case tp_LogValues: {
+            // skojarzenie z memcell
+            if( event->asNodeName.empty() ) { // brak skojarzenia daje logowanie wszystkich
+                event->Params[ 9 ].asMemCell = nullptr;
+                break;
+            }
+        }
+        case tp_GetValues:
+        case tp_WhoIs: {
+            auto *cell = simulation::Memory.find( event->asNodeName );
+            if( cell != nullptr ) {
+                event->Params[ 8 ].asLocation = &( cell->location() );
+                event->Params[ 9 ].asMemCell = cell;
+                if( ( event->Type == tp_GetValues )
+                 && ( cell->IsVelocity() ) ) {
+                    // jeśli odczyt komórki a komórka zawiera komendę SetVelocity albo ShuntVelocity
+                    // to event nie będzie dodawany do kolejki
+                    event->bEnabled = false;
+                }
+            }
+            else {
+                // nie ma komórki, to nie będzie działał poprawnie
+                event->m_ignored = true; // deaktywacja
+                ErrorLog( "Bad event: event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
+            }
+            break;
+        }
+        case tp_CopyValues: {
+            // skopiowanie komórki do innej
+            auto *cell = simulation::Memory.find( event->asNodeName ); // komórka docelowa
+            if( cell != nullptr ) {
+                event->Params[ 4 ].asLocation = &( cell->location() );
+                event->Params[ 5 ].asMemCell = cell; // komórka docelowa
+                if( false == cell->asTrackName.empty() ) {
+                    // tor powiązany z komórką powiązaną z eventem
+                    // tu potrzebujemy wskaźnik do komórki w (tmp)
+                    event->Params[ 6 ].asTrack = simulation::Paths.find( cell->asTrackName );
+                    if( event->Params[ 6 ].asTrack == nullptr ) {
+                        ErrorLog( "Bad memcell: track \"" + cell->asTrackName + "\" referenced in memcell \"" + cell->name() + "\" doesn't exists" );
+                    }
+                }
+                else {
+                    event->Params[ 6 ].asTrack = nullptr;
+                }
+            }
+            else {
+                ErrorLog( "Bad event: copyvalues event \"" + event->asName + "\" cannot find memcell \"" + event->asNodeName + "\"" );
+            }
+            std::string const cellastext { event->Params[ 9 ].asText };
+            cell = simulation::Memory.find( event->Params[ 9 ].asText ); // komórka źódłowa
+            SafeDeleteArray( event->Params[ 9 ].asText ); // usunięcie nazwy komórki
+            if( cell != nullptr ) {
+                event->Params[ 8 ].asLocation = &( cell->location() );
+                event->Params[ 9 ].asMemCell = cell; // komórka źródłowa
+            }
+            else {
+                ErrorLog( "Bad event: copyvalues event \"" + event->asName + "\" cannot find memcell \"" + cellastext + "\"" );
+            }
+            break;
+        }
+        case tp_Animation: {
+            // animacja modelu
+            // retrieve target name parameter
+            std::string const cellastext = event->Params[ 9 ].asText;
+            SafeDeleteArray( event->Params[ 9 ].asText );
+            // egzemplarz modelu do animowania
+            auto *instance = simulation::Instances.find( event->asNodeName );
+            if( instance != nullptr ) {
+                if( event->Params[ 0 ].asInt == 4 ) {
+                    // model dla całomodelowych animacji
+                    event->Params[ 9 ].asModel = instance;
+                }
+                else {
+                    // standardowo przypisanie submodelu
+                    event->Params[ 9 ].asAnimContainer = instance->GetContainer( cellastext ); // submodel
+                    if( event->Params[ 9 ].asAnimContainer ) {
+                        event->Params[ 9 ].asAnimContainer->WillBeAnimated(); // oflagowanie animacji
+                        if( event->Params[ 9 ].asAnimContainer->Event() == nullptr ) {
+                            // nie szukać, gdy znaleziony
+                            event->Params[ 9 ].asAnimContainer->EventAssign(
+                                FindEvent( event->asNodeName + "." + cellastext + ":done" ) );
+                        }
+                    }
+                }
+            }
+            else {
+                ErrorLog( "Bad event: animation event \"" + event->asName + "\" cannot find model instance \"" + event->asNodeName + "\"" );
+            }
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Lights: {
+            // zmiana świeteł modelu
+            auto *instance = simulation::Instances.find( event->asNodeName );
+            if( instance != nullptr )
+                event->Params[ 9 ].asModel = instance;
+            else
+                ErrorLog( "Bad event: lights event \"" + event->asName + "\" cannot find model instance \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Visible: {
+            // ukrycie albo przywrócenie obiektu
+            editor::basic_node *node = simulation::Instances.find( event->asNodeName ); // najpierw model
+            if( node == nullptr ) {
+                // albo tory?
+                node = simulation::Paths.find( event->asNodeName );
+            }
+            if( node == nullptr ) {
+                // może druty?
+                node = simulation::Traction.find( event->asNodeName );
+            }
+            if( node != nullptr )
+                event->Params[ 9 ].asEditorNode = node;
+            else
+                ErrorLog( "Bad event: visibility event \"" + event->asName + "\" cannot find item \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Switch: {
+            // przełożenie zwrotnicy albo zmiana stanu obrotnicy
+            auto *track = simulation::Paths.find( event->asNodeName );
+            if( track != nullptr ) {
+                // dowiązanie toru
+                if( track->iAction == 0 ) {
+                    // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
+                    track->iAction |= 0x100;
+                }
+                event->Params[ 9 ].asTrack = track;
+                if( ( event->Params[ 0 ].asInt == 0 )
+                 && ( event->Params[ 2 ].asdouble >= 0.0 ) ) {
+                    // jeśli przełącza do stanu 0 & jeśli jest zdefiniowany dodatkowy ruch iglic
+                    // przesłanie parametrów
+                    event->Params[ 9 ].asTrack->Switch(
+                        event->Params[ 0 ].asInt,
+                        event->Params[ 1 ].asdouble,
+                        event->Params[ 2 ].asdouble );
+                }
+            }
+            else {
+                ErrorLog( "Bad event: switch event \"" + event->asName + "\" cannot find track \"" + event->asNodeName + "\"" );
+            }
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Sound: {
+            // odtworzenie dźwięku
+            auto *sound = sound_man->create_sound(event->asNodeName);
+            if( sound != nullptr )
+                event->Params[ 9 ].tsTextSound = sound;
+            else
+                ErrorLog( "Bad event: sound event \"" + event->asName + "\" cannot find static sound \"" + event->asNodeName + "\"" );
+            event->asNodeName = "";
+            break;
+        }
+        case tp_TrackVel: {
+            // ustawienie prędkości na torze
+            if( false == event->asNodeName.empty() ) {
+                auto *track = simulation::Paths.find( event->asNodeName );
+                if( track != nullptr ) {
+                    // flaga zmiany prędkości toru jest istotna dla skanowania
+                    track->iAction |= 0x200;
+                    event->Params[ 9 ].asTrack = track;
+                }
+                else {
+                    ErrorLog( "Bad event: track velocity event \"" + event->asName + "\" cannot find track \"" + event->asNodeName + "\"" );
+                }
+            }
+            event->asNodeName = "";
+            break;
+        }
+        case tp_DynVel: {
+            // komunikacja z pojazdem o konkretnej nazwie
+            if( event->asNodeName == "activator" )
+                event->Params[ 9 ].asDynamic = nullptr;
+            else {
+                auto *vehicle = simulation::Vehicles.find( event->asNodeName );
+                if( vehicle != nullptr )
+                    event->Params[ 9 ].asDynamic = vehicle;
+                else
+                    ErrorLog( "Bad event: vehicle velocity event \"" + event->asName + "\" cannot find vehicle \"" + event->asNodeName + "\"" );
+            }
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Multiple: {
+            std::string cellastext;
+            if( event->Params[ 9 ].asText != nullptr ) { // przepisanie nazwy do bufora
+                cellastext = event->Params[ 9 ].asText;
+                SafeDeleteArray( event->Params[ 9 ].asText );
+                event->Params[ 9 ].asPointer = nullptr; // zerowanie wskaźnika, aby wykryć brak obeiktu
+            }
+            if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
+                // jeśli chodzi o zajetosc toru
+                event->Params[ 9 ].asTrack = simulation::Paths.find( cellastext );
+                if( event->Params[ 9 ].asTrack == nullptr ) {
+                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find track \"" + cellastext + "\"" );
+                    event->iFlags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
+                }
+            }
+            else if( event->iFlags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
+                // jeśli chodzi o komorke pamieciową
+                event->Params[ 9 ].asMemCell = simulation::Memory.find( cellastext );
+                if( event->Params[ 9 ].asMemCell == nullptr ) {
+                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
+                    event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
+                }
+            }
+            for( int i = 0; i < 8; ++i ) {
+                if( event->Params[ i ].asText != nullptr ) {
+                    cellastext = event->Params[ i ].asText;
+                    SafeDeleteArray( event->Params[ i ].asText );
+                    event->Params[ i ].asEvent = FindEvent( cellastext );
+                    if( event->Params[ i ].asEvent == nullptr ) {
+                        // Ra: tylko w logu informacja o braku
+                        ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find event \"" + cellastext + "\"" );
+                    }
+                }
+            }
+            break;
+        }
+        case tp_Voltage: {
+            // zmiana napięcia w zasilaczu (TractionPowerSource)
+            if( false == event->asNodeName.empty() ) {
+                auto *powersource = simulation::Powergrid.find( event->asNodeName ); // podłączenie zasilacza
+                if( powersource != nullptr )
+                    event->Params[ 9 ].psPower = powersource;
+                else
+                    ErrorLog( "Bad event: voltage event \"" + event->asName + "\" cannot find power source \"" + event->asNodeName + "\"" );
+            }
+            event->asNodeName = "";
+            break;
+        }
+        case tp_Message: {
+            // wyświetlenie komunikatu
+            break;
+        }
+
+        } // switch
+
+        if( event->fDelay < 0 ) { AddToQuery( event, nullptr ); }
+    }
+}
+
+// legacy method, initializes event launchers after deserialization from scenario file
+void
+event_manager::InitLaunchers() {
+
+    for( auto *launcher : m_launchers.sequence() ) {
+
+        if( launcher->iCheckMask != 0 ) {
+            if( launcher->asMemCellName != "none" ) {
+                // jeśli jest powiązana komórka pamięci
+                launcher->MemCell = simulation::Memory.find( launcher->asMemCellName );
+                if( launcher->MemCell == nullptr ) {
+                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find memcell \"" + launcher->asMemCellName + "\"" );
+                }
+            }
+            else {
+                launcher->MemCell = nullptr;
+            }
+        }
+
+        launcher->Event1 = (
+            launcher->asEvent1Name != "none" ?
+                simulation::Events.FindEvent( launcher->asEvent1Name ) :
+                nullptr );
+        launcher->Event2 = (
+            launcher->asEvent2Name != "none" ?
+                simulation::Events.FindEvent( launcher->asEvent2Name ) :
+                nullptr );
+    }
+}
+
+// legacy method, verifies condition for specified event
+bool
+event_manager::EventConditon( TEvent *Event ) {
+
+    if (Event->iFlags <= update_only)
+        return true; // bezwarunkowo
+
+    if (Event->iFlags & conditional_trackoccupied)
+        return (!Event->Params[9].asTrack->IsEmpty());
+    else if (Event->iFlags & conditional_trackfree)
+        return (Event->Params[9].asTrack->IsEmpty());
+    else if (Event->iFlags & conditional_propability)
+    {
+        double rprobability = Random();
+        WriteLog( "Random integer: " + std::to_string( rprobability ) + " / " + std::to_string( Event->Params[ 10 ].asdouble ) );
+        return (Event->Params[10].asdouble > rprobability);
+    }
+    else if( Event->iFlags & conditional_memcompare ) {
+        // porównanie wartości
+        if( nullptr == Event->Params[9].asMemCell ) {
+
+            ErrorLog( "Event " + Event->asName + " trying conditional_memcompare with nonexistent memcell" );
+            return true; // though this is technically error, we report success to maintain backward compatibility
+        }
+        auto const comparisonresult =
+            m_workevent->Params[ 9 ].asMemCell->Compare(
+                ( Event->Params[ 10 ].asText != nullptr ?
+                    Event->Params[ 10 ].asText :
+                    "" ),
+                Event->Params[ 11 ].asdouble,
+                Event->Params[ 12 ].asdouble,
+                Event->iFlags );
+
+        std::string comparisonlog = "Type: MemCompare - ";
+
+        comparisonlog +=
+               "[" + Event->Params[ 9 ].asMemCell->Text() + "]"
+            + " [" + to_string( Event->Params[ 9 ].asMemCell->Value1(), 2 ) + "]"
+            + " [" + to_string( m_workevent->Params[ 9 ].asMemCell->Value2(), 2 ) + "]";
+
+        comparisonlog += (
+            true == comparisonresult ?
+                " == " :
+                " != " );
+
+        comparisonlog += (
+            TestFlag( Event->iFlags, conditional_memstring ) ?
+                "[" + std::string( m_workevent->Params[ 10 ].asText ) + "]" :
+                "[*]" );
+        comparisonlog += (
+            TestFlag( m_workevent->iFlags, conditional_memval1 ) ?
+                " [" + to_string( m_workevent->Params[ 11 ].asdouble, 2 ) + "]" :
+                " [*]" );
+        comparisonlog += (
+            TestFlag( m_workevent->iFlags, conditional_memval2 ) ?
+                " [" + to_string( m_workevent->Params[ 12 ].asdouble, 2 ) + "]" :
+                " [*]" );
+
+        WriteLog( comparisonlog );
+        return comparisonresult;
+    }
+    // unrecognized request
+    return false;
+}

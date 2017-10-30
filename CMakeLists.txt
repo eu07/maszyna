@@ -30,7 +30,6 @@ set(SOURCES
 "Float3d.cpp"
 "Gauge.cpp"
 "Globals.cpp"
-"Ground.cpp"
 "Logs.cpp"
 "McZapkie/friction.cpp"
 "McZapkie/hamulce.cpp"
@@ -68,6 +67,11 @@ set(SOURCES
 "material.cpp"
 "lua.cpp"
 "uart.cpp"
+"messaging.cpp"
+"scene.cpp"
+"scenenode.cpp"
+"simulation.cpp"
+"vertex.cpp"
 )
 
 if (WIN32)

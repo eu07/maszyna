@@ -15,33 +15,19 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "DynObj.h"
 
-#include "Logs.h"
-#include "MdlMngr.h"
-#include "Timer.h"
-#include "usefull.h"
-// McZapkie-260202
+#include "simulation.h"
 #include "Globals.h"
-#include "renderer.h"
-#include "AirCoupler.h"
-
-#include "TractionPower.h"
-#include "Ground.h" //bo Global::pGround->bDynamicRemove
-#include "Event.h"
-#include "Driver.h"
-#include "Camera.h" //bo likwidujemy trzęsienie
+#include "Timer.h"
+#include "Logs.h"
 #include "Console.h"
 #include "Traction.h"
 #include "sound.h"
+#include "MdlMngr.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
 #define vWorldUp Math3D::vector3(0, 1, 0)
 #define vWorldLeft CrossProduct(vWorldUp, vWorldFront)
-
-// Ra: bo te poniżej to się powielały w każdym module odobno
-// vector3 vWorldFront=vector3(0,0,1);
-// vector3 vWorldUp=vector3(0,1,0);
-// vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 #define M_2PI 6.283185307179586476925286766559;
 const float maxrot = (float)(M_PI / 3.0); // 60°
@@ -50,6 +36,7 @@ std::string const TDynamicObject::MED_labels[] = {
     "masa: ", "amax: ", "Fzad: ", "FmPN: ", "FmED: ", "FrED: ", "FzPN: ", "nPrF: "
 };
 
+bool TDynamicObject::bDynamicRemove { false };
 
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
@@ -416,14 +403,22 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
     // Ra: te współczynniki są bez sensu, bo modyfikują wektor przesunięcia
     // w efekcie drzwi otwierane na zewnątrz będą odlatywac dowolnie daleko :)
     // ograniczyłem zakres ruchu funkcją max
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
+    if (pAnim->smAnimated) {
+
+        if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR)));
-        else
+                vector3{
+                    0.0,
+                    0.0,
+                    dDoorMoveR } );
+        }
+        else {
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL)));
+                vector3{
+                    0.0,
+                    0.0,
+                    dDoorMoveL } );
+        }
     }
 };
 
@@ -494,18 +489,30 @@ void TDynamicObject::UpdatePant(TAnim *pAnim)
 
 void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
 { // animacja drzwi - odskokprzesuw
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
+    if (pAnim->smAnimated) {
+
+        if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3(Min0R(dDoorMoveR * 2, MoverParameters->DoorMaxPlugShift), 0,
-                        Max0R(0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR) -
-                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
-        else
+                vector3 {
+                    std::min(
+                        dDoorMoveR * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveR - MoverParameters->DoorMaxPlugShift * 0.5 ) } );
+        }
+        else {
             pAnim->smAnimated->SetTranslate(
-                vector3(Min0R(dDoorMoveL * 2, MoverParameters->DoorMaxPlugShift), 0,
-                        Max0R(0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL) -
-                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
+                vector3 {
+                    std::min(
+                        dDoorMoveL * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveL - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
+        }
     }
 };
 
@@ -1757,8 +1764,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
             if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
             {
-                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
             if (ActPar.find('E') != std::string::npos) // oprozniony
             {
@@ -1782,16 +1789,16 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
-                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 }
             }
             if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
-                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 }
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
@@ -2625,77 +2632,36 @@ bool TDynamicObject::Update(double dt, double dt1)
                 NoVoltTime = 0;
                 tmpTraction.TractionVoltage = v;
             }
-            else
-            {
-                /*
-                      if (MoverParameters->Vel>0.1f) //jeśli jedzie
-                       if (NoVoltTime==0.0) //tylko przy pierwszym zaniku napięcia
-                        if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp)
-                        //if
-                   ((pants[0].fParamPants->PantTraction>1.0)||(pants[1].fParamPants->PantTraction>1.0))
-                        {//wspomagacz usuwania problemów z siecią
-                         if (!Global::iPause)
-                         {//Ra: tymczasowa teleportacja do miejsca, gdzie brakuje prądu
-                          Global::SetCameraPosition(vPosition+vector3(0,0,5)); //nowa
-                   pozycja dla
-                   generowania obiektów
-                          Global::pCamera->Init(vPosition+vector3(0,0,5),Global::pFreeCameraInitAngle[0]);
-                   //przestawienie
-                         }
-                         Global:l::pGround->Silence(Global::pCamera->Pos); //wyciszenie
-                   wszystkiego
-                   z poprzedniej pozycji
-                          Globa:iPause|=1; //tymczasowe zapauzowanie, gdy problem z
-                   siecią
-                        }
-                */
-                NoVoltTime = NoVoltTime + dt;
-                if (NoVoltTime > 0.2) // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod
-                // izolatorem daje 0.15s)
-                { // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało
-                    // WS pod
-                    // izolatorem
-                    if (MoverParameters->Vel > 0.5) // jeśli jedzie
-                        if (MoverParameters->PantFrontUp ||
-                            MoverParameters->PantRearUp) // Ra 2014-07: doraźna blokada logowania
-                            // zimnych lokomotyw - zrobić to trzeba
-                            // inaczej
+            else {
+                NoVoltTime += dt;
+                if( NoVoltTime > 0.2 ) {
+                    // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
+                    // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem
+                    if( MoverParameters->Vel > 0.5 ) {
+                        // jeśli jedzie
+                        // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
+                        if( MoverParameters->PantFrontUp || MoverParameters->PantRearUp )
                             // if (NoVoltTime>0.02) //tu można ograniczyć czas rozłączenia
                             // if (DebugModeFlag) //logowanie nie zawsze
-                            if ((MoverParameters->Mains) &&
-                               ((MoverParameters->EngineType != ElectricInductionMotor)
-                                || (MoverParameters->GetTrainsetVoltage() < 0.1f)))
-                            { // Ra 15-01: logować tylko, jeśli WS załączony
-                              // yB 16-03: i nie jest to asynchron zasilany z daleka 
-                                // if (MoverParameters->PantFrontUp&&pants)
+                            if( ( MoverParameters->Mains )
+                             && ( ( MoverParameters->EngineType != ElectricInductionMotor )
+                               || ( MoverParameters->GetTrainsetVoltage() < 0.1f ) ) ) {
+                                // Ra 15-01: logować tylko, jeśli WS załączony
+                                // yB 16-03: i nie jest to asynchron zasilany z daleka 
                                 // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
                                 // więc lepiej się tego nie zaloguje
-                                ErrorLog("Voltage loss: by " + MoverParameters->Name + " at " +
-                                         to_string(vPosition.x, 2, 7) + " " +
-                                         to_string(vPosition.y, 2, 7) + " " +
-                                         to_string(vPosition.z, 2, 7) + ", time " +
-                                         to_string(NoVoltTime, 2, 7));
-                                // if (MoverParameters->PantRearUp)
-                                // if (iAnimType[ANIM_PANTS]>1)
-                                //  if (pants[1])
-                                //   ErrorLog("Voltage loss: by "+MoverParameters->Name+" at
-                                //   "+FloatToStrF(vPosition.x,ffFixed,7,2)+"
-                                //   "+FloatToStrF(vPosition.y,ffFixed,7,2)+"
-                                //   "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time
-                                //   "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+                                ErrorLog(
+                                      "Bad traction: " + MoverParameters->Name
+                                    + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
+                                    + to_string( glm::dvec3{ vPosition } ) );
                             }
-                    // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo
-                    // zmienna była
+                    }
+                    // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo zmienna była
                     // tymczasowa, a napięcie zerowane od razu
                     tmpTraction.TractionVoltage = 0; // Ra 2013-12: po co tak?
-                    // pControlled->MainSwitch(false); //może tak?
                 }
             }
         }
-        // else //Ra: nie no, trzeba podnieść pantografy, jak nie będzie drutu, to
-        // będą miały prąd
-        // po osiągnięciu 1.4m
-        // tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
     }
     else
         tmpTraction.TractionVoltage = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
@@ -2760,9 +2726,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                        1000; // chwilowy max ED -> do rozdzialu sil
 				FfulED = std::min(p->MoverParameters->eimv[eimv_Fful], 0.0) *
 					1000; // chwilowy max ED -> do rozdzialu sil
-				FrED -= std::min(p->MoverParameters->eimv[eimv_Fr], 0.0) *
+				FrED -= std::min(p->MoverParameters->eimv[eimv_Fmax], 0.0) *
                         1000; // chwilowo realizowane ED -> do pneumatyki
-				Frj += std::max(p->MoverParameters->eimv[eimv_Fr], 0.0) *
+				Frj += std::max(p->MoverParameters->eimv[eimv_Fmax], 0.0) *
 					1000;// chwilowo realizowany napęd -> do utrzymującego
 				masa += p->MoverParameters->TotalMass;
 				osie += p->MoverParameters->NAxles;
@@ -2861,10 +2827,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if ((FzEP[i] > 0.01) &&
                         (FzEP[i] >
                          p->MoverParameters->TotalMass * p->MoverParameters->eimc[eimc_p_eped] +
-                             Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000) &&
+                             Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) * 1000) &&
                         (!PrzekrF[i]))
                     {
-                        float przek1 = -Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000 +
+                        float przek1 = -Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) * 1000 +
                                        FzEP[i] -
                                        p->MoverParameters->TotalMass *
                                            p->MoverParameters->eimc[eimc_p_eped] * 0.999;
@@ -2969,19 +2935,13 @@ bool TDynamicObject::Update(double dt, double dt1)
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen =
         GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
-    // yB: zeby zawsze wrzucalo w jedna strone zakretu
-/*
-    // this seemed to have opposite effect, if anything -- the sway direction would be affected
-    // by the 'direction' of the track, making the sway go sometimes inward, sometimes outward
-    MoverParameters->AccN *= -ABuGetDirection();
-*/
     // if (dDOMoveLen!=0.0) //Ra: nie może być, bo blokuje Event0
     if( Mechanik )
         Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
-        Global::pGround->bDynamicRemove = true; // sprawdzić
+        bDynamicRemove = true; // sprawdzić
         return false;
     }
     Global::ABuDebug = dDOMoveLen / dt1;
@@ -3218,19 +3178,18 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if ((MoverParameters->PantRearVolt == 0.0) &&
                         (MoverParameters->PantFrontVolt == 0.0) && sPantUp)
                         sPantUp->gain(vol).position(vPosition).play();
-                    if (p->hvPowerWire) // TODO: wyliczyć trzeba prąd przypadający na
-                    // pantograf i
-                    // wstawić do GetVoltage()
-                    {
-                        MoverParameters->PantRearVolt =
-                            p->hvPowerWire->VoltageGet(MoverParameters->Voltage, fPantCurrent);
+                    if (p->hvPowerWire) {
+                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
+                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                     }
                     else
                         MoverParameters->PantRearVolt = 0.0;
                 }
-                else
+                else {
+//                    Global::iPause ^= 2;
                     MoverParameters->PantRearVolt = 0.0;
+                }
                 break;
             } // pozostałe na razie nie obsługiwane
             if( MoverParameters->PantPress > (
@@ -3297,8 +3256,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     p->fAngleU = acos((p->fLenL1 * cos(k) + p->fHoriz) / p->fLenU1); // górne ramię
                     // wyliczyć aktualną wysokość z wzoru sinusowego
                     // h=a*sin()+b*sin()
-                    p->PantWys = p->fLenL1 * sin(k) + p->fLenU1 * sin(p->fAngleU) +
-                                 p->fHeight; // wysokość całości
+                    // wysokość całości
+                    p->PantWys = p->fLenL1 * sin(k) + p->fLenU1 * sin(p->fAngleU) + p->fHeight;
                 }
             }
         } // koniec pętli po pantografach
@@ -4183,7 +4142,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smBrakeMode = mdModel->GetFromName(asAnimName.c_str());
+                    smBrakeMode = mdModel->GetFromName(asAnimName);
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4191,7 +4150,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smLoadMode = mdModel->GetFromName(asAnimName.c_str());
+                    smLoadMode = mdModel->GetFromName(asAnimName);
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4203,7 +4162,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // liczba osi
                     { // McZapkie-050402: wyszukiwanie kol o nazwie str*
                         asAnimName = token + std::to_string(i + 1);
-                        pAnimations[i].smAnimated = mdModel->GetFromName(asAnimName.c_str()); // ustalenie submodelu
+                        pAnimations[i].smAnimated = mdModel->GetFromName(asAnimName); // ustalenie submodelu
                         if (pAnimations[i].smAnimated)
                         { //++iAnimatedAxles;
                             pAnimations[i].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
@@ -4344,8 +4303,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                 }
                             }
                             else
-                                ErrorLog("Bad model: " + asFileName + " - missed submodel " +
-                                         asAnimName); // brak ramienia
+                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName); // brak ramienia
                         }
                 }
 
@@ -4379,10 +4337,9 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                 }
                             }
                             else
-								ErrorLog( "Bad model: " + asFileName + " - missed submodel " +
-								asAnimName ); // brak ramienia
+								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName ); // brak ramienia
 						}
-                        }
+                    }
                 }
 
 				else if( token == "animpantrg1prefix:" ) {
@@ -4473,10 +4430,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                             // pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów
                             // asymetrycznych
 							pants[ i ].fParamPants->PantTraction = pants[ i ].fParamPants->PantWys;
-							pants[ i ].fParamPants->fWidth =
-                                0.5 *
-                                MoverParameters->EnginePowerSource.CollectorParameters
-                                    .CSW; // połowa szerokości ślizgu; jest w "Power: CSW="
+                            // połowa szerokości ślizgu; jest w "Power: CSW="
+							pants[ i ].fParamPants->fWidth = 0.5 * MoverParameters->EnginePowerSource.CollectorParameters.CSW;
                         }
                 }
                 }
@@ -4955,7 +4910,9 @@ void TDynamicObject::RadioStop()
         if( ( MoverParameters->SecuritySystem.RadioStop )
          && ( MoverParameters->Radio ) ) {
             // jeśli pojazd ma RadioStop i jest on aktywny
-            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
+            // HAX cast until math types unification
+			glm::dvec3 pos = static_cast<glm::dvec3>(vPosition);
+            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &pos, stopRadio );
             // add onscreen notification for human driver
             // TODO: do it selectively for the 'local' driver once the multiplayer is in
             if( false == Mechanik->AIControllFlag ) {
@@ -5413,4 +5370,167 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     }
     // ...if we're still here, report lack of power source
     return MoverParameters->EnginePowerSource.SourceType;
+}
+
+
+
+// legacy method, calculates changes in simulation state over specified time
+void
+vehicle_table::update( double Deltatime, int Iterationcount ) {
+    // Ra: w zasadzie to trzeba by utworzyć oddzielną listę taboru do liczenia fizyki
+    //    na którą by się zapisywały wszystkie pojazdy będące w ruchu
+    //    pojazdy stojące nie potrzebują aktualizacji, chyba że np. ktoś im zmieni nastawę hamulca
+    //    oddzielną listę można by zrobić na pojazdy z napędem, najlepiej posortowaną wg typu napędu
+    for( auto *vehicle : m_items ) {
+        if( false == vehicle->bEnabled ) { continue; }
+        // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
+        if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+            update_traction( vehicle );
+        }
+        vehicle->MoverParameters->ComputeConstans();
+        vehicle->CoupleDist();
+    }
+    if( Iterationcount > 1 ) {
+        // ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+        for( int iteration = 0; iteration < ( Iterationcount - 1 ); ++iteration ) {
+            for( auto *vehicle : m_items ) {
+                vehicle->UpdateForce( Deltatime, Deltatime, false );
+            }
+            for( auto *vehicle : m_items ) {
+                vehicle->FastUpdate( Deltatime );
+            }
+        }
+    }
+
+    auto const totaltime { Deltatime * Iterationcount }; // całkowity czas
+
+    for( auto *vehicle : m_items ) {
+        vehicle->UpdateForce( Deltatime, totaltime, true );
+    }
+    for( auto *vehicle : m_items ) {
+        // Ra 2015-01: tylko tu przelicza sieć trakcyjną
+        vehicle->Update( Deltatime, totaltime );
+    }
+/*
+    // TODO: re-implement
+    if (TDynamicObject::bDynamicRemove)
+    { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
+        for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
+            if ( false == Current->DynamicObject->bEnabled)
+            {
+                DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
+                Current = nRootDynamic; // sprawdzanie listy od początku
+            }
+        TDynamicObject::bDynamicRemove = false; // na razie koniec
+    }
+*/
+}
+
+// legacy method, checks for presence and height of traction wire for specified vehicle
+void
+vehicle_table::update_traction( TDynamicObject *Vehicle ) {
+
+    auto const vFront = glm::make_vec3( Vehicle->VectorFront().getArray() ); // wektor normalny dla płaszczyzny ruchu pantografu
+    auto const vUp = glm::make_vec3( Vehicle->VectorUp().getArray() ); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    auto const vLeft = glm::make_vec3( Vehicle->VectorLeft().getArray() ); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = glm::dvec3 { Vehicle->GetPosition() }; // współrzędne środka pojazdu
+
+    for( int pantographindex = 0; pantographindex < Vehicle->iAnimType[ ANIM_PANTS ]; ++pantographindex ) {
+        // pętla po pantografach
+        auto pantograph { Vehicle->pants[ pantographindex ].fParamPants };
+        if( true == (
+                pantographindex == TMoverParameters::side::front ?
+                    Vehicle->MoverParameters->PantFrontUp :
+                    Vehicle->MoverParameters->PantRearUp ) ) {
+            // jeśli pantograf podniesiony
+            auto const pant0 { position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x ) };
+            if( pantograph->hvPowerWire != nullptr ) {
+                // jeżeli znamy drut z poprzedniego przebiegu
+                for( int attempts = 0; attempts < 30; ++attempts ) {
+                    // powtarzane aż do znalezienia odpowiedniego odcinka na liście dwukierunkowej
+                    if( pantograph->hvPowerWire->iLast & 0x3 ) {
+                        // dla ostatniego i przedostatniego przęsła wymuszamy szukanie innego
+                        // nie to, że nie ma, ale trzeba sprawdzić inne
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                    if( pantograph->hvPowerWire->hvParallel ) {
+                        // jeśli przęsło tworzy bieżnię wspólną, to trzeba sprawdzić pozostałe
+                        // nie to, że nie ma, ale trzeba sprawdzić inne
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                    // obliczamy wyraz wolny równania płaszczyzny (to miejsce nie jest odpowienie)
+                    // podstawiamy równanie parametryczne drutu do równania płaszczyzny pantografu
+                    auto const fRaParam =
+                        -( glm::dot( pantograph->hvPowerWire->pPoint1, vFront ) - glm::dot( pant0, vFront ) )
+                         / glm::dot( pantograph->hvPowerWire->vParametric, vFront );
+
+                    if( fRaParam < -0.001 ) {
+                        // histereza rzędu 7cm na 70m typowego przęsła daje 1 promil
+                        pantograph->hvPowerWire = pantograph->hvPowerWire->hvNext[ 0 ];
+                        continue;
+                    }
+                    if( fRaParam > 1.001 ) {
+                        pantograph->hvPowerWire = pantograph->hvPowerWire->hvNext[ 1 ];
+                        continue;
+                    }
+                    // jeśli t jest w przedziale, wyznaczyć odległość wzdłuż wektorów vUp i vLeft
+                    // punkt styku płaszczyzny z drutem (dla generatora łuku el.)
+                    auto const vStyk { pantograph->hvPowerWire->pPoint1 + fRaParam * pantograph->hvPowerWire->vParametric };
+                    auto const vGdzie { vStyk - pant0 }; // wektor
+                    // odległość w pionie musi być w zasięgu ruchu "pionowego" pantografu
+                    // musi się mieścić w przedziale ruchu pantografu
+                    auto const fVertical { glm::dot( vGdzie, vUp ) };
+                    // odległość w bok powinna być mniejsza niż pół szerokości pantografu
+                    // to się musi mieścić w przedziale zależnym od szerokości pantografu
+                    auto const fHorizontal { std::abs( glm::dot( vGdzie, vLeft ) ) - pantograph->fWidth };
+                    // jeśli w pionie albo w bok jest za daleko, to dany drut jest nieużyteczny
+                    if( fHorizontal <= 0.0 ) {
+                        // koniec pętli, aktualny drut pasuje
+                        pantograph->PantTraction = fVertical;
+                        break;
+                    }
+                    else {
+                        // the wire is outside contact area and as of now we don't have good detection of parallel sections
+                        // as such there's no guaratee there isn't parallel section present.
+                        // therefore we don't bother checking if the wire is still within range of guide horns
+                        // but simply force area search for potential better option
+                        pantograph->hvPowerWire = nullptr;
+                        break;
+                    }
+                }
+            }
+
+            if( pantograph->hvPowerWire == nullptr ) {
+                // look in the region for a suitable traction piece if we don't already have any
+                simulation::Region->update_traction( Vehicle, pantographindex );
+            }
+
+            if( ( pantograph->hvPowerWire == nullptr )
+             && ( false == Global::bLiveTraction ) ) {
+                // jeśli drut nie znaleziony ale można oszukiwać to dajemy coś tam dla picu
+                Vehicle->pants[ pantographindex ].fParamPants->PantTraction = 1.4;
+            }
+        }
+        else {
+            // pantograph is down
+            pantograph->hvPowerWire = nullptr;
+        }
+    }
+}
+
+// legacy method, sends list of vehicles over network
+void
+vehicle_table::DynamicList( bool const Onlycontrolled ) const {
+    // odesłanie nazw pojazdów dostępnych na scenerii (nazwy, szczególnie wagonów, mogą się powtarzać!)
+    for( auto const *vehicle : m_items ) {
+        if( ( false == Onlycontrolled )
+         || ( vehicle->Mechanik != nullptr ) ) {
+            // same nazwy pojazdów
+            multiplayer::WyslijString( vehicle->asName, 6 );
+        }
+    }
+    // informacja o końcu listy
+    multiplayer::WyslijString( "none", 6 );
 }

@@ -46,6 +46,9 @@ public:
 	// tests if the sphere is in frustum, returns the distance between origin and sphere centre
     inline
     float
+        sphere_inside( glm::dvec3 const &Center, float const Radius ) const { return sphere_inside( static_cast<float>( Center.x ), static_cast<float>( Center.y ), static_cast<float>( Center.z ), Radius ); }
+    inline
+    float
         sphere_inside( glm::vec3 const &Center, float const Radius ) const { return sphere_inside( Center.x, Center.y, Center.z, Radius ); }
     inline
     float

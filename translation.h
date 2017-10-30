@@ -70,6 +70,8 @@ static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "pantalloff_sw:", "all pantographs" },
     { "pantselected_sw:", "selected pantograph" },
     { "pantselectedoff_sw:", "selected pantograph" },
+    { "pantcompressor_sw:", "pantograph compressor" },
+    { "pantcompressorvalve_sw:", "pantograph 3 way valve" },
     { "trainheating_sw:", "heating" },
     { "signalling_sw:", "braking indicator" },
     { "door_signalling_sw:", "door locking" },

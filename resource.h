@@ -2,7 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by maszyna.rc
 //
-#define IDI_ICON1                       101
+//#define GLFW_ICON                       101
 
 // Next default values for new objects
 // 

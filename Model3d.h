@@ -50,14 +50,18 @@ enum TAnimType // rodzaj animacji
 	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
 };
 
+namespace scene {
+class shape_node;
+}
+
 class TModel3d;
-class TGroundNode;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
     friend class opengl_renderer;
     friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend class TDynamicObject; // temporary etc
+    friend class scene::shape_node; // temporary etc
 
 public:
     enum normalization {
@@ -130,10 +134,8 @@ private:
 
 public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
-/*
-	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
-*/
     vertex_array Vertices;
+    float m_boundingradius { 0 };
     size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
 public:
@@ -163,9 +165,6 @@ public:
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
-/*
-	basic_vertex * TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
-*/
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ(vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
@@ -215,8 +214,6 @@ public:
 		std::vector<float4x4>&);
     void serialize_geometry( std::ostream &Output ) const;
     // places contained geometry in provided ground node
-    void convert( TGroundNode &Groundnode ) const;
-
 };
 
 class TModel3d : public CMesh
@@ -236,6 +233,11 @@ private:
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
 public:
+    float bounding_radius() const {
+        return (
+            Root ?
+                Root->m_boundingradius :
+                0.f ); }
 	inline TSubModel * GetSMRoot() { return (Root); };
 	TModel3d();
 	~TModel3d();
@@ -246,7 +248,6 @@ public:
 	void LoadFromBinFile(std::string const &FileName, bool dynamic);
 	bool LoadFromFile(std::string const &FileName, bool dynamic);
 	void SaveToBinFile(std::string const &FileName);
-	void BreakHierarhy();
 	int Flags() const { return iFlags; };
 	void Init();
 	std::string NameGet() { return m_filename; };

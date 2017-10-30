@@ -363,6 +363,12 @@ mouse_input::default_bindings() {
         { "pantselectedoff_sw:", {
             user_command::none,
             user_command::none } }, // TODO: lower selected pantograp(s) command
+        { "pantcompressor_sw:", {
+            user_command::pantographcompressoractivate,
+            user_command::none } },
+        { "pantcompressorvalve_sw:", {
+            user_command::pantographcompressorvalvetoggle,
+            user_command::none } },
         { "trainheating_sw:", {
             user_command::heatingtoggle,
             user_command::none } },

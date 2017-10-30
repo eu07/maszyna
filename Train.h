@@ -72,12 +72,14 @@ public:
 
 class TTrain
 {
+    friend class TWorld; // temporary due to use of play_sound TODO: refactor this
+
   public:
     bool CabChange(int iDirection);
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
-    ~TTrain();
+	~TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
     void OnKeyDown(int cKey);
@@ -468,6 +470,7 @@ public: // reszta może by?publiczna
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi
     char cCode[20]; // kod pojazdu
+	bool bSlip[20]; // poślizg kół pojazdu
     std::string asCarName[20]; // nazwa czlonu
     bool bMains[8]; // WSy
     float fCntVol[8]; // napiecie NN

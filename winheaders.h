@@ -6,6 +6,9 @@
 #else
 #include <cinttypes>
 #define WORD uint16_t
+#define UINT uint32_t
+#define WPARAM uint64_t
+#define LPARAM uint64_t
 #define DWORD uint32_t
 #define LONG int32_t
 #define BYTE uint8_t

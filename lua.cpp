@@ -6,6 +6,7 @@
 #include "World.h"
 #include "Driver.h"
 #include "lua_ffi.h"
+#include "simulation.h"
 
 extern TWorld World;
 
@@ -72,29 +73,31 @@ extern "C"
         event->asName = std::string(name);
         event->fDelay = delay;
         event->Params[0].asPointer = (void*)handler;
-        World.Ground.add_event(event);
-        return event;
+		if (simulation::Events.insert(event))
+			return event;
+		else
+			return nullptr;
     }
 
     EXPORT TEvent* scriptapi_event_find(const char* name)
     {
         std::string str(name);
-        TEvent *e = World.Ground.FindEvent(str);
+        TEvent *e = simulation::Events.FindEvent(str);
         if (e)
             return e;
         else
-            WriteLog("missing event: " + str);
+            WriteLog("lua: missing event: " + str);
         return nullptr;
     }
 
     EXPORT TTrack* scriptapi_track_find(const char* name)
     {
         std::string str(name);
-        TGroundNode *n = World.Ground.FindGroundNode(str, TP_TRACK);
-        if (n)
-            return n->pTrack;
+		TTrack *track = simulation::Paths.find(str);
+        if (track)
+            return track;
         else
-            WriteLog("missing track: " + str);
+            WriteLog("lua: missing track: " + str);
         return nullptr;
     }
 
@@ -122,7 +125,7 @@ extern "C"
     EXPORT void scriptapi_event_dispatch(TEvent *e, TDynamicObject *activator)
     {
         if (e)
-            World.Ground.AddToQuery(e, activator);
+            simulation::Events.AddToQuery(e, activator);
     }
 
     EXPORT double scriptapi_random(double a, double b)
@@ -132,7 +135,7 @@ extern "C"
 
     EXPORT void scriptapi_writelog(const char* txt)
     {
-        WriteLog("lua log: " + std::string(txt));
+        WriteLog("lua: log: " + std::string(txt));
     }
 
     struct memcell_values { const char *str; double num1; double num2; };
@@ -140,11 +143,11 @@ extern "C"
     EXPORT TMemCell* scriptapi_memcell_find(const char *name)
     {
         std::string str(name);
-        TGroundNode *n = World.Ground.FindGroundNode(str, TP_MEMCELL);
-        if (n)
-            return n->MemCell;
+        TMemCell *mc = simulation::Memory.find(str);
+        if (mc)
+            return mc;
         else
-            WriteLog("missing memcell: " + str);
+            WriteLog("lua: missing memcell: " + str);
         return nullptr;
     }
 

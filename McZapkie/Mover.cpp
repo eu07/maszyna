@@ -3455,7 +3455,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
         temp = 0.0; // odetnij
     else
         temp = 1.0; // połącz
-    Pipe->Flow(temp * Hamulec->GetPF(temp * PipePress, dt, Vel) + GetDVc(dt));
+    Pipe->Flow( temp * Hamulec->GetPF( temp * PipePress, dt, Vel ) + GetDVc( dt ) );
 
     if (ASBType == 128)
         Hamulec->ASB(int(SlippingWheels));
@@ -3751,14 +3751,23 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
                                             Sign(nrot * M_PI * WheelDiameter - V) *
                                                 Adhesive(RunningTrack.friction) * TotalMassxg,
                                         dt, nrot);
-            Fwheels = Sign(nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
+            Fwheels = Sign(temp_nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
 			if (Fwheels*Sign(V)>0)
 			{
-				FTrain = Fwheels - Fb;
+				FTrain = Fwheels + Fb*Sign(V);
+			}
+			else if (FTrain*Sign(V)>0)
+			{
+				Fb = FTrain*Sign(V) - Fwheels*Sign(V);
 			}
 			else
 			{
-				Fb = FTrain - Fwheels;
+				Fb = -Fwheels*Sign(V);
+				FTrain = 0;
+			}
+			if (nrot < 0.1)
+			{
+				WheelFlat = sqrt(sqr(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
 			}
 			if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
 			{
@@ -4648,7 +4657,7 @@ double TMoverParameters::TractionForce(double dt)
                     {
                         PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
                                    (eimc[eimc_p_Fh] *
-                                    Max0R(dtrans / MaxBrakePress[0], AnPos) /*dizel_fill*/);
+                                    Max0R(Max0R(dtrans,0.01) / MaxBrakePress[0], AnPos) /*dizel_fill*/);
                     }
                     else
                         PosRatio = 0;
@@ -4699,11 +4708,11 @@ double TMoverParameters::TractionForce(double dt)
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 9;
-                    Sandbox( true, range::local );
+                    Sandbox( true, range::unit );
                 } // przeciwposlizg
                 else {
                     // switch sandbox off
-                    Sandbox( false, range::local );
+                    Sandbox( false, range::unit );
                 }
 
                 dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
@@ -4740,6 +4749,13 @@ double TMoverParameters::TractionForce(double dt)
                         -Sign(V) * (DirAbsolute)*std::min(
                                        eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
                                        std::min(-eimc[eimc_p_Fh] * dizel_fill, eimv[eimv_FMAXMAX]));
+					double pr = dizel_fill;
+					if (EIMCLogForce)
+						pr = -log(1 - 4 * pr) / log(5);
+					eimv[eimv_Fr] =
+						-Sign(V) * (DirAbsolute)*std::min(
+							eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
+							std::min(-eimc[eimc_p_Fh] * pr, eimv[eimv_FMAXMAX]));
                     //*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
                 }
                 else
@@ -4751,9 +4767,13 @@ double TMoverParameters::TractionForce(double dt)
                     eimv[eimv_Fmax] = eimv[eimv_Fful] * dizel_fill;
                     //           else
                     //             eimv[eimv_Fmax]:=Min0R(eimc[eimc_p_F0]*dizel_fill,eimv[eimv_Fful]);
+					double pr = dizel_fill;
+					if (EIMCLogForce)
+						pr = log(1 + 4 * pr) / log(5);
+					eimv[eimv_Fr] = eimv[eimv_Fful] * pr;
                 }
 
-                eimv[eimv_ks] = eimv[eimv_Fmax] / eimv[eimv_FMAXMAX];
+                eimv[eimv_ks] = eimv[eimv_Fr] / eimv[eimv_FMAXMAX];
                 eimv[eimv_df] = eimv[eimv_ks] * eimc[eimc_s_dfmax];
                 eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] +
                                 eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
@@ -4924,7 +4944,7 @@ double TMoverParameters::v2n(void)
     n = V / (M_PI * WheelDiameter); // predkosc obrotowa wynikajaca z liniowej [obr/s]
     deltan = n - nrot; //"pochodna" prędkości obrotowej
     if (SlippingWheels)
-        if (std::abs(deltan) < 0.01)
+        if (std::abs(deltan) < 0.001)
             SlippingWheels = false; // wygaszenie poslizgu
     if (SlippingWheels) // nie ma zwiazku z predkoscia liniowa V
     { // McZapkie-221103: uszkodzenia kol podczas poslizgu
@@ -6923,7 +6943,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     }
 
     if( true == extract_value( AirLeakRate, "AirLeakRate", line, "" ) ) {
-        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.001
+        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.01
         AirLeakRate *= 0.01;
     }
 }
@@ -7149,6 +7169,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
             if( asb == "Manual" ) { ASBType = 1; }
             else if( asb == "Automatic" ) { ASBType = 2; }
+			else if (asb == "Yes") { ASBType = 128; }
         }
         else {
 
@@ -7397,6 +7418,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_Imax ], "Imax", Input, "" );
             extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
+			EIMCLogForce = ( extract_value( "eimclf", Input ) == "Yes" );
 
             Flat = ( extract_value( "Flat", Input ) == "1" );
 
@@ -7826,10 +7848,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_NP ) );
         else
             BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_RP ) );
+/*
+        // NOTE: disabled and left up to the driver, if there's any
         MainSwitch( false );
         PantFront( true );
         PantRear( true );
         MainSwitch( true );
+*/
         ActiveDir = 0; // Dir; //nastawnik kierunkowy - musi być ustawiane osobno!
         DirAbsolute = ActiveDir * CabNo; // kierunek jazdy względem sprzęgów
         LimPipePress = CntrlPipePress;

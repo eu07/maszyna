@@ -37,7 +37,7 @@ class TMtableTime; // czas dla danego posterunku
 
 class TController; // obiekt sterujący pociągiem (AI)
 
-typedef enum
+enum TCommandType
 { // binarne odpowiedniki komend w komórce pamięci
     cm_Unknown, // ciąg nierozpoznany (nie jest komendą)
     cm_Ready, // W4 zezwala na odjazd, ale semafor może zatrzymać
@@ -51,6 +51,6 @@ typedef enum
     cm_OutsideStation,
     cm_Shunt,
     cm_Command // komenda pobierana z komórki
-} TCommandType;
+};
 
 #endif

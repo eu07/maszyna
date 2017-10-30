@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include "dumb3d.h"
 #include "parser.h"
+#include "Names.h"
 
 class load_error : public std::runtime_error
 {
@@ -70,6 +71,7 @@ public:
 
 	virtual ~sound();
 
+	glm::vec3 location(); //get position
 	virtual bool is_playing() = 0;
 
 	virtual void play() = 0;

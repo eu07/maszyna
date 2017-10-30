@@ -765,8 +765,11 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         Filename.erase( traitpos );
     }
 
-    if( Filename.rfind( '.' ) != std::string::npos )
-        Filename.erase( Filename.rfind( '.' ) ); // trim extension if there's one
+    if( ( Filename.rfind( '.' ) != std::string::npos )
+     && ( Filename.rfind( '.' ) != Filename.rfind( ".." ) + 1 ) ) {
+        // trim extension if there's one, but don't mistake folder traverse for extension
+        Filename.erase( Filename.rfind( '.' ) );
+    }
 
 	std::replace(Filename.begin(), Filename.end(), '\\', '/'); // fix slashes
 

@@ -17,10 +17,12 @@ http://mozilla.org/MPL/2.0/.
 #include "frustum.h"
 #include "World.h"
 #include "MemCell.h"
+#include "scene.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
+//#define EU07_USE_DEBUG_CULLING
 
 struct opengl_light {
 
@@ -84,7 +86,7 @@ public:
     void
         update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview );
     bool
-        visible( bounding_area const &Area ) const;
+        visible( scene::bounding_area const &Area ) const;
     bool
         visible( TDynamicObject const *Dynamic ) const;
     inline
@@ -190,18 +192,20 @@ public:
     // utility methods
     TSubModel const *
         Pick_Control() const { return m_pickcontrolitem; }
-    TGroundNode const *
+    editor::basic_node const *
         Pick_Node() const { return m_picksceneryitem; }
     // maintenance jobs
     void
         Update( double const Deltatime );
     TSubModel const *
         Update_Pick_Control();
-    TGroundNode const *
+    editor::basic_node const *
         Update_Pick_Node();
     // debug performance string
     std::string const &
-        Info() const;
+        info_times() const;
+    std::string const &
+        info_stats() const;
 
 // members
     GLenum static const sunlight{ GL_LIGHT0 };
@@ -225,7 +229,20 @@ private:
         diffuse
     };
 
-    typedef std::pair< double, TSubRect * > distancesubcell_pair;
+    struct debug_stats {
+        int dynamics { 0 };
+        int models { 0 };
+        int submodels { 0 };
+        int paths { 0 };
+        int traction { 0 };
+        int shapes { 0 };
+        int lines { 0 };
+        int drawcalls { 0 };
+    };
+
+    using section_sequence = std::vector<scene::basic_section *>;
+    using distancecell_pair = std::pair<double, scene::basic_cell *>;
+    using cell_sequence = std::vector<distancecell_pair>;
 
     struct renderpass_config {
 
@@ -266,14 +283,16 @@ private:
         Render_reflections();
     bool
         Render( world_environment *Environment );
-    bool
-        Render( TGround *Ground );
-    bool
-        Render( TGroundRect *Groundcell );
-    bool
-        Render( TSubRect *Groundsubcell );
-    bool
-        Render( TGroundNode *Node );
+    void
+        Render( scene::basic_region *Region );
+    void
+        Render( section_sequence::iterator First, section_sequence::iterator Last );
+    void
+        Render( cell_sequence::iterator First, cell_sequence::iterator Last );
+    void
+        Render( scene::shape_node const &Shape, bool const Ignorerange );
+    void
+        Render( TAnimModel *Instance );
     bool
         Render( TDynamicObject *Dynamic );
     bool
@@ -284,16 +303,22 @@ private:
         Render( TSubModel *Submodel );
     void
         Render( TTrack *Track );
+    void
+        Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last );
     bool
         Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
-    bool
-        Render_Alpha( TGround *Ground );
-    bool
-        Render_Alpha( TSubRect *Groundsubcell );
-    bool
-        Render_Alpha( TGroundNode *Node );
+    void
+        Render_Alpha( scene::basic_region *Region );
+    void
+        Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last );
+    void
+        Render_Alpha( TAnimModel *Instance );
+    void
+        Render_Alpha( TTraction *Traction );
+    void
+        Render_Alpha( scene::lines_node const &Lines );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
@@ -351,28 +376,26 @@ private:
     units_state m_unitstate;
 
     unsigned int m_framestamp; // id of currently rendered gfx frame
-    float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
-    std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
     float m_framerate;
-    float m_drawtimecolorpass { 1000.f / 30.f * 20.f };
-    float m_drawtimeshadowpass { 0.f };
     double m_updateaccumulator { 0.0 };
-    std::string m_debuginfo;
+    std::string m_debugtimestext;
     std::string m_pickdebuginfo;
+    debug_stats m_debugstats;
+    std::string m_debugstatstext;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
-    glm::vec4 m_shadowcolor { 0.5f, 0.5f, 0.5f, 1.f };
+    glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
 
     renderpass_config m_renderpass;
-    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
-
-    std::vector<TGroundNode const *> m_picksceneryitems;
+    section_sequence m_sectionqueue; // list of sections in current render pass
+    cell_sequence m_cellqueue;
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
-    TGroundNode const *m_picksceneryitem { nullptr };
+    std::vector<editor::basic_node const *> m_picksceneryitems;
+    editor::basic_node const *m_picksceneryitem { nullptr };
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif
