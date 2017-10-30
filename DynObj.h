@@ -265,14 +265,14 @@ private:
 
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
-    TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
-    TAirCoupler btCPneumatic2;
-    TAirCoupler btCPneumatic1r; // ABu: to zeby nie bylo problemow przy laczeniu wagonow,
-    TAirCoupler btCPneumatic2r; //     jesli beda polaczone sprzegami 1<->1 lub 0<->0
-    TAirCoupler btPneumatic1; // ABu: sprzegi powietrzne zolte
-    TAirCoupler btPneumatic2;
-    TAirCoupler btPneumatic1r; // ABu: analogicznie jak 4 linijki wyzej
-    TAirCoupler btPneumatic2r;
+    AirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
+    AirCoupler btCPneumatic2;
+    AirCoupler btCPneumatic1r; // ABu: to zeby nie bylo problemow przy laczeniu wagonow,
+    AirCoupler btCPneumatic2r; //     jesli beda polaczone sprzegami 1<->1 lub 0<->0
+    AirCoupler btPneumatic1; // ABu: sprzegi powietrzne zolte
+    AirCoupler btPneumatic2;
+    AirCoupler btPneumatic1r; // ABu: analogicznie jak 4 linijki wyzej
+    AirCoupler btPneumatic2r;
 
     TButton btCCtrl1; // sprzegi sterowania
     TButton btCCtrl2;
