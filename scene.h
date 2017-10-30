@@ -81,6 +81,12 @@ public:
     // legacy method, updates geometry for pieces in the animation list
     void
         RaAnimate( unsigned int const Framestamp );
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the class from provided stream
+    void
+        deserialize( std::istream &Input );
     // adds provided shape to the cell
     void
         insert( shape_node Shape );
@@ -186,6 +192,12 @@ public:
     // legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
     void
         radio_stop( glm::dvec3 const &Location, float const Radius );
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the class from provided stream
+    void
+        deserialize( std::istream &Input );
     // adds provided shape to the section
     void
         insert( shape_node Shape );
@@ -272,7 +284,7 @@ public:
         update_sounds();
     // stores content of the class in file with specified name
     void
-        serialize( std::string const &Scenariofile );
+        serialize( std::string const &Scenariofile ) const;
     // restores content of the class from file with specified name. returns: true on success, false otherwise
     bool
         deserialize( std::string const &Scenariofile );

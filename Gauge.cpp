@@ -137,10 +137,10 @@ TGauge::Load_mapping( cParser &Input ) {
                 TSoundsManager::GetFromName( value, true ) :
                 nullptr );
     }
-    else if( key.find( "sound" ) == 0 ) {
+    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
-        auto const indexstart = key.find_first_of( "-1234567890" );
-        auto const indexend = key.find_first_not_of( "-1234567890", indexstart );
+        auto const indexstart { key.find_first_of( "-1234567890" ) };
+        auto const indexend { key.find_first_not_of( "-1234567890", indexstart ) };
         if( indexstart != std::string::npos ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),

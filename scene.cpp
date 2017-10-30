@@ -14,8 +14,11 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "timer.h"
 #include "logs.h"
+#include "sn_utils.h"
 
 namespace scene {
+
+std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
 void
@@ -171,6 +174,56 @@ basic_cell::RaAnimate( unsigned int const Framestamp ) {
     tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
 
     m_framestamp = Framestamp;
+}
+
+// sends content of the class to provided stream
+void
+basic_cell::serialize( std::ostream &Output ) const {
+
+    // region file version 0, cell data
+    // bounding area
+    m_area.serialize( Output );
+    // NOTE: cell activation flag is set dynamically on load
+    // cell shapes
+    // shape count followed by opaque shape data
+    sn_utils::ls_uint32( Output, m_shapesopaque.size() );
+    for( auto const &shape : m_shapesopaque ) {
+        shape.serialize( Output );
+    }
+    // shape count followed by translucent shape data
+    sn_utils::ls_uint32( Output, m_shapestranslucent.size() );
+    for( auto const &shape : m_shapestranslucent ) {
+        shape.serialize( Output );
+    }
+    // cell lines
+    // line count followed by lines data
+    sn_utils::ls_uint32( Output, m_lines.size() );
+    for( auto const &lines : m_lines ) {
+        lines.serialize( Output );
+    }
+}
+
+// restores content of the class from provided stream
+void
+basic_cell::deserialize( std::istream &Input ) {
+
+    // region file version 0, cell data
+    // bounding area
+    m_area.deserialize( Input );
+    // cell shapes
+    // shape count followed by opaque shape data
+    auto itemcount { sn_utils::ld_uint32( Input ) };
+    while( itemcount-- ) {
+        m_shapesopaque.emplace_back( shape_node().deserialize( Input ) );
+    }
+    itemcount = sn_utils::ld_uint32( Input );
+    while( itemcount-- ) {
+        m_shapestranslucent.emplace_back( shape_node().deserialize( Input ) );
+    }
+    itemcount = sn_utils::ld_uint32( Input );
+    while( itemcount-- ) {
+        m_lines.emplace_back( lines_node().deserialize( Input ) );
+    }
 }
 
 // adds provided shape to the cell
@@ -545,6 +598,51 @@ basic_section::radio_stop( glm::dvec3 const &Location, float const Radius ) {
     }
 }
 
+// sends content of the class to provided stream
+void
+basic_section::serialize( std::ostream &Output ) const {
+
+    auto const sectionstartpos { Output.tellp() };
+
+    // region file version 0, section data
+    // section size
+    sn_utils::ls_uint32( Output, 0 );
+    // bounding area
+    m_area.serialize( Output );
+    // section shapes: shape count followed by shape data
+    sn_utils::ls_uint32( Output, m_shapes.size() );
+    for( auto const &shape : m_shapes ) {
+        shape.serialize( Output );
+    }
+    // partitioned data
+    for( auto const &cell : m_cells ) {
+        cell.serialize( Output );
+    }
+    // all done; calculate and record section size
+    auto const sectionendpos { Output.tellp() };
+    Output.seekp( sectionstartpos );
+    sn_utils::ls_uint32( Output, static_cast<uint32_t>( ( sizeof( uint32_t ) + ( sectionendpos - sectionstartpos ) ) ) );
+    Output.seekp( sectionendpos );
+}
+
+// restores content of the class from provided stream
+void
+basic_section::deserialize( std::istream &Input ) {
+
+    // region file version 0, section data
+    // bounding area
+    m_area.deserialize( Input );
+    // section shapes: shape count followed by shape data
+    auto shapecount { sn_utils::ld_uint32( Input ) };
+    while( shapecount-- ) {
+        m_shapes.emplace_back( shape_node().deserialize( Input ) );
+    }
+    // partitioned data
+    for( auto &cell : m_cells ) {
+        cell.deserialize( Input );
+    }
+}
+
 // adds provided shape to the section
 void
 basic_section::insert( shape_node Shape ) {
@@ -767,15 +865,73 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
 
 // stores content of the class in file with specified name
 void
-basic_region::serialize( std::string const &Scenariofile ) {
-    // TODO: implement
+basic_region::serialize( std::string const &Scenariofile ) const {
+
+    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    if( ( filename.rfind( '.' ) != std::string::npos )
+     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
+        // trim extension, it's typically going to be for different file type
+        filename.erase( filename.rfind( '.' ) );
+    }
+    filename += EU07_FILEEXTENSION_REGION;
+
+    std::ofstream output { filename, std::ios::binary };
+
+    // region file version 0
+    // header: EU07SBT + version (0-255)
+    sn_utils::ls_uint32( output, MAKE_ID4( 'E', 'U', '0', '7' ) );
+    sn_utils::ls_uint32( output, MAKE_ID4( 'S', 'B', 'T', 0 ) );
+    // sections
+    // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
+    for( auto section : m_sections ) {
+        // length of section data, followed by section data (if any)
+        if( section != nullptr ) {
+            section->serialize( output ); }
+        else {
+            sn_utils::ls_uint32( output, 0 ); }
+    }
 }
 
 // restores content of the class from file with specified name. returns: true on success, false otherwise
 bool
 basic_region::deserialize( std::string const &Scenariofile ) {
-    // TODO: implement
-    return false;
+
+    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    if( ( filename.rfind( '.' ) != std::string::npos )
+     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
+        // trim extension, it's typically going to be for different file type
+        filename.erase( filename.rfind( '.' ) );
+    }
+    filename += EU07_FILEEXTENSION_REGION;
+
+    if( false == FileExists( filename ) ) {
+        return false;
+    }
+    // region file version 0
+    // file type and version check
+    std::ifstream input( filename, std::ios::binary );
+
+    uint32_t headermain { sn_utils::ld_uint32( input ) };
+    uint32_t headertype { sn_utils::ld_uint32( input ) };
+
+    if( ( headermain != MAKE_ID4( 'E', 'U', '0', '7' )
+     || ( headertype != MAKE_ID4( 'S', 'B', 'T', 0 ) ) ) ) {
+        // wrong file type
+        ErrorLog( "Bad file: \"" + filename + "\" is of either unrecognized type or version" );
+        return false;
+    }
+    // sections
+    // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
+    for( auto &section : m_sections ) {
+        // length of section data, followed by section data (if any)
+        auto const sectionsize { sn_utils::ld_uint32( input ) };
+        if( sectionsize != 0 ) {
+            section = new basic_section();
+            section->deserialize( input );
+        }
+    }
+
+    return true;
 }
 
 // legacy method, links specified path piece with potential neighbours

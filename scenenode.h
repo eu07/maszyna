@@ -22,6 +22,13 @@ struct lighting_data {
     glm::vec4 diffuse  { 0.8f, 0.8f, 0.8f, 1.0f };
     glm::vec4 ambient  { 0.2f, 0.2f, 0.2f, 1.0f };
     glm::vec4 specular { 0.0f, 0.0f, 0.0f, 1.0f };
+
+    // stores content of the struct in provided output stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the struct from provided input stream
+    void
+        deserialize( std::istream &Input );
 };
 
 inline
@@ -50,6 +57,12 @@ struct bounding_area {
         center( Center ),
         radius( Radius )
         {}
+    // stores content of the struct in provided output stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the struct from provided input stream
+    void
+        deserialize( std::istream &Input );
 };
 
 struct node_data {
@@ -68,23 +81,37 @@ class shape_node {
 public:
 // types
     struct shapenode_data {
+    // members:
         // placement and visibility
         scene::bounding_area area; // bounding area, in world coordinates
-        bool visible { true }; // visibility flag
         double rangesquared_min { 0.0 }; // visibility range, min
         double rangesquared_max { 0.0 }; // visibility range, max
+        bool visible { true }; // visibility flag
         // material data
-        material_handle material { 0 };
-        lighting_data lighting;
         bool translucent { false }; // whether opaque or translucent
+        material_handle material { null_handle };
+        lighting_data lighting;
         // geometry data
-        std::vector<world_vertex> vertices; // world space source data of the geometry
         glm::dvec3 origin; // world position of the relative coordinate system origin
         geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
+        std::vector<world_vertex> vertices; // world space source data of the geometry
+    // methods:
+        // sends content of the struct to provided stream
+        void
+            serialize( std::ostream &Output ) const;
+        // restores content of the struct from provided input stream
+        void
+            deserialize( std::istream &Input );
     };
 
 // methods
-    // restores content of the node from provded input stream
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the node from provided input stream
+    shape_node &
+        deserialize( std::istream &Input );
+    // restores content of the node from provided input stream
     shape_node &
         deserialize( cParser &Input, scene::node_data const &Nodedata );
     // imports data from provided submodel
@@ -144,22 +171,36 @@ class lines_node {
 public:
 // types
     struct linesnode_data {
+    // members:
         // placement and visibility
         scene::bounding_area area; // bounding area, in world coordinates
-        bool visible { true }; // visibility flag
         double rangesquared_min { 0.0 }; // visibility range, min
         double rangesquared_max { 0.0 }; // visibility range, max
+        bool visible { true }; // visibility flag
         // material data
+        float line_width { 1.f }; // thickness of stored lines
         lighting_data lighting;
-        float line_width; // thickness of stored lines
         // geometry data
-        std::vector<world_vertex> vertices; // world space source data of the geometry
         glm::dvec3 origin; // world position of the relative coordinate system origin
         geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
+        std::vector<world_vertex> vertices; // world space source data of the geometry
+    // methods:
+        // sends content of the struct to provided stream
+        void
+            serialize( std::ostream &Output ) const;
+        // restores content of the struct from provided input stream
+        void
+            deserialize( std::istream &Input );
     };
 
 // methods
-    // restores content of the node from provded input stream
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the node from provided input stream
+    lines_node &
+        deserialize( std::istream &Input );
+    // restores content of the node from provided input stream
     lines_node &
         deserialize( cParser &Input, scene::node_data const &Nodedata );
     // adds content of provided node to already enclosed geometry. returns: true if merge could be performed

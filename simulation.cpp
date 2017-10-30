@@ -349,30 +349,37 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
     else if( nodedata.type == "model" ) {
 
         if( nodedata.range_min < 0.0 ) {
-            // convert and import 3d terrain
-            auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
-            // model import can potentially fail
-            if( instance == nullptr ) { return; }
-            // go through submodels, and import them as shapes
-            auto const cellcount = instance->TerrainCount() + 1; // zliczenie submodeli
-            for( auto i = 1; i < cellcount; ++i ) {
-                auto *submodel = instance->TerrainSquare( i - 1 );
-                simulation::Region->insert_shape(
-                    scene::shape_node().convert( submodel ),
-                    Scratchpad,
-                    false );
-                // if there's more than one group of triangles in the cell they're held as children of the primary submodel
-                submodel = submodel->ChildGet();
-                while( submodel != nullptr ) {
+            // 3d terrain
+            if( false == Scratchpad.binary.terrain ) {
+                // if we're loading data from text .scn file convert and import
+                auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
+                // model import can potentially fail
+                if( instance == nullptr ) { return; }
+                // go through submodels, and import them as shapes
+                auto const cellcount = instance->TerrainCount() + 1; // zliczenie submodeli
+                for( auto i = 1; i < cellcount; ++i ) {
+                    auto *submodel = instance->TerrainSquare( i - 1 );
                     simulation::Region->insert_shape(
                         scene::shape_node().convert( submodel ),
                         Scratchpad,
                         false );
-                    submodel = submodel->NextGet();
+                    // if there's more than one group of triangles in the cell they're held as children of the primary submodel
+                    submodel = submodel->ChildGet();
+                    while( submodel != nullptr ) {
+                        simulation::Region->insert_shape(
+                            scene::shape_node().convert( submodel ),
+                            Scratchpad,
+                            false );
+                        submodel = submodel->NextGet();
+                    }
                 }
+                // with the import done we can get rid of the source model
+                delete instance;
             }
-            // with the import done we can get rid of the source model
-            delete instance;
+            else {
+                // if binary terrain file was present, we already have this data
+                skip_until( Input, "endmodel" );
+            }
         }
         else {
             // regular instance of 3d mesh

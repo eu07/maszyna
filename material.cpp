@@ -94,10 +94,10 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
     filename += ".mat";
 
-    for( char &c : filename ) {
-        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
-        c = ( c == '/' ? '\\' : c );
-    }
+    // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
+    std::replace(
+        std::begin( filename ), std::end( filename ),
+        '/', '\\' );
     if( filename.find( '\\' ) == std::string::npos ) {
         // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
         filename = szTexturePath + filename;

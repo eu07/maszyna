@@ -75,6 +75,28 @@ std::string sn_utils::d_str(std::istream &s)
 	return r;
 }
 
+bool sn_utils::d_bool(std::istream& s)
+{
+    return ( ld_uint16( s ) == 1 );
+}
+
+glm::dvec3 sn_utils::d_dvec3(std::istream& s)
+{
+    return {
+        ld_float64(s),
+        ld_float64(s),
+        ld_float64(s) };
+}
+
+glm::vec4 sn_utils::d_vec4( std::istream& s)
+{
+    return {
+        ld_float32(s),
+        ld_float32(s),
+        ld_float32(s),
+        ld_float32(s) };
+}
+
 void sn_utils::ls_uint16(std::ostream &s, uint16_t v)
 {
 	uint8_t buf[2];
@@ -133,4 +155,28 @@ void sn_utils::s_str(std::ostream &s, std::string v)
 {
 	const char* buf = v.c_str();
 	s.write(buf, v.size() + 1);
+}
+
+void sn_utils::s_bool(std::ostream &s, bool v)
+{
+    ls_uint16(
+        s,
+        ( true == v ?
+            1 :
+            0 ) );
+}
+
+void sn_utils::s_dvec3(std::ostream &s, glm::dvec3 const &v)
+{
+    ls_float64(s, v.x);
+    ls_float64(s, v.y);
+    ls_float64(s, v.z);
+}
+
+void sn_utils::s_vec4(std::ostream &s, glm::vec4 const &v)
+{
+    ls_float32(s, v.x);
+    ls_float32(s, v.y);
+    ls_float32(s, v.z);
+    ls_float32(s, v.w);
 }

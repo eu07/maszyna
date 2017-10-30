@@ -12,10 +12,126 @@ http://mozilla.org/MPL/2.0/.
 
 #include "renderer.h"
 #include "logs.h"
+#include "sn_utils.h"
+
+
+// stores content of the struct in provided output stream
+void
+lighting_data::serialize( std::ostream &Output ) const {
+
+    sn_utils::s_vec4( Output, diffuse );
+    sn_utils::s_vec4( Output, ambient );
+    sn_utils::s_vec4( Output, specular );
+}
+
+// restores content of the struct from provided input stream
+void
+lighting_data::deserialize( std::istream &Input ) {
+
+    diffuse = sn_utils::d_vec4( Input );
+    ambient = sn_utils::d_vec4( Input );
+    specular = sn_utils::d_vec4( Input );
+}
+
+
 
 namespace scene {
 
-// restores content of the node from provded input stream
+// stores content of the struct in provided output stream
+void
+bounding_area::serialize( std::ostream &Output ) const {
+    // center
+    sn_utils::s_dvec3( Output, center );
+    // radius
+    sn_utils::ls_float32( Output, radius );
+}
+
+// restores content of the struct from provided input stream
+void
+bounding_area::deserialize( std::istream &Input ) {
+
+    center = sn_utils::d_dvec3( Input );
+    radius = sn_utils::ld_float32( Input );
+}
+
+
+
+// sends content of the struct to provided stream
+void
+shape_node::shapenode_data::serialize( std::ostream &Output ) const {
+    // bounding area
+    area.serialize( Output );
+    // visibility
+    sn_utils::ls_float64( Output, rangesquared_min );
+    sn_utils::ls_float64( Output, rangesquared_max );
+    sn_utils::s_bool( Output, visible );
+    // material
+    sn_utils::s_bool( Output, translucent );
+    // NOTE: material handle is created dynamically on load
+    sn_utils::s_str(
+        Output,
+        ( material != null_handle ?
+            GfxRenderer.Material( material ).name :
+            "" ) );
+    lighting.serialize( Output );
+    // geometry
+    sn_utils::s_dvec3( Output, origin );
+    // NOTE: geometry handle is created dynamically on load
+    // vertex count, followed by vertex data
+    sn_utils::ls_uint32( Output, vertices.size() );
+    for( auto const &vertex : vertices ) {
+        vertex.serialize( Output );
+    }
+}
+
+// restores content of the struct from provided input stream
+void
+shape_node::shapenode_data::deserialize( std::istream &Input ) {
+    // bounding area
+    area.deserialize( Input );
+    // visibility
+    rangesquared_min = sn_utils::ld_float64( Input );
+    rangesquared_max = sn_utils::ld_float64( Input );
+    visible = sn_utils::d_bool( Input );
+    // material
+    translucent = sn_utils::d_bool( Input );
+    auto const materialname { sn_utils::d_str( Input ) };
+    if( false == materialname.empty() ) {
+        material = GfxRenderer.Fetch_Material( materialname );
+    }
+    lighting.deserialize( Input );
+    // geometry
+    origin = sn_utils::d_dvec3( Input );
+    // NOTE: geometry handle is acquired during geometry creation
+    // vertex data
+    vertices.resize( sn_utils::ld_uint32( Input ) );
+    for( auto &vertex : vertices ) {
+        vertex.deserialize( Input );
+    }
+}
+
+
+// sends content of the class to provided stream
+void
+shape_node::serialize( std::ostream &Output ) const {
+    // name
+    sn_utils::s_str( Output, m_name );
+    // node data
+    m_data.serialize( Output );
+}
+
+// restores content of the node from provided input stream
+shape_node &
+shape_node::deserialize( std::istream &Input ) {
+    // name
+    m_name = sn_utils::d_str( Input );
+    // node data
+    m_data.deserialize( Input );
+
+    return *this;
+}
+
+// restores content of the node from provided input stream
 shape_node &
 shape_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
 
@@ -104,7 +220,9 @@ shape_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
         triangles,
         triangle_strip,
         triangle_fan
-    } const nodetype = (
+    };
+
+    subtype const nodetype = (
         Nodedata.type == "triangles" ?      triangles :
         Nodedata.type == "triangle_strip" ? triangle_strip :
                                             triangle_fan );
@@ -320,6 +438,72 @@ shape_node::compute_radius() {
 
 
 
+// sends content of the struct to provided stream
+void
+lines_node::linesnode_data::serialize( std::ostream &Output ) const {
+    // bounding area
+    area.serialize( Output );
+    // visibility
+    sn_utils::ls_float64( Output, rangesquared_min );
+    sn_utils::ls_float64( Output, rangesquared_max );
+    sn_utils::s_bool( Output, visible );
+    // material
+    sn_utils::ls_float32( Output, line_width );
+    lighting.serialize( Output );
+    // geometry
+    sn_utils::s_dvec3( Output, origin );
+    // NOTE: geometry handle is created dynamically on load
+    // vertex count, followed by vertex data
+    sn_utils::ls_uint32( Output, vertices.size() );
+    for( auto const &vertex : vertices ) {
+        vertex.serialize( Output );
+    }
+}
+
+// restores content of the struct from provided input stream
+void
+lines_node::linesnode_data::deserialize( std::istream &Input ) {
+    // bounding area
+    area.deserialize( Input );
+    // visibility
+    rangesquared_min = sn_utils::ld_float64( Input );
+    rangesquared_max = sn_utils::ld_float64( Input );
+    visible = sn_utils::d_bool( Input );
+    // material
+    line_width = sn_utils::ld_float32( Input );
+    lighting.deserialize( Input );
+    // geometry
+    origin = sn_utils::d_dvec3( Input );
+    // NOTE: geometry handle is acquired during geometry creation
+    // vertex data
+    vertices.resize( sn_utils::ld_uint32( Input ) );
+    for( auto &vertex : vertices ) {
+        vertex.deserialize( Input );
+    }
+}
+
+
+
+// sends content of the class to provided stream
+void
+lines_node::serialize( std::ostream &Output ) const {
+    // name
+    sn_utils::s_str( Output, m_name );
+    // node data
+    m_data.serialize( Output );
+}
+
+// restores content of the node from provided input stream
+lines_node &
+lines_node::deserialize( std::istream &Input ) {
+    // name
+    m_name = sn_utils::d_str( Input );
+    // node data
+    m_data.deserialize( Input );
+
+    return *this;
+}
+
 // restores content of the node from provded input stream
 lines_node &
 lines_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
@@ -350,7 +534,9 @@ lines_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
         lines,
         line_strip,
         line_loop
-    } const nodetype = (
+    };
+    
+    subtype const nodetype = (
         Nodedata.type == "lines" ?      lines :
         Nodedata.type == "line_strip" ? line_strip :
                                         line_loop );
