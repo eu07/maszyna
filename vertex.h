@@ -50,6 +50,8 @@ struct world_vertex {
             Left *= Right;
             return Left; }
 // methods
+    void serialize( std::ostream& ) const;
+    void deserialize( std::istream& );
     // wyliczenie współrzędnych i mapowania punktu na środku odcinka v1<->v2
     void
         set_half( world_vertex const &Vertex1, world_vertex const &Vertex2 ) {

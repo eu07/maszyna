@@ -20,8 +20,6 @@ public:
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
 
     TMemCell( scene::node_data const &Nodedata );
-    // legacy constructor
-    TMemCell( Math3D::vector3 *p );
 
     void
         UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask );

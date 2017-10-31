@@ -48,7 +48,7 @@ struct scratch_data {
         float offset { 0.f };
         float velocity { 0.f };
         std::vector<TDynamicObject *> vehicles;
-        std::vector<std::int8_t> couplings;
+        std::vector<int> couplings;
         TDynamicObject * driver { nullptr };
         bool is_open { false };
     } trainset;
@@ -64,12 +64,15 @@ class basic_cell {
 
 public:
 // methods
-    // legacy method, updates sounds and polls event launchers within radius around specified point
-    void
-        update();
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, polls event launchers within radius around specified point
+    void
+        update_events();
+    // legacy method, updates sounds within radius around specified point
+    void
+        update_sounds();
     // legacy method, triggers radio-stop procedure for all vehicles located on paths in the cell
     void
         radio_stop();
@@ -79,6 +82,12 @@ public:
     // legacy method, updates geometry for pieces in the animation list
     void
         RaAnimate( unsigned int const Framestamp );
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the class from provided stream
+    void
+        deserialize( std::istream &Input );
     // adds provided shape to the cell
     void
         insert( shape_node Shape );
@@ -171,15 +180,24 @@ class basic_section {
 
 public:
 // methods
-    // legacy method, updates sounds and polls event launchers within radius around specified point
-    void
-        update( glm::dvec3 const &Location, float const Radius );
-    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+// legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, updates sounds and polls event launchers within radius around specified point
+    void
+        update_events( glm::dvec3 const &Location, float const Radius );
+    // legacy method, updates sounds and polls event launchers within radius around specified point
+    void
+        update_sounds( glm::dvec3 const &Location, float const Radius );
     // legacy method, triggers radio-stop procedure for all vehicles in 2km radius around specified location
     void
         radio_stop( glm::dvec3 const &Location, float const Radius );
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the class from provided stream
+    void
+        deserialize( std::istream &Input );
     // adds provided shape to the section
     void
         insert( shape_node Shape );
@@ -255,15 +273,18 @@ public:
 // destructor
     ~basic_region();
 // methods
-    // legacy method, updates sounds and polls event launchers around camera
-    void
-        update();
-    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+// legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
+    // legacy method, polls event launchers around camera
+    void
+        update_events();
+    // legacy method, updates sounds around camera
+    void
+        update_sounds();
     // stores content of the class in file with specified name
     void
-        serialize( std::string const &Scenariofile );
+        serialize( std::string const &Scenariofile ) const;
     // restores content of the class from file with specified name. returns: true on success, false otherwise
     bool
         deserialize( std::string const &Scenariofile );

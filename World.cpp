@@ -1039,7 +1039,7 @@ bool TWorld::Update() {
     }
 
     simulation::Events.update();
-    simulation::Region->update();
+    simulation::Region->update_events();
     simulation::Lights.update();
 
     // render time routines follow:
@@ -1083,6 +1083,7 @@ bool TWorld::Update() {
 
     Timer::subsystem.sim_total.stop();
 
+    simulation::Region->update_sounds();
     GfxRenderer.Update( dt );
     ResourceSweep();
 

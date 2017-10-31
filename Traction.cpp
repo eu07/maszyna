@@ -91,11 +91,6 @@ sekcji z sąsiedniego przęsła).
 */
 
 TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
-// legacy constructor
-TTraction::TTraction( std::string Name ) {
-
-    m_name = Name;
-}
 
 glm::dvec3 LoadPoint( cParser &Input ) {
     // pobranie współrzędnych punktu

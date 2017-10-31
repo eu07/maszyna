@@ -4697,14 +4697,6 @@ double TMoverParameters::TractionForce(double dt)
                 dmoment = eimv[eimv_Fful];
                 // NOTE: the commands to operate the sandbox are likely to conflict with other similar ai decisions
                 // TODO: gather these in single place so they can be resolved together
-                if( ( std::abs( ( PosRatio + 9.66 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
-                    PosRatio = 0;
-                    tmp = 4;
-                } // przeciwposlizg
-                if( ( std::abs( ( PosRatio + 9.80 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
-                    PosRatio = 0;
-                    tmp = 9;
-                } // przeciwposlizg
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 9;

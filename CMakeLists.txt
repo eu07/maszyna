@@ -141,5 +141,5 @@ include_directories(${libserialport_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
 
 if (UNIX)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 endif()
