@@ -13,6 +13,17 @@ Copyright (C) 2007-2014 Maciej Cierniak
 */
 #include "stdafx.h"
 #include "mctools.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+#endif
+
 #include "Globals.h"
 
 /*================================================*/
@@ -275,8 +286,18 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
     }
 }
 
-bool FileExists( std::string const &Filename ) {
+bool
+FileExists( std::string const &Filename ) {
 
     std::ifstream file( Filename );
     return( true == file.is_open() );
+}
+
+// returns time of last modification for specified file
+__time64_t
+last_modified( std::string const &Filename ) {
+
+    struct stat filestat;
+    if( ::stat( Filename.c_str(), &filestat ) == 0 ) { return filestat.st_mtime; }
+    else                                             { return 0; }
 }

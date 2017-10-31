@@ -224,6 +224,11 @@ basic_cell::deserialize( std::istream &Input ) {
     while( itemcount-- ) {
         m_lines.emplace_back( lines_node().deserialize( Input ) );
     }
+    // cell activation flag
+    m_active = (
+        ( false == m_shapesopaque.empty() )
+     || ( false == m_shapestranslucent.empty() )
+     || ( false == m_lines.empty() ) );
 }
 
 // adds provided shape to the cell
@@ -877,18 +882,27 @@ basic_region::serialize( std::string const &Scenariofile ) const {
 
     std::ofstream output { filename, std::ios::binary };
 
-    // region file version 0
+    // region file version 1
     // header: EU07SBT + version (0-255)
     sn_utils::ls_uint32( output, MAKE_ID4( 'E', 'U', '0', '7' ) );
-    sn_utils::ls_uint32( output, MAKE_ID4( 'S', 'B', 'T', 0 ) );
+    sn_utils::ls_uint32( output, MAKE_ID4( 'S', 'B', 'T', 1 ) );
     // sections
     // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
-    for( auto section : m_sections ) {
-        // length of section data, followed by section data (if any)
+    std::uint32_t sectioncount { 0 };
+    for( auto *section : m_sections ) {
         if( section != nullptr ) {
+            ++sectioncount;
+        }
+    }
+    // section count, followed by section data
+    sn_utils::ls_uint32( output, sectioncount );
+    std::uint32_t sectionindex { 0 };
+    for( auto *section : m_sections ) {
+        // section data: section index, followed by length of section data, followed by section data
+        if( section != nullptr ) {
+            sn_utils::ls_uint32( output, sectionindex );
             section->serialize( output ); }
-        else {
-            sn_utils::ls_uint32( output, 0 ); }
+        ++sectionindex;
     }
 }
 
@@ -907,7 +921,7 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     if( false == FileExists( filename ) ) {
         return false;
     }
-    // region file version 0
+    // region file version 1
     // file type and version check
     std::ifstream input( filename, std::ios::binary );
 
@@ -915,20 +929,21 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     uint32_t headertype { sn_utils::ld_uint32( input ) };
 
     if( ( headermain != MAKE_ID4( 'E', 'U', '0', '7' )
-     || ( headertype != MAKE_ID4( 'S', 'B', 'T', 0 ) ) ) ) {
+     || ( headertype != MAKE_ID4( 'S', 'B', 'T', 1 ) ) ) ) {
         // wrong file type
-        ErrorLog( "Bad file: \"" + filename + "\" is of either unrecognized type or version" );
+        WriteLog( "Bad file: \"" + filename + "\" is of either unrecognized type or version" );
         return false;
     }
     // sections
     // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
-    for( auto &section : m_sections ) {
-        // length of section data, followed by section data (if any)
+    // section count
+    auto sectioncount { sn_utils::ld_uint32( input ) };
+    while( sectioncount-- ) {
+        // section index, followed by section data size, followed by section data
+        auto *&section { m_sections[ sn_utils::ld_uint32( input ) ] };
         auto const sectionsize { sn_utils::ld_uint32( input ) };
-        if( sectionsize != 0 ) {
-            section = new basic_section();
-            section->deserialize( input );
-        }
+        section = new basic_section();
+        section->deserialize( input );
     }
 
     return true;

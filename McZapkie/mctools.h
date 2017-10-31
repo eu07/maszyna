@@ -158,3 +158,6 @@ bool
 extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default );
 
 bool FileExists( std::string const &Filename );
+
+// returns time of last modification for specified file
+__time64_t last_modified( std::string const &Filename );

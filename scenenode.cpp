@@ -80,7 +80,11 @@ shape_node::shapenode_data::serialize( std::ostream &Output ) const {
     // vertex count, followed by vertex data
     sn_utils::ls_uint32( Output, vertices.size() );
     for( auto const &vertex : vertices ) {
-        vertex.serialize( Output );
+        basic_vertex(
+            glm::vec3{ vertex.position - origin },
+            vertex.normal,
+            vertex.texture )
+                .serialize( Output );
     }
 }
 
@@ -105,8 +109,12 @@ shape_node::shapenode_data::deserialize( std::istream &Input ) {
     // NOTE: geometry handle is acquired during geometry creation
     // vertex data
     vertices.resize( sn_utils::ld_uint32( Input ) );
+    basic_vertex localvertex;
     for( auto &vertex : vertices ) {
-        vertex.deserialize( Input );
+        localvertex.deserialize( Input );
+        vertex.position = origin + glm::dvec3{ localvertex.position };
+        vertex.normal = localvertex.normal;
+        vertex.texture = localvertex.texture;
     }
 }
 
@@ -456,7 +464,11 @@ lines_node::linesnode_data::serialize( std::ostream &Output ) const {
     // vertex count, followed by vertex data
     sn_utils::ls_uint32( Output, vertices.size() );
     for( auto const &vertex : vertices ) {
-        vertex.serialize( Output );
+        basic_vertex(
+            glm::vec3{ vertex.position - origin },
+            vertex.normal,
+            vertex.texture )
+                .serialize( Output );
     }
 }
 
@@ -477,8 +489,12 @@ lines_node::linesnode_data::deserialize( std::istream &Input ) {
     // NOTE: geometry handle is acquired during geometry creation
     // vertex data
     vertices.resize( sn_utils::ld_uint32( Input ) );
+    basic_vertex localvertex;
     for( auto &vertex : vertices ) {
-        vertex.deserialize( Input );
+        localvertex.deserialize( Input );
+        vertex.position = origin + glm::dvec3{ localvertex.position };
+        vertex.normal = localvertex.normal;
+        vertex.texture = localvertex.texture;
     }
 }
 

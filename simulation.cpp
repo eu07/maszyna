@@ -39,15 +39,22 @@ state_manager::deserialize( std::string const &Scenariofile ) {
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
     scene::scratch_data importscratchpad;
-    importscratchpad.binary.terrain = Region->deserialize( Scenariofile );
+    if( Scenariofile != "$.scn" ) {
+        // compilation to binary file isn't supported for rainsted-created overrides
+        importscratchpad.binary.terrain = Region->deserialize( Scenariofile );
+    }
     // NOTE: for the time being import from text format is a given, since we don't have full binary serialization
     cParser scenarioparser( Scenariofile, cParser::buffer_FILE, Global::asCurrentSceneryPath, Global::bLoadTraction );
 
     if( false == scenarioparser.ok() ) { return false; }
 
     deserialize( scenarioparser, importscratchpad );
-    // if we didn't find usable binary version of the scenario files, create them now for future use
-    if( false == importscratchpad.binary.terrain ) { Region->serialize( Scenariofile ); }
+    if( ( false == importscratchpad.binary.terrain )
+     && ( Scenariofile != "$.scn" ) ) {
+        // if we didn't find usable binary version of the scenario files, create them now for future use
+        // as long as the scenario file wasn't rainsted-created base file override
+        Region->serialize( Scenariofile );
+    }
 
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
