@@ -350,8 +350,6 @@ sound& sound::position(glm::vec3 p)
 
 glm::vec3 sound::location()
 {
-	if (mode == global)
-		throw std::runtime_error("sound: bad state, no position");
 	return pos;
 }
 

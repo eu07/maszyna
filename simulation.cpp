@@ -846,7 +846,12 @@ state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpa
 
     auto const soundname { Input.getToken<std::string>() };
 	auto *sound = sound_man->create_text_sound(soundname);
-	sound->position((glm::vec3)location).dist(Nodedata.range_max);
+	sound->position((glm::vec3)location);
+	if (Nodedata.range_max != -1.0)
+		sound->dist(Nodedata.range_max);
+	else
+		sound->set_mode(sound::global);
+
     skip_until( Input, "endsound" );
 
     return sound;

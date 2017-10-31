@@ -1018,6 +1018,8 @@ event_manager::CheckQuery() {
                 return false;
             }
             case tp_Sound: {
+				if (m_workevent->Params[ 9 ].tsTextSound == nullptr)
+					break;
                 switch( m_workevent->Params[ 0 ].asInt ) {
                     // trzy możliwe przypadki:
                     case 0: {
