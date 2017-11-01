@@ -340,7 +340,7 @@ private:
     bool bBrakeAcc;
     TRealSound rsUnbrake; // yB - odglos luzowania
     float ModCamRot;
-    int iInventory; // flagi bitowe posiadanych submodeli (np. świateł)
+    int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
     void TurnOff();
 
   public:
@@ -466,6 +466,7 @@ private:
     void RadioStop();
 	void Damage(char flag);
 	void RaLightsSet(int head, int rear);
+    int LightList( side const Side ) const { return iInventory[ Side ]; }
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie

@@ -1793,7 +1793,7 @@ void TController::AutoRewident()
 	}
 	if (mvOccupied->TrainType == dt_EZT)
 	{
-		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.75);
+		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.6);
 		fBrakeReaction = 0.25;
 	}
 	else if (ustaw > 16)
@@ -5662,7 +5662,7 @@ bool TController::IsStop()
 double
 TController::TrackBlock() const {
 
-    return pVehicles[ TMoverParameters::side::front ]->fTrackBlock;
+    return pVehicles[ side::front ]->fTrackBlock;
 }
 
 void TController::MoveTo(TDynamicObject *to)

@@ -23,8 +23,8 @@ light_array::insert( TDynamicObject const *Owner ) {
 
     // we're only storing lights for locos, which have two sets of lights, front and rear
     // for a more generic role this function would have to be tweaked to add vehicle type-specific light combinations
-    data.emplace_back( Owner, 0 );
-    data.emplace_back( Owner, 1 );
+    data.emplace_back( Owner, side::front );
+    data.emplace_back( Owner, side::rear );
 }
 
 void
@@ -44,7 +44,7 @@ light_array::update() {
 
     for( auto &light : data ) {
         // update light parameters to match current data of the owner
-        if( light.index == 0 ) {
+        if( light.index == side::front ) {
             // front light set
             light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
@@ -57,34 +57,25 @@ light_array::update() {
             light.direction.z = -light.direction.z;
         }
         // determine intensity of this light set
-        if( ( true == light.owner->MoverParameters->Battery ) || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
+        if( ( true == light.owner->MoverParameters->Battery )
+         || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
             // with power on, the intensity depends on the state of activated switches
-            auto const &lightbits = light.owner->iLights[ light.index ];
+            // first we cross-check the list of enabled lights with the lights installed in the vehicle...
+            auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<side>( light.index ) ) };
+            // ...then check their individual state
             light.count = 0
-                + ( ( lightbits & TMoverParameters::light::headlight_left  ) ? 1 : 0 )
-                + ( ( lightbits & TMoverParameters::light::headlight_right ) ? 1 : 0 )
-                + ( ( lightbits & TMoverParameters::light::headlight_upper ) ? 1 : 0 );
+                + ( ( lights & light::headlight_left  ) ? 1 : 0 )
+                + ( ( lights & light::headlight_right ) ? 1 : 0 )
+                + ( ( lights & light::headlight_upper ) ? 1 : 0 );
 
             if( light.count > 0 ) {
-                // TODO: intensity can be affected further by dim switch or other factors
                 light.intensity = std::max( 0.0f, std::log( (float)light.count  + 1.0f ) );
                 light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
+                // TBD, TODO: intensity can be affected further by other factors
             }
             else {
                 light.intensity = 0.0f;
             }
-/*
-            // crude catch for unmanned modules which share the light state with the controlled unit.
-            // why don't they get their own light bits btw ._.
-            // TODO, TBD: have separate light bits for each vehicle, so this override isn't necessary
-            // NOTE: should be no longer needed, test and delete if there's no ill effects
-            if( ( light.owner->Controller == AIdriver )
-             && ( light.owner->Mechanik == nullptr ) ) {
-                
-                light.intensity = 0.0f;
-                light.count = 0;
-            }
-*/
         }
         else {
             // with battery off the lights are off

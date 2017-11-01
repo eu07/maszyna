@@ -707,9 +707,9 @@ void TWorld::OnKeyDown(int cKey)
                     CouplNr = 0; // z [-1,1] zrobić [0,1]
                 int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę tapety pulpitu :/
                 if (Global::shiftState) // z [Shift] zapalanie
-                    set = mask = TMoverParameters::light::rearendsignals; // bez [Ctrl] założyć tabliczki
+                    set = mask = light::rearendsignals; // bez [Ctrl] założyć tabliczki
                 else if (Global::ctrlState)
-                    set = mask = ( TMoverParameters::light::redmarker_left | TMoverParameters::light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
+                    set = mask = ( light::redmarker_left | light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
                 else
                     mask = 2 + 32 + 64; // wyłączanie ściąga wszystko
                 if (((vehicle->iLights[CouplNr]) & mask) != set)
@@ -1435,15 +1435,15 @@ TWorld::Update_UI() {
                     "; TC:"
                     + to_string( vehicle->MoverParameters->TotalCurrent, 0 );
                 auto const frontcouplerhighvoltage =
-                    to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
+                    to_string( vehicle->MoverParameters->Couplers[ side::front ].power_high.voltage, 0 )
                     + "@"
-                    + to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.current, 0 );
+                    + to_string( vehicle->MoverParameters->Couplers[ side::front ].power_high.current, 0 );
                 auto const rearcouplerhighvoltage =
-                    to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.voltage, 0 )
+                    to_string( vehicle->MoverParameters->Couplers[ side::rear ].power_high.voltage, 0 )
                     + "@"
-                    + to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
+                    + to_string( vehicle->MoverParameters->Couplers[ side::rear ].power_high.current, 0 );
                 uitextline2 += ", HV: ";
-                if( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
+                if( vehicle->MoverParameters->Couplers[ side::front ].power_high.local == false ) {
                     uitextline2 +=
                             "(" + frontcouplerhighvoltage + ")-"
                         + ":F" + ( vehicle->DirectionGet() ? "<<" : ">>" ) + "R:"

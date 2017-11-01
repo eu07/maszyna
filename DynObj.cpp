@@ -1274,21 +1274,21 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir) {
     if (MyScanDir > 0) {
         // pojazd od strony sprzęgu 0
         if( ( PrevConnected != nullptr )
-         && ( MoverParameters->Couplers[ TMoverParameters::side::front ].CoupleDist > MinDist ) ) {
+         && ( MoverParameters->Couplers[ side::front ].CoupleDist > MinDist ) ) {
             // sprzęgi wirtualne zawsze przekraczają
-            if( ( PrevConnectedNo == TMoverParameters::side::front ?
+            if( ( PrevConnectedNo == side::front ?
                     PrevConnected->PrevConnected :
                     PrevConnected->NextConnected )
                 == this ) {
                 // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
                 // (może jechać w innym kierunku)
                 PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected = nullptr;
-                if( PrevConnectedNo == TMoverParameters::side::front ) {
+                if( PrevConnectedNo == side::front ) {
                     // sprzęg 0 nie podłączony
                     PrevConnected->PrevConnectedNo = 2;
                     PrevConnected->PrevConnected = nullptr;
                 }
-                else if( PrevConnectedNo == TMoverParameters::side::rear ) {
+                else if( PrevConnectedNo == side::rear ) {
                     // sprzęg 1 nie podłączony
                     PrevConnected->NextConnectedNo = 2;
                     PrevConnected->NextConnected = nullptr;
@@ -1297,27 +1297,27 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir) {
             // za to zawsze odłączamy siebie
             PrevConnected = nullptr;
             PrevConnectedNo = 2; // sprzęg 0 nie podłączony
-            MoverParameters->Couplers[ TMoverParameters::side::front ].Connected = nullptr;
+            MoverParameters->Couplers[ side::front ].Connected = nullptr;
         }
     }
     else {
         // pojazd od strony sprzęgu 1
         if( ( NextConnected != nullptr )
-         && ( MoverParameters->Couplers[ TMoverParameters::side::rear ].CoupleDist > MinDist ) ) {
+         && ( MoverParameters->Couplers[ side::rear ].CoupleDist > MinDist ) ) {
             // sprzęgi wirtualne zawsze przekraczają
-            if( ( NextConnectedNo == TMoverParameters::side::front ?
+            if( ( NextConnectedNo == side::front ?
                     NextConnected->PrevConnected :
                     NextConnected->NextConnected )
                 == this) {
                 // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
                 // (może jechać w innym kierunku)
                 NextConnected->MoverParameters->Couplers[ NextConnectedNo ].Connected = nullptr;
-                if( NextConnectedNo == TMoverParameters::side::front ) {
+                if( NextConnectedNo == side::front ) {
                     // sprzęg 0 nie podłączony
                     NextConnected->PrevConnectedNo = 2;
                     NextConnected->PrevConnected = nullptr;
                 }
-                else if( NextConnectedNo == TMoverParameters::side::rear ) {
+                else if( NextConnectedNo == side::rear ) {
                     // sprzęg 1 nie podłączony
                     NextConnected->NextConnectedNo = 2;
                     NextConnected->NextConnected = nullptr;
@@ -1409,7 +1409,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
         // siebie można bezpiecznie podłączyć jednostronnie do znalezionego
         MoverParameters->Attach( mycoupler, foundcoupler, foundobject->MoverParameters, coupling::faux );
         // MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
-        if( mycoupler == TMoverParameters::side::front ) {
+        if( mycoupler == side::front ) {
             PrevConnected = foundobject; // pojazd od strony sprzęgu 0
             PrevConnectedNo = foundcoupler;
         }
@@ -1420,7 +1420,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
 
         if( foundobject->MoverParameters->Couplers[ foundcoupler ].CouplingFlag == coupling::faux ) {
             // Ra: wpinamy się wirtualnym tylko jeśli znaleziony ma wirtualny sprzęg
-            if( ( foundcoupler == TMoverParameters::side::front ?
+            if( ( foundcoupler == side::front ?
                     foundobject->PrevConnected :
                     foundobject->NextConnected )
                 != this ) {
@@ -1428,13 +1428,13 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
                 // otherwise we risk leaving the target's connected vehicle with active one-side connection
                 foundobject->CouplersDettach(
                     1.0,
-                    ( foundcoupler == TMoverParameters::side::front ?
+                    ( foundcoupler == side::front ?
                          1 :
                         -1 ) );
             }
             foundobject->MoverParameters->Attach( foundcoupler, mycoupler, this->MoverParameters, coupling::faux );
 
-            if( foundcoupler == TMoverParameters::side::front ) {
+            if( foundcoupler == side::front ) {
                 // jeśli widoczny sprzęg 0 znalezionego
                 if( ( DebugModeFlag )
                  && ( foundobject->PrevConnected )
@@ -1551,8 +1551,6 @@ TDynamicObject::TDynamicObject()
     iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (przełączenie
     // następuje, gdy osie sa na
     // tym samym torze)
-    iInventory = 0; // flagi bitowe posiadanych submodeli (zaktualizuje się po
-    // wczytaniu MMD)
     RaLightsSet(0, 0); // początkowe zerowanie stanu świateł
     // Ra: domyślne ilości animacji dla zgodności wstecz (gdy brak ilości podanych
     // w MMD)
@@ -1929,19 +1927,19 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     btEndSignals21.Init("endsignal23", mdModel, false);
     btEndSignals13.Init("endsignal12", mdModel, false);
     btEndSignals23.Init("endsignal22", mdModel, false);
-    iInventory |= btEndSignals11.Active() ? 0x01 : 0; // informacja, czy ma poszczególne światła
-    iInventory |= btEndSignals21.Active() ? 0x02 : 0;
-    iInventory |= btEndSignals13.Active() ? 0x04 : 0;
-    iInventory |= btEndSignals23.Active() ? 0x08 : 0;
+    iInventory[ side::front ] |= btEndSignals11.Active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
+    iInventory[ side::front ] |= btEndSignals13.Active() ? light::redmarker_right : 0;
+    iInventory[ side::rear ] |= btEndSignals21.Active() ? light::redmarker_left : 0;
+    iInventory[ side::rear ] |= btEndSignals23.Active() ? light::redmarker_right : 0;
     // ABu: to niestety zostawione dla kompatybilnosci modeli:
     btEndSignals1.Init("endsignals1", mdModel, false);
     btEndSignals2.Init("endsignals2", mdModel, false);
     btEndSignalsTab1.Init("endtab1", mdModel, false);
     btEndSignalsTab2.Init("endtab2", mdModel, false);
-    iInventory |= btEndSignals1.Active() ? 0x10 : 0;
-    iInventory |= btEndSignals2.Active() ? 0x20 : 0;
-    iInventory |= btEndSignalsTab1.Active() ? 0x40 : 0; // tabliczki blaszane
-    iInventory |= btEndSignalsTab2.Active() ? 0x80 : 0;
+    iInventory[ side::front ] |= btEndSignals1.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ side::front ] |= btEndSignalsTab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
+    iInventory[ side::rear ] |= btEndSignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ side::rear ] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
     // ABu Uwaga! tu zmienic w modelu!
     btHeadSignals11.Init("headlamp13", mdModel, false); // lewe
     btHeadSignals12.Init("headlamp11", mdModel, false); // górne
@@ -1949,7 +1947,13 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     btHeadSignals21.Init("headlamp23", mdModel, false);
     btHeadSignals22.Init("headlamp21", mdModel, false);
     btHeadSignals23.Init("headlamp22", mdModel, false);
-	btMechanik1.Init("mechanik1", mdLowPolyInt, false);
+    iInventory[ side::front ] |= btHeadSignals11.Active() ? light::headlight_left : 0;
+    iInventory[ side::front ] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
+    iInventory[ side::front ] |= btHeadSignals13.Active() ? light::headlight_right : 0;
+    iInventory[ side::rear ] |= btHeadSignals21.Active() ? light::headlight_left : 0;
+    iInventory[ side::rear ] |= btHeadSignals22.Active() ? light::headlight_upper : 0;
+    iInventory[ side::rear ] |= btHeadSignals23.Active() ? light::headlight_right : 0;
+    btMechanik1.Init("mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init("mechanik2", mdLowPolyInt, false);
     TurnOff(); // resetowanie zmiennych submodeli
 
@@ -4984,7 +4988,7 @@ void TDynamicObject::RaLightsSet(int head, int rear)
     // pojazdu
     if (!MoverParameters)
         return; // może tego nie być na początku
-    if (rear == 2 + 32 + 64)
+    if (rear == ( light::redmarker_left | light::redmarker_right | light::rearendsignals ) )
     { // jeśli koniec pociągu, to trzeba ustalić, czy
         // jest tam czynna lokomotywa
         // EN57 może nie mieć końcówek od środka członu
@@ -4993,15 +4997,20 @@ void TDynamicObject::RaLightsSet(int head, int rear)
             { // jeśli ma zarówno światła jak i końcówki, ustalić, czy jest w stanie
                 // aktywnym
                 // np. lokomotywa na zimno będzie mieć końcówki a nie światła
-                rear = 64; // tablice blaszane
+                rear = light::rearendsignals; // tablice blaszane
                 // trzeba to uzależnić od "załączenia baterii" w pojeździe
             }
-        if (rear == 2 + 32 + 64) // jeśli nadal obydwie możliwości
-            if (iInventory &
-                (iDirection ? 0x2A : 0x15)) // czy ma jakieś światła czerowone od danej strony
-                rear = 2 + 32; // dwa światła czerwone
-            else
-                rear = 64; // tablice blaszane
+        if( rear == ( light::redmarker_left | light::redmarker_right | light::rearendsignals ) ) // jeśli nadal obydwie możliwości
+            if( iInventory[
+                ( iDirection ?
+                    side::rear :
+                    side::front ) ] & ( light::redmarker_left | light::redmarker_right ) ) {
+                // czy ma jakieś światła czerowone od danej strony
+                rear = ( light::redmarker_left | light::redmarker_right ); // dwa światła czerwone
+            }
+            else {
+                rear = light::rearendsignals; // tablice blaszane
+            }
     }
     if (iDirection) // w zależności od kierunku pojazdu w składzie
     { // jesli pojazd stoi sprzęgiem 0 w stronę czoła
@@ -5423,7 +5432,7 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
         // pętla po pantografach
         auto pantograph { Vehicle->pants[ pantographindex ].fParamPants };
         if( true == (
-                pantographindex == TMoverParameters::side::front ?
+                pantographindex == side::front ?
                     Vehicle->MoverParameters->PantFrontUp :
                     Vehicle->MoverParameters->PantRearUp ) ) {
             // jeśli pantograf podniesiony
