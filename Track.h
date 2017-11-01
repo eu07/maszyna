@@ -96,16 +96,11 @@ class TSwitchExtension
 
 class TIsolated
 { // obiekt zbierający zajętości z kilku odcinków
-    int iAxles = 0; // ilość osi na odcinkach obsługiwanych przez obiekt
-    TIsolated *pNext = nullptr; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
-    static TIsolated *pRoot; // początek listy
-  public:
-    std::string asName; // nazwa obiektu, baza do nazw eventów
-    TEvent *evBusy = nullptr; // zdarzenie wyzwalane po zajęciu grupy
-    TEvent *evFree = nullptr; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
-    TMemCell *pMemCell = nullptr; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
+public:
+    // constructors
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
+    // methods
     static void DeleteAll();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
@@ -115,6 +110,16 @@ class TIsolated
         return (pRoot); };
     TIsolated * Next() {
         return (pNext); };
+    // members
+    std::string asName; // nazwa obiektu, baza do nazw eventów
+    TEvent *evBusy { nullptr }; // zdarzenie wyzwalane po zajęciu grupy
+    TEvent *evFree { nullptr }; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
+    TMemCell *pMemCell { nullptr }; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
+private:
+    // members
+    int iAxles { 0 }; // ilość osi na odcinkach obsługiwanych przez obiekt
+    TIsolated *pNext { nullptr }; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
+    static TIsolated *pRoot; // początek listy
 };
 
 // trajektoria ruchu - opakowanie
@@ -184,7 +189,7 @@ public:
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
     TGroundNode *nFouling[ 2 ] = { nullptr, nullptr }; // współrzędne ukresu albo oporu kozła
 
-    TTrack( scene::node_data const &Nodedata );
+    explicit TTrack( scene::node_data const &Nodedata );
     virtual ~TTrack();
 
     void Init();

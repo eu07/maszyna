@@ -61,11 +61,11 @@ class garbage_collector {
 
 public:
 // constructor:
-    garbage_collector( Container_ &Container, int const Secondstolive, int const Sweepsize, std::string const Resourcename = "resource" ) :
-        m_container( Container ),
-        m_unusedresourcetimetolive { std::chrono::seconds( Secondstolive ) },
-        m_unusedresourcesweepsize( Sweepsize ),
-        m_resourcename( Resourcename )
+    garbage_collector( Container_ &Container, unsigned int const Secondstolive, std::size_t const Sweepsize, std::string const Resourcename = "resource" ) :
+        m_unusedresourcetimetolive{ std::chrono::seconds{ Secondstolive } },
+        m_unusedresourcesweepsize{ Sweepsize },
+        m_resourcename{ Resourcename },
+        m_container{ Container }
     {}
 
 // methods:

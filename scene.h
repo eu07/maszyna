@@ -116,16 +116,16 @@ public:
         register_end( TTraction *Traction );
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
-        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
+        find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) const;
     // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
     std::tuple<TTrack *, int>
-        find( glm::dvec3 const &Point, TTrack const *Exclude );
+        find( glm::dvec3 const &Point, TTrack const *Exclude ) const;
     // finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
     std::tuple<TTraction *, int>
-        find( glm::dvec3 const &Point, TTraction const *Exclude );
+        find( glm::dvec3 const &Point, TTraction const *Exclude ) const;
     // finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
     std::tuple<TTraction *, int, float>
-        find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection );
+        find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) const;
     // sets center point of the cell
     void
         center( glm::dvec3 Center );
@@ -351,6 +351,7 @@ private:
     bool
         point_inside( glm::dvec3 const &Location );
     // legacy method, trims provided shape to fit into a section. adds trimmed part at the end of provided list, returns true if changes were made
+    static
     bool
         RaTriangleDivider( shape_node &Shape, std::deque<shape_node> &Shapes );
     // provides access to section enclosing specified point

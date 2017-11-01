@@ -125,7 +125,7 @@ class TAnimModel : public editor::basic_node {
 
 public:
 // constructors
-    TAnimModel( scene::node_data const &Nodedata );
+    explicit TAnimModel( scene::node_data const &Nodedata );
 // destructor
     ~TAnimModel();
 // methods

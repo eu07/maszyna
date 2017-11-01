@@ -19,7 +19,7 @@ class TMemCell : public editor::basic_node {
 public:
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
 
-    TMemCell( scene::node_data const &Nodedata );
+    explicit TMemCell( scene::node_data const &Nodedata );
 
     void
         UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask );
@@ -46,7 +46,7 @@ public:
             return bCommand; };
     void StopCommandSent();
     TCommandType CommandCheck();
-    bool IsVelocity();
+    bool IsVelocity() const;
     void AssignEvents(TEvent *e);
 
 private:

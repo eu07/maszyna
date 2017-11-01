@@ -294,7 +294,7 @@ FileExists( std::string const &Filename ) {
 }
 
 // returns time of last modification for specified file
-__time64_t
+std::time_t
 last_modified( std::string const &Filename ) {
 
     struct stat filestat;

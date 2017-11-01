@@ -52,7 +52,7 @@ class TTraction : public editor::basic_node {
     glm::dvec3 m_origin;
     geometry_handle m_geometry;
 
-    TTraction( scene::node_data const &Nodedata );
+    explicit TTraction( scene::node_data const &Nodedata );
 
     void Load( cParser *parser, glm::dvec3 const &pOrigin );
     // set origin point

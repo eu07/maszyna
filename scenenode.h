@@ -307,7 +307,7 @@ struct basic_node {
 
 public:
 // constructor
-    basic_node( scene::node_data const &Nodedata );
+    explicit basic_node( scene::node_data const &Nodedata );
 // destructor
     virtual ~basic_node() = default;
 // methods
