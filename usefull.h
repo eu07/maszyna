@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #define szSceneryPath "scenery\\"
 #define szTexturePath "textures\\"
 #define szSoundPath "sounds\\"
+#define global_texture_path "textures/"
 
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
 
@@ -77,7 +78,41 @@ bool
 degenerate( VecType_ const &Vertex1, VecType_ const &Vertex2, VecType_ const &Vertex3 ) {
 
     //  degenerate( A, B, C, minarea ) = ( ( B - A ).cross( C - A ) ).lengthSquared() < ( 4.0f * minarea * minarea );
-    return glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) < std::numeric_limits<VecType_::value_type>::epsilon();
+    return ( glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) == 0.0 );
+}
+
+// calculates bounding box for provided set of points
+template <class Iterator_, class VecType_>
+void
+bounding_box( VecType_ &Mincorner, VecType_ &Maxcorner, Iterator_ First, Iterator_ Last ) {
+
+    Mincorner = VecType_( std::numeric_limits<typename VecType_::value_type>::max() );
+    Maxcorner = VecType_( std::numeric_limits<typename VecType_::value_type>::lowest() );
+
+    std::for_each(
+        First, Last,
+        [&]( typename Iterator_::value_type &point ) {
+            Mincorner = glm::min( Mincorner, VecType_{ point } );
+            Maxcorner = glm::max( Maxcorner, VecType_{ point } ); } );
+}
+
+// finds point on specified segment closest to specified point in 3d space. returns: point on segment as value in range 0-1 where 0 = start and 1 = end of the segment
+template <typename VecType_>
+typename VecType_::value_type
+nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend, VecType_ const &Point ) {
+
+    auto const v = Segmentend - Segmentstart;
+    auto const w = Point - Segmentstart;
+
+    auto const c1 = glm::dot( w, v );
+    if( c1 <= 0.0 ) {
+        return 0.0;
+    }
+    auto const c2 = glm::dot( v, v );
+    if( c2 <= c1 ) {
+        return 1.0;
+    }
+    return c1 / c2;
 }
 
 //---------------------------------------------------------------------------

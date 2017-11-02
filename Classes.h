@@ -23,8 +23,8 @@ class TModel3d; //siatka modelu wspólna dla egzemplarzy
 class TSubModel; // fragment modelu (tu do wyświetlania terenu)
 class TMemCell; // komórka pamięci
 class cParser;
-class TRealSound; // dźwięk ze współrzędnymi XYZ
-class TTextSound; // dźwięk ze stenogramem
+class sound;
+class text_sound;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
@@ -37,7 +37,7 @@ class TMtableTime; // czas dla danego posterunku
 
 class TController; // obiekt sterujący pociągiem (AI)
 
-typedef enum
+enum TCommandType
 { // binarne odpowiedniki komend w komórce pamięci
     cm_Unknown, // ciąg nierozpoznany (nie jest komendą)
     cm_Ready, // W4 zezwala na odjazd, ale semafor może zatrzymać
@@ -51,6 +51,6 @@ typedef enum
     cm_OutsideStation,
     cm_Shunt,
     cm_Command // komenda pobierana z komórki
-} TCommandType;
+};
 
 #endif

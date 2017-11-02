@@ -260,6 +260,7 @@ class TESt : public TBrake {
 		void CheckReleaser(double dt); //odluzniacz
 		double CVs(double BP);      //napelniacz sterujacego
 		double BVs(double BCP);     //napelniacz pomocniczego
+        void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -410,6 +411,7 @@ public:
     void CheckState( double const BCP, double &dV1 );
     double CVs( double const BP );
     double BVs( double const BCP );
+    void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -482,6 +484,7 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
         void PLC( double const mass );  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
         void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
+        void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
             TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -511,7 +514,7 @@ class TDriverHandle {
     virtual double GetPos(int i);
     virtual double GetEP(double pos);
 
-    inline TDriverHandle() { ::SecureZeroMemory( Sounds, sizeof( Sounds ) ); }
+    inline TDriverHandle() { memset(Sounds, 0, sizeof(Sounds)); }
 };
 
 class TFV4a : public TDriverHandle {
@@ -551,7 +554,7 @@ class TFV4aM : public TDriverHandle {
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
-
+		double GetCP();
 		inline TFV4aM() :
 			TDriverHandle()
 		{}

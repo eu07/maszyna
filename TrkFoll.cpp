@@ -15,11 +15,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "TrkFoll.h"
+
+#include "simulation.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Driver.h"
-#include "DynObj.h"
-#include "Event.h"
 
 TTrackFollower::~TTrackFollower()
 {
@@ -71,19 +70,11 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
         }
         break;
         }
-    if (!pTrack)
-    { // gdy nie ma toru w kierunku jazdy
-        pTrack = pCurrentTrack->NullCreate(
-            end); // tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+    if (!pTrack) {
+        // gdy nie ma toru w kierunku jazdy tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+        pTrack = pCurrentTrack->NullCreate(end);
         if (!end) // jeśli dodana od strony zero, to zmiana kierunku
             fDirection = -fDirection; // wtórna zmiana
-        // if (pTrack->iCategoryFlag&2)
-        //{//jeśli samochód, zepsuć na miejscu
-        // Owner->MoverParameters->V=0; //zatrzymać
-        // Owner->MoverParameters->Power=0; //ukraść silnik
-        // Owner->MoverParameters->AccS=0; //wchłonąć moc
-        // Global::iPause|=1; //zapauzowanie symulacji
-        //}
     }
     else
     { // najpierw +1, później -1, aby odcinek izolowany wspólny dla tych torów nie wykrył zera
@@ -114,15 +105,20 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
             if (fDistance < 0)
             {
-                if (SetFlag(iEventFlag, -1)) // zawsze zeruje flagę sprawdzenia, jak mechanik
-                    // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
-                        // pojazdow z obsada
-                        if (bPrimary && pCurrentTrack->evEvent1 &&
-                            (!pCurrentTrack->evEvent1->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent1, Owner); // dodanie do
-                // kolejki
+                if( SetFlag( iEventFlag, -1 ) ) {
+                    // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
+                        if( ( bPrimary )
+                         && ( pCurrentTrack->evEvent1 )
+                         && ( !pCurrentTrack->evEvent1->iQueued ) ) {
+                            // dodanie do kolejki
+                            simulation::Events.AddToQuery( pCurrentTrack->evEvent1, Owner );
+                        }
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,1))
@@ -130,42 +126,53 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                              -1)) // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
                     if (bPrimary && pCurrentTrack->evEventall1 &&
                         (!pCurrentTrack->evEventall1->iQueued))
-                        Global::AddToQuery(pCurrentTrack->evEventall1, Owner); // dodanie do kolejki
+                        simulation::Events.AddToQuery(pCurrentTrack->evEventall1, Owner); // dodanie do kolejki
                 // Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodać
                 // do kolejki
             }
             else if (fDistance > 0)
             {
-                if (SetFlag(iEventFlag, -2)) // zawsze ustawia flagę sprawdzenia, jak mechanik
+                if( SetFlag( iEventFlag, -2 ) ) {
+                    // zawsze ustawia flagę sprawdzenia, jak mechanik
                     // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
-                        // warunku
-                        if (bPrimary && pCurrentTrack->evEvent2 &&
-                            (!pCurrentTrack->evEvent2->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        if( ( bPrimary )
+                         && ( pCurrentTrack->evEvent2 )
+                         && ( !pCurrentTrack->evEvent2->iQueued ) ) {
+                            simulation::Events.AddToQuery( pCurrentTrack->evEvent2, Owner );
+                        }
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,2))
-                if (SetFlag(iEventallFlag,
-                             -2)) // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
-                    if (bPrimary && pCurrentTrack->evEventall2 &&
-                        (!pCurrentTrack->evEventall2->iQueued))
-                        Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
+                if( SetFlag( iEventallFlag, -2 ) ) {
+                    // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
+                    if( ( bPrimary )
+                     && ( pCurrentTrack->evEventall2 )
+                     && ( !pCurrentTrack->evEventall2->iQueued ) ) {
+                        simulation::Events.AddToQuery( pCurrentTrack->evEventall2, Owner );
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodać
                 // do kolejki
             }
             else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
             {
-                if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                    if (pCurrentTrack->evEvent0)
-                        if (!pCurrentTrack->evEvent0->iQueued)
-                            Global::AddToQuery(pCurrentTrack->evEvent0, Owner);
+                if( ( Owner->Mechanik != nullptr )
+                 && ( Owner->Mechanik->Primary() ) ) {
+                    // tylko dla jednego członu
+                    if( pCurrentTrack->evEvent0 )
+                        if( !pCurrentTrack->evEvent0->iQueued )
+                            simulation::Events.AddToQuery( pCurrentTrack->evEvent0, Owner );
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 if (pCurrentTrack->evEventall0)
                     if (!pCurrentTrack->evEventall0->iQueued)
-                        Global::AddToQuery(pCurrentTrack->evEventall0, Owner);
+                        simulation::Events.AddToQuery(pCurrentTrack->evEventall0, Owner);
                 // Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodać
                 // do kolejki
             }
@@ -198,10 +205,10 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 0))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 0))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(-1, fDirection),
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(-1, fDirection),
                                       0)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir == fDirection) //(pCurrentTrack->iPrevDirection)
@@ -235,10 +242,10 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 1))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 1))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(1, fDirection),
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(1, fDirection),
                                       1)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir != fDirection) //(pCurrentTrack->iNextDirection)
@@ -267,14 +274,14 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 // if (Owner->MoverParameters->CabNo!=0)
                 {
                     if (pCurrentTrack->evEvent1 && pCurrentTrack->evEvent1->fDelay <= -1.0f)
-                        Global::AddToQuery(pCurrentTrack->evEvent1, Owner);
+                        simulation::Events.AddToQuery(pCurrentTrack->evEvent1, Owner);
                     if (pCurrentTrack->evEvent2 && pCurrentTrack->evEvent2->fDelay <= -1.0f)
-                        Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
+                        simulation::Events.AddToQuery(pCurrentTrack->evEvent2, Owner);
                 }
                 if (pCurrentTrack->evEventall1 && pCurrentTrack->evEventall1->fDelay <= -1.0f)
-                    Global::AddToQuery(pCurrentTrack->evEventall1, Owner);
+                    simulation::Events.AddToQuery(pCurrentTrack->evEventall1, Owner);
                 if (pCurrentTrack->evEventall2 && pCurrentTrack->evEventall2->fDelay <= -1.0f)
-                    Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
+                    simulation::Events.AddToQuery(pCurrentTrack->evEventall2, Owner);
             }
             fCurrentDistance = s;
             // fDistance=0;

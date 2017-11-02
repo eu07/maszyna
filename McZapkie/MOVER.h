@@ -191,8 +191,6 @@ static int const sound_relay = 16;
 static int const sound_manyrelay = 32;
 static int const sound_brakeacc = 64;
 
-static bool  PhysicActivationFlag = false;
-
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
 static int const dt_Default = 0;
@@ -384,14 +382,14 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-    long CollectorsNo{ 0 }; //musi być tu, bo inaczej się kopie
-    double MinH{ 0.0 }; double MaxH{ 0.0 }; //zakres ruchu pantografu, nigdzie nie używany
-    double CSW{ 0.0 };       //szerokość części roboczej (styku) ślizgacza
-    double MinV{ 0.0 }; double MaxV{ 0.0 }; //minimalne i maksymalne akceptowane napięcie
-    double OVP{ 0.0 };       //czy jest przekaznik nadnapieciowy
-    double InsetV{ 0.0 };    //minimalne napięcie wymagane do załączenia
-    double MinPress{ 0.0 };  //minimalne ciśnienie do załączenia WS
-    double MaxPress{ 0.0 };  //maksymalne ciśnienie za reduktorem
+    long CollectorsNo; //musi być tu, bo inaczej się kopie
+    double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
+    double CSW;       //szerokość części roboczej (styku) ślizgacza
+    double MinV; double MaxV; //minimalne i maksymalne akceptowane napięcie
+    double OVP;       //czy jest przekaznik nadnapieciowy
+    double InsetV;    //minimalne napięcie wymagane do załączenia
+    double MinPress;  //minimalne ciśnienie do załączenia WS
+    double MaxPress;  //maksymalne ciśnienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
@@ -624,14 +622,14 @@ public:
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool DoorSignalling = false;         /*Czy jest zalaczona sygnalizacja blokady drzwi*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
-	double NominalBatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
+	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/
-	double Floor = 0.96;              //poziom podłogi dla ładunków
-	double WheelDiameter = 1.0;     /*srednica kol napednych*/
-	double WheelDiameterL = 0.9;    //Ra: srednica kol tocznych przednich
-	double WheelDiameterT = 0.9;    //Ra: srednica kol tocznych tylnych
-	double TrackW = 1.435;             /*nominalna szerokosc toru [m]*/
+	float Floor = 0.96f;              //poziom podłogi dla ładunków
+	float WheelDiameter = 1.f;     /*srednica kol napednych*/
+	float WheelDiameterL = 0.9f;    //Ra: srednica kol tocznych przednich
+	float WheelDiameterT = 0.9f;    //Ra: srednica kol tocznych tylnych
+	float TrackW = 1.435f;             /*nominalna szerokosc toru [m]*/
 	double AxleInertialMoment = 0.0; /*moment bezwladnosci zestawu kolowego*/
 	std::string AxleArangement;  /*uklad osi np. Bo'Bo' albo 1'C*/
 	int NPoweredAxles = 0;     /*ilosc osi napednych liczona z powyzszego*/
@@ -708,6 +706,7 @@ public:
         headlight_upper = 0x04,
         headlight_right = 0x10,
         redmarker_right = 0x20,
+        rearendsignals  = 0x40
     };
     int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
@@ -780,6 +779,7 @@ public:
 	double Ftmax = 0.0;
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
+	bool EIMCLogForce; // 
     static std::vector<std::string> const eimc_labels;
 	/*-dla wagonow*/
     double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
@@ -813,7 +813,6 @@ public:
         voltage
     };
 #endif
-	int ScanCounter = 0;   /*pomocnicze do skanowania sprzegow*/
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
@@ -823,6 +822,7 @@ public:
 	double AccN = 0.0; //przyspieszenie normalne w [m/s^2]
 	double AccV = 0.0;
 	double nrot = 0.0;
+	double WheelFlat = 0.0;
 	/*! rotacja kol [obr/s]*/
 	double EnginePower = 0.0;                  /*! chwilowa moc silnikow*/
 	double dL = 0.0; double Fb = 0.0; double Ff = 0.0;                  /*przesuniecie, sila hamowania i tarcia*/
@@ -867,7 +867,8 @@ public:
 /*
 	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
 */
-	bool EmergencyBrakeFlag = false;        /*hamowanie nagle*/
+    bool AlarmChainFlag = false;    // manual emergency brake
+	bool RadioStopFlag = false;        /*hamowanie nagle*/
 	int BrakeDelayFlag = 0;               /*nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4*/
 	int BrakeDelays = 0;                   /*nastawy mozliwe do uzyskania*/
 	int BrakeOpModeFlag = 0;               /*nastawa trybu pracy PS/PN/EP/MED 1/2/4/8*/
@@ -1024,7 +1025,7 @@ public:
 	bool IncBrakeLevel(); // wersja na użytek AI
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
-	bool CurrentSwitch(int direction);
+	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
@@ -1082,7 +1083,8 @@ public:
 	bool IncManualBrakeLevel(int CtrlSpeed);
 	bool DecManualBrakeLevel(int CtrlSpeed);
 	bool DynamicBrakeSwitch(bool Switch);
-	bool EmergencyBrakeSwitch(bool Switch);
+	bool RadiostopSwitch(bool Switch);
+    bool AlarmChainSwitch( bool const State );
 	bool AntiSlippingBrake(void);
 	bool BrakeReleaser(int state);
 	bool SwitchEPBrake(int state);
@@ -1109,6 +1111,8 @@ public:
 	double Adhesive(double staticfriction);
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
+	double BrakeForceR(double ratio, double velocity);
+	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int CouplerN, double dt);
 	void CollisionDetect(int CouplerN, double dt);

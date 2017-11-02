@@ -15,15 +15,12 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
-#include "Globals.h"
-#include "Logs.h"
-#include "usefull.h"
-#include "McZapkie/mctools.h"
-#include "Timer.h"
 #include "MdlMngr.h"
-// McZapkie:
-#include "renderer.h"
-//---------------------------------------------------------------------------
+#include "simulation.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "Logs.h"
+
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
 TAnimAdvanced::TAnimAdvanced(){};
@@ -205,8 +202,9 @@ void TAnimContainer::AnimSetVMD(double fNewSpeed)
     // "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
-void TAnimContainer::UpdateModel()
-{ // przeliczanie animacji wykonać tylko raz na model
+// przeliczanie animacji wykonać tylko raz na model
+void TAnimContainer::UpdateModel() {
+
     if (pSubModel) // pozbyć się tego - sprawdzać wcześniej
     {
         if (fTranslateSpeed != 0.0)
@@ -231,12 +229,13 @@ void TAnimContainer::UpdateModel()
                 fTranslateSpeed = 0.0; // wyłączenie przeliczania wektora
                 if (LengthSquared3(vTranslation) <= 0.0001) // jeśli jest w punkcie początkowym
                     iAnim &= ~2; // wyłączyć zmianę pozycji submodelu
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+                    simulation::Events.AddToQuery( evDone, nullptr );
+                }
             }
         }
-        if (fRotateSpeed != 0)
+        if (fRotateSpeed != 0.0)
         {
 
             /*
@@ -298,13 +297,15 @@ void TAnimContainer::UpdateModel()
             if (!anim)
             { // nie potrzeba przeliczać już
                 fRotateSpeed = 0.0;
-                if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informującego o
-                // zakończeniu
+                if( evDone ) {
+                    // wykonanie eventu informującego o zakończeniu
+                    simulation::Events.AddToQuery( evDone, nullptr );
+                }
             }
         }
-        if (fAngleSpeed != 0.0)
-        { // obrót kwaternionu (interpolacja)
+        if( fAngleSpeed != 0.f ) {
+            // NOTE: this is angle- not quaternion-based rotation TBD, TODO: switch to quaternion rotations?
+            fAngleCurrent += fAngleSpeed * Timer::GetDeltaTime(); // aktualny parametr interpolacji
         }
     }
 };
@@ -322,15 +323,14 @@ void TAnimContainer::PrepareModel()
         {
             if (fAngleSpeed > 0.0f)
             {
-                fAngleCurrent +=
-                    fAngleSpeed * Timer::GetDeltaTime(); // aktualny parametr interpolacji
                 if (fAngleCurrent >= 1.0f)
                 { // interpolacja zakończona, ustawienie na pozycję końcową
                     qCurrent = qDesired;
                     fAngleSpeed = 0.0; // wyłączenie przeliczania wektora
-                    if (evDone)
-                        Global::AddToQuery(evDone,
-                                           NULL); // wykonanie eventu informującego o zakończeniu
+                    if( evDone ) {
+                        // wykonanie eventu informującego o zakończeniu
+                        simulation::Events.AddToQuery( evDone, nullptr );
+                    }
                 }
                 else
                 { // obliczanie pozycji pośredniej
@@ -405,23 +405,12 @@ void TAnimContainer::EventAssign(TEvent *ev)
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-TAnimModel::TAnimModel()
-{
-    pRoot = NULL;
-    pModel = NULL;
-    iNumLights = 0;
-    fBlinkTimer = 0;
-
-    for (int i = 0; i < iMaxNumLights; i++)
-    {
-        LightsOn[i] = LightsOff[i] = NULL; // normalnie nie ma
-        lsLights[i] = ls_Off; // a jeśli są, to wyłączone
+TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {
+    // TODO: wrap these in a tuple and move to underlying model
+    for( int index = 0; index < iMaxNumLights; ++index ) {
+        LightsOn[ index ] = LightsOff[ index ] = nullptr; // normalnie nie ma
+        lsLights[ index ] = ls_Off; // a jeśli są, to wyłączone
     }
-    vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
-    pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25f; // standardowy próg zaplania
-    fOnTime = 0.66f;
-    fOffTime = fOnTime + 0.66f;
 }
 
 TAnimModel::~TAnimModel()
@@ -440,14 +429,15 @@ bool TAnimModel::Init(TModel3d *pNewModel)
 
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
-    if (asReplacableTexture.substr(0, 1) ==
-        "*") // od gwiazdki zaczynają się teksty na wyświetlaczach
-        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
-    else if (asReplacableTexture != "none")
-        m_materialdata.replacable_skins[1] =
-            GfxRenderer.Fetch_Texture( asReplacableTexture, "" );
-    if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
-     && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
+    if( asReplacableTexture.substr( 0, 1 ) == "*" ) {
+        // od gwiazdki zaczynają się teksty na wyświetlaczach
+        asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
+    }
+    else if( asReplacableTexture != "none" ) {
+        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
+    }
+    if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
+     && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         m_materialdata.textures_alpha = 0x31310031;
     }
@@ -472,8 +462,10 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
 					name[ name.length() - 3 ] = 'e';
 				}
+#ifdef EU07_USE_OLD_TERRAINCODE
                 Global::asTerrainModel = name;
                 WriteLog("Terrain model \"" + name + "\" will be created.");
+#endif
             }
             else
                 ErrorLog("Missed file: " + name);
@@ -519,11 +511,11 @@ bool TAnimModel::Load(cParser *parser, bool ter)
     return true;
 }
 
-TAnimContainer * TAnimModel::AddContainer(char *pName)
+TAnimContainer * TAnimModel::AddContainer(std::string const &Name)
 { // dodanie sterowania submodelem dla egzemplarza
     if (!pModel)
         return NULL;
-    TSubModel *tsb = pModel->GetFromName(pName);
+    TSubModel *tsb = pModel->GetFromName(Name);
     if (tsb)
     {
         TAnimContainer *tmp = new TAnimContainer();
@@ -535,20 +527,27 @@ TAnimContainer * TAnimModel::AddContainer(char *pName)
     return NULL;
 }
 
-TAnimContainer * TAnimModel::GetContainer(char *pName)
+TAnimContainer * TAnimModel::GetContainer(std::string const &Name)
 { // szukanie/dodanie sterowania submodelem dla egzemplarza
-    if (!pName)
+    if (true == Name.empty())
         return pRoot; // pobranie pierwszego (dla obrotnicy)
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         // if (pCurrent->GetName()==pName)
-		if (std::string(pName) == pCurrent->NameGet())
+		if (Name == pCurrent->NameGet())
             return pCurrent;
-    return AddContainer(pName);
+    return AddContainer(Name);
 }
 
-void TAnimModel::RaAnimate()
-{ // przeliczenie animacji - jednorazowo na klatkę
+// przeliczenie animacji - jednorazowo na klatkę
+void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
+    
+    if( Framestamp == m_framestamp ) { return; }
+
+    fBlinkTimer -= Timer::GetDeltaTime();
+    if( fBlinkTimer <= 0 )
+        fBlinkTimer += fOffTime;
+
     // Ra 2F1I: to by można pomijać dla modeli bez animacji, których jest większość
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
@@ -557,15 +556,23 @@ void TAnimModel::RaAnimate()
     // if () //tylko dla modeli z IK !!!!
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext) // albo osobny łańcuch
         pCurrent->UpdateModelIK(); // przeliczenie odwrotnej kinematyki
+
+    m_framestamp = Framestamp;
 };
+
+// calculates piece's bounding radius
+void
+TAnimModel::radius_() {
+
+    if( pModel != nullptr ) {
+        m_area.radius = pModel->bounding_radius();
+    }
+}
 
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
-    fBlinkTimer -= Timer::GetDeltaTime();
-    if (fBlinkTimer <= 0)
-        fBlinkTimer = fOffTime;
     bool state; // stan światła
-    for (int i = 0; i < iNumLights; i++)
+    for (int i = 0; i < iNumLights; ++i)
     {
         switch (lsLights[i])
         {
@@ -603,23 +610,8 @@ int TAnimModel::Flags()
     return i;
 };
 
-//-----------------------------------------------------------------------------
-// 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
-//-----------------------------------------------------------------------------
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::Render( vector3 const &Position ) {
-    RaAnimate(); // jednorazowe przeliczenie animacji
-    RaPrepare();
-    if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render( pModel, Material(), Position, vAngle );
-};
-void TAnimModel::RenderAlpha( vector3 const &Position ) {
-    RaPrepare();
-    if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
-};
-#endif
 //---------------------------------------------------------------------------
+
 bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
     return (this ? pModel != NULL : false);
@@ -632,13 +624,7 @@ TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::TerrainRenderVBO(int n)
-{ // renderowanie terenu z VBO
-    if (pModel)
-        pModel->TerrainRenderVBO(n);
-};
-#endif
+
 //---------------------------------------------------------------------------
 
 void TAnimModel::Advanced()
@@ -773,21 +759,27 @@ void TAnimModel::LightSet(int n, float v)
 { // ustawienie światła (n) na wartość (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
-    lsLights[n] = TLightState(int(v));
-    switch (lsLights[n])
-    { // interpretacja ułamka zależnie od typu
-    case 0: // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
-        break;
-    case 1: // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
-        break;
-    case 2: // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
-        break;
-    case 3: // zapalenie świateł zależne od oświetlenia scenerii
-        if (v > 3.0)
-            fDark = v - 3.0; // ustawienie indywidualnego progu zapalania
-        else
-            fDark = 0.25; // standardowy próg zaplania
-        break;
+    lsLights[ n ] = TLightState( static_cast<int>( v ) );
+    switch( lsLights[ n ] ) {
+        // interpretacja ułamka zależnie od typu
+        case ls_Off: {
+            // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
+            break;
+        }
+        case ls_On: {
+            // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
+            break;
+        }
+        case ls_Blink: {
+            // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
+            break;
+        }
+        case ls_Dark: {
+            // zapalenie świateł zależne od oświetlenia scenerii
+            if( v > 3.0 ) { fDark = v - 3.0; } // ustawienie indywidualnego progu zapalania
+            else          { fDark = DefaultDarkThresholdLevel; } // standardowy próg zaplania
+            break;
+        }
     }
 };
 //---------------------------------------------------------------------------

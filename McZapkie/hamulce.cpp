@@ -15,7 +15,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "stdafx.h"
 #include "hamulce.h"
 #include <typeinfo>
-#include "Mover.h"
+#include "MOVER.h"
 #include "usefull.h"
 
 //---FUNKCJE OGOLNE---
@@ -413,6 +413,7 @@ void TBrake::ForceEmptiness()
 {
     ValveRes->CreatePress(0);
     BrakeRes->CreatePress(0);
+
     ValveRes->Act();
     BrakeRes->Act();
 }
@@ -755,6 +756,17 @@ void TESt::EStParams( double const i_crc )
 double TESt::GetCRP()
 {
     return CntrlRes->P();
+}
+
+void TESt::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
 }
 
 //---EP2---
@@ -1462,9 +1474,15 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
 
     // powtarzacz — podwojny zawor zwrotny
     temp = Max0R(LoadC * BCP / temp * Min0R(Max0R(1 - EDFlag, 0), 1), LBP);
+	double speed = 1;
+	if ((ASBP < 0.1) && ((BrakeStatus & b_asb) == b_asb))
+	{
+		temp = 0;
+		speed = 3;
+	}
 
     if ((BrakeCyl->P() > temp))
-        dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC, temp) * dt;
+        dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC * speed, temp) * dt;
     else if ((BrakeCyl->P() < temp))
         dv = PFVa(BVP, BrakeCyl->P(), 0.02 * SizeBC, temp) * dt;
     else
@@ -1719,6 +1737,17 @@ void TCV1::Init( double const PP, double const HPP, double const LPP, double con
 double TCV1::GetCRP()
 {
     return CntrlRes->P();
+}
+
+void TCV1::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
 }
 
 //---CV1-L-TR---
@@ -1995,7 +2024,8 @@ double TKE::GetPF( double const PP, double const dt, double const Vel )
     // luzowanie CH
     //  temp:=Max0R(BCP,LBP);
     IMP = Max0R(IMP / temp, Max0R(LBP, ASBP * int((BrakeStatus & b_asb) == b_asb)));
-
+	if ((ASBP < 0.1) && ((BrakeStatus & b_asb) == b_asb))
+		IMP = 0;
     // luzowanie CH
     if ((BCP > IMP + 0.005) || (Max0R(ImplsRes->P(), 8 * LBP) < 0.25))
         dv = PFVd(BCP, 0, 0.05, IMP) * dt;
@@ -2088,6 +2118,21 @@ void TKE::SetRM( double const RMR )
 void TKE::SetLBP( double const P )
 {
     LBP = P;
+}
+
+void TKE::ForceEmptiness() {
+
+    ValveRes->CreatePress( 0 );
+    BrakeRes->CreatePress( 0 );
+    CntrlRes->CreatePress( 0 );
+    ImplsRes->CreatePress( 0 );
+    Brak2Res->CreatePress( 0 );
+
+    ValveRes->Act();
+    BrakeRes->Act();
+    CntrlRes->Act();
+    ImplsRes->Act();
+    Brak2Res->Act();
 }
 
 //---KRANY---
@@ -2370,6 +2415,11 @@ double TFV4aM::GetSound(int i)
 double TFV4aM::GetPos(int i)
 {
     return pos_table[i];
+}
+
+double TFV4aM::GetCP()
+{
+	return TP;
 }
 
 double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;

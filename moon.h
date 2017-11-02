@@ -1,9 +1,6 @@
 #pragma once
 
-#include "windows.h"
 #include "GL/glew.h"
-#include "GL/wglew.h"
-
 
 // TODO: sun and moon share code as celestial bodies, we could make a base class out of it
 

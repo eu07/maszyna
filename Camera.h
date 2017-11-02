@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "dumb3d.h"
-#include "dynobj.h"
+#include "DynObj.h"
 #include "command.h"
 
 using namespace Math3D;
@@ -46,18 +46,14 @@ class TCamera
     vector3 LookAt; // współrzędne punktu, na który ma patrzeć
     vector3 vUp;
     vector3 Velocity;
-    vector3 CrossPos;
-    double CrossDist;
     void Init(vector3 NPos, vector3 NAngle);
-    void Reset()
-    {
-        Pitch = Yaw = Roll = 0;
-    };
+    inline
+    void Reset() {
+        Pitch = Yaw = Roll = 0; };
     void OnCursorMove(double const x, double const y);
     void OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
-    bool SetMatrix();
     bool SetMatrix(glm::dmat4 &Matrix);
     void RaLook();
     void Stop();

@@ -1,0 +1,42 @@
+version: '{build}'
+branches:
+  except:
+  - master
+  - dp
+image: Visual Studio 2015
+clone_depth: 1
+build_script:
+- cmd: >-
+    cd builds
+    
+    cmake_win32.bat
+    
+    cd build_win32
+    
+    cmake --build . --config RelWithDebInfo
+    
+    cd ..
+    
+    cmake_win64.bat
+    
+    cd build_win64
+    
+    cmake --build . --config RelWithDebInfo
+    
+    cd ..
+    
+    7z a symbols.zip build_win32/RelWithDebInfo/eu07++ng.pdb build_win64/RelWithDebInfo/eu07++ng.pdb
+test: off
+deploy: off
+artifacts:
+- path: builds/build_win32/RelWithDebInfo/eu07++ng.exe
+  name: release_win32
+- path: builds/build_win64/RelWithDebInfo/eu07++ng.exe
+  name: release_win64
+- path: shaders
+  name: shaders
+  type: zip
+- path: builds/symbols.zip
+  name: symbols
+cache:
+    - builds/deps_win -> builds/download_windeps.bat

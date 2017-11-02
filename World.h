@@ -11,14 +11,16 @@ http://mozilla.org/MPL/2.0/.
 
 #include <GLFW/glfw3.h>
 #include <string>
+
 #include "Camera.h"
-#include "Ground.h"
+#include "scene.h"
 #include "sky.h"
 #include "sun.h"
 #include "moon.h"
 #include "stars.h"
 #include "skydome.h"
-#include "mczapkie/mover.h"
+#include "McZapkie/MOVER.h"
+#include "messaging.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -59,6 +61,8 @@ namespace simulation {
 extern simulation_time Time;
 
 }
+
+class opengl_renderer;
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
@@ -103,13 +107,15 @@ TWorld();
     void OnKeyDown(int cKey);
     // void UpdateWindow();
     void OnMouseMove(double x, double y);
-    void OnCommandGet(DaneRozkaz *pRozkaz);
+    void OnCommandGet(multiplayer::DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
-    TTrain const *
-        train() const { return Train; }
+    TTrain* train() { return Train; }
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
+    // calculates current season of the year based on set simulation date
+    void compute_season( int const Yearday ) const;
+
 
 private:
     void Update_Environment();
@@ -118,7 +124,7 @@ private:
     void ResourceSweep();
 
     TCamera Camera;
-    TGround Ground;
+    TCamera DebugCamera;
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
@@ -139,7 +145,6 @@ private:
     bool m_init{ false }; // indicates whether initial update of the world was performed
 
   public:
-    void ModifyTGA(std::string const &dir = "");
     void CreateE3D(std::string const &dir = "", bool dyn = false);
     void CabChange(TDynamicObject *old, TDynamicObject *now);
     // handles vehicle change flag

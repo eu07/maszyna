@@ -5,6 +5,8 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #ifdef _MSC_VER
 // memory debug functions
 #define _CRTDBG_MAP_ALLOC
@@ -24,15 +26,14 @@
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
-#include <dbghelp.h>
-#include <direct.h>
-#include <strsafe.h>
+#endif
+#ifdef __linux__
+#include <sys/stat.h>
 #endif
 // stl
+#include <cstddef>
 #include <cstdlib>
 #include <cassert>
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
@@ -48,6 +49,7 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <tuple>
 #include <cctype>
 #include <locale>
 #include <codecvt>
@@ -64,10 +66,6 @@
 #include <condition_variable>
 #include <typeinfo>
 
-#ifdef NDEBUG
-#define EU07_BUILD_STATIC
-#endif
-
 #ifdef EU07_BUILD_STATIC
 #define GLEW_STATIC
 #else
@@ -80,9 +78,8 @@
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU
-//m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
-#include <GLFW/glfw3.h>
 
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -90,5 +87,10 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include "openglmatrixstack.h"
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
+#define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
+

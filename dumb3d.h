@@ -118,6 +118,10 @@ class vector3
         return true;
     };
 
+	operator glm::vec3() const
+	{
+		return glm::vec3(x, y, z);
+	}
   private:
 };
 
@@ -127,7 +131,7 @@ class matrix4x4
   public:
     matrix4x4(void)
     {
-        ::SecureZeroMemory( e, sizeof( e ) );
+		memset(e, 0, sizeof(e));
     }
 
     // When defining matrices in C arrays, it is easiest to define them with
@@ -207,6 +211,11 @@ class matrix4x4
                 return false;
         return true;
     }
+
+	operator glm::mat4() const
+	{
+		return glm::make_mat4(e);
+	}
 
   private:
     scalar_t e[16];

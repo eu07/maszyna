@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #define TrkFollH
 
 #include "Track.h"
-#include "McZapkie\MOVER.h"
+#include "McZapkie/MOVER.h"
 
 class TTrackFollower
 { // oś poruszająca się po torze
@@ -28,8 +28,8 @@ class TTrackFollower
     // zwrotnicy pod taborem)
   public:
     double fOffsetH = 0.0; // Ra: odległość środka osi od osi toru (dla samochodów) - użyć do wężykowania
-    vector3 pPosition; // współrzędne XYZ w układzie scenerii
-    vector3 vAngles; // x:przechyłka, y:pochylenie, z:kierunek w planie (w radianach)
+    Math3D::vector3 pPosition; // współrzędne XYZ w układzie scenerii
+    Math3D::vector3 vAngles; // x:przechyłka, y:pochylenie, z:kierunek w planie (w radianach)
     TTrackFollower() = default;
     ~TTrackFollower();
     TTrack * SetCurrentTrack(TTrack *pTrack, int end);
@@ -47,7 +47,7 @@ class TTrackFollower
     {
         return fDirection;
     }; // zwrot na torze
-    inline double GetTranslation()
+    inline double GetTranslation() const
     {
         return fCurrentDistance;
     }; // ABu-030403

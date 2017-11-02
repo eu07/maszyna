@@ -20,6 +20,8 @@ http://mozilla.org/MPL/2.0/.
 
 extern bool DebugModeFlag;
 extern bool FreeFlyModeFlag;
+extern bool EditorModeFlag;
+extern bool DebugCameraFlag;
 
 /*funkcje matematyczne*/
 double Max0R(double x1, double x2);
@@ -36,7 +38,7 @@ inline long Round(double const f)
 	//return lround(f);
 }
 
-double Random(double a, double b);
+extern double Random(double a, double b);
 
 inline double Random()
 {
@@ -62,9 +64,9 @@ inline double BorlandTime()
 std::string Now();
 
 /*funkcje logiczne*/
-bool TestFlag(int Flag,  int Value);
-bool SetFlag( int & Flag,  int Value);
-bool UnSetFlag(int &Flag, int Value);
+inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
+bool SetFlag( int &Flag,  int const Value);
+bool ClearFlag(int &Flag, int const Value);
 
 bool FuzzyLogic(double Test, double Threshold, double Probability);
 /*jesli Test>Threshold to losowanie*/
@@ -74,7 +76,7 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
-std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi
+std::string ExchangeCharInString( std::string const &Source, char const From, char const To ); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 //std::vector<std::string> Split(const std::string &s);
@@ -156,3 +158,6 @@ bool
 extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default );
 
 bool FileExists( std::string const &Filename );
+
+// returns time of last modification for specified file
+time_t last_modified( std::string const &Filename );

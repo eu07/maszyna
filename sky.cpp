@@ -24,25 +24,4 @@ void TSky::Init() {
     }
 };
 
-#ifdef EU07_USE_OLD_RENDERCODE
-void TSky::Render( glm::vec3 const &Tint )
-{
-    if (mdCloud)
-    { // jeśli jest model nieba
-        // setup
-        ::glEnable( GL_LIGHTING );
-        GfxRenderer.Disable_Lights();
-        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(Tint) );
-        // render
-        GfxRenderer.Render( mdCloud, nullptr, 100.0 );
-        GfxRenderer.Render_Alpha( mdCloud, nullptr, 100.0 );
-        // post-render cleanup
-        GLfloat noambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, noambient );
-        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
-        ::glDisable( GL_LIGHTING );
-    }
-};
-#endif
-
 //---------------------------------------------------------------------------

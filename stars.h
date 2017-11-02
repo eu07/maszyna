@@ -15,9 +15,6 @@ public:
 
 // methods:
     void init();
-#ifdef EU07_USE_OLD_RENDERCODE
-    void render();
-#endif
 // constructors:
 
 // deconstructor:

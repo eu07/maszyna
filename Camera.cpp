@@ -11,38 +11,31 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 
 #include "Globals.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "Console.h"
 #include "Timer.h"
-#include "mover.h"
+#include "MOVER.h"
 
 //---------------------------------------------------------------------------
-
-// TViewPyramid TCamera::OrgViewPyramid;
-//={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
 
 void TCamera::Init(vector3 NPos, vector3 NAngle)
 {
 
     vUp = vector3(0, 1, 0);
-    //    pOffset= vector3(-0.8,0,0);
-    CrossDist = 10;
     Velocity = vector3(0, 0, 0);
     Pitch = NAngle.x;
     Yaw = NAngle.y;
     Roll = NAngle.z;
     Pos = NPos;
 
-    //    Type= tp_Follow;
     Type = (Global::bFreeFly ? tp_Free : tp_Follow);
-    //    Type= tp_Free;
 };
 
 void TCamera::OnCursorMove(double x, double y)
 {
     // McZapkie-170402: zeby mysz dzialala zawsze    if (Type==tp_Follow)
-    Pitch += y;
-    Yaw += -x;
+    Yaw -= x;
+    Pitch -= y;
     if (Yaw > M_PI)
         Yaw -= 2 * M_PI;
     else if (Yaw < -M_PI)
@@ -66,7 +59,7 @@ TCamera::OnCommand( command_data const &Command ) {
 
             OnCursorMove(
                 reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global::fMouseXScale / Global::ZoomFactor,
-                reinterpret_cast<double const &>( Command.param2 ) * -0.01  * Global::fMouseYScale / Global::ZoomFactor );
+                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global::fMouseYScale / Global::ZoomFactor );
             break;
         }
 
@@ -352,7 +345,8 @@ void TCamera::Update()
     }
 */
     if( ( Type == tp_Free )
-     || ( false == Global::ctrlState ) ) {
+     || ( false == Global::ctrlState )
+     || ( true == DebugCameraFlag) ) {
         // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
         if( m_keys.up )
             Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -m_moverate.y, m_moverate.y );
@@ -371,7 +365,8 @@ void TCamera::Update()
     }
 #endif
 
-    if( Type == tp_Free ) {
+    if( ( Type == tp_Free )
+     || ( true == DebugCameraFlag ) ) {
         // free movement position update is handled here, movement while in vehicle is handled by train update
         vector3 Vec = Velocity;
         Vec.RotateY( Yaw );
@@ -379,35 +374,10 @@ void TCamera::Update()
     }
 }
 
-vector3 TCamera::GetDirection()
-{
-    matrix4x4 mat;
-    vector3 Vec;
-    Vec = vector3(0, 0, 1);
-    Vec.RotateY(Yaw);
+vector3 TCamera::GetDirection() {
 
-    return (Normalize(Vec));
-}
-
-bool TCamera::SetMatrix()
-{
-    glRotated( -Roll * 180.0 / M_PI, 0.0, 0.0, 1.0 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
-    glRotated( -Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0 );
-    glRotated( -Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // w zewnętrznym widoku: kierunek patrzenia
-
-    if( Type == tp_Follow )
-    {
-        gluLookAt(
-            Pos.x, Pos.y, Pos.z,
-            LookAt.x, LookAt.y, LookAt.z,
-            vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
-    }
-    else {
-        glTranslated( -Pos.x, -Pos.y, -Pos.z ); // nie zmienia kierunku patrzenia
-    }
-
-    Global::SetCameraPosition(Pos); // było +pOffset
-    return true;
+    glm::vec3 v = glm::normalize( glm::rotateY<float>( glm::vec3{ 0.f, 0.f, 1.f }, Yaw ) );
+	return vector3(v.x, v.y, v.z);
 }
 
 bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
@@ -416,7 +386,7 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
     Matrix = glm::rotate( Matrix, -Pitch, glm::dvec3( 1.0, 0.0, 0.0 ) );
     Matrix = glm::rotate( Matrix, -Yaw, glm::dvec3( 0.0, 1.0, 0.0 ) ); // w zewnętrznym widoku: kierunek patrzenia
 
-    if( Type == tp_Follow ) {
+    if( ( Type == tp_Follow ) && ( false == DebugCameraFlag ) ) {
 
         Matrix *= glm::lookAt(
             glm::dvec3{ Pos },
@@ -427,7 +397,6 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
         Matrix = glm::translate( Matrix, glm::dvec3{ -Pos } ); // nie zmienia kierunku patrzenia
     }
 
-    Global::SetCameraPosition( Pos ); // było +pOffset
     return true;
 }
 
@@ -446,4 +415,3 @@ void TCamera::Stop()
     Type = tp_Follow;
     Velocity = vector3(0, 0, 0);
 };
-
