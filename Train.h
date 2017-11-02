@@ -171,6 +171,8 @@ class TTrain
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_lightspresetactivatenext( TTrain *Train, command_data const &Command );
+    static void OnCommand_lightspresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command );
@@ -366,6 +368,17 @@ public: // reszta może by?publiczna
     TButton btLampkaHamulecReczny;
     TButton btLampkaForward; // Ra: lampki w przód i w ty?dla komputerowych kabin
     TButton btLampkaBackward;
+    // light indicators
+    TButton btLampkaUpperLight;
+    TButton btLampkaLeftLight;
+    TButton btLampkaRightLight;
+    TButton btLampkaLeftEndLight;
+    TButton btLampkaRightEndLight;
+    TButton btLampkaRearUpperLight;
+    TButton btLampkaRearLeftLight;
+    TButton btLampkaRearRightLight;
+    TButton btLampkaRearLeftEndLight;
+    TButton btLampkaRearRightEndLight;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys

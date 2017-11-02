@@ -246,6 +246,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::motoroverloadrelaythresholdtoggle, &TTrain::OnCommand_motoroverloadrelaythresholdtoggle },
     { user_command::motoroverloadrelayreset, &TTrain::OnCommand_motoroverloadrelayreset },
     { user_command::heatingtoggle, &TTrain::OnCommand_heatingtoggle },
+    { user_command::lightspresetactivatenext, &TTrain::OnCommand_lightspresetactivatenext },
+    { user_command::lightspresetactivateprevious, &TTrain::OnCommand_lightspresetactivateprevious },
     { user_command::headlighttoggleleft, &TTrain::OnCommand_headlighttoggleleft },
     { user_command::headlighttoggleright, &TTrain::OnCommand_headlighttoggleright },
     { user_command::headlighttoggleupper, &TTrain::OnCommand_headlighttoggleupper },
@@ -2067,6 +2069,60 @@ void TTrain::OnCommand_motoroverloadrelayreset( TTrain *Train, command_data cons
     }
 }
 
+void TTrain::OnCommand_lightspresetactivatenext( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo == 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+    if( Command.action != GLFW_PRESS ) {
+        // one change per key press
+        return;
+    }
+
+    if( ( Train->mvOccupied->LightsPos < Train->mvOccupied->LightsPosNo )
+     || ( true == Train->mvOccupied->LightsWrap ) ) {
+        // active light preset is stored as value in range 1-LigthPosNo
+        Train->mvOccupied->LightsPos = (
+            Train->mvOccupied->LightsPos < Train->mvOccupied->LightsPosNo ?
+                Train->mvOccupied->LightsPos + 1 :
+                1 ); // wrap mode
+
+        Train->SetLights();
+        // visual feedback
+        if( Train->ggLightsButton.SubModel != nullptr ) {
+            Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+        }
+    }
+}
+
+void TTrain::OnCommand_lightspresetactivateprevious( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo == 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+    if( Command.action != GLFW_PRESS ) {
+        // one change per key press
+        return;
+    }
+
+    if( ( Train->mvOccupied->LightsPos > 1 )
+     || ( true == Train->mvOccupied->LightsWrap ) ) {
+        // active light preset is stored as value in range 1-LigthPosNo
+        Train->mvOccupied->LightsPos = (
+            Train->mvOccupied->LightsPos > 1 ?
+                Train->mvOccupied->LightsPos - 1 :
+                Train->mvOccupied->LightsPosNo ); // wrap mode
+
+        Train->SetLights();
+        // visual feedback
+        if( Train->ggLightsButton.SubModel != nullptr ) {
+            Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+        }
+    }
+}
+
 void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo > 0 ) {
@@ -2900,7 +2956,8 @@ void TTrain::OnKeyDown(int cKey)
                 DynamicObject->Mechanik->TakeControl(true);
             }
         }
-		else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
 		// włączenie
         {
 			if (mvOccupied->LightsPosNo > 0) //kręciolek od swiatel
@@ -2917,6 +2974,7 @@ void TTrain::OnKeyDown(int cKey)
                 }
             }
         }
+#endif
     }
     else // McZapkie-240302 - klawisze bez shifta
     {
@@ -3013,8 +3071,7 @@ void TTrain::OnKeyDown(int cKey)
                 }
             }
         }
-        // McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode
-        // mozna tylko raz)
+        // McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
         else if (cKey == GLFW_KEY_Q) // bez Shift
         {
             if (DynamicObject->Mechanik)
@@ -3249,6 +3306,7 @@ if
                 }
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
         // wyłączenie
         {
@@ -3266,6 +3324,7 @@ if
                 }
             }
         }
+#endif
         //    else
         if (DebugModeFlag)
         { // przesuwanie składu o 100m
@@ -4317,9 +4376,6 @@ bool TTrain::Update( double const Deltatime )
                     true :
                     false ) );
 
-            // hunter-261211: jakis stary kod (i niezgodny z prawda),
-            // zahaszowalem i poprawilem
-            // youBy-220913: ale przyda sie do lampki samej przetwornicy
             btLampkaPrzetw.Turn( !mvControlled->ConverterFlag );
             btLampkaNadmPrzetw.Turn( mvControlled->ConvOvldFlag );
 
@@ -4330,10 +4386,12 @@ bool TTrain::Update( double const Deltatime )
 
             btLampkaBezoporowa.Turn(mvControlled->ResistorsFlagCheck() ||
                                     (mvControlled->MainCtrlActualPos == 0)); // do EU04
-            if ((mvControlled->Itot != 0) || (mvOccupied->BrakePress > 2) ||
-                (mvOccupied->PipePress < 3.6))
-                btLampkaStyczn.TurnOff(); // Ra: czy to jest udawanie działania
-            // styczników liniowych?
+            if( ( mvControlled->Itot != 0 )
+             || ( mvOccupied->BrakePress > 2 )
+             || ( mvOccupied->PipePress < 3.6 ) ) {
+                // Ra: czy to jest udawanie działania styczników liniowych?
+                btLampkaStyczn.TurnOff();
+            }
             else if (mvOccupied->BrakePress < 1)
                 btLampkaStyczn.TurnOn(); // mozna prowadzic rozruch
             if (((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
@@ -4513,15 +4571,8 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaNadmPrzetwB.TurnOn();
                     btLampkaPrzetwB.TurnOff();
                 }
+        }
 
-            // hunter-261211: jakis stary kod (i niezgodny z prawda), zahaszowalem
-            // if (tmp)
-            // if (tmp->MoverParameters->ConverterFlag==true)
-            //     btLampkaNadmPrzetwB.TurnOff();
-            // else
-            //     btLampkaNadmPrzetwB.TurnOn();
-
-        } //**************************************************** */
         if( mvControlled->Battery || mvControlled->ConverterFlag )
         {
             switch (mvControlled->TrainType)
@@ -4551,6 +4602,18 @@ bool TTrain::Update( double const Deltatime )
             btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
             btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do tyłu
             btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
+            // light indicators
+            // NOTE: sides are hardcoded to deal with setups where single cab is equipped with all indicators
+            btLampkaUpperLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_upper ) != 0 );
+            btLampkaLeftLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_left ) != 0 );
+            btLampkaRightLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_right ) != 0 );
+            btLampkaLeftEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_left ) != 0 );
+            btLampkaRightEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_right ) != 0 );
+            btLampkaRearUpperLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_upper ) != 0 );
+            btLampkaRearLeftLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_left ) != 0 );
+            btLampkaRearRightLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_right ) != 0 );
+            btLampkaRearLeftEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_left ) != 0 );
+            btLampkaRearRightEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_right ) != 0 );
         }
         else
         { // gdy bateria wyłączona
@@ -4566,7 +4629,19 @@ bool TTrain::Update( double const Deltatime )
             btLampkaForward.TurnOff();
             btLampkaBackward.TurnOff();
             btLampkaED.TurnOff();
+            // light indicators
+            btLampkaUpperLight.TurnOff();
+            btLampkaLeftLight.TurnOff();
+            btLampkaRightLight.TurnOff();
+            btLampkaLeftEndLight.TurnOff();
+            btLampkaRightEndLight.TurnOff();
+            btLampkaRearUpperLight.TurnOff();
+            btLampkaRearLeftLight.TurnOff();
+            btLampkaRearRightLight.TurnOff();
+            btLampkaRearLeftEndLight.TurnOff();
+            btLampkaRearRightEndLight.TurnOff();
         }
+
         // McZapkie-080602: obroty (albo translacje) regulatorow
         if (ggMainCtrl.SubModel) {
 
@@ -4830,12 +4905,6 @@ bool TTrain::Update( double const Deltatime )
                     ggRearRightLightButton.PutValue(-1);
             }
 #endif
-        if (ggLightsButton.SubModel)
-        {
-            ggLightsButton.PutValue(mvOccupied->LightsPos - 1);
-            ggLightsButton.Update();
-        }
-        ggDimHeadlightsButton.Update();
         //---------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
         if ((((mvControlled->EngineType == ElectricSeriesMotor) && (mvControlled->Mains == true) &&
@@ -4909,9 +4978,7 @@ bool TTrain::Update( double const Deltatime )
             }
         }
 
-        //******************************************
         // przelaczniki
-
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if( Console::Pressed( Global::Keys[ k_Horn ] ) )
         {
@@ -5652,6 +5719,7 @@ bool TTrain::Update( double const Deltatime )
         ggPantCompressorButton.Update();
         ggPantCompressorValve.Update();
 
+        ggLightsButton.Update();
         ggUpperLightButton.Update();
         ggLeftLightButton.Update();
         ggRightLightButton.Update();
@@ -5663,6 +5731,7 @@ bool TTrain::Update( double const Deltatime )
         ggRearRightLightButton.Update();
         ggRearLeftEndLightButton.Update();
         ggRearRightEndLightButton.Update();
+        ggDimHeadlightsButton.Update();
         //------------
         ggConverterButton.Update();
         ggConverterLocalButton.Update();
@@ -5673,14 +5742,14 @@ bool TTrain::Update( double const Deltatime )
         ggHornButton.Update();
         ggHornLowButton.Update();
         ggHornHighButton.Update();
-/*
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         ggUniversal1Button.Update();
         ggUniversal2Button.Update();
         if( Universal4Active ) {
             ggUniversal4Button.PermIncValue( dt );
         }
         ggUniversal4Button.Update();
-*/
+#endif
         for( auto &universal : ggUniversals ) {
             universal.Update();
         }
@@ -6597,6 +6666,17 @@ void TTrain::clear_cab_controls()
     btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
+    // light indicators
+    btLampkaUpperLight.Clear();
+    btLampkaLeftLight.Clear();
+    btLampkaRightLight.Clear();
+    btLampkaLeftEndLight.Clear();
+    btLampkaRightEndLight.Clear();
+    btLampkaRearUpperLight.Clear();
+    btLampkaRearLeftLight.Clear();
+    btLampkaRearRightLight.Clear();
+    btLampkaRearLeftEndLight.Clear();
+    btLampkaRearRightEndLight.Clear();
     btCabLight.Clear(); // hunter-171012
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
@@ -6706,6 +6786,8 @@ void TTrain::set_cab_controls() {
         ggMaxCurrentCtrl.PutValue( 1.0 );
     }
     // lights
+    ggLightsButton.PutValue( mvOccupied->LightsPos - 1 );
+
     int const vehicleside =
         ( mvOccupied->ActiveCab == 1 ?
             side::front :
@@ -6802,226 +6884,87 @@ void TTrain::set_cab_controls() {
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
 }
 
-// initializes a button matching provided label. returns: true if the label was found, false
-// otherwise
-// NOTE: this is temporary work-around for compiler else-if limit
+// initializes a button matching provided label. returns: true if the label was found, false otherwise
 // TODO: refactor the cabin controls into some sensible structure
-bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int const Cabindex)
-{
-/*
-    TButton *bt; // roboczy wskaźnik na obiekt animujący lampkę
-*/
-    // SEKCJA LAMPEK
-    if (Label == "i-maxft:")
-    {
-        btLampkaMaxSila.Load(Parser, DynamicObject->mdKabina);
+bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int const Cabindex) {
+
+    std::unordered_map<std::string, TButton &> const lights = {
+        { "i-maxft:", btLampkaMaxSila },
+        { "i-maxftt:", btLampkaPrzekrMaxSila },
+        { "i-radio:", btLampkaRadio },
+        { "i-manual_brake:", btLampkaHamulecReczny },
+        { "i-door_blocked:", btLampkaBlokadaDrzwi },
+        { "i-slippery:", btLampkaPoslizg },
+        { "i-contactors:", btLampkaStyczn },
+        { "i-conv_ovld:", btLampkaNadmPrzetw },
+        { "i-converter:", btLampkaPrzetw },
+        { "i-diff_relay:", btLampkaPrzekRozn },
+        { "i-diff_relay2:", btLampkaPrzekRoznPom },
+        { "i-motor_ovld:", btLampkaNadmSil },
+        { "i-train_controll:", btLampkaUkrotnienie },
+        { "i-brake_delay_r:", btLampkaHamPosp },
+        { "i-mainbreaker:", btLampkaWylSzybki },
+        { "i-vent_ovld:", btLampkaNadmWent },
+        { "i-comp_ovld:", btLampkaNadmSpr },
+        { "i-resistors:", btLampkaOpory },
+        { "i-no_resistors:", btLampkaBezoporowa },
+        { "i-no_resistors_b:", btLampkaBezoporowaB },
+        { "i-highcurrent:", btLampkaWysRozr },
+        { "i-vent_trim:", btLampkaWentZaluzje },
+        { "i-trainheating:", btLampkaOgrzewanieSkladu },
+        { "i-security_aware:", btLampkaCzuwaka },
+        { "i-security_cabsignal:", btLampkaSHP },
+        { "i-door_left:", btLampkaDoorLeft },
+        { "i-door_right:", btLampkaDoorRight },
+        { "i-departure_signal:", btLampkaDepartureSignal },
+        { "i-reserve:", btLampkaRezerwa },
+        { "i-scnd:", btLampkaBoczniki },
+        { "i-scnd1:", btLampkaBocznik1 },
+        { "i-scnd2:", btLampkaBocznik2 },
+        { "i-scnd3:", btLampkaBocznik3 },
+        { "i-scnd4:", btLampkaBocznik4 },
+        { "i-braking:", btLampkaHamienie },
+        { "i-dynamicbrake:", btLampkaED },
+        { "i-braking-ezt:", btLampkaHamowanie1zes },
+        { "i-braking-ezt2:", btLampkaHamowanie2zes },
+        { "i-compressor:", btLampkaSprezarka },
+        { "i-compressorb:", btLampkaSprezarkaB },
+        { "i-voltbrake:", btLampkaNapNastHam },
+        { "i-mainbreakerb:", btLampkaWylSzybkiB },
+        { "i-resistorsb:", btLampkaOporyB },
+        { "i-contactorsb:", btLampkaStycznB },
+        { "i-conv_ovldb:", btLampkaNadmPrzetwB },
+        { "i-converterb:", btLampkaPrzetwB },
+        { "i-forward:", btLampkaForward },
+        { "i-backward:", btLampkaBackward },
+        { "i-upperlight:", btLampkaUpperLight },
+        { "i-leftlight:", btLampkaLeftLight },
+        { "i-rightlight:", btLampkaRightLight },
+        { "i-leftend:", btLampkaLeftEndLight },
+        { "i-rightend:", btLampkaRightEndLight },
+        { "i-rearupperlight:", btLampkaRearUpperLight },
+        { "i-rearleftlight:", btLampkaRearLeftLight },
+        { "i-rearrightlight:", btLampkaRearRightLight },
+        { "i-rearleftend:", btLampkaRearLeftEndLight },
+        { "i-rearrightend:",  btLampkaRearRightEndLight },
+        { "i-cablight:", btCabLight }
+    };
+    auto lookup = lights.find( Label );
+    if( lookup != lights.end() ) {
+        lookup->second.Load( Parser, DynamicObject->mdKabina );
     }
-    else if (Label == "i-maxftt:")
-    {
-        btLampkaPrzekrMaxSila.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-radio:")
-    {
-        btLampkaRadio.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-manual_brake:")
-    {
-        btLampkaHamulecReczny.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-door_blocked:")
-    {
-        btLampkaBlokadaDrzwi.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-slippery:")
-    {
-        btLampkaPoslizg.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-contactors:")
-    {
-        btLampkaStyczn.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-conv_ovld:")
-    {
-        btLampkaNadmPrzetw.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-converter:")
-    {
-        btLampkaPrzetw.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-diff_relay:")
-    {
-        btLampkaPrzekRozn.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-diff_relay2:")
-    {
-        btLampkaPrzekRoznPom.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-motor_ovld:")
-    {
-        btLampkaNadmSil.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-train_controll:")
-    {
-        btLampkaUkrotnienie.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-brake_delay_r:")
-    {
-        btLampkaHamPosp.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-mainbreaker:")
-    {
-        btLampkaWylSzybki.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-vent_ovld:")
-    {
-        btLampkaNadmWent.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-comp_ovld:")
-    {
-        btLampkaNadmSpr.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-resistors:")
-    {
-        btLampkaOpory.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-no_resistors:")
-    {
-        btLampkaBezoporowa.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-no_resistors_b:")
-    {
-        btLampkaBezoporowaB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-highcurrent:")
-    {
-        btLampkaWysRozr.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-instrumentlight:")
-    {
-        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+
+    else if( Label == "i-instrumentlight:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
         InstrumentLightType = 0;
     }
-    else if (Label == "i-instrumentlight_M:")
-    {
-        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+    else if( Label == "i-instrumentlight_M:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
         InstrumentLightType = 1;
     }
-    else if (Label == "i-instrumentlight_C:")
-    {
-        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+    else if( Label == "i-instrumentlight_C:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
         InstrumentLightType = 2;
-    }
-    else if (Label == "i-vent_trim:")
-    {
-        btLampkaWentZaluzje.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-trainheating:")
-    {
-        btLampkaOgrzewanieSkladu.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-security_aware:")
-    {
-        btLampkaCzuwaka.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-security_cabsignal:")
-    {
-        btLampkaSHP.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-door_left:")
-    {
-        btLampkaDoorLeft.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-door_right:")
-    {
-        btLampkaDoorRight.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-departure_signal:")
-    {
-        btLampkaDepartureSignal.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-reserve:")
-    {
-        btLampkaRezerwa.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-scnd:")
-    {
-        btLampkaBoczniki.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-scnd1:")
-    {
-        btLampkaBocznik1.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-scnd2:")
-    {
-        btLampkaBocznik2.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-scnd3:")
-    {
-        btLampkaBocznik3.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-scnd4:")
-    {
-        btLampkaBocznik4.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-braking:")
-    {
-        btLampkaHamienie.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "i-dynamicbrake:" ) {
-
-        btLampkaED.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if (Label == "i-braking-ezt:")
-    {
-        btLampkaHamowanie1zes.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-braking-ezt2:")
-    {
-        btLampkaHamowanie2zes.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-compressor:")
-    {
-        btLampkaSprezarka.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-compressorb:")
-    {
-        btLampkaSprezarkaB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-voltbrake:")
-    {
-        btLampkaNapNastHam.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-mainbreakerb:")
-    {
-        btLampkaWylSzybkiB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-resistorsb:")
-    {
-        btLampkaOporyB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-contactorsb:")
-    {
-        btLampkaStycznB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-conv_ovldb:")
-    {
-        btLampkaNadmPrzetwB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-converterb:")
-    {
-        btLampkaPrzetwB.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-forward:")
-    {
-        btLampkaForward.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-backward:")
-    {
-        btLampkaBackward.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "i-cablight:")
-    { // hunter-171012
-        btCabLight.Load(Parser, DynamicObject->mdKabina);
     }
     else if (Label == "i-doors:")
     {
@@ -7039,15 +6982,10 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     return true;
 }
 
-// initializes a gauge matching provided label. returns: true if the label was found, false
-// otherwise
-// NOTE: this is temporary work-around for compiler else-if limit
+// initializes a gauge matching provided label. returns: true if the label was found, false otherwise
 // TODO: refactor the cabin controls into some sensible structure
 bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex) {
 
-/*
-    TGauge *gg { nullptr }; // roboczy wskaźnik na obiekt animujący gałkę
-*/
     std::unordered_map<std::string, TGauge &> const gauges = {
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },

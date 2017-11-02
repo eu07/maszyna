@@ -682,7 +682,7 @@ void TWorld::OnKeyDown(int cKey)
 */
             if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
         { // zmiana próżny/ładowny; Ra: zabrane z kabiny
-                auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+                auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
             {
                 if (Global::shiftState ? vehicle->MoverParameters->IncBrakeMult() :
@@ -695,7 +695,7 @@ void TWorld::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_EndSign])
         { // Ra 2014-07: zabrane z kabiny
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, true ) ) };
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
             if (vehicle)
             {
                 int CouplNr = (LengthSquared3(vehicle->HeadPosition() - Camera.Pos) >
@@ -724,7 +724,7 @@ void TWorld::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_IncLocalBrakeLevel])
         { // zahamowanie dowolnego pojazdu
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
             {
                 if (Global::ctrlState)
@@ -743,7 +743,7 @@ void TWorld::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
         { // odhamowanie dowolnego pojazdu
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
             {
                 if (Global::ctrlState)

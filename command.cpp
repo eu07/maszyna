@@ -105,6 +105,8 @@ const int k_ProgramHelp = 48;
 /*
 // const int k_FreeFlyMode= 59;
 */
+    { "lightspresetactivatenext", command_target::vehicle },
+    { "lightspresetactivateprevious", command_target::vehicle },
     { "headlighttoggleleft", command_target::vehicle },
     { "headlighttoggleright", command_target::vehicle },
     { "headlighttoggleupper", command_target::vehicle },

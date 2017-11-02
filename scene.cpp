@@ -872,7 +872,12 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
 void
 basic_region::serialize( std::string const &Scenariofile ) const {
 
-    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    auto filename { Scenariofile };
+    if( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+        filename.erase( 0, 1 );
+    }
+    filename = Global::asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type
@@ -910,7 +915,12 @@ basic_region::serialize( std::string const &Scenariofile ) const {
 bool
 basic_region::deserialize( std::string const &Scenariofile ) {
 
-    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    auto filename { Scenariofile };
+    if( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+        filename.erase( 0, 1 );
+    }
+    filename = Global::asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type

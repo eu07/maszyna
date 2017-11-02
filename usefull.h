@@ -52,7 +52,7 @@ Type_
 clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
 
     Value -= Range * (int)( Value / Range ); // clamp the range to 0-360
-    if( Value < 0.0 ) Value += Range;
+    if( Value < Type_(0) ) Value += Range;
 
     return Value;
 }
