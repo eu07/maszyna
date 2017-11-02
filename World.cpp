@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 
 #include "Globals.h"
+#include "simulation.h"
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "renderer.h"
@@ -221,6 +222,13 @@ void TWorld::TrainDelete(TDynamicObject *d)
         if (Train)
             if (Train->Dynamic() != d)
                 return; // nie tego usuwać
+#ifdef EU07_SCENERY_EDITOR
+    if( ( Train->DynamicObject )
+     && ( Train->DynamicObject->Mechanik ) ) {
+        // likwidacja kabiny wymaga przejęcia przez AI
+        Train->DynamicObject->Mechanik->TakeControl( true );
+    }
+#endif
     delete Train; // i nie ma czym sterować
     Train = NULL;
     Controlled = NULL; // tego też już nie ma
@@ -248,13 +256,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     GfxRenderer.Render();
 
     WriteLog( "World setup..." );
-    if( true == Ground.Init( Global::SceneryFile ) ) {
-        WriteLog( "...world setup done" );
-    }
-    else {
-        ErrorLog( "...world setup failed" );
-        return false;
-    }
+    if( false == simulation::State.deserialize( Global::SceneryFile ) ) { return false; }
 
     simulation::Time.init();
 
@@ -264,13 +266,13 @@ bool TWorld::Init( GLFWwindow *Window ) {
     UILayer.set_progress( "Preparing train / Przygotowanie kabiny" );
     WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
 
-    TGroundNode *nPlayerTrain = NULL;
-    if (Global::asHumanCtrlVehicle != "ghostview")
-        nPlayerTrain = Ground.DynamicFind(Global::asHumanCtrlVehicle); // szukanie w tych z obsadą
+    TDynamicObject *nPlayerTrain;
+    if( Global::asHumanCtrlVehicle != "ghostview" )
+        nPlayerTrain = simulation::Vehicles.find( Global::asHumanCtrlVehicle );
     if (nPlayerTrain)
     {
         Train = new TTrain();
-        if (Train->Init(nPlayerTrain->DynamicObject))
+        if( Train->Init( nPlayerTrain ) )
         {
             Controlled = Train->Dynamic();
             mvControlled = Controlled->ControlledFind()->MoverParameters;
@@ -301,20 +303,22 @@ bool TWorld::Init( GLFWwindow *Window ) {
         Controlled = NULL;
         mvControlled = NULL;
         Camera.Type = tp_Free;
+        DebugCamera = Camera;
+        Global::DebugCameraPosition = DebugCamera.Pos;
     }
 
     // if (!Global::bMultiplayer) //na razie włączone
     { // eventy aktywowane z klawiatury tylko dla jednego użytkownika
-        KeyEvents[0] = Ground.FindEvent("keyctrl00");
-        KeyEvents[1] = Ground.FindEvent("keyctrl01");
-        KeyEvents[2] = Ground.FindEvent("keyctrl02");
-        KeyEvents[3] = Ground.FindEvent("keyctrl03");
-        KeyEvents[4] = Ground.FindEvent("keyctrl04");
-        KeyEvents[5] = Ground.FindEvent("keyctrl05");
-        KeyEvents[6] = Ground.FindEvent("keyctrl06");
-        KeyEvents[7] = Ground.FindEvent("keyctrl07");
-        KeyEvents[8] = Ground.FindEvent("keyctrl08");
-        KeyEvents[9] = Ground.FindEvent("keyctrl09");
+        KeyEvents[ 0 ] = simulation::Events.FindEvent( "keyctrl00" );
+        KeyEvents[ 1 ] = simulation::Events.FindEvent( "keyctrl01" );
+        KeyEvents[ 2 ] = simulation::Events.FindEvent( "keyctrl02" );
+        KeyEvents[ 3 ] = simulation::Events.FindEvent( "keyctrl03" );
+        KeyEvents[ 4 ] = simulation::Events.FindEvent( "keyctrl04" );
+        KeyEvents[ 5 ] = simulation::Events.FindEvent( "keyctrl05" );
+        KeyEvents[ 6 ] = simulation::Events.FindEvent( "keyctrl06" );
+        KeyEvents[ 7 ] = simulation::Events.FindEvent( "keyctrl07" );
+        KeyEvents[ 8 ] = simulation::Events.FindEvent( "keyctrl08" );
+        KeyEvents[ 9 ] = simulation::Events.FindEvent( "keyctrl09" );
     }
 
     WriteLog( "Load time: " +
@@ -398,11 +402,12 @@ void TWorld::OnKeyDown(int cKey)
     if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) // klawisze cyfrowe
     {
         int i = cKey - GLFW_KEY_0; // numer klawisza
-        if (Global::shiftState)
-        { // z [Shift] uruchomienie eventu
-            if (!Global::iPause) // podczas pauzy klawisze nie działają
-                if (KeyEvents[i])
-                    Ground.AddToQuery(KeyEvents[i], NULL);
+        if (Global::shiftState) {
+            // z [Shift] uruchomienie eventu
+            if( ( false == Global::iPause ) // podczas pauzy klawisze nie działają
+             && ( KeyEvents[ i ] != nullptr ) ) {
+                simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
+            }
         }
         else // zapamiętywanie kamery może działać podczas pauzy
             if (FreeFlyModeFlag) // w trybie latania można przeskakiwać do ustawionych kamer
@@ -429,7 +434,6 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
-                    Ground.Silence( Global::pCameraPosition ); // wyciszenie wszystkiego z poprzedniej pozycji
                     Global::SetCameraPosition( Global::FreeCameraInit[i] ); // nowa pozycja dla generowania obiektów
                     Camera.Init(Global::FreeCameraInit[i],
                                 Global::FreeCameraInitAngle[i]); // przestawienie
@@ -506,7 +510,8 @@ void TWorld::OnKeyDown(int cKey)
                     break;
                 }
 
-                TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //łapiemy z obsadą
+                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 50, true, false ) );
+
                 if( ( tmp != nullptr )
                  && ( tmp != Controlled ) ) {
 
@@ -651,8 +656,8 @@ void TWorld::OnKeyDown(int cKey)
     }
     else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) && ( Global::shiftState ) ) {
         //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy // added shift to prevent odd issue with glfw producing pause presses on its own
-		if (Controlled->MoverParameters->Radio)
-			Ground.RadioStop(Camera.Pos);
+        if( Controlled->MoverParameters->Radio )
+            simulation::Region->RadioStop( Camera.Pos );
 	}
     else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie działa, F4 tak
         if (Train)
@@ -685,82 +690,81 @@ void TWorld::OnKeyDown(int cKey)
 */
             if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
         { // zmiana próżny/ładowny; Ra: zabrane z kabiny
-            TDynamicObject *temp = Global::DynamicNearest();
-            if (temp)
+                auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+            if (vehicle)
             {
-                if (Global::shiftState ? temp->MoverParameters->IncBrakeMult() :
-                                         temp->MoverParameters->DecBrakeMult())
+                if (Global::shiftState ? vehicle->MoverParameters->IncBrakeMult() :
+                                         vehicle->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->dsbSwitch->gain(1.0f).play();
+                        Train->play_sound( Train->dsbSwitch );
                     }
             }
         }
         else if (cKey == Global::Keys[k_EndSign])
         { // Ra 2014-07: zabrane z kabiny
-            TDynamicObject *tmp = Global::CouplerNearest(); // domyślnie wyszukuje do 20m
-            if (tmp)
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, true ) ) };
+            if (vehicle)
             {
-                int CouplNr = (LengthSquared3(tmp->HeadPosition() - Camera.Pos) >
-                                       LengthSquared3(tmp->RearPosition() - Camera.Pos) ?
+                int CouplNr = (LengthSquared3(vehicle->HeadPosition() - Camera.Pos) >
+                                       LengthSquared3(vehicle->RearPosition() - Camera.Pos) ?
                                    1 :
                                    -1) *
-                              tmp->DirectionGet();
+                              vehicle->DirectionGet();
                 if (CouplNr < 0)
                     CouplNr = 0; // z [-1,1] zrobić [0,1]
-                int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę
-                // tapety pulpitu :/
+                int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę tapety pulpitu :/
                 if (Global::shiftState) // z [Shift] zapalanie
-                    set = mask = 64; // bez [Ctrl] założyć tabliczki
+                    set = mask = TMoverParameters::light::rearendsignals; // bez [Ctrl] założyć tabliczki
                 else if (Global::ctrlState)
-                    set = mask = 2 + 32; // z [Ctrl] zapalić światła czerwone
+                    set = mask = ( TMoverParameters::light::redmarker_left | TMoverParameters::light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
                 else
                     mask = 2 + 32 + 64; // wyłączanie ściąga wszystko
-                if (((tmp->iLights[CouplNr]) & mask) != set)
+                if (((vehicle->iLights[CouplNr]) & mask) != set)
                 {
-                    tmp->iLights[CouplNr] = (tmp->iLights[CouplNr] & ~mask) | set;
+                    vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->dsbSwitch->gain(1.0f).play();
+                        Train->play_sound( Train->dsbSwitch );
                     }
                 }
             }
         }
         else if (cKey == Global::Keys[k_IncLocalBrakeLevel])
         { // zahamowanie dowolnego pojazdu
-            TDynamicObject *temp = Global::DynamicNearest();
-            if (temp)
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+            if (vehicle)
             {
                 if (Global::ctrlState)
-                    if ((temp->MoverParameters->LocalBrake == ManualBrake) ||
-                        (temp->MoverParameters->MBrake == true))
-                        temp->MoverParameters->IncManualBrakeLevel(1);
+                    if ((vehicle->MoverParameters->LocalBrake == ManualBrake) ||
+                        (vehicle->MoverParameters->MBrake == true))
+                        vehicle->MoverParameters->IncManualBrakeLevel(1);
                     else
                         ;
-                else if (temp->MoverParameters->LocalBrake != ManualBrake)
-                    if (temp->MoverParameters->IncLocalBrakeLevelFAST())
+                else if (vehicle->MoverParameters->LocalBrake != ManualBrake)
+                    if (vehicle->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
+                            Train->play_sound( Train->dsbPneumaticRelay );
                         }
             }
         }
         else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
         { // odhamowanie dowolnego pojazdu
-            TDynamicObject *temp = Global::DynamicNearest();
-            if (temp)
+            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 20, false, false ) ) };
+            if (vehicle)
             {
                 if (Global::ctrlState)
-                    if ((temp->MoverParameters->LocalBrake == ManualBrake) ||
-                        (temp->MoverParameters->MBrake == true))
-                        temp->MoverParameters->DecManualBrakeLevel(1);
+                    if ((vehicle->MoverParameters->LocalBrake == ManualBrake) ||
+                        (vehicle->MoverParameters->MBrake == true))
+                        vehicle->MoverParameters->DecManualBrakeLevel(1);
                     else
                         ;
-                else if (temp->MoverParameters->LocalBrake != ManualBrake)
-                    if (temp->MoverParameters->DecLocalBrakeLevelFAST())
+                else if (vehicle->MoverParameters->LocalBrake != ManualBrake)
+                    if (vehicle->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
+                            Train->play_sound( Train->dsbPneumaticRelay );
                         }
             }
         }
@@ -786,6 +790,8 @@ void TWorld::InOutKey( bool const Near )
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
+        DebugCamera = Camera;
+        Global::DebugCameraPosition = DebugCamera.Pos;
     }
     else
     { // jazda w kabinie
@@ -857,8 +863,6 @@ void TWorld::FollowView(bool wycisz) {
 
     if (Controlled) // jest pojazd do prowadzenia?
     {
-        Ground.Silence( Camera.Pos ); // wyciszenie dźwięków z poprzedniej pozycji
-
         if (FreeFlyModeFlag)
         { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
             if( Train ) {
@@ -876,7 +880,7 @@ void TWorld::FollowView(bool wycisz) {
             if( wycisz ) {
                 // wyciszenie dźwięków z poprzedniej pozycji
                 // trzymanie prawego w kabinie daje marny efekt
-                Ground.Silence( Camera.Pos );
+                // TODO: re-implement, old one kinda didn't really work
             }
             Camera.Pos = Train->pMechPosition;
             Camera.Roll = std::atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
@@ -900,22 +904,10 @@ void TWorld::FollowView(bool wycisz) {
         DistantView();
 };
 
-bool TWorld::Update()
-{
-#ifdef USE_SCENERY_MOVING
-    vector3 tmpvector = Global::GetCameraPosition();
-    tmpvector = vector3(-int(tmpvector.x) + int(tmpvector.x) % 10000,
-                        -int(tmpvector.y) + int(tmpvector.y) % 10000,
-                        -int(tmpvector.z) + int(tmpvector.z) % 10000);
-    if (tmpvector.x || tmpvector.y || tmpvector.z)
-    {
-        WriteLog("Moving scenery");
-        Ground.MoveGroundNode(tmpvector);
-        WriteLog("Scenery moved");
-    };
-#endif
+bool TWorld::Update() {
 
     Timer::UpdateTimers(Global::iPause != 0);
+    Timer::subsystem.sim_total.start();
 
     if( (Global::iPause == false)
      || (m_init == false) ) {
@@ -940,7 +932,7 @@ bool TWorld::Update()
 /*
     fTimeBuffer += dt; //[s] dodanie czasu od poprzedniej ramki
 */
-    m_primaryupdateaccumulator += dt;
+//  m_primaryupdateaccumulator += dt; // unused for the time being
     m_secondaryupdateaccumulator += dt;
 /*
     if (fTimeBuffer >= fMaxDt) // jest co najmniej jeden krok; normalnie 0.01s
@@ -986,33 +978,29 @@ bool TWorld::Update()
         dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
 */
     }
+    auto const stepdeltatime { dt / updatecount };
     // NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
     // this means at count > 20 simulation and render are going to desync. is that right?
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
+    Timer::subsystem.sim_dynamics.start();
     if( true == Global::FullPhysics ) {
-        // default calculation mode, each step calculated separately
-        for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
-            Ground.Update( dt / updatecount, 1 );
+        // mixed calculation mode, steps calculated in ~0.05s chunks
+        while( updatecount >= 5 ) {
+            simulation::State.update( stepdeltatime, 5 );
+            updatecount -= 5;
+        }
+        if( updatecount ) {
+            simulation::State.update( stepdeltatime, updatecount );
         }
     }
     else {
-        // slightly simplified calculation mode; can lead to errors
-        Ground.Update( dt / updatecount, updatecount );
+        // simplified calculation mode; faster but can lead to errors
+        simulation::State.update( stepdeltatime, updatecount );
     }
+    Timer::subsystem.sim_dynamics.stop();
 
-    // yB dodał przyspieszacz fizyki
-    if( (true == DebugModeFlag)
-     && (true == Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-     && ( glfwGetKey( window, GLFW_KEY_PAUSE ) == GLFW_PRESS ) ) {
-
-        Ground.Update( dt, 1 );
-        Ground.Update( dt, 1 );
-        Ground.Update( dt, 1 );
-        Ground.Update( dt, 1 ); // 5 razy
-    }
     // secondary fixed step simulation time routines
-
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
 
         Global::tranTexts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
@@ -1020,7 +1008,7 @@ bool TWorld::Update()
         // awaria PoKeys mogła włączyć pauzę - przekazać informację
         if( Global::iMultiplayer ) // dajemy znać do serwera o wykonaniu
             if( iPause != Global::iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
-                Ground.WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
+                multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
                 iPause = Global::iPause;
             }
 
@@ -1050,10 +1038,9 @@ bool TWorld::Update()
         TSubModel::iInstance = 0;
     }
 
-    Ground.CheckQuery();
-
-    Ground.Update_Hidden();
-    Ground.Update_Lights();
+    simulation::Events.update();
+    simulation::Region->update_events();
+    simulation::Lights.update();
 
     // render time routines follow:
 
@@ -1094,7 +1081,9 @@ bool TWorld::Update()
 	    sound_man->update(Global::iPause ? 0.0f : dt);
 	}
 
+    Timer::subsystem.sim_total.stop();
 
+    simulation::Region->update_sounds();
     GfxRenderer.Update( dt );
     ResourceSweep();
 
@@ -1114,10 +1103,10 @@ TWorld::Update_Camera( double const Deltatime ) {
                 Camera.LookAt = Controlled->GetPosition();
             }
             else {
-                TDynamicObject *d =
-                    Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
+                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 300, false, false ) );
                 if( !d )
-                    d = Ground.DynamicNearest( Camera.Pos, 1000 ); // dalej szukanie, jesli bliżej nie ma
+                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
+
                 if( d && pDynamicNearest ) {
                     // jeśli jakiś jest znaleziony wcześniej
                     if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
@@ -1235,7 +1224,7 @@ void
 TWorld::Update_UI() {
 
     UITable->text_lines.clear();
-    std::string  uitextline1, uitextline2, uitextline3, uitextline4;
+    std::string uitextline1, uitextline2, uitextline3, uitextline4;
     UILayer.set_tooltip( "" );
 
     if( ( Train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
@@ -1251,7 +1240,10 @@ TWorld::Update_UI() {
     }
     if( ( true == Global::ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
         auto const scenerynode = GfxRenderer.Pick_Node();
-        UILayer.set_tooltip( ( scenerynode ? scenerynode->asName : "" ) );
+        UILayer.set_tooltip(
+            ( scenerynode ?
+                scenerynode->name() :
+                "" ) );
     }
 
     switch( Global::iTextMode ) {
@@ -1268,7 +1260,8 @@ TWorld::Update_UI() {
                 uitextline1 += " (paused)";
             }
 
-            if( Controlled && ( Controlled->Mechanik != nullptr ) ) {
+            if( ( Controlled != nullptr ) 
+             && ( Controlled->Mechanik != nullptr ) ) {
 
                 auto const &mover = Controlled->MoverParameters;
                 auto const &driver = Controlled->Mechanik;
@@ -1290,6 +1283,11 @@ TWorld::Update_UI() {
                     uitextline3 +=
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
+
+                    auto const trackblockdistance{ std::abs( Controlled->Mechanik->TrackBlock() ) };
+                    if( trackblockdistance <= 75.0 ) {
+                        uitextline4 = "                 Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
+                    }
                 }
             }
 
@@ -1298,17 +1296,17 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F2 ) : {
             // timetable
-            TDynamicObject *tmp =
+            auto *vehicle {
                 ( FreeFlyModeFlag ?
-                Ground.DynamicNearest( Camera.Pos ) :
-                Controlled ); // w trybie latania lokalizujemy wg mapy
+                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
+                    Controlled ) }; // w trybie latania lokalizujemy wg mapy
 
-            if( tmp == nullptr ) { break; }
+            if( vehicle == nullptr ) { break; }
             // if the nearest located vehicle doesn't have a direct driver, try to query its owner
             auto const owner = (
-                ( ( tmp->Mechanik != nullptr ) && ( tmp->Mechanik->Primary() ) ) ?
-                    tmp->Mechanik :
-                    tmp->ctOwner );
+                ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->Primary() ) ) ?
+                    vehicle->Mechanik :
+                    vehicle->ctOwner );
             if( owner == nullptr ){ break; }
 
             auto const table = owner->Timetable();
@@ -1379,49 +1377,48 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F3 ) : {
 
-            TDynamicObject *tmp =
+            auto *vehicle{
                 ( FreeFlyModeFlag ?
-                Ground.DynamicNearest( Camera.Pos ) :
-                Controlled ); // w trybie latania lokalizujemy wg mapy
+                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
+                    Controlled ) }; // w trybie latania lokalizujemy wg mapy
 
-            if( tmp != nullptr ) {
-                // 
+            if( vehicle != nullptr ) {
                 // jeśli domyślny ekran po pierwszym naciśnięciu
-                uitextline1 = "Vehicle name: " + tmp->MoverParameters->Name;
+                uitextline1 = "Vehicle name: " + vehicle->MoverParameters->Name;
 
-                if( ( tmp->Mechanik == nullptr ) && ( tmp->ctOwner ) ) {
+                if( ( vehicle->Mechanik == nullptr ) && ( vehicle->ctOwner ) ) {
                     // for cars other than leading unit indicate the leader
-                    uitextline1 += ", owned by " + tmp->ctOwner->OwnerName();
+                    uitextline1 += ", owned by " + vehicle->ctOwner->OwnerName();
                 }
-                uitextline1 += "; Status: " + tmp->MoverParameters->EngineDescription( 0 );
+                uitextline1 += "; Status: " + vehicle->MoverParameters->EngineDescription( 0 );
                 // informacja o sprzęgach
                 uitextline1 +=
                     "; C0:" +
-                    ( tmp->PrevConnected ?
-                        tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) + (
-                            tmp->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ?
-                                " (" + to_string( tmp->MoverParameters->Couplers[ 0 ].CoupleDist, 1 ) + " m)" :
+                    ( vehicle->PrevConnected ?
+                        vehicle->PrevConnected->name() + ":" + to_string( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag ) + (
+                            vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ?
+                                " (" + to_string( vehicle->MoverParameters->Couplers[ 0 ].CoupleDist, 1 ) + " m)" :
                                 "" ) :
                         "none" );
                 uitextline1 +=
                     " C1:" +
-                    ( tmp->NextConnected ?
-                        tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) + (
-                            tmp->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ?
-                                " (" + to_string( tmp->MoverParameters->Couplers[ 1 ].CoupleDist, 1 ) + " m)" :
+                    ( vehicle->NextConnected ?
+                        vehicle->NextConnected->name() + ":" + to_string( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag ) + (
+                            vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ?
+                                " (" + to_string( vehicle->MoverParameters->Couplers[ 1 ].CoupleDist, 1 ) + " m)" :
                                 "" ) :
                         "none" );
 
                 // equipment flags
-                uitextline2  = ( tmp->MoverParameters->Battery ? "B" : "." );
-                uitextline2 += ( tmp->MoverParameters->Mains ? "M" : "." );
-                uitextline2 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
-                uitextline2 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
-                uitextline2 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline2 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
-                uitextline2 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline2 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
-                uitextline2 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
+                uitextline2  = ( vehicle->MoverParameters->Battery ? "B" : "." );
+                uitextline2 += ( vehicle->MoverParameters->Mains ? "M" : "." );
+                uitextline2 += ( vehicle->MoverParameters->PantRearUp ? ( vehicle->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
+                uitextline2 += ( vehicle->MoverParameters->PantFrontUp ? ( vehicle->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline2 += ( vehicle->MoverParameters->PantPressLockActive ? "!" : ( vehicle->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
+                uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
+                uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
+                uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( vehicle->MoverParameters->CompressorAllow ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
+                uitextline2 += ( vehicle->MoverParameters->CompressorGovernorLock ? "!" : "." );
 /*
                 uitextline2 +=
                     " AnlgB: " + to_string( tmp->MoverParameters->AnPos, 1 )
@@ -1429,72 +1426,72 @@ TWorld::Update_UI() {
                     + to_string( tmp->MoverParameters->LocalBrakePosA, 1 )
 */
                 uitextline2 += " Bdelay: ";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
+                if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
                     uitextline2 += "G";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
+                if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
                     uitextline2 += "P";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
+                if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
                     uitextline2 += "R";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
+                if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", Load: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
+                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 );
 
                 uitextline2 +=
                     "; Pant: "
-                    + to_string( tmp->MoverParameters->PantPress, 2 )
-                    + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
+                    + to_string( vehicle->MoverParameters->PantPress, 2 )
+                    + ( vehicle->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
 
                 uitextline2 +=
-                    "; Ft: " + to_string( tmp->MoverParameters->Ft * 0.001f * tmp->MoverParameters->ActiveCab, 1 )
-                    + ", Fb: " + to_string( tmp->MoverParameters->Fb * 0.001f, 1 )
-                    + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
-                    + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
+                    "; Ft: " + to_string( vehicle->MoverParameters->Ft * 0.001f * vehicle->MoverParameters->ActiveCab, 1 )
+                    + ", Fb: " + to_string( vehicle->MoverParameters->Fb * 0.001f, 1 )
+                    + ", Fr: " + to_string( vehicle->MoverParameters->Adhesive( vehicle->MoverParameters->RunningTrack.friction ), 2 )
+                    + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" );
 
-                if( tmp->Mechanik ) {
-                    uitextline2 += "; Ag: " + to_string( tmp->Mechanik->fAccGravity, 2 );
+                if( vehicle->Mechanik ) {
+                    uitextline2 += "; Ag: " + to_string( vehicle->Mechanik->fAccGravity, 2 );
                 }
 
                 uitextline2 +=
                     "; TC:"
-                    + to_string( tmp->MoverParameters->TotalCurrent, 0 );
+                    + to_string( vehicle->MoverParameters->TotalCurrent, 0 );
                 auto const frontcouplerhighvoltage =
-                    to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
+                    to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
                     + "@"
-                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.current, 0 );
+                    + to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.current, 0 );
                 auto const rearcouplerhighvoltage =
-                    to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.voltage, 0 )
+                    to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.voltage, 0 )
                     + "@"
-                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
+                    + to_string( vehicle->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
                 uitextline2 += ", HV: ";
-                if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
+                if( vehicle->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
                     uitextline2 +=
                             "(" + frontcouplerhighvoltage + ")-"
-                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + ":F" + ( vehicle->DirectionGet() ? "<<" : ">>" ) + "R:"
                         + "-(" + rearcouplerhighvoltage + ")";
                 }
                 else {
                     uitextline2 +=
                             frontcouplerhighvoltage
-                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + ":F" + ( vehicle->DirectionGet() ? "<<" : ">>" ) + "R:"
                         + rearcouplerhighvoltage;
                 }
 
                 uitextline3 +=
-                    "TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 );
+                    "TrB: " + to_string( vehicle->MoverParameters->BrakePress, 2 )
+                    + ", " + to_hex_str( vehicle->MoverParameters->Hamulec->GetBrakeStatus(), 2 );
 
                 uitextline3 +=
-                    "; LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
-                    + "; pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
-                    + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
-                    + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
-                    + ", MT: " + to_string( tmp->MoverParameters->CompressedVolume, 3 )
-                    + ", BT: " + to_string( tmp->MoverParameters->Volume, 3 )
-                    + ", CtlP: " + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
-                    + ", CtlT: " + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 );
+                    "; LcB: " + to_string( vehicle->MoverParameters->LocBrakePress, 2 )
+                    + "; pipes: " + to_string( vehicle->MoverParameters->PipePress, 2 )
+                    + "/" + to_string( vehicle->MoverParameters->ScndPipePress, 2 )
+                    + "/" + to_string( vehicle->MoverParameters->EqvtPipePress, 2 )
+                    + ", MT: " + to_string( vehicle->MoverParameters->CompressedVolume, 3 )
+                    + ", BT: " + to_string( vehicle->MoverParameters->Volume, 3 )
+                    + ", CtlP: " + to_string( vehicle->MoverParameters->CntrlPipePress, 3 )
+                    + ", CtlT: " + to_string( vehicle->MoverParameters->Hamulec->GetCRP(), 3 );
 
-                if( tmp->MoverParameters->ManualBrakePos > 0 ) {
+                if( vehicle->MoverParameters->ManualBrakePos > 0 ) {
 
                     uitextline3 += "; manual brake on";
                 }
@@ -1508,51 +1505,51 @@ TWorld::Update_UI() {
                     uitextline3 += ", local brake off";
                 }
 */
-                if( tmp->Mechanik ) {
+                if( vehicle->Mechanik ) {
                     // o ile jest ktoś w środku
                     std::string flags = "cpapcplhhndoiefgvdpseil "; // flagi AI (definicja w Driver.h)
                     for( int i = 0, j = 1; i < 23; ++i, j <<= 1 )
-                        if( false == ( tmp->Mechanik->DrivigFlags() & j ) ) // jak bit ustawiony
+                        if( false == ( vehicle->Mechanik->DrivigFlags() & j ) ) // jak bit ustawiony
                             flags[ i ] = '.';// std::toupper( flags[ i ] ); // ^= 0x20; // to zmiana na wielką literę
 
                     uitextline4 = flags;
 
                     uitextline4 +=
-                        "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " Ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
-						+ " Ah=" + to_string( tmp->Mechanik->fAccThreshold, 2 )
-						+ "@" + to_string( tmp->Mechanik->fBrake_a0[0], 2 )
-						+ "+" + to_string( tmp->Mechanik->fBrake_a1[0], 2 )
-                        + " Bd=" + to_string( tmp->Mechanik->fBrakeDist, 0 )
-                        + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
-                        + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
-                        + " VSl=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
-                        + " VLl=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
-                        + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
+                        "Driver: Vd=" + to_string( vehicle->Mechanik->VelDesired, 0 )
+                        + " Ad=" + to_string( vehicle->Mechanik->AccDesired, 2 )
+						+ " Ah=" + to_string( vehicle->Mechanik->fAccThreshold, 2 )
+						+ "@" + to_string( vehicle->Mechanik->fBrake_a0[0], 2 )
+						+ "+" + to_string( vehicle->Mechanik->fBrake_a1[0], 2 )
+                        + " Bd=" + to_string( vehicle->Mechanik->fBrakeDist, 0 )
+                        + " Pd=" + to_string( vehicle->Mechanik->ActualProximityDist, 0 )
+                        + " Vn=" + to_string( vehicle->Mechanik->VelNext, 0 )
+                        + " VSl=" + to_string( vehicle->Mechanik->VelSignalLast, 0 )
+                        + " VLl=" + to_string( vehicle->Mechanik->VelLimitLast, 0 )
+                        + " VRd=" + to_string( vehicle->Mechanik->VelRoad, 0 );
 
-                    if( ( tmp->Mechanik->VelNext == 0.0 )
-                     && ( tmp->Mechanik->eSignNext ) ) {
+                    if( ( vehicle->Mechanik->VelNext == 0.0 )
+                     && ( vehicle->Mechanik->eSignNext ) ) {
                         // jeśli ma zapamiętany event semafora, nazwa eventu semafora
                         uitextline4 +=
                             " ("
-                            + Global::Bezogonkow( tmp->Mechanik->eSignNext->asName )
+                            + Global::Bezogonkow( vehicle->Mechanik->eSignNext->asName )
                             + ")";
                     }
 
                     // biezaca komenda dla AI
-                    uitextline4 += ", command: " + tmp->Mechanik->OrderCurrent();
+                    uitextline4 += ", command: " + vehicle->Mechanik->OrderCurrent();
                 }
 
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // f2 screen, track scan mode
-                    if( tmp->Mechanik == nullptr ) {
+                    if( vehicle->Mechanik == nullptr ) {
                         //żeby była tabelka, musi być AI
                         break;
                     }
 
-                    std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( tmp->Mechanik->TableSize() ) - 1, 0, 30 );
+                    std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( vehicle->Mechanik->TableSize() ) - 1, 0, 30 );
                     do {
-                        std::string scanline = tmp->Mechanik->TableText( i );
+                        std::string scanline = vehicle->Mechanik->TableText( i );
                         if( scanline.empty() ) { break; }
                         UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), Global::UITextColor );
                         ++i;
@@ -1591,22 +1588,18 @@ TWorld::Update_UI() {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
 
-
-
-            // dump last opengl error, if any
-            GLenum glerror = ::glGetError();
-            if( glerror != GL_NO_ERROR ) {
-                std::string glerrorstring( (char *)::gluErrorString( glerror ) );
-                win1250_to_ascii( glerrorstring );
-                Global::LastGLError = std::to_string( glerror ) + " (" + glerrorstring + ")";
-            }
+            uitextline2 =
+                std::string( "Rendering mode: " )
+                + "VBO"
+                + " ";
             if( false == Global::LastGLError.empty() ) {
                 uitextline2 +=
                     "Last openGL error: "
                     + Global::LastGLError;
             }
             // renderer stats
-            uitextline3 = GfxRenderer.Info();
+            uitextline3 = GfxRenderer.info_times();
+            uitextline4 = GfxRenderer.info_stats();
 
             break;
         }
@@ -1617,6 +1610,9 @@ TWorld::Update_UI() {
             if( Global::iMultiplayer ) {
                 uitextline1 += " (multiplayer mode is active)";
             }
+            uitextline3 =
+                  "vehicles: " + to_string( Timer::subsystem.sim_dynamics.average(), 2 ) + " msec"
+                + " update total: " + to_string( Timer::subsystem.sim_total.average(), 2 ) + " msec";
 
             break;
         }
@@ -1642,64 +1638,64 @@ TWorld::Update_UI() {
             // ... unless we're in debug mode
             if( DebugModeFlag ) {
 
-                TDynamicObject *tmp =
+                auto *vehicle {
                     ( FreeFlyModeFlag ?
-                        Ground.DynamicNearest( Camera.Pos ) :
-                        Controlled ); // w trybie latania lokalizujemy wg mapy
-                if( tmp == nullptr ) {
+                        std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 20, false, false ) ) :
+                        Controlled ) }; // w trybie latania lokalizujemy wg mapy
+                if( vehicle == nullptr ) {
                     break;
                 }
-
-                uitextline1 =
-                    "vel: " + to_string( tmp->GetVelocity(), 2 ) + " km/h" + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" )
-                    + "; dist: " + to_string( tmp->MoverParameters->DistCounter, 2 ) + " km"
-                    + "; pos: ("
-                    + to_string( tmp->GetPosition().x, 2 ) + ", "
-                    + to_string( tmp->GetPosition().y, 2 ) + ", "
-                    + to_string( tmp->GetPosition().z, 2 )
-                    + ")";
+				uitextline1 =
+					"vel: " + to_string(vehicle->GetVelocity(), 2) + "/" + to_string(vehicle->MoverParameters->nrot* M_PI * vehicle->MoverParameters->WheelDiameter * 3.6, 2)
+					+ " km/h" + (vehicle->MoverParameters->SlippingWheels ? " (!)" : "    ")
+					+ "; dist: " + to_string(vehicle->MoverParameters->DistCounter, 2) + " km"
+					+ "; pos: ("
+					+ to_string(vehicle->GetPosition().x, 2) + ", "
+					+ to_string(vehicle->GetPosition().y, 2) + ", "
+					+ to_string(vehicle->GetPosition().z, 2) + "), PM="
+					+ to_string(vehicle->MoverParameters->WheelFlat, 1) + " mm";
 
                 uitextline2 =
-                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 2 )
-                    + "; HamP=" + std::to_string( tmp->MoverParameters->LocalBrakePos ) + "/" + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
-                    + "; NasJ=" + std::to_string( tmp->MoverParameters->MainCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->MainCtrlActualPos ) + ")"
-                    + "; NasB=" + std::to_string( tmp->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->ScndCtrlActualPos ) + ")"
+                    "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
+                    + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
+                    + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
+                    + "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")"
                     + "; I=" +
-                    ( tmp->MoverParameters->TrainType == dt_EZT ?
-                        std::to_string( int( tmp->MoverParameters->ShowCurrent( 0 ) ) ) :
-                       std::to_string( int( tmp->MoverParameters->Im ) ) )
-                    + "; U=" + to_string( int( tmp->MoverParameters->RunningTraction.TractionVoltage + 0.5 ) )
+                    ( vehicle->MoverParameters->TrainType == dt_EZT ?
+                        std::to_string( int( vehicle->MoverParameters->ShowCurrent( 0 ) ) ) :
+                       std::to_string( int( vehicle->MoverParameters->Im ) ) )
+                    + "; U=" + to_string( int( vehicle->MoverParameters->RunningTraction.TractionVoltage + 0.5 ) )
                     + "; R=" +
-                    ( std::abs( tmp->MoverParameters->RunningShape.R ) > 10000.0 ?
+                    ( std::abs( vehicle->MoverParameters->RunningShape.R ) > 10000.0 ?
                         "~0.0" :
-                        to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
-                    + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
+                        to_string( vehicle->MoverParameters->RunningShape.R, 1 ) )
+                    + " An=" + to_string( vehicle->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
 
                 if( tprev != simulation::Time.data().wSecond ) {
                     tprev = simulation::Time.data().wSecond;
-                    Acc = ( tmp->MoverParameters->Vel - VelPrev ) / 3.6;
-                    VelPrev = tmp->MoverParameters->Vel;
+                    Acc = ( vehicle->MoverParameters->Vel - VelPrev ) / 3.6;
+                    VelPrev = vehicle->MoverParameters->Vel;
                 }
                 uitextline2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
 
                 uitextline3 =
-                    "cyl.ham. " + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + "; prz.gl. " + to_string( tmp->MoverParameters->PipePress, 2 )
-                    + "; zb.gl. " + to_string( tmp->MoverParameters->CompressedVolume, 2 )
+                    "cyl.ham. " + to_string( vehicle->MoverParameters->BrakePress, 2 )
+                    + "; prz.gl. " + to_string( vehicle->MoverParameters->PipePress, 2 )
+                    + "; zb.gl. " + to_string( vehicle->MoverParameters->CompressedVolume, 2 )
                     // youBy - drugi wezyk
-                    + "; p.zas. " + to_string( tmp->MoverParameters->ScndPipePress, 2 );
+                    + "; p.zas. " + to_string( vehicle->MoverParameters->ScndPipePress, 2 );
  
                 // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-                if( tmp->MoverParameters->ConvOvldFlag )
+                if( vehicle->MoverParameters->ConvOvldFlag )
                     uitextline3 += " C! ";
-                else if( tmp->MoverParameters->FuseFlag )
+                else if( vehicle->MoverParameters->FuseFlag )
                     uitextline3 += " F! ";
-                else if( !tmp->MoverParameters->Mains )
+                else if( !vehicle->MoverParameters->Mains )
                     uitextline3 += " () ";
                 else {
                     switch(
-                        tmp->MoverParameters->ActiveDir *
-                        ( tmp->MoverParameters->Imin == tmp->MoverParameters->IminLo ?
+                        vehicle->MoverParameters->ActiveDir *
+                        ( vehicle->MoverParameters->Imin == vehicle->MoverParameters->IminLo ?
                             1 :
                             2 ) ) {
                         case  2: { uitextline3 += " >> "; break; }
@@ -1710,50 +1706,50 @@ TWorld::Update_UI() {
                     }
                 }
                 // McZapkie: predkosc szlakowa
-                if( tmp->MoverParameters->RunningTrack.Velmax == -1 ) {
+                if( vehicle->MoverParameters->RunningTrack.Velmax == -1 ) {
                     uitextline3 += " Vtrack=Vmax";
                 }
                 else {
-                    uitextline3 += " Vtrack " + to_string( tmp->MoverParameters->RunningTrack.Velmax, 2 );
+                    uitextline3 += " Vtrack " + to_string( vehicle->MoverParameters->RunningTrack.Velmax, 2 );
                 }
 
-                if( ( tmp->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
-                    || ( tmp->MoverParameters->TrainType == dt_EZT ) ) {
+                if( ( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                    || ( vehicle->MoverParameters->TrainType == dt_EZT ) ) {
                     uitextline3 +=
-                        "; pant. " + to_string( tmp->MoverParameters->PantPress, 2 )
-                        + ( tmp->MoverParameters->bPantKurek3 ? "=" : "^" ) + "ZG";
+                        "; pant. " + to_string( vehicle->MoverParameters->PantPress, 2 )
+                        + ( vehicle->MoverParameters->bPantKurek3 ? "=" : "^" ) + "ZG";
                 }
 
                 // McZapkie: komenda i jej parametry
-                if( tmp->MoverParameters->CommandIn.Command != ( "" ) ) {
+                if( vehicle->MoverParameters->CommandIn.Command != ( "" ) ) {
                     uitextline4 =
-                        "C:" + tmp->MoverParameters->CommandIn.Command
-                        + " V1=" + to_string( tmp->MoverParameters->CommandIn.Value1, 0 )
-                        + " V2=" + to_string( tmp->MoverParameters->CommandIn.Value2, 0 );
+                        "C:" + vehicle->MoverParameters->CommandIn.Command
+                        + " V1=" + to_string( vehicle->MoverParameters->CommandIn.Value1, 0 )
+                        + " V2=" + to_string( vehicle->MoverParameters->CommandIn.Value2, 0 );
                 }
-                if( ( tmp->Mechanik )
-                 && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
+                if( ( vehicle->Mechanik )
+                 && ( vehicle->Mechanik->AIControllFlag == AIdriver ) ) {
                     uitextline4 +=
-                        "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string(tmp->Mechanik->AccDesired, 2)
-						+ "/" + to_string(tmp->Mechanik->AccDesired*tmp->Mechanik->BrakeAccFactor(), 2)
-						+ " atrain=" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
-						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
-						+ " aS=" + to_string(tmp->Mechanik->AbsAccS_pub, 2)
-                        + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
-                        + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 );
+                        "AI: Vd=" + to_string( vehicle->Mechanik->VelDesired, 0 )
+                        + " ad=" + to_string(vehicle->Mechanik->AccDesired, 2)
+						+ "/" + to_string(vehicle->Mechanik->AccDesired*vehicle->Mechanik->BrakeAccFactor(), 2)
+						+ " atrain=" + to_string(vehicle->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(vehicle->Mechanik->fBrake_a1[0], 2)
+						+ " aS=" + to_string(vehicle->Mechanik->AbsAccS_pub, 2)
+                        + " Pd=" + to_string( vehicle->Mechanik->ActualProximityDist, 0 )
+                        + " Vn=" + to_string( vehicle->Mechanik->VelNext, 0 );
                 }
 
                 // induction motor data
-                if( tmp->MoverParameters->EngineType == ElectricInductionMotor ) {
+                if( vehicle->MoverParameters->EngineType == ElectricInductionMotor ) {
 
                     UITable->text_lines.emplace_back( "      eimc:            eimv:            press:", Global::UITextColor );
                     for( int i = 0; i <= 20; ++i ) {
 
                         std::string parameters =
-                            tmp->MoverParameters->eimc_labels[ i ] + to_string( tmp->MoverParameters->eimc[ i ], 2, 9 )
+                            vehicle->MoverParameters->eimc_labels[ i ] + to_string( vehicle->MoverParameters->eimc[ i ], 2, 9 )
                             + " | "
-                            + tmp->MoverParameters->eimv_labels[ i ] + to_string( tmp->MoverParameters->eimv[ i ], 2, 9 );
+                            + vehicle->MoverParameters->eimv_labels[ i ] + to_string( vehicle->MoverParameters->eimv[ i ], 2, 9 );
 
                         if( i < 10 ) {
                             parameters += " | " + Train->fPress_labels[i] + to_string( Train->fPress[ i ][ 0 ], 2, 9 );
@@ -1762,7 +1758,7 @@ TWorld::Update_UI() {
                             parameters += "        med:";
                         }
                         else if( i >= 13 ) {
-                            parameters += " | " + tmp->MED_labels[ i - 13 ] + to_string( tmp->MED[ 0 ][ i - 13 ], 2, 9 );
+                            parameters += " | " + vehicle->MED_labels[ i - 13 ] + to_string( vehicle->MED[ 0 ][ i - 13 ], 2, 9 );
                         }
 
                         UITable->text_lines.emplace_back( parameters, Global::UITextColor );
@@ -1818,69 +1814,73 @@ TWorld::Update_UI() {
 }
 
 //---------------------------------------------------------------------------
-void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
+void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
 { // odebranie komunikatu z serwera
     if (pRozkaz->iSygn == MAKE_ID4('E','U','0','7') )
         switch (pRozkaz->iComm)
         {
         case 0: // odesłanie identyfikatora wersji
 			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " version" + " rcvd");
-			Ground.WyslijString(Global::asVersion, 0); // przedsatwienie się
+            multiplayer::WyslijString(Global::asVersion, 0); // przedsatwienie się
             break;
         case 1: // odesłanie identyfikatora wersji
 			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " scenery" + " rcvd");
-			Ground.WyslijString(Global::SceneryFile, 1); // nazwa scenerii
+            multiplayer::WyslijString(Global::SceneryFile, 1); // nazwa scenerii
             break;
-        case 2: // event
-            CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " " +
-                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            if (Global::iMultiplayer)
-            { // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
-                TEvent *e = Ground.FindEvent(
-                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
-                if (e)
-                    if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
-                        (e->evJoined != 0))  // tylko jawne albo niejawne Multiple
-                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu brak
+        case 2: {
+            // event
+            CommLog( Now() + " " + std::to_string( pRozkaz->iComm ) + " " +
+                std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) + " rcvd" );
+
+            if( Global::iMultiplayer ) {
+                auto *event = simulation::Events.FindEvent( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+                if( event != nullptr ) {
+                    if( ( event->Type == tp_Multiple )
+                     || ( event->Type == tp_Lights )
+                     || ( event->evJoined != 0 ) ) {
+                        // tylko jawne albo niejawne Multiple
+                        simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
+                    }
+                }
             }
             break;
+        }
         case 3: // rozkaz dla AI
             if (Global::iMultiplayer)
             {
-                int i =
-                    int(pRozkaz->cString[8]); // długość pierwszego łańcucha (z przodu dwa floaty)
+                int i = int(pRozkaz->cString[8]); // długość pierwszego łańcucha (z przodu dwa floaty)
                 CommLog(
                     Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
                     " rcvd");
-                TGroundNode *t = Ground.DynamicFind(
-                    std::string(pRozkaz->cString + 11 + i,
-                               (unsigned)pRozkaz->cString[10 + i])); // nazwa pojazdu jest druga
-                if (t)
-                    if (t->DynamicObject->Mechanik)
-                    {
-                        t->DynamicObject->Mechanik->PutCommand(std::string(pRozkaz->cString + 9, i),
-                                                               pRozkaz->fPar[0], pRozkaz->fPar[1],
-                                                               NULL, stopExt); // floaty są z przodu
-                        WriteLog("AI command: " + std::string(pRozkaz->cString + 9, i));
-                    }
+                // nazwa pojazdu jest druga
+                auto *vehicle = simulation::Vehicles.find( { pRozkaz->cString + 11 + i, (unsigned)pRozkaz->cString[ 10 + i ] } );
+                if( ( vehicle != nullptr )
+                 && ( vehicle->Mechanik != nullptr ) ) {
+                    vehicle->Mechanik->PutCommand(
+                        { pRozkaz->cString + 9, static_cast<std::size_t>(i) },
+                        pRozkaz->fPar[0], pRozkaz->fPar[1],
+                        nullptr,
+                        stopExt ); // floaty są z przodu
+                    WriteLog("AI command: " + std::string(pRozkaz->cString + 9, i));
+                }
             }
             break;
         case 4: // badanie zajętości toru
         {
             CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            TGroundNode *t = Ground.FindGroundNode(
-                std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
-            if (t)
-                if (t->pTrack->IsEmpty())
-                    Ground.WyslijWolny(t->asName);
+
+            auto *track = simulation::Paths.find( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+            if( ( track != nullptr )
+             && ( track->IsEmpty() ) ) {
+                multiplayer::WyslijWolny( track->name() );
+            }
         }
         break;
         case 5: // ustawienie parametrów
         {
-            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " +
-                    to_string(*pRozkaz->iPar) + " rcvd");
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " + to_string(*pRozkaz->iPar) + " rcvd");
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
@@ -1899,86 +1899,76 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         }
         break;
         case 6: // pobranie parametrów ruchu pojazdu
-            if (Global::iMultiplayer)
-            { // Ra 2014-12: to ma działać również dla pojazdów bez obsady
-                CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
-                        std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
-                        " rcvd");
-                if (pRozkaz->cString[0]) // jeśli długość nazwy jest niezerowa
-                { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
-                    TGroundNode *t;
-                    if (pRozkaz->cString[1] == '*')
-                        t = Ground.DynamicFind(
-                            Global::asHumanCtrlVehicle); // nazwa pojazdu użytkownika
-                    else
-                        t = Ground.DynamicFindAny(std::string(
-                            pRozkaz->cString + 1, (unsigned)pRozkaz->cString[0])); // nazwa pojazdu
-                    if (t)
-                        Ground.WyslijNamiary(t); // wysłanie informacji o pojeździe
+            if (Global::iMultiplayer) {
+                // Ra 2014-12: to ma działać również dla pojazdów bez obsady
+                CommLog(
+                    Now() + " "
+                  + to_string( pRozkaz->iComm ) + " "
+                  + std::string{ pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) }
+                  + " rcvd" );
+                if (pRozkaz->cString[0]) {
+                    // jeśli długość nazwy jest niezerowa szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
+                    auto *vehicle = (
+                        pRozkaz->cString[ 1 ] == '*' ?
+                            simulation::Vehicles.find( Global::asHumanCtrlVehicle ) :
+                            simulation::Vehicles.find( std::string{ pRozkaz->cString + 1, (unsigned)pRozkaz->cString[ 0 ] } ) );
+                    if( vehicle != nullptr ) {
+                        multiplayer::WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
+                    }
                 }
-                else
-                { // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie,
-                    // to rozpoznać np. "*")
-                    Ground.DynamicList();
+                else {
+                    // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie, to rozpoznać np. "*")
+                    simulation::Vehicles.DynamicList();
                 }
             }
             break;
         case 8: // ponowne wysłanie informacji o zajętych odcinkach toru
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
-			Ground.TrackBusyList();
+            simulation::Paths.TrackBusyList();
             break;
         case 9: // ponowne wysłanie informacji o zajętych odcinkach izolowanych
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
-			Ground.IsolatedBusyList();
+            simulation::Paths.IsolatedBusyList();
             break;
         case 10: // badanie zajętości jednego odcinka izolowanego
             CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            Ground.IsolatedBusy(std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
+            simulation::Paths.IsolatedBusy( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
             break;
         case 11: // ustawienie parametrów ruchu pojazdu
             //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
             break;
 		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
 			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
-			Ground.WyslijObsadzone();
+            multiplayer::WyslijObsadzone();
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
-				 //            WriteLog("Przyszlo 13!");
-				 //            WriteLog(pRozkaz->cString);
-                    CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
-                            std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
-                            " rcvd");
-                    if (pRozkaz->cString[1]) // jeśli długość nazwy jest niezerowa
-                        { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
-				TGroundNode *t;
-				if (pRozkaz->cString[2] == '*')
-					t = Ground.DynamicFind(
-						Global::asHumanCtrlVehicle); // nazwa pojazdu użytkownika
-				else
-					t = Ground.DynamicFindAny(
-						std::string(pRozkaz->cString + 2,
-							(unsigned)pRozkaz->cString[1])); // nazwa pojazdu
-				if (t)
-				{
-					TDynamicObject *d = t->DynamicObject;
-					while (d)
-					{
-						d->Damage(pRozkaz->cString[0]);
-						d = d->Next(); // pozostałe też
-					}
-					d = t->DynamicObject->Prev();
-					while (d)
-					{
-						d->Damage(pRozkaz->cString[0]);
-						d = d->Prev(); // w drugą stronę też
-					}
-					Ground.WyslijUszkodzenia(t->asName, t->DynamicObject->MoverParameters->EngDmgFlag); // zwrot informacji o pojeździe
-				}
-			}
-			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+                    " rcvd");
+            if( pRozkaz->cString[ 1 ] ) // jeśli długość nazwy jest niezerowa
+            { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
+                auto *lookup = (
+                    pRozkaz->cString[ 2 ] == '*' ?
+                        simulation::Vehicles.find( Global::asHumanCtrlVehicle ) : // nazwa pojazdu użytkownika
+                        simulation::Vehicles.find( std::string( pRozkaz->cString + 2, (unsigned)pRozkaz->cString[ 1 ] ) ) ); // nazwa pojazdu
+                if( lookup == nullptr ) { break; } // nothing found, nothing to do
+                auto *d { lookup };
+                while( d != nullptr ) {
+                    d->Damage( pRozkaz->cString[ 0 ] );
+                    d = d->Next(); // pozostałe też
+                }
+                d = lookup->Prev();
+                while( d != nullptr ) {
+                    d->Damage( pRozkaz->cString[ 0 ] );
+                    d = d->Prev(); // w drugą stronę też
+                }
+                multiplayer::WyslijUszkodzenia( lookup->asName, lookup->MoverParameters->EngDmgFlag ); // zwrot informacji o pojeździe
+            }
 			break;
+        default:
+            break;
 		}
 };
 
@@ -2025,10 +2015,9 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                     shift += 10.0; // następny tor będzie deczko dalej, aby nie zabić FPS
                     at = 400.0;
                 }
-                TGroundNode *tmp = new TGroundNode();
-                tmp->DynamicObject = new TDynamicObject();
+                auto *dynamic = new TDynamicObject();
 
-                at -= tmp->DynamicObject->Init(
+                at -= dynamic->Init(
                     "",
                     Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
                     "none",
@@ -2038,7 +2027,7 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                     "nobody", 0.0, "none", 0.0, "", false, "" );
 
                 // po wczytaniu CHK zrobić pętlę po ładunkach, aby każdy z nich skonwertować
-                cParser loadparser( tmp->DynamicObject->MoverParameters->LoadAccepted ); // typy ładunków
+                cParser loadparser( dynamic->MoverParameters->LoadAccepted ); // typy ładunków
                 std::string loadname;
                 loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
                 while( loadname != "" ) {
@@ -2046,7 +2035,7 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                     if( ( true == FileExists( Path + loadname + ".t3d" ) )
                      && ( false == FileExists( Path + loadname + ".e3d" ) ) ) {
                             // a nie ma jeszcze odpowiednika binarnego
-                            at -= tmp->DynamicObject->Init(
+                            at -= dynamic->Init(
                                 "",
                                 Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
                                 "none",
@@ -2060,20 +2049,20 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                     loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
                 }
 
-                if( tmp->DynamicObject->iCabs ) { // jeśli ma jakąkolwiek kabinę
+                if( dynamic->iCabs ) { // jeśli ma jakąkolwiek kabinę
                     delete Train;
                     Train = new TTrain();
-                    if( tmp->DynamicObject->iCabs & 1 ) {
-                        tmp->DynamicObject->MoverParameters->ActiveCab = 1;
-                        Train->Init( tmp->DynamicObject, true );
+                    if( dynamic->iCabs & 1 ) {
+                        dynamic->MoverParameters->ActiveCab = 1;
+                        Train->Init( dynamic, true );
                     }
-                    if( tmp->DynamicObject->iCabs & 4 ) {
-                        tmp->DynamicObject->MoverParameters->ActiveCab = -1;
-                        Train->Init( tmp->DynamicObject, true );
+                    if( dynamic->iCabs & 4 ) {
+                        dynamic->MoverParameters->ActiveCab = -1;
+                        Train->Init( dynamic, true );
                     }
-                    if( tmp->DynamicObject->iCabs & 2 ) {
-                        tmp->DynamicObject->MoverParameters->ActiveCab = 0;
-                        Train->Init( tmp->DynamicObject, true );
+                    if( dynamic->iCabs & 2 ) {
+                        dynamic->MoverParameters->ActiveCab = 0;
+                        Train->Init( dynamic, true );
                     }
                 }
                 // z powrotem defaultowa sciezka do tekstur
@@ -2129,7 +2118,7 @@ void TWorld::ChangeDynamic() {
     Train->DynamicSet( temp );
     Controlled = temp;
     mvControlled = Controlled->ControlledFind()->MoverParameters;
-    Global::asHumanCtrlVehicle = Train->Dynamic()->GetName();
+    Global::asHumanCtrlVehicle = Train->Dynamic()->name();
     if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
         if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
         {
@@ -2153,7 +2142,6 @@ void TWorld::ChangeDynamic() {
     }
     Global::changeDynObj = NULL;
 }
-//---------------------------------------------------------------------------
 
 void
 TWorld::ToggleDaylight() {
@@ -2169,6 +2157,30 @@ TWorld::ToggleDaylight() {
         Environment.time();
     }
 }
+
+// calculates current season of the year based on set simulation date
+void
+TWorld::compute_season( int const Yearday ) const {
+
+    using dayseasonpair = std::pair<int, std::string>;
+
+    std::vector<dayseasonpair> seasonsequence {
+        {  65, "winter" },
+        { 158, "spring" },
+        { 252, "summer" },
+        { 341, "autumn" },
+        { 366, "winter" } };
+    auto const lookup =
+        std::lower_bound(
+            std::begin( seasonsequence ), std::end( seasonsequence ),
+            clamp( Yearday, 1, seasonsequence.back().first ),
+            []( dayseasonpair const &Left, const int Right ) {
+                return Left.first < Right; } );
+    
+    Global::Season = lookup->second + ":";
+}
+
+
 
 void
 world_environment::init() {

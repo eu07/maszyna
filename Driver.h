@@ -209,6 +209,7 @@ public:
 	double BrakeAccFactor();
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
+    double AbsAccS_avg = 0.0; // averaged out directional acceleration
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
 	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
 	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
@@ -230,8 +231,9 @@ private:
     TAction GetAction() {
         return eAction; }
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
-    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
-    // migacz lub czeka na stan zwrotnicy
+/*
+    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala migacz lub czeka na stan zwrotnicy
+*/
   private:
     TDynamicObject *pVehicle = nullptr; // pojazd w którym siedzi sterujący
     TDynamicObject *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
@@ -311,10 +313,8 @@ private:
   public:
     Mtable::TTrainParameters *Timetable() {
         return TrainParams; };
-    void PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                    const TLocation &NewLocation, TStopReason reason = stopComm);
-    bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
-                    const vector3 *NewLocation, TStopReason reason = stopComm);
+    void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason = stopComm);
+    bool PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason = stopComm );
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     // procedury dotyczace rozkazow dla maszynisty
     // uaktualnia informacje o prędkości
@@ -374,7 +374,7 @@ private:
     bool BackwardTrackBusy(TTrack *Track);
     TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
     TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event);
-    void SetProximityVelocity(double dist, double vel, const vector3 *pos);
+    void SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos );
     TCommandType BackwardScan();
 
   public:
@@ -401,7 +401,9 @@ private:
     void DirectionInitial();
     std::string TableText(std::size_t const Index);
     int CrossRoute(TTrack *tr);
+/*
     void RouteSwitch(int d);
+*/
     std::string OwnerName() const;
     TMoverParameters const *Controlling() const {
         return mvControlling; }

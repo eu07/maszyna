@@ -74,6 +74,8 @@ builds/build_*
 builds/*.zip
 builds/deps_*
 
+doc/
+
 CMakeLists.txt.user
 
 *.vcxproj

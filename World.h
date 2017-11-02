@@ -11,14 +11,16 @@ http://mozilla.org/MPL/2.0/.
 
 #include <GLFW/glfw3.h>
 #include <string>
+
 #include "Camera.h"
-#include "Ground.h"
+#include "scene.h"
 #include "sky.h"
 #include "sun.h"
 #include "moon.h"
 #include "stars.h"
 #include "skydome.h"
 #include "McZapkie/MOVER.h"
+#include "messaging.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -105,12 +107,15 @@ TWorld();
     void OnKeyDown(int cKey);
     // void UpdateWindow();
     void OnMouseMove(double x, double y);
-    void OnCommandGet(DaneRozkaz *pRozkaz);
+    void OnCommandGet(multiplayer::DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
     TTrain* train() { return Train; }
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
+    // calculates current season of the year based on set simulation date
+    void compute_season( int const Yearday ) const;
+
 
 private:
     void Update_Environment();
@@ -144,8 +149,6 @@ private:
     void CabChange(TDynamicObject *old, TDynamicObject *now);
     // handles vehicle change flag
     void ChangeDynamic();
-
-    TGround Ground; //m7todo: tmp
 };
 
 //---------------------------------------------------------------------------

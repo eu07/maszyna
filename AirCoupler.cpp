@@ -10,69 +10,77 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AirCoupler.h"
 
-TAirCoupler::TAirCoupler()
+AirCoupler::AirCoupler()
 {
     Clear();
 }
 
-TAirCoupler::~TAirCoupler()
+AirCoupler::~AirCoupler()
 {
 }
 
-int TAirCoupler::GetStatus()
-{ // zwraca 1, jeśli istnieje model prosty, 2 gdy skośny
-    int x = 0;
-    if (pModelOn)
-        x = 1;
-    if (pModelxOn)
-        x = 2;
-    return x;
+/**
+ * \return 1 when \(straight\) TModel3d \c ModelOn exists
+ * \return 2 when \(slanted\) TModel3d \c ModelxOn exists
+ * \return 0 when neither of them exist
+ */
+int AirCoupler::GetStatus()
+{
+    if (ModelOn) return 1;
+    if (ModelxOn) return 2;
+    return 0;
 }
 
-void TAirCoupler::Clear()
-{ // zerowanie wskaźników
-    pModelOn = NULL;
-    pModelOff = NULL;
-    pModelxOn = NULL;
-    bOn = false;
-    bxOn = false;
+/**
+ * Reset pointers and variables.
+ */
+void AirCoupler::Clear()
+{
+    ModelOn = NULL;
+    ModelOff = NULL;
+    ModelxOn = NULL;
+    On = false;
+    xOn = false;
 }
 
-void TAirCoupler::Init(std::string const &asName, TModel3d *pModel)
-{ // wyszukanie submodeli
-    if (!pModel)
-        return; // nie ma w czym szukać
-    pModelOn = pModel->GetFromName( asName + "_on" ); // połączony na wprost
-    pModelOff = pModel->GetFromName( asName + "_off" ); // odwieszony
-    pModelxOn = pModel->GetFromName( asName + "_xon" ); // połączony na skos
+/**
+ * Looks for submodels in the model and updates pointers.
+ */
+void AirCoupler::Init(std::string const &asName, TModel3d *Model)
+{
+    if (!Model)
+        return;
+    ModelOn = Model->GetFromName(asName + "_on"); // Straight connect.
+    ModelOff = Model->GetFromName(asName + "_off"); // Not connected. Hung up.
+    ModelxOn = Model->GetFromName(asName + "_xon"); // Slanted connect.
 }
-
-void TAirCoupler::Load(cParser *Parser, TModel3d *pModel)
+/**
+ * Gets name of submodel \(from cParser \b *Parser\),
+ * looks for it in the TModel3d \b *Model and update pointers.
+ * If submodel is not found, reset pointers.
+*/
+void AirCoupler::Load(cParser *Parser, TModel3d *Model)
 {
 	std::string name = Parser->getToken<std::string>();
-	if( pModel ) {
-
-		Init( name, pModel );
+    if(Model)
+    {
+		Init(name, Model);
 	}
     else
     {
-        pModelOn = NULL;
-        pModelxOn = NULL;
-        pModelOff = NULL;
+        ModelOn = NULL;
+        ModelxOn = NULL;
+        ModelOff = NULL;
     }
 }
 
-void TAirCoupler::Update()
+// Update submodels visibility.
+void AirCoupler::Update()
 {
-    //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
-    {
-        if (pModelOn)
-            pModelOn->iVisible = bOn;
-        if (pModelOff)
-            pModelOff->iVisible = !(bOn || bxOn);
-        if (pModelxOn)
-            pModelxOn->iVisible = bxOn;
-    }
+    if (ModelOn)
+        ModelOn->iVisible = On;
+    if (ModelOff)
+        ModelOff->iVisible = !(On || xOn);
+    if (ModelxOn)
+        ModelxOn->iVisible = xOn;
 }
-
-//---------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by eu07.rc
 //
+//#define GLFW_ICON                       101
 
 // Next default values for new objects
 // 

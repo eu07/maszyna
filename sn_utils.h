@@ -13,6 +13,9 @@ public:
 	static float ld_float32(std::istream&);
 	static double ld_float64(std::istream&);
 	static std::string d_str(std::istream&);
+    static bool d_bool(std::istream&);
+    static glm::dvec3 d_dvec3(std::istream&);
+    static glm::vec4 d_vec4(std::istream&);
 
 	static void ls_uint16(std::ostream&, uint16_t);
 	static void ls_uint32(std::ostream&, uint32_t);
@@ -20,4 +23,7 @@ public:
 	static void ls_float32(std::ostream&, float);
 	static void ls_float64(std::ostream&, double);
 	static void s_str(std::ostream&, std::string);
+    static void s_bool(std::ostream&, bool);
+    static void s_dvec3(std::ostream&, glm::dvec3 const &);
+    static void s_vec4(std::ostream&, glm::vec4 const &);
 };

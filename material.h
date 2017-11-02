@@ -28,9 +28,9 @@ struct opengl_material {
     bool
         deserialize( cParser &Input, bool const Loadnow );
 private:
-    // imports member data pair from the config file
+    // imports member data pair from the config file, overriding existing parameter values of lower priority
     bool
-        deserialize_mapping( cParser &Input, bool const Loadnow );
+        deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
 };
 
 class material_manager {

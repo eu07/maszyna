@@ -10,23 +10,29 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "GL/glew.h"
-#include "ResourceManager.h"
+#include <vector>
+#include <deque>
+
 #include "Segment.h"
 #include "material.h"
+#include "scenenode.h"
+#include "Names.h"
 
-typedef enum
-{
+namespace scene {
+class basic_cell;
+}
+
+enum TTrackType {
     tt_Unknown,
     tt_Normal,
     tt_Switch,
     tt_Table,
     tt_Cross,
     tt_Tributary
-} TTrackType;
+};
 // McZapkie-100502
-typedef enum
-{
+
+enum TEnvironmentType {
     e_unknown = -1,
     e_flat = 0,
     e_mountains,
@@ -34,7 +40,7 @@ typedef enum
     e_tunnel,
     e_bridge,
     e_bank
-} TEnvironmentType;
+};
 // Ra: opracować alternatywny system cieni/świateł z definiowaniem koloru oświetlenia w halach
 
 class TEvent;
@@ -49,49 +55,43 @@ class TSwitchExtension
     TSwitchExtension(TTrack *owner, int const what);
     ~TSwitchExtension();
     std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
-    // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
-    // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
     TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
     TTrack *pPrevs[2]; // tory do³¹czone do punktów 1 i 3
     int iNextDirection[2]; // to te¿ z [2]+[2] przerobiæ na [4]
     int iPrevDirection[2];
     int CurrentIndex = 0; // dla zwrotnicy
-    double fOffset = 0.0,
-           fDesiredOffset = 0.0; // aktualne i docelowe położenie napędu iglic
-    double fOffsetSpeed = 0.1; // prędkość liniowa ruchu iglic
-    double fOffsetDelay = 0.05; // opóźnienie ruchu drugiej iglicy względem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
+    float
+        fOffset{ 0.f },
+        fDesiredOffset{ 0.f }; // aktualne i docelowe położenie napędu iglic
+    float fOffsetSpeed = 0.1f; // prędkość liniowa ruchu iglic
+    float fOffsetDelay = 0.05f; // opóźnienie ruchu drugiej iglicy względem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
     union
     {
         struct
         { // zmienne potrzebne tylko dla zwrotnicy
-            double fOffset1,
-                   fOffset2; // przesunięcia iglic - 0=na wprost
+            float fOffset1,
+                  fOffset2; // przesunięcia iglic - 0=na wprost
             bool RightSwitch; // czy zwrotnica w prawo
         };
         struct
         { // zmienne potrzebne tylko dla obrotnicy/przesuwnicy
-            TGroundNode *pMyNode; // dla obrotnicy do wtórnego podłączania torów
-            // TAnimContainer *pAnim; //animator modelu dla obrotnicy
+          // TAnimContainer *pAnim; //animator modelu dla obrotnicy
             TAnimModel *pModel; // na razie model
         };
         struct
         { // zmienne dla skrzyżowania
             int iRoads; // ile dróg się spotyka?
-            Math3D::vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
-//            int iPoints; // liczba faktycznie użytych wierzchołków nawierzchni
+            glm::vec3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
             bool bPoints; // czy utworzone?
         };
     };
     bool bMovement = false; // czy w trakcie animacji
-    int iLeftVBO = 0,
-        iRightVBO = 0; // indeksy iglic w VBO
-    TSubRect *pOwner = nullptr; // sektor, któremu trzeba zgłosić animację
+    scene::basic_cell *pOwner = nullptr; // TODO: convert this to observer pattern
     TTrack *pNextAnim = nullptr; // następny tor do animowania
     TEvent *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
-  private:
 };
 
 class TIsolated
@@ -106,7 +106,7 @@ class TIsolated
     TMemCell *pMemCell = nullptr; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
-    ~TIsolated();
+    static void DeleteAll();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
     bool Busy() {
@@ -118,12 +118,11 @@ class TIsolated
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack /*: public Resource*/ {
+class TTrack : public editor::basic_node {
 
     friend class opengl_renderer;
 
 private:
-    TGroundNode * pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
@@ -132,7 +131,7 @@ private:
 
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
-    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
+    double fRadiusTable[ 2 ] = { 0.0, 0.0 }; // dwa promienie, drugi dla zwrotnicy
     float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
@@ -140,6 +139,7 @@ private:
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
 
+    glm::dvec3 m_origin;
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     typedef std::vector<geometry_handle> geometryhandle_sequence;
@@ -173,22 +173,22 @@ public:
     int iQualityFlag = 20;
     int iDamageFlag = 0;
     TEnvironmentType eEnvironment = e_flat; // dźwięk i oświetlenie
-    bool bVisible = true; // czy rysowany
     int iAction = 0; // czy modyfikowany eventami (specjalna obsługa przy skanowaniu)
     float fOverhead = -1.0; // można normalnie pobierać prąd (0 dla jazdy bezprądowej po danym odcinku, >0-z opuszczonym i ograniczeniem prędkości)
-  private:
+private:
     double fVelocity = -1.0; // ograniczenie prędkości // prędkość dla AI (powyżej rośnie prawdopowobieństwo wykolejenia)
-  public:
+public:
     // McZapkie-100502:
     double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
     double fRadius = 0.0; // promień, dla zwrotnicy kopiowany z tabeli
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
-    TTraction *hvOverhead = nullptr; // drut zasilający do szybkiego znalezienia (nie używany)
-    TGroundNode *nFouling[ 2 ]; // współrzędne ukresu albo oporu kozła
+    TGroundNode *nFouling[ 2 ] = { nullptr, nullptr }; // współrzędne ukresu albo oporu kozła
 
-    TTrack(TGroundNode *g);
-    ~TTrack();
+    TTrack( scene::node_data const &Nodedata );
+    virtual ~TTrack();
+
     void Init();
+    static bool sort_by_material( TTrack const *Left, TTrack const *Right );
     static TTrack * Create400m(int what, double dx);
     TTrack * NullCreate(int dir);
     inline bool IsEmpty() {
@@ -207,7 +207,7 @@ public:
         return trPrev; };
     TTrack *Connected(int s, double &d) const;
     bool SetConnections(int i);
-    bool Switch(int i, double t = -1.0, double d = -1.0);
+    bool Switch(int i, float const t = -1.f, float const d = -1.f);
     bool SwitchForced(int i, TDynamicObject *o);
     int CrossSegment(int from, int into);
     inline int GetSwitchState() {
@@ -215,7 +215,16 @@ public:
             SwitchExtension ?
                 SwitchExtension->CurrentIndex :
                 -1); };
-    void Load(cParser *parser, Math3D::vector3 pOrigin, std::string name);
+    // returns number of different routes possible to take from given point
+    // TODO: specify entry point, number of routes for switches can vary
+    inline
+    int
+        RouteCount() const {
+        return (
+            SwitchExtension != nullptr ?
+                SwitchExtension->iRoads - 1 :
+                1 ); }
+    void Load(cParser *parser, Math3D::vector3 pOrigin);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
@@ -223,14 +232,21 @@ public:
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
 
-    void create_geometry(geometrybank_handle const &Bank); // wypełnianie VBO
+    // set origin point
+    void
+        origin( glm::dvec3 Origin ) {
+            m_origin = Origin; }
+    // retrieves list of the track's end points
+    std::vector<glm::dvec3>
+        endpoints() const;
+
+    void create_geometry( geometrybank_handle const &Bank ); // wypełnianie VBO
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
-    void RaOwnerSet(TSubRect *o) {
-        if (SwitchExtension)
-            SwitchExtension->pOwner = o; };
+    void RaOwnerSet( scene::basic_cell *o ) {
+        if( SwitchExtension ) { SwitchExtension->pOwner = o; } };
     bool InMovement(); // czy w trakcie animacji?
-    void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
+    void RaAssign( TAnimModel *am, TEvent *done, TEvent *joined );
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
 
@@ -241,22 +257,42 @@ public:
     std::string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
-    GLuint TextureGet(int i) {
-        return (
-            i ?
-            m_material1 :
-            m_material2 ); };
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);
     void MovedUp1(float const dh);
-    std::string NameGet();
     void VelocitySet(float v);
-    float VelocityGet();
+    double VelocityGet();
     void ConnectionsLog();
 
-  private:
+protected:
+    // calculates path's bounding radius
+    void
+        radius_();
+
+private:
     void EnvironmentSet();
     void EnvironmentReset();
+};
+
+
+
+// collection of virtual tracks and roads present in the scene
+class path_table : public basic_table<TTrack> {
+
+public:
+    ~path_table();
+    // legacy method, initializes tracks after deserialization from scenario file
+    void
+        InitTracks();
+    // legacy method, sends list of occupied paths over network
+    void
+        TrackBusyList() const;
+    // legacy method, sends list of occupied path sections over network
+    void
+        IsolatedBusyList() const;
+    // legacy method, sends state of specified path section over network
+    void
+        IsolatedBusy( std::string const &Name ) const;
 };
 
 //---------------------------------------------------------------------------

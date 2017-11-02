@@ -18,7 +18,7 @@ bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 
     bool result { false };
-    while( true == deserialize_mapping( Input, Loadnow ) ) {
+    while( true == deserialize_mapping( Input, 0, Loadnow ) ) {
         result = true; // once would suffice but, eh
     }
 
@@ -32,7 +32,7 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 
 // imports member data pair from the config file
 bool
-opengl_material::deserialize_mapping( cParser &Input, bool const Loadnow ) {
+opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
 
     if( false == Input.getTokens( 2, true, "\n\r\t;, " ) ) {
         return false;
@@ -48,8 +48,30 @@ opengl_material::deserialize_mapping( cParser &Input, bool const Loadnow ) {
         >> key
         >> value;
 
-         if( key == "texture1:" ) { texture1 = GfxRenderer.Fetch_Texture( path + value, Loadnow ); }
-    else if( key == "texture2:" ) { texture2 = GfxRenderer.Fetch_Texture( path + value, Loadnow ); }
+    if( value == "{" ) {
+        // detect and optionally process config blocks
+        cParser blockparser( Input.getToken<std::string>( false, "}" ) );
+        if( key == Global::Season ) {
+            // seasonal textures override generic textures
+            while( true == deserialize_mapping( blockparser, 1, Loadnow ) ) {
+                ; // all work is done in the header
+            }
+        }
+    }
+    else if( key == "texture1:" ) {
+        // TODO: full-fledged priority system
+        if( ( texture1 == null_handle )
+         || ( Priority > 0 ) ) {
+            texture1 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
+        }
+    }
+    else if( key == "texture2:" ) {
+        // TODO: full-fledged priority system
+        if( ( texture2 == null_handle )
+         || ( Priority > 0 ) ) {
+            texture2 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
+        }
+    }
 
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
 }
@@ -65,7 +87,8 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     if( filename.find( '|' ) != std::string::npos )
         filename.erase( filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
 
-    if( filename.rfind( '.' ) != std::string::npos ) {
+    if( ( filename.rfind( '.' ) != std::string::npos )
+     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // we can get extension for .mat or, in legacy files, some image format. just trim it and set it to material file extension
         filename.erase( filename.rfind( '.' ) );
     }

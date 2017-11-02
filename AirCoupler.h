@@ -12,42 +12,40 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "parser.h"
 
-class TAirCoupler
+class AirCoupler
 {
-  private:
-    //    TButtonType eType;
-    TSubModel *pModelOn, *pModelOff, *pModelxOn;
-    bool bOn;
-    bool bxOn;
+private:
+    TSubModel *ModelOn, *ModelOff, *ModelxOn;
+    bool On;
+    bool xOn;
     void Update();
 
-  public:
-    TAirCoupler();
-    ~TAirCoupler();
+public:
+    AirCoupler();
+    ~AirCoupler();
+    ///Reset members.
     void Clear();
-    inline void TurnOn()
-    {
-        bOn = true;
-        bxOn = false;
-        Update();
-    };
-    inline void TurnOff()
-    {
-        bOn = false;
-        bxOn = false;
-        Update();
-    };
-    inline void TurnxOn()
-    {
-        bOn = false;
-        bxOn = true;
-        Update();
-    };
-    //  inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
+    ///Looks for submodels.
+    void Init(std::string const &asName, TModel3d *Model);
+    ///Loads info about coupler.
+    void Load(cParser *Parser, TModel3d *Model);
     int GetStatus();
-    void Init(std::string const &asName, TModel3d *pModel);
-    void Load(cParser *Parser, TModel3d *pModel);
-    //  bool Render();
+    inline void TurnOn() ///Turns on straight coupler.
+    {
+        On = true;
+        xOn = false;
+        Update();
+    };
+    inline void TurnOff() ///Turns on disconnected coupler.
+    {
+        On = false;
+        xOn = false;
+        Update();
+    };
+    inline void TurnxOn() ///Turns on slanted coupler.
+    {
+        On = false;
+        xOn = true;
+        Update();
+    };
 };
-
-//---------------------------------------------------------------------------

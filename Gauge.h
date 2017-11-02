@@ -12,15 +12,14 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "sound.h"
 
-typedef enum
-{ // typ ruchu
+enum TGaugeType {
+    // typ ruchu
     gt_Unknown, // na razie nie znany
     gt_Rotate, // obrót
     gt_Move, // przesunięcie równoległe
-    gt_Wiper, // obrót trzech kolejnych submodeli o ten sam kąt (np. wycieraczka, drzwi
-    // harmonijkowe)
+    gt_Wiper, // obrót trzech kolejnych submodeli o ten sam kąt (np. wycieraczka, drzwi harmonijkowe)
     gt_Digital // licznik cyfrowy, np. kilometrów
-} TGaugeType;
+};
 
 // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich
 class TGauge { 

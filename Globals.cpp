@@ -12,22 +12,17 @@ http://mozilla.org/MPL/2.0/.
 
 */
 #include "stdafx.h"
-
 #include "Globals.h"
-#include "usefull.h"
-//#include "Mover.h"
-#include "Console.h"
-#include "Driver.h"
-#include "Logs.h"
-#include "PyInt.h"
+
 #include "World.h"
-#include "parser.h"
+#include "simulation.h"
+#include "Logs.h"
+#include "Console.h"
+#include "PyInt.h"
 
 // namespace Global {
 
 // parametry do użytku wewnętrznego
-// double Global::tSinceStart=0;
-TGround *Global::pGround = NULL;
 std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
@@ -74,12 +69,15 @@ std::vector<vector3> Global::FreeCameraInitAngle;
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
-int Global::DynamicLightCount = 7;
-bool Global::ScaleSpecularValues = false;
+float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+std::string Global::Season; // season of the year, based on simulation date
+
 float Global::BaseDrawRange { 2500.f };
-bool Global::RenderShadows { false };
+opengl_light Global::DayLight;
+int Global::DynamicLightCount { 3 };
+bool Global::ScaleSpecularValues { true };
 bool Global::BasicRenderer { false };
+bool Global::RenderShadows { true };
 Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
@@ -118,7 +116,7 @@ bool Global::bLiveTraction = true;
 float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
-bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
+bool Global::bSmoothTraction { true }; // wygładzanie drutów starym sposobem
 float Global::SplineFidelity { 1.f }; // determines segment size during conversion of splines to geometry
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
@@ -172,7 +170,6 @@ Global::uart_conf_t Global::uart_conf;
 //randomizacja
 std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
 
-opengl_light Global::DayLight;
 Global::soundmode_t Global::soundpitchmode = Global::linear;
 Global::soundmode_t Global::soundgainmode = Global::linear;
 Global::soundstopmode_t Global::soundstopmode = Global::queue;
@@ -180,19 +177,6 @@ Global::soundstopmode_t Global::soundstopmode = Global::queue;
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-
-std::string Global::GetNextSymbol()
-{ // pobranie tokenu z aktualnego parsera
-
-    std::string token;
-    if (pParser != nullptr)
-    {
-
-        pParser->getTokens();
-        *pParser >> token;
-    };
-    return token;
-};
 
 void Global::LoadIniFile(std::string asFileName)
 {
@@ -449,6 +433,7 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
+            Global::pWorld->compute_season( Global::fMoveLight );
         }
         else if( token == "dynamiclights" ) {
             // number of dynamic lights in the scene
@@ -949,20 +934,6 @@ void Global::TrainDelete(TDynamicObject *d)
         pWorld->TrainDelete(d);
 };
 
-TDynamicObject *Global::DynamicNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->DynamicNearest(pCamera->Pos);
-};
-
-TDynamicObject *Global::CouplerNearest()
-{ // ustalenie pojazdu najbliższego kamerze
-    return pGround->CouplerNearest(pCamera->Pos);
-};
-
-bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
-{
-    return pGround->AddToQuery(event, who);
-};
 //---------------------------------------------------------------------------
 
 TTranscripts::TTranscripts()

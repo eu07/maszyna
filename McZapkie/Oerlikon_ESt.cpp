@@ -435,8 +435,6 @@ void TNESt3::ForceEmptiness()
     Miedzypoj->CreatePress(0);
     CntrlRes->CreatePress(0);
 
-    BrakeStatus = 0;
-
     ValveRes->Act();
     BrakeRes->Act();
     Miedzypoj->Act();

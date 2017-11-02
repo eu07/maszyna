@@ -14,10 +14,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Traction.h"
+
+#include "simulation.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "mctools.h"
-#include "TractionPower.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -90,9 +90,92 @@ jawnie nazwę sekcji, ewentualnie nazwę zasilacza (zostanie zastąpiona wskazan
 sekcji z sąsiedniego przęsła).
 */
 
-std::size_t
-TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
+TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
 
+glm::dvec3 LoadPoint( cParser &Input ) {
+    // pobranie współrzędnych punktu
+    glm::dvec3 point;
+    Input.getTokens( 3 );
+    Input
+        >> point.x
+        >> point.y
+        >> point.z;
+    return point;
+}
+
+void
+TTraction::Load( cParser *parser, glm::dvec3 const &pOrigin ) {
+
+    parser->getTokens( 4 );
+    *parser
+        >> asPowerSupplyName
+        >> NominalVoltage
+        >> MaxCurrent
+        >> fResistivity;
+    if( fResistivity == 0.01f ) {
+        // tyle jest w sceneriach [om/km]
+        // taka sensowniejsza wartość za http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+        fResistivity = 0.075f;
+    }
+    fResistivity *= 0.001f; // teraz [om/m]
+    // Ra 2014-02: a tutaj damy symbol sieci i jej budowę, np.:
+    // SKB70-C, CuCd70-2C, KB95-2C, C95-C, C95-2C, YC95-2C, YpC95-2C, YC120-2C
+    // YpC120-2C, YzC120-2C, YwsC120-2C, YC150-C150, YC150-2C150, C150-C150
+    // C120-2C, 2C120-2C, 2C120-2C-1, 2C120-2C-2, 2C120-2C-3, 2C120-2C-4
+    auto const material = parser->getToken<std::string>();
+    // 1=miedziana, rysuje się na zielono albo czerwono
+    // 2=aluminiowa, rysuje się na czarno
+         if( material == "none" ) { Material = 0; }
+    else if( material == "al" )   { Material = 2; }
+    else                          { Material = 1; }
+    parser->getTokens( 2 );
+    *parser
+        >> WireThickness
+        >> DamageFlag;
+    pPoint1 = LoadPoint( *parser ) + pOrigin;
+    pPoint2 = LoadPoint( *parser ) + pOrigin;
+    pPoint3 = LoadPoint( *parser ) + pOrigin;
+    pPoint4 = LoadPoint( *parser ) + pOrigin;
+    auto const minheight { parser->getToken<double>() };
+    fHeightDifference = ( pPoint3.y - pPoint1.y + pPoint4.y - pPoint2.y ) * 0.5 - minheight;
+    auto const segmentlength { parser->getToken<double>() };
+    iNumSections = (
+        segmentlength ?
+            glm::length( ( pPoint1 - pPoint2 ) ) / segmentlength :
+            0 );
+    parser->getTokens( 2 );
+    *parser
+        >> Wires
+        >> WireOffset;
+    m_visible = ( parser->getToken<std::string>() == "vis" );
+
+    std::string token { parser->getToken<std::string>() };
+    if( token == "parallel" ) {
+        // jawne wskazanie innego przęsła, na które może przestawić się pantograf
+        parser->getTokens();
+        *parser >> asParallel;
+    }
+    while( ( false == token.empty() )
+        && ( token != "endtraction" ) ) {
+
+        token = parser->getToken<std::string>();
+    }
+
+    Init(); // przeliczenie parametrów
+
+    // calculate traction location
+    location( interpolate( pPoint2, pPoint1, 0.5 ) );
+}
+
+// retrieves list of the track's end points
+std::vector<glm::dvec3>
+TTraction::endpoints() const {
+
+    return { pPoint1, pPoint2 };
+}
+
+std::size_t
+TTraction::create_geometry( geometrybank_handle const &Bank ) {
     if( m_geometry != null_handle ) {
         return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
@@ -106,14 +189,14 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
     basic_vertex startvertex, endvertex;
     startvertex.position =
         glm::vec3(
-            pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-            pPoint1.y - Origin.y,
-            pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+            pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+            pPoint1.y - m_origin.y,
+            pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
     endvertex.position =
         glm::vec3(
-            pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-            pPoint2.y - Origin.y,
-            pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+            pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+            pPoint2.y - m_origin.y,
+            pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
     vertices.emplace_back( startvertex );
     vertices.emplace_back( endvertex );
     // Nie wiem co 'Marcin
@@ -130,9 +213,9 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
     if( Wires > 1 ) { // lina nośna w kawałkach
         startvertex.position =
             glm::vec3(
-                pPoint3.x - Origin.x,
-                pPoint3.y - Origin.y,
-                pPoint3.z - Origin.z );
+                pPoint3.x - m_origin.x,
+                pPoint3.y - m_origin.y,
+                pPoint3.z - m_origin.z );
         for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
@@ -141,9 +224,9 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
                && ( i != iNumSections - 2 ) ) ) {
                 endvertex.position =
                     glm::vec3(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
-                        pt3.z - Origin.z );
+                        pt3.x - m_origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - m_origin.y,
+                        pt3.z - m_origin.z );
                 vertices.emplace_back( startvertex );
                 vertices.emplace_back( endvertex );
                 startvertex = endvertex;
@@ -152,9 +235,9 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
         }
         endvertex.position =
             glm::vec3(
-                pPoint4.x - Origin.x,
-                pPoint4.y - Origin.y,
-                pPoint4.z - Origin.z );
+                pPoint4.x - m_origin.x,
+                pPoint4.y - m_origin.y,
+                pPoint4.z - m_origin.z );
         vertices.emplace_back( startvertex );
         vertices.emplace_back( endvertex );
     }
@@ -162,14 +245,14 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
     if( Wires > 2 ) {
         startvertex.position =
             glm::vec3(
-                pPoint1.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-                pPoint1.y - Origin.y,
-                pPoint1.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                pPoint1.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+                pPoint1.y - m_origin.y,
+                pPoint1.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
         endvertex.position =
             glm::vec3(
-                pPoint2.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-                pPoint2.y - Origin.y,
-                pPoint2.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                pPoint2.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+                pPoint2.y - m_origin.y,
+                pPoint2.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
         vertices.emplace_back( startvertex );
         vertices.emplace_back( endvertex );
     }
@@ -179,22 +262,22 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
     if( Wires == 4 ) {
         startvertex.position =
             glm::vec3(
-                pPoint3.x - Origin.x,
-                pPoint3.y - 0.65f * fHeightDifference - Origin.y,
-                pPoint3.z - Origin.z );
+                pPoint3.x - m_origin.x,
+                pPoint3.y - 0.65f * fHeightDifference - m_origin.y,
+                pPoint3.z - m_origin.z );
         for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
             endvertex.position =
                 glm::vec3(
-                    pt3.x - Origin.x,
+                    pt3.x - m_origin.x,
                     pt3.y - std::sqrt( t ) * fHeightDifference - (
                         ( ( i == 0 )
                        || ( i == iNumSections - 2 ) ) ?
                             0.25f * fHeightDifference :
                             0.05 )
-                        - Origin.y,
-                    pt3.z - Origin.z );
+                        - m_origin.y,
+                    pt3.z - m_origin.z );
             vertices.emplace_back( startvertex );
             vertices.emplace_back( endvertex );
             startvertex = endvertex;
@@ -202,9 +285,9 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
         }
         endvertex.position =
             glm::vec3(
-                pPoint4.x - Origin.x,
-                pPoint4.y - 0.65f * fHeightDifference - Origin.y,
-                pPoint4.z - Origin.z );
+                pPoint4.x - m_origin.x,
+                pPoint4.y - 0.65f * fHeightDifference - m_origin.y,
+                pPoint4.z - m_origin.z );
         vertices.emplace_back( startvertex );
         vertices.emplace_back( endvertex );
     }
@@ -223,28 +306,28 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
             if( ( i % 2 ) == 0 ) {
                 startvertex.position =
                     glm::vec3(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
-                        pt3.z - Origin.z );
+                        pt3.x - m_origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - m_origin.y,
+                        pt3.z - m_origin.z );
                 endvertex.position =
                     glm::vec3(
-                        pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-                        pt4.y - Origin.y,
-                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                        pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+                        pt4.y - m_origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
                 vertices.emplace_back( startvertex );
                 vertices.emplace_back( endvertex );
             }
             else {
                 startvertex.position =
                     glm::vec3(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
-                        pt3.z - Origin.z );
+                        pt3.x - m_origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - m_origin.y,
+                        pt3.z - m_origin.z );
                 endvertex.position =
                     glm::vec3(
-                        pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
-                        pt4.y - Origin.y,
-                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                        pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
+                        pt4.y - m_origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
                 vertices.emplace_back( startvertex );
                 vertices.emplace_back( endvertex );
             }
@@ -253,14 +336,14 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
                || ( i == iNumSections - 3 ) ) ) ) {
                 startvertex.position =
                     glm::vec3(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - Origin.y,
-                        pt3.z - Origin.z );
+                        pt3.x - m_origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - m_origin.y,
+                        pt3.z - m_origin.z );
                 endvertex.position =
                     glm::vec3(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
-                        pt3.z - Origin.z );
+                        pt3.x - m_origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - m_origin.y,
+                        pt3.z - m_origin.z );
                 vertices.emplace_back( startvertex );
                 vertices.emplace_back( endvertex );
             }
@@ -276,55 +359,59 @@ TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &O
 
 int TTraction::TestPoint(glm::dvec3 const &Point)
 { // sprawdzanie, czy przęsła można połączyć
-    if (!hvNext[0])
-        if( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) )
-            return 0;
-    if (!hvNext[1])
-        if( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) )
-            return 1;
+    if( ( hvNext[ 0 ] == nullptr )
+     && ( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) ) ) {
+        return 0;
+    }
+    if( ( hvNext[ 1 ] == nullptr )
+     && ( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) ) ) {
+        return 1;
+    }
     return -1;
 };
 
-void TTraction::Connect(int my, TTraction *with, int to)
-{ //łączenie segmentu (with) od strony (my) do jego (to)
-    if (my)
-    { // do mojego Point2
-        hvNext[1] = with;
-        iNext[1] = to;
-    }
-    else
-    { // do mojego Point1
-        hvNext[0] = with;
-        iNext[0] = to;
-    }
-    if (to)
-    { // do jego Point2
-        with->hvNext[1] = this;
-        with->iNext[1] = my;
-    }
-    else
-    { // do jego Point1
-        with->hvNext[0] = this;
-        with->iNext[0] = my;
-    }
-    if (hvNext[0]) // jeśli z obu stron podłączony
-        if (hvNext[1])
-            iLast = 0; // to nie jest ostatnim
-    if (with->hvNext[0]) // temu też, bo drugi raz łączenie się nie nie wykona
-        if (with->hvNext[1])
-            with->iLast = 0; // to nie jest ostatnim
-};
+//łączenie segmentu (with) od strony (my) do jego (to)
+void
+TTraction::Connect(int my, TTraction *with, int to) {
 
-bool TTraction::WhereIs()
-{ // ustalenie przedostatnich przęseł
-    if (iLast)
-        return (iLast == 1); // ma już ustaloną informację o położeniu
-    if (hvNext[0] ? hvNext[0]->iLast == 1 : false) // jeśli poprzedni jest ostatnim
-        iLast = 2; // jest przedostatnim
-    else if (hvNext[1] ? hvNext[1]->iLast == 1 : false) // jeśli następny jest ostatnim
-        iLast = 2; // jest przedostatnim
-    return (iLast == 1); // ostatnie będą dostawać zasilanie
-};
+    hvNext[ my ] = with;
+    iNext[ my ] = to;
+
+    if( ( hvNext[ 0 ] != nullptr )
+     && ( hvNext[ 1 ] != nullptr ) ) {
+        // jeśli z obu stron podłączony to nie jest ostatnim
+        iLast = 0;
+    }
+
+    with->hvNext[ to ] = this;
+    with->iNext[ to ] = my;
+
+    if( ( with->hvNext[ 0 ] != nullptr )
+     && ( with->hvNext[ 1 ] != nullptr ) ) {
+        // temu też, bo drugi raz łączenie się nie nie wykona
+        with->iLast = 0;
+    }
+}
+
+// ustalenie przedostatnich przęseł
+bool TTraction::WhereIs() { 
+
+    if( iLast ) {
+        // ma już ustaloną informację o położeniu
+        return ( iLast & 1 );
+    }
+    for( int endindex = 0; endindex < 2; ++endindex ) {
+        if( hvNext[ endindex ] == nullptr ) {
+            // no neighbour piece means this one is last
+            iLast |= 1;
+        }
+        else if( hvNext[ endindex ]->hvNext[ 1 - iNext[ endindex ] ] == nullptr ) {
+            // otherwise if that neighbour has no further connection on the opposite end then this piece is second-last
+            iLast |= 2;
+        }
+    }
+    return (iLast & 1); // ostatnie będą dostawać zasilanie
+}
 
 void TTraction::Init()
 { // przeliczenie parametrów
@@ -441,6 +528,18 @@ double TTraction::VoltageGet(double u, double i)
     return 0.0; // gdy nie podłączony wcale?
 };
 
+// calculates path's bounding radius
+void
+TTraction::radius_() {
+
+    auto const points = endpoints();
+    for( auto &point : points ) {
+        m_area.radius = std::max(
+            m_area.radius,
+            static_cast<float>( glm::length( m_area.center - point ) ) );
+    }
+}
+
 glm::vec3
 TTraction::wire_color() const {
 
@@ -488,30 +587,41 @@ TTraction::wire_color() const {
 
             case 1: {
                 // czerwone z podłączonym zasilaniem 1
-                color.r = 1.0f;
-                color.g = 0.0f;
-                color.b = 0.0f;
+//                color.r = 1.0f;
+//                color.g = 0.0f;
+//                color.b = 0.0f;
+                // cyan
+                color = glm::vec3 { 0.f, 174.f / 255.f, 239.f / 255.f };
                 break;
             }
             case 2: {
                 // zielone z podłączonym zasilaniem 2
-                color.r = 0.0f;
-                color.g = 1.0f;
-                color.b = 0.0f;
+//                color.r = 0.0f;
+//                color.g = 1.0f;
+//                color.b = 0.0f;
+                // yellow
+                color = glm::vec3 { 240.f / 255.f, 228.f / 255.f, 0.f };
                 break;
             }
             case 3: {
                 //żółte z podłączonym zasilaniem z obu stron
-                color.r = 1.0f;
-                color.g = 1.0f;
-                color.b = 0.0f;
+//                color.r = 1.0f;
+//                color.g = 1.0f;
+//                color.b = 0.0f;
+                // green
+                color = glm::vec3 { 0.f, 239.f / 255.f, 118.f / 255.f };
                 break;
             }
             case 4: {
                 // niebieskie z podłączonym zasilaniem
-                color.r = 0.5f;
-                color.g = 0.5f;
-                color.b = 1.0f;
+//                color.r = 0.5f;
+//                color.g = 0.5f;
+//                color.b = 1.0f;
+                // white for powered, red for ends
+                color = (
+                    psPowered != nullptr ?
+                        glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f } :
+                        glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f } );
                 break;
             }
             default: { break; }
@@ -521,6 +631,262 @@ TTraction::wire_color() const {
             color.g *= 0.6f;
             color.b *= 0.6f;
         }
+/*
+        switch( iTries ) {
+            case 0: {
+                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
+                break;
+            }
+            case 1: {
+                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
+                break;
+            }
+            case 5: {
+                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
+                break;
+            }
+            default: {
+                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
+                break;
+            }
+        }
+*/
+/*
+        switch( iLast ) {
+            case 0: {
+                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
+                break;
+            }
+            case 1: {
+                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
+                break;
+            }
+            case 2: {
+                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
+                break;
+            }
+            default: {
+                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
+                break;
+            }
+        }
+*/
     }
     return color;
+}
+
+
+
+// legacy method, initializes traction after deserialization from scenario file
+void
+traction_table::InitTraction() {
+
+ //łączenie drutów ze sobą oraz z torami i eventami
+//    TGroundNode *nCurrent, *nTemp;
+//    TTraction *tmp; // znalezione przęsło
+
+    int connection { -1 };
+    TTraction *matchingtraction { nullptr };
+
+    for( auto *traction : m_items ) {
+        // podłączenie do zasilacza, żeby można było sumować prąd kilku pojazdów
+        // a jednocześnie z jednego miejsca zmieniać napięcie eventem
+        // wykonywane najpierw, żeby można było logować podłączenie 2 zasilaczy do jednego drutu
+        // izolator zawieszony na przęśle jest ma być osobnym odcinkiem drutu o długości ok. 1m,
+        // podłączonym do zasilacza o nazwie "*" (gwiazka); "none" nie będzie odpowiednie
+        auto *powersource = simulation::Powergrid.find( traction->asPowerSupplyName );
+        if( powersource ) {
+            // jak zasilacz znaleziony to podłączyć do przęsła
+            traction->PowerSet( powersource );
+        }
+        else {
+            if( ( traction->asPowerSupplyName != "*" ) // gwiazdka dla przęsła z izolatorem
+             && ( traction->asPowerSupplyName != "none" ) ) { // dopuszczamy na razie brak podłączenia?
+                // logowanie błędu i utworzenie zasilacza o domyślnej zawartości
+                ErrorLog( "Bad scenario: traction piece connected to nonexistent power source \"" + traction->asPowerSupplyName + "\"" );
+                scene::node_data nodedata;
+                nodedata.name = traction->asPowerSupplyName;
+                powersource = new TTractionPowerSource( nodedata );
+                powersource->Init( traction->NominalVoltage, traction->MaxCurrent );
+                simulation::Powergrid.insert( powersource );
+            }
+        }
+    }
+
+#ifdef EU07_IGNORE_LEGACYPROCESSINGORDER
+    for( auto *traction : m_items ) {
+#else
+    // NOTE: legacy code peformed item operations last-to-first due to way the items were added to the list
+    // this had impact in situations like two possible connection candidates, where only the first one would be used
+    for( auto first = std::rbegin(m_items); first != std::rend(m_items); ++first ) {
+        auto *traction = *first;
+#endif
+        if( traction->hvNext[ 0 ] == nullptr ) {
+            // tylko jeśli jeszcze nie podłączony
+            std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint1, traction );
+            switch (connection) {
+                case 0:
+                case 1: {
+                    traction->Connect( 0, matchingtraction, connection );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            if( traction->hvNext[ 0 ] ) {
+                // jeśli został podłączony
+                if( ( traction->psSection != nullptr )
+                 && ( matchingtraction->psSection != nullptr ) ) {
+                    // tylko przęsło z izolatorem może nie mieć zasilania, bo ma 2, trzeba sprawdzać sąsiednie
+                    if( traction->psSection != matchingtraction->psSection ) {
+                        // połączone odcinki mają różne zasilacze
+                        // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo błąd
+                        if( ( true == traction->psSection->bSection )
+                         && ( false == matchingtraction->psSection->bSection ) ) {
+                            //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
+                            matchingtraction->PowerSet( traction->psSection ); // zastąpienie wskazaniem sekcji
+                        }
+                        else if( ( false == traction->psSection->bSection )
+                              && ( true == matchingtraction->psSection->bSection ) ) {
+                            //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
+                            traction->PowerSet( matchingtraction->psSection ); // zastąpienie wskazaniem sekcji
+                        }
+                        else {
+                            // jeśli obie to sekcje albo obie podstacje, to będzie błąd
+                            ErrorLog( "Bad scenario: faulty traction power connection at location " + to_string( traction->pPoint1 ) );
+                        }
+                    }
+                }
+            }
+        }
+        if( traction->hvNext[ 1 ] == nullptr ) {
+            // tylko jeśli jeszcze nie podłączony
+            std::tie( matchingtraction, connection ) = simulation::Region->find_traction( traction->pPoint2, traction );
+            switch (connection) {
+                case 0:
+                case 1: {
+                    traction->Connect( 1, matchingtraction, connection );
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            if( traction->hvNext[ 1 ] ) {
+                // jeśli został podłączony
+                if( ( traction->psSection != nullptr )
+                 && ( matchingtraction->psSection != nullptr ) ) {
+                    // tylko przęsło z izolatorem może nie mieć zasilania, bo ma 2, trzeba sprawdzać sąsiednie
+                    if( traction->psSection != matchingtraction->psSection ) {
+                        // to może być albo podłączenie podstacji lub kabiny sekcyjnej do sekcji, albo błąd
+                        if( ( true == traction->psSection->bSection )
+                         && ( false == matchingtraction->psSection->bSection ) ) {
+                            //(tmp->psSection) jest podstacją, a (Traction->psSection) nazwą sekcji
+                            matchingtraction->PowerSet( traction->psSection ); // zastąpienie wskazaniem sekcji
+                        }
+                        else if( ( false == traction->psSection->bSection )
+                              && ( true == matchingtraction->psSection->bSection ) ) {
+                            //(Traction->psSection) jest podstacją, a (tmp->psSection) nazwą sekcji
+                            traction->PowerSet( matchingtraction->psSection ); // zastąpienie wskazaniem sekcji
+                        }
+                        else {
+                            // jeśli obie to sekcje albo obie podstacje, to będzie błąd
+                            ErrorLog( "Bad scenario: faulty traction power connection at location " + to_string( traction->pPoint2 ) );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    auto endcount { 0 };
+    for( auto *traction : m_items ) {
+        // operacje mające na celu wykrywanie bieżni wspólnych i łączenie przęseł naprążania
+        if( traction->WhereIs() ) {
+            // true for outer pieces of the traction section
+            traction->iTries = 5; // oznaczanie końcowych
+            ++endcount;
+        }
+        if (traction->fResistance[0] == 0.0) {
+            // obliczanie przęseł w segmencie z bezpośrednim zasilaniem
+            traction->ResistanceCalc();
+            traction->iTries = 0; // nie potrzeba mu szukać zasilania
+        }
+    }
+
+    std::vector<TTraction *> ends; ends.reserve( endcount );
+    for( auto *traction : m_items ) {
+        //łączenie bieżni wspólnych, w tym oznaczanie niepodanych jawnie
+        if( false == traction->asParallel.empty() ) {
+            // będzie wskaźnik na inne przęsło
+            if( ( traction->asParallel == "none" )
+             || ( traction->asParallel == "*" ) ) {
+                // jeśli nieokreślone
+                traction->iLast |= 2; // jakby przedostatni - niech po prostu szuka (iLast już przeliczone)
+            }
+            else if( traction->hvParallel == nullptr ) {
+                // jeśli jeszcze nie został włączony w kółko
+                auto *nTemp = find( traction->asParallel );
+                if( nTemp != nullptr ) {
+                    // o ile zostanie znalezione przęsło o takiej nazwie
+                    if( nTemp->hvParallel == nullptr ) {
+                        // jeśli tamten jeszcze nie ma wskaźnika bieżni wspólnej
+                        traction->hvParallel = nTemp; // wpisać siebie i dalej dać mu wskaźnik zwrotny
+                    }
+                    else {
+                        // a jak ma, to albo dołączyć się do kółeczka
+                        traction->hvParallel = nTemp->hvParallel; // przjąć dotychczasowy wskaźnik od niego
+                    }
+                    nTemp->hvParallel = traction; // i na koniec ustawienie wskaźnika zwrotnego
+                }
+                if( traction->hvParallel == nullptr ) {
+                    ErrorLog( "Missed overhead: " + traction->asParallel ); // logowanie braku
+                }
+            }
+        }
+        if( traction->iTries == 5 ) {
+            // jeśli zaznaczony do podłączenia
+            // wypełnianie tabeli końców w celu szukania im połączeń
+            ends.emplace_back( traction );
+        }
+    }
+
+    bool connected; // nieefektywny przebieg kończy łączenie
+    do {
+        // ustalenie zastępczej rezystancji dla każdego przęsła
+        // flaga podłączonych przęseł końcowych: -1=puste wskaźniki, 0=coś zostało, 1=wykonano łączenie
+        connected = false;
+        for( auto &end : ends ) {
+            // załatwione będziemy zerować
+            if( end == nullptr ) { continue; }
+            // każdy przebieg to próba podłączenia końca segmentu naprężania do innego zasilanego przęsła
+            if( end->hvNext[ 0 ] != nullptr ) {
+                // jeśli końcowy ma ciąg dalszy od strony 0 (Point1), szukamy odcinka najbliższego do Point2
+                std::tie( matchingtraction, connection ) = simulation::Region->find_traction( end->pPoint2, end, 0 );
+                if( matchingtraction != nullptr ) {
+                    // jak znalezione przęsło z zasilaniem, to podłączenie "równoległe"
+                    end->ResistanceCalc( 0, matchingtraction->fResistance[ connection ], matchingtraction->psPower[ connection ] );
+                    // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo dotrze
+                    connected = true;
+                    end = nullptr;
+                }
+            }
+            else if( end->hvNext[ 1 ] != nullptr ) {
+                // jeśli końcowy ma ciąg dalszy od strony 1 (Point2), szukamy odcinka najbliższego do Point1
+                std::tie( matchingtraction, connection ) = simulation::Region->find_traction( end->pPoint1, end, 1 );
+                if( matchingtraction != nullptr ) {
+                    // jak znalezione przęsło z zasilaniem, to podłączenie "równoległe"
+                    end->ResistanceCalc( 1, matchingtraction->fResistance[ connection ], matchingtraction->psPower[ connection ] );
+                    // jak coś zostało podłączone, to może zasilanie gdzieś dodatkowo dotrze
+                    connected = true;
+                    end = nullptr;
+                }
+            }
+            else {
+                // gdy koniec jest samotny, to na razie nie zostanie podłączony (nie powinno takich być)
+                end = nullptr;
+            }
+        }
+    } while( true == connected );
 }

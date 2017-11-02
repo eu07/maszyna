@@ -19,15 +19,16 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 const int iMaxNumLights = 8;
+float const DefaultDarkThresholdLevel { 0.325f };
 
 // typy stanu świateł
-typedef enum
+enum TLightState
 {
     ls_Off = 0, // zgaszone
     ls_On = 1, // zapalone
     ls_Blink = 2, // migające
     ls_Dark = 3 // Ra: zapalajce się automatycznie, gdy zrobi się ciemno
-} TLightState;
+};
 
 class TAnimVocaloidFrame
 { // ramka animacji typu Vocaloid Motion Data z programu MikuMikuDance
@@ -77,16 +78,9 @@ class TAnimContainer
     TAnimContainer();
     ~TAnimContainer();
     bool Init(TSubModel *pNewSubModel);
-    // std::string inline GetName() { return
-    // std::string(pSubModel?pSubModel->asName.c_str():""); };
-    // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
-    // };
-    std::string NameGet()
-    {
-        return (pSubModel ? pSubModel->pName : "");
-    };
-    // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
-    // fNewRotateSpeed, bool bResetAngle=false);
+    inline
+    std::string NameGet() {
+        return (pSubModel ? pSubModel->pName : ""); };
     void SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
     void SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
     void AnimSetVMD(double fNewSpeed);
@@ -94,24 +88,20 @@ class TAnimContainer
     void UpdateModel();
     void UpdateModelIK();
     bool InMovement(); // czy w trakcie animacji?
-    double AngleGet()
-    {
-        return vRotateAngles.z;
-    }; // jednak ostatnia, T3D ma inny układ
-    vector3 TransGet()
-    {
-        return vector3(-vTranslation.x, vTranslation.z, vTranslation.y);
-    }; // zmiana, bo T3D ma inny układ
-    void WillBeAnimated()
-    {
+    inline
+    double AngleGet() {
+        return vRotateAngles.z; }; // jednak ostatnia, T3D ma inny układ
+    inline
+    vector3 TransGet() {
+        return vector3(-vTranslation.x, vTranslation.z, vTranslation.y); }; // zmiana, bo T3D ma inny układ
+    inline
+    void WillBeAnimated() {
         if (pSubModel)
-            pSubModel->WillBeAnimated();
-    };
+            pSubModel->WillBeAnimated(); };
     void EventAssign(TEvent *ev);
-    TEvent * Event()
-    {
-        return evDone;
-    };
+    inline
+    TEvent * Event() {
+        return evDone; };
 };
 
 class TAnimAdvanced
@@ -129,55 +119,76 @@ class TAnimAdvanced
 };
 
 // opakowanie modelu, określające stan egzemplarza
-class TAnimModel {
+class TAnimModel : public editor::basic_node {
 
     friend class opengl_renderer;
 
-  private:
-    TAnimContainer *pRoot; // pojemniki sterujące, tylko dla aniomowanych submodeli
-    TModel3d *pModel;
-    double fBlinkTimer;
-    int iNumLights;
-    TSubModel *LightsOn[iMaxNumLights]; // Ra: te wskaźniki powinny być w ramach TModel3d
-    TSubModel *LightsOff[iMaxNumLights];
-    vector3 vAngle; // bazowe obroty egzemplarza względem osi
-    material_data m_materialdata;
-
-    std::string asText; // tekst dla wyświetlacza znakowego
-    TAnimAdvanced *pAdvanced { nullptr };
-    void Advanced();
-    TLightState lsLights[iMaxNumLights];
-    float fDark; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
-    float fOnTime, fOffTime; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
-    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
-private:
-    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
-    void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
-  public:
-    static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
-    inline
-        material_data const *Material() const { return &m_materialdata; }
-
-    TAnimModel();
+public:
+// constructors
+    TAnimModel( scene::node_data const &Nodedata );
+// destructor
     ~TAnimModel();
+// methods
+    static void AnimUpdate( double dt );
     bool Init(TModel3d *pNewModel);
     bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
-    int Flags();
-    void RaAnglesSet(double a, double b, double c)
-    {
-        vAngle.x = a;
-        vAngle.y = b;
-        vAngle.z = c;
-    };
+    void RaAnglesSet( glm::vec3 Angles ) {
+        vAngle.x = Angles.x;
+        vAngle.y = Angles.y;
+        vAngle.z = Angles.z; };
+    void LightSet( int n, float v );
+    void AnimationVND( void *pData, double a, double b, double c, double d );
     bool TerrainLoaded();
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
-    void AnimationVND(void *pData, double a, double b, double c, double d);
-    void LightSet(int n, float v);
-    static void AnimUpdate(double dt);
+    int Flags();
+    inline
+    material_data const *
+        Material() const {
+            return &m_materialdata; }
+    inline
+    TModel3d *
+        Model() {
+            return pModel; }
+// members
+    static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
+
+protected:
+    // calculates piece's bounding radius
+    void
+        radius_();
+
+private:
+// methods
+    void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
+    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
+    void Advanced();
+// members
+    TAnimContainer *pRoot { nullptr }; // pojemniki sterujące, tylko dla aniomowanych submodeli
+    TModel3d *pModel { nullptr };
+    double fBlinkTimer { 0.0 };
+    int iNumLights { 0 };
+    TSubModel *LightsOn[ iMaxNumLights ]; // Ra: te wskaźniki powinny być w ramach TModel3d
+    TSubModel *LightsOff[ iMaxNumLights ];
+    vector3 vAngle; // bazowe obroty egzemplarza względem osi
+    material_data m_materialdata;
+
+    std::string asText; // tekst dla wyświetlacza znakowego
+    TAnimAdvanced *pAdvanced { nullptr };
+    TLightState lsLights[ iMaxNumLights ];
+    float fDark { DefaultDarkThresholdLevel }; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
+    float fOnTime { 0.66f };
+    float fOffTime { 0.66f + 0.66f }; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
+};
+
+
+
+class instance_table : public basic_table<TAnimModel> {
+
 };
 
 //---------------------------------------------------------------------------
