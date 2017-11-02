@@ -78,7 +78,7 @@ set(SOURCES
 "vertex.cpp"
 )
 
-set (ARCH "x86")
+set (PREFIX "")
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
@@ -99,9 +99,12 @@ if (WIN32)
 	
 	if(${CMAKE_EXE_LINKER_FLAGS} STREQUAL "/machine:x64")
 		set (ARCH "x64")
+	else()
+		set (ARCH "x86")
 	endif()
-	
-	
+
+	set (PREFIX "-${ARCH}")
+
 	set(GLEW_LIBRARY ${GLEW_LIBRARY} "${DEPS_DIR}/glew/lib/${ARCH}/glew32s.lib")
 	set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES} "${DEPS_DIR}/glfw/lib/${ARCH}/glfw3.lib")
 	set(GLUT_glut_LIBRARY ${GLFW3_ROOT_PATH} "${DEPS_DIR}/freeglut/lib/${ARCH}/freeglut.lib")
@@ -120,7 +123,6 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
 add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -134,10 +136,11 @@ string(TIMESTAMP data_exe %y%m%d)
 
 set_target_properties( ${PROJECT_NAME}
     PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
-	OUTPUT_NAME "${PROJECT_NAME}-${ARCH}_${data_exe}"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
+	OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${data_exe}"
 	DEBUG_POSTFIX "_d"
 )
 

@@ -1,42 +1,47 @@
 version: '{build}'
-branches:
-  except:
-  - master
-  - dp
 image: Visual Studio 2015
 clone_depth: 1
 build_script:
 - cmd: >-
+    mkdir builds
+    
     cd builds
     
-    cmake_win32.bat
+    mkdir x86
     
-    cd build_win32
+    cd x86
     
-    cmake --build . --config RelWithDebInfo
-    
-    cd ..
-    
-    cmake_win64.bat
-    
-    cd build_win64
+    cmake ../.. -T v140_xp
     
     cmake --build . --config RelWithDebInfo
     
     cd ..
     
-    7z a symbols.zip build_win32/RelWithDebInfo/eu07++ng.pdb build_win64/RelWithDebInfo/eu07++ng.pdb
+    mkdir x64
+    
+    cd x64
+    
+    cmake ../.. -A x64
+    
+    cmake --build . --config RelWithDebInfo
+    
+    cd ..
+    
+    7z a eu07_x86_bin.zip ./x86/bin/RelWithDebInfo/*.exe
+    
+    7z a eu07_x86_pdb.zip ./x86/pdb/RelWithDebInfo/*.pdb
+    
+    7z a eu07_x64_bin.zip ./x64/bin/RelWithDebInfo/*.exe
+    
+    7z a eu07_x64_pdb.zip ./x64/pdb/RelWithDebInfo/*.pdb
 test: off
 deploy: off
 artifacts:
-- path: builds/build_win32/RelWithDebInfo/eu07++ng.exe
-  name: release_win32
-- path: builds/build_win64/RelWithDebInfo/eu07++ng.exe
-  name: release_win64
-- path: shaders
-  name: shaders
-  type: zip
-- path: builds/symbols.zip
-  name: symbols
-cache:
-    - builds/deps_win -> builds/download_windeps.bat
+- path: builds/eu07_x86_bin.zip
+  name: binaries_x86
+- path: builds/eu07_x64_bin.zip
+  name: binaries_x64
+- path: builds/eu07_x86_pdb.zip
+  name: symbols_x86
+- path: builds/eu07_x64_pdb.zip
+  name: symbols_x64

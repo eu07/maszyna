@@ -70,10 +70,7 @@ ipch/
 #ref/
 *.aps
 
-builds/build_*
-builds/*.zip
-builds/deps_*
-
+builds/
 doc/
 
 CMakeLists.txt.user
