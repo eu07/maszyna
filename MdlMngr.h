@@ -9,33 +9,28 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Model3d.h"
-#include "usefull.h"
 
-class TMdlContainer
-{
+class TMdlContainer {
     friend class TModelsManager;
-    ~TMdlContainer()
-    {
-        delete Model;
-    };
-    TModel3d * LoadModel(std::string const &NewName, bool dynamic);
-    TModel3d *Model{ nullptr };
-    std::string Name;
+private:
+    TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
+    std::shared_ptr<TModel3d> Model { nullptr };
+    std::string m_name;
 };
 
-class TModelsManager
-{ // klasa statyczna, nie ma obiektu
-  private:
-    static TMdlContainer *Models;
-    static int Count;
-    static TModel3d * LoadModel(std::string const &Name, bool dynamic);
-
-  public:
-    //    TModelsManager();
-    //    ~TModelsManager();
-    static void Init();
-    static void Free();
+// klasa statyczna, nie ma obiektu
+class TModelsManager {
+// types:
+    typedef std::deque<TMdlContainer> modelcontainer_sequence;
+    typedef std::unordered_map<std::string, modelcontainer_sequence::size_type> stringmodelcontainerindex_map;
+// members:
+    static modelcontainer_sequence m_models;
+    static stringmodelcontainerindex_map m_modelsmap;
+// methods:
+    static TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
+public:
     // McZapkie: dodalem sciezke, notabene Path!=Patch :)
-    static TModel3d * GetModel(std::string const &Name, bool dynamic = false);
+    static TModel3d *GetModel( std::string const &Name, bool dynamic = false );
 };
+
 //---------------------------------------------------------------------------

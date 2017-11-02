@@ -12,15 +12,14 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "sound.h"
 
-typedef enum
-{ // typ ruchu
+enum TGaugeType {
+    // typ ruchu
     gt_Unknown, // na razie nie znany
     gt_Rotate, // obrót
     gt_Move, // przesunięcie równoległe
-    gt_Wiper, // obrót trzech kolejnych submodeli o ten sam kąt (np. wycieraczka, drzwi
-    // harmonijkowe)
+    gt_Wiper, // obrót trzech kolejnych submodeli o ten sam kąt (np. wycieraczka, drzwi harmonijkowe)
     gt_Digital // licznik cyfrowy, np. kilometrów
-} TGaugeType;
+};
 
 // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich
 class TGauge { 
@@ -39,16 +38,18 @@ class TGauge {
         double *dData { nullptr };
         int *iData;
     };
-    PSound m_soundfxincrease { nullptr }; // sound associated with increasing control's value
-    PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
-    std::map<int, PSound> m_soundfxvalues; // sounds associated with specific values
+    sound *m_soundfxincrease { nullptr }; // sound associated with increasing control's value
+    sound *m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
+    std::map<int, sound*> m_soundfxvalues; // sounds associated with specific values
 // methods
     // imports member data pair from the config file
     bool
         Load_mapping( cParser &Input );
     // plays specified sound
     void
-        play( PSound Sound );
+        play( sound* Sound );
+
+	glm::vec3 model_pos;
 
   public:
     TGauge() = default;
@@ -59,7 +60,7 @@ class TGauge {
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
-    void UpdateValue(double fNewDesired, PSound Fallbacksound = nullptr );
+    void UpdateValue(double fNewDesired, sound *Fallbacksound = nullptr );
     void PutValue(double fNewDesired);
     double GetValue() const;
     void Update();
@@ -68,7 +69,7 @@ class TGauge {
     void AssignDouble(double *dValue);
     void AssignInt(int *iValue);
     void UpdateValue();
-    TSubModel *SubModel; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
+    TSubModel *SubModel = nullptr; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 
 //---------------------------------------------------------------------------

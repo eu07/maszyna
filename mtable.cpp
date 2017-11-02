@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mtable.h"
-#include "mczapkie/mctools.h"
+#include "McZapkie/mctools.h"
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca różnicę czasu
@@ -102,6 +102,33 @@ bool TTrainParameters::UpdateMTable(double hh, double mm, std::string const &New
         }
     }
     return OK; /*czy jest nastepna stacja*/
+}
+
+void Mtable::TTrainParameters::RewindTimeTable(std::string actualStationName)
+{
+    //actualStationName = ToLower(actualStationName); // na małe znaki
+    if (int s = actualStationName.find("PassengerStopPoint:") != std::string::npos)
+    {
+        actualStationName = ToLower(actualStationName.substr(s + 19));
+    }
+    for (int i = 1; i <= StationCount; i++)
+    { // przechodzimy po całej tabelce i sprawdzamy nazwy stacji (bez pierwszej)
+        if (ToLower(TimeTable[i].StationName) == actualStationName)
+        { // nazwa stacji zgodna 
+          // więc ustawiamy na poprzednią, żeby w następnym kroku poprawnie obsłużyć
+            StationIndex = i - 1;
+            if (StationIndex <
+                StationCount) // Ra: "<", bo dodaje 1 przy przejściu do następnej stacji
+            { // jeśli nie ostatnia stacja
+                NextStationName = TimeTable[StationIndex + 1].StationName; // zapamiętanie nazwy
+                TTVmax = TimeTable[StationIndex + 1]
+                    .vmax; // Ra: nowa prędkość rozkładowa na kolejnym odcinku
+            }
+            else // gdy ostatnia stacja
+                NextStationName = ""; // nie ma następnej stacji
+            break; // znaleźliśmy więc kończymy
+        }
+    }
 }
 
 void TTrainParameters::StationIndexInc()
@@ -214,6 +241,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         ConversionError = 666;
         vActual = -1;
         s = scnpath + TrainName + ".txt";
+		std::replace(s.begin(), s.end(), '\\', '/');
         // Ra 2014-09: ustalić zasady wyznaczenia pierwotnego pliku przy przesuniętych rozkładach
         // (kolejny pociąg dostaje numer +2)
         fin.open(s.c_str()); // otwieranie pliku

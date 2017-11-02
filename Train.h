@@ -14,8 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Button.h"
 #include "Gauge.h"
 #include "Spring.h"
-#include "AdvSound.h"
-#include "FadeSound.h"
 #include "PyInt.h"
 #include "command.h"
 
@@ -74,12 +72,14 @@ public:
 
 class TTrain
 {
+    friend class TWorld; // temporary due to use of play_sound TODO: refactor this
+
   public:
     bool CabChange(int iDirection);
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
-    ~TTrain();
+	~TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
     void OnKeyDown(int cKey);
@@ -112,8 +112,8 @@ class TTrain
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
     // plays specified sound, or fallback sound if the primary sound isn't presend
     // NOTE: temporary routine until sound system is sorted out and paired with switches
-    void play_sound( PSound Sound, int const Volume = DSBVOLUME_MAX, DWORD const Flags = 0 );
-    void play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags );
+    void play_sound( sound* Sound, float gain = 1.0f);
+    void play_sound( sound* Sound, sound* Fallbacksound, float gain = 1.0f );
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // command handlers
@@ -142,6 +142,9 @@ class TTrain
     static void OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command );
+    static void OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_manualbrakedecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
@@ -189,6 +192,7 @@ class TTrain
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members
@@ -228,6 +232,7 @@ public: // reszta może by?publiczna
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
     TGauge ggManualBrake;
+    TGauge ggAlarmChain;
     TGauge ggBrakeProfileCtrl; // nastawiacz GPR - przelacznik obrotowy
     TGauge ggBrakeProfileG; // nastawiacz GP - hebelek towarowy
     TGauge ggBrakeProfileR; // nastawiacz PR - hamowanie dwustopniowe
@@ -295,6 +300,8 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
+    TGauge ggPantCompressorButton;
+    TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
@@ -372,7 +379,6 @@ public: // reszta może by?publiczna
     vector3 pMechShake;
     vector3 vMechVelocity;
     // McZapkie: do poruszania sie po kabinie
-    double fMechCroach;
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     TCab Cabine[maxcab + 1]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
     int iCabn;
@@ -384,48 +390,48 @@ public: // reszta może by?publiczna
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnikJazdy;
-    PSound dsbNastawnikBocz; // hunter-081211
-    PSound dsbRelay;
-    PSound dsbPneumaticRelay;
-    PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;
-    PSound dsbReverserKey; // hunter-121211
+    sound* dsbNastawnikJazdy = nullptr;
+    sound* dsbNastawnikBocz = nullptr; // hunter-081211
+    sound* dsbRelay = nullptr;
+    sound* dsbPneumaticRelay = nullptr;
+    sound* dsbSwitch = nullptr;
+    sound* dsbPneumaticSwitch = nullptr;
+    sound* dsbReverserKey = nullptr; // hunter-121211
 
-    PSound dsbCouplerAttach; // Ra: w kabinie????
-    PSound dsbCouplerDetach; // Ra: w kabinie???
+    sound* dsbCouplerAttach = nullptr; // Ra: w kabinie????
+    sound* dsbCouplerDetach = nullptr; // Ra: w kabinie???
 
-    PSound dsbDieselIgnition; // Ra: w kabinie???
+    sound* dsbDieselIgnition = nullptr; // Ra: w kabinie???
 
-    PSound dsbDoorClose; // Ra: w kabinie???
-    PSound dsbDoorOpen; // Ra: w kabinie???
+    sound* dsbDoorClose = nullptr; // Ra: w kabinie???
+    sound* dsbDoorOpen = nullptr; // Ra: w kabinie???
 
     // Winger 010304
-    PSound dsbPantUp;
-    PSound dsbPantDown;
+    sound* dsbPantUp = nullptr;
+    sound* dsbPantDown = nullptr;
 
-    PSound dsbWejscie_na_bezoporow;
-    PSound dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
+    sound* dsbWejscie_na_bezoporow = nullptr;
+    sound* dsbWejscie_na_drugi_uklad = nullptr; // hunter-081211: poprawka literowki
 
-    //    PSound dsbHiss1;
-    //  PSound dsbHiss2;
+    //    sound* dsbHiss1;
+    //  sound* dsbHiss2;
 
     // McZapkie-280302
-    TRealSound rsBrake;
-    TRealSound rsSlippery;
-    TRealSound rsHiss; // upuszczanie
-    TRealSound rsHissU; // napelnianie
-    TRealSound rsHissE; // nagle
-    TRealSound rsHissX; // fala
-    TRealSound rsHissT; // czasowy
-    TRealSound rsSBHiss;
-    TRealSound rsRunningNoise;
-    TRealSound rsEngageSlippery;
-    TRealSound rsFadeSound;
+    sound* rsBrake = nullptr;
+    sound* rsSlippery = nullptr;
+    sound* rsHiss = nullptr; // upuszczanie
+    sound* rsHissU = nullptr; // napelnianie
+    sound* rsHissE = nullptr; // nagle
+    sound* rsHissX = nullptr; // fala
+    sound* rsHissT = nullptr; // czasowy
+    sound* rsSBHiss = nullptr;
+    sound* rsRunningNoise = nullptr;
+    sound* rsEngageSlippery = nullptr;
+    sound* rsFadeSound = nullptr;
 
-    PSound dsbHasler;
-    PSound dsbBuzzer;
-    PSound dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound* dsbHasler = nullptr;
+    sound* dsbBuzzer = nullptr;
+    sound* dsbSlipAlarm = nullptr; // Bombardier 011010: alarm przy poslizgu dla 181/182
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -435,10 +441,10 @@ public: // reszta może by?publiczna
     vector3 MirrorPosition(bool lewe);
 
   private:
-    // PSound dsbBuzzer;
-    PSound dsbCouplerStretch;
-    PSound dsbEN57_CouplerStretch;
-    PSound dsbBufferClamp;
+    sound* dsbCouplerStretch = nullptr;
+    sound* dsbEN57_CouplerStretch = nullptr;
+    sound* dsbBufferClamp = nullptr;
+
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
@@ -464,6 +470,7 @@ public: // reszta może by?publiczna
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi
     char cCode[20]; // kod pojazdu
+	bool bSlip[20]; // poślizg kół pojazdu
     std::string asCarName[20]; // nazwa czlonu
     bool bMains[8]; // WSy
     float fCntVol[8]; // napiecie NN
@@ -489,5 +496,19 @@ public: // reszta może by?publiczna
     inline TMoverParameters *Controlled() { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
     void Silence();
+
+	float get_tacho();
+	float get_tank_pressure();
+	float get_pipe_pressure();
+	float get_brake_pressure();
+	float get_hv_voltage();
+	std::array<float, 3> get_current();
+	bool get_alarm();
+	int get_drive_direction();
+
+    void set_mainctrl(int);
+    void set_scndctrl(int);
+    void set_trainbrake(float);
+    void set_localbrake(float);
 };
 //---------------------------------------------------------------------------

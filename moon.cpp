@@ -1,10 +1,10 @@
 
 #include "stdafx.h"
 #include "moon.h"
-#include "globals.h"
+#include "Globals.h"
 #include "mtable.h"
 #include "usefull.h"
-#include "world.h"
+#include "World.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
@@ -15,9 +15,17 @@ cMoon::cMoon() {
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 
-	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
-	::GetTimeZoneInformation( &timezoneinfo );
-	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#ifdef _WIN32
+    TIME_ZONE_INFORMATION timezoneinfo;             // TODO: timezone dependant on geographic location
+    ::GetTimeZoneInformation( &timezoneinfo );
+    m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#elif __linux__
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    time_t local = mktime(localtime(&ts.tv_sec));
+    time_t utc = mktime(gmtime(&ts.tv_sec));
+    m_observer.timezone = (local - utc) / 3600.0f;
+#endif
 }
 
 cMoon::~cMoon() { gluDeleteQuadric( moonsphere ); }
@@ -36,9 +44,9 @@ void
 cMoon::update() {
 
     move();
-    glm::vec3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
-    position = glm::rotateX( position, (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
-    position = glm::rotateY( position, (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
+    glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
+    position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
+    position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );
 
     m_position = position;
 }
@@ -46,17 +54,16 @@ cMoon::update() {
 void
 cMoon::render() {
 
-	glColor4f( 225.0f/255.0f, 225.0f/255.0f, 255.0f/255.0f, 1.f );
-	// debug line to locate the sun easier
-	Math3D::vector3 position = m_position;
-	glBegin( GL_LINES );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( position.x, 0.0f, position.z );
-	glEnd();
-	glPushMatrix();
-	glTranslatef( position.x, position.y, position.z );
-    gluSphere( moonsphere, /* (float)( Global::ScreenHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
-	glPopMatrix();
+    ::glColor4f( 225.f / 255.f, 225.f / 255.f, 255.f / 255.f, 1.f );
+	// debug line to locate the moon easier
+    ::glBegin( GL_LINES );
+    ::glVertex3fv( glm::value_ptr( m_position ) );
+    ::glVertex3f( m_position.x, 0.f, m_position.z );
+    ::glEnd();
+    ::glPushMatrix();
+    ::glTranslatef( m_position.x, m_position.y, m_position.z );
+    ::gluSphere( moonsphere, /* (float)( Global::iWindowHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
+	::glPopMatrix();
 }
 
 glm::vec3
@@ -78,8 +85,8 @@ float cMoon::getIntensity() {
     // calculating intensity of the sun instead, and returning 15% of the value,
     // which roughly matches how much sunlight is reflected by the moon
     // We alter the intensity further based on current phase of the moon
-    auto const phasefactor = 1.0f - std::abs( m_phase - 29.53f * 0.5f ) / ( 29.53 * 0.5f );
-	return (float)( m_body.etr/ 1399.0 ) * phasefactor * 0.15f; // arbitrary scaling factor taken from etrn value
+    auto const phasefactor = 1.0f - std::abs( m_phase - 29.53f * 0.5f ) / ( 29.53f * 0.5f );
+	return static_cast<float>( ( m_body.etr/ 1399.0 ) * phasefactor * 0.15 ); // arbitrary scaling factor taken from etrn value
 }
 
 void cMoon::setLocation( float const Longitude, float const Latitude ) {

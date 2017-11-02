@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "Track.h"
 
 //---------------------------------------------------------------------------
@@ -21,20 +21,17 @@ http://mozilla.org/MPL/2.0/.
 // 110806 Ra: odwrócone mapowanie wzdłuż - Point1 == 1.0
 
 TSegment::TSegment(TTrack *owner) :
-    pOwner( owner )
-{
-    fAngle[ 0 ] = 0.0;
-    fAngle[ 1 ] = 0.0;
-};
+                   pOwner( owner )
+{}
 
 TSegment::~TSegment()
 {
     SafeDeleteArray(fTsBuffer);
-};
+}
 
-bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2)
+bool TSegment::Init(Math3D::vector3 NewPoint1, Math3D::vector3 NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
-    vector3 dir;
+    Math3D::vector3 dir;
 
     // NOTE: we're enforcing division also for straight track, to ensure dense enough mesh for per-vertex lighting
 /*
@@ -55,17 +52,15 @@ bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, doubl
     }
 };
 
-bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn,
-                    vector3 &NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2,
-                    bool bIsCurve)
+bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, Math3D::vector3 NewCPointIn, Math3D::vector3 &NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2, bool bIsCurve)
 { // wersja uniwersalna (dla krzywej i prostego)
     Point1 = NewPoint1;
     CPointOut = NewCPointOut;
     CPointIn = NewCPointIn;
     Point2 = NewPoint2;
     // poprawienie przechyłki
-    fRoll1 = DegToRad(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
-    fRoll2 = DegToRad(fNewRoll2);
+    fRoll1 = glm::radians(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
+    fRoll2 = glm::radians(fNewRoll2);
     if (Global::bRollFix)
     { // Ra: poprawianie przechyłki
         // Przechyłka powinna być na środku wewnętrznej szyny, a standardowo jest w osi
@@ -77,24 +72,24 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
         // mieć moment wypoziomowania, ale musi on być również podniesiony.
         if (fRoll1 != 0.0)
         { // tylko jeśli jest przechyłka
-            double w1 = fabs(sin(fRoll1) * 0.75); // 0.5*w2+0.0325; //0.75m dla 1.435
+            double w1 = std::abs(std::sin(fRoll1) * 0.75); // 0.5*w2+0.0325; //0.75m dla 1.435
             Point1.y += w1; // modyfikacja musi być przed policzeniem dalszych parametrów
             if (bCurve)
                 CPointOut.y += w1; // prosty ma wektory jednostkowe
             pOwner->MovedUp1(w1); // zwrócić trzeba informację o podwyższeniu podsypki
         }
-        if (fRoll2 != 0.0)
+        if (fRoll2 != 0.f)
         {
-            double w2 = fabs(sin(fRoll2) * 0.75); // 0.5*w2+0.0325; //0.75m dla 1.435
+            double w2 = std::abs(std::sin(fRoll2) * 0.75); // 0.5*w2+0.0325; //0.75m dla 1.435
             Point2.y += w2; // modyfikacja musi być przed policzeniem dalszych parametrów
             if (bCurve)
                 CPointIn.y += w2; // prosty ma wektory jednostkowe
             // zwrócić trzeba informację o podwyższeniu podsypki
         }
     }
+    // kąt w planie, żeby nie liczyć wielokrotnie
     // Ra: ten kąt jeszcze do przemyślenia jest
-    fDirection = -atan2(Point2.x - Point1.x,
-                        Point2.z - Point1.z); // kąt w planie, żeby nie liczyć wielokrotnie
+    fDirection = -std::atan2(Point2.x - Point1.x, Point2.z - Point1.z);
     bCurve = bIsCurve;
     if (bCurve)
     { // przeliczenie współczynników wielomianu, będzie mniej mnożeń i można policzyć pochodne
@@ -106,10 +101,9 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     else
         fLength = (Point1 - Point2).Length();
     fStep = fNewStep;
-    if (fLength <= 0)
-    {
-        ErrorLog( "Bad geometry: zero length spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
-        // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
+    if (fLength <= 0) {
+
+        ErrorLog( "Bad track: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
         fLength = 0.01; // crude workaround TODO: fix this properly
 /*
         return false; // zerowe nie mogą być
@@ -137,12 +131,12 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     return true;
 }
 
-vector3 TSegment::GetFirstDerivative(double fTime)
+Math3D::vector3 TSegment::GetFirstDerivative(double const fTime) const
 {
 
     double fOmTime = 1.0 - fTime;
     double fPowTime = fTime;
-    vector3 kResult = fOmTime * (CPointOut - Point1);
+    Math3D::vector3 kResult = fOmTime * (CPointOut - Point1);
 
     // int iDegreeM1 = 3 - 1;
 
@@ -156,7 +150,7 @@ vector3 TSegment::GetFirstDerivative(double fTime)
     return kResult;
 }
 
-double TSegment::RombergIntegral(double fA, double fB)
+double TSegment::RombergIntegral(double const fA, double const fB) const
 {
     double fH = fB - fA;
 
@@ -188,7 +182,7 @@ double TSegment::RombergIntegral(double fA, double fB)
     return ms_apfRom[0][ms_iOrder - 1];
 }
 
-double TSegment::GetTFromS(double s)
+double TSegment::GetTFromS(double const s) const
 {
     // initial guess for Newton's method
     double fTolerance = 0.001;
@@ -211,46 +205,88 @@ double TSegment::GetTFromS(double s)
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-    ErrorLog( "Bad geometry: shape estimation failed for spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
+    ErrorLog( "Bad track: shape estimation failed for spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };
 
-vector3 TSegment::RaInterpolate(double t)
+Math3D::vector3 TSegment::RaInterpolate(double const t) const
 { // wyliczenie XYZ na krzywej Beziera z użyciem współczynników
     return t * (t * (t * vA + vB) + vC) + Point1; // 9 mnożeń, 9 dodawań
 };
 
-vector3 TSegment::RaInterpolate0(double t)
+Math3D::vector3 TSegment::RaInterpolate0(double const t) const
 { // wyliczenie XYZ na krzywej Beziera, na użytek liczenia długości nie jest dodawane Point1
     return t * (t * (t * vA + vB) + vC); // 9 mnożeń, 6 dodawań
 };
 
-double TSegment::ComputeLength() // McZapkie-150503: dlugosc miedzy punktami krzywej
+double TSegment::ComputeLength() const // McZapkie-150503: dlugosc miedzy punktami krzywej
 { // obliczenie długości krzywej Beziera za pomocą interpolacji odcinkami
     // Ra: zamienić na liczenie rekurencyjne średniej z cięciwy i łamanej po kontrolnych
     // Ra: koniec rekurencji jeśli po podziale suma długości nie różni się więcej niż 0.5mm od
     // poprzedniej
     // Ra: ewentualnie rozpoznać łuk okręgu płaskiego i liczyć ze wzoru na długość łuku
     double t, l = 0;
-    vector3 last = vector3(0, 0, 0); // długość liczona po przesunięciu odcinka do początku układu
-    vector3 tmp = Point2 - Point1;
+    Math3D::vector3 last = Math3D::vector3(0, 0, 0); // długość liczona po przesunięciu odcinka do początku układu
+    Math3D::vector3 tmp = Point2 - Point1;
     int m = 20.0 * tmp.Length(); // było zawsze do 10000, teraz jest liczone odcinkami po około 5cm
     for (int i = 1; i <= m; i++)
     {
         t = double(i) / double(m); // wyznaczenie parametru na krzywej z przedziału (0,1>
         // tmp=Interpolate(t,p1,cp1,cp2,p2);
         tmp = RaInterpolate0(t); // obliczenie punktu dla tego parametru
-        t = vector3(tmp - last).Length(); // obliczenie długości wektora
+        t = Math3D::vector3(tmp - last).Length(); // obliczenie długości wektora
         l += t; // zwiększenie wyliczanej długości
         last = tmp;
     }
     return (l);
 }
 
+// finds point on segment closest to specified point in 3d space. returns: point on segment as value in range 0-1
+double
+TSegment::find_nearest_point( glm::dvec3 const &Point ) const {
+
+    if( ( false == bCurve ) || ( iSegCount == 1 ) ) {
+        // for straight track just treat it as a single segment
+        return
+            nearest_segment_point(
+                glm::dvec3{ FastGetPoint_0() },
+                glm::dvec3{ FastGetPoint_1() },
+                Point );
+    }
+    else {
+        // for curves iterate through segment chunks, and find the one which gives us the least distance to the specified point
+        double distance = std::numeric_limits<double>::max();
+        double nearest;
+        // NOTE: we're reusing already created segment chunks, which are created based on splinefidelity setting
+        // this means depending on splinefidelity the results can be potentially slightly different
+        for( int segmentidx = 0; segmentidx < iSegCount; ++segmentidx ) {
+
+            auto const segmentpoint =
+                clamp(
+                    nearest_segment_point(
+                        glm::dvec3{ FastGetPoint( fTsBuffer[ segmentidx ] ) },
+                        glm::dvec3{ FastGetPoint( fTsBuffer[ segmentidx + 1 ] ) },
+                        Point ) // point in range 0-1 on current segment
+                    * ( fTsBuffer[ segmentidx + 1 ] - fTsBuffer[ segmentidx ] ) // segment length
+                    + fTsBuffer[ segmentidx ], // segment offset
+                    0.0, 1.0 ); // we clamp the range in case there's some floating point math inaccuracies
+
+            auto const segmentdistance = glm::length2( Point - glm::dvec3{ FastGetPoint( segmentpoint ) } );
+            if( segmentdistance < distance ) {
+
+                nearest = segmentpoint;
+                distance = segmentdistance;
+            }
+        }
+        // 
+        return nearest;
+    }
+}
+
 const double fDirectionOffset = 0.1; // długość wektora do wyliczenia kierunku
 
-vector3 TSegment::GetDirection(double fDistance)
+Math3D::vector3 TSegment::GetDirection(double const fDistance) const
 { // takie toporne liczenie pochodnej dla podanego dystansu od Point1
     double t1 = GetTFromS(fDistance - fDirectionOffset);
     if (t1 <= 0.0)
@@ -261,7 +297,7 @@ vector3 TSegment::GetDirection(double fDistance)
     return (FastGetPoint(t2) - FastGetPoint(t1));
 }
 
-vector3 TSegment::FastGetDirection(double fDistance, double fOffset)
+Math3D::vector3 TSegment::FastGetDirection(double fDistance, double fOffset)
 { // takie toporne liczenie pochodnej dla parametru 0.0÷1.0
     double t1 = fDistance - fOffset;
     if (t1 <= 0.0)
@@ -272,7 +308,7 @@ vector3 TSegment::FastGetDirection(double fDistance, double fOffset)
     return (FastGetPoint(t2) - FastGetPoint(t1));
 }
 
-vector3 TSegment::GetPoint(double fDistance)
+Math3D::vector3 TSegment::GetPoint(double const fDistance) const
 { // wyliczenie współrzędnych XYZ na torze w odległości (fDistance) od Point1
     if (bCurve)
     { // można by wprowadzić uproszczony wzór dla okręgów płaskich
@@ -287,35 +323,43 @@ vector3 TSegment::GetPoint(double fDistance)
     }
 };
 
-void TSegment::RaPositionGet(double fDistance, vector3 &p, vector3 &a)
-{ // ustalenie pozycji osi na torze, przechyłki, pochylenia i kierunku jazdy
-    if (bCurve)
-    { // można by wprowadzić uproszczony wzór dla okręgów płaskich
-        double t = GetTFromS(fDistance); // aproksymacja dystansu na krzywej Beziera na parametr (t)
-        p = RaInterpolate(t);
-        a.x = (1.0 - t) * fRoll1 + (t)*fRoll2; // przechyłka w danym miejscu (zmienia się liniowo)
+// ustalenie pozycji osi na torze, przechyłki, pochylenia i kierunku jazdy
+void TSegment::RaPositionGet(double const fDistance, Math3D::vector3 &p, Math3D::vector3 &a) const {
+
+    if (bCurve) {
+        // można by wprowadzić uproszczony wzór dla okręgów płaskich
+        auto const t = GetTFromS(fDistance); // aproksymacja dystansu na krzywej Beziera na parametr (t)
+        p = FastGetPoint( t );
+        // przechyłka w danym miejscu (zmienia się liniowo)
+        a.x = interpolate<double>( fRoll1, fRoll2, t );
         // pochodna jest 3*A*t^2+2*B*t+C
-        a.y = atan(t * (t * 3.0 * vA.y + vB.y + vB.y) + vC.y); // pochylenie krzywej (w pionie)
-        a.z = -atan2(t * (t * 3.0 * vA.x + vB.x + vB.x) + vC.x,
-                     t * (t * 3.0 * vA.z + vB.z + vB.z) + vC.z); // kierunek krzywej w planie
+        auto const tangent = t * ( t * 3.0 * vA + vB + vB ) + vC;
+        // pochylenie krzywej (w pionie)
+        a.y = std::atan( tangent.y );
+        // kierunek krzywej w planie
+        a.z = -std::atan2( tangent.x, tangent.z );
     }
-    else
-    { // wyliczenie dla odcinka prostego jest prostsze
-        double t = fDistance / fLength; // zerowych torów nie ma
-        p = ((1.0 - t) * Point1 + (t)*Point2);
-        a.x = (1.0 - t) * fRoll1 + (t)*fRoll2; // przechyłka w danym miejscu (zmienia się liniowo)
+    else {
+        // wyliczenie dla odcinka prostego jest prostsze
+        auto const t = fDistance / fLength; // zerowych torów nie ma
+        p = FastGetPoint( t );
+        // przechyłka w danym miejscu (zmienia się liniowo)
+        a.x = interpolate<double>( fRoll1, fRoll2, t );
         a.y = fStoop; // pochylenie toru prostego
         a.z = fDirection; // kierunek toru w planie
     }
 };
 
-vector3 TSegment::FastGetPoint(double t)
+Math3D::vector3 TSegment::FastGetPoint(double const t) const
 {
     // return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
-    return (bCurve ? RaInterpolate(t) : ((1.0 - t) * Point1 + (t)*Point2));
+    return (
+        ( ( true == bCurve ) || ( iSegCount != 1 ) ) ?
+            RaInterpolate( t ) :
+            interpolate( Point1, Point2, t ) );
 }
 
-bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, vector3 **p, bool bRender)
+bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, const basic_vertex *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, float fOffsetX, glm::vec3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -325,13 +369,14 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
     if( !fTsBuffer )
         return false; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
 
-    vector3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
-    double s, step, fOffset, tv1, tv2, t, fEnd;
+    glm::vec3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
+    float s, step, fOffset, tv1, tv2, t, fEnd;
     bool const trapez = iNumShapePoints < 0; // sygnalizacja trapezowatości
     iNumShapePoints = std::abs( iNumShapePoints );
-    fTextureLength *= Texturescale;
+    float const texturelength = fTextureLength * Texturescale;
+    float const texturescale = Texturescale;
 
-    double m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
+    float m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
     step = fStep;
     tv1 = 1.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
     s = fStep * iSkip; // iSkip - ile odcinków z początku pominąć
@@ -339,9 +384,14 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
     t = fTsBuffer[ i ]; // tabela wattości t dla segmentów
     // BUG: length of spline can be 0, we should skip geometry generation for such cases
     fOffset = 0.1 / fLength; // pierwsze 10cm
-    pos1 = FastGetPoint( t ); // wektor początku segmentu
-    dir = FastGetDirection( t, fOffset ); // wektor kierunku
-    parallel1 = Normalize( vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+    pos1 = glm::dvec3{ FastGetPoint( t ) - Origin }; // wektor początku segmentu
+    dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // wektor kierunku
+    parallel1 = glm::vec3{ -dir.z, 0.f, dir.x }; // wektor poprzeczny
+    if( glm::length2( parallel1 ) == 0.f ) {
+        // temporary workaround for malformed situations with control points placed above endpoints
+        parallel1 = glm::vec3{ glm::dvec3{ FastGetPoint_1() - FastGetPoint_0() } };
+    }
+    parallel1 = glm::normalize( parallel1 );
     if( iEnd == 0 )
         iEnd = iSegCount;
     fEnd = fLength * double( iEnd ) / double( iSegCount );
@@ -366,26 +416,31 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
         while( tv1 < 0.0 ) {
             tv1 += 1.0;
         }
-        tv2 = tv1 - step / fTextureLength; // mapowanie na końcu segmentu
+        tv2 = tv1 - step / texturelength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
-        pos2 = FastGetPoint( t );
-        dir = FastGetDirection( t, fOffset ); // nowy wektor kierunku
-        parallel2 = Normalize( vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+        pos2 = glm::dvec3{ FastGetPoint( t ) - Origin };
+        dir = glm::dvec3{ FastGetDirection( t, fOffset ) }; // nowy wektor kierunku
+        parallel2 = glm::vec3{ -dir.z, 0.f, dir.x }; // wektor poprzeczny
+        if( glm::length2( parallel2 ) == 0.f ) {
+            // temporary workaround for malformed situations with control points placed above endpoints
+            parallel2 = glm::vec3{ glm::dvec3{ FastGetPoint_1() - FastGetPoint_0() } };
+        }
+        parallel2 = glm::normalize( parallel2 );
 
         if( trapez ) {
             for( int j = 0; j < iNumShapePoints; ++j ) {
-                pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].x - fOffsetX ) + m1 * ShapePoints[ j + iNumShapePoints ].x ) + pos1;
-                pt.y += jmm1 * ShapePoints[ j ].y + m1 * ShapePoints[ j + iNumShapePoints ].y;
-                pt -= Origin;
-                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel1;
-                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
+                pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].position.x - fOffsetX ) + m1 * ShapePoints[ j + iNumShapePoints ].position.x ) + pos1;
+                pt.y += jmm1 * ShapePoints[ j ].position.y + m1 * ShapePoints[ j + iNumShapePoints ].position.y;
+//                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].normal.x + m1 * ShapePoints[ j + iNumShapePoints ].normal.x ) * parallel1;
+                norm.y += jmm1 * ShapePoints[ j ].normal.y + m1 * ShapePoints[ j + iNumShapePoints ].normal.y;
                 if( bRender ) {
                     // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ( jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z ) / Texturescale, tv1 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ( jmm1 * ShapePoints[ j ].texture.x + m1 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv1 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -395,17 +450,17 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
                             ( *p )++;
                         } // zapamiętanie brzegu jezdni
                 // dla trapezu drugi koniec ma inne współrzędne
-                pt = parallel2 * ( jmm2 * ( ShapePoints[ j ].x - fOffsetX ) + m2 * ShapePoints[ j + iNumShapePoints ].x ) + pos2;
-                pt.y += jmm2 * ShapePoints[ j ].y + m2 * ShapePoints[ j + iNumShapePoints ].y;
-                pt -= Origin;
-                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel2;
-                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
+                pt = parallel2 * ( jmm2 * ( ShapePoints[ j ].position.x - fOffsetX ) + m2 * ShapePoints[ j + iNumShapePoints ].position.x ) + pos2;
+                pt.y += jmm2 * ShapePoints[ j ].position.y + m2 * ShapePoints[ j + iNumShapePoints ].position.y;
+//                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].normal.x + m1 * ShapePoints[ j + iNumShapePoints ].normal.x ) * parallel2;
+                norm.y += jmm1 * ShapePoints[ j ].normal.y + m1 * ShapePoints[ j + iNumShapePoints ].normal.y;
                 if( bRender ) {
                     // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ( jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z ) / Texturescale, tv2 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ( jmm2 * ShapePoints[ j ].texture.x + m2 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv2 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -420,27 +475,27 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
             if( bRender  ) {
                 for( int j = 0; j < iNumShapePoints; ++j ) {
                     //łuk z jednym profilem
-                    pt = parallel1 * ( ShapePoints[ j ].x - fOffsetX ) + pos1;
-                    pt.y += ShapePoints[ j ].y;
-                    pt -= Origin;
-                    norm = ShapePoints[ j ].n.x * parallel1;
-                    norm.y += ShapePoints[ j ].n.y;
+                    pt = parallel1 * ( ShapePoints[ j ].position.x - fOffsetX ) + pos1;
+                    pt.y += ShapePoints[ j ].position.y;
+//                    pt -= Origin;
+                    norm = ShapePoints[ j ].normal.x * parallel1;
+                    norm.y += ShapePoints[ j ].normal.y;
 
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ShapePoints[ j ].z / Texturescale, tv1 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv1 } );
 
-                    pt = parallel2 * ShapePoints[ j ].x + pos2;
-                    pt.y += ShapePoints[ j ].y;
-                    pt -= Origin;
-                    norm = ShapePoints[ j ].n.x * parallel2;
-                    norm.y += ShapePoints[ j ].n.y;
+                    pt = parallel2 * ShapePoints[ j ].position.x + pos2;
+                    pt.y += ShapePoints[ j ].position.y;
+//                    pt -= Origin;
+                    norm = ShapePoints[ j ].normal.x * parallel2;
+                    norm.y += ShapePoints[ j ].normal.y;
 
                     Output.emplace_back(
-                        glm::vec3 { pt.x, pt.y, pt.z },
-                        glm::vec3 { norm.x, norm.y, norm.z },
-                        glm::vec2 { ShapePoints[ j ].z / Texturescale, tv2 } );
+                        pt,
+                        glm::normalize( norm ),
+                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv2 } );
                 }
             }
         }
@@ -453,8 +508,8 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
 
 void TSegment::Render()
 {
-    vector3 pt;
-    GfxRenderer.Bind(0);
+    Math3D::vector3 pt;
+    GfxRenderer.Bind_Material( null_handle );
 
     if (bCurve)
     {

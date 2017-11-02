@@ -70,4 +70,14 @@ ipch/
 #ref/
 *.aps
 
-builds/
+builds/build_*
+builds/*.zip
+builds/deps_*
+
+doc/
+
+CMakeLists.txt.user
+
+*.vcxproj
+
+*.sln

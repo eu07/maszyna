@@ -11,8 +11,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Globals.h"
 
-namespace Timer
-{
+namespace Timer {
+
+subsystem_stopwatches subsystem;
 
 double DeltaTime, DeltaRenderTime;
 double fFPS{ 0.0f };
@@ -65,12 +66,19 @@ void ResetTimers()
     fSoundTimer = 0.0;
 };
 
-LONGLONG fr, count, oldCount;
-// LARGE_INTEGER fr,count;
+uint64_t fr, count, oldCount;
+
 void UpdateTimers(bool pause)
 {
+#ifdef _WIN32
     QueryPerformanceFrequency((LARGE_INTEGER *)&fr);
     QueryPerformanceCounter((LARGE_INTEGER *)&count);
+#elif __linux__
+	timespec ts;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+	count = (uint64_t)ts.tv_sec * 1000000000 + (uint64_t)ts.tv_nsec;
+	fr = 1000000000;
+#endif
     DeltaRenderTime = double(count - oldCount) / double(fr);
     if (!pause)
     {
@@ -78,22 +86,20 @@ void UpdateTimers(bool pause)
         fSoundTimer += DeltaTime;
         if (fSoundTimer > 0.1)
             fSoundTimer = 0.0;
-        /*
-          double CurrentTime= double(count)/double(fr);//GetTickCount();
-          DeltaTime= (CurrentTime-OldTime);
-          OldTime= CurrentTime;
-        */
+
         if (DeltaTime > 1.0)
             DeltaTime = 1.0;
     }
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
-    oldCount = count;
 
+    oldCount = count;
     // Keep track of the time lapse and frame count
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+#if __linux__
+	double fTime = (double)(count / 1000000000);
+#elif _WIN32_WINNT >= _WIN32_WINNT_VISTA
     double fTime = ::GetTickCount64() * 0.001f; // Get current time in seconds
-#else
+#elif _WIN32
     double fTime = ::GetTickCount() * 0.001f; // Get current time in seconds
 #endif
     ++dwFrames; // licznik ramek
@@ -106,6 +112,7 @@ void UpdateTimers(bool pause)
     }
     fSimulationTime += DeltaTime;
 };
-};
+
+}; // namespace timer
 
 //---------------------------------------------------------------------------

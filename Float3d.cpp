@@ -8,7 +8,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "float3d.h"
+#include "Float3d.h"
 #include "sn_utils.h"
 
 //---------------------------------------------------------------------------

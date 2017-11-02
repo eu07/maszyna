@@ -10,9 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "command.h"
 
-#include "globals.h"
-#include "logs.h"
-#include "timer.h"
+#include "Globals.h"
+#include "Logs.h"
+#include "Timer.h"
 
 namespace simulation {
 
@@ -41,6 +41,9 @@ commanddescription_sequence Commands_descriptions = {
     { "trainbrakeservice", command_target::vehicle },
     { "trainbrakefullservice", command_target::vehicle },
     { "trainbrakeemergency", command_target::vehicle },
+    { "manualbrakeincrease", command_target::vehicle },
+    { "manualbrakedecrease", command_target::vehicle },
+    { "alarmchaintoggle", command_target::vehicle },
     { "wheelspinbrakeactivate", command_target::vehicle },
     { "sandboxactivate", command_target::vehicle },
     { "reverserincrease", command_target::vehicle },
@@ -62,6 +65,7 @@ commanddescription_sequence Commands_descriptions = {
     { "hornlowactivate", command_target::vehicle },
     { "hornhighactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
+    { "radiostoptest", command_target::vehicle },
 /*
 const int k_FailedEngineCutOff = 35;
 */
@@ -118,10 +122,6 @@ const int k_ProgramHelp = 48;
     { "interiorlightdimtoggle", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
 /*
-const int k_Univ1 = 66;
-const int k_Univ2 = 67;
-const int k_Univ3 = 68;
-const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
@@ -174,7 +174,9 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
 }
 
 void
-command_relay::post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2, int const Action, std::uint16_t const Recipient ) const {
+command_relay::post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
+                     int const Action, std::uint16_t const Recipient,
+                     command_data::desired_state_t state) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];
     if( ( command.target == command_target::vehicle )
@@ -191,7 +193,7 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
             Action,
             Param1,
             Param2,
-            Timer::GetDeltaTime() },
+            state, Timer::GetDeltaTime() },
         static_cast<std::size_t>( command.target ) | Recipient );
 /*
 #ifdef _DEBUG

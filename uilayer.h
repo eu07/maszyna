@@ -2,8 +2,8 @@
 #pragma once
 
 #include <string>
-#include "texture.h"
-#include "float3d.h"
+#include "Texture.h"
+#include "Float3d.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
@@ -24,8 +24,8 @@ struct ui_panel {
     {}
 
     std::vector<text_line> text_lines;
-    float origin_x;
-    float origin_y;
+    int origin_x;
+    int origin_y;
 };
 
 class ui_layer {
@@ -55,6 +55,8 @@ public:
 	void
         set_background( std::string const &Filename = "" );
     void
+        set_texture( GLuint Texture = 0 ) { m_texture = Texture; }
+    void
         set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
     void
         clear_texts() { m_panels.clear(); }
@@ -68,6 +70,8 @@ private:
     // draws background quad with specified earlier texture
     void
         render_background();
+    void
+        render_texture();
     // draws a progress bar in defined earlier state
     void
         render_progress();
@@ -94,7 +98,8 @@ private:
     std::string m_progresstext; // label placed over the progress bar
     bool m_progressbottom { false }; // location of the progress bar
 
-    texture_handle m_background { NULL }; // path to texture used as the background. size depends on mAspect.
+    texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
+    GLuint m_texture { 0 };
     std::vector<std::shared_ptr<ui_panel> > m_panels;
     std::string m_tooltip;
 };

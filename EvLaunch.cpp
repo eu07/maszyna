@@ -17,35 +17,13 @@ http://mozilla.org/MPL/2.0/.
 #include "EvLaunch.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
-#include "McZapkie/mctools.h"
 #include "Event.h"
 #include "MemCell.h"
-#include "mtable.h"
 #include "Timer.h"
 #include "parser.h"
 #include "Console.h"
 
-using namespace Mtable;
-
 //---------------------------------------------------------------------------
-
-TEventLauncher::TEventLauncher()
-{ // ustawienie początkowych wartości dla wszystkich zmiennych
-    iKey = 0;
-    DeltaTime = -1;
-    UpdatedTime = 0;
-    fVal1 = fVal2 = 0;
-    iHour = iMinute = -1; // takiego czasu nigdy nie będzie
-    dRadius = 0;
-    Event1 = Event2 = NULL;
-    MemCell = NULL;
-    iCheckMask = 0;
-}
-
-void TEventLauncher::Init()
-{
-}
 
 // encodes expected key in a short, where low byte represents the actual key,
 // and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
@@ -53,6 +31,9 @@ int vk_to_glfw_key( int const Keycode ) {
 
 #ifdef _WINDOWS
     auto const code = VkKeyScan( Keycode );
+#else
+	auto const code = (short int)Keycode;
+#endif
     char key = code & 0xff;
     char shiftstate = ( code & 0xff00 ) >> 8;
 
@@ -63,7 +44,6 @@ int vk_to_glfw_key( int const Keycode ) {
         key = GLFW_KEY_0 + key - '0';
     }
     return key + ( shiftstate << 8 );
-#endif
 }
 
 bool TEventLauncher::Load(cParser *parser)
@@ -143,26 +123,24 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
     }
     return true;
-};
+}
 
-bool TEventLauncher::Render()
+bool TEventLauncher::check_conditions()
 { //"renderowanie" wyzwalacza
     bool bCond = false;
     if (iKey != 0)
     {
-        if( Global::bActive ) {
-            // tylko jeśli okno jest aktywne
-            if( iKey > 255 ) {
-                // key and modifier
-                auto const modifier = ( iKey & 0xff00 ) >> 8;
-                bCond = ( Console::Pressed( iKey & 0xff ) )
-                     && ( modifier & 1 ? Global::shiftState : true )
-                     && ( modifier & 2 ? Global::ctrlState : true );
-            }
-            else {
-                // just key
-                bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
-            }
+        // tylko jeśli okno jest aktywne
+        if( iKey > 255 ) {
+            // key and modifier
+            auto const modifier = ( iKey & 0xff00 ) >> 8;
+            bCond = ( Console::Pressed( iKey & 0xff ) )
+                    && ( modifier & 1 ? Global::shiftState : true )
+                    && ( modifier & 2 ? Global::ctrlState : true );
+        }
+        else {
+            // just key
+            bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
         }
     }
     if (DeltaTime > 0)
@@ -199,13 +177,20 @@ bool TEventLauncher::Render()
     return bCond; // sprawdzanie dRadius w Ground.cpp
 }
 
-bool TEventLauncher::IsGlobal()
-{ // sprawdzenie, czy jest globalnym wyzwalaczem czasu
-    if (DeltaTime == 0)
-        if (iHour >= 0)
-            if (iMinute >= 0)
-                if (dRadius < 0.0) // bez ograniczenia zasięgu
-                    return true;
-    return false;
-};
+// sprawdzenie, czy jest globalnym wyzwalaczem czasu
+bool TEventLauncher::IsGlobal() const {
+
+    return ( ( DeltaTime == 0 )
+          && ( iHour >= 0 )
+          && ( iMinute >= 0 )
+          && ( dRadius < 0.0 ) ); // bez ograniczenia zasięgu
+}
+
+// calculates node's bounding radius
+void
+TEventLauncher::radius_() {
+
+    m_area.radius = std::sqrt( dRadius );
+}
+
 //---------------------------------------------------------------------------

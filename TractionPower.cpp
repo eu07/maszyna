@@ -15,19 +15,13 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "TractionPower.h"
+
 #include "Logs.h"
-#include "Ground.h"
 
 //---------------------------------------------------------------------------
 
-TTractionPowerSource::TTractionPowerSource(TGroundNode const *node) :
-                                               gMyNode( node )
-{
-    psNode[0] = nullptr; // sekcje zostaną podłączone do zasilaczy
-    psNode[1] = nullptr;
-};
-
-TTractionPowerSource::~TTractionPowerSource(){};
+TTractionPowerSource::TTractionPowerSource( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
+// legacy constructor
 
 void TTractionPowerSource::Init(double const u, double const i)
 { // ustawianie zasilacza przy braku w scenerii
@@ -36,61 +30,62 @@ void TTractionPowerSource::Init(double const u, double const i)
     MaxOutputCurrent = i;
 };
 
-bool TTractionPowerSource::Load(cParser *parser)
-{
-	std::string token;
-    // AnsiString str;
-    // str= Parser->GetNextSymbol()LowerCase();
-    // asName= str;
-    parser->getTokens(5);
-    *parser >> NominalVoltage >> VoltageFrequency >> InternalRes >> MaxOutputCurrent >>
-        FastFuseTimeOut;
-    parser->getTokens();
-    *parser >> FastFuseRepetition;
-    parser->getTokens();
-    *parser >> SlowFuseTimeOut;
-    parser->getTokens();
-    *parser >> token;
-    if (token.compare("recuperation") == 0)
-        Recuperation = true;
-    else if (token.compare("section") == 0) // odłącznik sekcyjny
-        bSection = true; // nie jest źródłem zasilania, a jedynie informuje o prądzie odłączenia
-    // sekcji z obwodu
-    parser->getTokens();
-    *parser >> token;
-    if (token.compare("end") != 0)
-        Error("tractionpowersource end statement missing");
-    // if (!bSection) //odłącznik sekcji zasadniczo nie ma impedancji (0.01 jest OK)
-    if (InternalRes < 0.1) // coś mała ta rezystancja była...
-        InternalRes = 0.2; // tak około 0.2, wg
-    // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
-    return true;
-};
+bool TTractionPowerSource::Load(cParser *parser) {
 
-bool TTractionPowerSource::Render()
-{
+    parser->getTokens( 10, false );
+    *parser
+        >> m_area.center.x
+        >> m_area.center.y
+        >> m_area.center.z
+        >> NominalVoltage
+        >> VoltageFrequency
+        >> InternalRes
+        >> MaxOutputCurrent
+        >> FastFuseTimeOut
+        >> FastFuseRepetition
+        >> SlowFuseTimeOut;
+
+    std::string token { parser->getToken<std::string>() };
+    if( token == "recuperation" ) {
+        Recuperation = true;
+    }
+    else if( token == "section" ) {
+        // odłącznik sekcyjny
+        // nie jest źródłem zasilania, a jedynie informuje o prądzie odłączenia sekcji z obwodu
+        bSection = true;
+    }
+    // skip rest of the section
+    while( ( false == token.empty() )
+        && ( token != "end" ) ) {
+
+        token = parser->getToken<std::string>();
+    }
+
+    if( InternalRes < 0.1 ) {
+        // coś mała ta rezystancja była...
+        // tak około 0.2, wg
+        // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+        InternalRes = 0.2;
+    }
     return true;
 };
 
 bool TTractionPowerSource::Update(double dt)
 { // powinno być wykonane raz na krok fizyki
-  //    if (NominalVoltage * TotalPreviousAdmitance >
-  //        MaxOutputCurrent * 0.00000005) // iloczyn napięcia i admitancji daje prąd
-  //        ErrorLog("Power overload: \"" + gMyNode->asName + "\" with current " + AnsiString(NominalVoltage * TotalPreviousAdmitance) + "A");
-	if (NominalVoltage * TotalPreviousAdmitance >
-        MaxOutputCurrent) // iloczyn napięcia i admitancji daje prąd
-    {
+  // iloczyn napięcia i admitancji daje prąd
+	if (NominalVoltage * TotalPreviousAdmitance > MaxOutputCurrent) {
+
         FastFuse = true;
         FuseCounter += 1;
-        if (FuseCounter > FastFuseRepetition)
-        {
+        if (FuseCounter > FastFuseRepetition) {
+
             SlowFuse = true;
-            ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     std::to_string(SlowFuseTimeOut) + "s");
+            ErrorLog( "Power overload: \"" + m_name + "\" disabled for " + std::to_string( SlowFuseTimeOut ) + "s" );
         }
-        else
-            ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     std::to_string(FastFuseTimeOut) + "s");
+        else {
+            ErrorLog( "Power overload: \"" + m_name + "\" disabled for " + std::to_string( FastFuseTimeOut ) + "s" );
+        }
+
         FuseTimer = 0;
     }
     if (FastFuse || SlowFuse)
@@ -144,5 +139,16 @@ void TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
         psNode[1] = ps;
     // else ErrorLog("nie może być więcej punktów zasilania niż dwa");
 };
+
+
+
+// legacy method, calculates changes in simulation state over specified time
+void
+powergridsource_table::update( double const Deltatime ) {
+
+    for( auto *powersource : m_items ) {
+        powersource->Update( Deltatime );
+    }
+}
 
 //---------------------------------------------------------------------------

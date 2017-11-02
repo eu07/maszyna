@@ -18,7 +18,9 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Model3d.h"
 #include "Timer.h"
-#include "logs.h"
+#include "Logs.h"
+#include "World.h"
+#include "Train.h"
 
 void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
@@ -48,6 +50,10 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
         }
         else // a banan może być z optymalizacją?
             NewSubModel->WillBeAnimated(); // wyłączenie ignowania jedynkowego transformu
+
+		float4x4 mat;
+		SubModel->ParentMatrix(&mat);
+		model_pos = *mat.TranslationGet();
     }
 };
 
@@ -85,7 +91,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     }
 
 	scale *= mul;
-		TSubModel *submodel = md1->GetFromName( submodelname.c_str() );
+		TSubModel *submodel = md1->GetFromName( submodelname );
     if( scale == 0.0 ) {
         ErrorLog( "Scale of 0.0 defined for sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
         scale = 1.0;
@@ -93,7 +99,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     if (submodel) // jeśli nie znaleziony
         md2 = nullptr; // informacja, że znaleziony
     else if (md2) // a jest podany drugi model (np. zewnętrzny)
-        submodel = md2->GetFromName(submodelname.c_str()); // to może tam będzie, co za różnica gdzie
+        submodel = md2->GetFromName(submodelname); // to może tam będzie, co za różnica gdzie
     if( submodel == nullptr ) {
         ErrorLog( "Failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"" );
     }
@@ -116,7 +122,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
 bool
 TGauge::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", " ) ) {
+    if( false == Input.getTokens( 2, true, ", \n\r\t" ) ) {
         return false;
     }
 
@@ -128,24 +134,24 @@ TGauge::Load_mapping( cParser &Input ) {
     if( key == "soundinc:" ) {
         m_soundfxincrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
     else if( key == "sounddec:" ) {
         m_soundfxdecrease = (
             value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
+                sound_man->create_sound(value) :
                 nullptr );
     }
-    else if( key.find( "sound" ) == 0 ) {
+    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
-        auto const indexstart = key.find_first_of( "-1234567890" );
-        auto const indexend = key.find_first_not_of( "-1234567890", indexstart );
+        auto const indexstart { key.find_first_of( "-1234567890" ) };
+        auto const indexend { key.find_first_not_of( "-1234567890", indexstart ) };
         if( indexstart != std::string::npos ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),
                 ( value != "none" ?
-                    TSoundsManager::GetFromName( value, true ) :
+                    sound_man->create_sound(value) :
                     nullptr ) );
         }
     }
@@ -178,9 +184,9 @@ void TGauge::DecValue(double fNewDesired)
 
 // ustawienie wartości docelowej. plays provided fallback sound, if no sound was defined in the control itself
 void
-TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
+TGauge::UpdateValue( double fNewDesired, sound* Fallbacksound ) {
 
-    auto const desiredtimes100 = static_cast<int>( 100.0 * fNewDesired );
+    auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
     if( static_cast<int>( std::round( 100.0 * ( fDesiredValue - fOffset ) / fScale ) ) == desiredtimes100 ) {
         return;
     }
@@ -315,15 +321,28 @@ void TGauge::UpdateValue()
     }
 };
 
-void
-TGauge::play( PSound Sound ) {
+// todo: ugly approach to getting train translation
 
-    if( Sound == nullptr ) { return; }
+extern TWorld World;
 
-    Sound->SetCurrentPosition( 0 );
-    Sound->SetVolume( DSBVOLUME_MAX );
-    Sound->Play( 0, 0, 0 );
+void TGauge::play( sound *Sound )
+{
+    if (!Sound)
+		return;
+
+	Sound->stop();
+
+	if (SubModel && World.train())
+	{
+		if (glm::length(model_pos) > 1.0f)
+		{
+			auto pos = glm::vec3(glm::vec4(model_pos, 1.0f) * glm::inverse((glm::mat4)World.train()->Dynamic()->mMatrix));
+			pos += (glm::vec3)World.train()->Dynamic()->GetPosition();
+
+			Sound->set_mode(sound::anchored).dist(3.0f).position(pos);
+		}
+	}
+
+	Sound->play();
     return;
 }
-
-//---------------------------------------------------------------------------

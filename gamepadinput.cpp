@@ -9,8 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "gamepadinput.h"
-#include "logs.h"
-#include "timer.h"
+#include "Logs.h"
+#include "Timer.h"
 #include "usefull.h"
 
 glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {
@@ -40,7 +40,7 @@ glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {
     // Find the inner-roundness scaling factor and LERP
     auto const length = glm::length( Point );
     auto const factor = std::pow( length, Roundness );
-    return interpolate( Point, squared, factor );
+    return interpolate( Point, squared, (float)factor );
 }
 
 gamepad_input::gamepad_input() {
