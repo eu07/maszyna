@@ -199,8 +199,10 @@ private:
         bind_buffer();
     void
         delete_buffer();
+    static
     void
         bind_streams( stream_units const &Units, unsigned int const Streams );
+    static
     void
         release_streams();
 
@@ -310,7 +312,7 @@ private:
 // methods
     inline
     bool
-        valid( geometry_handle const &Geometry ) {
+        valid( geometry_handle const &Geometry ) const {
             return ( ( Geometry.bank != 0 )
                   && ( Geometry.bank <= m_geometrybanks.size() ) ); }
     inline

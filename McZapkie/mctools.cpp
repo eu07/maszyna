@@ -294,10 +294,13 @@ bool FileExists( std::string const &Filename ) {
 }
 
 // returns time of last modification for specified file
-time_t
+std::time_t
 last_modified( std::string const &Filename ) {
-
+    std::string fn = Filename;
+    std::replace(fn.begin(), fn.end(), '\\', '/');
     struct stat filestat;
-    if( ::stat( Filename.c_str(), &filestat ) == 0 ) { return filestat.st_mtime; }
-    else                                             { return 0; }
+    if( ::stat( fn.c_str(), &filestat ) == 0 )
+		return filestat.st_mtime;
+    else
+		return 0;
 }

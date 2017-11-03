@@ -18,7 +18,7 @@ class TEventLauncher : public editor::basic_node {
 
 public:
 // constructor
-    TEventLauncher( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
+    explicit TEventLauncher( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
     // legacy constructor
     TEventLauncher() = default;
 

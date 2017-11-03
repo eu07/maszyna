@@ -140,6 +140,11 @@ static int const ctrain_passenger = 16;     //mostek przejściowy
 static int const ctrain_scndpneumatic = 32; //przewody 8 atm (żółte; zasilanie powietrzem)
 static int const ctrain_heating = 64;       //przewody ogrzewania WN
 static int const ctrain_depot = 128;        //nie rozłączalny podczas zwykłych manewrów (międzyczłonowy), we wpisie wartość ujemna
+// vehicle sides; exclusive
+enum side {
+    front = 0,
+    rear
+};
 // possible coupling types; can be combined
 enum coupling {
     faux = 0x0,
@@ -162,6 +167,16 @@ enum range {
 enum start {
     manual,
     automatic
+};
+// recognized vehicle light locations and types; can be combined
+enum light {
+
+    headlight_left = 0x01,
+    redmarker_left = 0x02,
+    headlight_upper = 0x04,
+    headlight_right = 0x10,
+    redmarker_right = 0x20,
+    rearendsignals = 0x40
 };
 											/*typ hamulca elektrodynamicznego*/
 static int const dbrake_none = 0;
@@ -699,15 +714,6 @@ public:
     int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
-    enum light {
-
-        headlight_left  = 0x01,
-        redmarker_left  = 0x02,
-        headlight_upper = 0x04,
-        headlight_right = 0x10,
-        redmarker_right = 0x20,
-        rearendsignals  = 0x40
-    };
     int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
@@ -802,10 +808,6 @@ public:
 	TRotation Rot;
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
-    enum side {
-        front = 0,
-        rear
-    };
 #ifdef EU07_USE_OLD_HVCOUPLERS
     double HVCouplers[ 2 ][ 2 ]; //przewod WN
     enum hvcoupler {

@@ -304,8 +304,8 @@ mouse_input::default_bindings() {
             user_command::redmarkertoggleright,
             user_command::none } },
         { "lights_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: implement commands for lights controller
+            user_command::lightspresetactivatenext,
+            user_command::lightspresetactivateprevious } },
         { "rearupperlight_sw:", {
             user_command::headlighttogglerearupper,
             user_command::none } },

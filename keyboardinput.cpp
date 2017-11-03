@@ -318,6 +318,10 @@ const int k_ProgramHelp = 48;
 /*
 // const int k_FreeFlyMode= 59;
 */
+        // lightspresetactivatenext
+        { GLFW_KEY_T | keymodifier::shift },
+        // lightspresetactivateprevious
+        { GLFW_KEY_T },
         // headlighttoggleleft
         { GLFW_KEY_Y },
         // headlighttoggleright

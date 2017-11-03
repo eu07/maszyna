@@ -160,4 +160,4 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
 bool FileExists( std::string const &Filename );
 
 // returns time of last modification for specified file
-time_t last_modified( std::string const &Filename );
+std::time_t last_modified( std::string const &Filename );

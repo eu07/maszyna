@@ -100,6 +100,8 @@ const int k_ProgramHelp = 48;
 /*
 // const int k_FreeFlyMode= 59;
 */
+    lightspresetactivatenext,
+    lightspresetactivateprevious,
     headlighttoggleleft,
     headlighttoggleright,
     headlighttoggleupper,
@@ -117,10 +119,6 @@ const int k_ProgramHelp = 48;
     interiorlightdimtoggle,
     instrumentlighttoggle,
 /*
-const int k_Univ1 = 66;
-const int k_Univ2 = 67;
-const int k_Univ3 = 68;
-const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */

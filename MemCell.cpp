@@ -137,7 +137,7 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
           && ( !TestFlag( CheckMask, conditional_memval2 ) || ( fValue2 == fTestValue2 ) ) );
 };
 
-bool TMemCell::IsVelocity()
+bool TMemCell::IsVelocity() const
 { // sprawdzenie, czy event odczytu tej komórki ma być do skanowania, czy do kolejkowania
     if (eCommand == cm_SetVelocity)
         return true;

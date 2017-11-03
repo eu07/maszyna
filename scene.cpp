@@ -384,7 +384,7 @@ basic_cell::register_end( TTraction *Traction ) {
 
 // find a vehicle located nearest to specified point, within specified radius, optionally ignoring vehicles without drivers. reurns: located vehicle and distance
 std::tuple<TDynamicObject *, float>
-basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) {
+basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) const {
 
     TDynamicObject *vehiclenearest { nullptr };
     float leastdistance { std::numeric_limits<float>::max() };
@@ -419,7 +419,7 @@ basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlyco
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
 std::tuple<TTrack *, int>
-basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) {
+basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) const {
 
     Math3D::vector3 point { Point.x, Point.y, Point.z }; // sad workaround until math classes unification
     int endpointid;
@@ -439,7 +439,7 @@ basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) {
 
 // finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
 std::tuple<TTraction *, int>
-basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) {
+basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) const {
 
     int endpointid;
 
@@ -458,7 +458,7 @@ basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) {
 
 // finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
 std::tuple<TTraction *, int, float>
-basic_cell::find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) {
+basic_cell::find( glm::dvec3 const &Point, TTraction const *Other, int const Currentdirection ) const {
 
     TTraction
         *tractionnearest { nullptr };
@@ -862,7 +862,12 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
 void
 basic_region::serialize( std::string const &Scenariofile ) const {
 
-    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    auto filename { Scenariofile };
+    if( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+        filename.erase( 0, 1 );
+    }
+    filename = Global::asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type
@@ -900,7 +905,12 @@ basic_region::serialize( std::string const &Scenariofile ) const {
 bool
 basic_region::deserialize( std::string const &Scenariofile ) {
 
-    auto filename { Global::asCurrentSceneryPath + Scenariofile };
+    auto filename { Scenariofile };
+    if( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+        filename.erase( 0, 1 );
+    }
+    filename = Global::asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type

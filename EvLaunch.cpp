@@ -130,13 +130,13 @@ bool TEventLauncher::check_conditions()
     bool bCond = false;
     if (iKey != 0)
     {
-        // tylko jeśli okno jest aktywne
+	    // tylko jeśli okno jest aktywne
         if( iKey > 255 ) {
             // key and modifier
             auto const modifier = ( iKey & 0xff00 ) >> 8;
             bCond = ( Console::Pressed( iKey & 0xff ) )
-                    && ( modifier & 1 ? Global::shiftState : true )
-                    && ( modifier & 2 ? Global::ctrlState : true );
+                && ( ( modifier & 1 ) ? Global::shiftState : true )
+                && ( ( modifier & 2 ) ? Global::ctrlState : true );
         }
         else {
             // just key

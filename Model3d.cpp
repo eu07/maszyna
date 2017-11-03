@@ -1743,7 +1743,7 @@ void TModel3d::Init()
 // 2012-02 funkcje do tworzenia terenu z E3D
 //-----------------------------------------------------------------------------
 
-int TModel3d::TerrainCount()
+int TModel3d::TerrainCount() const
 { // zliczanie kwadratów kilometrowych (główna
   // linia po Next) do tworznia tablicy
 	int i = 0;
