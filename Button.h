@@ -32,6 +32,7 @@ class TButton
     void
         play();
     // plays specified sound
+    static
     void
         play( sound *Sound );
 

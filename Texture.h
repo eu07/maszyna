@@ -61,7 +61,7 @@ private:
     void load_DDS();
     void load_TEX();
     void load_TGA();
-    void set_filtering();
+    void set_filtering() const;
     void downsize( GLuint const Format );
 
 // members

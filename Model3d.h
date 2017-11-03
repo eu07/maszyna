@@ -184,15 +184,13 @@ public:
 	};
 	void InitialRotate(bool doit);
 	void BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
-	void ReplacableSet(material_handle const *r, int a)
-	{
+	static void ReplacableSet(material_handle const *r, int a) {
 		ReplacableSkinId = r;
-		iAlpha = a;
-	};
+		iAlpha = a; };
 	void Name_Material( std::string const &Name );
 	void Name( std::string const &Name );
 	// Ra: funkcje do budowania terenu z E3D
-	int Flags() { return iFlags; };
+	int Flags() const { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
     // sets light level (alpha component of illumination color) to specified value
@@ -201,7 +199,7 @@ public:
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {
 		return *(fMatrix->TranslationGet()) + Child->Translation1Get(); }
-    material_handle GetMaterial() {
+    material_handle GetMaterial() const {
 		return m_material; }
 	void ParentMatrix(float4x4 *m);
 	float MaxY( float4x4 const &m );
@@ -250,8 +248,8 @@ public:
 	void SaveToBinFile(std::string const &FileName);
 	int Flags() const { return iFlags; };
 	void Init();
-	std::string NameGet() { return m_filename; };
-	int TerrainCount();
+	std::string NameGet() const { return m_filename; };
+	int TerrainCount() const;
 	TSubModel * TerrainSquare(int n);
 	void deserialize(std::istream &s, size_t size, bool dynamic);
 };

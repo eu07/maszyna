@@ -35,7 +35,7 @@ public:
 // methods
     // legacy method, calculates changes in simulation state over specified time
     void
-        update( double dt, int iter );
+        update( double Deltatime, int Iterationcount );
     bool
         deserialize( std::string const &Scenariofile );
 

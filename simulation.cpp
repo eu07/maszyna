@@ -316,11 +316,8 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
-         && ( ( vehicle->MoverParameters->SecuritySystem.SystemType != 0 )
-           || ( vehicle->MoverParameters->SandCapacity > 0.0 ) ) ) {
-            // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
-            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
-            //       don't have security systems fitted
+         && ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 )
+           || ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 ) ) ) {
             simulation::Lights.insert( vehicle );
         }
     }
@@ -609,7 +606,7 @@ state_manager::deserialize_endtrainset( cParser &Input, scene::scratch_data &Scr
     }
     if( Scratchpad.trainset.couplings.back() == coupling::faux ) {
         // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane (jak AI się odpali, to sobie poprawi)
-        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, TMoverParameters::light::rearendsignals );
+        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, light::rearendsignals );
     }
     // all done
     Scratchpad.trainset.is_open = false;
