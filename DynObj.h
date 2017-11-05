@@ -402,17 +402,18 @@ private:
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
-    int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały
-    // jazdę bezprądową
+    int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały jazdę bezprądową
     TTractionParam tmpTraction;
-    double fAdjustment; // korekcja - docelowo przenieść do TrkFoll.cpp wraz z odległością od
-    // poprzedniego
+    double fAdjustment; // korekcja - docelowo przenieść do TrkFoll.cpp wraz z odległością od poprzedniego
+
     TDynamicObject();
     ~TDynamicObject();
-    double TDynamicObject::Init( // zwraca długość pojazdu albo 0, jeśli błąd
+    // zwraca długość pojazdu albo 0, jeśli błąd
+    double TDynamicObject::Init(
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
+    void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
     void LoadUpdate();

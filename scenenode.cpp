@@ -405,7 +405,7 @@ shape_node::merge( shape_node &Shape ) {
     m_data.area.center =
         interpolate(
             m_data.area.center, Shape.m_data.area.center,
-            static_cast<float>( Shape.m_data.vertices.size() ) / ( Shape.m_data.vertices.size() + m_data.vertices.size() ) );
+            static_cast<double>( Shape.m_data.vertices.size() ) / ( Shape.m_data.vertices.size() + m_data.vertices.size() ) );
     m_data.vertices.insert(
         std::end( m_data.vertices ),
         std::begin( Shape.m_data.vertices ), std::end( Shape.m_data.vertices ) );
@@ -625,7 +625,7 @@ lines_node::merge( lines_node &Lines ) {
     m_data.area.center =
         interpolate(
             m_data.area.center, Lines.m_data.area.center,
-            static_cast<float>( Lines.m_data.vertices.size() ) / ( Lines.m_data.vertices.size() + m_data.vertices.size() ) );
+            static_cast<double>( Lines.m_data.vertices.size() ) / ( Lines.m_data.vertices.size() + m_data.vertices.size() ) );
     m_data.vertices.insert(
         std::end( m_data.vertices ),
         std::begin( Lines.m_data.vertices ), std::end( Lines.m_data.vertices ) );
