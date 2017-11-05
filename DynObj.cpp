@@ -1635,8 +1635,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      double fDist, // dystans względem punktu 1
                      std::string DriverType, // typ obsady
                      double fVel, // prędkość początkowa
-                     std::string TrainName, // nazwa składu, np. "PE2307" albo Vmax, jeśli pliku
-                     // nie ma a są cyfry
+                     std::string TrainName, // nazwa składu, np. "PE2307" albo Vmax, jeśli pliku nie ma a są cyfry
                      float Load, // ilość ładunku
                      std::string LoadType, // nazwa ładunku
                      bool Reversed, // true, jeśli ma stać odwrotnie w składzie
@@ -1652,18 +1651,18 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         DriverType = "1"; // sterujący kabiną +1
     else if (DriverType == "reardriver")
         DriverType = "2"; // sterujący kabiną -1
-    // else if (DriverType=="connected") DriverType="c"; //tego trzeba się pozbyć
-    // na rzecz
-    // ukrotnienia
     else if (DriverType == "passenger")
         DriverType = "p"; // to do przemyślenia
     else if (DriverType == "nobody")
         DriverType = ""; // nikt nie siedzi
+
     int Cab = 0; // numer kabiny z obsadą (nie można zająć obu)
     if (DriverType == "1") // od przodu składu
         Cab = 1; // iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
     else if (DriverType == "2") // od tyłu składu
         Cab = -1; // iDirection?-1:1;
+/*
+    // NOTE: leave passenger in the middle section, this is most likely to be 'passenger' section in MU trains 
     else if (DriverType == "p")
     {
         if (Random(6) < 3)
@@ -1671,20 +1670,10 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         else
             Cab = -1; // losowy przydział kabiny
     }
-    /* to nie ma uzasadnienia
-     else
-     {//obsada nie rozpoznana
-      Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza,
-     konduktora itp.
-      Error("Unknown DriverType description: "+DriverType);
-      DriverType="nobody";
-     }
-    */
+*/
     // utworzenie parametrów fizyki
-    MoverParameters =
-        new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Load, LoadType, Cab);
+    MoverParameters = new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Load, LoadType, Cab);
     iLights = MoverParameters->iLights; // wskaźnik na stan własnych świateł
-    // (zmienimy dla rozrządczych EZT)
     // McZapkie: TypeName musi byc nazwą CHK/MMD pojazdu
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
@@ -1878,43 +1867,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 // wygenerować
                 fDist = -fDist; // to traktujemy, jakby przesunięcie było w drugą stronę
     }
-    // w wagonie tez niech jedzie
-    // if (MoverParameters->MainCtrlPosNo>0 &&
-    // if (MoverParameters->CabNo!=0)
-    if (DriverType != "")
-    { // McZapkie-040602: jeśli coś siedzi w pojeździe
-        if (Name == Global::asHumanCtrlVehicle) // jeśli pojazd wybrany do prowadzenia
-        {
-            if ( MoverParameters->EngineType != Dumb)
-                Controller = Humandriver; // wsadzamy tam sterującego
-            else // w przeciwnym razie trzeba włączyć pokazywanie kabiny
-                bDisplayCab = true;
-        }
-        // McZapkie-151102: rozkład jazdy czytany z pliku *.txt z katalogu w którym
-        // jest sceneria
-        if (DriverType == "1" || DriverType == "2")
-        { // McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
-            // MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej
-            // kabiny
-            // (rozrząd)
-            Mechanik = new TController(Controller, this, Aggressive);
-            if (TrainName.empty()) // jeśli nie w składzie
-            {
-                Mechanik->DirectionInitial(); // załączenie rozrządu (wirtualne kabiny) itd.
-                Mechanik->PutCommand(
-                    "Timetable:", iDirection ? -fVel : fVel, 0,
-                    NULL); // tryb pociągowy z ustaloną prędkością (względem sprzęgów)
-            }
-            // if (TrainName!="none")
-            // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
-        }
-        else if (DriverType == "p")
-        { // obserwator w charakterze pasażera
-            // Ra: to jest niebezpieczne, bo w razie co będzie pomagał hamulcem
-            // bezpieczeństwa
-            Mechanik = new TController(Controller, this, Easyman, false);
-        }
-    }
+
+    create_controller( DriverType, !TrainName.empty() );
+
     // McZapkie-250202
     iAxles = (MaxAxles < MoverParameters->NAxles) ? MaxAxles : MoverParameters->NAxles; // ilość osi
     // wczytywanie z pliku nazwatypu.mmd, w tym model
@@ -2086,9 +2041,6 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     loc.Y = vPosition.z;
     loc.Z = vPosition.y;
     MoverParameters->Loc = loc; // normalnie przesuwa ComputeMovement() w Update()
-    // pOldPos4=Axle1.pPosition; //Ra: nie używane
-    // pOldPos1=Axle0.pPosition;
-    // ActualTrack= GetTrack(); //McZapkie-030303
     // ABuWozki 060504
     if (mdModel) // jeśli ma w czym szukać
     {
@@ -2103,17 +2055,54 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         if (smBogie[1])
             smBogie[1]->WillBeAnimated();
     }
-    // ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
-    // w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
+    // ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo w pierwszej klatce,
+    // potem juz liczona prawidlowa wartosc masy
     MoverParameters->ComputeConstans();
-    /*Ra: to nie działa - Event0 musi być wykonywany ciągle
-    if (fVel==0.0) //jeśli stoi
-     if (MoverParameters->CabNo!=0) //i ma kogoś w kabinie
-      if (Track->Event0) //a jest w tym torze event od stania
-       RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
-    */
-    vFloor = vector3(0, 0, MoverParameters->Floor); // wektor podłogi dla wagonów, przesuwa ładunek
-    return MoverParameters->Dim.L; // długość większa od zera oznacza OK; 2mm docisku?
+    // wektor podłogi dla wagonów, przesuwa ładunek
+    vFloor = vector3(0, 0, MoverParameters->Floor);
+    // długość większa od zera oznacza OK; 2mm docisku?
+    return MoverParameters->Dim.L;
+}
+
+void
+TDynamicObject::create_controller( std::string const Type, bool const Trainset ) {
+
+    if( Type == "" ) { return; }
+
+    if( asName == Global::asHumanCtrlVehicle ) {
+        // jeśli pojazd wybrany do prowadzenia
+        if( MoverParameters->EngineType != Dumb ) {
+            // wsadzamy tam sterującego
+            Controller = Humandriver;
+        }
+        else {
+            // w przeciwnym razie trzeba włączyć pokazywanie kabiny
+            bDisplayCab = true;
+        }
+    }
+    // McZapkie-151102: rozkład jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
+    if( ( Type == "1" )
+     || ( Type == "2" ) ) {
+        // McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
+        Mechanik = new TController( Controller, this, Aggressive );
+
+        if( false == Trainset ) {
+            // jeśli nie w składzie
+            // załączenie rozrządu (wirtualne kabiny) itd.
+            Mechanik->DirectionInitial();
+            // tryb pociągowy z ustaloną prędkością (względem sprzęgów)
+            Mechanik->PutCommand(
+                "Timetable:",
+                MoverParameters->V * 3.6 * ( iDirection ? -1.0 : 1.0 ),
+                0,
+                nullptr );
+        }
+    }
+    else if( Type == "p" ) {
+        // obserwator w charakterze pasażera
+        // Ra: to jest niebezpieczne, bo w razie co będzie pomagał hamulcem bezpieczeństwa
+        Mechanik = new TController( Controller, this, Easyman, false );
+    }
 }
 
 void TDynamicObject::FastMove(double fDistance)

@@ -1953,6 +1953,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         {
             /*OK:=*/SendCtrlToNext("MainCtrl", MainCtrlPos, CabNo); //???
             /*OK:=*/SendCtrlToNext("ScndCtrl", ScndCtrlPos, CabNo);
+
         }
     }
     else // nie ma sterowania
@@ -1964,11 +1965,14 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
             LastRelayTime = 0;
 
 	if ((OK) && (EngineType == ElectricInductionMotor))
-        // NOTE: round() already adds 0.5, are the ones added here as well correct?
+	{
+		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
-			ScndCtrlActualPos = Round(Vel + 0.5);
+			ScndCtrlActualPos = Round(Vel);
 		else
-			ScndCtrlActualPos = Round(Vel * 1.0 / 2 + 0.5);
+			ScndCtrlActualPos = Round(Vel * 0.5);
+		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+	}
 
     return OK;
 }
@@ -2019,7 +2023,10 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
             LastRelayTime = 0;
 
 	if ((OK) && (EngineType == ElectricInductionMotor))
+	{
 		ScndCtrlActualPos = 0;
+		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+	}
 
     return OK;
 }
@@ -2370,7 +2377,7 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
     if ((Mains != State) && (MainCtrlPosNo > 0))
     {
         if ((State == false) ||
-            ((ScndCtrlPos == 0) && ((ConvOvldFlag == false) || (TrainType == dt_EZT)) &&
+            (((ScndCtrlPos == 0)||(EngineType == ElectricInductionMotor)) && ((ConvOvldFlag == false) || (TrainType == dt_EZT)) &&
              (LastSwitchingTime > CtrlDelay) && !TestFlag(DamageFlag, dtrain_out) &&
              !TestFlag(EngDmgFlag, 1)))
         {
@@ -8059,14 +8066,6 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "ScndCtrl")
 	{
-		if ((EngineType == ElectricInductionMotor))
-			if ((ScndCtrlPos == 0) && (floor(CValue1) > 0))
-				if ((Vmax < 250))
-					ScndCtrlActualPos = Round(Vel + 0.5);
-				else
-					ScndCtrlActualPos = Round(Vel / 2 + 0.5);
-			else if ((floor(CValue1) == 0))
-				ScndCtrlActualPos = 0;
 		if (ScndCtrlPosNo >= floor(CValue1))
 			ScndCtrlPos = static_cast<int>(floor(CValue1));
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
@@ -8388,6 +8387,12 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 					OK = LoadingDone(-Min0R(CValue2, LoadSpeed), testload);
 			}
 		// if OK then LoadStatus:=0;
+	}
+	else if (Command == "SpeedCntrl")
+	{
+		if ((EngineType == ElectricInductionMotor))
+				ScndCtrlActualPos = static_cast<int>(round(CValue1));
+		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
 	}
 
 	return OK; // dla true komenda będzie usunięta, dla false wykonana ponownie

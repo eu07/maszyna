@@ -812,7 +812,7 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
         Scratchpad.trainset.offset -= length;
         // automatically establish permanent connections for couplers which specify them in their definitions
         if( ( coupling != 0 )
-         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? 0 : 1 ) ].AllowedFlag & coupling::permanent ) ) {
+         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? side::front : side::rear ) ].AllowedFlag & coupling::permanent ) ) {
             coupling |= coupling::permanent;
         }
         if( true == Scratchpad.trainset.is_open ) {
