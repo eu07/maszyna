@@ -1449,7 +1449,7 @@ event_manager::InitEvents() {
         }
         case tp_Sound: {
             // odtworzenie dźwięku
-            auto *sound = sound_man->create_sound(event->asNodeName);
+            auto *sound = simulation::Sounds.find( event->asNodeName );
             if( sound != nullptr )
                 event->Params[ 9 ].tsTextSound = sound;
             else

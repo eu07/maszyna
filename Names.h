@@ -23,9 +23,8 @@ public:
 // methods
     // adds provided item to the collection. returns: true if there's no duplicate with the same name, false otherwise
     bool
-        insert( Type_ *Item ) {
+        insert( Type_ *Item, std::string itemname ) {
             m_items.emplace_back( Item );
-            auto const itemname = Item->name();
             if( ( true == itemname.empty() ) || ( itemname == "none" ) ) {
                 return true;
             }
@@ -38,6 +37,10 @@ public:
             // cell with this name already exists; update mapping to point to the new one, for backward compatibility
             mapping.first->second = itemhandle;
             return false; }
+	bool insert (Type_ *Item)
+	{
+		return insert(Item, Item->name());
+	}
     // locates item with specified name. returns pointer to the item, or nullptr
     Type_ *
         find( std::string const &Name ) {

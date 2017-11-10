@@ -25,6 +25,7 @@ powergridsource_table Powergrid;
 instance_table Instances;
 vehicle_table Vehicles;
 light_array Lights;
+sound_table Sounds;
 lua Lua;
 
 scene::basic_region *Region { nullptr };
@@ -465,9 +466,11 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             simulation::Region->insert_launcher( eventlauncher, Scratchpad );
         }
     }
-    else if( nodedata.type == "sound" ) {
-
+    else if( nodedata.type == "sound" )
+	{
         auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
+        if( false == simulation::Sounds.insert( sound, nodedata.name ) )
+            ErrorLog( "Bad scenario: sound node with duplicate name \"" + nodedata.name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         simulation::Region->insert_sound( sound, Scratchpad );
     }
 

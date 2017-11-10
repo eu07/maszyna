@@ -74,6 +74,10 @@ private:
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
 };
 
+class sound_table : public basic_table<sound>
+{
+};
+
 extern state_manager State;
 extern event_manager Events;
 extern memory_table Memory;
@@ -83,6 +87,7 @@ extern powergridsource_table Powergrid;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
 extern light_array Lights;
+extern sound_table Sounds;
 extern lua Lua;
 
 extern scene::basic_region *Region;
