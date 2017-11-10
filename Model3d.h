@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Parser.h"
 #include "dumb3d.h"
 #include "Float3d.h"
-#include "VBO.h"
+#include "openglgeometrybank.h"
 #include "material.h"
 
 using namespace Math3D;
@@ -213,7 +213,7 @@ public:
     // places contained geometry in provided ground node
 };
 
-class TModel3d : public CMesh
+class TModel3d
 {
     friend class opengl_renderer;
 
@@ -221,7 +221,9 @@ private:
 	TSubModel *Root; // drzewo submodeli
 	int iFlags; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
-	int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
+    int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
+    geometrybank_handle m_geometrybank;
+    bool m_geometrycreated { false };
 private:
 	std::vector<std::string> Textures; // nazwy tekstur
 	std::vector<std::string> Names; // nazwy submodeli
@@ -229,15 +231,16 @@ private:
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
+
 public:
+    TModel3d();
+    ~TModel3d();
     float bounding_radius() const {
         return (
             Root ?
                 Root->m_boundingradius :
                 0.f ); }
 	inline TSubModel * GetSMRoot() { return (Root); };
-	TModel3d();
-	~TModel3d();
 	TSubModel * GetFromName(std::string const &Name);
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);

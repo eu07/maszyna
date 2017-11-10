@@ -2375,44 +2375,52 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 {
     bool MS = false; // Ra: przeniesione z końca
 
-    if ((Mains != State) && (MainCtrlPosNo > 0))
-    {
-        if ((State == false) ||
-            (((ScndCtrlPos == 0)||(EngineType == ElectricInductionMotor)) && ((ConvOvldFlag == false) || (TrainType == dt_EZT)) &&
-             (LastSwitchingTime > CtrlDelay) && !TestFlag(DamageFlag, dtrain_out) &&
-             !TestFlag(EngDmgFlag, 1)))
-        {
-            if( Mains ) {
+    if( ( Mains != State )
+     && ( MainCtrlPosNo > 0 ) ) {
+
+        if( ( false == State )
+         || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == ElectricInductionMotor ) )
+           && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+           && ( LastSwitchingTime > CtrlDelay )
+           && ( false == TestFlag( DamageFlag, dtrain_out ) )
+           && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
+
+            if( true == Mains ) {
                 // jeśli był załączony
                 if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "MainSwitch", int( State ), CabNo,
                         ( Notify == range::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
+                            coupling::control | coupling::permanent :
+                            coupling::control ) );
                 }
             }
             Mains = State;
-            if( Mains ) {
+            MS = true; // wartość zwrotna
+            LastSwitchingTime = 0;
+
+            if( true == Mains ) {
                 // jeśli został załączony
                 if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "MainSwitch", int( State ), CabNo,
                         ( Notify == range::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
+                            coupling::control | coupling::permanent :
+                            coupling::control ) );
                 }
             }
-            MS = true; // wartość zwrotna
-            LastSwitchingTime = 0;
-            if ((EngineType == DieselEngine) && Mains)
-            {
+            if( ( EngineType == DieselEngine )
+             && ( true == Mains ) ) {
+
                 dizel_enginestart = State;
             }
-			if (((TrainType == dt_EZT) && (!State)))
-				ConvOvldFlag = true;
+            if( ( TrainType == dt_EZT )
+             && ( false == State ) ) {
+
+                ConvOvldFlag = true;
+            }
         }
     }
     // else MainSwitch:=false;

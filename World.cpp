@@ -1422,7 +1422,11 @@ TWorld::Update_UI() {
                     + ( vehicle->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
 
                 uitextline2 +=
-                    "; Ft: " + to_string( vehicle->MoverParameters->Ft * 0.001f * vehicle->MoverParameters->ActiveCab, 1 )
+                    "; Ft: " + to_string(
+                        vehicle->MoverParameters->Ft * 0.001f * (
+                            vehicle->MoverParameters->ActiveCab ? vehicle->MoverParameters->ActiveCab :
+                            vehicle->ctOwner ? vehicle->ctOwner->Controlling()->ActiveCab :
+                            1 ), 1 )
                     + ", Fb: " + to_string( vehicle->MoverParameters->Fb * 0.001f, 1 )
                     + ", Fr: " + to_string( vehicle->MoverParameters->Adhesive( vehicle->MoverParameters->RunningTrack.friction ), 2 )
                     + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" );
@@ -1640,7 +1644,9 @@ TWorld::Update_UI() {
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-                    + "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")"
+                    + ( vehicle->MoverParameters->ShuntMode ?
+                        "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
+                        "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
                     + "; I=" +
                     ( vehicle->MoverParameters->TrainType == dt_EZT ?
                         std::to_string( int( vehicle->MoverParameters->ShowCurrent( 0 ) ) ) :

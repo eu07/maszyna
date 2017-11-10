@@ -108,7 +108,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     UILayer.set_unit( m_diffusetextureunit );
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
     glEnable( GL_DEPTH_TEST );
@@ -452,10 +452,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 if( m_environmentcubetexturesupport ) {
                     // restore default texture matrix for reflections cube map
-                    Active_Texture( m_helpertextureunit );
+                    select_unit( m_helpertextureunit );
                     ::glMatrixMode( GL_TEXTURE );
                     ::glPopMatrix();
-                    Active_Texture( m_diffusetextureunit );
+                    select_unit( m_diffusetextureunit );
                     ::glMatrixMode( GL_MODELVIEW );
                 }
             }
@@ -765,11 +765,11 @@ opengl_renderer::setup_matrices() {
     if( ( m_renderpass.draw_mode == rendermode::color )
      && ( m_environmentcubetexturesupport ) ) {
         // special case, for colour render pass setup texture matrix for reflections cube map
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
         ::glMatrixMode( GL_TEXTURE );
         ::glPushMatrix();
         ::glMultMatrixf( glm::value_ptr( glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.camera.modelview() } } ) ) );
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
     }
 
     // trim modelview matrix just to rotation, since rendering is done in camera-centric world space
@@ -835,7 +835,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // darkens previous stage, preparing data for the shadow texture unit to select from
     if( m_helpertextureunit >= 0 ) {
 
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
 
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) ) {
@@ -922,7 +922,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
          && ( false == Global::bWireFrame )
          && ( m_shadowcolor != colors::white ) ) {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             // NOTE: shadowmap isn't part of regular texture system, so we use direct bind call here
             ::glBindTexture( GL_TEXTURE_2D, m_shadowtexture );
             ::glEnable( GL_TEXTURE_2D );
@@ -953,7 +953,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         }
         else {
             // turn off shadow map tests
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
 
             ::glDisable( GL_TEXTURE_2D );
             ::glDisable( GL_TEXTURE_GEN_S );
@@ -966,7 +966,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // NOTE: comes after diffuse stage in the operation chain
     if( m_normaltextureunit >= 0 ) {
 
-        Active_Texture( m_normaltextureunit );
+        select_unit( m_normaltextureunit );
 
         if( true == Reflections ) {
             ::glEnable( GL_TEXTURE_2D );
@@ -989,7 +989,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     }
     // diffuse texture unit.
     // NOTE: diffuse texture mapping is never fully disabled, alpha channel information is always included
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
     ::glEnable( GL_TEXTURE_2D );
     if( true == Diffuse ) {
         // default behaviour, modulate with previous stage
@@ -1027,7 +1027,7 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     // helper texture unit.
     if( m_helpertextureunit >= 0 ) {
 
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows )
            && ( true == Shadows )
@@ -1053,12 +1053,12 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     if( m_shadowtextureunit >= 0 ) {
         if( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             ::glEnable( GL_TEXTURE_2D );
         }
         else {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             ::glDisable( GL_TEXTURE_2D );
         }
     }
@@ -1066,11 +1066,11 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     if( m_normaltextureunit >= 0 ) {
         if( true == Reflections ) {
 
-            Active_Texture( m_normaltextureunit );
+            select_unit( m_normaltextureunit );
             ::glEnable( GL_TEXTURE_2D );
         }
         else {
-            Active_Texture( m_normaltextureunit );
+            select_unit( m_normaltextureunit );
             ::glDisable( GL_TEXTURE_2D );
         }
     }
@@ -1078,12 +1078,12 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     // NOTE: toggle actually disables diffuse texture mapping, unlike setup counterpart
     if( true == Diffuse ) {
 
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
         ::glEnable( GL_TEXTURE_2D );
     }
     else {
 
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
         ::glDisable( GL_TEXTURE_2D );
     }
     // update unit state
@@ -1095,9 +1095,9 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
 void
 opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
 
-    Active_Texture( m_helpertextureunit );
+    select_unit( m_helpertextureunit );
     ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( Shadowcolor ) ); // in-shadow colour multiplier
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
 }
 
 bool
@@ -1322,7 +1322,7 @@ opengl_renderer::Material( material_handle const Material ) const {
 
 // texture methods
 void
-opengl_renderer::Active_Texture( GLint const Textureunit ) {
+opengl_renderer::select_unit( GLint const Textureunit ) {
 
     return m_textures.unit( Textureunit );
 }
@@ -3327,7 +3327,7 @@ opengl_renderer::Init_caps() {
         return false;
     }
 
-    WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
+    WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
     WriteLog( std::string("Render path: ") + ( Global::bUseVBO ? "VBO" : "Display lists" ) );
     if( GLEW_EXT_framebuffer_object ) {

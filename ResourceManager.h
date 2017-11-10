@@ -8,6 +8,14 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #pragma once
+
+enum class resource_state {
+    none,
+    loading,
+    good,
+    failed
+};
+
 /*
 #include <vector>
 #include <algorithm>

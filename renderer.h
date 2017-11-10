@@ -178,8 +178,6 @@ public:
     opengl_material const &
         Material( material_handle const Material ) const;
     // texture methods
-    void
-        Active_Texture( GLint const Textureunit );
     texture_handle
         Fetch_Texture( std::string const &Filename, bool const Loadnow = true );
     void
@@ -194,14 +192,14 @@ public:
         Pick_Control() const { return m_pickcontrolitem; }
     editor::basic_node const *
         Pick_Node() const { return m_picksceneryitem; }
-    // maintenance jobs
+    // maintenance methods
     void
         Update( double const Deltatime );
     TSubModel const *
         Update_Pick_Control();
     editor::basic_node const *
         Update_Pick_Node();
-    // debug performance string
+    // debug methods
     std::string const &
         info_times() const;
     std::string const &
@@ -275,6 +273,9 @@ private:
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
+    // helper, texture manager method; activates specified texture unit
+    void
+        select_unit( GLint const Textureunit );
     // runs jobs needed to generate graphics for specified render pass
     void
         Render_pass( rendermode const Mode );

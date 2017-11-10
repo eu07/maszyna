@@ -589,9 +589,9 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
-            Train->mvControlled->AnPos += ( Command.time_delta * 0.75f );
-            if( Train->mvControlled->AnPos > 1 )
-                Train->mvControlled->AnPos = 1;
+            Train->mvControlled->AnPos = clamp(
+                Train->mvControlled->AnPos + ( Command.time_delta * 1.0f ),
+                0.0, 1.0 );
         }
         else {
             Train->mvControlled->IncScndCtrl( 1 );
@@ -650,9 +650,9 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
-            Train->mvControlled->AnPos -= ( Command.time_delta * 0.75f );
-            if( Train->mvControlled->AnPos > 1 )
-                Train->mvControlled->AnPos = 1;
+            Train->mvControlled->AnPos = clamp(
+                Train->mvControlled->AnPos - ( Command.time_delta * 1.0f ),
+                0.0, 1.0 );
         }
         Train->mvControlled->DecScndCtrl( 1 );
     }
@@ -2030,7 +2030,9 @@ void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( Train->mvControlled->Imax < Train->mvControlled->ImaxHi ) {
+        if( ( true == Train->mvControlled->ShuntModeAllow ?
+                ( false == Train->mvControlled->ShuntMode ) :
+                ( Train->mvControlled->Imax < Train->mvControlled->ImaxHi ) ) ) {
             // turn on
             if( true == Train->mvControlled->CurrentSwitch( true ) ) {
                 // visual feedback

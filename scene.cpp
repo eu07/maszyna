@@ -873,7 +873,7 @@ void
 basic_region::serialize( std::string const &Scenariofile ) const {
 
     auto filename { Scenariofile };
-    if( filename[ 0 ] == '$' ) {
+    while( filename[ 0 ] == '$' ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
@@ -916,7 +916,7 @@ bool
 basic_region::deserialize( std::string const &Scenariofile ) {
 
     auto filename { Scenariofile };
-    if( filename[ 0 ] == '$' ) {
+    while( filename[ 0 ] == '$' ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }

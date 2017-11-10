@@ -15,13 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "ResourceManager.h"
 
-enum class resource_state {
-    none,
-    loading,
-    good,
-    failed
-};
-
 struct opengl_texture {
 	static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
 	static DDCOLORKEY deserialize_ddck(std::istream&);
@@ -88,13 +81,16 @@ public:
 
     void
         assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse );
+    // activates specified texture unit
     void
         unit( GLint const Textureunit );
+    // creates texture object out of data stored in specified file
     texture_handle
         create( std::string Filename, bool const Loadnow = true );
     // binds specified texture to specified texture unit
     void
         bind( std::size_t const Unit, texture_handle const Texture );
+    // provides direct access to specified texture object
     opengl_texture &
         texture( texture_handle const Texture ) const { return *(m_textures[ Texture ].first); }
     // performs a resource sweep
@@ -186,7 +182,7 @@ downsample( std::size_t const Width, std::size_t const Height, char *Imagedata )
                     (*sampler)[idx]
                     + ( *( sampler + 1 ) )[idx]
                     + ( *( sampler + Width ) )[idx]
-                    + (*( sampler + Width + 1 ))[idx] );
+                    + ( *( sampler + Width + 1 ))[idx] );
                 color[ idx ] = component /= 4;
             }
             *destination++ = color;
