@@ -20,14 +20,16 @@ AirCoupler::~AirCoupler()
 }
 
 /**
- * \return 1 when \(straight\) TModel3d \c ModelOn exists
+ * \return 1 when \(straight\) TModel3d \c only ModelOn exists
  * \return 2 when \(slanted\) TModel3d \c ModelxOn exists
  * \return 0 when neither of them exist
  */
 int AirCoupler::GetStatus()
 {
-    if (ModelOn) return 1;
-    if (ModelxOn) return 2;
+    if (ModelxOn)
+		return 2;
+    if (ModelOn)
+		return 1;
     return 0;
 }
 
