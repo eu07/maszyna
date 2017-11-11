@@ -156,20 +156,20 @@ public:
     // geometry methods
     // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
     // creates a new geometry bank. returns: handle to the bank or NULL
-    geometrybank_handle
+    gfx::geometrybank_handle
         Create_Bank();
     // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-    geometry_handle
-        Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type );
+    gfx::geometry_handle
+        Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 );
     // adds supplied vertex data at the end of specified chunk
     bool
-        Append( vertex_array &Vertices, geometry_handle const &Geometry );
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // provides direct access to vertex data of specfied chunk
-    vertex_array const &
-        Vertices( geometry_handle const &Geometry ) const;
+    gfx::vertex_array const &
+        Vertices( gfx::geometry_handle const &Geometry ) const;
     // material methods
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true );
@@ -337,12 +337,12 @@ private:
 
 // members
     GLFWwindow *m_window { nullptr };
-    geometrybank_manager m_geometry;
+    gfx::geometrybank_manager m_geometry;
     material_manager m_materials;
     texture_manager m_textures;
     opengllight_array m_lights;
 
-    geometry_handle m_billboardgeometry { 0, 0 };
+    gfx::geometry_handle m_billboardgeometry { 0, 0 };
     texture_handle m_glaretexture { -1 };
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };

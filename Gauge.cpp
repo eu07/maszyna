@@ -70,16 +70,15 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     else {
         // new, block type config
         // TODO: rework the base part into yaml-compatible flow style mapping
-        cParser mappingparser( Parser.getToken<std::string>( false, "}" ) );
-        submodelname = mappingparser.getToken<std::string>( false );
-        gaugetypename = mappingparser.getToken<std::string>( true );
-        mappingparser.getTokens( 3, false );
-        mappingparser
+        submodelname = Parser.getToken<std::string>( false );
+        gaugetypename = Parser.getToken<std::string>( true );
+        Parser.getTokens( 3, false );
+        Parser
             >> scale
             >> offset
             >> friction;
         // new, variable length section
-        while( true == Load_mapping( mappingparser ) ) {
+        while( true == Load_mapping( Parser ) ) {
             ; // all work done by while()
         }
     }
@@ -116,26 +115,15 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
 bool
 TGauge::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", \n\r\t" ) ) {
-        return false;
-    }
-
-    std::string key, value;
-    Input
-        >> key
-        >> value;
-
+    // token can be a key or block end
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
+    // if not block end then the key is followed by assigned value or sub-block
     if( key == "soundinc:" ) {
-        m_soundfxincrease = (
-            value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
-                nullptr );
+        m_soundfxincrease.deserialize( Input, sound_type::single );
     }
     else if( key == "sounddec:" ) {
-        m_soundfxdecrease = (
-            value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
-                nullptr );
+        m_soundfxdecrease.deserialize( Input, sound_type::single );
     }
     else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
@@ -144,9 +132,7 @@ TGauge::Load_mapping( cParser &Input ) {
         if( indexstart != std::string::npos ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),
-                ( value != "none" ?
-                    TSoundsManager::GetFromName( value, true ) :
-                    nullptr ) );
+                sound_source().deserialize( Input, sound_type::single ) );
         }
     }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
@@ -176,9 +162,21 @@ void TGauge::DecValue(double fNewDesired)
         fDesiredValue = 0;
 };
 
+void
+TGauge::UpdateValue( double fNewDesired ) {
+
+    return UpdateValue( fNewDesired, nullptr );
+}
+
+void
+TGauge::UpdateValue( double fNewDesired, sound_source &Fallbacksound ) {
+
+    return UpdateValue( fNewDesired, &Fallbacksound );
+}
+
 // ustawienie wartości docelowej. plays provided fallback sound, if no sound was defined in the control itself
 void
-TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
+TGauge::UpdateValue( double fNewDesired, sound_source *Fallbacksound ) {
 
     auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
     if( static_cast<int>( std::round( 100.0 * ( fDesiredValue - fOffset ) / fScale ) ) == desiredtimes100 ) {
@@ -191,21 +189,25 @@ TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
         // filter out values other than full integers
         auto const lookup = m_soundfxvalues.find( desiredtimes100 / 100 );
         if( lookup != m_soundfxvalues.end() ) {
-            play( lookup->second );
+            lookup->second.play();
             return;
         }
     }
     // ...and if there isn't any, fall back on the basic set...
     auto const currentvalue = GetValue();
-    if( ( currentvalue < fNewDesired ) && ( m_soundfxincrease != nullptr ) ) {
-        play( m_soundfxincrease );
+    if( ( currentvalue < fNewDesired )
+     && ( false == m_soundfxincrease.empty() ) ) {
+        // shift up
+        m_soundfxincrease.play();
     }
-    else if( ( currentvalue > fNewDesired ) && ( m_soundfxdecrease != nullptr ) ) {
-        play( m_soundfxdecrease );
+    else if( ( currentvalue > fNewDesired )
+          && ( false == m_soundfxdecrease.empty() ) ) {
+        // shift down
+        m_soundfxdecrease.play();
     }
     else if( Fallbacksound != nullptr ) {
         // ...and if that fails too, try the provided fallback sound from legacy system
-        play( Fallbacksound );
+        Fallbacksound->play();
     }
 };
 
@@ -314,16 +316,5 @@ void TGauge::UpdateValue()
         break;
     }
 };
-
-void
-TGauge::play( PSound Sound ) {
-
-    if( Sound == nullptr ) { return; }
-
-    Sound->SetCurrentPosition( 0 );
-    Sound->SetVolume( DSBVOLUME_MAX );
-    Sound->Play( 0, 0, 0 );
-    return;
-}
 
 //---------------------------------------------------------------------------

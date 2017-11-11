@@ -175,18 +175,18 @@ TTraction::endpoints() const {
 }
 
 std::size_t
-TTraction::create_geometry( geometrybank_handle const &Bank ) {
+TTraction::create_geometry( gfx::geometrybank_handle const &Bank ) {
     if( m_geometry != null_handle ) {
         return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
 
-    vertex_array vertices;
+    gfx::vertex_array vertices;
 
     double ddp = std::hypot( pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z );
     if( Wires == 2 )
         WireOffset = 0;
     // jezdny
-    basic_vertex startvertex, endvertex;
+    gfx::basic_vertex startvertex, endvertex;
     startvertex.position =
         glm::vec3(
             pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,

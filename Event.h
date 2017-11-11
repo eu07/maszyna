@@ -74,7 +74,11 @@ union TParam
     bool asBool;
     double asdouble;
     int asInt;
+#ifdef EU07_USE_OLD_SOUNDCODE
     TTextSound *tsTextSound;
+#else
+    sound_source *tsTextSound;
+#endif
     char *asText;
     TCommandType asCommand;
     TTractionPowerSource *psPower;

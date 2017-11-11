@@ -998,7 +998,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     if (go == cm_Unknown) // jeśli nie było komendy wcześniej
                                         go = cm_Ready; // gotów do odjazdu z W4 (semafor może
                                     // zatrzymać)
-                                    if (tsGuardSignal) // jeśli mamy głos kierownika, to odegrać
+                                    if (false == tsGuardSignal->empty()) // jeśli mamy głos kierownika, to odegrać
                                         iDrivigFlags |= moveGuardSignal;
                                     continue; // nie analizować prędkości
                                 } // koniec startu z zatrzymania
@@ -2572,9 +2572,12 @@ bool TController::DecBrake()
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
+#ifdef EU07_USE_OLD_SOUNDCODE
     if (tsGuardSignal) // jeśli jest dźwięk kierownika
         if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
             return false;
+#else
+#endif
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
@@ -3084,10 +3087,14 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
                 if (FileExists(NewCommand))
                 { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = new TTextSound(NewCommand, 30, pVehicle->GetPosition().x,
-                                        pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                        false);
-                    // rsGuardSignal->Stop();
+#ifdef EU07_USE_OLD_SOUNDCODE
+                    tsGuardSignal =
+                        new TTextSound(
+                            NewCommand, 30,
+                            pVehicle->GetPosition().x, pVehicle->GetPosition().y, pVehicle->GetPosition().z,
+                            false);
+#else
+#endif
                     iGuardRadio = 0; // nie przez radio
                 }
                 else
@@ -3095,9 +3102,14 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
                     if (FileExists(NewCommand))
                     { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = new TTextSound(NewCommand, -1, pVehicle->GetPosition().x,
-                                            pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                            false);
+#ifdef EU07_USE_OLD_SOUNDCODE
+                        tsGuardSignal =
+                            new TTextSound(
+                                NewCommand, -1,
+                                pVehicle->GetPosition().x, pVehicle->GetPosition().y, pVehicle->GetPosition().z,
+                                false);
+#else
+#endif
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4472,7 +4484,10 @@ TController::UpdateSituation(double dt) {
                                 ->DoorOpenCtrl ) // jeśli drzwi niesterowane przez maszynistę
                                 Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
 
+#ifdef EU07_USE_OLD_SOUNDCODE
                         tsGuardSignal->Stop();
+#else
+#endif
                         // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
                         // bezpośrednim
                         // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
@@ -4481,7 +4496,10 @@ TController::UpdateSituation(double dt) {
                         // obsługę kanałów radiowych itd.
                         if( !iGuardRadio ) {
                             // jeśli nie przez radio
+#ifdef EU07_USE_OLD_SOUNDCODE
                             tsGuardSignal->Play( 1.0, 0, !FreeFlyModeFlag, pVehicle->GetPosition() ); // dla true jest głośniej
+#else
+#endif
                         }
                         else {
                             // if (iGuardRadio==iRadioChannel) //zgodność kanału
@@ -4490,7 +4508,10 @@ TController::UpdateSituation(double dt) {
                             // przy braku reakcji
                             if( SquareMagnitude( pVehicle->GetPosition() - Global::pCameraPosition ) < 2000 * 2000 ) {
                                 // w odległości mniejszej niż 2km
+#ifdef EU07_USE_OLD_SOUNDCODE
                                 tsGuardSignal->Play( 1.0, 0, true, pVehicle->GetPosition() ); // dźwięk niby przez radio
+#else
+#endif
                             }
                         }
                     }

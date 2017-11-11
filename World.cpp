@@ -196,8 +196,6 @@ TWorld::TWorld()
 TWorld::~TWorld()
 {
     TrainDelete();
-    // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
-    TSoundsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -234,7 +232,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-
+#ifdef EU07_USE_OLD_SOUNDCODE
     if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
         WriteLog( "Sound subsystem setup complete" );
     }
@@ -242,7 +240,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         ErrorLog( "Sound subsystem setup failed" );
         return false;
     }
-
+#endif
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
@@ -689,7 +687,7 @@ void TWorld::OnKeyDown(int cKey)
                                          vehicle->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->play_sound( Train->dsbSwitch );
+                        Train->dsbSwitch.play();
                     }
             }
         }
@@ -717,7 +715,7 @@ void TWorld::OnKeyDown(int cKey)
                     vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->play_sound( Train->dsbSwitch );
+                        Train->dsbSwitch.play();
                     }
                 }
             }
@@ -737,7 +735,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->play_sound( Train->dsbPneumaticRelay );
+                            Train->dsbPneumaticRelay.play();
                         }
             }
         }
@@ -756,7 +754,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->play_sound( Train->dsbPneumaticRelay );
+                            Train->dsbPneumaticRelay.play();
                         }
             }
         }

@@ -124,7 +124,7 @@ private:
 
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-    geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
+    gfx::geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
     material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };
@@ -134,7 +134,7 @@ private:
 
 public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
-    vertex_array Vertices;
+    gfx::vertex_array Vertices;
     float m_boundingradius { 0 };
     size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
@@ -147,7 +147,7 @@ public:
 	std::string m_materialname; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
 private:
-	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices );
+	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
 
 public:
@@ -174,7 +174,7 @@ public:
 	inline float4x4 * GetMatrix() { return fMatrix; };
 	inline void Hide() { iVisible = 0; };
 
-    void create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank );
+    void create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank );
 	int FlagsCheck();
 	void WillBeAnimated()
 	{
@@ -222,7 +222,7 @@ private:
 	int iFlags; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
     int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
-    geometrybank_handle m_geometrybank;
+    gfx::geometrybank_handle m_geometrybank;
     bool m_geometrycreated { false };
 private:
 	std::vector<std::string> Textures; // nazwy tekstur

@@ -95,7 +95,7 @@ TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool co
     }
 }
 
-int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
+int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
     for( int faceidx = Startface; faceidx < facecount; ++faceidx ) {
@@ -983,7 +983,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
 };
 
 void
-TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank ) {
+TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank ) {
 
     // data offset is used to determine data offset of each submodel into single shared geometry bank
     // (the offsets are part of legacy system which we now need to work around for backward compatibility)
@@ -1472,7 +1472,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel = Root[ submodeloffset.second ];
-                vertex_array vertices; vertices.resize( submodel.iNumVerts );
+                gfx::vertex_array vertices; vertices.resize( submodel.iNumVerts );
                 iNumVerts += submodel.iNumVerts;
                 for( auto &vertex : vertices ) {
                     vertex.deserialize( s );

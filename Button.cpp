@@ -46,10 +46,7 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
     else {
         // new, block type config
         // TODO: rework the base part into yaml-compatible flow style mapping
-        cParser mappingparser( Parser.getToken<std::string>( false, "}" ) );
-        submodelname = mappingparser.getToken<std::string>( false );
-        // new, variable length section
-        while( true == Load_mapping( mappingparser ) ) {
+        while( true == Load_mapping( Parser ) ) {
             ; // all work done by while()
         }
     }
@@ -77,27 +74,13 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
 bool
 TButton::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, " ,\n\r\t" ) ) {
-        return false;
-    }
+    // token can be a key or block end
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
+    if( key == "}" ) { return false; }
+    // if not block end then the key is followed by assigned value or sub-block
+         if( key == "soundinc:" ) { m_soundfxincrease.deserialize( Input, sound_type::single ); }
+    else if( key == "sounddec:" ) { m_soundfxdecrease.deserialize( Input, sound_type::single ); }
 
-    std::string key, value;
-    Input
-        >> key
-        >> value;
-
-    if( key == "soundinc:" ) {
-        m_soundfxincrease = (
-            value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
-                nullptr );
-    }
-    else if( key == "sounddec:" ) {
-        m_soundfxdecrease = (
-            value != "none" ?
-                TSoundsManager::GetFromName( value, true ) :
-                nullptr );
-    }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
 }
 
@@ -141,19 +124,6 @@ void TButton::AssignBool(bool const *bValue) {
 void
 TButton::play() {
 
-    play(
-        m_state == true ?
-            m_soundfxincrease :
-            m_soundfxdecrease );
-}
-
-void
-TButton::play( PSound Sound ) {
-
-    if( Sound == nullptr ) { return; }
-
-    Sound->SetCurrentPosition( 0 );
-    Sound->SetVolume( DSBVOLUME_MAX );
-    Sound->Play( 0, 0, 0 );
-    return;
+    if( m_state == true ) { m_soundfxincrease.play(); }
+    else                  { m_soundfxdecrease.play(); }
 }

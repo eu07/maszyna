@@ -22,8 +22,8 @@ class TButton
     bool m_state { false };
     bool const *bData { nullptr };
     int iFeedbackBit { 0 }; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
-    PSound m_soundfxincrease { nullptr }; // sound associated with increasing control's value
-    PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
+    sound_source m_soundfxincrease; // sound associated with increasing control's value
+    sound_source m_soundfxdecrease; // sound associated with decreasing control's value
 // methods
     // imports member data pair from the config file
     bool
@@ -31,10 +31,6 @@ class TButton
     // plays the sound associated with current state
     void
         play();
-    // plays specified sound
-    static
-    void
-        play( PSound Sound );
 
   public:
     TButton() = default;
@@ -42,14 +38,10 @@ class TButton
     inline void FeedbackBitSet(int const i) {
         iFeedbackBit = 1 << i; };
     void Turn( bool const State );
-    inline void TurnOn() {
-        Turn( true ); };
-    inline void TurnOff() {
-        Turn( false ); };
-    inline void Switch() {
-        Turn( !m_state ); };
-    inline bool Active() {
-        return (pModelOn) || (pModelOff); };
+    inline
+    bool Active() {
+        return ( ( pModelOn != nullptr )
+              || ( pModelOff != nullptr ) ); }
     void Update();
     void Init(std::string const &asName, TModel3d *pModel, bool bNewOn = false);
     void Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);

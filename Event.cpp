@@ -1022,6 +1022,7 @@ event_manager::CheckQuery() {
                 return false;
             }
             case tp_Sound: {
+#ifdef EU07_USE_OLD_SOUNDCODE
                 switch( m_workevent->Params[ 0 ].asInt ) {
                     // trzy możliwe przypadki:
                     case 0: {
@@ -1048,6 +1049,7 @@ event_manager::CheckQuery() {
                         break;
                     }
                 }
+#endif
                 break;
             }
             case tp_Disable:

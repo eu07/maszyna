@@ -298,7 +298,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
     m_billboardgeometry = m_geometry.create_chunk(
-        vertex_array{
+        gfx::vertex_array{
             { { -size,  size, 0.f }, glm::vec3(), { 1.f, 1.f } },
             { {  size,  size, 0.f }, glm::vec3(), { 0.f, 1.f } },
             { { -size, -size, 0.f }, glm::vec3(), { 1.f, 0.f } },
@@ -1129,7 +1129,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     Environment->m_skydome.Render();
     if( true == Global::bUseVBO ) {
         // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-        opengl_vbogeometrybank::reset();
+        gfx::opengl_vbogeometrybank::reset();
     }
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
@@ -1263,36 +1263,36 @@ opengl_renderer::Render( world_environment *Environment ) {
 
 // geometry methods
 // creates a new geometry bank. returns: handle to the bank or NULL
-geometrybank_handle
+gfx::geometrybank_handle
 opengl_renderer::Create_Bank() {
 
     return m_geometry.create_bank();
 }
 
 // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-geometry_handle
-opengl_renderer::Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
+gfx::geometry_handle
+opengl_renderer::Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
 
     return m_geometry.create_chunk( Vertices, Geometry, Type );
 }
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-opengl_renderer::Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
+opengl_renderer::Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
 
     return m_geometry.replace( Vertices, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
 bool
-opengl_renderer::Append( vertex_array &Vertices, geometry_handle const &Geometry ) {
+opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) {
 
     return m_geometry.append( Vertices, Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk
-vertex_array const &
-opengl_renderer::Vertices( geometry_handle const &Geometry ) const {
+gfx::vertex_array const &
+opengl_renderer::Vertices( gfx::geometry_handle const &Geometry ) const {
 
     return m_geometry.vertices( Geometry );
 }
@@ -2262,7 +2262,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         ::glDisable( GL_LIGHTING );
 
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry, color_streams );
+                        m_geometry.draw( Submodel->m_geometry, gfx::color_streams );
 
                         // post-draw reset
                         ::glPopAttrib();

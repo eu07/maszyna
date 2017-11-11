@@ -14,10 +14,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "TrkFoll.h"
 // McZapkie:
-#include "RealSound.h"
-#include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "sound.h"
 #include "texture.h"
 
 //---------------------------------------------------------------------------
@@ -304,27 +303,27 @@ private:
     double dRailLength;
     double dRailPosition[MaxAxles]; // licznik pozycji osi w/m szyny
     double dWheelsPosition[MaxAxles]; // pozycja osi w/m srodka pojazdu
-    TRealSound rsStukot[MaxAxles]; // dzwieki poszczegolnych osi //McZapkie-270202
-    TRealSound rsSilnik; // McZapkie-010302 - silnik
-    TRealSound rsWentylator; // McZapkie-030302
-    TRealSound rsPisk; // McZapkie-260302
-    TRealSound rsDerailment; // McZapkie-051202
-    TRealSound rsPrzekladnia;
-    TAdvancedSound sHorn1;
-    TAdvancedSound sHorn2;
-    TAdvancedSound sCompressor; // NBMX wrzesien 2003
-    TAdvancedSound sConverter;
-    TAdvancedSound sSmallCompressor;
-    TAdvancedSound sDepartureSignal;
-    TAdvancedSound sTurbo;
-	TAdvancedSound sSand;
-	TAdvancedSound sReleaser;
+    sound_source rsStukot[MaxAxles]; // dzwieki poszczegolnych osi //McZapkie-270202
+    sound_source rsSilnik; // McZapkie-010302 - silnik
+    sound_source rsWentylator; // McZapkie-030302
+    sound_source rsPisk; // McZapkie-260302
+    sound_source rsDerailment; // McZapkie-051202
+    sound_source rsPrzekladnia;
+    sound_source sHorn1;
+    sound_source sHorn2;
+    sound_source sCompressor; // NBMX wrzesien 2003
+    sound_source sConverter;
+    sound_source sSmallCompressor;
+    sound_source sDepartureSignal;
+    sound_source sTurbo;
+    sound_source sSand;
+    sound_source sReleaser;
 
     // Winger 010304
-    TRealSound sPantUp;
-    TRealSound sPantDown;
-    TRealSound rsDoorOpen; // Ra: przeniesione z kabiny
-    TRealSound rsDoorClose;
+    sound_source sPantUp;
+    sound_source sPantDown;
+    sound_source rsDoorOpen; // Ra: przeniesione z kabiny
+    sound_source rsDoorClose;
 
     double eng_vol_act;
     double eng_frq_act;
@@ -336,9 +335,9 @@ private:
 
     bool renderme; // yB - czy renderowac
     // TRealSound sBrakeAcc; //dźwięk przyspieszacza
-    PSound sBrakeAcc;
+    sound_source sBrakeAcc;
     bool bBrakeAcc;
-    TRealSound rsUnbrake; // yB - odglos luzowania
+    sound_source rsUnbrake; // yB - odglos luzowania
     float ModCamRot;
     int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
     void TurnOff();
@@ -379,8 +378,8 @@ private:
     std::string name() const {
         return this ? asName : std::string(); };
 
-    TRealSound rsDiesielInc; // youBy
-    TRealSound rscurve; // youBy
+    sound_source rsDiesielInc; // youBy
+    sound_source rscurve; // youBy
     //    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
     // youBy - dym
     // TSmoke Smog;

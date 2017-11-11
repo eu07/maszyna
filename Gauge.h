@@ -24,7 +24,13 @@ enum TGaugeType {
 // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich
 class TGauge { 
 
-  private:
+private:
+// methods
+// imports member data pair from the config file
+    bool
+        Load_mapping( cParser &Input );
+    void UpdateValue( double fNewDesired, sound_source *Fallbacksound );
+// members
     TGaugeType eType { gt_Unknown }; // typ ruchu
     double fFriction { 0.0 }; // hamowanie przy zliżaniu się do zadanej wartości
     double fDesiredValue { 0.0 }; // wartość docelowa
@@ -38,18 +44,12 @@ class TGauge {
         double *dData { nullptr };
         int *iData;
     };
-    PSound m_soundfxincrease { nullptr }; // sound associated with increasing control's value
-    PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
-    std::map<int, PSound> m_soundfxvalues; // sounds associated with specific values
-// methods
-    // imports member data pair from the config file
-    bool
-        Load_mapping( cParser &Input );
-    // plays specified sound
-    void
-        play( PSound Sound );
+    sound_source m_soundfxincrease; // sound associated with increasing control's value
+    sound_source m_soundfxdecrease; // sound associated with decreasing control's value
+    std::map<int, sound_source> m_soundfxvalues; // sounds associated with specific values
 
-  public:
+public:
+// methods
     TGauge() = default;
     inline
     void Clear() { *this = TGauge(); }
@@ -58,7 +58,8 @@ class TGauge {
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
-    void UpdateValue(double fNewDesired, PSound Fallbacksound = nullptr );
+    void UpdateValue( double fNewDesired );
+    void UpdateValue( double fNewDesired, sound_source &Fallbacksound );
     void PutValue(double fNewDesired);
     double GetValue() const;
     void Update();
@@ -67,6 +68,7 @@ class TGauge {
     void AssignDouble(double *dValue);
     void AssignInt(int *iValue);
     void UpdateValue();
+// members
     TSubModel *SubModel; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 

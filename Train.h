@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Button.h"
 #include "Gauge.h"
 #include "Spring.h"
-#include "AdvSound.h"
+#include "sound.h"
 #include "PyInt.h"
 #include "command.h"
 
@@ -90,6 +90,7 @@ class TTrain
     void UpdateMechPosition(double dt);
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
+    void update_sounds( double const Deltatime );
     bool m_updated = false;
     void MechStop();
     void SetLights();
@@ -110,10 +111,6 @@ class TTrain
     bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
     // initializes a button matching provided label. returns: true if the label was found, false otherwise
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
-    // plays specified sound, or fallback sound if the primary sound isn't presend
-    // NOTE: temporary routine until sound system is sorted out and paired with switches
-    void play_sound( PSound Sound, int const Volume = DSBVOLUME_MAX, DWORD const Flags = 0 );
-    void play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags );
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // command handlers
@@ -308,8 +305,6 @@ public: // reszta może by?publiczna
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
-    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
-    // TGauge ggVelocityDgt; //i od razu prędkościomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -356,7 +351,6 @@ public: // reszta może by?publiczna
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
-    TButton btLampkaJazda; // Ra: nie używane
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -384,8 +378,9 @@ public: // reszta może by?publiczna
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
-
+/*
     vector3 pPosition;
+*/
     vector3 pMechOffset; // driverNpos
     vector3 vMechMovement;
     vector3 pMechPosition;
@@ -403,48 +398,42 @@ public: // reszta może by?publiczna
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnikJazdy;
-    PSound dsbNastawnikBocz; // hunter-081211
-    PSound dsbRelay;
-    PSound dsbPneumaticRelay;
-    PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;
-    PSound dsbReverserKey; // hunter-121211
+    sound_source dsbNastawnikJazdy;
+    sound_source dsbNastawnikBocz; // hunter-081211
+    sound_source dsbRelay;
+    sound_source dsbPneumaticRelay;
+    sound_source dsbSwitch;
+    sound_source dsbPneumaticSwitch;
+    sound_source dsbReverserKey; // hunter-121211
 
-    PSound dsbCouplerAttach; // Ra: w kabinie????
-    PSound dsbCouplerDetach; // Ra: w kabinie???
+    sound_source dsbCouplerAttach; // Ra: w kabinie????
+    sound_source dsbCouplerDetach; // Ra: w kabinie???
 
-    PSound dsbDieselIgnition; // Ra: w kabinie???
-
-    PSound dsbDoorClose; // Ra: w kabinie???
-    PSound dsbDoorOpen; // Ra: w kabinie???
+    sound_source dsbDieselIgnition; // Ra: w kabinie???
 
     // Winger 010304
-    PSound dsbPantUp;
-    PSound dsbPantDown;
-
-    PSound dsbWejscie_na_bezoporow;
-    PSound dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
+    sound_source dsbWejscie_na_bezoporow;
+    sound_source dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
 
     //    PSound dsbHiss1;
     //  PSound dsbHiss2;
 
     // McZapkie-280302
-    TRealSound rsBrake;
-    TRealSound rsSlippery;
-    TRealSound rsHiss; // upuszczanie
-    TRealSound rsHissU; // napelnianie
-    TRealSound rsHissE; // nagle
-    TRealSound rsHissX; // fala
-    TRealSound rsHissT; // czasowy
-    TRealSound rsSBHiss;
-    TRealSound rsRunningNoise;
-    TRealSound rsEngageSlippery;
-    TRealSound rsFadeSound;
+    sound_source rsBrake;
+    sound_source rsSlippery;
+    sound_source rsHiss; // upuszczanie
+    sound_source rsHissU; // napelnianie
+    sound_source rsHissE; // nagle
+    sound_source rsHissX; // fala
+    sound_source rsHissT; // czasowy
+    sound_source rsSBHiss;
+    sound_source rsRunningNoise;
+    sound_source rsEngageSlippery;
+    sound_source rsFadeSound;
 
-    PSound dsbHasler;
-    PSound dsbBuzzer;
-    PSound dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound_source dsbHasler;
+    sound_source dsbBuzzer;
+    sound_source dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -453,11 +442,10 @@ public: // reszta może by?publiczna
     vector3 pMechSittingPosition; // ABu 180404
     vector3 MirrorPosition(bool lewe);
 
-  private:
-    // PSound dsbBuzzer;
-    PSound dsbCouplerStretch;
-    PSound dsbEN57_CouplerStretch;
-    PSound dsbBufferClamp;
+private:
+    sound_source dsbCouplerStretch;
+    sound_source dsbEN57_CouplerStretch;
+    sound_source dsbBufferClamp;
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
@@ -509,5 +497,6 @@ public: // reszta może by?publiczna
     inline TMoverParameters *Controlled() { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
     void Silence();
+
 };
 //---------------------------------------------------------------------------
