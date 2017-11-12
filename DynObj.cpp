@@ -1943,7 +1943,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                         0.0f );
                 }
                 ++compartmentindex;
-            } while( submodel != nullptr );
+            } while( ( submodel != nullptr )
+                  || ( compartmentindex < 2 ) ); // chain can start from prefix00 or prefix01
         }
     }
     // wyszukiwanie zderzakow
@@ -4014,8 +4015,13 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 }
                 else {
                     // Ra: tu wczytywanie modelu ładunku jest w porządku
-                    if( false == asLoadName.empty() ) {
-                        mdLoad = TModelsManager::GetModel( asLoadName, true ); // ladunek
+                   if( false == asLoadName.empty() ) {
+                        // try first specialized version of the load model, vehiclename_loadname
+                        mdLoad = TModelsManager::GetModel( BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d", true );
+                        if( mdLoad == nullptr ) {
+                            // if this fails, try generic load model
+                            mdLoad = TModelsManager::GetModel( asLoadName, true );
+                        }
                     }
                 }
             }
