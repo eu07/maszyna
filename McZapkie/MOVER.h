@@ -547,18 +547,18 @@ struct TMotorParameters
 
 struct TSecuritySystem
 {
-	int SystemType; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
-	double AwareDelay; // czas powtarzania czuwaka
+    int SystemType { 0 }; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
+    double AwareDelay { -1.0 }; // czas powtarzania czuwaka
 	double AwareMinSpeed; // minimalna prędkość załączenia czuwaka, normalnie 10% Vmax
-	double SoundSignalDelay;
-	double EmergencyBrakeDelay;
-	int Status; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
-	double SystemTimer;
-	double SystemSoundCATimer;
-	double SystemSoundSHPTimer;
-	double SystemBrakeCATimer;
-	double SystemBrakeSHPTimer;
-	double SystemBrakeCATestTimer; // hunter-091012
+    double SoundSignalDelay { -1.0 };
+    double EmergencyBrakeDelay { -1.0 };
+    int Status { 0 }; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
+    double SystemTimer { 0.0 };
+    double SystemSoundCATimer { 0.0 };
+    double SystemSoundSHPTimer { 0.0 };
+    double SystemBrakeCATimer { 0.0 };
+    double SystemBrakeSHPTimer { 0.0 };
+    double SystemBrakeCATestTimer { 0.0 }; // hunter-091012
 	int VelocityAllowed;
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop

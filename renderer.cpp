@@ -696,9 +696,10 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                 point = lightviewmatrix * point;
             }
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            // quantize the frustum points with 50 m resolution, to reduce shadow shimmer on scale/orientation changes
-            frustumchunkmin = 50.f * glm::floor( frustumchunkmin * ( 1.f / 50.f ) );
-            frustumchunkmax = 50.f * glm::ceil( frustumchunkmax * ( 1.f / 50.f ) );
+            // quantize the frustum points and add some padding, to reduce shadow shimmer on scale changes
+            auto const quantizationstep{ std::min( Global::shadowtune.depth, 50.f ) };
+            frustumchunkmin = quantizationstep * glm::floor( frustumchunkmin * ( 1.f / quantizationstep ) );
+            frustumchunkmax = quantizationstep * glm::ceil( frustumchunkmax * ( 1.f / quantizationstep ) );
             // ...use the dimensions to set up light projection boundaries...
             // NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
             camera.projection() *=

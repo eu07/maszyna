@@ -39,13 +39,13 @@ public:
         second() const { return ( m_time.wMilliseconds * 0.001 + m_time.wSecond ); }
     int
         year_day() const { return m_yearday; }
+    // helper, calculates day of year from given date
+    int
+        year_day( int Day, int const Month, int const Year ) const;
     int
         julian_day() const;
 
 private:
-    // calculates day of year from given date
-    int
-        yearday( int Day, int const Month, int const Year );
     // calculates day and month from given day of year
     void
         daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
@@ -114,7 +114,6 @@ TWorld();
     void ToggleDaylight();
     // calculates current season of the year based on set simulation date
     void compute_season( int const Yearday ) const;
-
 
 private:
     void Update_Environment();

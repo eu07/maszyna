@@ -77,7 +77,7 @@ simulation_time::init() {
         m_time.wSecond = 0;
     }
 
-    m_yearday = yearday( m_time.wDay, m_time.wMonth, m_time.wYear );
+    m_yearday = year_day( m_time.wDay, m_time.wMonth, m_time.wYear );
 }
 
 void
@@ -125,16 +125,15 @@ simulation_time::update( double const Deltatime ) {
 }
 
 int
-simulation_time::yearday( int Day, const int Month, const int Year ) {
+simulation_time::year_day( int Day, const int Month, const int Year ) const {
 
-    char daytab[ 2 ][ 13 ] = {
+    char const daytab[ 2 ][ 13 ] = {
         { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
         { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
     };
-    int i, leap;
 
-    leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
-    for( i = 1; i < Month; ++i )
+    int leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+    for( int i = 1; i < Month; ++i )
         Day += daytab[ leap ][ i ];
 
     return Day;
@@ -215,7 +214,6 @@ void TWorld::TrainDelete(TDynamicObject *d)
     Train = NULL;
     Controlled = NULL; // tego też już nie ma
     mvControlled = NULL;
-    Global::pUserDynamic = NULL; // tego też nie ma
 };
 
 bool TWorld::Init( GLFWwindow *Window ) {
@@ -267,7 +265,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
         {
             Controlled = Train->Dynamic();
             mvControlled = Controlled->ControlledFind()->MoverParameters;
-            Global::pUserDynamic = Controlled; // renerowanie pojazdu względem kabiny
             WriteLog("Player train init OK");
 
             glfwSetWindowTitle( window, ( Global::AppName + " (" + Controlled->MoverParameters->Name + " @ " + Global::SceneryFile + ")" ).c_str() );
@@ -771,7 +768,6 @@ void TWorld::InOutKey( bool const Near )
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag) {
         // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
-        Global::pUserDynamic = NULL; // bez renderowania względem kamery
         if (Train) {
             // cache current cab position so there's no need to set it all over again after each out-in switch
             Train->pMechSittingPosition = Train->pMechOffset;
@@ -787,7 +783,6 @@ void TWorld::InOutKey( bool const Near )
     { // jazda w kabinie
         if (Train)
         {
-            Global::pUserDynamic = Controlled; // renerowanie względem kamery
             Train->Dynamic()->bDisplayCab = true;
             Train->Dynamic()->ABuSetModelShake(
                 vector3(0, 0, 0)); // zerowanie przesunięcia przed powrotem?
@@ -1061,6 +1056,8 @@ bool TWorld::Update() {
     Timer::subsystem.sim_total.stop();
 
     simulation::Region->update_sounds();
+    audio::renderer.update( dt );
+
     GfxRenderer.Update( dt );
     ResourceSweep();
 
@@ -1136,12 +1133,10 @@ TWorld::Update_Camera( double const Deltatime ) {
             else if( Global::shiftState ) {
                 // patrzenie w bok przez szybę
                 Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * Train->Dynamic()->VectorLeft() * Train->Dynamic()->MoverParameters->ActiveCab;
-                Global::SetCameraRotation( -modelrotate );
             }
             else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
                 // ale bez odbicia
                 Camera.LookAt = Camera.Pos - Train->GetDirection() * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                Global::SetCameraRotation( M_PI - modelrotate ); // tu już trzeba uwzględnić lusterka
             }
             Camera.Roll = std::atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
             Camera.Pitch = 0.5 * std::atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl
@@ -1174,11 +1169,10 @@ TWorld::Update_Camera( double const Deltatime ) {
             else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
                 Camera.LookAt = Train->GetWorldMechPosition() + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
             Camera.vUp = Train->GetUp();
-            Global::SetCameraRotation( Camera.Yaw - modelrotate ); // tu już trzeba uwzględnić lusterka
         }
     }
-    else { // kamera nieruchoma
-        Global::SetCameraRotation( Camera.Yaw - M_PI );
+    else {
+        // kamera nieruchoma
     }
     // all done, update camera position to the new value
     Global::pCameraPosition = Camera.Pos;
@@ -2118,7 +2112,6 @@ void TWorld::ChangeDynamic() {
         Train->Dynamic()->asBaseDir +
         Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
     if( !FreeFlyModeFlag ) {
-        Global::pUserDynamic = Controlled; // renerowanie względem kamery
         Train->Dynamic()->bDisplayCab = true;
         Train->Dynamic()->ABuSetModelShake(
             vector3( 0, 0, 0 ) ); // zerowanie przesunięcia przed powrotem?

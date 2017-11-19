@@ -10,10 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include <Windows.h>
+
 #include "renderer.h"
-#include "glfw/glfw3.h"
-#include "gl/glew.h"
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -113,16 +111,6 @@ const int k_WalkMode = 73;
 int const k_DimHeadlights = 74;
 const int MaxKeys = 75;
 
-// klasy dla wskaźników globalnych
-/*
-class TGround;
-class TWorld;
-class TCamera;
-class TDynamicObject;
-class TAnimModel; // obiekt terenu
-class cParser; // nowy (powolny!) parser
-class TEvent;
-*/
 class TTranscript
 { // klasa obsługująca linijkę napisu do dźwięku
   public:
@@ -159,9 +147,7 @@ public:
     static void InitKeys();
     inline static Math3D::vector3 GetCameraPosition() { return pCameraPosition; };
     static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
-    static void SetCameraRotation(double Yaw);
     static void TrainDelete(TDynamicObject *d);
-    static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 
@@ -170,8 +156,6 @@ public:
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
     static Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
-    static double pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
-    static double pCameraRotationDeg; // w stopniach, dla animacji billboard
     static std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
     static std::vector<Math3D::vector3> FreeCameraInitAngle;
     static int iWindowWidth;
@@ -272,16 +256,12 @@ public:
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
 	
     static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
-    static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
-    static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
     static bool bRollFix; // czy wykonać przeliczanie przechyłki
-    static cParser *pParser;
     static double fFpsAverage; // oczekiwana wartosć FPS
     static double fFpsDeviation; // odchylenie standardowe FPS
     static double fFpsMin; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     static double fFpsMax; // górna granica FPS, przy której promień scenerii będzie zwiększany
     static TCamera *pCamera; // parametry kamery
-    static TDynamicObject *pUserDynamic; // pojazd użytkownika, renderowany bez trzęsienia
     static double fCalibrateIn[6][6]; // parametry kalibracyjne wejść z pulpitu
     static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjść dla pulpitu
 	static double fCalibrateOutMax[7]; // wartości maksymalne wyjść dla pulpitu

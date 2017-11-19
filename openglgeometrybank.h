@@ -302,7 +302,7 @@ private:
 // types:
     typedef std::pair<
         std::shared_ptr<geometry_bank>,
-        std::chrono::steady_clock::time_point > geometrybanktimepoint_pair;
+        resource_timestamp > geometrybanktimepoint_pair;
 
     typedef std::deque< geometrybanktimepoint_pair > geometrybanktimepointpair_sequence;
 

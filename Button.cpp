@@ -46,6 +46,7 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
     else {
         // new, block type config
         // TODO: rework the base part into yaml-compatible flow style mapping
+        submodelname = Parser.getToken<std::string>( false );
         while( true == Load_mapping( Parser ) ) {
             ; // all work done by while()
         }

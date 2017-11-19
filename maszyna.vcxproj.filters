@@ -225,13 +225,13 @@
     <ClCompile Include="messaging.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="audiorenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="audio.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -449,13 +449,13 @@
     <ClInclude Include="messaging.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="audiorenderer.h">
+    <ClInclude Include="sound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="audio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sound.h">
+    <ClInclude Include="audiorenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

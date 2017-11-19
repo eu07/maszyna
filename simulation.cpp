@@ -460,10 +460,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
         if( false == simulation::Sounds.insert( sound ) ) {
-#ifdef EU07_USE_OLD_SOUNDCODE
-            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
-#else
-#endif
+            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
         simulation::Region->insert_sound( sound, Scratchpad );
     }

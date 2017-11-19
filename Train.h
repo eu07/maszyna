@@ -453,7 +453,7 @@ private:
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
     float fLightsTimer; // yB 150617: timer do swiatel
 
-    int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
+    bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
 
     double fPoslizgTimer;
     TTrack *tor;

@@ -4490,6 +4490,7 @@ bool TTrain::Update( double const Deltatime )
             }
             else
                 btLampkaCzuwaka.Turn( false );
+
             btLampkaSHP.Turn(TestFlag(mvOccupied->SecuritySystem.Status, s_active));
         }
         else // wylaczone
@@ -5604,50 +5605,34 @@ TTrain::update_sounds( double const Deltatime ) {
             if( dsbSlipAlarm )
                 dsbSlipAlarm->Stop();
     }
-
+#endif
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
     if (mvOccupied->SecuritySystem.Status > 0)
     {
         // hunter-091012: rozdzielenie alarmow
-        if (TestFlag(mvOccupied->SecuritySystem.Status, s_CAalarm) ||
-            TestFlag(mvOccupied->SecuritySystem.Status, s_SHPalarm))
-        {
-            if (dsbBuzzer)
-            {
-                dsbBuzzer->GetStatus(&stat);
-                if (!(stat & DSBSTATUS_PLAYING))
-                {
-                    play_sound( dsbBuzzer, DSBVOLUME_MAX, DSBPLAY_LOOPING );
-                    Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
-                }
-            }
-        }
-        else
-        {
-            if (dsbBuzzer)
-            {
-                dsbBuzzer->GetStatus(&stat);
-                if (stat & DSBSTATUS_PLAYING)
-                {
-                    dsbBuzzer->Stop();
-                    Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
-                }
-            }
-        }
-    }
-    else // wylaczone
-    {
-        if (dsbBuzzer)
-        {
-            dsbBuzzer->GetStatus(&stat);
-            if (stat & DSBSTATUS_PLAYING)
-            {
-                dsbBuzzer->Stop();
-                Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
-            }
-        }
-    }
+        if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
+         || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
 
+            if( false == dsbBuzzer.is_playing() ) {
+                dsbBuzzer.play( sound_flags::looping );
+                Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+            }
+        }
+        else {
+            if( true == dsbBuzzer.is_playing() ) {
+                dsbBuzzer.stop();
+                Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+            }
+        }
+    }
+    else {
+        // wylaczone
+        if( true == dsbBuzzer.is_playing() ) {
+            dsbBuzzer.stop();
+            Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+        }
+    }
+#ifdef EU07_USE_OLD_SOUNDCODE
     /*  if ((mvControlled->Mains) &&
     (mvControlled->EngineType==ElectricSeriesMotor))
         {
@@ -5755,7 +5740,6 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 
     if (token == "internaldata:")
     {
-
         do
         {
             token = "";
@@ -5964,7 +5948,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsFadeSound.FM = 1.0;
                 rsFadeSound.FA = 1.0;
 */
-                rsFadeSound.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                rsFadeSound.deserialize( parser, sound_type::single );
             }
             else if (token == "localbrakesound:")
             {

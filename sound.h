@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "audiorenderer.h"
-#include "parser.h"
+#include "classes.h"
 #include "names.h"
 
 enum sound_type {
@@ -19,14 +19,18 @@ enum sound_type {
 };
 
 enum sound_parameters {
-    none,
-    range = 0x1,
+    range     = 0x1,
     amplitude = 0x2,
     frequency = 0x4
 };
 
+enum sound_flags {
+    looping = 0x1, // the main sample will be looping; implied for multi-sounds
+    exclusive = 0x2 // the source won't dispatch more than one active instance of the sound; implied for multi-sounds
+};
+
 // mini controller and audio dispatcher; issues play commands for the audio renderer,
-// updates parameters of assigned audio sources for the playback duration
+// updates parameters of created audio emitters for the playback duration
 // TODO: move to simulation namespace after clean up of owner classes
 class sound_source {
 
@@ -34,15 +38,18 @@ public:
 // methods
     // restores state of the class from provided data stream
     sound_source &
-        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = sound_parameters::none );
+        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = NULL );
     sound_source &
-        deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = sound_parameters::none );
+        deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = NULL );
     // issues contextual play commands for the audio renderer
     void
-        play();
-    // sets volume of audio streams associated with this source
-    sound_source &
-        volume( float const Volume );
+        play( int const Flags = NULL );
+    // stops currently active play commands controlled by this emitter
+    void
+        stop();
+    // adjusts parameters of provided implementation-side sound source
+    void
+        update( audio::openal_source &Source );
     // sound source name setter/getter
     void
         name( std::string Name );
@@ -51,10 +58,31 @@ public:
     // returns true if there isn't any sound buffer associated with the object, false otherwise
     bool
         empty() const;
+    // returns true if the source is emitting any sound
+    bool
+        is_playing() const;
 
 private:
+// types
+    enum stage {
+        none,
+        begin,
+        main,
+        end,
+        cease,
+        restart
+    };
+
 // members
+    TDynamicObject * m_owner { nullptr }; // optional, the vehicle carrying this sound source
+    glm::vec3 m_offset; // relative position of the source, either from the owner or the region centre
     std::string m_name;
+    stage m_stage{ stage::none };
+    int m_flags{ NULL };
+    audio::buffer_handle m_soundmain { null_handle }; // main sound emitted by the source
+    audio::buffer_handle m_soundbegin { null_handle }; // optional, sound emitted before the main sound
+    audio::buffer_handle m_soundend { null_handle }; // optional, sound emitted after the main sound
+    // TODO: table of samples with associated values, activated when controlling variable matches the value
 };
 
 // sound source name setter/getter

@@ -71,7 +71,6 @@ private:
 };
 
 typedef int texture_handle;
-int const null_handle = 0;
 
 class texture_manager {
 
@@ -104,7 +103,7 @@ private:
 // types:
     typedef std::pair<
         opengl_texture *,
-        std::chrono::steady_clock::time_point > texturetimepoint_pair;
+        resource_timestamp > texturetimepoint_pair;
 
     typedef std::vector< texturetimepoint_pair > texturetimepointpair_sequence;
 

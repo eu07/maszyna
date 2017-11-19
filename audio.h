@@ -16,6 +16,7 @@ namespace audio {
 
 ALuint const null_resource { ~ALuint{ 0 } };
 
+// wrapper for audio sample
 struct openal_buffer {
 // members
     ALuint id { null_resource }; // associated AL resource
@@ -36,6 +37,8 @@ private:
 
 using buffer_handle = std::size_t;
 
+
+// 
 class buffer_manager {
 
 public:
@@ -47,6 +50,9 @@ public:
     // creates buffer object out of data stored in specified file. returns: handle to the buffer or null_handle if creation failed
     buffer_handle
         create( std::string const &Filename );
+    // provides direct access to a specified buffer
+    audio::openal_buffer const &
+        buffer( audio::buffer_handle const Buffer ) const;
 
 private:
 // types

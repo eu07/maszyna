@@ -3354,6 +3354,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 #ifdef EU07_USE_OLD_SOUNDCODE
         rsDoorOpen.Play(1, 0, MechInside, vPosition);
 #else
+        rsDoorClose.stop();
         rsDoorOpen.play();
 #endif
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
@@ -3363,6 +3364,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 #ifdef EU07_USE_OLD_SOUNDCODE
         rsDoorClose.Play(1, 0, MechInside, vPosition);
 #else
+        rsDoorOpen.stop();
         rsDoorClose.play();
 #endif
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
@@ -3374,6 +3376,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 #ifdef EU07_USE_OLD_SOUNDCODE
         rsDoorOpen.Play(1, 0, MechInside, vPosition);
 #else
+        rsDoorClose.stop();
         rsDoorOpen.play();
 #endif
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
@@ -3383,6 +3386,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 #ifdef EU07_USE_OLD_SOUNDCODE
         rsDoorClose.Play(1, 0, MechInside, vPosition);
 #else
+        rsDoorOpen.stop();
         rsDoorClose.play();
 #endif
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
@@ -3849,16 +3853,70 @@ void TDynamicObject::RenderSounds() {
         if (GetVelocity() == 0)
             rsDerailment.Stop();
     }
+#else
+// McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
+if( MoverParameters->VeselVolume != 0 ) {
+
+    if( MoverParameters->TrainType != dt_PseudoDiesel ) {
+        // NBMX dzwiek przetwornicy
+        if( MoverParameters->ConverterFlag ) {
+            sConverter.play();
+        }
+        else {
+            sConverter.stop();
+        }
+    }
+    else {
+    }
+
+    if( MoverParameters->CompressorFlag ) {
+        sCompressor.play();
+    }
+    else {
+        sCompressor.stop();
+    }
+    if( MoverParameters->PantCompFlag ) {
+        // Winger 160404 - dzwiek malej sprezarki
+        sSmallCompressor.play();
+    }
+    else {
+        sSmallCompressor.stop();
+    }
+   
+
+    if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
+        sHorn1.play();
+    }
+    else {
+        sHorn1.stop();
+    }
+    if( TestFlag( MoverParameters->WarningSignal, 2 ) ) {
+        sHorn2.play();
+    }
+    else {
+        sHorn2.stop();
+    }
+
+    if( MoverParameters->DoorClosureWarning ) {
+        if( MoverParameters->DepartureSignal ) {
+            // NBMX sygnal odjazdu
+            // MC: pod warunkiem ze jest zdefiniowane w chk
+            sDepartureSignal.play();
+        }
+        else {
+            sDepartureSignal.stop();
+        }
+    }
+
+}
 #endif
 };
 
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
-void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
-                                    std::string ReplacableSkin)
-{
+void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, std::string ReplacableSkin ) {
+
     double dSDist;
-    // asBaseDir=BaseDir;
     Global::asCurrentDynamicPath = BaseDir;
     std::string asFileName = BaseDir + TypeName + ".mmd";
     std::string asLoadName;
@@ -3898,8 +3956,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 }
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
-            asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje
-            // modele w dynamics/basedir
+            asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
             assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
@@ -4757,9 +4814,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 }
 
 				else if( token == "curve:" ) {
-
-					double attenuation;
 #ifdef EU07_USE_OLD_SOUNDCODE
+					double attenuation;
                     parser.getTokens( 2, false );
 					parser
 						>> token
@@ -4959,6 +5015,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
         mdLowPolyInt->Init();
 
     Global::asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
+    Global::asCurrentDynamicPath = "";
 }
 
 //---------------------------------------------------------------------------

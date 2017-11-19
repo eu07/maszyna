@@ -395,7 +395,7 @@ geometrybank_manager::create_bank() {
     if( true == Global::bUseVBO ) { m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point() ); }
     else                          { m_geometrybanks.emplace_back( std::make_shared<opengl_dlgeometrybank>(), std::chrono::steady_clock::time_point() ); }
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
-    return { m_geometrybanks.size(), 0 };
+    return { static_cast<std::uint32_t>( m_geometrybanks.size() ), 0 };
 }
 
 // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL

@@ -98,7 +98,7 @@ buffer_manager::~buffer_manager() {
 }
 
 // creates buffer object out of data stored in specified file. returns: handle to the buffer or null_handle if creation failed
-buffer_handle
+audio::buffer_handle
 buffer_manager::create( std::string const &Filename ) {
 
     auto filename { ToLower( Filename ) };
@@ -114,14 +114,18 @@ buffer_manager::create( std::string const &Filename ) {
         std::begin( filename ), std::end( filename ),
         '\\', '/' );
 
-    // try dynamic-specific sounds first
-    auto lookup { find_buffer( Global::asCurrentDynamicPath + filename ) };
-    if( lookup != null_handle ) {
-        return lookup;
-    }
-    std::string filelookup { find_file( Global::asCurrentDynamicPath + filename ) };
-    if( false == filelookup.empty() ) {
-        return emplace( filelookup );
+    audio::buffer_handle lookup { null_handle };
+    std::string filelookup;
+    if( false == Global::asCurrentDynamicPath.empty() ) {
+        // try dynamic-specific sounds first
+        lookup = find_buffer( Global::asCurrentDynamicPath + filename );
+        if( lookup != null_handle ) {
+            return lookup;
+        }
+        filelookup = find_file( Global::asCurrentDynamicPath + filename );
+        if( false == filelookup.empty() ) {
+            return emplace( filelookup );
+        }
     }
     // if dynamic-specific lookup finds nothing, try the default sound folder
     lookup = find_buffer( szSoundPath + filename );
@@ -136,8 +140,15 @@ buffer_manager::create( std::string const &Filename ) {
     return null_handle;
 }
 
+// provides direct access to a specified buffer
+audio::openal_buffer const &
+buffer_manager::buffer( audio::buffer_handle const Buffer ) const {
+
+    return m_buffers[ Buffer ];
+}
+
 // places in the bank a buffer containing data stored in specified file. returns: handle to the buffer
-buffer_handle
+audio::buffer_handle
 buffer_manager::emplace( std::string Filename ) {
 
     buffer_handle const handle { m_buffers.size() };
@@ -151,7 +162,7 @@ buffer_manager::emplace( std::string Filename ) {
     return handle;
 }
 
-buffer_handle
+audio::buffer_handle
 buffer_manager::find_buffer( std::string const &Buffername ) const {
 
     auto lookup = m_buffermappings.find( Buffername );
