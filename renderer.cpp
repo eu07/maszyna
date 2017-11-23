@@ -486,7 +486,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glEnable( GL_SCISSOR_TEST );
                 setup_matrices();
                 ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
-                ::glPolygonOffset( 2.f, 2.f );
+                ::glPolygonOffset( 1.f, 1.f );
                 // render
                 // opaque parts...
                 setup_drawing( false );
@@ -665,6 +665,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
         }
 
         case rendermode::shadows: {
+
             // calculate lightview boundaries based on relevant area of the world camera frustum:
             // ...setup chunk of frustum we're interested in...
             auto const znear = 0.f;
@@ -697,18 +698,43 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                 point = lightviewmatrix * point;
             }
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            // ...use the dimensions to set up light projection boundaries
+            // quantize the frustum points with 50 m resolution, to reduce shadow shimmer on scale/orientation changes
+            frustumchunkmin = 50.f * glm::floor( frustumchunkmin * ( 1.f / 50.f ) );
+            frustumchunkmax = 50.f * glm::ceil( frustumchunkmax * ( 1.f / 50.f ) );
+            // ...use the dimensions to set up light projection boundaries...
             // NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
-            auto const quantizationstep = ( Global::shadowtune.depth + 1000.f ) / m_shadowbuffersize;
-            frustumchunkmin.x -= std::remainder( frustumchunkmin.x, quantizationstep );
-            frustumchunkmin.y -= std::remainder( frustumchunkmin.y, quantizationstep );
-            frustumchunkmax.x -= std::remainder( frustumchunkmax.x, quantizationstep );
-            frustumchunkmax.y -= std::remainder( frustumchunkmax.y, quantizationstep );
             camera.projection() *=
                 glm::ortho(
                     frustumchunkmin.x, frustumchunkmax.x,
                     frustumchunkmin.y, frustumchunkmax.y,
                     frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f );
+/*
+            // fixed ortho projection from old build, for quick quality comparisons
+            camera.projection() *=
+                glm::ortho(
+                    -Global::shadowtune.width, Global::shadowtune.width,
+                    -Global::shadowtune.width, Global::shadowtune.width,
+                    -Global::shadowtune.depth, Global::shadowtune.depth );
+            camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction };
+            if( camera.position().y - Global::pCameraPosition.y < 0.1 ) {
+                camera.position().y = Global::pCameraPosition.y + 0.1;
+            }
+            viewmatrix *= glm::lookAt(
+                camera.position(),
+                glm::dvec3{ Global::pCameraPosition },
+                glm::dvec3{ 0.f, 1.f, 0.f } );
+*/
+            // ... and adjust the projection to sample complete shadow map texels:
+            // get coordinates for a sample texel...
+            auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
+            // ...convert result from clip space to texture coordinates, and calculate adjustment...
+            shadowmaptexel *= m_shadowbuffersize * 0.5f;
+            auto shadowmapadjustment = glm::round( shadowmaptexel ) - shadowmaptexel;
+            // ...transform coordinate change back to homogenous light space...
+            shadowmapadjustment /= m_shadowbuffersize * 0.5f;
+            // ... and bake the adjustment into the projection matrix
+            camera.projection() = glm::translate( glm::mat4{ 1.f }, glm::vec3{ shadowmapadjustment, 0.f } ) * camera.projection();
+
             break;
         }
         case rendermode::reflections: {
