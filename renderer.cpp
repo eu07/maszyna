@@ -441,6 +441,25 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #endif
                 switch_units( true, true, true );
                 Render( simulation::Region );
+/*
+                // debug: audio nodes
+                for( auto const &audiosource : audio::renderer.m_sources ) {
+
+                    ::glPushMatrix();
+                    auto const position = audiosource.properties.location - m_renderpass.camera.position();
+                    ::glTranslated( position.x, position.y, position.z );
+
+                    ::glPushAttrib( GL_ENABLE_BIT );
+                    ::glDisable( GL_TEXTURE_2D );
+                    ::glColor3f( 0.36f, 0.75f, 0.35f );
+
+                    ::gluSphere( m_quadric, 0.125, 4, 2 );
+
+                    ::glPopAttrib();
+
+                    ::glPopMatrix();
+                }
+*/
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
@@ -2990,11 +3009,12 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
                     if( glarelevel > 0.0f ) {
                         // setup
-                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+                        ::glPushAttrib( GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
                         ::glDisable( GL_LIGHTING );
+                        ::glDepthMask( GL_FALSE );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
                         ::glPushMatrix();

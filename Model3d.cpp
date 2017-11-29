@@ -1050,14 +1050,17 @@ void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, g
 */
 };
 
-void TSubModel::ParentMatrix(float4x4 *m)
-{ // pobranie transformacji względem wstawienia modelu
-  // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D), to
-  // dodatkowy obrót
-  // obrót T3D jest wymagany np. do policzenia wysokości pantografów
-	*m = float4x4(*fMatrix); // skopiowanie, bo będziemy mnożyć
-							 // m(3)[1]=m[3][1]+0.054; //w górę o wysokość ślizgu (na razie tak)
-	TSubModel *sm = this;
+void TSubModel::ParentMatrix( float4x4 *m ) const { // pobranie transformacji względem wstawienia modelu
+  // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D),
+  // to dodatkowy obrót obrót T3D jest wymagany np. do policzenia wysokości pantografów
+    if( fMatrix != nullptr ) {
+        // skopiowanie, bo będziemy mnożyć
+        *m = float4x4( *fMatrix );
+    }
+    else {
+        m->Identity();
+    }
+	auto *sm = this;
 	while (sm->Parent)
 	{ // przenieść tę funkcję do modelu
 		if (sm->Parent->GetMatrix())
@@ -1159,6 +1162,37 @@ TSubModel *TModel3d::GetFromName(std::string const &Name)
 		return Root ? Root->GetFromName(Name) : nullptr;
 	}
 };
+
+// returns offset vector from root
+glm::vec3
+TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
+
+    float4x4 parentmatrix;
+    ParentMatrix( &parentmatrix );
+    
+    auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
+
+    if( glm::length2( offset ) < Geometrytestoffsetthreshold ) {
+    // offset of zero generally means the submodel has optimized identity matrix
+    // for such cases we resort to an estimate from submodel geometry
+    // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
+        if( m_geometry != null_handle ) {
+            auto const &vertices{ GfxRenderer.Vertices( m_geometry ) };
+            if( false == vertices.empty() ) {
+                // transformation matrix for the submodel can still contain rotation and/or scaling,
+                // so we pass the vertex positions through it rather than just grab them directly
+                offset = glm::vec3();
+                auto const vertexfactor { 1.f / vertices.size() };
+                auto const transformationmatrix { glm::make_mat4( parentmatrix.readArray() ) };
+                for( auto const &vertex : vertices ) {
+                    offset += glm::vec3 { transformationmatrix * glm::vec4 { vertex.position, 1 } } * vertexfactor;
+                }
+            }
+        }
+    }
+
+    return offset;
+}
 
 bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {

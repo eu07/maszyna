@@ -732,7 +732,9 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
+#ifdef EU07_USE_OLD_SOUNDCODE
                             Train->dsbPneumaticRelay.play();
+#endif
                         }
             }
         }
@@ -751,7 +753,9 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
+#ifdef EU07_USE_OLD_SOUNDCODE
                             Train->dsbPneumaticRelay.play();
+#endif
                         }
             }
         }
@@ -2031,15 +2035,15 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                 if( dynamic->iCabs ) { // jeśli ma jakąkolwiek kabinę
                     delete Train;
                     Train = new TTrain();
-                    if( dynamic->iCabs & 1 ) {
+                    if( dynamic->iCabs & 0x1 ) {
                         dynamic->MoverParameters->ActiveCab = 1;
                         Train->Init( dynamic, true );
                     }
-                    if( dynamic->iCabs & 4 ) {
+                    if( dynamic->iCabs & 0x4 ) {
                         dynamic->MoverParameters->ActiveCab = -1;
                         Train->Init( dynamic, true );
                     }
-                    if( dynamic->iCabs & 2 ) {
+                    if( dynamic->iCabs & 0x2 ) {
                         dynamic->MoverParameters->ActiveCab = 0;
                         Train->Init( dynamic, true );
                     }

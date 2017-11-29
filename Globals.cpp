@@ -132,6 +132,8 @@ bool Global::FullPhysics { true }; // full calculations performed for each simul
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
 bool Global::bSoundEnabled = true;
+float Global::AudioVolume = 1.0f;
+
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::MultipleLogs{ false };
 

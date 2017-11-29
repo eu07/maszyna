@@ -851,7 +851,9 @@ state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpa
     auto *sound = new TTextSound( soundname, Nodedata.range_max, location.x, location.y, location.z, false, false, Nodedata.range_min );
     sound->name( Nodedata.name );
 #else
-    auto *sound = new sound_source();
+    auto *sound = new sound_source( sound_placement::external, Nodedata.range_max );
+    sound->offset( location );
+    sound->name( Nodedata.name );
     sound->deserialize( Input.getToken<std::string>(), sound_type::single );
 #endif
 

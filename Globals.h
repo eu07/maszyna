@@ -166,6 +166,7 @@ public:
     static bool bFreeFly;
     static bool bWireFrame;
     static bool bSoundEnabled;
+    static float AudioVolume;
     // McZapkie-131202
     static bool bAdjustScreenFreq;
     static bool bEnableTraction;

@@ -14,6 +14,15 @@ http://mozilla.org/MPL/2.0/.
 
 class sound_source;
 
+// sound emitter state sync item
+struct sound_properties {
+    glm::dvec3 location;
+    float base_gain { 1.f };
+    float placement_gain { 1.f };
+    std::uintptr_t placement_stamp { ~( std::uintptr_t{ 0 } ) };
+    float base_pitch { 1.f };
+};
+
 namespace audio {
 
 // implementation part of the sound emitter
@@ -29,6 +38,8 @@ struct openal_source {
     buffer_sequence buffers; // sequence of samples the source will emit
     int buffer_index; // currently queued sample from the buffer sequence
     bool is_playing { false };
+    bool is_looping { false };
+    sound_properties properties;
 
 // methods
     template <class Iterator_>
@@ -47,24 +58,41 @@ struct openal_source {
     // starts playback of queued buffers
     void
         play();
+    // updates state of the source
+    void
+        update( double const Deltatime );
+    // configures state of the source to match the provided set of properties
+    void
+        sync_with( sound_properties const &State );
     // stops the playback
     void
         stop();
-    // updates state of the source
-    void
-        update( int const Deltatime );
     // toggles looping of the sound emitted by the source
    void
         loop( bool const State );
+    // sets max audible distance for sounds emitted by the source
+   void
+       range( float const Range );
+   // sets modifier applied to the pitch of sounds emitted by the source
+   void
+       pitch( float const Pitch );
     // releases bound buffers and resets state of the class variables
     // NOTE: doesn't release allocated implementation-side source
     void
         clear();
+
+private:
+// members
+    double update_deltatime; // time delta of most current update
+    float pitch_variation { 1.f }; // emitter-specific variation of the base pitch
+    float sound_range { 50.f }; // cached audible range of the emitted samples
 };
 
 
 
 class openal_renderer {
+
+    friend class opengl_renderer;
 
 public:
 // destructor
@@ -89,9 +117,12 @@ public:
     // schedules playback of specified sample, under control of the specified sound emitter
     void
         insert( sound_source *Controller, audio::buffer_handle const Sound );
+    // removes from the queue all sounds controlled by the specified sound emitter
+    void
+        erase( sound_source const *Controller );
     // updates state of all active emitters
     void
-        update( int const Deltatime );
+        update( double const Deltatime );
 
 private:
 // types
@@ -107,6 +138,7 @@ private:
     ALCdevice * m_device { nullptr };
     ALCcontext * m_context { nullptr };
     bool m_ready { false }; // renderer is initialized and functional
+    glm::dvec3 m_listenerposition;
 
     buffer_manager m_buffers;
     // TBD: list of sources as vector, sorted by distance, for openal implementations with limited number of active sources?
@@ -115,6 +147,20 @@ private:
 };
 
 extern openal_renderer renderer;
+
+inline
+float
+amplitude_to_db( float const Amplitude ) {
+
+    return 20.f * std::log10( Amplitude );
+}
+
+inline
+float
+db_to_amplitude( float const Decibels ) {
+
+    return std::pow( 10.f, Decibels / 20.f );
+}
 
 } // audio
 

@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 
 namespace audio {
 
-ALuint const null_resource { ~ALuint{ 0 } };
+ALuint const null_resource{ ~( ALuint { 0 } ) };
 
 // wrapper for audio sample
 struct openal_buffer {

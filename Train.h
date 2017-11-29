@@ -91,7 +91,6 @@ class TTrain
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
     void update_sounds( double const Deltatime );
-    bool m_updated = false;
     void MechStop();
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
@@ -102,6 +101,7 @@ class TTrain
 // types
     typedef void( *command_handler )( TTrain *Train, command_data const &Command );
     typedef std::unordered_map<user_command, command_handler> commandhandler_map;
+// methods
     // clears state of all cabin controls
     void clear_cab_controls();
     // sets cabin controls based on current state of the vehicle
@@ -226,7 +226,7 @@ public: // reszta może by?publiczna
     TGauge ggMainCtrl;
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
-    TGauge ggScndCtrlButton;
+    TGauge ggScndCtrlButton; // NOTE: not used?
     TGauge ggDirKey;
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
@@ -398,42 +398,23 @@ public: // reszta może by?publiczna
     double fMechRoll;
     double fMechPitch;
 
-    sound_source dsbNastawnikJazdy;
-    sound_source dsbNastawnikBocz; // hunter-081211
-    sound_source dsbRelay;
-    sound_source dsbPneumaticRelay;
-    sound_source dsbSwitch;
-    sound_source dsbPneumaticSwitch;
-    sound_source dsbReverserKey; // hunter-121211
+    sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
+    sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbNastawnikBocz { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-081211
+    sound_source dsbSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbPneumaticSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
 
-    sound_source dsbCouplerAttach; // Ra: w kabinie????
-    sound_source dsbCouplerDetach; // Ra: w kabinie???
+    sound_source rsHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // upuszczanie
+    sound_source rsHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // napelnianie
+    sound_source rsHissE { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // nagle
+    sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
+    sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
+    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local
 
-    sound_source dsbDieselIgnition; // Ra: w kabinie???
-
-    // Winger 010304
-    sound_source dsbWejscie_na_bezoporow;
-    sound_source dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
-
-    //    PSound dsbHiss1;
-    //  PSound dsbHiss2;
-
-    // McZapkie-280302
-    sound_source rsBrake;
-    sound_source rsSlippery;
-    sound_source rsHiss; // upuszczanie
-    sound_source rsHissU; // napelnianie
-    sound_source rsHissE; // nagle
-    sound_source rsHissX; // fala
-    sound_source rsHissT; // czasowy
-    sound_source rsSBHiss;
-    sound_source rsRunningNoise;
-    sound_source rsEngageSlippery;
-    sound_source rsFadeSound;
-
-    sound_source dsbHasler;
-    sound_source dsbBuzzer;
-    sound_source dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -443,9 +424,6 @@ public: // reszta może by?publiczna
     vector3 MirrorPosition(bool lewe);
 
 private:
-    sound_source dsbCouplerStretch;
-    sound_source dsbEN57_CouplerStretch;
-    sound_source dsbBufferClamp;
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
@@ -494,7 +472,9 @@ private:
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() { return iRadioChannel; };
     inline TDynamicObject *Dynamic() { return DynamicObject; };
+    inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };
+    inline TMoverParameters const *Controlled() const { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
     void Silence();
 

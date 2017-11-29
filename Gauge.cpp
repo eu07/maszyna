@@ -19,24 +19,23 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "Timer.h"
 #include "logs.h"
+#include "renderer.h"
 
 void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
-    if (NewSubModel)
-    { // warunek na wszelki wypadek, gdyby się submodel nie
-        // podłączył
+    if (NewSubModel) {
+        // warunek na wszelki wypadek, gdyby się submodel nie podłączył
         fFriction = fNewFriction;
         fValue = fNewValue;
         fOffset = fNewOffset;
         fScale = fNewScale;
         SubModel = NewSubModel;
         eType = eNewType;
-        if (eType == gt_Digital)
-        {
+        if (eType == gt_Digital) {
+
             TSubModel *sm = SubModel->ChildGet();
-            do
-            { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
-                // cyfry w (fValue)
+            do {
+                // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
                 if (sm->pName.size())
                 { // musi mieć niepustą nazwę
                     if (sm->pName[0] >= '0')
@@ -48,10 +47,17 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
         }
         else // a banan może być z optymalizacją?
             NewSubModel->WillBeAnimated(); // wyłączenie ignowania jedynkowego transformu
+        // pass submodel location to defined sounds
+        auto const offset { model_offset() };
+        m_soundfxincrease.offset( offset );
+        m_soundfxdecrease.offset( offset );
+        for( auto &soundfxrecord : m_soundfxvalues ) {
+            soundfxrecord.second.offset( offset );
+        }
     }
 };
 
-bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
+bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, TModel3d *md2, double mul ) {
 
     std::string submodelname, gaugetypename;
     double scale, offset, friction;
@@ -83,10 +89,17 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
         }
     }
 
+    // bind defined sounds with the button owner
+    m_soundfxincrease.owner( Owner );
+    m_soundfxdecrease.owner( Owner );
+    for( auto &soundfxrecord : m_soundfxvalues ) {
+        soundfxrecord.second.owner( Owner );
+    }
+
 	scale *= mul;
-		TSubModel *submodel = md1->GetFromName( submodelname );
+    TSubModel *submodel = md1->GetFromName( submodelname );
     if( scale == 0.0 ) {
-        ErrorLog( "Scale of 0.0 defined for sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
+        ErrorLog( "Bad model: scale of 0.0 defined for sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
         scale = 1.0;
     }
     if (submodel) // jeśli nie znaleziony
@@ -94,7 +107,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     else if (md2) // a jest podany drugi model (np. zewnętrzny)
         submodel = md2->GetFromName(submodelname); // to może tam będzie, co za różnica gdzie
     if( submodel == nullptr ) {
-        ErrorLog( "Failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"" );
+        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"" );
     }
 
     std::map<std::string, TGaugeType> gaugetypes {
@@ -132,7 +145,7 @@ TGauge::Load_mapping( cParser &Input ) {
         if( indexstart != std::string::npos ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),
-                sound_source().deserialize( Input, sound_type::single ) );
+                sound_source( sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( Input, sound_type::single ) );
         }
     }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
@@ -284,8 +297,6 @@ void TGauge::Update() {
     }
 };
 
-void TGauge::Render(){};
-
 void TGauge::AssignFloat(float *fValue)
 {
     cDataType = 'f';
@@ -316,5 +327,15 @@ void TGauge::UpdateValue()
         break;
     }
 };
+
+// returns offset of submodel associated with the button from the model centre
+glm::vec3
+TGauge::model_offset() const {
+
+    return (
+        SubModel != nullptr ?
+            SubModel->offset( 1.f ) :
+            glm::vec3() );
+}
 
 //---------------------------------------------------------------------------

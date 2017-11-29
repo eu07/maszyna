@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "audio.h"
 #include "globals.h"
 #include "mczapkie/mctools.h"
+#include "logs.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
@@ -137,6 +138,7 @@ buffer_manager::create( std::string const &Filename ) {
         return emplace( filelookup );
     }
     // if we still didn't find anything, give up
+    ErrorLog( "Bad file: failed do locate audio file \"" + Filename + "\"" );
     return null_handle;
 }
 
