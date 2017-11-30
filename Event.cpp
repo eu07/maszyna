@@ -1022,26 +1022,21 @@ event_manager::CheckQuery() {
                 return false;
             }
             case tp_Sound: {
+                if( m_workevent->Params[ 9 ].tsTextSound == nullptr ) {
+                    break;
+                }
                 switch( m_workevent->Params[ 0 ].asInt ) {
                     // trzy możliwe przypadki:
                     case 0: {
-                        m_workevent->Params[ 9 ].tsTextSound->Stop();
+                        m_workevent->Params[ 9 ].tsTextSound->stop();
                         break;
                     }
                     case 1: {
-                        m_workevent->Params[ 9 ].tsTextSound->Play(
-                            1,
-                            0,
-                            true,
-                            m_workevent->Params[ 9 ].tsTextSound->vSoundPosition );
+                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive );
                         break;
                     }
                     case -1: {
-                        m_workevent->Params[ 9 ].tsTextSound->Play(
-                            1,
-                            DSBPLAY_LOOPING,
-                            true,
-                            m_workevent->Params[ 9 ].tsTextSound->vSoundPosition );
+                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive | sound_flags::looping );
                         break;
                     }
                     default: {
@@ -1572,14 +1567,19 @@ event_manager::InitLaunchers() {
             }
         }
 
-        launcher->Event1 = (
-            launcher->asEvent1Name != "none" ?
-                simulation::Events.FindEvent( launcher->asEvent1Name ) :
-                nullptr );
-        launcher->Event2 = (
-            launcher->asEvent2Name != "none" ?
-                simulation::Events.FindEvent( launcher->asEvent2Name ) :
-                nullptr );
+        if( launcher->asEvent1Name != "none" ) {
+            launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
+            if( launcher->Event1 == nullptr ) {
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent1Name + "\"" );
+            }
+        }
+
+        if( launcher->asEvent2Name != "none" ) {
+            launcher->Event2 = simulation::Events.FindEvent( launcher->asEvent2Name );
+            if( launcher->Event2 == nullptr ) {
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent2Name + "\"" );
+            }
+        }
     }
 }
 

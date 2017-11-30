@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Button.h"
 #include "Gauge.h"
 #include "Spring.h"
-#include "AdvSound.h"
+#include "sound.h"
 #include "PyInt.h"
 #include "command.h"
 
@@ -90,7 +90,7 @@ class TTrain
     void UpdateMechPosition(double dt);
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
-    bool m_updated = false;
+    void update_sounds( double const Deltatime );
     void MechStop();
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
@@ -101,6 +101,7 @@ class TTrain
 // types
     typedef void( *command_handler )( TTrain *Train, command_data const &Command );
     typedef std::unordered_map<user_command, command_handler> commandhandler_map;
+// methods
     // clears state of all cabin controls
     void clear_cab_controls();
     // sets cabin controls based on current state of the vehicle
@@ -110,10 +111,6 @@ class TTrain
     bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
     // initializes a button matching provided label. returns: true if the label was found, false otherwise
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
-    // plays specified sound, or fallback sound if the primary sound isn't presend
-    // NOTE: temporary routine until sound system is sorted out and paired with switches
-    void play_sound( PSound Sound, int const Volume = DSBVOLUME_MAX, DWORD const Flags = 0 );
-    void play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags );
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // command handlers
@@ -229,7 +226,7 @@ public: // reszta może by?publiczna
     TGauge ggMainCtrl;
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
-    TGauge ggScndCtrlButton;
+    TGauge ggScndCtrlButton; // NOTE: not used?
     TGauge ggDirKey;
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
@@ -308,8 +305,6 @@ public: // reszta może by?publiczna
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
-    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
-    // TGauge ggVelocityDgt; //i od razu prędkościomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -356,7 +351,6 @@ public: // reszta może by?publiczna
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
-    TButton btLampkaJazda; // Ra: nie używane
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -384,8 +378,9 @@ public: // reszta może by?publiczna
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
-
+/*
     vector3 pPosition;
+*/
     vector3 pMechOffset; // driverNpos
     vector3 vMechMovement;
     vector3 pMechPosition;
@@ -403,48 +398,25 @@ public: // reszta może by?publiczna
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnikJazdy;
-    PSound dsbNastawnikBocz; // hunter-081211
-    PSound dsbRelay;
-    PSound dsbPneumaticRelay;
-    PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;
-    PSound dsbReverserKey; // hunter-121211
+    sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
+    sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbNastawnikBocz { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-081211
+    sound_source dsbSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbPneumaticSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
 
-    PSound dsbCouplerAttach; // Ra: w kabinie????
-    PSound dsbCouplerDetach; // Ra: w kabinie???
+    sound_source rsHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // upuszczanie
+    sound_source rsHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // napelnianie
+    sound_source rsHissE { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // nagle
+    sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
+    sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
+    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local
+    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
+    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 
-    PSound dsbDieselIgnition; // Ra: w kabinie???
-
-    PSound dsbDoorClose; // Ra: w kabinie???
-    PSound dsbDoorOpen; // Ra: w kabinie???
-
-    // Winger 010304
-    PSound dsbPantUp;
-    PSound dsbPantDown;
-
-    PSound dsbWejscie_na_bezoporow;
-    PSound dsbWejscie_na_drugi_uklad; // hunter-081211: poprawka literowki
-
-    //    PSound dsbHiss1;
-    //  PSound dsbHiss2;
-
-    // McZapkie-280302
-    TRealSound rsBrake;
-    TRealSound rsSlippery;
-    TRealSound rsHiss; // upuszczanie
-    TRealSound rsHissU; // napelnianie
-    TRealSound rsHissE; // nagle
-    TRealSound rsHissX; // fala
-    TRealSound rsHissT; // czasowy
-    TRealSound rsSBHiss;
-    TRealSound rsRunningNoise;
-    TRealSound rsEngageSlippery;
-    TRealSound rsFadeSound;
-
-    PSound dsbHasler;
-    PSound dsbBuzzer;
-    PSound dsbSlipAlarm; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -453,11 +425,7 @@ public: // reszta może by?publiczna
     vector3 pMechSittingPosition; // ABu 180404
     vector3 MirrorPosition(bool lewe);
 
-  private:
-    // PSound dsbBuzzer;
-    PSound dsbCouplerStretch;
-    PSound dsbEN57_CouplerStretch;
-    PSound dsbBufferClamp;
+private:
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
@@ -465,7 +433,7 @@ public: // reszta może by?publiczna
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
     float fLightsTimer; // yB 150617: timer do swiatel
 
-    int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
+    bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
 
     double fPoslizgTimer;
     TTrack *tor;
@@ -495,7 +463,7 @@ public: // reszta może by?publiczna
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
-    float fSPPress, fSNPress;
+//    float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
     int iRadioChannel; // numer aktualnego kana?u radiowego
     TPythonScreens pyScreens;
@@ -506,8 +474,11 @@ public: // reszta może by?publiczna
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() { return iRadioChannel; };
     inline TDynamicObject *Dynamic() { return DynamicObject; };
+    inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };
+    inline TMoverParameters const *Controlled() const { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
     void Silence();
+
 };
 //---------------------------------------------------------------------------

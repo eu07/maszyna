@@ -147,7 +147,7 @@ private:
     glm::dvec3 m_origin;
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
-    typedef std::vector<geometry_handle> geometryhandle_sequence;
+    typedef std::vector<gfx::geometry_handle> geometryhandle_sequence;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
 
@@ -245,7 +245,7 @@ public:
     std::vector<glm::dvec3>
         endpoints() const;
 
-    void create_geometry( geometrybank_handle const &Bank ); // wypełnianie VBO
+    void create_geometry( gfx::geometrybank_handle const &Bank ); // wypełnianie VBO
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet( scene::basic_cell *o ) {

@@ -25,12 +25,14 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Globals.h"
 #include "timer.h"
 #include "Logs.h"
+#include "renderer.h"
+#include "uilayer.h"
+#include "audiorenderer.h"
 #include "keyboardinput.h"
 #include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
-#include "uilayer.h"
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )
@@ -46,6 +48,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
 #pragma comment( lib, "dsound.lib" )
+#pragma comment( lib, "openal32.lib")
 #pragma comment( lib, "winmm.lib" )
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
@@ -405,6 +408,9 @@ int main(int argc, char *argv[])
 
         return -1;
     }
+
+    audio::renderer.init();
+
     input::Keyboard.init();
     input::Mouse.init();
     input::Gamepad.init();

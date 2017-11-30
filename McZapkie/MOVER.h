@@ -197,14 +197,15 @@ static int const s_SHPebrake = 64; //hamuje
 static int const s_CAtest = 128;
 
 /*dzwieki*/
-static int const sound_none = 0;
-static int const sound_loud = 1;
-static int const sound_couplerstretch = 2;
-static int const sound_bufferclamp = 4;
-static int const sound_bufferbump = 8;
-static int const sound_relay = 16;
-static int const sound_manyrelay = 32;
-static int const sound_brakeacc = 64;
+enum sound {
+    none,
+    loud = 0x1,
+    couplerstretch = 0x2,
+    bufferclash = 0x4,
+    relay = 0x10,
+    parallel = 0x20,
+    pneumatic = 0x40
+};
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
@@ -547,18 +548,18 @@ struct TMotorParameters
 
 struct TSecuritySystem
 {
-	int SystemType; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
-	double AwareDelay; // czas powtarzania czuwaka
+    int SystemType { 0 }; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
+    double AwareDelay { -1.0 }; // czas powtarzania czuwaka
 	double AwareMinSpeed; // minimalna prędkość załączenia czuwaka, normalnie 10% Vmax
-	double SoundSignalDelay;
-	double EmergencyBrakeDelay;
-	int Status; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
-	double SystemTimer;
-	double SystemSoundCATimer;
-	double SystemSoundSHPTimer;
-	double SystemBrakeCATimer;
-	double SystemBrakeSHPTimer;
-	double SystemBrakeCATestTimer; // hunter-091012
+    double SoundSignalDelay { -1.0 };
+    double EmergencyBrakeDelay { -1.0 };
+    int Status { 0 }; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
+    double SystemTimer { 0.0 };
+    double SystemSoundCATimer { 0.0 };
+    double SystemSoundSHPTimer { 0.0 };
+    double SystemBrakeCATimer { 0.0 };
+    double SystemBrakeSHPTimer { 0.0 };
+    double SystemBrakeCATestTimer { 0.0 }; // hunter-091012
 	int VelocityAllowed;
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop
@@ -602,6 +603,8 @@ struct TCoupling {
 
     power_coupling power_high;
     power_coupling power_low; // TODO: implement this
+
+    int sounds { 0 }; // sounds emitted by the coupling devices
 };
 
 class TMoverParameters
@@ -1167,6 +1170,7 @@ public:
 	bool DoorLeft(bool State); //obsluga drzwi lewych
 	bool DoorRight(bool State); //obsluga drzwi prawych
 	bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
+    bool signal_departure( bool const State, int const Notify = range::consist ); // toggles departure warning
 
 								/* funkcje dla samochodow*/
 	bool ChangeOffsetH(double DeltaOffset);

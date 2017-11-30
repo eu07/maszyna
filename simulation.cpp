@@ -460,7 +460,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
         if( false == simulation::Sounds.insert( sound ) ) {
-            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->m_name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
         simulation::Region->insert_sound( sound, Scratchpad );
     }
@@ -830,7 +830,11 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
     return vehicle;
 }
 
+#ifdef EU07_USE_OLD_SOUNDCODE
 TTextSound *
+#else
+sound_source *
+#endif
 state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
 
     glm::dvec3 location;
@@ -842,9 +846,16 @@ state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpa
     // adjust location
     location = transform( location, Scratchpad );
 
+#ifdef EU07_USE_OLD_SOUNDCODE
     auto const soundname { Input.getToken<std::string>() };
     auto *sound = new TTextSound( soundname, Nodedata.range_max, location.x, location.y, location.z, false, false, Nodedata.range_min );
     sound->name( Nodedata.name );
+#else
+    auto *sound = new sound_source( sound_placement::external, Nodedata.range_max );
+    sound->offset( location );
+    sound->name( Nodedata.name );
+    sound->deserialize( Input.getToken<std::string>(), sound_type::single );
+#endif
 
     skip_until( Input, "endsound" );
 

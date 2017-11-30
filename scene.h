@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scenenode.h"
 #include "track.h"
 #include "traction.h"
+#include "sound.h"
 
 namespace scene {
 
@@ -104,7 +105,11 @@ public:
         insert( TAnimModel *Instance );
     // adds provided sound instance to the cell
     void
+#ifdef EU07_USE_OLD_SOUNDCODE
         insert( TTextSound *Sound );
+#else
+        insert( sound_source *Sound );
+#endif
     // adds provided event launcher to the cell
     void
         insert( TEventLauncher *Launcher );
@@ -131,7 +136,7 @@ public:
         center( glm::dvec3 Center );
     // generates renderable version of held non-instanced geometry in specified geometry bank
     void
-        create_geometry( geometrybank_handle const &Bank );
+        create_geometry( gfx::geometrybank_handle const &Bank );
     // provides access to bounding area data
     bounding_area const &
         area() const {
@@ -144,7 +149,11 @@ private:
     using path_sequence = std::vector<TTrack *>;
     using traction_sequence = std::vector<TTraction *>;
     using instance_sequence = std::vector<TAnimModel *>;
+#ifdef EU07_USE_OLD_SOUNDCODE
     using sound_sequence = std::vector<TTextSound *>;
+#else
+    using sound_sequence = std::vector<sound_source *>;
+#endif
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // methods
     void
@@ -258,7 +267,7 @@ private:
     shapenode_sequence m_shapes; // large pieces of opaque geometry and (legacy) terrain
     // TODO: implement dedicated, higher fidelity, fixed resolution terrain mesh item
     // gfx renderer data
-    geometrybank_handle m_geometrybank;
+    gfx::geometrybank_handle m_geometrybank;
     bool m_geometrycreated { false };
 };
 
@@ -311,7 +320,11 @@ public:
         insert_instance( TAnimModel *Instance, scratch_data &Scratchpad );
     // inserts provided sound in the region
     void
+#ifdef EU07_USE_OLD_SOUNDCODE
         insert_sound( TTextSound *Sound, scratch_data &Scratchpad );
+#else
+        insert_sound( sound_source *Sound, scratch_data &Scratchpad );
+#endif
     // inserts provided event launcher in the region
     void
         insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );

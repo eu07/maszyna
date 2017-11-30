@@ -162,7 +162,7 @@ class matrix4x4
     }
 
     // Low-level access to the array.
-    const scalar_t *readArray(void)
+    const scalar_t *readArray(void) const 
     {
         return e;
     }

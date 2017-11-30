@@ -14,10 +14,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "TrkFoll.h"
 // McZapkie:
-#include "RealSound.h"
-#include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "sound.h"
 #include "texture.h"
 
 //---------------------------------------------------------------------------
@@ -259,12 +258,33 @@ private:
     TSubModel *smWiper; // wycieraczka (poniekąd też wajcha)
     // Ra: koneic animacji do ogarnięcia
 
-  private:
-    void ABuLittleUpdate(double ObjSqrDist);
-    bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
-    // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double ComputeRadius( Math3D::vector3 p1, Math3D::vector3 p2, Math3D::vector3 p3, Math3D::vector3 p4);
+private:
+// types
+    struct coupler_sounds {
+        sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
+        sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
+        sound_source dsbCouplerStretch { sound_placement::external }; // moved from cab
+        sound_source dsbBufferClamp { sound_placement::external }; // moved from cab
+    };
 
+    struct pantograph_sounds {
+        sound_source sPantUp { sound_placement::external };
+        sound_source sPantDown { sound_placement::external };
+    };
+
+    struct door_sounds {
+        sound_source rsDoorOpen{ sound_placement::general }; // Ra: przeniesione z kabiny
+        sound_source rsDoorClose{ sound_placement::general };
+    };
+
+// methods
+    void ABuLittleUpdate(double ObjSqrDist);
+    double ComputeRadius( Math3D::vector3 p1, Math3D::vector3 p2, Math3D::vector3 p3, Math3D::vector3 p4);
+    void ABuBogies();
+    void ABuModelRoll();
+    void TurnOff();
+
+// members
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
     TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
@@ -304,44 +324,55 @@ private:
     double dRailLength;
     double dRailPosition[MaxAxles]; // licznik pozycji osi w/m szyny
     double dWheelsPosition[MaxAxles]; // pozycja osi w/m srodka pojazdu
-    TRealSound rsStukot[MaxAxles]; // dzwieki poszczegolnych osi //McZapkie-270202
-    TRealSound rsSilnik; // McZapkie-010302 - silnik
-    TRealSound rsWentylator; // McZapkie-030302
-    TRealSound rsPisk; // McZapkie-260302
-    TRealSound rsDerailment; // McZapkie-051202
-    TRealSound rsPrzekladnia;
-    TAdvancedSound sHorn1;
-    TAdvancedSound sHorn2;
-    TAdvancedSound sCompressor; // NBMX wrzesien 2003
-    TAdvancedSound sConverter;
-    TAdvancedSound sSmallCompressor;
-    TAdvancedSound sDepartureSignal;
-    TAdvancedSound sTurbo;
-	TAdvancedSound sSand;
-	TAdvancedSound sReleaser;
-
-    // Winger 010304
-    TRealSound sPantUp;
-    TRealSound sPantDown;
-    TRealSound rsDoorOpen; // Ra: przeniesione z kabiny
-    TRealSound rsDoorClose;
+    std::vector<sound_source> rsStukot; // dzwieki poszczegolnych osi //McZapkie-270202
+    // engine sounds
+    sound_source dsbDieselIgnition { sound_placement::engine }; // moved from cab
+    sound_source rsSilnik { sound_placement::engine };
+    sound_source dsbRelay { sound_placement::engine };
+    sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
+    sound_source dsbWejscie_na_drugi_uklad { sound_placement::engine }; // moved from cab
+    sound_source rsPrzekladnia { sound_placement::engine };
+    sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
+    sound_source rsDieselInc { sound_placement::engine }; // youBy
+    sound_source sTurbo { sound_placement::engine };
+    sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
+    sound_source sConverter { sound_placement::engine };
+    sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
+    sound_source sSmallCompressor { sound_placement::engine };
+    // braking sounds
+    sound_source dsbPneumaticRelay { sound_placement::external };
+    sound_source rsUnbrake { sound_placement::external }; // yB - odglos luzowania
+    sound_source sReleaser { sound_placement::external };
+    sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
+    sound_source sSand { sound_placement::external };
+    sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
+    sound_source sBrakeAcc { sound_placement::external };
+    bool bBrakeAcc;
+    sound_source rsPisk { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // McZapkie-260302
+    sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202
+    // moving part and other external sounds
+    std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
+    std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
+    std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it
+    sound_source sDepartureSignal { sound_placement::general };
+    sound_source sHorn1 { sound_placement::external };
+    sound_source sHorn2 { sound_placement::external };
+    sound_source rsRunningNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
 
     double eng_vol_act;
     double eng_frq_act;
     double eng_dfrq;
     double eng_turbo;
-    void ABuBogies();
-    void ABuModelRoll();
     Math3D::vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
-    // TRealSound sBrakeAcc; //dźwięk przyspieszacza
-    PSound sBrakeAcc;
-    bool bBrakeAcc;
-    TRealSound rsUnbrake; // yB - odglos luzowania
     float ModCamRot;
     int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
-    void TurnOff();
+    bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
+                // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
+    float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in brake cylinder
+    float m_brakepressurechange { 0.f }; // recent change of pressure in brake cylinder
 
   public:
     int iHornWarning; // numer syreny do użycia po otrzymaniu sygnału do jazdy
@@ -377,10 +408,10 @@ private:
     void SetPneumatic(bool front, bool red);
     std::string asName;
     std::string name() const {
-        return this ? asName : std::string(); };
+        return this ?
+            asName :
+            std::string(); };
 
-    TRealSound rsDiesielInc; // youBy
-    TRealSound rscurve; // youBy
     //    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
     // youBy - dym
     // TSmoke Smog;
@@ -431,13 +462,17 @@ private:
     inline Math3D::vector3 RearPosition() {
         return vCoulpler[iDirection]; };
     inline Math3D::vector3 AxlePositionGet() {
-        return iAxleFirst ? Axle1.pPosition : Axle0.pPosition; };
+        return iAxleFirst ?
+            Axle1.pPosition :
+            Axle0.pPosition; };
     inline Math3D::vector3 VectorFront() const {
         return vFront; };
-    inline Math3D::vector3 VectorUp() {
+    inline Math3D::vector3 VectorUp() const {
         return vUp; };
     inline Math3D::vector3 VectorLeft() const {
         return vLeft; };
+    inline double const * Matrix() const {
+        return mMatrix.readArray(); };
     inline double * Matrix() {
         return mMatrix.getArray(); };
     inline double GetVelocity() {
@@ -447,7 +482,9 @@ private:
     inline double GetWidth() const {
         return MoverParameters->Dim.W; };
     inline TTrack * GetTrack() {
-        return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack()); };
+        return (iAxleFirst ?
+            Axle1.GetTrack() :
+            Axle0.GetTrack()); };
 
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
@@ -456,13 +493,22 @@ private:
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection()); };
     // zwraca kierunek pojazdu na torze z aktywną osą
     inline double RaDirectionGet() {
-        return iAxleFirst ? Axle1.GetDirection() : Axle0.GetDirection(); };
+        return iAxleFirst ?
+            Axle1.GetDirection() :
+            Axle0.GetDirection(); };
     // zwraca przesunięcie wózka względem Point1 toru z aktywną osią
     inline double RaTranslationGet() {
-        return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation(); };
+        return iAxleFirst ?
+            Axle1.GetTranslation() :
+            Axle0.GetTranslation(); };
     // zwraca tor z aktywną osią
     inline TTrack * RaTrackGet() {
-        return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack(); };
+        return iAxleFirst ?
+            Axle1.GetTrack() :
+            Axle0.GetTrack(); };
+
+    void couple( int const Side );
+    int uncouple( int const Side );
     void CouplersDettach(double MinDist, int MyScanDir);
     void RadioStop();
 	void Damage(char flag);

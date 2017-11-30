@@ -108,7 +108,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     UILayer.set_unit( m_diffusetextureunit );
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
     glEnable( GL_DEPTH_TEST );
@@ -298,7 +298,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
     m_billboardgeometry = m_geometry.create_chunk(
-        vertex_array{
+        gfx::vertex_array{
             { { -size,  size, 0.f }, glm::vec3(), { 1.f, 1.f } },
             { {  size,  size, 0.f }, glm::vec3(), { 0.f, 1.f } },
             { { -size, -size, 0.f }, glm::vec3(), { 1.f, 0.f } },
@@ -441,6 +441,25 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #endif
                 switch_units( true, true, true );
                 Render( simulation::Region );
+/*
+                // debug: audio nodes
+                for( auto const &audiosource : audio::renderer.m_sources ) {
+
+                    ::glPushMatrix();
+                    auto const position = audiosource.properties.location - m_renderpass.camera.position();
+                    ::glTranslated( position.x, position.y, position.z );
+
+                    ::glPushAttrib( GL_ENABLE_BIT );
+                    ::glDisable( GL_TEXTURE_2D );
+                    ::glColor3f( 0.36f, 0.75f, 0.35f );
+
+                    ::gluSphere( m_quadric, 0.125, 4, 2 );
+
+                    ::glPopAttrib();
+
+                    ::glPopMatrix();
+                }
+*/
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
@@ -452,10 +471,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 if( m_environmentcubetexturesupport ) {
                     // restore default texture matrix for reflections cube map
-                    Active_Texture( m_helpertextureunit );
+                    select_unit( m_helpertextureunit );
                     ::glMatrixMode( GL_TEXTURE );
                     ::glPopMatrix();
-                    Active_Texture( m_diffusetextureunit );
+                    select_unit( m_diffusetextureunit );
                     ::glMatrixMode( GL_MODELVIEW );
                 }
             }
@@ -696,9 +715,10 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                 point = lightviewmatrix * point;
             }
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            // quantize the frustum points with 50 m resolution, to reduce shadow shimmer on scale/orientation changes
-            frustumchunkmin = 50.f * glm::floor( frustumchunkmin * ( 1.f / 50.f ) );
-            frustumchunkmax = 50.f * glm::ceil( frustumchunkmax * ( 1.f / 50.f ) );
+            // quantize the frustum points and add some padding, to reduce shadow shimmer on scale changes
+            auto const quantizationstep{ std::min( Global::shadowtune.depth, 50.f ) };
+            frustumchunkmin = quantizationstep * glm::floor( frustumchunkmin * ( 1.f / quantizationstep ) );
+            frustumchunkmax = quantizationstep * glm::ceil( frustumchunkmax * ( 1.f / quantizationstep ) );
             // ...use the dimensions to set up light projection boundaries...
             // NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
             camera.projection() *=
@@ -791,11 +811,11 @@ opengl_renderer::setup_matrices() {
     if( ( m_renderpass.draw_mode == rendermode::color )
      && ( m_environmentcubetexturesupport ) ) {
         // special case, for colour render pass setup texture matrix for reflections cube map
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
         ::glMatrixMode( GL_TEXTURE );
         ::glPushMatrix();
         ::glMultMatrixf( glm::value_ptr( glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.camera.modelview() } } ) ) );
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
     }
 
     // trim modelview matrix just to rotation, since rendering is done in camera-centric world space
@@ -861,7 +881,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // darkens previous stage, preparing data for the shadow texture unit to select from
     if( m_helpertextureunit >= 0 ) {
 
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
 
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) ) {
@@ -948,7 +968,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
          && ( false == Global::bWireFrame )
          && ( m_shadowcolor != colors::white ) ) {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             // NOTE: shadowmap isn't part of regular texture system, so we use direct bind call here
             ::glBindTexture( GL_TEXTURE_2D, m_shadowtexture );
             ::glEnable( GL_TEXTURE_2D );
@@ -979,7 +999,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         }
         else {
             // turn off shadow map tests
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
 
             ::glDisable( GL_TEXTURE_2D );
             ::glDisable( GL_TEXTURE_GEN_S );
@@ -992,7 +1012,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // NOTE: comes after diffuse stage in the operation chain
     if( m_normaltextureunit >= 0 ) {
 
-        Active_Texture( m_normaltextureunit );
+        select_unit( m_normaltextureunit );
 
         if( true == Reflections ) {
             ::glEnable( GL_TEXTURE_2D );
@@ -1015,7 +1035,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     }
     // diffuse texture unit.
     // NOTE: diffuse texture mapping is never fully disabled, alpha channel information is always included
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
     ::glEnable( GL_TEXTURE_2D );
     if( true == Diffuse ) {
         // default behaviour, modulate with previous stage
@@ -1053,7 +1073,7 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     // helper texture unit.
     if( m_helpertextureunit >= 0 ) {
 
-        Active_Texture( m_helpertextureunit );
+        select_unit( m_helpertextureunit );
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows )
            && ( true == Shadows )
@@ -1079,12 +1099,12 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     if( m_shadowtextureunit >= 0 ) {
         if( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             ::glEnable( GL_TEXTURE_2D );
         }
         else {
 
-            Active_Texture( m_shadowtextureunit );
+            select_unit( m_shadowtextureunit );
             ::glDisable( GL_TEXTURE_2D );
         }
     }
@@ -1092,11 +1112,11 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     if( m_normaltextureunit >= 0 ) {
         if( true == Reflections ) {
 
-            Active_Texture( m_normaltextureunit );
+            select_unit( m_normaltextureunit );
             ::glEnable( GL_TEXTURE_2D );
         }
         else {
-            Active_Texture( m_normaltextureunit );
+            select_unit( m_normaltextureunit );
             ::glDisable( GL_TEXTURE_2D );
         }
     }
@@ -1104,12 +1124,12 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     // NOTE: toggle actually disables diffuse texture mapping, unlike setup counterpart
     if( true == Diffuse ) {
 
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
         ::glEnable( GL_TEXTURE_2D );
     }
     else {
 
-        Active_Texture( m_diffusetextureunit );
+        select_unit( m_diffusetextureunit );
         ::glDisable( GL_TEXTURE_2D );
     }
     // update unit state
@@ -1121,9 +1141,9 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
 void
 opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
 
-    Active_Texture( m_helpertextureunit );
+    select_unit( m_helpertextureunit );
     ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( Shadowcolor ) ); // in-shadow colour multiplier
-    Active_Texture( m_diffusetextureunit );
+    select_unit( m_diffusetextureunit );
 }
 
 bool
@@ -1155,7 +1175,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     Environment->m_skydome.Render();
     if( true == Global::bUseVBO ) {
         // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-        opengl_vbogeometrybank::reset();
+        gfx::opengl_vbogeometrybank::reset();
     }
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
@@ -1289,36 +1309,36 @@ opengl_renderer::Render( world_environment *Environment ) {
 
 // geometry methods
 // creates a new geometry bank. returns: handle to the bank or NULL
-geometrybank_handle
+gfx::geometrybank_handle
 opengl_renderer::Create_Bank() {
 
     return m_geometry.create_bank();
 }
 
 // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-geometry_handle
-opengl_renderer::Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
+gfx::geometry_handle
+opengl_renderer::Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
 
     return m_geometry.create_chunk( Vertices, Geometry, Type );
 }
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-opengl_renderer::Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
+opengl_renderer::Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
 
     return m_geometry.replace( Vertices, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
 bool
-opengl_renderer::Append( vertex_array &Vertices, geometry_handle const &Geometry ) {
+opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) {
 
     return m_geometry.append( Vertices, Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk
-vertex_array const &
-opengl_renderer::Vertices( geometry_handle const &Geometry ) const {
+gfx::vertex_array const &
+opengl_renderer::Vertices( gfx::geometry_handle const &Geometry ) const {
 
     return m_geometry.vertices( Geometry );
 }
@@ -1348,7 +1368,7 @@ opengl_renderer::Material( material_handle const Material ) const {
 
 // texture methods
 void
-opengl_renderer::Active_Texture( GLint const Textureunit ) {
+opengl_renderer::select_unit( GLint const Textureunit ) {
 
     return m_textures.unit( Textureunit );
 }
@@ -2288,7 +2308,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         ::glDisable( GL_LIGHTING );
 
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry, color_streams );
+                        m_geometry.draw( Submodel->m_geometry, gfx::color_streams );
 
                         // post-draw reset
                         ::glPopAttrib();
@@ -2989,11 +3009,12 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
                     if( glarelevel > 0.0f ) {
                         // setup
-                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+                        ::glPushAttrib( GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
                         ::glDisable( GL_LIGHTING );
+                        ::glDepthMask( GL_FALSE );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
                         ::glPushMatrix();
@@ -3353,7 +3374,7 @@ opengl_renderer::Init_caps() {
         return false;
     }
 
-    WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
+    WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
     WriteLog( std::string("Render path: ") + ( Global::bUseVBO ? "VBO" : "Display lists" ) );
     if( GLEW_EXT_framebuffer_object ) {

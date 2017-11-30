@@ -80,7 +80,7 @@ shape_node::shapenode_data::serialize( std::ostream &Output ) const {
     // vertex count, followed by vertex data
     sn_utils::ls_uint32( Output, vertices.size() );
     for( auto const &vertex : vertices ) {
-        basic_vertex(
+        gfx::basic_vertex(
             glm::vec3{ vertex.position - origin },
             vertex.normal,
             vertex.texture )
@@ -109,7 +109,7 @@ shape_node::shapenode_data::deserialize( std::istream &Input ) {
     // NOTE: geometry handle is acquired during geometry creation
     // vertex data
     vertices.resize( sn_utils::ld_uint32( Input ) );
-    basic_vertex localvertex;
+    gfx::basic_vertex localvertex;
     for( auto &vertex : vertices ) {
         localvertex.deserialize( Input );
         vertex.position = origin + glm::dvec3{ localvertex.position };
@@ -417,9 +417,9 @@ shape_node::merge( shape_node &Shape ) {
 
 // generates renderable version of held non-instanced geometry in specified geometry bank
 void
-shape_node::create_geometry( geometrybank_handle const &Bank ) {
+shape_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
-    vertex_array vertices; vertices.reserve( m_data.vertices.size() );
+    gfx::vertex_array vertices; vertices.reserve( m_data.vertices.size() );
 
     for( auto const &vertex : m_data.vertices ) {
         vertices.emplace_back(
@@ -464,7 +464,7 @@ lines_node::linesnode_data::serialize( std::ostream &Output ) const {
     // vertex count, followed by vertex data
     sn_utils::ls_uint32( Output, vertices.size() );
     for( auto const &vertex : vertices ) {
-        basic_vertex(
+        gfx::basic_vertex(
             glm::vec3{ vertex.position - origin },
             vertex.normal,
             vertex.texture )
@@ -489,7 +489,7 @@ lines_node::linesnode_data::deserialize( std::istream &Input ) {
     // NOTE: geometry handle is acquired during geometry creation
     // vertex data
     vertices.resize( sn_utils::ld_uint32( Input ) );
-    basic_vertex localvertex;
+    gfx::basic_vertex localvertex;
     for( auto &vertex : vertices ) {
         localvertex.deserialize( Input );
         vertex.position = origin + glm::dvec3{ localvertex.position };
@@ -637,9 +637,9 @@ lines_node::merge( lines_node &Lines ) {
 
 // generates renderable version of held non-instanced geometry in specified geometry bank
 void
-lines_node::create_geometry( geometrybank_handle const &Bank ) {
+lines_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
-    vertex_array vertices; vertices.reserve( m_data.vertices.size() );
+    gfx::vertex_array vertices; vertices.reserve( m_data.vertices.size() );
 
     for( auto const &vertex : m_data.vertices ) {
         vertices.emplace_back(

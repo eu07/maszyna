@@ -14,10 +14,6 @@ cSun::cSun() {
 	setLocation( 19.00f, 52.00f );					// default location roughly in centre of Poland
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
-
-	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
-	::GetTimeZoneInformation( &timezoneinfo );
-	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
 }
 
 cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
@@ -27,6 +23,27 @@ cSun::init() {
 
     sunsphere = gluNewQuadric();
     gluQuadricNormals( sunsphere, GLU_SMOOTH );
+
+    // calculate and set timezone for the current date of the simulation
+    // TODO: timezone dependant on geographic location
+    TIME_ZONE_INFORMATION timezoneinfo;
+    ::GetTimeZoneInformation( &timezoneinfo );
+    // account for potential daylight/normal time bias
+    // NOTE: we're using xp-compatible time zone information and current year, instead of 'historically proper' values
+    auto zonebias { timezoneinfo.Bias };
+    auto const year { simulation::Time.data().wYear };
+    auto const yearday { simulation::Time.year_day() };
+    if( yearday < simulation::Time.year_day( timezoneinfo.DaylightDate.wDay, timezoneinfo.DaylightDate.wMonth, year ) ) {
+        zonebias += timezoneinfo.StandardBias;
+    }
+    else if( yearday < simulation::Time.year_day( timezoneinfo.StandardDate.wDay, timezoneinfo.StandardDate.wMonth, year ) ) {
+        zonebias += timezoneinfo.DaylightBias;
+    }
+    else {
+        zonebias += timezoneinfo.StandardBias;
+    }
+
+    m_observer.timezone = -zonebias / 60.0f;
 }
 
 void

@@ -77,7 +77,7 @@ simulation_time::init() {
         m_time.wSecond = 0;
     }
 
-    m_yearday = yearday( m_time.wDay, m_time.wMonth, m_time.wYear );
+    m_yearday = year_day( m_time.wDay, m_time.wMonth, m_time.wYear );
 }
 
 void
@@ -125,16 +125,15 @@ simulation_time::update( double const Deltatime ) {
 }
 
 int
-simulation_time::yearday( int Day, const int Month, const int Year ) {
+simulation_time::year_day( int Day, const int Month, const int Year ) const {
 
-    char daytab[ 2 ][ 13 ] = {
+    char const daytab[ 2 ][ 13 ] = {
         { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
         { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
     };
-    int i, leap;
 
-    leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
-    for( i = 1; i < Month; ++i )
+    int leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+    for( int i = 1; i < Month; ++i )
         Day += daytab[ leap ][ i ];
 
     return Day;
@@ -196,8 +195,6 @@ TWorld::TWorld()
 TWorld::~TWorld()
 {
     TrainDelete();
-    // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
-    TSoundsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -217,7 +214,6 @@ void TWorld::TrainDelete(TDynamicObject *d)
     Train = NULL;
     Controlled = NULL; // tego też już nie ma
     mvControlled = NULL;
-    Global::pUserDynamic = NULL; // tego też nie ma
 };
 
 bool TWorld::Init( GLFWwindow *Window ) {
@@ -234,7 +230,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-
+#ifdef EU07_USE_OLD_SOUNDCODE
     if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
         WriteLog( "Sound subsystem setup complete" );
     }
@@ -242,7 +238,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         ErrorLog( "Sound subsystem setup failed" );
         return false;
     }
-
+#endif
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
@@ -269,7 +265,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
         {
             Controlled = Train->Dynamic();
             mvControlled = Controlled->ControlledFind()->MoverParameters;
-            Global::pUserDynamic = Controlled; // renerowanie pojazdu względem kabiny
             WriteLog("Player train init OK");
 
             glfwSetWindowTitle( window, ( Global::AppName + " (" + Controlled->MoverParameters->Name + " @ " + Global::SceneryFile + ")" ).c_str() );
@@ -689,7 +684,7 @@ void TWorld::OnKeyDown(int cKey)
                                          vehicle->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->play_sound( Train->dsbSwitch );
+                        Train->dsbSwitch.play();
                     }
             }
         }
@@ -717,7 +712,7 @@ void TWorld::OnKeyDown(int cKey)
                     vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->play_sound( Train->dsbSwitch );
+                        Train->dsbSwitch.play();
                     }
                 }
             }
@@ -737,7 +732,9 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->play_sound( Train->dsbPneumaticRelay );
+#ifdef EU07_USE_OLD_SOUNDCODE
+                            Train->dsbPneumaticRelay.play();
+#endif
                         }
             }
         }
@@ -756,7 +753,9 @@ void TWorld::OnKeyDown(int cKey)
                     if (vehicle->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->play_sound( Train->dsbPneumaticRelay );
+#ifdef EU07_USE_OLD_SOUNDCODE
+                            Train->dsbPneumaticRelay.play();
+#endif
                         }
             }
         }
@@ -773,7 +772,6 @@ void TWorld::InOutKey( bool const Near )
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag) {
         // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
-        Global::pUserDynamic = NULL; // bez renderowania względem kamery
         if (Train) {
             // cache current cab position so there's no need to set it all over again after each out-in switch
             Train->pMechSittingPosition = Train->pMechOffset;
@@ -789,7 +787,6 @@ void TWorld::InOutKey( bool const Near )
     { // jazda w kabinie
         if (Train)
         {
-            Global::pUserDynamic = Controlled; // renerowanie względem kamery
             Train->Dynamic()->bDisplayCab = true;
             Train->Dynamic()->ABuSetModelShake(
                 vector3(0, 0, 0)); // zerowanie przesunięcia przed powrotem?
@@ -1063,6 +1060,8 @@ bool TWorld::Update() {
     Timer::subsystem.sim_total.stop();
 
     simulation::Region->update_sounds();
+    audio::renderer.update( dt );
+
     GfxRenderer.Update( dt );
     ResourceSweep();
 
@@ -1138,12 +1137,10 @@ TWorld::Update_Camera( double const Deltatime ) {
             else if( Global::shiftState ) {
                 // patrzenie w bok przez szybę
                 Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * Train->Dynamic()->VectorLeft() * Train->Dynamic()->MoverParameters->ActiveCab;
-                Global::SetCameraRotation( -modelrotate );
             }
             else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
                 // ale bez odbicia
                 Camera.LookAt = Camera.Pos - Train->GetDirection() * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                Global::SetCameraRotation( M_PI - modelrotate ); // tu już trzeba uwzględnić lusterka
             }
             Camera.Roll = std::atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
             Camera.Pitch = 0.5 * std::atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl
@@ -1176,11 +1173,10 @@ TWorld::Update_Camera( double const Deltatime ) {
             else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
                 Camera.LookAt = Train->GetWorldMechPosition() + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
             Camera.vUp = Train->GetUp();
-            Global::SetCameraRotation( Camera.Yaw - modelrotate ); // tu już trzeba uwzględnić lusterka
         }
     }
-    else { // kamera nieruchoma
-        Global::SetCameraRotation( Camera.Yaw - M_PI );
+    else {
+        // kamera nieruchoma
     }
     // all done, update camera position to the new value
     Global::pCameraPosition = Camera.Pos;
@@ -1422,7 +1418,11 @@ TWorld::Update_UI() {
                     + ( vehicle->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
 
                 uitextline2 +=
-                    "; Ft: " + to_string( vehicle->MoverParameters->Ft * 0.001f * vehicle->MoverParameters->ActiveCab, 1 )
+                    "; Ft: " + to_string(
+                        vehicle->MoverParameters->Ft * 0.001f * (
+                            vehicle->MoverParameters->ActiveCab ? vehicle->MoverParameters->ActiveCab :
+                            vehicle->ctOwner ? vehicle->ctOwner->Controlling()->ActiveCab :
+                            1 ), 1 )
                     + ", Fb: " + to_string( vehicle->MoverParameters->Fb * 0.001f, 1 )
                     + ", Fr: " + to_string( vehicle->MoverParameters->Adhesive( vehicle->MoverParameters->RunningTrack.friction ), 2 )
                     + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" );
@@ -1640,7 +1640,9 @@ TWorld::Update_UI() {
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-                    + "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")"
+                    + ( vehicle->MoverParameters->ShuntMode ?
+                        "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
+                        "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
                     + "; I=" +
                     ( vehicle->MoverParameters->TrainType == dt_EZT ?
                         std::to_string( int( vehicle->MoverParameters->ShowCurrent( 0 ) ) ) :
@@ -2033,15 +2035,15 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
                 if( dynamic->iCabs ) { // jeśli ma jakąkolwiek kabinę
                     delete Train;
                     Train = new TTrain();
-                    if( dynamic->iCabs & 1 ) {
+                    if( dynamic->iCabs & 0x1 ) {
                         dynamic->MoverParameters->ActiveCab = 1;
                         Train->Init( dynamic, true );
                     }
-                    if( dynamic->iCabs & 4 ) {
+                    if( dynamic->iCabs & 0x4 ) {
                         dynamic->MoverParameters->ActiveCab = -1;
                         Train->Init( dynamic, true );
                     }
-                    if( dynamic->iCabs & 2 ) {
+                    if( dynamic->iCabs & 0x2 ) {
                         dynamic->MoverParameters->ActiveCab = 0;
                         Train->Init( dynamic, true );
                     }
@@ -2114,7 +2116,6 @@ void TWorld::ChangeDynamic() {
         Train->Dynamic()->asBaseDir +
         Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
     if( !FreeFlyModeFlag ) {
-        Global::pUserDynamic = Controlled; // renerowanie względem kamery
         Train->Dynamic()->bDisplayCab = true;
         Train->Dynamic()->ABuSetModelShake(
             vector3( 0, 0, 0 ) ); // zerowanie przesunięcia przed powrotem?

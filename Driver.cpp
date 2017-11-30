@@ -998,8 +998,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     if (go == cm_Unknown) // jeśli nie było komendy wcześniej
                                         go = cm_Ready; // gotów do odjazdu z W4 (semafor może
                                     // zatrzymać)
-                                    if (tsGuardSignal) // jeśli mamy głos kierownika, to odegrać
+                                    if( ( tsGuardSignal != nullptr )
+                                     && ( false == tsGuardSignal->empty() ) ); {
+                                        // jeśli mamy głos kierownika, to odegrać
                                         iDrivigFlags |= moveGuardSignal;
+                                    }
                                     continue; // nie analizować prędkości
                                 } // koniec startu z zatrzymania
                             } // koniec obsługi początkowych stacji
@@ -2572,9 +2575,16 @@ bool TController::DecBrake()
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
+#ifdef EU07_USE_OLD_SOUNDCODE
     if (tsGuardSignal) // jeśli jest dźwięk kierownika
         if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
             return false;
+#else
+    if( ( tsGuardSignal != nullptr )
+     && ( true == tsGuardSignal->is_playing() ) ) {
+        return false;
+    }
+#endif
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
@@ -2587,7 +2597,7 @@ bool TController::IncSpeed()
     }
     if( true == mvOccupied->DepartureSignal ) {
         // shut off departure warning
-        mvOccupied->DepartureSignal = false;
+        mvOccupied->signal_departure( false );
     }
     if (mvControlling->SlippingWheels)
         return false; // jak poślizg, to nie przyspieszamy
@@ -2977,11 +2987,12 @@ void TController::Doors(bool what)
         if (mvOccupied->DoorOpenCtrl == 1)
         { // jeśli drzwi sterowane z kabiny
             if( AIControllFlag ) {
-                if( mvOccupied->DoorLeftOpened || mvOccupied->DoorRightOpened ) { // AI zamyka drzwi przed odjazdem
+                if( mvOccupied->DoorLeftOpened || mvOccupied->DoorRightOpened ) {
+                    // AI zamyka drzwi przed odjazdem
                     if( ( true == mvOccupied->DoorClosureWarning )
                      && ( false == mvOccupied->DepartureSignal )
                      && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
-                        mvOccupied->DepartureSignal = true; // załącenie bzyczka
+                        mvOccupied->signal_departure( true ); // załącenie bzyczka
                         fActionTime = -3.0 - 0.1 * Random( 10 ); // 3-4 second wait
                     }
                     if( fActionTime > -0.5 ) {
@@ -3082,22 +3093,34 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 asNextStop = TrainParams->NextStop();
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
-                if (FileExists(NewCommand))
-                { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = new TTextSound(NewCommand, 30, pVehicle->GetPosition().x,
-                                        pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                        false);
-                    // rsGuardSignal->Stop();
+                if (FileExists(NewCommand)) {
+                    //  wczytanie dźwięku odjazdu podawanego bezpośrenido
+#ifdef EU07_USE_OLD_SOUNDCODE
+                    tsGuardSignal =
+                        new TTextSound(
+                            NewCommand, 30,
+                            pVehicle->GetPosition().x, pVehicle->GetPosition().y, pVehicle->GetPosition().z,
+                            false);
+#else
+                    tsGuardSignal = new sound_source( sound_placement::external, 75.f );
+                    tsGuardSignal->deserialize( NewCommand, sound_type::single );
+#endif
                     iGuardRadio = 0; // nie przez radio
                 }
-                else
-                {
+                else {
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
-                    if (FileExists(NewCommand))
-                    { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = new TTextSound(NewCommand, -1, pVehicle->GetPosition().x,
-                                            pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                            false);
+                    if (FileExists(NewCommand)) {
+                        //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
+#ifdef EU07_USE_OLD_SOUNDCODE
+                        tsGuardSignal =
+                            new TTextSound(
+                                NewCommand, -1,
+                                pVehicle->GetPosition().x, pVehicle->GetPosition().y, pVehicle->GetPosition().z,
+                                false);
+#else
+                        tsGuardSignal = new sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE );
+                        tsGuardSignal->deserialize( NewCommand, sound_type::single );
+#endif
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4457,40 +4480,61 @@ TController::UpdateSituation(double dt) {
             }
             if (VelDesired > 0.0)
                 if( ( ( iDrivigFlags & moveStopHere ) == 0 )
-                    || ( ( SemNextIndex != -1 )
-                    && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
-                    && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) ) ) {
+                 || ( ( SemNextIndex != -1 )
+                   && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
+                   && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) ) ) {
                     // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w
                     // składzie, jeśli nie mamy czekać na sygnał też trzeba odpalić
                     if (iDrivigFlags & moveGuardSignal)
-                    { // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas
-                        // stania
+                    { // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
                         iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
-
-                        if( iDrivigFlags & moveDoorOpened ) // jeśli drzwi otwarte
-                            if( !mvOccupied
-                                ->DoorOpenCtrl ) // jeśli drzwi niesterowane przez maszynistę
-                                Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
-
-                        tsGuardSignal->Stop();
-                        // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                        // bezpośrednim
-                        // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
-                        // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
-                        // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
-                        // obsługę kanałów radiowych itd.
-                        if( !iGuardRadio ) {
-                            // jeśli nie przez radio
-                            tsGuardSignal->Play( 1.0, 0, !FreeFlyModeFlag, pVehicle->GetPosition() ); // dla true jest głośniej
+/*
+                        if( ( iDrivigFlags & moveDoorOpened )
+                         && ( false == mvOccupied->DoorOpenCtrl ) ) {
+                            // jeśli drzwi otwarte, niesterowane przez maszynistę
+                            Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
                         }
-                        else {
-                            // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                            // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                            // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                            // przy braku reakcji
-                            if( SquareMagnitude( pVehicle->GetPosition() - Global::pCameraPosition ) < 2000 * 2000 ) {
-                                // w odległości mniejszej niż 2km
-                                tsGuardSignal->Play( 1.0, 0, true, pVehicle->GetPosition() ); // dźwięk niby przez radio
+*/
+                        if( tsGuardSignal != nullptr ) {
+#ifdef EU07_USE_OLD_SOUNDCODE
+                            tsGuardSignal->Stop();
+#else
+                            tsGuardSignal->stop();
+#endif
+                            // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
+                            // bezpośrednim
+                            // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
+                            // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
+                            // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
+                            // obsługę kanałów radiowych itd.
+                            if( iGuardRadio == 0 ) {
+                                // jeśli nie przez radio
+#ifdef EU07_USE_OLD_SOUNDCODE
+                                tsGuardSignal->Play( 1.0, 0, !FreeFlyModeFlag, pVehicle->GetPosition() ); // dla true jest głośniej
+#else
+                                tsGuardSignal->owner( pVehicle );
+                                // place virtual conductor some distance away
+                                tsGuardSignal->offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
+                                tsGuardSignal->play( sound_flags::exclusive );
+#endif
+                            }
+                            else {
+                                // if (iGuardRadio==iRadioChannel) //zgodność kanału
+                                // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
+                                // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
+                                // przy braku reakcji
+#ifdef EU07_USE_OLD_SOUNDCODE
+                                if( SquareMagnitude( pVehicle->GetPosition() - Global::pCameraPosition ) < 2000 * 2000 ) {
+                                    // w odległości mniejszej niż 2km
+                                    tsGuardSignal->Play( 1.0, 0, true, pVehicle->GetPosition() ); // dźwięk niby przez radio
+                                }
+#else
+                                // TODO: proper system for sending/receiving radio messages
+                                // place the sound in appropriate cab of the manned vehicle
+                                tsGuardSignal->owner( pVehicle );
+                                tsGuardSignal->offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
+                                tsGuardSignal->play( sound_flags::exclusive );
+#endif
                             }
                         }
                     }

@@ -93,7 +93,7 @@ public:
         lighting_data lighting;
         // geometry data
         glm::dvec3 origin; // world position of the relative coordinate system origin
-        geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
+        gfx::geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
         std::vector<world_vertex> vertices; // world space source data of the geometry
     // methods:
         // sends content of the struct to provided stream
@@ -122,7 +122,7 @@ public:
         merge( shape_node &Shape );
     // generates renderable version of held non-instanced geometry in specified geometry bank
     void
-        create_geometry( geometrybank_handle const &Bank );
+        create_geometry( gfx::geometrybank_handle const &Bank );
     // calculates shape's bounding radius
     void
         compute_radius();
@@ -182,7 +182,7 @@ public:
         lighting_data lighting;
         // geometry data
         glm::dvec3 origin; // world position of the relative coordinate system origin
-        geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
+        gfx::geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
         std::vector<world_vertex> vertices; // world space source data of the geometry
     // methods:
         // sends content of the struct to provided stream
@@ -208,7 +208,7 @@ public:
         merge( lines_node &Lines );
     // generates renderable version of held non-instanced geometry in specified geometry bank
     void
-        create_geometry( geometrybank_handle const &Bank );
+        create_geometry( gfx::geometrybank_handle const &Bank );
     // calculates shape's bounding radius
     void
         compute_radius();

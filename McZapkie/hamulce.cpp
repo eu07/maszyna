@@ -578,47 +578,58 @@ void TESt::CheckReleaser( double const dt )
         }
 }
 
-void TESt::CheckState( double const BCP, double &dV1 )
-{
-    double VVP;
-    double BVP;
-    double CVP;
+void TESt::CheckState( double const BCP, double &dV1 ) {
 
-    BVP = BrakeRes->P();
-    VVP = ValveRes->P();
-    //  if (BVP<VVP) then
-    //    VVP:=(BVP+VVP)/2;
-    CVP = CntrlRes->P() - 0.0;
+    double const VVP { ValveRes->P() };
+    double const BVP { BrakeRes->P() };
+    double const CVP { CntrlRes->P() };
 
     // sprawdzanie stanu
-    if (((BrakeStatus & b_hld) == b_hld) && (BCP > 0.25))
-        if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= b_on; // hamowanie stopniowe
-        else if ((VVP - 0.003 + (BCP - 0.1) / BVM > CVP))
-            BrakeStatus &= ~( b_on | b_hld ); // luzowanie
-        else if ((VVP + BCP / BVM > CVP))
-            BrakeStatus &= ~b_on; // zatrzymanie napelaniania
-        else
-            ;
-    else if ((VVP + 0.10 < CVP) && (BCP < 0.25)) // poczatek hamowania
-    {
-        if ((BrakeStatus & b_hld) == b_off)
-        {
-            ValveRes->CreatePress(0.02 * VVP);
-            SoundFlag |= sf_Acc;
-            ValveRes->Act();
+    if( BCP > 0.25 ) {
+
+        if( ( BrakeStatus & b_hld ) == b_hld ) {
+
+            if( ( VVP + 0.003 + BCP / BVM ) < CVP ) {
+                // hamowanie stopniowe
+                BrakeStatus |= b_on;
+            }
+            else {
+                if( ( VVP + BCP / BVM ) > CVP ) {
+                // zatrzymanie napelaniania
+                    BrakeStatus &= ~b_on;
+                }
+                if( ( VVP - 0.003 + ( BCP - 0.1 ) / BVM ) > CVP ) {
+                    // luzowanie
+                    BrakeStatus &= ~( b_on | b_hld );
+                }
+            }
         }
-        BrakeStatus |= (b_on | b_hld);
+        else {
 
-        //     ValveRes.CreatePress(0);
-        //     dV1:=1;
+            if( ( VVP + BCP / BVM < CVP )
+             && ( ( CVP - VVP ) * BVM > 0.25 ) ) {
+                // zatrzymanie luzowanie
+                BrakeStatus |= b_hld;
+            }
+        }
     }
-    else if ((VVP + (BCP - 0.1) / BVM < CVP) && ((CVP - VVP) * BVM > 0.25) &&
-             (BCP > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= b_hld;
+    else {
 
-    if ((BrakeStatus & b_hld) == b_off)
+        if( VVP + 0.1 < CVP ) {
+            // poczatek hamowania
+            if( ( BrakeStatus & b_hld ) == 0 ) {
+                // przyspieszacz
+                ValveRes->CreatePress( 0.02 * VVP );
+                SoundFlag |= sf_Acc;
+                ValveRes->Act();
+            }
+            BrakeStatus |= ( b_on | b_hld );
+        }
+    }
+
+    if( ( BrakeStatus & b_hld ) == 0 ) {
         SoundFlag |= sf_CylU;
+    }
 }
 
 double TESt::CVs( double const BP )
@@ -827,6 +838,10 @@ double TEStEP2::GetPF( double const PP, double const dt, double const Vel )
     }
     else if ((VVP + BCP / BVM < CVP - 0.12) && (BCP > 0.25)) // zatrzymanie luzowanie
         BrakeStatus |= b_hld;
+
+    if( ( BrakeStatus & b_hld ) == 0 ) {
+        SoundFlag |= sf_CylU;
+    }
 
     // przeplyw ZS <-> PG
     if ((BVP < CVP - 0.2) || (BrakeStatus != b_off) || (BCP > 0.25))
@@ -1211,6 +1226,40 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     double dV1{ 0.0 };
 
     // sprawdzanie stanu
+    // NOTE: partial copypaste from checkstate() of base class
+    // TODO: clean inheritance for checkstate() and checkreleaser() and reuse these instead of manual copypaste
+    if( ( ( BrakeStatus & b_hld ) == b_hld ) && ( BCP > 0.25 ) ) {
+        if( ( VVP + 0.003 + BCP / BVM < CVP ) ) {
+            // hamowanie stopniowe
+            BrakeStatus |= b_on;
+        }
+        else if( ( VVP - 0.003 + ( BCP - 0.1 ) / BVM > CVP ) ) {
+            // luzowanie
+            BrakeStatus &= ~( b_on | b_hld );
+        }
+        else if( ( VVP + BCP / BVM > CVP ) ) {
+            // zatrzymanie napelaniania
+            BrakeStatus &= ~b_on;
+        }
+    }
+    else if ((VVP + 0.10 < CVP) && (BCP < 0.25)) {
+        // poczatek hamowania
+        if ((BrakeStatus & b_hld) == b_off)
+        {
+            SoundFlag |= sf_Acc;
+        }
+        BrakeStatus |= (b_on | b_hld);
+    }
+    else if( ( VVP + ( BCP - 0.1 ) / BVM < CVP )
+          && ( ( CVP - VVP ) * BVM > 0.25 )
+          && ( BCP > 0.25 ) ) {
+        // zatrzymanie luzowanie
+        BrakeStatus |= b_hld;
+    }
+    if( ( BrakeStatus & b_hld ) == 0 ) {
+        SoundFlag |= sf_CylU;
+    }
+    // equivalent of checkreleaser() in the base class?
     if( ( BrakeStatus & b_rls ) == b_rls ) {
         if( CVP < 0.0 ) {
             BrakeStatus &= ~b_rls;
@@ -1219,18 +1268,11 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
         { // 008
             dV = PF1( CVP, BCP, 0.024 ) * dt;
             CntrlRes->Flow( dV );
-/*
-            // NOTE: attempted fix, disabled because it breaks when releaser is used while releasing breakes
-            dV = PF1(CVP, VVP, 0.024) * dt;
-            CntrlRes->Flow( dV );
-            dV1 = dV; //minus potem jest
-            ImplsRes->Flow( -dV1 );
-*/
         }
     }
 
-    double temp;
     // przeplyw ZS <-> PG
+    double temp;
     if (((CVP - BCP) * BVM > 0.5))
         temp = 0.0;
     else if ((VVP > CVP + 0.4))
@@ -1888,22 +1930,51 @@ void TKE::CheckState( double const BCP, double &dV1 )
     CVP = CntrlRes->P();
 
     // sprawdzanie stanu
-    if ((BrakeStatus & b_hld) == b_hld)
-        if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= b_on; // hamowanie stopniowe;
-        else if ((VVP - 0.003 + BCP / BVM > CVP))
-            BrakeStatus &= ~( b_on | b_hld ); // luzowanie;
-        else if ((VVP + BCP / BVM > CVP))
-            BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
-        else
-            ;
-    else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
-    {
-        BrakeStatus |= (b_on | b_hld);
-        ValveRes->CreatePress(0.8 * VVP); // przyspieszacz
+    if( BCP > 0.1 ) {
+
+        if( ( BrakeStatus & b_hld ) == b_hld ) {
+
+            if( ( VVP + 0.003 + BCP / BVM ) < CVP ) {
+                // hamowanie stopniowe;
+                BrakeStatus |= b_on;
+            }
+            else {
+                if( ( VVP + BCP / BVM ) > CVP ) {
+                    // zatrzymanie napelaniania;
+                    BrakeStatus &= ~b_on;
+                }
+                if( ( VVP - 0.003 + BCP / BVM ) > CVP ) {
+                    // luzowanie;
+                    BrakeStatus &= ~( b_on | b_hld );
+                }
+            }
+        }
+        else {
+
+            if( ( VVP + BCP / BVM < CVP )
+             && ( ( CVP - VVP ) * BVM > 0.25 ) ) {
+              // zatrzymanie luzowanie
+                BrakeStatus |= b_hld;
+            }
+        }
     }
-    else if ((VVP + BCP / BVM < CVP) && ((CVP - VVP) * BVM > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= b_hld;
+    else {
+
+        if( VVP + 0.1 < CVP ) {
+            // poczatek hamowania
+            if( ( BrakeStatus & b_hld ) == 0 ) {
+                // przyspieszacz
+                ValveRes->CreatePress( 0.8 * VVP );
+                SoundFlag |= sf_Acc;
+                ValveRes->Act();
+            }
+            BrakeStatus |= ( b_on | b_hld );
+        }
+    }
+
+    if( ( BrakeStatus & b_hld ) == 0 ) {
+        SoundFlag |= sf_CylU;
+    }
 }
 
 double TKE::CVs( double const BP )
