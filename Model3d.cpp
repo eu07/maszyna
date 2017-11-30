@@ -42,21 +42,13 @@ std::string *TSubModel::pasText;
 // 0x3F3F003F - wszystkie wymienne tekstury używane w danym cyklu
 // Ale w TModel3d okerśla przezroczystość tekstur wymiennych!
 
-TSubModel::~TSubModel()
-{
-/*
-	if (uiDisplayList)
-		glDeleteLists(uiDisplayList, 1);
-*/
-	if (iFlags & 0x0200)
+TSubModel::~TSubModel() {
+
+    if (iFlags & 0x0200)
 	{ // wczytany z pliku tekstowego musi sam posprzątać
-	  // SafeDeleteArray(Indices);
 		SafeDelete(Next);
 		SafeDelete(Child);
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
-/*
-		delete[] Vertices;
-*/
 	}
 	delete[] smLetter; // używany tylko roboczo dla TP_TEXT, do przyspieszenia
 					   // wyświetlania

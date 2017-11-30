@@ -3384,7 +3384,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
                     // dodać jakiś wpis do fizyki na to
                     if( ( ( Couplers[ b ].Connected->TrainType & ( dt_ET41 | dt_ET42 ) ) != 0 ) &&
                         ( ( Couplers[ b ].CouplingFlag & 36 ) == 36 ) )
-                        LocBrakePress = Max0R( Couplers[ b ].Connected->LocHandle->GetCP(), LocBrakePress );
+                        LocBrakePress = std::max( Couplers[ b ].Connected->LocHandle->GetCP(), LocBrakePress );
 
             //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
             //{
