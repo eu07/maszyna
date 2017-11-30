@@ -99,82 +99,72 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
     bool bCanSkip; // czy przemieścić pojazd na inny tor
     while (true) // pętla wychodzi, gdy przesunięcie wyjdzie zerowe
     { // pętla przesuwająca wózek przez kolejne tory, aż do trafienia w jakiś
-        if (!pCurrentTrack)
-            return false; // nie ma toru, to nie ma przesuwania
-        if (pCurrentTrack->iEvents) // sumaryczna informacja o eventach
-        { // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
-            if (fDistance < 0)
-            {
+        if( pCurrentTrack == nullptr ) { return false; } // nie ma toru, to nie ma przesuwania
+        // TODO: refactor following block as track method
+        if( pCurrentTrack->iEvents ) { // sumaryczna informacja o eventach
+            // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
+            if( std::abs( fDistance ) < 0.01 ) {
+                //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
+                if( ( Owner->Mechanik != nullptr )
+                 && ( Owner->Mechanik->Primary() ) ) {
+                    // tylko dla jednego członu
+                    if( ( pCurrentTrack->evEvent0 )
+                     && ( pCurrentTrack->evEvent0->iQueued == 0 ) ) {
+                        simulation::Events.AddToQuery( pCurrentTrack->evEvent0, Owner );
+                    }
+                }
+                if( ( pCurrentTrack->evEventall0 )
+                 && ( pCurrentTrack->evEventall0->iQueued == 0 ) ) {
+                    simulation::Events.AddToQuery( pCurrentTrack->evEventall0, Owner );
+                }
+            }
+            else if (fDistance < 0) {
+                // event1, eventall1
                 if( SetFlag( iEventFlag, -1 ) ) {
                     // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
                     if( ( Owner->Mechanik != nullptr )
                      && ( Owner->Mechanik->Primary() ) ) {
                         // tylko dla jednego członu
                         // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
-                        if( ( bPrimary )
-                         && ( pCurrentTrack->evEvent1 )
-                         && ( !pCurrentTrack->evEvent1->iQueued ) ) {
+                        if( ( true == bPrimary )
+                         && ( pCurrentTrack->evEvent1 != nullptr )
+                         && ( pCurrentTrack->evEvent1->iQueued == 0 ) ) {
                             // dodanie do kolejki
                             simulation::Events.AddToQuery( pCurrentTrack->evEvent1, Owner );
                         }
                     }
                 }
-                // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                // if (TestFlag(iEventallFlag,1))
-                if (SetFlag(iEventallFlag,
-                             -1)) // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-                    if (bPrimary && pCurrentTrack->evEventall1 &&
-                        (!pCurrentTrack->evEventall1->iQueued))
-                        simulation::Events.AddToQuery(pCurrentTrack->evEventall1, Owner); // dodanie do kolejki
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
+                if( SetFlag( iEventallFlag, -1 ) ) {
+                    // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
+                    if( ( true == bPrimary )
+                     && ( pCurrentTrack->evEventall1 != nullptr )
+                     && ( pCurrentTrack->evEventall1->iQueued == 0 ) ) {
+                        simulation::Events.AddToQuery( pCurrentTrack->evEventall1, Owner ); // dodanie do kolejki
+                    }
+                }
             }
-            else if (fDistance > 0)
-            {
+            else if (fDistance > 0) {
+                // event2, eventall2
                 if( SetFlag( iEventFlag, -2 ) ) {
-                    // zawsze ustawia flagę sprawdzenia, jak mechanik
-                    // dosiądzie, to się nie wykona
+                    // zawsze ustawia flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
                     if( ( Owner->Mechanik != nullptr )
                      && ( Owner->Mechanik->Primary() ) ) {
                         // tylko dla jednego członu
-                        if( ( bPrimary )
-                         && ( pCurrentTrack->evEvent2 )
-                         && ( !pCurrentTrack->evEvent2->iQueued ) ) {
+                        if( ( true == bPrimary )
+                         && ( pCurrentTrack->evEvent2 != nullptr )
+                         && ( pCurrentTrack->evEvent2->iQueued == 0 ) ) {
                             simulation::Events.AddToQuery( pCurrentTrack->evEvent2, Owner );
                         }
                     }
                 }
-                // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                // if (TestFlag(iEventallFlag,2))
                 if( SetFlag( iEventallFlag, -2 ) ) {
                     // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
-                    if( ( bPrimary )
-                     && ( pCurrentTrack->evEventall2 )
-                     && ( !pCurrentTrack->evEventall2->iQueued ) ) {
+                    if( ( true == bPrimary )
+                     && ( pCurrentTrack->evEventall2 != nullptr )
+                     && ( pCurrentTrack->evEventall2->iQueued == 0 ) ) {
                         simulation::Events.AddToQuery( pCurrentTrack->evEventall2, Owner );
                     }
                 }
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
-            }
-            else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
-            {
-                if( ( Owner->Mechanik != nullptr )
-                 && ( Owner->Mechanik->Primary() ) ) {
-                    // tylko dla jednego członu
-                    if( pCurrentTrack->evEvent0 )
-                        if( !pCurrentTrack->evEvent0->iQueued )
-                            simulation::Events.AddToQuery( pCurrentTrack->evEvent0, Owner );
-                }
-                // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                if (pCurrentTrack->evEventall0)
-                    if (!pCurrentTrack->evEventall0->iQueued)
-                        simulation::Events.AddToQuery(pCurrentTrack->evEventall0, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
             }
         }
         if (!pCurrentSegment) // jeżeli nie ma powiązanego segmentu toru?
