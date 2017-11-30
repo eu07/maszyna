@@ -108,10 +108,10 @@ sound_source::play( int const Flags ) {
         // TODO: support for parameter-driven sound table
         if( m_soundbegin.buffer != null_handle ) {
             std::vector<audio::buffer_handle> bufferlist { m_soundbegin.buffer, m_soundmain.buffer };
-            audio::renderer.insert( this, std::begin( bufferlist ), std::end( bufferlist ) );
+            insert( std::begin( bufferlist ), std::end( bufferlist ) );
         }
         else {
-            audio::renderer.insert( this, m_soundmain.buffer );
+            insert( m_soundmain.buffer );
         }
     }
     else {
@@ -119,7 +119,7 @@ sound_source::play( int const Flags ) {
         if( ( m_soundbegin.buffer == null_handle )
          && ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) == 0 ) ) {
             // for single part non-looping samples we allow spawning multiple instances, if not prevented by set flags
-            audio::renderer.insert( this, m_soundmain.buffer );
+            insert( m_soundmain.buffer );
         }
     }
 }
@@ -135,7 +135,7 @@ sound_source::stop() {
     if( ( m_soundend.buffer != null_handle )
      && ( m_soundend.buffer != m_soundmain.buffer ) ) { // end == main can happen in malformed legacy cases
         // spawn potentially defined sound end sample, if the emitter is currently active
-        audio::renderer.insert( this, m_soundend.buffer );
+        insert( m_soundend.buffer );
     }
 }
 
@@ -154,10 +154,6 @@ sound_source::update( audio::openal_source &Source ) {
             }
             return;
         }
-        // check and update if needed current sound properties
-        update_location();
-        update_placement_gain();
-        Source.sync_with( m_properties );
 
         if( m_soundbegin.buffer != null_handle ) {
             // potentially a multipart sound
@@ -170,26 +166,41 @@ sound_source::update( audio::openal_source &Source ) {
                 ++( m_soundmain.playing );
             }
         }
+
+        // check and update if needed current sound properties
+        update_location();
+        update_placement_gain();
+        Source.sync_with( m_properties );
+        if( false == Source.is_synced ) {
+            // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
+            update_counter( Source.buffers[ Source.buffer_index ], -1 );
+        }
+
     }
     else {
         // if the emitter isn't playing it's either done or wasn't yet started
         // we can determine this from number of processed buffers
         if( Source.buffer_index != Source.buffers.size() ) {
             auto const buffer { Source.buffers[ Source.buffer_index ] };
-            update_counter( buffer, 1 );
             // emitter initialization
-            Source.range( m_range );
-            Source.pitch( m_pitchvariation );
-            update_location();
-            update_placement_gain();
-            Source.sync_with( m_properties );
             if( ( buffer == m_soundmain.buffer )
              && ( true == TestFlag( m_flags, sound_flags::looping ) ) ) {
                 // main sample can be optionally set to loop
                 Source.loop( true );
             }
-            // all set, start playback
-            Source.play();
+            Source.range( m_range );
+            Source.pitch( m_pitchvariation );
+            update_location();
+            update_placement_gain();
+            Source.sync_with( m_properties );
+            if( true == Source.is_synced ) {
+                // all set, start playback
+                Source.play();
+            }
+            else {
+                // if the initial sync went wrong we skip the activation so the renderer can clean the emitter on its end
+                update_counter( buffer, -1 );
+            }
         }
         else {
             auto const buffer { Source.buffers[ Source.buffer_index - 1 ] };
@@ -337,6 +348,13 @@ sound_source::update_placement_gain() {
 
     m_properties.placement_stamp = placementstamp;
     return true;
+}
+
+void
+sound_source::insert( audio::buffer_handle Buffer ) {
+
+    std::vector<audio::buffer_handle> buffers { Buffer };
+    return insert( std::begin( buffers ), std::end( buffers ) );
 }
 
 //---------------------------------------------------------------------------

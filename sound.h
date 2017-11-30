@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
-float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 100.f };
+float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
 
 enum class sound_type {
     single,
@@ -122,6 +122,15 @@ private:
     // potentially updates area-based gain factor of the source. returns: true if location has changed
     bool
         update_placement_gain();
+    void
+        insert( audio::buffer_handle Buffer );
+    template <class Iterator_>
+    void
+        insert( Iterator_ First, Iterator_ Last ) {
+
+        audio::renderer.insert( this, First, Last );
+        update_counter( *First, 1 );
+    }
 
 // members
     TDynamicObject const * m_owner { nullptr }; // optional, the vehicle carrying this sound source

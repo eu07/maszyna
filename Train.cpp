@@ -5130,120 +5130,128 @@ bool TTrain::Update( double const Deltatime )
 
 void
 TTrain::update_sounds( double const Deltatime ) {
-#ifdef EU07_USE_OLD_SOUNDCODE
-    double vol = 0;
-    //    int freq=1;
-    double dfreq;
+
+    if( Deltatime == 0.0 ) { return; }
+
+    double volume { 0.0 };
+    double const brakevolumescale { 0.5 };
 
     // McZapkie-280302 - syczenie
-    if( ( mvOccupied->BrakeHandle == FV4a ) || ( mvOccupied->BrakeHandle == FVel6 ) ) {
-        if( rsHiss.AM != 0 ) // upuszczanie z PG
-        {
-            fPPress = ( 1 * fPPress + mvOccupied->Handle->GetSound( s_fv4a_b ) ) / ( 2 );
-            if( fPPress > 0 ) {
-                vol = 2.0 * rsHiss.AM * fPPress;
-            }
-            if( vol > 0.001 ) {
-                rsHiss.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHiss.Stop();
-            }
+    // TODO: softer volume reduction than plain abrupt stop, perhaps as reusable wrapper?
+    if( ( mvOccupied->BrakeHandle == FV4a )
+     || ( mvOccupied->BrakeHandle == FVel6 ) ) {
+        // upuszczanie z PG
+        fPPress = interpolate<float>( fPPress, mvOccupied->Handle->GetSound( s_fv4a_b ), 0.05 );
+        volume = (
+            fPPress > 0 ?
+                rsHiss.m_amplitudefactor * fPPress * 0.25 :
+                0 );
+        if( volume * brakevolumescale > 0.05 ) {
+            rsHiss
+                .gain( volume * brakevolumescale )
+                .play( sound_flags::exclusive | sound_flags::looping );
         }
-        if( rsHissU.AM != 0 ) // upuszczanie z PG
-        {
-            fNPress = ( 1 * fNPress + mvOccupied->Handle->GetSound( s_fv4a_u ) ) / ( 2 );
-            if( fNPress > 0 ) {
-                vol = rsHissU.AM * fNPress;
-            }
-            if( vol > 0.001 ) {
-                rsHissU.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHissU.Stop();
-            }
+        else {
+            rsHiss.stop();
         }
-        if( rsHissE.AM != 0 ) // upuszczanie przy naglym
-        {
-            vol = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE.AM;
-            if( vol > 0.001 ) {
-                rsHissE.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHissE.Stop();
-            }
+        // napelnianie PG
+        fNPress = interpolate<float>( fNPress, mvOccupied->Handle->GetSound( s_fv4a_u ), 0.25 );
+        volume = (
+            fNPress > 0 ?
+                rsHissU.m_amplitudefactor * fNPress :
+                0 );
+        if( volume * brakevolumescale > 0.05 ) {
+            rsHissU
+                .gain( volume * brakevolumescale )
+                .play( sound_flags::exclusive | sound_flags::looping );
         }
-        if( rsHissX.AM != 0 ) // upuszczanie sterujacego fala
-        {
-            vol = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX.AM;
-            if( vol > 0.001 ) {
-                rsHissX.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHissX.Stop();
-            }
+        else {
+            rsHissU.stop();
         }
-        if( rsHissT.AM != 0 ) // upuszczanie z czasowego 
-        {
-            vol = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT.AM;
-            if( vol > 0.001 ) {
-                rsHissT.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHissT.Stop();
-            }
+        // upuszczanie przy naglym
+        volume = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE.m_amplitudefactor;
+        if( volume * brakevolumescale > 0.05 ) {
+            rsHissE
+                .gain( volume * brakevolumescale )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsHissE.stop();
+        }
+        // upuszczanie sterujacego fala
+        volume = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX.m_amplitudefactor;
+        if( volume * brakevolumescale > 0.05 ) {
+            rsHissX
+                .gain( volume * brakevolumescale )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsHissX.stop();
+        }
+        // upuszczanie z czasowego 
+        volume = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT.m_amplitudefactor;
+        if( volume * brakevolumescale > 0.05 ) {
+            rsHissT
+                .gain( volume * brakevolumescale )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsHissT.stop();
         }
 
-    } // koniec FV4a
-    else // jesli nie FV4a
-    {
-        if( rsHiss.AM != 0.0 ) // upuszczanie z PG
-        {
-            fPPress = ( 4.0f * fPPress + std::max( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
-            if( fPPress > 0.0f ) {
-                vol = 2.0 * rsHiss.AM * fPPress;
-            }
-            if( vol > 0.01 ) {
-                rsHiss.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHiss.Stop();
-            }
+    } else {
+        // jesli nie FV4a
+        // upuszczanie z PG
+        fPPress = ( 4.0f * fPPress + std::max( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+        volume = (
+            fPPress > 0.0f ?
+                2.0 * rsHiss.m_amplitudefactor * fPPress :
+                0.0 );
+        if( volume > 0.05 ) {
+            rsHiss
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
         }
-        if( rsHissU.AM != 0.0 ) // napelnianie PG
-        {
-            fNPress = ( 4.0f * fNPress + Min0R( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
-            if( fNPress < 0.0f ) {
-                vol = -1.0 * rsHissU.AM * fNPress;
-            }
-            if( vol > 0.01 ) {
-                rsHissU.Play( vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition() );
-            }
-            else {
-                rsHissU.Stop();
-            }
+        else {
+            rsHiss.stop();
+        }
+        // napelnianie PG
+        fNPress = ( 4.0f * fNPress + Min0R( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+        volume = (
+            fNPress < 0.0f ?
+                -1.0 * rsHissU.m_amplitudefactor * fNPress :
+                 0.0 );
+        if( volume > 0.01 ) {
+            rsHissU
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsHissU.stop();
         }
     } // koniec nie FV4a
 
     // Winger-160404 - syczenie pomocniczego (luzowanie)
-    /*      if (rsSBHiss.AM!=0)
-           {
-              fSPPress=(mvOccupied->LocalBrakeRatio())-(mvOccupied->LocalBrakePos);
-              if (fSPPress>0)
-               {
-                vol=2*rsSBHiss.AM*fSPPress;
-               }
-              if (vol>0.1)
-               {
-                rsSBHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-               }
-              else
-               {
-                rsSBHiss.Stop();
-               }
-           }
-    */
-#endif
+    if( m_lastlocalbrakepressure != -1.f ) {
+        // calculate rate of pressure drop in local brake cylinder, once it's been initialized
+        auto const brakepressuredifference { m_lastlocalbrakepressure - mvOccupied->LocBrakePress };
+        m_localbrakepressurechange = interpolate<float>( m_localbrakepressurechange, 10 * ( brakepressuredifference / Deltatime ), 0.1f );
+    }
+    m_lastlocalbrakepressure = mvOccupied->LocBrakePress;
+    if( ( m_localbrakepressurechange > 0.05f )
+     && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
+        rsSBHiss
+            .gain( clamp( 0.05 * m_localbrakepressurechange, 0.0, 1.5 ) )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        // don't stop the sound too abruptly
+        volume = std::max( 0.0, rsSBHiss.gain() - 0.1 * Deltatime );
+        rsSBHiss.gain( volume );
+        if( volume < 0.05 ) {
+            rsSBHiss.stop();
+        }
+    }
 
     // ambient sound
     // since it's typically ticking of the clock we can center it on tachometer or on middle of compartment bounding area
@@ -5400,6 +5408,10 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // syk:
                 rsHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHiss.owner( DynamicObject );
+                if( true == rsSBHiss.empty() ) {
+                    // fallback for vehicles without defined local brake hiss sound
+                    rsSBHiss = rsHiss;
+                }
             }
             else if (token == "airsound2:")
             {

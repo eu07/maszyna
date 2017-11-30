@@ -36,9 +36,10 @@ struct openal_source {
     ALuint id { audio::null_resource }; // associated AL resource
     sound_source *controller { nullptr }; // source controller 
     buffer_sequence buffers; // sequence of samples the source will emit
-    int buffer_index; // currently queued sample from the buffer sequence
+    int buffer_index { 0 }; // currently queued sample from the buffer sequence
     bool is_playing { false };
     bool is_looping { false };
+    bool is_synced { true }; // set to false only if a sync attempt fails
     sound_properties properties;
 
 // methods

@@ -3605,6 +3605,8 @@ void TDynamicObject::RenderSounds() {
     double volume { 1.0 };
     double const dt { Timer::GetDeltaRenderTime() };
 
+    if( dt == 0.0 ) { return; }
+
     // engine sounds
     if( MoverParameters->Power > 0 ) {
 
@@ -3889,7 +3891,7 @@ void TDynamicObject::RenderSounds() {
             }
             else {
                 eng_turbo = std::max( goalpitch, eng_turbo - changerate * 0.5 );
-                volume = std::max( 0.0, sTurbo.gain() - 10.0 * dt );
+                volume = std::max( 0.0, sTurbo.gain() - 2.0 * dt );
                 if( volume > 0.05 ) {
                     sTurbo
                         .pitch( 0.4 + eng_turbo * 0.4 )
@@ -3943,7 +3945,7 @@ void TDynamicObject::RenderSounds() {
 
     // brake system and braking sounds:
     if( m_lastbrakepressure != -1.f ) {
-        // calculate rate of pressure change in brake cylinder, once it's been initialized
+        // calculate rate of pressure drop in brake cylinder, once it's been initialized
         auto const brakepressuredifference { m_lastbrakepressure - MoverParameters->BrakePress };
         m_brakepressurechange = interpolate<float>( m_brakepressurechange, 10 * ( brakepressuredifference / dt ), 0.1f );
     }
@@ -3951,7 +3953,7 @@ void TDynamicObject::RenderSounds() {
     if( m_brakepressurechange > 0.05f ) {
         // NOTE: can't use the leak rate directly due to irregular results produced by some brake type implementations
         rsUnbrake
-            .gain( static_cast<float>( std::max( MoverParameters->BrakePress, 0.0 ) / MoverParameters->MaxBrakePress[ 3 ] ) )
+            .gain( static_cast<float>( 1.25 * std::max( MoverParameters->BrakePress, 0.0 ) / MoverParameters->MaxBrakePress[ 3 ] ) )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -4164,13 +4166,13 @@ void TDynamicObject::RenderSounds() {
         }
         // scale volume by track quality
         volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;
-        // scale volume with curve radius and vehicle speed
+        // scale volume with vehicle speed
         // TBD, TODO: disable the scaling for sounds combined from speed-based samples?
         volume *=
             interpolate(
                 0.0, 1.0,
                 clamp(
-                    MoverParameters->Vel / 80.0,
+                    MoverParameters->Vel / 60.0,
                     0.0, 1.0 ) );
         rsRunningNoise
             .pitch( clamp( frequency, 0.5, 1.15 ) ) // arbitrary limits to prevent the pitch going out of whack

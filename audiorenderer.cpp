@@ -33,6 +33,12 @@ void
 openal_source::stop() {
 
     loop( false );
+    // NOTE: workaround for potential edge cases where ::alSourceStop() doesn't set source which wasn't yet started to AL_STOPPED
+    int state;
+    ::alGetSourcei( id, AL_SOURCE_STATE, &state );
+    if( state == AL_INITIAL ) {
+        play();
+    }
     ::alSourceStop( id );
     is_playing = false;
 }
@@ -43,7 +49,6 @@ openal_source::update( double const Deltatime ) {
 
     update_deltatime = Deltatime; // cached for time-based processing of data from the controller
 
-    // TODO: test whether the emitter was within range during the last tick, potentially update the counter and flag it for timeout
     ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &buffer_index );
     // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
     ALuint bufferid;
@@ -53,9 +58,11 @@ openal_source::update( double const Deltatime ) {
         buffers.erase( std::begin( buffers ) );
         --buffer_index;
     }
+
     int state;
     ::alGetSourcei( id, AL_SOURCE_STATE, &state );
     is_playing = ( state == AL_PLAYING );
+
     // request instructions from the controller
     controller->update( *this );
 }
@@ -75,6 +82,7 @@ openal_source::sync_with( sound_properties const &State ) {
     if( glm::length2( sourceoffset ) > std::max( ( sound_range * sound_range ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
         // range cutoff check
         stop();
+        is_synced = false; // flag sync failure for the controller
         return;
     }
     if( sound_range >= 0 ) {
@@ -101,6 +109,7 @@ openal_source::sync_with( sound_properties const &State ) {
 
         ::alSourcef( id, AL_PITCH, properties.base_pitch * pitch_variation );
     }
+    is_synced = true;
 }
 
 // sets max audible distance for sounds emitted by the source
@@ -145,20 +154,18 @@ openal_source::loop( bool const State ) {
 // NOTE: doesn't release allocated implementation-side source
 void
 openal_source::clear() {
-
-    controller = nullptr;
     // unqueue bound buffers:
     // ensure no buffer is in use...
     stop();
     // ...prepare space for returned ids of unqueued buffers (not that we need that info)...
     std::vector<ALuint> bufferids;
     bufferids.resize( buffers.size() );
-    // ...release the buffers and update source data to match
+    // ...release the buffers...
     ::alSourceUnqueueBuffers( id, bufferids.size(), bufferids.data() );
-    buffers.clear();
-    buffer_index = 0;
-    // reset properties
-    properties = sound_properties();
+    // ...and reset reset the properties, except for the id of the allocated source
+    auto const sourceid { id };
+    *this = openal_source();
+    id = sourceid;
 }
 
 

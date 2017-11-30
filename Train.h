@@ -410,6 +410,8 @@ public: // reszta może by?publiczna
     sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
     sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
     sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local
+    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
+    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
@@ -461,7 +463,7 @@ private:
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
-    float fSPPress, fSNPress;
+//    float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
     int iRadioChannel; // numer aktualnego kana?u radiowego
     TPythonScreens pyScreens;
