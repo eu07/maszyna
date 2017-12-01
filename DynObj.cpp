@@ -4162,7 +4162,7 @@ void TDynamicObject::RenderSounds() {
         }
         if( std::abs( MoverParameters->nrot ) > 0.01 ) {
             // hamulce wzmagaja halas
-            volume *= 1 + MoverParameters->UnitBrakeForce / ( 1 + MoverParameters->MaxBrakeForce );
+            volume *= 1 + 0.25 * ( MoverParameters->UnitBrakeForce / ( 1 + MoverParameters->MaxBrakeForce ) );
         }
         // scale volume by track quality
         volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;

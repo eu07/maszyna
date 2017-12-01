@@ -86,10 +86,7 @@ sound_source::play( int const Flags ) {
         return;
     }
     if( m_range > 0 ) {
-        auto const cutoffrange{ (
-            ( m_soundbegin.buffer != null_handle ) && ( Flags & sound_flags::looping ) ?
-                m_range * 10 : // larger margin to let the startup sample finish playing at safe distance
-                m_range * 5 ) };
+        auto const cutoffrange{ m_range * 5 };
         if( glm::length2( location() - glm::dvec3{ Global::pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
             // drop sounds from beyond sensible and/or audible range
             return;
@@ -196,6 +193,10 @@ sound_source::update( audio::openal_source &Source ) {
             if( true == Source.is_synced ) {
                 // all set, start playback
                 Source.play();
+                if( false == Source.is_playing ) {
+                    // if the playback didn't start update the state counter
+                    update_counter( buffer, -1 );
+                }
             }
             else {
                 // if the initial sync went wrong we skip the activation so the renderer can clean the emitter on its end

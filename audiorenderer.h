@@ -55,6 +55,7 @@ struct openal_source {
             for( auto const buffer : buffers ) {
                 bufferids.emplace_back( audio::renderer.buffer( buffer ).id ); }
             ::alSourceQueueBuffers( id, bufferids.size(), bufferids.data() );
+            ::alSourceRewind( id );
             return *this; }
     // starts playback of queued buffers
     void
@@ -128,7 +129,7 @@ public:
 private:
 // types
     using source_list = std::list<audio::openal_source>;
-    using source_sequence = std::stack<audio::openal_source>;
+    using source_sequence = std::stack<ALuint>;
 // methods
     bool
         init_caps();

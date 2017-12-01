@@ -131,8 +131,11 @@ bool Global::FullPhysics { true }; // full calculations performed for each simul
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
+
+// sound renderer
 bool Global::bSoundEnabled = true;
 float Global::AudioVolume = 1.0f;
+std::string Global::AudioRenderer;
 
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::MultipleLogs{ false };
@@ -280,6 +283,10 @@ void Global::ConfigParse(cParser &Parser)
             // dzw.
             Parser.getTokens();
             Parser >> Global::bSoundEnabled;
+        }
+        else if( token == "sound.openal.renderer" ) {
+            // selected device for audio renderer
+            Global::AudioRenderer = Parser.getToken<std::string>( false ); // case-sensitive
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));

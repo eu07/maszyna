@@ -24,13 +24,21 @@ float const EU07_SOUND_CUTOFFRANGE { 3000.f }; // 2750 m = max expected emitter 
 void
 openal_source::play() {
 
+    if( id == audio::null_resource ) { return; } // no implementation-side source to match, no point
+
+    ::alGetError(); // pop the error stack
     ::alSourcePlay( id );
-    is_playing = true;
+    is_playing = (
+        ::alGetError() == AL_NO_ERROR ?
+            true :
+            false );
 }
 
 // stops the playback
 void
 openal_source::stop() {
+
+    if( id == audio::null_resource ) { return; } // no implementation-side source to match, no point
 
     loop( false );
     // NOTE: workaround for potential edge cases where ::alSourceStop() doesn't set source which wasn't yet started to AL_STOPPED
@@ -49,19 +57,22 @@ openal_source::update( double const Deltatime ) {
 
     update_deltatime = Deltatime; // cached for time-based processing of data from the controller
 
-    ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &buffer_index );
-    // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
-    ALuint bufferid;
-    while( ( buffer_index > 0 )
-        && ( buffers.size() > 1 ) ) {
-        ::alSourceUnqueueBuffers( id, 1, &bufferid );
-        buffers.erase( std::begin( buffers ) );
-        --buffer_index;
-    }
+    if( id != audio::null_resource ) {
 
-    int state;
-    ::alGetSourcei( id, AL_SOURCE_STATE, &state );
-    is_playing = ( state == AL_PLAYING );
+        ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &buffer_index );
+        // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
+        ALuint bufferid;
+        while( ( buffer_index > 0 )
+            && ( buffers.size() > 1 ) ) {
+            ::alSourceUnqueueBuffers( id, 1, &bufferid );
+            buffers.erase( std::begin( buffers ) );
+            --buffer_index;
+        }
+
+        int state;
+        ::alGetSourcei( id, AL_SOURCE_STATE, &state );
+        is_playing = ( state == AL_PLAYING );
+    }
 
     // request instructions from the controller
     controller->update( *this );
@@ -71,6 +82,11 @@ openal_source::update( double const Deltatime ) {
 void
 openal_source::sync_with( sound_properties const &State ) {
 
+    if( id == audio::null_resource ) {
+        // no implementation-side source to match, return sync error so the controller can clean up on its end
+        is_synced = false;
+        return;
+    }
 /*
     // velocity
     // not used yet
@@ -79,11 +95,14 @@ openal_source::sync_with( sound_properties const &State ) {
     // location
     properties.location = State.location;
     auto sourceoffset { glm::vec3 { properties.location - glm::dvec3 { Global::pCameraPosition } } };
-    if( glm::length2( sourceoffset ) > std::max( ( sound_range * sound_range ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
+    if( sound_range > 0 ) {
         // range cutoff check
-        stop();
-        is_synced = false; // flag sync failure for the controller
-        return;
+        auto const cutoffrange { sound_range * 7.5f };
+        if( glm::length2( sourceoffset ) > std::min( ( cutoffrange * cutoffrange ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
+            stop();
+            is_synced = false; // flag sync failure for the controller
+            return;
+        }
     }
     if( sound_range >= 0 ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( sourceoffset ) );
@@ -116,14 +135,17 @@ openal_source::sync_with( sound_properties const &State ) {
 void
 openal_source::range( float const Range ) {
 
-    auto const range(
-        Range >= 0 ?
-            Range :
-            5 ); // range of -1 means sound of unlimited range, positioned at the listener
-    ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) );
-    ::alSourcef( id, AL_ROLLOFF_FACTOR, 1.5f );
     // NOTE: we cache actual specified range, as we'll be giving 'unlimited' range special treatment
     sound_range = Range;
+
+    if( id == audio::null_resource ) { return; } // no implementation-side source to match, no point
+
+    auto const range { (
+        Range >= 0 ?
+            Range :
+            5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
+    ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) );
+    ::alSourcef( id, AL_ROLLOFF_FACTOR, 1.5f );
 }
 
 // sets modifier applied to the pitch of sounds emitted by the source
@@ -139,6 +161,7 @@ openal_source::pitch( float const Pitch ) {
 void
 openal_source::loop( bool const State ) {
 
+    if( id == audio::null_resource ) { return; } // no implementation-side source to match, no point
     if( is_looping == State ) { return; }
 
     is_looping = State;
@@ -154,15 +177,19 @@ openal_source::loop( bool const State ) {
 // NOTE: doesn't release allocated implementation-side source
 void
 openal_source::clear() {
-    // unqueue bound buffers:
-    // ensure no buffer is in use...
-    stop();
-    // ...prepare space for returned ids of unqueued buffers (not that we need that info)...
-    std::vector<ALuint> bufferids;
-    bufferids.resize( buffers.size() );
-    // ...release the buffers...
-    ::alSourceUnqueueBuffers( id, bufferids.size(), bufferids.data() );
+
+    if( id != audio::null_resource ) {
+        // unqueue bound buffers:
+        // ensure no buffer is in use...
+        stop();
+        // ...prepare space for returned ids of unqueued buffers (not that we need that info)...
+        std::vector<ALuint> bufferids;
+        bufferids.resize( buffers.size() );
+        // ...release the buffers...
+        ::alSourceUnqueueBuffers( id, bufferids.size(), bufferids.data() );
+    }
     // ...and reset reset the properties, except for the id of the allocated source
+    // NOTE: not strictly necessary since except for the id the source data typically get discarded in next step
     auto const sourceid { id };
     *this = openal_source();
     id = sourceid;
@@ -231,7 +258,10 @@ openal_renderer::erase( sound_source const *Controller ) {
         if( source->controller == Controller ) {
             // if the controller is the one specified, kill it
             source->clear();
-            m_sourcespares.push( *source );
+            if( source->id != audio::null_resource ) {
+                // keep around functional sources, but no point in doing it with the above-the-limit ones
+                m_sourcespares.push( source->id );
+            }
             source = m_sources.erase( source );
         }
         else {
@@ -268,7 +298,10 @@ openal_renderer::update( double const Deltatime ) {
         // if after the update the source isn't playing, put it away on the spare stack, it's done
         if( false == source->is_playing ) {
             source->clear();
-            m_sourcespares.push( *source );
+            if( source->id != audio::null_resource ) {
+                // keep around functional sources, but no point in doing it with the above-the-limit ones
+                m_sourcespares.push( source->id );
+            }
             source = m_sources.erase( source );
         }
         else {
@@ -285,7 +318,7 @@ openal_renderer::fetch_source() {
     audio::openal_source soundsource;
     if( false == m_sourcespares.empty() ) {
         // reuse (a copy of) already allocated source
-        soundsource = m_sourcespares.top();
+        soundsource.id = m_sourcespares.top();
         m_sourcespares.pop();
     }
     return soundsource;
@@ -294,9 +327,8 @@ openal_renderer::fetch_source() {
 bool
 openal_renderer::init_caps() {
 
-    // select the "preferred device"
-    // TODO: support for opening config-specified device
-    m_device = ::alcOpenDevice( nullptr );
+    // NOTE: default value of audio renderer variable is empty string, meaning argument of NULL i.e. 'preferred' device
+    m_device = ::alcOpenDevice( Global::AudioRenderer.c_str() );
     if( m_device == nullptr ) {
         ErrorLog( "Failed to obtain audio device" );
         return false;

@@ -165,8 +165,6 @@ public:
     static bool VSync;
     static bool bFreeFly;
     static bool bWireFrame;
-    static bool bSoundEnabled;
-    static float AudioVolume;
     // McZapkie-131202
     static bool bAdjustScreenFreq;
     static bool bEnableTraction;
@@ -215,6 +213,10 @@ public:
     static bool bSmoothTraction; // wygładzanie drutów
     static float SplineFidelity; // determines segment size during conversion of splines to geometry
     static GLfloat FogColor[];
+    // sound renderer variables
+    static bool bSoundEnabled;
+    static float AudioVolume;
+    static std::string AudioRenderer;
 
     static bool FullPhysics; // full calculations performed for each simulation step
     static int iSlowMotion;
