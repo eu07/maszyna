@@ -29,6 +29,8 @@ namespace audio {
 // TODO: generic interface base, for implementations other than openAL
 struct openal_source {
 
+    friend class openal_renderer;
+
 // types
     using buffer_sequence = std::vector<audio::buffer_handle>;
 
@@ -48,14 +50,14 @@ struct openal_source {
         bind( sound_source *Controller, Iterator_ First, Iterator_ Last ) {
             controller = Controller;
             buffers.insert( std::end( buffers ), First, Last );
-            if( id == audio::null_resource ) {
-                ::alGenSources( 1, &id ); }
+            is_multipart = ( buffers.size() > 1 );
             // look up and queue assigned buffers
             std::vector<ALuint> bufferids;
             for( auto const buffer : buffers ) {
                 bufferids.emplace_back( audio::renderer.buffer( buffer ).id ); }
-            ::alSourceQueueBuffers( id, bufferids.size(), bufferids.data() );
-            ::alSourceRewind( id );
+            if( id != audio::null_resource ) {
+                ::alSourceQueueBuffers( id, bufferids.size(), bufferids.data() );
+                ::alSourceRewind( id ); }
             return *this; }
     // starts playback of queued buffers
     void
@@ -88,6 +90,8 @@ private:
     double update_deltatime; // time delta of most current update
     float pitch_variation { 1.f }; // emitter-specific variation of the base pitch
     float sound_range { 50.f }; // cached audible range of the emitted samples
+    glm::vec3 sound_distance; // cached distance between sound and the listener
+    bool is_multipart { false }; // multi-part sounds are kept alive at longer ranges
 };
 
 

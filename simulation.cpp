@@ -307,8 +307,8 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
-         && ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 )
-           || ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 ) ) ) {
+         && ( ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
+           || ( ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
             simulation::Lights.insert( vehicle );
         }
     }

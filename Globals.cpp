@@ -134,7 +134,7 @@ bool Global::bWireFrame = false;
 
 // sound renderer
 bool Global::bSoundEnabled = true;
-float Global::AudioVolume = 1.0f;
+float Global::AudioVolume = 2.0f;
 std::string Global::AudioRenderer;
 
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
@@ -287,6 +287,12 @@ void Global::ConfigParse(cParser &Parser)
         else if( token == "sound.openal.renderer" ) {
             // selected device for audio renderer
             Global::AudioRenderer = Parser.getToken<std::string>( false ); // case-sensitive
+        }
+        else if( token == "sound.volume" ) {
+            // selected device for audio renderer
+            Parser.getTokens();
+            Parser >> Global::AudioVolume;
+            Global::AudioVolume = clamp( Global::AudioVolume, 1.f, 4.f );
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));

@@ -2731,16 +2731,16 @@ void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Com
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the sound can loop uninterrupted
-        if( false == Train->mvControlled->DepartureSignal ) {
+        if( false == Train->mvOccupied->DepartureSignal ) {
             // turn on
-            Train->mvControlled->signal_departure( true );
+            Train->mvOccupied->signal_departure( true );
             // visual feedback
             Train->ggDepartureSignalButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
-        Train->mvControlled->signal_departure( false );
+        Train->mvOccupied->signal_departure( false );
         // visual feedback
         Train->ggDepartureSignalButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
@@ -5494,6 +5494,20 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 {
     m_controlmapper.clear();
+    // reset sound positions and owner
+    auto const nullvector { glm::vec3() };
+    std::vector<sound_source *> sounds = {
+        &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
+        &dsbSwitch, &dsbPneumaticSwitch,
+        &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss,
+        &rsFadeSound,
+        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm
+    };
+    for( auto sound : sounds ) {
+        sound->offset( nullvector );
+        sound->owner( DynamicObject );
+    }
+
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
@@ -5658,7 +5672,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         set_cab_controls();
 
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
-        auto const nullvector { glm::vec3() };
         // try first to bind sounds to location of possible devices
         if( dsbReverserKey.offset() == nullvector ) {
             dsbReverserKey.offset( ggDirKey.model_offset() );
@@ -5682,14 +5695,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             }
         }
         // for whatever is left fallback on generic location, centre of the cab 
-        auto const caboffset { glm::dvec3 { ( Cabine[ NewCabNo ].CabPos1 + Cabine[ NewCabNo ].CabPos2 ) * 0.5 } + glm::dvec3 { 0, 1, 0 } };
-        std::vector<sound_source *> sounds = {
-            &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
-            &dsbSwitch, &dsbPneumaticSwitch,
-            &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss,
-            &rsFadeSound,
-            &dsbHasler, &dsbBuzzer, &dsbSlipAlarm
-        };
+        auto const caboffset { glm::dvec3 { ( Cabine[ cabindex ].CabPos1 + Cabine[ cabindex ].CabPos2 ) * 0.5 } + glm::dvec3 { 0, 1, 0 } };
         for( auto sound : sounds ) {
             if( sound->offset() == nullvector ) {
                 sound->offset( caboffset );

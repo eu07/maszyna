@@ -999,7 +999,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         go = cm_Ready; // gotów do odjazdu z W4 (semafor może
                                     // zatrzymać)
                                     if( ( tsGuardSignal != nullptr )
-                                     && ( false == tsGuardSignal->empty() ) ); {
+                                     && ( false == tsGuardSignal->empty() ) ) {
                                         // jeśli mamy głos kierownika, to odegrać
                                         iDrivigFlags |= moveGuardSignal;
                                     }
@@ -1447,7 +1447,7 @@ void TController::TableSort() {
         return;
     }
     TSpeedPos sp_temp = TSpeedPos(); // uzywany do przenoszenia
-    for( std::size_t i = 0; i < ( iLast - 1 ); ++i ) {
+    for( int i = 0; i < ( iLast - 1 ); ++i ) {
         // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
         if (sSpeedTable[i].fDist > sSpeedTable[i + 1].fDist)
         { // jesli pozycja wcześniejsza jest dalej to źle

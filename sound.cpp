@@ -95,7 +95,7 @@ sound_source::play( int const Flags ) {
 
     // initialize emitter-specific pitch variation if it wasn't yet set
     if( m_pitchvariation == 0.f ) {
-        m_pitchvariation = 0.01f * static_cast<float>( Random( 95, 105 ) );
+        m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
 
     m_flags = Flags;
@@ -130,7 +130,8 @@ sound_source::stop() {
     m_stop = true;
 
     if( ( m_soundend.buffer != null_handle )
-     && ( m_soundend.buffer != m_soundmain.buffer ) ) { // end == main can happen in malformed legacy cases
+     && ( m_soundend.buffer != m_soundmain.buffer ) // end == main can happen in malformed legacy cases
+     && ( m_soundend.playing == 0 ) ) {
         // spawn potentially defined sound end sample, if the emitter is currently active
         insert( m_soundend.buffer );
     }
@@ -142,8 +143,9 @@ sound_source::update( audio::openal_source &Source ) {
 
     if( true == Source.is_playing ) {
 
-        // kill the sound if requested
-        if( true == m_stop ) {
+        if( ( true == m_stop )
+         && ( Source.buffers[ Source.buffer_index ] != m_soundend.buffer ) ) {
+            // kill the sound if stop was requested, unless it's sound bookend sample
             Source.stop();
             update_counter( Source.buffers[ Source.buffer_index ], -1 );
             if( false == is_playing() ) {

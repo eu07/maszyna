@@ -94,18 +94,21 @@ openal_source::sync_with( sound_properties const &State ) {
 */
     // location
     properties.location = State.location;
-    auto sourceoffset { glm::vec3 { properties.location - glm::dvec3 { Global::pCameraPosition } } };
+    sound_distance = properties.location - glm::dvec3 { Global::pCameraPosition };
     if( sound_range > 0 ) {
         // range cutoff check
-        auto const cutoffrange { sound_range * 7.5f };
-        if( glm::length2( sourceoffset ) > std::min( ( cutoffrange * cutoffrange ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
+        auto const cutoffrange = (
+            is_multipart ?
+                EU07_SOUND_CUTOFFRANGE : // we keep multi-part sounds around longer, to minimize restarts as the sounds get out and back in range
+                sound_range * 7.5f );
+        if( glm::length2( sound_distance ) > std::min( ( cutoffrange * cutoffrange ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
             stop();
             is_synced = false; // flag sync failure for the controller
             return;
         }
     }
     if( sound_range >= 0 ) {
-        ::alSourcefv( id, AL_POSITION, glm::value_ptr( sourceoffset ) );
+        ::alSourcefv( id, AL_POSITION, glm::value_ptr( sound_distance ) );
     }
     else {
         // sounds with 'unlimited' range are positioned on top of the listener
@@ -233,6 +236,7 @@ openal_renderer::init() {
     //
 //    ::alDistanceModel( AL_LINEAR_DISTANCE );
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
+    ::alListenerf( AL_GAIN, clamp( Global::AudioVolume, 1.f, 4.f ) );
     // all done
     m_ready = true;
     return true;
@@ -315,13 +319,54 @@ openal_renderer::update( double const Deltatime ) {
 audio::openal_source
 openal_renderer::fetch_source() {
 
-    audio::openal_source soundsource;
+    audio::openal_source newsource;
     if( false == m_sourcespares.empty() ) {
         // reuse (a copy of) already allocated source
-        soundsource.id = m_sourcespares.top();
+        newsource.id = m_sourcespares.top();
         m_sourcespares.pop();
     }
-    return soundsource;
+    if( newsource.id == audio::null_resource ) {
+        // if there's no source to reuse, try to generate a new one
+        ::alGenSources( 1, &( newsource.id ) );
+    }
+    if( newsource.id == audio::null_resource ) {
+        // if we still don't have a working source, see if we can sacrifice an already active one
+        // under presumption it's more important to play new sounds than keep the old ones going
+        // TBD, TODO: for better results we could use range and/or position for the new sound
+        // to better weight whether the new sound is really more important
+        auto leastimportantsource { std::end( m_sources ) };
+        auto leastimportantweight { std::numeric_limits<float>::max() };
+
+        for( auto source { std::begin( m_sources ) }; source != std::cend( m_sources ); ++source ) {
+
+            if( ( source->id == audio::null_resource )
+             || ( true == source->is_multipart )
+             || ( false == source->is_playing ) ) {
+
+                continue;
+            }
+            auto const sourceweight { (
+                source->sound_range > 0 ?
+                    ( source->sound_range * source->sound_range ) / ( glm::length2( source->sound_distance ) + 1 ) :
+                    std::numeric_limits<float>::max() ) };
+            if( sourceweight < leastimportantweight ) {
+                leastimportantsource = source;
+                leastimportantweight = sourceweight;
+            }
+        }
+        if( ( leastimportantsource != std::end( m_sources ) )
+         && ( leastimportantweight < 1.f ) ) {
+            // only accept the candidate if it's outside of its nominal hearing range
+            leastimportantsource->stop();
+            leastimportantsource->update( 0 ); // HACK: a roundabout way to notify the controller its emitter has stopped
+            leastimportantsource->clear();
+            // we should be now free to grab the id and get rid of the remains
+            newsource.id = leastimportantsource->id;
+            m_sources.erase( leastimportantsource );
+        }
+    }
+
+    return newsource;
 }
 
 bool

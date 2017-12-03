@@ -3705,25 +3705,28 @@ void TDynamicObject::RenderSounds() {
                     }
                     else {
 
-                        sConverter
-                            .pitch( frequency )
-                            .gain( volume )
-                            .play( sound_flags::exclusive | sound_flags::looping );
+                        if( MoverParameters->ConverterFlag ) {
 
-                        float fincvol { 0 };
-                        if( ( MoverParameters->ConverterFlag )
-                         && ( MoverParameters->enrot * 60 > MoverParameters->DElist[ 0 ].RPM ) ) {
-
-                            fincvol = ( MoverParameters->DElist[ MoverParameters->MainCtrlPos ].RPM - ( MoverParameters->enrot * 60 ) );
-                            fincvol /= ( 0.05 * MoverParameters->DElist[ 0 ].RPM );
-                        };
-                        if( fincvol > 0.02 ) {
-                            rsDieselInc
-                                .gain( fincvol )
+                            sConverter
+                                .pitch( frequency )
+                                .gain( volume )
                                 .play( sound_flags::exclusive | sound_flags::looping );
-                        }
-                        else {
-                            rsDieselInc.stop();
+
+                            float fincvol { 0 };
+                            if( MoverParameters->enrot * 60 > MoverParameters->DElist[ 0 ].RPM ) {
+
+                                fincvol = ( MoverParameters->DElist[ MoverParameters->MainCtrlPos ].RPM - ( MoverParameters->enrot * 60 ) );
+                                fincvol /= ( 0.05 * MoverParameters->DElist[ 0 ].RPM );
+                            }
+
+                            if( fincvol > 0.02 ) {
+                                rsDieselInc
+                                    .gain( fincvol )
+                                    .play( sound_flags::exclusive | sound_flags::looping );
+                            }
+                            else {
+                                rsDieselInc.stop();
+                            }
                         }
                     }
                 }
@@ -4024,10 +4027,7 @@ void TDynamicObject::RenderSounds() {
     // McZapkie-280302 - pisk mocno zacisnietych hamulcow
     if( /*( false == MoverParameters->SlippingWheels )
      &&*/ ( MoverParameters->UnitBrakeForce > rsPisk.m_amplitudefactor )
-     && ( MoverParameters->Vel > (
-            true == rsPisk.is_playing() ?
-                0.05 :
-                0.5 ) ) ) {
+       && ( MoverParameters->Vel > 2.5 ) ) {
 
         rsPisk
             .gain( MoverParameters->UnitBrakeForce / ( rsPisk.m_amplitudefactor + 1 ) + rsPisk.m_amplitudeoffset )
@@ -4035,7 +4035,7 @@ void TDynamicObject::RenderSounds() {
     }
     else {
         // don't stop the sound too abruptly
-        volume = std::max( 0.0, rsPisk.gain() - ( rsPisk.gain() * 1.5 * dt ) );
+        volume = std::max( 0.0, rsPisk.gain() - ( rsPisk.gain() * 2.5 * dt ) );
         rsPisk.gain( volume );
         if( volume < 0.05 ) {
             rsPisk.stop();

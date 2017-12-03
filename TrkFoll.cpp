@@ -103,7 +103,8 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         // TODO: refactor following block as track method
         if( pCurrentTrack->iEvents ) { // sumaryczna informacja o eventach
             // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
-            if( std::abs( fDistance ) < 0.01 ) {
+            if( ( std::abs( fDistance ) < 0.01 )
+             && ( Owner->GetVelocity() < 0.01 ) ) {
                 //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
                 if( ( Owner->Mechanik != nullptr )
                  && ( Owner->Mechanik->Primary() ) ) {
