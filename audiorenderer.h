@@ -17,10 +17,10 @@ class sound_source;
 // sound emitter state sync item
 struct sound_properties {
     glm::dvec3 location;
-    float base_gain { 1.f };
-    float placement_gain { 1.f };
-    std::uintptr_t placement_stamp { ~( std::uintptr_t{ 0 } ) };
-    float base_pitch { 1.f };
+    float gain { 1.f };
+    float soundproofing { 1.f };
+    std::uintptr_t soundproofing_stamp { ~( std::uintptr_t{ 0 } ) };
+    float pitch { 1.f };
 };
 
 namespace audio {

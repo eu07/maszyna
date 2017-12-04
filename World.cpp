@@ -898,7 +898,7 @@ bool TWorld::Update() {
     Timer::UpdateTimers(Global::iPause != 0);
     Timer::subsystem.sim_total.start();
 
-    if( (Global::iPause == false)
+    if( (Global::iPause == 0)
      || (m_init == false) ) {
         // jak pauza, to nie ma po co tego przeliczać
         simulation::Time.update( Timer::GetDeltaTime() );

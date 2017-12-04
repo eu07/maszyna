@@ -115,21 +115,21 @@ openal_source::sync_with( sound_properties const &State ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( glm::vec3() ) );
     }
     // gain
-    if( ( State.placement_stamp != properties.placement_stamp )
-     || ( State.base_gain != properties.base_gain ) ) {
+    if( ( State.soundproofing_stamp != properties.soundproofing_stamp )
+     || ( State.gain != properties.gain ) ) {
         // gain value has changed
-        properties.base_gain = State.base_gain;
-        properties.placement_gain = State.placement_gain;
-        properties.placement_stamp = State.placement_stamp;
+        properties.gain = State.gain;
+        properties.soundproofing = State.soundproofing;
+        properties.soundproofing_stamp = State.soundproofing_stamp;
 
-        ::alSourcef( id, AL_GAIN, properties.base_gain * properties.placement_gain * Global::AudioVolume );
+        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global::AudioVolume );
     }
     // pitch
-    if( State.base_pitch != properties.base_pitch ) {
+    if( State.pitch != properties.pitch ) {
         // pitch value has changed
-        properties.base_pitch = State.base_pitch;
+        properties.pitch = State.pitch;
 
-        ::alSourcef( id, AL_PITCH, properties.base_pitch * pitch_variation );
+        ::alSourcef( id, AL_PITCH, properties.pitch * pitch_variation );
     }
     is_synced = true;
 }
@@ -157,7 +157,7 @@ openal_source::pitch( float const Pitch ) {
 
     pitch_variation = Pitch;
     // invalidate current pitch value to enforce change of next syns
-    properties.base_pitch = -1.f;
+    properties.pitch = -1.f;
 }
 
 // toggles looping of the sound emitted by the source

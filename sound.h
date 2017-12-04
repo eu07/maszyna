@@ -121,7 +121,7 @@ private:
         update_location();
     // potentially updates area-based gain factor of the source. returns: true if location has changed
     bool
-        update_placement_gain();
+        update_soundproofing();
     void
         insert( audio::buffer_handle Buffer );
     template <class Iterator_>

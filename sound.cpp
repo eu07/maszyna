@@ -168,7 +168,7 @@ sound_source::update( audio::openal_source &Source ) {
 
         // check and update if needed current sound properties
         update_location();
-        update_placement_gain();
+        update_soundproofing();
         Source.sync_with( m_properties );
         if( false == Source.is_synced ) {
             // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
@@ -190,7 +190,7 @@ sound_source::update( audio::openal_source &Source ) {
             Source.range( m_range );
             Source.pitch( m_pitchvariation );
             update_location();
-            update_placement_gain();
+            update_soundproofing();
             Source.sync_with( m_properties );
             if( true == Source.is_synced ) {
                 // all set, start playback
@@ -216,7 +216,7 @@ sound_source::update( audio::openal_source &Source ) {
 sound_source &
 sound_source::gain( float const Gain ) {
 
-    m_properties.base_gain = clamp( Gain, 0.f, 2.f );
+    m_properties.gain = clamp( Gain, 0.f, 2.f );
     return *this;
 }
 
@@ -224,14 +224,14 @@ sound_source::gain( float const Gain ) {
 float
 sound_source::gain() const {
 
-    return m_properties.base_gain;
+    return m_properties.gain;
 }
 
 // sets base pitch of the emitter to specified value
 sound_source &
 sound_source::pitch( float const Pitch ) {
 
-    m_properties.base_pitch = clamp( Pitch, 0.1f, 10.f );
+    m_properties.pitch = clamp( Pitch, 0.1f, 10.f );
     return *this;
 }
 
@@ -275,18 +275,18 @@ sound_source::update_counter( audio::buffer_handle const Buffer, int const Value
     else if( Buffer == m_soundend.buffer )   { m_soundend.playing += Value; }
 }
 
-float const EU07_SOUNDGAIN_LOW { 0.2f };
-float const EU07_SOUNDGAIN_MEDIUM { 0.65f };
-float const EU07_SOUNDGAIN_FULL { 1.f };
-
 void
 sound_source::update_location() {
 
     m_properties.location = location();
 }
 
+float const EU07_SOUNDPROOFING_STRONG { 0.25f };
+float const EU07_SOUNDPROOFING_SOME { 0.65f };
+float const EU07_SOUNDPROOFING_NONE { 1.f };
+
 bool
-sound_source::update_placement_gain() {
+sound_source::update_soundproofing() {
 
     // NOTE, HACK: current cab id can vary from -1 to +1
     // we use this as modifier to force re-calculations when moving between compartments
@@ -297,7 +297,7 @@ sound_source::update_placement_gain() {
                 Global::pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
                 0 ) );
     // location-based gain factor:
-    std::uintptr_t placementstamp = reinterpret_cast<std::uintptr_t>( (
+    std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
         FreeFlyModeFlag ?
             nullptr :
             ( Global::pWorld->train() ?
@@ -305,51 +305,51 @@ sound_source::update_placement_gain() {
                 nullptr ) ) )
         + activecab;
 
-    if( placementstamp == m_properties.placement_stamp ) { return false; }
+    if( soundproofingstamp == m_properties.soundproofing_stamp ) { return false; }
 
     // listener location has changed, calculate new location-based gain factor
     switch( m_placement ) {
         case sound_placement::general: {
-            m_properties.placement_gain = EU07_SOUNDGAIN_FULL;
+            m_properties.soundproofing = EU07_SOUNDPROOFING_NONE;
             break;
         }
         case sound_placement::external: {
-            m_properties.placement_gain = (
-                placementstamp == 0 ?
-                    EU07_SOUNDGAIN_FULL : // listener outside
-                    EU07_SOUNDGAIN_LOW ); // listener in a vehicle
+            m_properties.soundproofing = (
+                soundproofingstamp == 0 ?
+                    EU07_SOUNDPROOFING_NONE : // listener outside
+                    EU07_SOUNDPROOFING_STRONG ); // listener in a vehicle
             break;
         }
         case sound_placement::internal: {
-            m_properties.placement_gain = (
-                placementstamp == 0 ?
-                    EU07_SOUNDGAIN_LOW : // listener outside
+            m_properties.soundproofing = (
+                soundproofingstamp == 0 ?
+                    EU07_SOUNDPROOFING_STRONG : // listener outside
                     ( Global::pWorld->train()->Dynamic() != m_owner ?
-                        EU07_SOUNDGAIN_LOW : // in another vehicle
+                        EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
-                            EU07_SOUNDGAIN_LOW : // listener in the engine compartment
-                            EU07_SOUNDGAIN_FULL ) ) ); // listener in the cab of the same vehicle
+                            EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
+                            EU07_SOUNDPROOFING_NONE ) ) ); // listener in the cab of the same vehicle
             break;
         }
         case sound_placement::engine: {
-            m_properties.placement_gain = (
-                placementstamp == 0 ?
-                EU07_SOUNDGAIN_MEDIUM : // listener outside
+            m_properties.soundproofing = (
+                soundproofingstamp == 0 ?
+                EU07_SOUNDPROOFING_SOME : // listener outside
                 ( Global::pWorld->train()->Dynamic() != m_owner ?
-                    EU07_SOUNDGAIN_LOW : // in another vehicle
+                    EU07_SOUNDPROOFING_STRONG : // in another vehicle
                     ( activecab == 0 ?
-                        EU07_SOUNDGAIN_FULL : // listener in the engine compartment
-                        EU07_SOUNDGAIN_LOW ) ) ); // listener in another compartment of the same vehicle
+                        EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
+                        EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
             break;
         }
         default: {
             // shouldn't ever land here, but, eh
-            m_properties.placement_gain = EU07_SOUNDGAIN_FULL;
+            m_properties.soundproofing = EU07_SOUNDPROOFING_NONE;
             break;
         }
     }
 
-    m_properties.placement_stamp = placementstamp;
+    m_properties.soundproofing_stamp = soundproofingstamp;
     return true;
 }
 

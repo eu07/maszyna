@@ -273,8 +273,14 @@ private:
     };
 
     struct door_sounds {
-        sound_source rsDoorOpen{ sound_placement::general }; // Ra: przeniesione z kabiny
-        sound_source rsDoorClose{ sound_placement::general };
+        sound_source rsDoorOpen{ sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
+        sound_source rsDoorClose{ sound_placement::general, 25.f };
+    };
+
+    struct axle_sounds {
+        double distance; // distance to rail joint
+        double offset; // axle offset from centre of the vehicle
+        sound_source clatter; // clatter emitter
     };
 
 // methods
@@ -318,16 +324,19 @@ private:
     TButton btHeadSignals23;
 	TButton btMechanik1;
 	TButton btMechanik2;
-    double enginevolume; // MC: pomocnicze zeby gladziej silnik buczal
 
-    int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
-    double dRailLength;
+//    int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
+    double dRailLength { 0.0 };
+    std::vector<axle_sounds> m_axlesounds;
+/*
     double dRailPosition[MaxAxles]; // licznik pozycji osi w/m szyny
     double dWheelsPosition[MaxAxles]; // pozycja osi w/m srodka pojazdu
     std::vector<sound_source> rsStukot; // dzwieki poszczegolnych osi //McZapkie-270202
+*/
     // engine sounds
     sound_source dsbDieselIgnition { sound_placement::engine }; // moved from cab
     sound_source rsSilnik { sound_placement::engine };
+    double enginevolume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
     sound_source dsbRelay { sound_placement::engine };
     sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
     sound_source dsbWejscie_na_drugi_uklad { sound_placement::engine }; // moved from cab
@@ -357,7 +366,7 @@ private:
     sound_source sDepartureSignal { sound_placement::general };
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rsRunningNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    sound_source rsOuterNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
 
     double eng_vol_act;

@@ -5136,6 +5136,28 @@ TTrain::update_sounds( double const Deltatime ) {
     double volume { 0.0 };
     double const brakevolumescale { 0.5 };
 
+    // Winger-160404 - syczenie pomocniczego (luzowanie)
+    if( m_lastlocalbrakepressure != -1.f ) {
+        // calculate rate of pressure drop in local brake cylinder, once it's been initialized
+        auto const brakepressuredifference{ m_lastlocalbrakepressure - mvOccupied->LocBrakePress };
+        m_localbrakepressurechange = interpolate<float>( m_localbrakepressurechange, 10 * ( brakepressuredifference / Deltatime ), 0.1f );
+    }
+    m_lastlocalbrakepressure = mvOccupied->LocBrakePress;
+    if( ( m_localbrakepressurechange > 0.05f )
+     && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
+        rsSBHiss
+            .gain( clamp( 0.05 * m_localbrakepressurechange, 0.0, 1.5 ) )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        // don't stop the sound too abruptly
+        volume = std::max( 0.0, rsSBHiss.gain() - 0.1 * Deltatime );
+        rsSBHiss.gain( volume );
+        if( volume < 0.05 ) {
+            rsSBHiss.stop();
+        }
+    }
+
     // McZapkie-280302 - syczenie
     // TODO: softer volume reduction than plain abrupt stop, perhaps as reusable wrapper?
     if( ( mvOccupied->BrakeHandle == FV4a )
@@ -5231,28 +5253,6 @@ TTrain::update_sounds( double const Deltatime ) {
         }
     } // koniec nie FV4a
 
-    // Winger-160404 - syczenie pomocniczego (luzowanie)
-    if( m_lastlocalbrakepressure != -1.f ) {
-        // calculate rate of pressure drop in local brake cylinder, once it's been initialized
-        auto const brakepressuredifference { m_lastlocalbrakepressure - mvOccupied->LocBrakePress };
-        m_localbrakepressurechange = interpolate<float>( m_localbrakepressurechange, 10 * ( brakepressuredifference / Deltatime ), 0.1f );
-    }
-    m_lastlocalbrakepressure = mvOccupied->LocBrakePress;
-    if( ( m_localbrakepressurechange > 0.05f )
-     && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
-        rsSBHiss
-            .gain( clamp( 0.05 * m_localbrakepressurechange, 0.0, 1.5 ) )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        // don't stop the sound too abruptly
-        volume = std::max( 0.0, rsSBHiss.gain() - 0.1 * Deltatime );
-        rsSBHiss.gain( volume );
-        if( volume < 0.05 ) {
-            rsSBHiss.stop();
-        }
-    }
-
     // ambient sound
     // since it's typically ticking of the clock we can center it on tachometer or on middle of compartment bounding area
     rsFadeSound.play( sound_flags::exclusive | sound_flags::looping );
@@ -5266,6 +5266,35 @@ TTrain::update_sounds( double const Deltatime ) {
         else {
             dsbSlipAlarm.stop();
         }
+    }
+
+    // szum w czasie jazdy
+    if( DynamicObject->GetVelocity() > 0.5 ) {
+
+        volume = rsRunningNoise.m_amplitudefactor * mvOccupied->Vel + rsRunningNoise.m_amplitudeoffset;
+        auto frequency { rsRunningNoise.m_frequencyfactor * mvOccupied->Vel + rsRunningNoise.m_frequencyoffset };
+
+        if( std::abs( mvOccupied->nrot ) > 0.01 ) {
+            // hamulce wzmagaja halas
+            volume *= 1 + 0.25 * ( mvOccupied->UnitBrakeForce / ( 1 + mvOccupied->MaxBrakeForce ) );
+        }
+        // scale volume by track quality
+        volume *= ( 20.0 + DynamicObject->MyTrack->iDamageFlag ) / 21;
+        // scale volume with vehicle speed
+        // TBD, TODO: disable the scaling for sounds combined from speed-based samples?
+        volume *=
+            interpolate(
+                0.0, 1.0,
+                clamp(
+                    mvOccupied->Vel / 40.0,
+                    0.0, 1.0 ) );
+        rsRunningNoise
+            .pitch( clamp( frequency, 0.5, 1.15 ) ) // arbitrary limits to prevent the pitch going out of whack
+            .gain( volume )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        rsRunningNoise.stop();
     }
 
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -5449,6 +5478,14 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsFadeSound.deserialize( parser, sound_type::single );
                 rsFadeSound.owner( DynamicObject );
             }
+            else if( token == "runningnoise:" ) {
+                // szum podczas jazdy:
+                rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                rsRunningNoise.owner( DynamicObject );
+
+                rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
+                rsRunningNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
+            }
             else if (token == "mechspring:")
             {
                 // parametry bujania kamery:
@@ -5500,7 +5537,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss,
-        &rsFadeSound,
+        &rsFadeSound, &rsRunningNoise,
         &dsbHasler, &dsbBuzzer, &dsbSlipAlarm
     };
     for( auto sound : sounds ) {

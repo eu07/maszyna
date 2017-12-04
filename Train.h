@@ -414,6 +414,8 @@ public: // reszta może by?publiczna
     float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source rsRunningNoise{ sound_placement::internal, 2.0 * EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182

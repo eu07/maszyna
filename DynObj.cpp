@@ -559,7 +559,7 @@ TDynamicObject::toggle_lights() {
                 ( compartmentname.find( "compartment" ) != std::string::npos )
              || ( compartmentname.find( "przedzial" )   != std::string::npos ) ) {
                 // compartments are lit with 75% probability
-                sectionlight.level = ( Random() < 0.75 ? 0.75f : 0.05f );
+                sectionlight.level = ( Random() < 0.75 ? 0.75f : 0.15f );
             }
         }
         SectionLightsActive = true;
@@ -1611,9 +1611,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
 }
 //----------ABu: koniec skanowania pojazdow
 
-TDynamicObject::TDynamicObject() :
-    rsStukot( MaxAxles, sound_source( sound_placement::external ) )
-{
+TDynamicObject::TDynamicObject() {
     modelShake = vector3(0, 0, 0);
     fTrackBlock = 10000.0; // brak przeszkody na drodze
     btnOn = false;
@@ -1634,12 +1632,14 @@ TDynamicObject::TDynamicObject() :
     bEnabled = true;
     MyTrack = NULL;
     // McZapkie-260202
+/*
     dRailLength = 25.0;
     for (int i = 0; i < MaxAxles; i++)
         dRailPosition[i] = 0.0;
     for (int i = 0; i < MaxAxles; i++)
         dWheelsPosition[i] = 0.0; // będzie wczytane z MMD
     iAxles = 0;
+*/
     dWheelAngle[0] = 0.0;
     dWheelAngle[1] = 0.0;
     dWheelAngle[2] = 0.0;
@@ -1985,8 +1985,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     create_controller( DriverType, !TrainName.empty() );
 
     // McZapkie-250202
+/*
     iAxles = std::min( MoverParameters->NAxles, MaxAxles ); // ilość osi
-    rsStukot.resize( iAxles, sound_source( sound_placement::external ) );
+*/
     // wczytywanie z pliku nazwatypu.mmd, w tym model
     LoadMMediaFile(asBaseDir, Type_Name, asReplacableSkin);
     // McZapkie-100402: wyszukiwanie submodeli sprzegów
@@ -2093,12 +2094,12 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 smBuforPrawy[ i ]->WillBeAnimated();
         }
     }
-    for( int i = 0; i < iAxles; i++ ) {
+    for( auto &axle : m_axlesounds ) {
         // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
-        dRailPosition[ i ] = (
+        axle.distance = (
             Reversed ?
-                 -dWheelsPosition[ i ] :
-                ( dWheelsPosition[ i ] + MoverParameters->Dim.L ) ) + fDist;
+                 -axle.offset :
+                ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
     }
     // McZapkie-250202 end.
     Track->AddDynamicObject(this); // wstawiamy do toru na pozycję 0, a potem przesuniemy
@@ -3063,12 +3064,12 @@ bool TDynamicObject::Update(double dt, double dt1)
 
         if( MyTrack->fSoundDistance != dRailLength ) {
             dRailLength = MyTrack->fSoundDistance;
-            for( int i = 0; i < iAxles; ++i ) {
-                dRailPosition[ i ] = dWheelsPosition[ i ] + MoverParameters->Dim.L;
+            for( auto &axle : m_axlesounds ) {
+                axle.distance = axle.offset + MoverParameters->Dim.L;
             }
         }
         if( dRailLength != -1 ) {
-            if( std::abs( MoverParameters->V ) > 0 ) {
+            if( MoverParameters->Vel > 0 ) {
 
                 double volume = ( 20.0 + MyTrack->iDamageFlag ) / 21;
                 switch( MyTrack->eEnvironment ) {
@@ -3085,9 +3086,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                     }
                 }
 
-                for( int i = 0; i < iAxles; ++i ) {
-                    dRailPosition[ i ] -= dDOMoveLen * Sign( dDOMoveLen );
-                    if( dRailPosition[ i ] < 0 ) {
+                for( auto &axle : m_axlesounds ) {
+                    axle.distance -= dDOMoveLen * Sign( dDOMoveLen );
+                    if( axle.distance < 0 ) {
+                        axle.distance += dRailLength;
 /*
                         // McZapkie-040302
                         if( i == iAxles - 1 ) {
@@ -3101,8 +3103,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                             MoverParameters->AccV -= 0.5 * GetVelocity() / ( 1 + MoverParameters->Vmax );
                         }
 */
-                        rsStukot[ i ].gain( volume ).play();
-                        dRailPosition[ i ] += dRailLength;
+                        if( MoverParameters->Vel > 2.5 ) {
+                            axle.clatter.gain( volume ).play();
+                        }
                     }
                 }
             }
@@ -3602,10 +3605,10 @@ void TDynamicObject::RenderSounds() {
 
     // McZapkie-010302: ulepszony dzwiek silnika
     double frequency { 1.0 };
-    double volume { 1.0 };
+    double volume { 0.0 };
     double const dt { Timer::GetDeltaRenderTime() };
 
-    if( dt == 0.0 ) { return; }
+    if( Global::iPause != 0 ) { return; }
 
     // engine sounds
     if( MoverParameters->Power > 0 ) {
@@ -3652,6 +3655,7 @@ void TDynamicObject::RenderSounds() {
                             + rsSilnik.m_amplitudeoffset;
                         break;
                     }
+                    // NOTE: default case also covers electric motors
                     default: {
                         volume =
                             rsSilnik.m_amplitudefactor * ( MoverParameters->EnginePower / 1000 + std::fabs( MoverParameters->enrot ) * 60.0 )
@@ -3950,13 +3954,14 @@ void TDynamicObject::RenderSounds() {
     if( m_lastbrakepressure != -1.f ) {
         // calculate rate of pressure drop in brake cylinder, once it's been initialized
         auto const brakepressuredifference { m_lastbrakepressure - MoverParameters->BrakePress };
-        m_brakepressurechange = interpolate<float>( m_brakepressurechange, 10 * ( brakepressuredifference / dt ), 0.1f );
+        m_brakepressurechange = interpolate<float>( m_brakepressurechange, brakepressuredifference / dt, 0.005f );
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
-    if( m_brakepressurechange > 0.05f ) {
-        // NOTE: can't use the leak rate directly due to irregular results produced by some brake type implementations
+    // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the leak rate
+    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * ( std::max( MoverParameters->BrakePress, 0.0 ) / MoverParameters->MaxBrakePress[ 3 ] ) );
+    if( volume > 0.075f ) {
         rsUnbrake
-            .gain( static_cast<float>( 1.25 * std::max( MoverParameters->BrakePress, 0.0 ) / MoverParameters->MaxBrakePress[ 3 ] ) )
+            .gain( volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -4009,7 +4014,7 @@ void TDynamicObject::RenderSounds() {
      && ( GetVelocity() > 0.05 ) ) {
 
         rsBrake
-            .pitch( clamp( rsBrake.m_frequencyfactor * GetVelocity() + rsBrake.m_frequencyoffset, 0.5, 1.15 ) )  // arbitrary limits
+            .pitch( rsBrake.m_frequencyfactor * GetVelocity() + rsBrake.m_frequencyoffset )
             .gain( rsBrake.m_amplitudefactor * std::sqrt( ( GetVelocity() * MoverParameters->UnitBrakeForce ) ) + rsBrake.m_amplitudeoffset )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
@@ -4115,8 +4120,8 @@ void TDynamicObject::RenderSounds() {
     // szum w czasie jazdy
     if( GetVelocity() > 0.5 ) {
 
-        volume = rsRunningNoise.m_amplitudefactor * MoverParameters->Vel + rsRunningNoise.m_amplitudeoffset;
-        frequency = rsRunningNoise.m_frequencyfactor * MoverParameters->Vel + rsRunningNoise.m_frequencyoffset;
+        volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
+        frequency = rsOuterNoise.m_frequencyfactor * MoverParameters->Vel + rsOuterNoise.m_frequencyoffset;
 
         if( false == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) {
             // McZpakie-221103: halas zalezny od kola
@@ -4174,13 +4179,13 @@ void TDynamicObject::RenderSounds() {
                 clamp(
                     MoverParameters->Vel / 60.0,
                     0.0, 1.0 ) );
-        rsRunningNoise
+        rsOuterNoise
             .pitch( clamp( frequency, 0.5, 1.15 ) ) // arbitrary limits to prevent the pitch going out of whack
             .gain( volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
-        rsRunningNoise.stop();
+        rsOuterNoise.stop();
     }
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek
@@ -4200,7 +4205,7 @@ void TDynamicObject::RenderSounds() {
     }
     if( volume > 0.05 ) {
         rscurve
-            .gain( 2.0 * volume )
+            .gain( 2.5 * volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -4274,17 +4279,17 @@ void TDynamicObject::RenderSounds() {
         // TODO: dedicated sound, played alongside regular noise
         if( true == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) {
 #ifdef EU07_USE_OLD_SOUNDCODE
-            if( rsRunningNoise.AM != 0 ) {
-                rsRunningNoise.Stop();
-                float am = rsRunningNoise.AM;
-                float fa = rsRunningNoise.FA;
-                float fm = rsRunningNoise.FM;
-                rsRunningNoise.Init( "lomotpodkucia.wav", -1, 0, 0, 0, true ); // MC: zmiana szumu na lomot
-                if( rsRunningNoise.AM == 1 )
-                    rsRunningNoise.AM = am;
-                rsRunningNoise.AA = 0.7;
-                rsRunningNoise.FA = fa;
-                rsRunningNoise.FM = fm;
+            if( rsOuterNoise.AM != 0 ) {
+                rsOuterNoise.Stop();
+                float am = rsOuterNoise.AM;
+                float fa = rsOuterNoise.FA;
+                float fm = rsOuterNoise.FM;
+                rsOuterNoise.Init( "lomotpodkucia.wav", -1, 0, 0, 0, true ); // MC: zmiana szumu na lomot
+                if( rsOuterNoise.AM == 1 )
+                    rsOuterNoise.AM = am;
+                rsOuterNoise.AA = 0.7;
+                rsOuterNoise.FA = fa;
+                rsOuterNoise.FM = fm;
             }
 #else
 #endif
@@ -5004,21 +5009,23 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// polozenia osi w/m srodka pojazdu
 					parser.getTokens( 1, false );
 					parser >> dSDist;
-					for( int i = 0; i < iAxles; ++i ) {
-						parser.getTokens( 1, false );
-						parser >> dWheelsPosition[ i ];
-						parser.getTokens();
-						parser >> token;
-						if( token != "end" ) {
-                            rsStukot[ i ].deserialize( token + " " + std::to_string( dSDist ), sound_type::single, sound_parameters::range );
-                            rsStukot[ i ].owner( this );
-                            rsStukot[ i ].offset( { 0, 0, -dWheelsPosition[ i ] } );
-                        }
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                          && ( token != "end" ) ) {
+                        // add another axle entry to the list
+                        axle_sounds axle {
+                            0,
+                            std::atof( token.c_str() ),
+                            { sound_placement::external, static_cast<float>( dSDist ) } };
+                        axle.clatter.deserialize( parser, sound_type::single );
+                        axle.clatter.owner( this );
+                        axle.clatter.offset( { 0, 0, -axle.offset } );
+                        m_axlesounds.emplace_back( axle );
                     }
-					if( token != "end" ) {
-						// TODO: check if this if() and/or retrieval makes sense here
-						parser.getTokens( 1, false ); parser >> token;
-                }
+                    // arrange the axles in case they're listed out of order
+                    std::sort(
+                        std::begin( m_axlesounds ), std::end( m_axlesounds ),
+                        []( axle_sounds const &Left, axle_sounds const &Right ) {
+                            return ( Left.offset < Right.offset ); } );
                 }
 
 				else if( ( token == "engine:" )
@@ -5193,6 +5200,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     sReleaser.owner( this );
                 }
 
+                else if( token == "outernoise:" ) {
+                    // szum podczas jazdy:
+                    rsOuterNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                    rsOuterNoise.owner( this );
+
+                    rsOuterNoise.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
+                    rsOuterNoise.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
+                }
+
 			} while( ( token != "" )
 				  && ( token != "endsounds" ) );
 
@@ -5300,14 +5316,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     for( auto &couplersounds : m_couplersounds ) {
                         couplersounds.dsbBufferClamp = bufferclash;
                     }
-                }
-                else if( token == "runningnoise:" ) {
-                    // szum podczas jazdy:
-                    rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
-                    rsRunningNoise.owner( this );
-
-                    rsRunningNoise.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
-                    rsRunningNoise.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
                 }
 
             } while( token != "" );
