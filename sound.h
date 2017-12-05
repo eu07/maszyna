@@ -115,6 +115,9 @@ private:
     };
 
 // methods
+    // extracts name of the sound file from provided data stream
+    std::string
+        deserialize_filename( cParser &Input );
     void
         update_counter( audio::buffer_handle const Buffer, int const Value );
     void

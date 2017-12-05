@@ -5163,7 +5163,7 @@ TTrain::update_sounds( double const Deltatime ) {
     if( ( mvOccupied->BrakeHandle == FV4a )
      || ( mvOccupied->BrakeHandle == FVel6 ) ) {
         // upuszczanie z PG
-        fPPress = interpolate<float>( fPPress, mvOccupied->Handle->GetSound( s_fv4a_b ), 0.05 );
+        fPPress = interpolate( fPPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_b ) ), 0.05f );
         volume = (
             fPPress > 0 ?
                 rsHiss.m_amplitudefactor * fPPress * 0.25 :
@@ -5177,7 +5177,7 @@ TTrain::update_sounds( double const Deltatime ) {
             rsHiss.stop();
         }
         // napelnianie PG
-        fNPress = interpolate<float>( fNPress, mvOccupied->Handle->GetSound( s_fv4a_u ), 0.25 );
+        fNPress = interpolate( fNPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_u ) ), 0.25f );
         volume = (
             fNPress > 0 ?
                 rsHissU.m_amplitudefactor * fNPress :
@@ -5269,7 +5269,8 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // szum w czasie jazdy
-    if( DynamicObject->GetVelocity() > 0.5 ) {
+    if( ( false == FreeFlyModeFlag )
+     && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
         volume = rsRunningNoise.m_amplitudefactor * mvOccupied->Vel + rsRunningNoise.m_amplitudeoffset;
         auto frequency { rsRunningNoise.m_frequencyfactor * mvOccupied->Vel + rsRunningNoise.m_frequencyoffset };

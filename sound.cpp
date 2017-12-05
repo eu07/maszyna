@@ -41,14 +41,14 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     switch( Legacytype ) {
         case sound_type::single: {
             // single sample only
-            m_soundmain.buffer = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;" ) );
+            m_soundmain.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
             break;
         }
         case sound_type::multipart: {
             // three samples: start, middle, stop
-            m_soundbegin.buffer = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;" ) );
-            m_soundmain.buffer = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;" ) );
-            m_soundend.buffer = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;" ) );
+            m_soundbegin.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+            m_soundmain.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+            m_soundend.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
             break;
         }
         default: {
@@ -74,6 +74,32 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     }
 
     return *this;
+}
+
+// extracts name of the sound file from provided data stream
+std::string
+sound_source::deserialize_filename( cParser &Input ) {
+
+    auto token { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+    if( token != "[" ) {
+        // simple case, single file
+        return token;
+    }
+    // if instead of filename we've encountered '[' this marks beginning of random sound set
+    // we retrieve all filenames from the set, then return a random one
+    std::vector<std::string> filenames;
+    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
+          && ( token != "]" ) ) {
+        filenames.emplace_back( token );
+    }
+    if( false == filenames.empty() ) {
+        std::shuffle( std::begin( filenames ), std::end( filenames ), Global::random_engine );
+        return filenames.front();
+    }
+    else {
+        // shouldn't ever get here but, eh
+        return "";
+    }
 }
 
 // issues contextual play commands for the audio renderer

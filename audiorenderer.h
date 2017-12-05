@@ -56,7 +56,7 @@ struct openal_source {
             for( auto const buffer : buffers ) {
                 bufferids.emplace_back( audio::renderer.buffer( buffer ).id ); }
             if( id != audio::null_resource ) {
-                ::alSourceQueueBuffers( id, bufferids.size(), bufferids.data() );
+                ::alSourceQueueBuffers( id, static_cast<ALsizei>( bufferids.size() ), bufferids.data() );
                 ::alSourceRewind( id ); }
             return *this; }
     // starts playback of queued buffers
@@ -91,6 +91,7 @@ private:
     float pitch_variation { 1.f }; // emitter-specific variation of the base pitch
     float sound_range { 50.f }; // cached audible range of the emitted samples
     glm::vec3 sound_distance; // cached distance between sound and the listener
+    bool is_in_range { false }; // helper, indicates the source was recently within audible range
     bool is_multipart { false }; // multi-part sounds are kept alive at longer ranges
 };
 

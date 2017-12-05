@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 #include "simulation.h"
+#include "train.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "logs.h"
@@ -3745,73 +3746,72 @@ void TDynamicObject::RenderSounds() {
         }
 /*
 // NOTE: experimentally disabled to see if it's still used anywhere
-    if (MoverParameters->TrainType == dt_PseudoDiesel)
-    {
-        // ABu: udawanie woodwarda dla lok. spalinowych
-        // jesli silnik jest podpiety pod dzwiek przetwornicy
+        if (MoverParameters->TrainType == dt_PseudoDiesel)
+        {
+            // ABu: udawanie woodwarda dla lok. spalinowych
+            // jesli silnik jest podpiety pod dzwiek przetwornicy
 
-        // glosnosc zalezy od stosunku mocy silnika el. do mocy max
-        double eng_vol;
-        if (MoverParameters->Power > 1)
-            // 0.85+0.000015*(...)
-            eng_vol = 0.8 + 0.00002 * (MoverParameters->EnginePower / MoverParameters->Power);
-        else
-            eng_vol = 1;
+            // glosnosc zalezy od stosunku mocy silnika el. do mocy max
+            double eng_vol;
+            if (MoverParameters->Power > 1)
+                // 0.85+0.000015*(...)
+                eng_vol = 0.8 + 0.00002 * (MoverParameters->EnginePower / MoverParameters->Power);
+            else
+                eng_vol = 1;
 
-        eng_dfrq = eng_dfrq + (eng_vol_act - eng_vol);
-        if (eng_dfrq > 0)
-        {
-            eng_dfrq = eng_dfrq - 0.025 * dt;
-            if (eng_dfrq < 0.025 * dt)
-                eng_dfrq = 0;
-        }
-        else if (eng_dfrq < 0)
-        {
-            eng_dfrq = eng_dfrq + 0.025 * dt;
-            if (eng_dfrq > -0.025 * dt)
-                eng_dfrq = 0;
-        }
-        double defrot;
-        if (MoverParameters->MainCtrlPos != 0)
-        {
-            double CtrlPos = MoverParameters->MainCtrlPos;
-            double CtrlPosNo = MoverParameters->MainCtrlPosNo;
-            // defrot=1+0.4*(CtrlPos/CtrlPosNo);
-            defrot = 1 + 0.5 * (CtrlPos / CtrlPosNo);
-        }
-        else
-            defrot = 1;
+            eng_dfrq = eng_dfrq + (eng_vol_act - eng_vol);
+            if (eng_dfrq > 0)
+            {
+                eng_dfrq = eng_dfrq - 0.025 * dt;
+                if (eng_dfrq < 0.025 * dt)
+                    eng_dfrq = 0;
+            }
+            else if (eng_dfrq < 0)
+            {
+                eng_dfrq = eng_dfrq + 0.025 * dt;
+                if (eng_dfrq > -0.025 * dt)
+                    eng_dfrq = 0;
+            }
+            double defrot;
+            if (MoverParameters->MainCtrlPos != 0)
+            {
+                double CtrlPos = MoverParameters->MainCtrlPos;
+                double CtrlPosNo = MoverParameters->MainCtrlPosNo;
+                // defrot=1+0.4*(CtrlPos/CtrlPosNo);
+                defrot = 1 + 0.5 * (CtrlPos / CtrlPosNo);
+            }
+            else
+                defrot = 1;
 
-        if (eng_frq_act < defrot)
-        {
-            // if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
-            eng_frq_act = eng_frq_act + 0.4 * dt; // 0.05
-            if (eng_frq_act > defrot - 0.4 * dt)
-                eng_frq_act = defrot;
-        }
-        else if (eng_frq_act > defrot)
-        {
-            eng_frq_act = eng_frq_act - 0.1 * dt; // 0.05
-            if (eng_frq_act < defrot + 0.1 * dt)
-                eng_frq_act = defrot;
-        }
-        sConverter.UpdateAF(eng_vol_act, eng_frq_act + eng_dfrq, MechInside, GetPosition());
-        // udawanie turbo:  (6.66*(eng_vol-0.85))
-        if (eng_turbo > 6.66 * (eng_vol - 0.8) + 0.2 * dt)
-            eng_turbo = eng_turbo - 0.2 * dt; // 0.125
-        else if (eng_turbo < 6.66 * (eng_vol - 0.8) - 0.4 * dt)
-            eng_turbo = eng_turbo + 0.4 * dt; // 0.333
-        else
-            eng_turbo = 6.66 * (eng_vol - 0.8);
+            if (eng_frq_act < defrot)
+            {
+                // if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
+                eng_frq_act = eng_frq_act + 0.4 * dt; // 0.05
+                if (eng_frq_act > defrot - 0.4 * dt)
+                    eng_frq_act = defrot;
+            }
+            else if (eng_frq_act > defrot)
+            {
+                eng_frq_act = eng_frq_act - 0.1 * dt; // 0.05
+                if (eng_frq_act < defrot + 0.1 * dt)
+                    eng_frq_act = defrot;
+            }
+            sConverter.UpdateAF(eng_vol_act, eng_frq_act + eng_dfrq, MechInside, GetPosition());
+            // udawanie turbo:  (6.66*(eng_vol-0.85))
+            if (eng_turbo > 6.66 * (eng_vol - 0.8) + 0.2 * dt)
+                eng_turbo = eng_turbo - 0.2 * dt; // 0.125
+            else if (eng_turbo < 6.66 * (eng_vol - 0.8) - 0.4 * dt)
+                eng_turbo = eng_turbo + 0.4 * dt; // 0.333
+            else
+                eng_turbo = 6.66 * (eng_vol - 0.8);
 
-        sTurbo.TurnOn(MechInside, GetPosition());
-        // sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
-        sTurbo.UpdateAF(3 * eng_turbo - 1, 0.4 + eng_turbo * 0.4, MechInside, GetPosition());
-        eng_vol_act = eng_vol;
-        // eng_frq_act=eng_frq;
-    }
+            sTurbo.TurnOn(MechInside, GetPosition());
+            // sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
+            sTurbo.UpdateAF(3 * eng_turbo - 1, 0.4 + eng_turbo * 0.4, MechInside, GetPosition());
+            eng_vol_act = eng_vol;
+            // eng_frq_act=eng_frq;
+        }
 */
-
         if( ( MoverParameters->EngineType == ElectricSeriesMotor )
          || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
 
@@ -4009,8 +4009,8 @@ void TDynamicObject::RenderSounds() {
         sSand.stop();
     }
 
-    if( /*( false == mvOccupied->SlippingWheels )
-     &&*/ ( MoverParameters->UnitBrakeForce > 10.0 )
+    if( //( false == mvOccupied->SlippingWheels ) &&
+        ( MoverParameters->UnitBrakeForce > 10.0 )
      && ( GetVelocity() > 0.05 ) ) {
 
         rsBrake
@@ -4030,8 +4030,8 @@ void TDynamicObject::RenderSounds() {
     }
 
     // McZapkie-280302 - pisk mocno zacisnietych hamulcow
-    if( /*( false == MoverParameters->SlippingWheels )
-     &&*/ ( MoverParameters->UnitBrakeForce > rsPisk.m_amplitudefactor )
+    if( //( false == MoverParameters->SlippingWheels ) &&
+          ( MoverParameters->UnitBrakeForce > rsPisk.m_amplitudefactor )
        && ( MoverParameters->Vel > 2.5 ) ) {
 
         rsPisk
@@ -4118,7 +4118,13 @@ void TDynamicObject::RenderSounds() {
     }
 
     // szum w czasie jazdy
-    if( GetVelocity() > 0.5 ) {
+    if( ( GetVelocity() > 0.5 )
+     && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
+        true == FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
+        // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
+        ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
+        ctOwner != Global::pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
+        false ) ) {
 
         volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
         frequency = rsOuterNoise.m_frequencyfactor * MoverParameters->Vel + rsOuterNoise.m_frequencyoffset;
@@ -4306,6 +4312,7 @@ void TDynamicObject::RenderSounds() {
 
         MoverParameters->EventFlag = false;
     }
+
 }
 
 // McZapkie-250202
@@ -5018,7 +5025,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             { sound_placement::external, static_cast<float>( dSDist ) } };
                         axle.clatter.deserialize( parser, sound_type::single );
                         axle.clatter.owner( this );
-                        axle.clatter.offset( { 0, 0, -axle.offset } );
+                        axle.clatter.offset( { 0, 0, -axle.offset } ); // vehicle faces +Z in 'its' space, for axle locations negative value means ahead of centre
                         m_axlesounds.emplace_back( axle );
                     }
                     // arrange the axles in case they're listed out of order

@@ -100,7 +100,7 @@ openal_source::sync_with( sound_properties const &State ) {
         auto const cutoffrange = (
             is_multipart ?
                 EU07_SOUND_CUTOFFRANGE : // we keep multi-part sounds around longer, to minimize restarts as the sounds get out and back in range
-                sound_range * 7.5f );
+                sound_range * 5.0f );
         if( glm::length2( sound_distance ) > std::min( ( cutoffrange * cutoffrange ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
             stop();
             is_synced = false; // flag sync failure for the controller
@@ -123,6 +123,24 @@ openal_source::sync_with( sound_properties const &State ) {
         properties.soundproofing_stamp = State.soundproofing_stamp;
 
         ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global::AudioVolume );
+    }
+    if( sound_range > 0 ) {
+        auto const rangesquared { sound_range * sound_range };
+        auto const distancesquared { glm::length2( sound_distance ) };
+        if( ( distancesquared > rangesquared )
+         || ( false == is_in_range ) ) {
+            // if the emitter is outside of its nominal hearing range or was outside of it during last check
+            // adjust the volume to a suitable fraction of nominal value
+            auto const fadedistance { sound_range * 0.75 };
+            auto const rangefactor {
+                interpolate(
+                    1.f, 0.f,
+                    clamp<float>(
+                        ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
+                        0.f, 1.f ) ) };
+            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global::AudioVolume );
+        }
+        is_in_range = ( distancesquared <= rangesquared );
     }
     // pitch
     if( State.pitch != properties.pitch ) {
@@ -148,7 +166,7 @@ openal_source::range( float const Range ) {
             Range :
             5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
     ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) );
-    ::alSourcef( id, AL_ROLLOFF_FACTOR, 1.5f );
+    ::alSourcef( id, AL_ROLLOFF_FACTOR, 1.75f );
 }
 
 // sets modifier applied to the pitch of sounds emitted by the source
