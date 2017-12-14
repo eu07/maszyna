@@ -47,7 +47,7 @@ inline long ROUND(float f)
     return Trunc(f + 0.5f);
 }
 
-inline double sqr(double val) // SQR() zle liczylo w current() ...
+inline double square(double val) // SQR() zle liczylo w current() ...
 {
     return val * val;
 }
@@ -225,7 +225,7 @@ double TMoverParameters::Current(double n, double U)
                 //          writepaslog("fi             ", FloatToStr(MotorParam[SP].fi));
                 Isf = Sign(U1) * MotorParam[SP].Isat;
                 //          writepaslog("Isf            ", FloatToStr(Isf));
-                Delta = sqr(Isf * Rz + Mn * MotorParam[SP].fi * n - U1) +
+                Delta = square(Isf * Rz + Mn * MotorParam[SP].fi * n - U1) +
                         4.0 * U1 * Isf * Rz; // 105 * 1.67 + Mn * 140.9 * 20.532 - U1
                 //          DeltaQ = Isf * Rz + Mn * MotorParam[SP].fi * n - U1 + 4 * U1 * Isf * Rz;
                 //          writepaslog("Delta          ", FloatToStr(Delta));
@@ -1272,7 +1272,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
         // przyspieszenie normalne
         if (abs(Shape.R) > 0.01)
-            AccN = sqr(V) / Shape.R + g * Shape.dHrail / TrackW; // Q: zamieniam SQR() na sqr()
+            AccN = square(V) / Shape.R + g * Shape.dHrail / TrackW; // Q: zamieniam SQR() na sqr()
         else
             AccN = g * Shape.dHrail / TrackW;
 
@@ -3787,7 +3787,7 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 			}
 			if (nrot < 0.1)
 			{
-				WheelFlat = sqrt(sqr(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
+				WheelFlat = sqrt(square(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
 			}
 			if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
 			{
@@ -4388,7 +4388,7 @@ double TMoverParameters::TractionForce(double dt)
                     dizel_Mstand * (0.2 * enrot / dizel_nmax); // dodatkowe opory z powodu sprezarki}
             Mm = dizel_engage * dmoment;
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
-            Fw = Mw * 2.0 / WheelDiameter;
+            Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
             Ft = Fw * NPoweredAxles; // sila trakcyjna
             Ft = Ft * DirAbsolute; // ActiveDir*CabNo;
             break;
@@ -4477,8 +4477,8 @@ double TMoverParameters::TractionForce(double dt)
                     else // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
 
                     {
-                        Voltage = sqrt(abs(sqr(DElist[MainCtrlPos].Umax) -
-                                           sqr(DElist[MainCtrlPos].Umax * Im /
+                        Voltage = sqrt(abs(square(DElist[MainCtrlPos].Umax) -
+                                           square(DElist[MainCtrlPos].Umax * Im /
                                                DElist[MainCtrlPos].Imax))) *
                                       (MainCtrlPos - 1) +
                                   (1.0 - Im / DElist[MainCtrlPos].Imax) * DElist[MainCtrlPos].Umax *
@@ -4754,7 +4754,7 @@ double TMoverParameters::TractionForce(double dt)
                               0.001 * Voltage * (eimc[eimc_p_Imax] - eimc[eimc_f_I0]) * Pirazy2 *
                                   eimc[eimc_s_cim] / eimc[eimc_s_p] / eimc[eimc_s_cfu]);
                 eimv[eimv_FMAXMAX] =
-                    0.001 * sqr(Min0R(eimv[eimv_fkr] / Max0R(abs(enrot) * eimc[eimc_s_p] +
+                    0.001 * square(Min0R(eimv[eimv_fkr] / Max0R(abs(enrot) * eimc[eimc_s_p] +
                                                                  eimc[eimc_s_dfmax] * eimv[eimv_ks],
                                                              eimc[eimc_s_dfmax]),
                                       1) *
@@ -5683,21 +5683,19 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 { // liczy moment sily wytwarzany przez silnik spalinowy}
     double Moment = 0, enMoment = 0, eps = 0, newn = 0, friction = 0;
 
-    // friction =dizel_engagefriction*(11-2*random)/10;
     friction = dizel_engagefriction;
-    if (enrot > 0)
-    { // sqr TODO: sqr c++
-        Moment = dizel_Mmax * dizel_fill -
-                 (dizel_Mmax - dizel_Mnmax * dizel_fill) *
-                     sqr(enrot / (dizel_nmax - dizel_nMmax * dizel_fill)) -
-                 dizel_Mstand; // Q: zamieniam SQR() na sqr()
-        //    Moment:=Moment*(1+sin(eAngle*4))-dizel_Mstand*(1+cos(eAngle*4));}
+    if( enrot > 0 ) {
+//        Moment = dizel_Mmax * dizel_fill - ( dizel_Mmax - dizel_Mnmax * dizel_fill ) * sqr( enrot / ( dizel_nmax - dizel_nMmax * dizel_fill ) ) - dizel_Mstand; // Q: zamieniam SQR() na sqr()
+        Moment = ( dizel_Mmax - ( dizel_Mmax - dizel_Mnmax ) * square( ( enrot - dizel_nMmax ) / ( dizel_nMmax - dizel_nmax ) ) ) * dizel_fill - dizel_Mstand;
     }
-    else
+    else {
         Moment = -dizel_Mstand;
-    if (enrot < dizel_nmin / 10.0)
-        if (eAngle < PI / 2.0)
-            Moment -=  dizel_Mstand; // wstrzymywanie przy malych obrotach
+    }
+    if( ( enrot < dizel_nmin / 10.0 )
+     && ( eAngle < PI / 2.0 ) ) {
+        // wstrzymywanie przy malych obrotach
+        Moment -= dizel_Mstand;
+    }
     //!! abs
     if (abs(abs(n) - enrot) < 0.1)
     {
