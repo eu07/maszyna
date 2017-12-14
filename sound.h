@@ -63,7 +63,7 @@ public:
         play( int const Flags = 0 );
     // stops currently active play commands controlled by this emitter
     void
-        stop();
+        stop( bool const Skipend = false );
     // adjusts parameters of provided implementation-side sound source
     void
         update( audio::openal_source &Source );
@@ -110,30 +110,74 @@ public:
 private:
 // types
     struct sound_data {
-        audio::buffer_handle buffer { null_handle };
-        int playing { 0 }; // number of currently active sample instances
+        audio::buffer_handle buffer;
+        int playing; // number of currently active sample instances
+    };
+
+    struct chunk_data {
+        int threshold; // nominal point of activation for the given chunk
+        float fadein; // actual activation point for the given chunk
+        float fadeout; // actual end point of activation range for the given chunk
+        float pitch; // base pitch of the chunk
+    };
+
+    using soundchunk_pair = std::pair<sound_data, chunk_data>;
+
+    using sound_handle = std::uint32_t;
+    enum sound_id : std::uint32_t {
+        begin,
+        main,
+        end,
+        // 31 bits for index into relevant array, msb selects between the sample table and the basic array
+        chunk = ( 1u << 31 )
     };
 
 // methods
     // extracts name of the sound file from provided data stream
     std::string
         deserialize_filename( cParser &Input );
+    // imports member data pair from the provided data stream
+    bool
+        deserialize_mapping( cParser &Input );
+    // imports values for initial, main and ending sounds from provided data stream
     void
-        update_counter( audio::buffer_handle const Buffer, int const Value );
+        deserialize_soundset( cParser &Input );
+    // issues contextual play commands for the audio renderer
+    void
+        play_basic();
+    void
+        play_combined();
+    void
+        update_basic( audio::openal_source &Source );
+    void
+        update_combined( audio::openal_source &Source );
+    void
+        update_crossfade( sound_handle const Chunk );
+    void
+        update_counter( sound_handle const Sound, int const Value );
     void
         update_location();
     // potentially updates area-based gain factor of the source. returns: true if location has changed
     bool
         update_soundproofing();
     void
-        insert( audio::buffer_handle Buffer );
+        insert( sound_handle const Sound );
     template <class Iterator_>
     void
         insert( Iterator_ First, Iterator_ Last ) {
-
-        audio::renderer.insert( this, First, Last );
-        update_counter( *First, 1 );
-    }
+            uint32_sequence sounds;
+            std::vector<audio::buffer_handle> buffers;
+            std::for_each(
+                First, Last,
+                [&]( sound_handle const &soundhandle ) {
+                    sounds.emplace_back( soundhandle );
+                    buffers.emplace_back( sound( soundhandle ).buffer ); } );
+            audio::renderer.insert( std::begin( buffers ), std::end( buffers ), this, sounds );
+            update_counter( *First, 1 ); }
+    sound_data &
+        sound( sound_handle const Sound );
+    sound_data const &
+        sound( sound_handle const Sound ) const;
 
 // members
     TDynamicObject const * m_owner { nullptr }; // optional, the vehicle carrying this sound source
@@ -145,10 +189,11 @@ private:
     sound_properties m_properties; // current properties of the emitted sounds
     float m_pitchvariation { 0.f }; // emitter-specific shift in base pitch
     bool m_stop { false }; // indicates active sample instances should be terminated
-    sound_data m_soundmain; // main sound emitted by the source
-    sound_data m_soundbegin; // optional, sound emitted before the main sound
-    sound_data m_soundend; // optional, sound emitted after the main sound
-    // TODO: table of samples with associated values, activated when controlling variable matches the value
+    bool m_playbeginning { true }; // indicates started sounds should be preceeded by opening bookend if there's one
+    std::array<sound_data, 3> m_sounds { {} }; // basic sounds emitted by the source, main and optional bookends
+    std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range
+    bool m_soundchunksempty { true }; // helper, cached check whether sample table is linked with any actual samples
+    int m_crossfaderange {}; // range of transition from one chunk to another 
 };
 
 // owner setter/getter

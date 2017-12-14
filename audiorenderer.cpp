@@ -59,14 +59,14 @@ openal_source::update( double const Deltatime ) {
 
     if( id != audio::null_resource ) {
 
-        ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &buffer_index );
+        ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &sound_index );
         // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
         ALuint bufferid;
-        while( ( buffer_index > 0 )
-            && ( buffers.size() > 1 ) ) {
+        while( ( sound_index > 0 )
+            && ( sounds.size() > 1 ) ) {
             ::alSourceUnqueueBuffers( id, 1, &bufferid );
-            buffers.erase( std::begin( buffers ) );
-            --buffer_index;
+            sounds.erase( std::begin( sounds ) );
+            --sound_index;
         }
 
         int state;
@@ -84,7 +84,7 @@ openal_source::sync_with( sound_properties const &State ) {
 
     if( id == audio::null_resource ) {
         // no implementation-side source to match, return sync error so the controller can clean up on its end
-        is_synced = false;
+        sync = sync_state::bad_resource;
         return;
     }
 /*
@@ -100,10 +100,10 @@ openal_source::sync_with( sound_properties const &State ) {
         auto const cutoffrange = (
             is_multipart ?
                 EU07_SOUND_CUTOFFRANGE : // we keep multi-part sounds around longer, to minimize restarts as the sounds get out and back in range
-                sound_range * 5.0f );
+                sound_range * 7.5f );
         if( glm::length2( sound_distance ) > std::min( ( cutoffrange * cutoffrange ), ( EU07_SOUND_CUTOFFRANGE * EU07_SOUND_CUTOFFRANGE ) ) ) {
             stop();
-            is_synced = false; // flag sync failure for the controller
+            sync = sync_state::bad_distance; // flag sync failure for the controller
             return;
         }
     }
@@ -147,9 +147,9 @@ openal_source::sync_with( sound_properties const &State ) {
         // pitch value has changed
         properties.pitch = State.pitch;
 
-        ::alSourcef( id, AL_PITCH, properties.pitch * pitch_variation );
+        ::alSourcef( id, AL_PITCH, clamp( properties.pitch * pitch_variation, 0.1f, 10.f ) );
     }
-    is_synced = true;
+    sync = sync_state::good;
 }
 
 // sets max audible distance for sounds emitted by the source
@@ -205,7 +205,7 @@ openal_source::clear() {
         stop();
         // ...prepare space for returned ids of unqueued buffers (not that we need that info)...
         std::vector<ALuint> bufferids;
-        bufferids.resize( buffers.size() );
+        bufferids.resize( sounds.size() );
         // ...release the buffers...
         ::alSourceUnqueueBuffers( id, bufferids.size(), bufferids.data() );
     }
@@ -258,17 +258,6 @@ openal_renderer::init() {
     // all done
     m_ready = true;
     return true;
-}
-
-// schedules playback of specified sample, under control of the specified emitter
-void
-openal_renderer::insert( sound_source *Controller, audio::buffer_handle const Sound ) {
-
-    audio::openal_source::buffer_sequence buffers { Sound };
-    return
-        insert(
-            Controller,
-            std::begin( buffers ), std::end( buffers ) );
 }
 
 // removes from the queue all sounds controlled by the specified sound emitter

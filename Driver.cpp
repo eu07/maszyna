@@ -2368,19 +2368,25 @@ bool TController::ReleaseEngine()
             else
                 OK = true;
     }
-    else if (mvOccupied->ActiveDir == 0)
-        OK = mvControlling->Mains; // tylko to testujemy dla pojazdu człowieka
-    if (AIControllFlag)
-        if (!mvOccupied->DecBrakeLevel()) // tu moze zmieniać na -2, ale to bez znaczenia
-            if (!mvOccupied->IncLocalBrakeLevel(1))
-            {
-                while (DecSpeed(true))
+    else if( mvOccupied->ActiveDir == 0 ) {
+        // tylko to testujemy dla pojazdu człowieka
+        OK = mvControlling->Mains;
+    }
+
+    if( AIControllFlag ) {
+        mvOccupied->BrakeReleaser( 0 );
+        if( !mvOccupied->DecBrakeLevel() ) {
+            // tu moze zmieniać na -2, ale to bez znaczenia
+            if( !mvOccupied->IncLocalBrakeLevel( 1 ) ) {
+                while( DecSpeed( true ) )
                     ; // zerowanie nastawników
-                while (mvOccupied->ActiveDir > 0)
+                while( mvOccupied->ActiveDir > 0 )
                     mvOccupied->DirectionBackward();
-                while (mvOccupied->ActiveDir < 0)
+                while( mvOccupied->ActiveDir < 0 )
                     mvOccupied->DirectionForward();
             }
+        }
+    }
     OK = OK && (mvOccupied->Vel < 0.01);
     if (OK)
     { // jeśli się zatrzymał
@@ -3108,7 +3114,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                     iGuardRadio = 0; // nie przez radio
                 }
                 else {
-                    NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
+                    NewCommand = NewCommand.insert(NewCommand.rfind('.'),"radio"); // wstawienie przed kropkč
                     if (FileExists(NewCommand)) {
                         //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
 #ifdef EU07_USE_OLD_SOUNDCODE

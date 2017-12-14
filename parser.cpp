@@ -109,9 +109,21 @@ cParser::getToken<bool>( bool const ToLower, const char *Break ) {
 }
 
 // methods
+cParser &
+cParser::autoclear( bool const Autoclear ) {
+
+    m_autoclear = Autoclear;
+    if( mIncludeParser ) { mIncludeParser->autoclear( Autoclear ); }
+
+    return *this;
+}
+
 bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
 {
-    tokens.clear(); // emulates old parser behaviour. TODO, TBD: allow manual reset?
+    if( true == m_autoclear ) {
+        // legacy parser behaviour
+        tokens.clear();
+    }
     /*
      if (LoadTraction==true)
       trtest="niemaproblema"; //wczytywać
@@ -123,7 +135,7 @@ bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
     this->str("");
     this->clear();
 */
-    for (unsigned int i = 0; i < Count; ++i)
+    for (unsigned int i = tokens.size(); i < Count; ++i)
     {
         std::string token = readToken(ToLower, Break);
         if( true == token.empty() ) {
@@ -215,6 +227,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
                 parameter = readToken( false );
             }
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, includeparameters );
+            mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
             }

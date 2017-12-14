@@ -14,6 +14,8 @@ http://mozilla.org/MPL/2.0/.
 
 class sound_source;
 
+using uint32_sequence = std::vector<std::uint32_t>;
+
 // sound emitter state sync item
 struct sound_properties {
     glm::dvec3 location;
@@ -21,6 +23,12 @@ struct sound_properties {
     float soundproofing { 1.f };
     std::uintptr_t soundproofing_stamp { ~( std::uintptr_t{ 0 } ) };
     float pitch { 1.f };
+};
+
+enum class sync_state {
+    good,
+    bad_distance,
+    bad_resource
 };
 
 namespace audio {
@@ -37,27 +45,30 @@ struct openal_source {
 // members
     ALuint id { audio::null_resource }; // associated AL resource
     sound_source *controller { nullptr }; // source controller 
-    buffer_sequence buffers; // sequence of samples the source will emit
-    int buffer_index { 0 }; // currently queued sample from the buffer sequence
+    uint32_sequence sounds; // 
+//    buffer_sequence buffers; // sequence of samples the source will emit
+    int sound_index { 0 }; // currently queued sample from the buffer sequence
     bool is_playing { false };
     bool is_looping { false };
-    bool is_synced { true }; // set to false only if a sync attempt fails
     sound_properties properties;
+    sync_state sync { sync_state::good };
 
 // methods
     template <class Iterator_>
     openal_source &
-        bind( sound_source *Controller, Iterator_ First, Iterator_ Last ) {
+        bind( sound_source *Controller, uint32_sequence Sounds, Iterator_ First, Iterator_ Last ) {
             controller = Controller;
-            buffers.insert( std::end( buffers ), First, Last );
-            is_multipart = ( buffers.size() > 1 );
+            sounds = Sounds;
             // look up and queue assigned buffers
-            std::vector<ALuint> bufferids;
-            for( auto const buffer : buffers ) {
-                bufferids.emplace_back( audio::renderer.buffer( buffer ).id ); }
+            std::vector<ALuint> buffers;
+            std::for_each(
+                First, Last,
+                [&]( audio::buffer_handle const &buffer ) {
+                    buffers.emplace_back( audio::renderer.buffer( buffer ).id ); } );
             if( id != audio::null_resource ) {
-                ::alSourceQueueBuffers( id, static_cast<ALsizei>( bufferids.size() ), bufferids.data() );
+                ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
                 ::alSourceRewind( id ); }
+            is_multipart = ( buffers.size() > 1 );
             return *this; }
     // starts playback of queued buffers
     void
@@ -119,11 +130,8 @@ public:
     // schedules playback of provided range of samples, under control of the specified sound emitter
     template <class Iterator_>
     void
-        insert( sound_source *Controller, Iterator_ First, Iterator_ Last ) {
-            m_sources.emplace_back( fetch_source().bind( Controller, First, Last ) ); }
-    // schedules playback of specified sample, under control of the specified sound emitter
-    void
-        insert( sound_source *Controller, audio::buffer_handle const Sound );
+        insert( Iterator_ First, Iterator_ Last, sound_source *Controller, uint32_sequence Sounds ) {
+            m_sources.emplace_back( fetch_source().bind( Controller, Sounds, First, Last ) ); }
     // removes from the queue all sounds controlled by the specified sound emitter
     void
         erase( sound_source const *Controller );

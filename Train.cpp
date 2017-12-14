@@ -5139,14 +5139,15 @@ TTrain::update_sounds( double const Deltatime ) {
     // Winger-160404 - syczenie pomocniczego (luzowanie)
     if( m_lastlocalbrakepressure != -1.f ) {
         // calculate rate of pressure drop in local brake cylinder, once it's been initialized
-        auto const brakepressuredifference{ m_lastlocalbrakepressure - mvOccupied->LocBrakePress };
+        auto const brakepressuredifference { mvOccupied->LocBrakePress - m_lastlocalbrakepressure };
         m_localbrakepressurechange = interpolate<float>( m_localbrakepressurechange, 10 * ( brakepressuredifference / Deltatime ), 0.1f );
     }
     m_lastlocalbrakepressure = mvOccupied->LocBrakePress;
-    if( ( m_localbrakepressurechange > 0.05f )
+    // local brake, release
+    if( ( m_localbrakepressurechange < -0.05f )
      && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
         rsSBHiss
-            .gain( clamp( 0.05 * m_localbrakepressurechange, 0.0, 1.5 ) )
+            .gain( clamp( rsSBHiss.m_amplitudeoffset + rsSBHiss.m_amplitudefactor * -m_localbrakepressurechange * 0.05, 0.0, 1.5 ) )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -5155,6 +5156,20 @@ TTrain::update_sounds( double const Deltatime ) {
         rsSBHiss.gain( volume );
         if( volume < 0.05 ) {
             rsSBHiss.stop();
+        }
+    }
+    // local brake, engage
+    if( m_localbrakepressurechange > 0.05f ) {
+        rsSBHissU
+            .gain( clamp( rsSBHissU.m_amplitudeoffset + rsSBHissU.m_amplitudefactor * m_localbrakepressurechange * 0.05, 0.0, 1.5 ) )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        // don't stop the sound too abruptly
+        volume = std::max( 0.0, rsSBHissU.gain() - 0.1 * Deltatime );
+        rsSBHissU.gain( volume );
+        if( volume < 0.05 ) {
+            rsSBHissU.stop();
         }
     }
 
@@ -5290,12 +5305,13 @@ TTrain::update_sounds( double const Deltatime ) {
                     mvOccupied->Vel / 40.0,
                     0.0, 1.0 ) );
         rsRunningNoise
-            .pitch( clamp( frequency, 0.5, 1.15 ) ) // arbitrary limits to prevent the pitch going out of whack
+            .pitch( frequency )
             .gain( volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
-        rsRunningNoise.stop();
+        // don't play the optional ending sound if the listener switches views
+        rsRunningNoise.stop( true == FreeFlyModeFlag );
     }
 
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -5448,6 +5464,10 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // syk:
                 rsHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHissU.owner( DynamicObject );
+                if( true == rsSBHissU.empty() ) {
+                    // fallback for vehicles without defined local brake hiss sound
+                    rsSBHissU = rsHissU;
+                }
             }
             else if (token == "airsound3:")
             {
@@ -5472,6 +5492,11 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // syk:
                 rsSBHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsSBHiss.owner( DynamicObject );
+            }
+            else if( token == "localbrakesound2:" ) {
+                // syk:
+                rsSBHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
+                rsSBHissU.owner( DynamicObject );
             }
             else if (token == "fadesound:")
             {
@@ -5537,7 +5562,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     std::vector<sound_source *> sounds = {
         &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
         &dsbSwitch, &dsbPneumaticSwitch,
-        &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss,
+        &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         &rsFadeSound, &rsRunningNoise,
         &dsbHasler, &dsbBuzzer, &dsbSlipAlarm
     };
@@ -5723,9 +5748,19 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         if( dsbBuzzer.offset() == nullvector ) {
             dsbBuzzer.offset( btLampkaCzuwaka.model_offset() );
         }
+        auto const localbrakeoffset { ggLocalBrake.model_offset() };
+        std::vector<sound_source *> localbrakesounds = {
+            &rsSBHiss, &rsSBHissU
+        };
+        for( auto sound : localbrakesounds ) {
+            if( sound->offset() == nullvector ) {
+                sound->offset( localbrakeoffset );
+            }
+        }
+        // NOTE: if the local brake model can't be located the emitter will also be assigned location of main brake
         auto const brakeoffset { ggBrakeCtrl.model_offset() };
         std::vector<sound_source *> brakesounds = {
-            &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss,
+            &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         };
         for( auto sound : brakesounds ) {
             if( sound->offset() == nullvector ) {

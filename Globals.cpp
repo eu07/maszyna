@@ -134,7 +134,7 @@ bool Global::bWireFrame = false;
 
 // sound renderer
 bool Global::bSoundEnabled = true;
-float Global::AudioVolume = 2.0f;
+float Global::AudioVolume = 1.5f;
 std::string Global::AudioRenderer;
 
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów

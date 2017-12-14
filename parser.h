@@ -61,6 +61,11 @@ class cParser //: public std::stringstream
     bool
         ok() {
             return !mStream->fail(); };
+    cParser &
+        autoclear( bool const Autoclear );
+    bool
+        autoclear() const {
+            return m_autoclear; }
     bool
         getTokens( unsigned int Count = 1, bool ToLower = true, char const *Break = "\n\r\t ;" );
     // returns next incoming token, if any, without removing it from the set
@@ -91,6 +96,7 @@ class cParser //: public std::stringstream
     bool trimComments( std::string &String );
     std::size_t count();
     // members:
+    bool m_autoclear { true }; // not retrieved tokens are discarded when another read command is issued (legacy behaviour)
     bool LoadTraction; // load traction?
     std::shared_ptr<std::istream> mStream; // relevant kind of buffer is attached on creation.
     std::string mFile; // name of the open file, if any

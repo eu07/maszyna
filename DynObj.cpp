@@ -4116,7 +4116,6 @@ void TDynamicObject::RenderSounds() {
     else {
         sHorn2.stop();
     }
-
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
@@ -4183,15 +4182,17 @@ void TDynamicObject::RenderSounds() {
             interpolate(
                 0.0, 1.0,
                 clamp(
-                    MoverParameters->Vel / 60.0,
+                    MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) );
+
         rsOuterNoise
-            .pitch( clamp( frequency, 0.5, 1.15 ) ) // arbitrary limits to prevent the pitch going out of whack
+            .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
             .gain( volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
-        rsOuterNoise.stop();
+        // don't play the optional ending sound if the listener switches views
+        rsOuterNoise.stop( false == FreeFlyModeFlag );
     }
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek
@@ -4312,7 +4313,6 @@ void TDynamicObject::RenderSounds() {
 
         MoverParameters->EventFlag = false;
     }
-
 }
 
 // McZapkie-250202
@@ -5062,14 +5062,13 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 				else if( ( token == "transmission:" )
 					  && ( MoverParameters->EngineType == ElectricSeriesMotor ) ) {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
-                    rsPrzekladnia.deserialize( parser, sound_type::single, sound_parameters::range );
-
-                    // NOTE, TODO: fixed parameters, put them into simulation-side calculations
+                    // NOTE, fixed default parameters, legacy system leftover
                     rsPrzekladnia.m_amplitudefactor = 0.029;
                     rsPrzekladnia.m_amplitudeoffset = 0.1;
                     rsPrzekladnia.m_frequencyfactor = 0.005;
                     rsPrzekladnia.m_frequencyoffset = 1.0;
 
+                    rsPrzekladnia.deserialize( parser, sound_type::single, sound_parameters::range );
                     rsPrzekladnia.owner( this );
                 }
 

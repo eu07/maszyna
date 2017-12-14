@@ -85,7 +85,7 @@ TButton::Load_mapping( cParser &Input ) {
 
     // token can be a key or block end
     std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
-    if( key == "}" ) { return false; }
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
     // if not block end then the key is followed by assigned value or sub-block
          if( key == "soundinc:" ) { m_soundfxincrease.deserialize( Input, sound_type::single ); }
     else if( key == "sounddec:" ) { m_soundfxdecrease.deserialize( Input, sound_type::single ); }
