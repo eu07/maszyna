@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "world.h"
 #include "train.h"
-#include "data.h"
 #include "dynobj.h"
 #include "animmodel.h"
 #include "traction.h"

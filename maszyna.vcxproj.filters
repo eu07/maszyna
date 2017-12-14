@@ -392,9 +392,6 @@
     <ClInclude Include="lightarray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="sn_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
