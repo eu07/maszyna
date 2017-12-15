@@ -235,6 +235,7 @@ public:
 	static GLFWwindow *window;
 	static bool shiftState; //m7todo: brzydko
 	static bool ctrlState;
+    static bool CabWindowOpen; // controls sound attenuation between cab and outside
     static int iCameraLast;
     static std::string asVersion; // z opisem
     static bool ControlPicking; // indicates controls pick mode is active

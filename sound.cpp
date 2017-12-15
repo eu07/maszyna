@@ -331,7 +331,7 @@ void
 sound_source::play_combined() {
     // combined sound consists of table od samples, each sample associated with certain range of values of controlling variable
     // current value of the controlling variable is passed to the source with pitch() call
-    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 100.f ) };
+    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
     for( std::uint32_t idx = 0; idx < m_soundchunks.size(); ++idx ) {
 
         auto const &soundchunk { m_soundchunks[ idx ] };
@@ -520,7 +520,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
 
         if( ( soundhandle & sound_id::chunk ) != 0 ) {
             // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
-            auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 100.f ) };
+            auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
             auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
             if( ( soundpoint < soundchunk.second.fadein )
              || ( soundpoint > soundchunk.second.fadeout ) ) {
@@ -598,7 +598,7 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         return;
     }
 
-    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 100.f ) };
+    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
 
     // NOTE: direct access to implementation details ahead, kinda fugly
     auto const chunkindex { Chunk ^ sound_id::chunk };
@@ -607,16 +607,19 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
     // relative pitch adjustment
     // pitch of each chunk is modified based on ratio of the chunk's pitch to that of its neighbour
     if( soundpoint < chunkdata.threshold ) {
-        // interpolate between the pitch of previous chunk and this chunk's base pitch,
-        // based on how far the current soundpoint is in the range of previous chunk
-        auto const &previouschunkdata{ m_soundchunks[ chunkindex - 1 ].second };
-        m_properties.pitch =
-            interpolate(
-                previouschunkdata.pitch / chunkdata.pitch,
-                1.f,
-                clamp(
-                    ( soundpoint - previouschunkdata.threshold ) / ( chunkdata.threshold - previouschunkdata.threshold ),
-                    0.f, 1.f ) );
+
+        if( chunkindex > 0 ) {
+            // interpolate between the pitch of previous chunk and this chunk's base pitch,
+            // based on how far the current soundpoint is in the range of previous chunk
+            auto const &previouschunkdata{ m_soundchunks[ chunkindex - 1 ].second };
+            m_properties.pitch =
+                interpolate(
+                    previouschunkdata.pitch / chunkdata.pitch,
+                    1.f,
+                    clamp(
+                        ( soundpoint - previouschunkdata.threshold ) / ( chunkdata.threshold - previouschunkdata.threshold ),
+                        0.f, 1.f ) );
+        }
     }
     else {
 
@@ -721,6 +724,13 @@ sound_source::is_playing( bool const Includesoundends ) const {
     return isplaying;
 }
 
+// returns true if the source uses sample table
+bool
+sound_source::is_combined() const {
+
+    return ( ( !m_soundchunks.empty() ) && ( sound( sound_id::main ).buffer == null_handle ) );
+}
+
 // returns location of the sound source in simulation region space
 glm::dvec3 const
 sound_source::location() const {
@@ -756,15 +766,14 @@ float const EU07_SOUNDPROOFING_NONE { 1.f };
 
 bool
 sound_source::update_soundproofing() {
-
-    // NOTE, HACK: current cab id can vary from -1 to +1
-    // we use this as modifier to force re-calculations when moving between compartments
+    // NOTE, HACK: current cab id can vary from -1 to +1, and we use another higher priority value for open cab window
+    // we use this as modifier to force re-calculations when moving between compartments or changing window state
     int const activecab = (
-        FreeFlyModeFlag ?
-            0 :
-            ( Global::pWorld->train() ?
-                Global::pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
-                0 ) );
+        Global::CabWindowOpen ? 2 :
+        FreeFlyModeFlag ? 0 :
+        ( Global::pWorld->train() ?
+            Global::pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
+            0 ) );
     // location-based gain factor:
     std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
         FreeFlyModeFlag ?
@@ -784,15 +793,15 @@ sound_source::update_soundproofing() {
         }
         case sound_placement::external: {
             m_properties.soundproofing = (
-                soundproofingstamp == 0 ?
-                    EU07_SOUNDPROOFING_NONE : // listener outside
-                    EU07_SOUNDPROOFING_STRONG ); // listener in a vehicle
+                ( ( soundproofingstamp == 0 ) || ( true == Global::CabWindowOpen ) ) ?
+                    EU07_SOUNDPROOFING_NONE : // listener outside or has a window open
+                    EU07_SOUNDPROOFING_STRONG ); // listener in a vehicle with windows shut
             break;
         }
         case sound_placement::internal: {
             m_properties.soundproofing = (
                 soundproofingstamp == 0 ?
-                    EU07_SOUNDPROOFING_STRONG : // listener outside
+                    EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
                     ( Global::pWorld->train()->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
@@ -802,13 +811,13 @@ sound_source::update_soundproofing() {
         }
         case sound_placement::engine: {
             m_properties.soundproofing = (
-                soundproofingstamp == 0 ?
-                EU07_SOUNDPROOFING_SOME : // listener outside
-                ( Global::pWorld->train()->Dynamic() != m_owner ?
-                    EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                    ( activecab == 0 ?
-                        EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
-                        EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
+                ( ( soundproofingstamp == 0 ) || ( true == Global::CabWindowOpen ) ) ?
+                    EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
+                    ( Global::pWorld->train()->Dynamic() != m_owner ?
+                        EU07_SOUNDPROOFING_STRONG : // in another vehicle
+                        ( activecab == 0 ?
+                            EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
+                            EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
             break;
         }
         default: {

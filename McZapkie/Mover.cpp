@@ -3737,8 +3737,8 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
                 Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
         } // bo nie dzialalo
         else if( ( EngineType == ElectricInductionMotor )
-            || ( ( ( Couplers[ side::front ].CouplingFlag & ctrain_power ) == ctrain_power )
-              || ( ( Couplers[ side::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
+              || ( ( ( Couplers[ side::front ].CouplingFlag & ctrain_power ) == ctrain_power )
+                || ( ( Couplers[ side::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
             // potem ulepszyc! pantogtrafy!
             Voltage =
             std::max(
@@ -4746,21 +4746,27 @@ double TMoverParameters::TractionForce(double dt)
 
                 eimv[eimv_Uzsmax] = Min0R(Voltage - eimc[eimc_f_DU], tmp);
                 eimv[eimv_fkr] = eimv[eimv_Uzsmax] / eimc[eimc_f_cfu];
-                if ((dizel_fill < 0))
-                    eimv[eimv_Pmax] = eimc[eimc_p_Ph];
-                else
-                    eimv[eimv_Pmax] =
-                        Min0R(eimc[eimc_p_Pmax],
-                              0.001 * Voltage * (eimc[eimc_p_Imax] - eimc[eimc_f_I0]) * Pirazy2 *
-                                  eimc[eimc_s_cim] / eimc[eimc_s_p] / eimc[eimc_s_cfu]);
-                eimv[eimv_FMAXMAX] =
-                    0.001 * square(Min0R(eimv[eimv_fkr] / Max0R(abs(enrot) * eimc[eimc_s_p] +
-                                                                 eimc[eimc_s_dfmax] * eimv[eimv_ks],
-                                                             eimc[eimc_s_dfmax]),
-                                      1) *
-                                eimc[eimc_f_cfu] / eimc[eimc_s_cfu]) *
-                    (eimc[eimc_s_dfmax] * eimc[eimc_s_dfic] * eimc[eimc_s_cim]) *
-                    Transmision.Ratio * NPoweredAxles * 2.0 / WheelDiameter;
+                if( ( dizel_fill < 0 ) ) {
+                    eimv[ eimv_Pmax ] = eimc[ eimc_p_Ph ];
+                }
+                else {
+                    eimv[ eimv_Pmax ] =
+                        std::min(
+                            eimc[ eimc_p_Pmax ],
+                            0.001 * Voltage * ( eimc[ eimc_p_Imax ] - eimc[ eimc_f_I0 ] ) * Pirazy2 * eimc[ eimc_s_cim ] / eimc[ eimc_s_p ] / eimc[ eimc_s_cfu ] );
+                }
+                eimv[ eimv_FMAXMAX ] =
+                    0.001
+                    * square(
+                        std::min(
+                            1.0, 
+                            eimv[ eimv_fkr ] / std::max(
+                                abs( enrot ) * eimc[ eimc_s_p ] + eimc[ eimc_s_dfmax ] * eimv[ eimv_ks ],
+                                eimc[ eimc_s_dfmax ] ) )
+                        * eimc[ eimc_f_cfu ]
+                        / eimc[ eimc_s_cfu ] )
+                    * ( eimc[ eimc_s_dfmax ] * eimc[ eimc_s_dfic ] * eimc[ eimc_s_cim ] )
+                    * Transmision.Ratio * NPoweredAxles * 2.0 / WheelDiameter;
                 if ((dizel_fill < 0))
                 {
                     eimv[eimv_Fful] = std::min(eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
@@ -4835,10 +4841,11 @@ double TMoverParameters::TractionForce(double dt)
                     i = 0;
                     while ((i < RlistSize - 1) && (DElist[i + 1].RPM < abs(tmpV)))
                         i++;
-                    RventRot = (abs(tmpV) - DElist[i].RPM) /
-                                   (DElist[i + 1].RPM - DElist[i].RPM) *
-                                   (DElist[i + 1].GenPower - DElist[i].GenPower) +
-                               DElist[i].GenPower;
+                    RventRot =
+                        ( std::abs( tmpV ) - DElist[ i ].RPM )
+                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
+                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
+                        + DElist[ i ].GenPower;
                 }
                 else
                     RventRot = 0;

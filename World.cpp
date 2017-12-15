@@ -1116,6 +1116,8 @@ TWorld::Update_Camera( double const Deltatime ) {
 
     if( DebugCameraFlag ) { DebugCamera.Update(); }
     else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
+    // reset window state, it'll be set again if applicable in a check below
+    Global::CabWindowOpen = false;
 
     if( ( Train != nullptr )
      && ( Camera.Type == tp_Follow )
@@ -1128,6 +1130,8 @@ TWorld::Update_Camera( double const Deltatime ) {
          && ( (Console::Pressed( Global::Keys[ k_MechLeft ])
            || (Console::Pressed( Global::Keys[ k_MechRight ]))))) {
             // jeśli lusterko lewe albo prawe (bez rzucania na razie)
+            Global::CabWindowOpen = true;
+
             bool lr = Console::Pressed( Global::Keys[ k_MechLeft ] );
             // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
             Camera.Pos = Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka

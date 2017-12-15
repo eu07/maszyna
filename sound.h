@@ -97,6 +97,9 @@ public:
     // returns true if the source is emitting any sound; by default doesn't take into account optional ending soudnds
     bool
         is_playing( bool const Includesoundends = false ) const;
+    // returns true if the source uses sample table
+    bool
+        is_combined() const;
     // returns location of the sound source in simulation region space
     glm::dvec3 const
         location() const;

@@ -40,6 +40,7 @@ float Global::FieldOfView = 45.0f;
 GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
+bool Global::CabWindowOpen { false };
 int Global::iCameraLast = -1;
 std::string Global::asVersion = "couldn't retrieve version string";
 bool Global::ControlPicking = false; // indicates controls pick mode is enabled

@@ -3622,7 +3622,35 @@ void TDynamicObject::RenderSounds() {
              || ( MoverParameters->EngineType == Dumb ) ) {
 
                 // frequency calculation
-                frequency = rsSilnik.m_frequencyfactor * std::fabs( MoverParameters->enrot ) + rsSilnik.m_frequencyoffset;
+                auto normalizer { 1.f };
+                // for combined sounds normalize frequency to 0-1 range
+                switch( MoverParameters->EngineType ) {
+                    case DieselElectric: {
+                        if( true == sConverter.is_combined() ) {
+                            normalizer = MoverParameters->DElist[ MoverParameters->MainCtrlPosNo ].RPM / 60;
+                        }
+                        break;
+                    }
+                    case DieselEngine: {
+                        if( true == rsSilnik.is_combined() ) {
+                            normalizer = MoverParameters->dizel_nmax;
+                        }
+                        break;
+                    }
+                    case ElectricInductionMotor: {
+                        if( true == rsSilnik.is_combined() ) {
+                            // TODO: implement normalization/a way to calculate max expected engine rpm
+                        }
+                        break;
+                    }
+                    default: {
+                        if( true == rsSilnik.is_combined() ) {
+                            normalizer = MoverParameters->nmax;
+                        }
+                        break;
+                    }
+                }
+                frequency = rsSilnik.m_frequencyfactor * std::abs( MoverParameters->enrot ) / std::max( 1.f, normalizer ) + rsSilnik.m_frequencyoffset;
                 if( MoverParameters->EngineType == Dumb ) {
                     frequency -= 0.2 * MoverParameters->EnginePower / ( 1 + MoverParameters->Power * 1000 );
                 }
