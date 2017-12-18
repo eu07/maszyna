@@ -3623,34 +3623,22 @@ void TDynamicObject::RenderSounds() {
 
                 // frequency calculation
                 auto normalizer { 1.f };
-                // for combined sounds normalize frequency to 0-1 range
+                // for combined sound engine we calculate sound point in rpm, to make .mmd files setup easier
                 switch( MoverParameters->EngineType ) {
                     case DieselElectric: {
                         if( true == sConverter.is_combined() ) {
-                            normalizer = MoverParameters->DElist[ MoverParameters->MainCtrlPosNo ].RPM / 60;
-                        }
-                        break;
-                    }
-                    case DieselEngine: {
-                        if( true == rsSilnik.is_combined() ) {
-                            normalizer = MoverParameters->dizel_nmax;
-                        }
-                        break;
-                    }
-                    case ElectricInductionMotor: {
-                        if( true == rsSilnik.is_combined() ) {
-                            // TODO: implement normalization/a way to calculate max expected engine rpm
+                            normalizer = 60.f * 0.01f;
                         }
                         break;
                     }
                     default: {
                         if( true == rsSilnik.is_combined() ) {
-                            normalizer = MoverParameters->nmax;
+                            normalizer = 60.f * 0.01f;
                         }
                         break;
                     }
                 }
-                frequency = rsSilnik.m_frequencyfactor * std::abs( MoverParameters->enrot ) / std::max( 1.f, normalizer ) + rsSilnik.m_frequencyoffset;
+                frequency = rsSilnik.m_frequencyfactor * std::abs( MoverParameters->enrot ) * normalizer + rsSilnik.m_frequencyoffset;
                 if( MoverParameters->EngineType == Dumb ) {
                     frequency -= 0.2 * MoverParameters->EnginePower / ( 1 + MoverParameters->Power * 1000 );
                 }
@@ -4147,10 +4135,11 @@ void TDynamicObject::RenderSounds() {
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
-        true == FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
+        FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
         // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
         ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
         ctOwner != Global::pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
+        Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
         false ) ) {
 
         volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
@@ -5076,15 +5065,16 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     rsSilnik.m_amplitudefactor /= amplitudedivisor;
 				}
 
-				else if( ( token == "ventilator:" )
-					  && ( ( MoverParameters->EngineType == ElectricSeriesMotor )
-					    || ( MoverParameters->EngineType == ElectricInductionMotor ) ) ) {
+				else if( token == "ventilator:" ) {
 					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
                     rsWentylator.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
                     rsWentylator.owner( this );
 
-                    rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
-                    rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
+                    if( ( MoverParameters->EngineType == ElectricSeriesMotor )
+                     || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
+                        rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
+                        rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
+                    }
 				}
 
 				else if( ( token == "transmission:" )

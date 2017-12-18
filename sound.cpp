@@ -331,7 +331,7 @@ void
 sound_source::play_combined() {
     // combined sound consists of table od samples, each sample associated with certain range of values of controlling variable
     // current value of the controlling variable is passed to the source with pitch() call
-    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
+    auto const soundpoint { compute_combined_point() };
     for( std::uint32_t idx = 0; idx < m_soundchunks.size(); ++idx ) {
 
         auto const &soundchunk { m_soundchunks[ idx ] };
@@ -374,6 +374,18 @@ sound_source::play_combined() {
             }
         }
     }
+}
+
+// calculates requested sound point, used to select specific sample from the sample table
+float
+sound_source::compute_combined_point() const {
+
+    return (
+        m_properties.pitch < 1.1f ?
+            // most sounds use 0-1 value range, we clamp these to 0-99 to allow more intuitive sound definition in .mmd files
+            clamp( m_properties.pitch, 0.f, 0.99f ) :
+            std::max( 0.f, m_properties.pitch )
+        ) * 100.f;
 }
 
 // stops currently active play commands controlled by this emitter
@@ -520,7 +532,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
 
         if( ( soundhandle & sound_id::chunk ) != 0 ) {
             // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
-            auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
+            auto const soundpoint { compute_combined_point() };
             auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
             if( ( soundpoint < soundchunk.second.fadein )
              || ( soundpoint > soundchunk.second.fadeout ) ) {
@@ -598,7 +610,7 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         return;
     }
 
-    auto const soundpoint { clamp( m_properties.pitch * 100.f, 0.f, 99.f ) };
+    auto const soundpoint { compute_combined_point() };
 
     // NOTE: direct access to implementation details ahead, kinda fugly
     auto const chunkindex { Chunk ^ sound_id::chunk };

@@ -4197,7 +4197,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 // *************************************************************************************************
 double TMoverParameters::TractionForce(double dt)
 {
-    double PosRatio, dmoment, dtrans, tmp, tmpV;
+    double PosRatio, dmoment, dtrans, tmp;// , tmpV;
     int i;
 
     Ft = 0;
@@ -4244,38 +4244,82 @@ double TMoverParameters::TractionForce(double dt)
         // eAngle = Pirazy2 - eAngle; <- ABu: a nie czasem tak, jak nizej?
         eAngle -= M_PI * 2.0;
 */
-    // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala
-    // predkosc wentylatorow)
-    if (EngineType == ElectricSeriesMotor)
-    {
-        switch (RVentType) // wentylatory rozruchowe}
-        {
-        case 1:
-        {
-            if ((ActiveDir != 0) && (RList[MainCtrlActualPos].R > RVentCutOff))
-                RventRot += (RVentnmax - RventRot) * RVentSpeed * dt;
-            else
-                RventRot *= (1.0 - RVentSpeed * dt);
-            break;
-        }
-        case 2:
-        {
-            if ((abs(Itot) > RVentMinI) && (RList[MainCtrlActualPos].R > RVentCutOff))
-                RventRot +=
-                    (RVentnmax * abs(Itot) / (ImaxLo * RList[MainCtrlActualPos].Bn) - RventRot) *
-                    RVentSpeed * dt;
-            else if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
-                RventRot += (RVentnmax * Im / ImaxLo - RventRot) * RVentSpeed * dt;
-            else
-            {
-                RventRot *= (1.0 - RVentSpeed * dt);
-                if (RventRot < 0.1)
-                    RventRot = 0;
+    // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala predkosc wentylatorow)
+    // wentylatory rozruchowe
+    // TODO: move this to update, it doesn't exactly have much to do with traction
+    if( true == Mains ) {
+
+        switch( EngineType ) {
+            case ElectricInductionMotor: {
+                // TBD, TODO: currently ignores RVentType, fix this?
+                auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
+
+                if( ( RlistSize > 0 )
+                 && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
+                   || ( tmpV > 0.1 ) ) ) {
+
+                    i = 0;
+                    while( ( i < RlistSize - 1 )
+                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
+                        ++i;
+                    }
+                    RventRot =
+                        ( tmpV - DElist[ i ].RPM )
+                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
+                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
+                        + DElist[ i ].GenPower;
+                }
+                else {
+                    RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                }
+                break;
             }
-            break;
-        }
-        }
+            case ElectricSeriesMotor: {
+                switch( RVentType ) {
+                    case 1: { // manual
+                        if( ( ActiveDir != 0 )
+                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                            RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
+                        }
+                        else {
+                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                        }
+                        break;
+                    }
+                    case 2: { // automatic
+                        if( ( std::abs( Itot ) > RVentMinI )
+                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                            RventRot += ( RVentnmax * abs( Itot ) / ( ImaxLo * RList[ MainCtrlActualPos ].Bn ) - RventRot ) * RVentSpeed * dt;
+                        }
+                        else if( ( DynamicBrakeType == dbrake_automatic )
+                              && ( true == DynamicBrakeFlag ) ) {
+                            RventRot += ( RVentnmax * Im / ImaxLo - RventRot ) * RVentSpeed * dt;
+                        }
+                        else {
+                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                } // rventtype
+            }
+            case DieselElectric: {
+                // TBD, TODO: currently ignores RVentType, fix this?
+                RventRot += clamp( DElist[ MainCtrlPos ].RPM - RventRot, -100.0, 50.0 ) * dt;
+                break;
+            }
+            case DieselEngine:
+            default: {
+                break;
+            }
+        } // enginetype
     }
+    else {
+        RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+    }
+    RventRot = std::max( 0.0, RventRot );
 
     if (ActiveDir != 0)
         switch (EngineType)
@@ -4397,7 +4441,7 @@ double TMoverParameters::TractionForce(double dt)
         case DieselElectric: // youBy
         {
             //       tmpV:=V*CabNo*ActiveDir;
-            tmpV = nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute; //*CabNo*ActiveDir;
+            auto const tmpV { nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute }; //*CabNo*ActiveDir;
             // jazda manewrowa
             if (ShuntMode)
             {
@@ -4665,7 +4709,6 @@ double TMoverParameters::TractionForce(double dt)
                     MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
-            tmpV = abs(nrot) * (PI * WheelDiameter) * 3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
             if ((Mains))
             {
 
@@ -4835,20 +4878,6 @@ double TMoverParameters::TractionForce(double dt)
                 Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
-                tmpV = eimv[eimv_fp];
-                if (((abs(eimv[eimv_If]) > 1) || (abs(tmpV) > 0.1)) && (RlistSize > 0))
-                {
-                    i = 0;
-                    while ((i < RlistSize - 1) && (DElist[i + 1].RPM < abs(tmpV)))
-                        i++;
-                    RventRot =
-                        ( std::abs( tmpV ) - DElist[ i ].RPM )
-                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
-                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
-                        + DElist[ i ].GenPower;
-                }
-                else
-                    RventRot = 0;
 
                 Mm = eimv[eimv_M] * DirAbsolute;
                 Mw = Mm * Transmision.Ratio;

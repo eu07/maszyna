@@ -5285,6 +5285,7 @@ TTrain::update_sounds( double const Deltatime ) {
 
     // szum w czasie jazdy
     if( ( false == FreeFlyModeFlag )
+     && ( false == Global::CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
         volume = rsRunningNoise.m_amplitudefactor * mvOccupied->Vel + rsRunningNoise.m_amplitudeoffset;

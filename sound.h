@@ -150,6 +150,9 @@ private:
         play_basic();
     void
         play_combined();
+    // calculates requested sound point, used to select specific sample from the sample table
+    float
+        compute_combined_point() const;
     void
         update_basic( audio::openal_source &Source );
     void
