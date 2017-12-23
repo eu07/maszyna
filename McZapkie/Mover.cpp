@@ -1371,9 +1371,12 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         if (AutoRelayCheck())
             SetFlag(SoundFlag, sound::relay);
 
-    if (EngineType == DieselEngine)
-        if (dizel_Update(dt))
-            SetFlag(SoundFlag, sound::relay);
+    if( ( EngineType == DieselEngine )
+     || ( EngineType == DieselElectric ) ) {
+        if( dizel_Update( dt ) ) {
+            SetFlag( SoundFlag, sound::relay );
+        }
+    }
     // uklady hamulcowe:
     if (VeselVolume > 0)
         Compressor = CompressedVolume / VeselVolume;
@@ -2412,7 +2415,7 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
                 }
             }
             if( ( EngineType == DieselEngine )
-             && ( true == Mains ) ) {
+             || ( EngineType == DieselElectric ) ) {
 
                 dizel_enginestart = State;
             }
@@ -5642,22 +5645,28 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 // *************************************************************************************************
 bool TMoverParameters::dizel_Update(double dt)
 {
-    const double fillspeed = 2;
-    bool DU;
+    double const fillspeed { 2 };
+    bool DU { false };
 
     // dizel_Update:=false;
-    if (dizel_enginestart && (LastSwitchingTime >= InitialCtrlDelay))
-    {
+    if( ( true == dizel_enginestart )
+     && ( LastSwitchingTime >= InitialCtrlDelay ) ) {
         dizel_enginestart = false;
         LastSwitchingTime = 0;
-        enrot = dizel_nmin / 2.0; // TODO: dac zaleznie od temperatury i baterii
+
+        enrot = std::max(
+            enrot,
+            0.1 * ( // TODO: dac zaleznie od temperatury i baterii
+                EngineType == DieselEngine ?
+                    dizel_nmin :
+                    DElist[ 0 ].RPM / 60.0 ) );
     }
-    /*OK=*/dizel_EngageChange(dt);
-    //  if AutoRelayFlag then Poprawka na SM03
-    DU = dizel_AutoGearCheck();
-    // dizel_fill:=(dizel_fill+dizel_fillcheck(MainCtrlPos))/2;
-    dizel_fill = dizel_fill + fillspeed * dt * (dizel_fillcheck(MainCtrlPos) - dizel_fill);
-    // dizel_Update:=OK;
+
+    if( EngineType == DieselEngine ) {
+        dizel_EngageChange( dt );
+        DU = dizel_AutoGearCheck();
+        dizel_fill = dizel_fill + fillspeed * dt * ( dizel_fillcheck( MainCtrlPos ) - dizel_fill );
+    }
 
     return DU;
 }
@@ -7550,6 +7559,8 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 }
 
 void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
+
+    extract_value( RlistSize, "Size", Input, "" );
 
     auto const venttype = extract_value( "RVent", Input );
     if( venttype == "Automatic" ) {

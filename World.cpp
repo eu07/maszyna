@@ -1630,15 +1630,17 @@ TWorld::Update_UI() {
                 if( vehicle == nullptr ) {
                     break;
                 }
-				uitextline1 =
-					"vel: " + to_string(vehicle->GetVelocity(), 2) + "/" + to_string(vehicle->MoverParameters->nrot* M_PI * vehicle->MoverParameters->WheelDiameter * 3.6, 2)
-					+ " km/h" + (vehicle->MoverParameters->SlippingWheels ? " (!)" : "    ")
-					+ "; dist: " + to_string(vehicle->MoverParameters->DistCounter, 2) + " km"
-					+ "; pos: ("
-					+ to_string(vehicle->GetPosition().x, 2) + ", "
-					+ to_string(vehicle->GetPosition().y, 2) + ", "
-					+ to_string(vehicle->GetPosition().z, 2) + "), PM="
-					+ to_string(vehicle->MoverParameters->WheelFlat, 1) + " mm";
+                uitextline1 =
+                    "vel: " + to_string( vehicle->GetVelocity(), 2 ) + "/" + to_string( vehicle->MoverParameters->nrot* M_PI * vehicle->MoverParameters->WheelDiameter * 3.6, 2 )
+                    + " km/h;" + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "    " )
+                    + " dist: " + to_string( vehicle->MoverParameters->DistCounter, 2 ) + " km"
+                    + "; pos: ("
+                    + to_string( vehicle->GetPosition().x, 2 ) + ", "
+                    + to_string( vehicle->GetPosition().y, 2 ) + ", "
+                    + to_string( vehicle->GetPosition().z, 2 ) + "), PM="
+                    + to_string( vehicle->MoverParameters->WheelFlat, 1 ) + " mm; enrot="
+                    + to_string( vehicle->MoverParameters->enrot * 60, 0 ) + " tmrot="
+                    + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 );
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )

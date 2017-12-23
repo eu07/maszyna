@@ -273,14 +273,37 @@ private:
     };
 
     struct door_sounds {
-        sound_source rsDoorOpen{ sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
-        sound_source rsDoorClose{ sound_placement::general, 25.f };
+        sound_source rsDoorOpen { sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
+        sound_source rsDoorClose { sound_placement::general, 25.f };
     };
 
     struct axle_sounds {
         double distance; // distance to rail joint
         double offset; // axle offset from centre of the vehicle
         sound_source clatter; // clatter emitter
+    };
+
+    struct powertrain_sounds {
+        sound_source motor { sound_placement::external }; // generally traction motor
+        double motor_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
+        float motor_momentum { 0.f }; // recent change in motor revolutions
+        sound_source motor_relay { sound_placement::engine };
+        sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
+        sound_source motor_parallel { sound_placement::engine }; // moved from cab
+        sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
+        sound_source engine { sound_placement::engine }; // generally diesel engine
+        sound_source engine_ignition { sound_placement::engine }; // moved from cab
+        double engine_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
+        sound_source engine_revving { sound_placement::engine }; // youBy
+        float engine_revs_last { -1.f }; // helper, cached rpm of the engine
+        float engine_revs_change { 0.f }; // recent change in engine revolutions
+        sound_source engine_turbo { sound_placement::engine };
+        double engine_turbo_pitch { 1.0 };
+        sound_source transmission { sound_placement::engine };
+        sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
+
+        void position( glm::vec3 const Location );
+        void render( TMoverParameters const &Vehicle, double const Deltatime );
     };
 
 // methods
@@ -328,29 +351,35 @@ private:
 //    int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
     double dRailLength { 0.0 };
     std::vector<axle_sounds> m_axlesounds;
-/*
-    double dRailPosition[MaxAxles]; // licznik pozycji osi w/m szyny
-    double dWheelsPosition[MaxAxles]; // pozycja osi w/m srodka pojazdu
-    std::vector<sound_source> rsStukot; // dzwieki poszczegolnych osi //McZapkie-270202
-*/
+    powertrain_sounds m_powertrainsounds;
     // engine sounds
+/*
     sound_source dsbDieselIgnition { sound_placement::engine }; // moved from cab
     sound_source rsSilnik { sound_placement::engine };
     double enginevolume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
+    sound_source m_tractionmotor { sound_placement::external };
     sound_source dsbRelay { sound_placement::engine };
     sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
     sound_source dsbWejscie_na_drugi_uklad { sound_placement::engine }; // moved from cab
     sound_source rsPrzekladnia { sound_placement::engine };
     sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
     sound_source rsDieselInc { sound_placement::engine }; // youBy
+    float m_lastenginerevolutions { -1.f }; // helper, cached rpm of the engine
+    float m_enginerevolutionschange { 0.f }; // recent change of engine revolutions
     sound_source sTurbo { sound_placement::engine };
     sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
+    sound_source sConverter { sound_placement::engine };
+    sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
+    sound_source sSmallCompressor { sound_placement::engine };
+*/
     sound_source sConverter { sound_placement::engine };
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
     sound_source sSmallCompressor { sound_placement::engine };
     // braking sounds
     sound_source dsbPneumaticRelay { sound_placement::external };
     sound_source rsUnbrake { sound_placement::external }; // yB - odglos luzowania
+    float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in brake cylinder
+    float m_brakepressurechange { 0.f }; // recent change of pressure in brake cylinder
     sound_source sReleaser { sound_placement::external };
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
@@ -372,7 +401,6 @@ private:
     double eng_vol_act;
     double eng_frq_act;
     double eng_dfrq;
-    double eng_turbo;
     Math3D::vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
@@ -380,8 +408,6 @@ private:
     int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
     bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in brake cylinder
-    float m_brakepressurechange { 0.f }; // recent change of pressure in brake cylinder
 
   public:
     int iHornWarning; // numer syreny do użycia po otrzymaniu sygnału do jazdy

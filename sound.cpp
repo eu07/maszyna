@@ -59,11 +59,12 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
                 m_soundchunks[ idx ].second.fadeout = m_soundchunks[ idx + 1 ].second.threshold;
             }
             //  ...and on the other end from the threshold point back into the range of previous chunk
+            m_soundchunks.front().second.fadein = std::max( 0, m_soundchunks.front().second.threshold );
             for( std::size_t idx = 1; idx < m_soundchunks.size(); ++idx ) {
                 auto const previouschunkwidth { m_soundchunks[ idx ].second.threshold - m_soundchunks[ idx - 1 ].second.threshold };
                 m_soundchunks[ idx ].second.fadein = m_soundchunks[ idx ].second.threshold - 0.01f * m_crossfaderange * previouschunkwidth;
             }
-            m_soundchunks.back().second.fadeout = std::max( m_soundchunks.back().second.threshold, 100 );
+            m_soundchunks.back().second.fadeout = std::max( 100, m_soundchunks.back().second.threshold );
             // test if the chunk table contains any actual samples while at it
             for( auto &soundchunk : m_soundchunks ) {
                 if( soundchunk.first.buffer != null_handle ) {

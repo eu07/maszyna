@@ -1666,14 +1666,12 @@ TDynamicObject::TDynamicObject() {
     //smMechanik0 = smMechanik1 = NULL;
     smBuforLewy[0] = smBuforLewy[1] = NULL;
     smBuforPrawy[0] = smBuforPrawy[1] = NULL;
-    enginevolume = 0;
     smBogie[0] = smBogie[1] = NULL;
     bogieRot[0] = bogieRot[1] = vector3(0, 0, 0);
     modelRot = vector3(0, 0, 0);
     eng_vol_act = 0.8;
     eng_dfrq = 0;
     eng_frq_act = 1;
-    eng_turbo = 0;
     cp1 = cp2 = sp1 = sp2 = 0;
     iDirection = 1; // stoi w kierunku tradycyjnym (0, gdy jest odwrócony)
     iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (przełączenie
@@ -3604,350 +3602,30 @@ void TDynamicObject::TurnOff()
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
 void TDynamicObject::RenderSounds() {
 
-    // McZapkie-010302: ulepszony dzwiek silnika
-    double frequency { 1.0 };
-    double volume { 0.0 };
-    double const dt { Timer::GetDeltaRenderTime() };
-
     if( Global::iPause != 0 ) { return; }
 
-    // engine sounds
-    if( MoverParameters->Power > 0 ) {
+    double const dt { Timer::GetDeltaRenderTime() };
+    double volume { 0.0 };
+    double frequency { 1.0 };
 
-        if( ( true == MoverParameters->Mains )
-         || ( MoverParameters->EngineType == DieselEngine ) ) {
-
-            if( ( std::fabs( MoverParameters->enrot ) > 0.01 )
-                // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
-             || ( MoverParameters->EngineType == Dumb ) ) {
-
-                // frequency calculation
-                auto normalizer { 1.f };
-                // for combined sound engine we calculate sound point in rpm, to make .mmd files setup easier
-                switch( MoverParameters->EngineType ) {
-                    case DieselElectric: {
-                        if( true == sConverter.is_combined() ) {
-                            normalizer = 60.f * 0.01f;
-                        }
-                        break;
-                    }
-                    default: {
-                        if( true == rsSilnik.is_combined() ) {
-                            normalizer = 60.f * 0.01f;
-                        }
-                        break;
-                    }
-                }
-                frequency = rsSilnik.m_frequencyfactor * std::abs( MoverParameters->enrot ) * normalizer + rsSilnik.m_frequencyoffset;
-                if( MoverParameters->EngineType == Dumb ) {
-                    frequency -= 0.2 * MoverParameters->EnginePower / ( 1 + MoverParameters->Power * 1000 );
-                }
-
-                // base volume calculation
-                switch( MoverParameters->EngineType ) {
-                    case DieselEngine: {
-                        if( MoverParameters->enrot > 0.0 ) {
-                            if( MoverParameters->EnginePower > 0 ) {
-                                volume = rsSilnik.m_amplitudefactor * MoverParameters->dizel_fill + rsSilnik.m_amplitudeoffset;
-                            }
-                            else {
-                                volume = rsSilnik.m_amplitudefactor * std::fabs( MoverParameters->enrot / MoverParameters->dizel_nmax ) + rsSilnik.m_amplitudeoffset * 0.9f;
-                            }
-                        }
-                        else {
-                            volume = 0.f;
-                        }
-                        break;
-                    }
-                    case DieselElectric: {
-                        volume =
-                            rsSilnik.m_amplitudefactor * ( MoverParameters->EnginePower / 1000 / MoverParameters->Power )
-                            + 0.2 * ( MoverParameters->enrot * 60 ) / ( MoverParameters->DElist[ MoverParameters->MainCtrlPosNo ].RPM )
-                            + rsSilnik.m_amplitudeoffset;
-                        break;
-                    }
-                    case ElectricInductionMotor: {
-                        volume =
-                            rsSilnik.m_amplitudefactor * ( MoverParameters->EnginePower + std::fabs( MoverParameters->enrot * 2 ) )
-                            + rsSilnik.m_amplitudeoffset;
-                        break;
-                    }
-                    // NOTE: default case also covers electric motors
-                    default: {
-                        volume =
-                            rsSilnik.m_amplitudefactor * ( MoverParameters->EnginePower / 1000 + std::fabs( MoverParameters->enrot ) * 60.0 )
-                            + rsSilnik.m_amplitudeoffset;
-                        break;
-                    }
-                }
-
-                if( MoverParameters->EngineType == ElectricSeriesMotor ) {
-
-                    // volume variation
-                    if( ( volume < 1.0 )
-                     && ( MoverParameters->EnginePower < 100 ) ) {
-
-                        auto const volumevariation{ Random( 100 ) * MoverParameters->enrot / ( 1 + MoverParameters->nmax ) };
-                        if( volumevariation < 2 ) {
-                            volume += volumevariation / 200;
-                        }
-                    }
-
-                    if( ( MoverParameters->DynamicBrakeFlag )
-                     && ( MoverParameters->EnginePower > 0.1 ) ) {
-                        // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
-                        volume += 0.8;
-                    }
-                }
-
-                // volume environmental factor
-                switch( MyTrack->eEnvironment ) {
-                    case e_tunnel: {
-                        volume += 0.1;
-                        break;
-                    }
-                    case e_canyon: {
-                        volume += 0.05;
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-
-                if( enginevolume >= 0.05 ) {
-
-                    if( MoverParameters->EngineType != DieselElectric ) {
-
-                        rsSilnik
-                            .pitch( frequency )
-                            .gain( enginevolume )
-                            .play( sound_flags::exclusive | sound_flags::looping );
-                    }
-                    else {
-
-                        if( MoverParameters->ConverterFlag ) {
-
-                            sConverter
-                                .pitch( frequency )
-                                .gain( volume )
-                                .play( sound_flags::exclusive | sound_flags::looping );
-
-                            float fincvol { 0 };
-                            if( MoverParameters->enrot * 60 > MoverParameters->DElist[ 0 ].RPM ) {
-
-                                fincvol = ( MoverParameters->DElist[ MoverParameters->MainCtrlPos ].RPM - ( MoverParameters->enrot * 60 ) );
-                                fincvol /= ( 0.05 * MoverParameters->DElist[ 0 ].RPM );
-                            }
-
-                            if( fincvol > 0.02 ) {
-                                rsDieselInc
-                                    .gain( fincvol )
-                                    .play( sound_flags::exclusive | sound_flags::looping );
-                            }
-                            else {
-                                rsDieselInc.stop();
-                            }
-                        }
-                    }
-                }
-            }
-            else {
-                rsSilnik.stop();
-            }
-        }
-        enginevolume = ( enginevolume + volume ) * 0.5;
-        if( enginevolume < 0.05 ) {
-            rsSilnik.stop();
-        }
-/*
-// NOTE: experimentally disabled to see if it's still used anywhere
-        if (MoverParameters->TrainType == dt_PseudoDiesel)
-        {
-            // ABu: udawanie woodwarda dla lok. spalinowych
-            // jesli silnik jest podpiety pod dzwiek przetwornicy
-
-            // glosnosc zalezy od stosunku mocy silnika el. do mocy max
-            double eng_vol;
-            if (MoverParameters->Power > 1)
-                // 0.85+0.000015*(...)
-                eng_vol = 0.8 + 0.00002 * (MoverParameters->EnginePower / MoverParameters->Power);
-            else
-                eng_vol = 1;
-
-            eng_dfrq = eng_dfrq + (eng_vol_act - eng_vol);
-            if (eng_dfrq > 0)
-            {
-                eng_dfrq = eng_dfrq - 0.025 * dt;
-                if (eng_dfrq < 0.025 * dt)
-                    eng_dfrq = 0;
-            }
-            else if (eng_dfrq < 0)
-            {
-                eng_dfrq = eng_dfrq + 0.025 * dt;
-                if (eng_dfrq > -0.025 * dt)
-                    eng_dfrq = 0;
-            }
-            double defrot;
-            if (MoverParameters->MainCtrlPos != 0)
-            {
-                double CtrlPos = MoverParameters->MainCtrlPos;
-                double CtrlPosNo = MoverParameters->MainCtrlPosNo;
-                // defrot=1+0.4*(CtrlPos/CtrlPosNo);
-                defrot = 1 + 0.5 * (CtrlPos / CtrlPosNo);
-            }
-            else
-                defrot = 1;
-
-            if (eng_frq_act < defrot)
-            {
-                // if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
-                eng_frq_act = eng_frq_act + 0.4 * dt; // 0.05
-                if (eng_frq_act > defrot - 0.4 * dt)
-                    eng_frq_act = defrot;
-            }
-            else if (eng_frq_act > defrot)
-            {
-                eng_frq_act = eng_frq_act - 0.1 * dt; // 0.05
-                if (eng_frq_act < defrot + 0.1 * dt)
-                    eng_frq_act = defrot;
-            }
-            sConverter.UpdateAF(eng_vol_act, eng_frq_act + eng_dfrq, MechInside, GetPosition());
-            // udawanie turbo:  (6.66*(eng_vol-0.85))
-            if (eng_turbo > 6.66 * (eng_vol - 0.8) + 0.2 * dt)
-                eng_turbo = eng_turbo - 0.2 * dt; // 0.125
-            else if (eng_turbo < 6.66 * (eng_vol - 0.8) - 0.4 * dt)
-                eng_turbo = eng_turbo + 0.4 * dt; // 0.333
-            else
-                eng_turbo = 6.66 * (eng_vol - 0.8);
-
-            sTurbo.TurnOn(MechInside, GetPosition());
-            // sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
-            sTurbo.UpdateAF(3 * eng_turbo - 1, 0.4 + eng_turbo * 0.4, MechInside, GetPosition());
-            eng_vol_act = eng_vol;
-            // eng_frq_act=eng_frq;
-        }
-*/
-        if( ( MoverParameters->EngineType == ElectricSeriesMotor )
-         || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
-
-            if( MoverParameters->RventRot > 0.1 ) {
-                // play ventilator sound if the ventilators are rotating fast enough...
-                volume = (
-                    MoverParameters->EngineType == ElectricInductionMotor ?
-                        rsWentylator.m_amplitudefactor * std::sqrt( std::fabs( MoverParameters->dizel_fill ) ) + rsWentylator.m_amplitudeoffset :
-                        rsWentylator.m_amplitudefactor * MoverParameters->RventRot + rsWentylator.m_amplitudeoffset );
-
-                rsWentylator
-                    .pitch( rsWentylator.m_frequencyfactor * MoverParameters->RventRot + rsWentylator.m_frequencyoffset )
-                    .gain( volume )
-                    .play( sound_flags::exclusive | sound_flags::looping );
-            }
-            else {
-                // ...otherwise shut down the sound
-                rsWentylator.stop();
-            }
-        }
-
-
-        if( MoverParameters->TrainType == dt_ET40 ) {
-            if( MoverParameters->Vel > 0.1 ) {
-                rsPrzekladnia
-                    .pitch( rsPrzekladnia.m_frequencyfactor * ( MoverParameters->Vel ) + rsPrzekladnia.m_frequencyoffset  )
-                    .gain( rsPrzekladnia.m_amplitudefactor * ( MoverParameters->Vel ) + rsPrzekladnia.m_amplitudeoffset )
-                    .play( sound_flags::exclusive | sound_flags::looping );
-            }
-            else {
-                rsPrzekladnia.stop();
-            }
-        }
-
-
-        if( MoverParameters->dizel_engage > 0.1 ) {
-            if( std::abs( MoverParameters->dizel_engagedeltaomega ) > 0.2 ) {
-
-                frequency = rsEngageSlippery.m_frequencyfactor * std::fabs( MoverParameters->dizel_engagedeltaomega ) + rsEngageSlippery.m_frequencyoffset;
-                volume = rsEngageSlippery.m_amplitudefactor * ( MoverParameters->dizel_engage ) + rsEngageSlippery.m_amplitudeoffset;
-            }
-            else {
-                frequency = 1.f; // rsEngageSlippery.FA+0.7*rsEngageSlippery.FM*(fabs(mvControlled->enrot)+mvControlled->nmax);
-                volume = (
-                    MoverParameters->dizel_engage > 0.2 ?
-                        0.2 * rsEngageSlippery.m_amplitudefactor * ( MoverParameters->enrot / MoverParameters->nmax ) + rsEngageSlippery.m_amplitudeoffset :
-                        0.f );
-            }
-            rsEngageSlippery
-                .pitch( frequency )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsEngageSlippery.stop();
-        }
-
-
-        // youBy - przenioslem, bo diesel tez moze miec turbo
-        if( MoverParameters->TurboTest > 0 ) {
-            // udawanie turbo:
-            auto const goalpitch { 6.66 * ( enginevolume - 0.8 ) };
-            auto const goalvolume{ 3 * eng_turbo - 1 };
-            auto const currentvolume { sTurbo.gain() };
-            auto const changerate{ 0.4 * dt };
-
-            if( ( MoverParameters->MainCtrlPos >= MoverParameters->TurboTest )
-             && ( MoverParameters->enrot > 0.1 ) ) {
-
-                eng_turbo = (
-                    eng_turbo > goalpitch ?
-                        std::max( goalpitch, eng_turbo - changerate * 0.5 ) :
-                        std::min( goalpitch, eng_turbo + changerate ) );
-
-                volume = (
-                    currentvolume > goalvolume ?
-                        std::max( goalvolume, currentvolume - changerate ) :
-                        std::min( goalvolume, currentvolume + changerate ) );
-
-                sTurbo
-                    .pitch( eng_turbo * 0.4 + 0.4 )
-                    .gain( volume )
-                    .play( sound_flags::exclusive | sound_flags::looping );
-            }
-            else {
-                eng_turbo = std::max( goalpitch, eng_turbo - changerate * 0.5 );
-                volume = std::max( 0.0, sTurbo.gain() - 2.0 * dt );
-                if( volume > 0.05 ) {
-                    sTurbo
-                        .pitch( 0.4 + eng_turbo * 0.4 )
-                        .gain( volume );
-                }
-                else {
-                    sTurbo.stop();
-                }
-            }
-        }
-
-
-        // diesel startup
-        if( MoverParameters->EngineType == DieselEngine ) {
-            if( true == MoverParameters->dizel_enginestart ) {
-                dsbDieselIgnition.play( sound_flags::exclusive | sound_flags::looping );
-            }
-            else {
-                dsbDieselIgnition.stop();
-            }
-        }
-
-    } // if enginepower
+    m_powertrainsounds.render( *MoverParameters, dt );
 
     // NBMX dzwiek przetwornicy
     if( MoverParameters->ConverterFlag ) {
-        sConverter.play( sound_flags::exclusive | sound_flags::looping );
+        frequency = (
+            MoverParameters->EngineType == ElectricSeriesMotor ?
+                MoverParameters->Voltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) :
+                1.0 );
+        frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
+        sConverter
+            .pitch( clamp( frequency, 0.5, 1.25 ) ) // arbitrary limits )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
         sConverter.stop();
     }
 
-    if( MoverParameters->VeselVolume != 0 ) {
+    if( MoverParameters->VeselVolume > 0 ) {
         // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
         if( MoverParameters->CompressorFlag ) {
             sCompressor.play( sound_flags::exclusive | sound_flags::looping );
@@ -4009,7 +3687,7 @@ void TDynamicObject::RenderSounds() {
 
             auto const velocitydifference { GetVelocity() / MoverParameters->Vmax };
             rsSlippery
-                .gain( rsSlippery.m_amplitudefactor * velocitydifference + rsSlippery.m_amplitudeoffset )
+                .gain( rsSlippery.m_amplitudeoffset + rsSlippery.m_amplitudefactor * velocitydifference )
                 .play( sound_flags::exclusive | sound_flags::looping );
         }
     }
@@ -4242,12 +3920,12 @@ void TDynamicObject::RenderSounds() {
         // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
         if( true == TestFlag( MoverParameters->SoundFlag, sound::parallel ) ) {
             if( TestFlag( MoverParameters->SoundFlag, sound::loud ) )
-                dsbWejscie_na_bezoporow.play();
+                m_powertrainsounds.dsbWejscie_na_bezoporow.play();
             else
-                dsbWejscie_na_drugi_uklad.play();
+                m_powertrainsounds.motor_parallel.play();
         }
         else {
-            dsbRelay
+            m_powertrainsounds.motor_relay
                 .gain(
                     true == TestFlag( MoverParameters->SoundFlag, sound::loud ) ?
                         1.0f :
@@ -5055,25 +4733,35 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 				else if( ( token == "engine:" )
 					  && ( MoverParameters->Power > 0 ) ) {
 					// plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
-                    rsSilnik.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
-                    rsSilnik.owner( this );
+                    m_powertrainsounds.engine.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.engine.owner( this );
 
                     auto const amplitudedivisor = static_cast<float>( (
-                        MoverParameters->EngineType == DieselEngine ? MoverParameters->Power + MoverParameters->nmax * 60 :
+                        MoverParameters->EngineType == DieselEngine ? MoverParameters->nmax * 60 + MoverParameters->Power :
                         MoverParameters->EngineType == DieselElectric ? MoverParameters->Power * 3 :
-                        MoverParameters->Power + MoverParameters->nmax * 60 + MoverParameters->Power + MoverParameters->Power ) );
-                    rsSilnik.m_amplitudefactor /= amplitudedivisor;
+                        MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) );
+                    m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
 				}
+
+                else if( ( token == "tractionmotor:" )
+                      && ( MoverParameters->Power > 0 ) ) {
+                    // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
+                    m_powertrainsounds.motor.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.motor.owner( this );
+
+                    auto const amplitudedivisor = static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 );
+                    m_powertrainsounds.motor.m_amplitudefactor /= amplitudedivisor;
+                }
 
 				else if( token == "ventilator:" ) {
 					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
-                    rsWentylator.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
-                    rsWentylator.owner( this );
+                    m_powertrainsounds.rsWentylator.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.rsWentylator.owner( this );
 
                     if( ( MoverParameters->EngineType == ElectricSeriesMotor )
                      || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
-                        rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
-                        rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
+                        m_powertrainsounds.rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
+                        m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
                     }
 				}
 
@@ -5081,13 +4769,13 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					  && ( MoverParameters->EngineType == ElectricSeriesMotor ) ) {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
                     // NOTE, fixed default parameters, legacy system leftover
-                    rsPrzekladnia.m_amplitudefactor = 0.029;
-                    rsPrzekladnia.m_amplitudeoffset = 0.1;
-                    rsPrzekladnia.m_frequencyfactor = 0.005;
-                    rsPrzekladnia.m_frequencyoffset = 1.0;
+                    m_powertrainsounds.transmission.m_amplitudefactor = 0.029;
+                    m_powertrainsounds.transmission.m_amplitudeoffset = 0.1;
+                    m_powertrainsounds.transmission.m_frequencyfactor = 0.005;
+                    m_powertrainsounds.transmission.m_frequencyoffset = 1.0;
 
-                    rsPrzekladnia.deserialize( parser, sound_type::single, sound_parameters::range );
-                    rsPrzekladnia.owner( this );
+                    m_powertrainsounds.transmission.deserialize( parser, sound_type::single, sound_parameters::range );
+                    m_powertrainsounds.transmission.owner( this );
                 }
 
 				else if( token == "brake:"  ) {
@@ -5120,8 +4808,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
 				else if( token == "dieselinc:" ) {
 					// dzwiek przy wlazeniu na obroty woodwarda
-                    rsDieselInc.deserialize( parser, sound_type::single, sound_parameters::range );
-                    rsDieselInc.owner( this );
+                    m_powertrainsounds.engine_revving.deserialize( parser, sound_type::single, sound_parameters::range );
+                    m_powertrainsounds.engine_revving.owner( this );
                 }
 
 				else if( token == "curve:" ) {
@@ -5185,8 +4873,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
 				else if( token == "turbo:" ) {
 					// pliki z turbogeneratorem
-                    sTurbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
-                    sTurbo.owner( this );
+                    m_powertrainsounds.engine_turbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
+                    m_powertrainsounds.engine_turbo.owner( this );
                 }
 
 				else if( token == "small-compressor:" ) {
@@ -5259,20 +4947,20 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 // engine sounds
                 else if( token == "ignition:" ) {
                     // odpalanie silnika
-                    dsbDieselIgnition.deserialize( parser, sound_type::single );
-                    dsbDieselIgnition.owner( this );
+                    m_powertrainsounds.engine_ignition.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.engine_ignition.owner( this );
                 }
                 else if( token == "engageslippery:" ) {
                     // tarcie tarcz sprzegla:
-                    rsEngageSlippery.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
-                    rsEngageSlippery.owner( this );
+                    m_powertrainsounds.rsEngageSlippery.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.rsEngageSlippery.owner( this );
 
-                    rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
+                    m_powertrainsounds.rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
                 }
                 else if( token == "relay:" ) {
                     // styczniki itp:
-                    dsbRelay.deserialize( parser, sound_type::single );
-                    dsbRelay.owner( this );
+                    m_powertrainsounds.motor_relay.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.motor_relay.owner( this );
                 }
                 else if( token == "pneumaticrelay:" ) {
                     // wylaczniki pneumatyczne:
@@ -5281,12 +4969,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
                 else if( token == "wejscie_na_bezoporow:" ) {
                     // hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
-                    dsbWejscie_na_bezoporow.deserialize( parser, sound_type::single );
-                    dsbWejscie_na_bezoporow.owner( this );
+                    m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.dsbWejscie_na_bezoporow.owner( this );
                 }
                 else if( token == "wejscie_na_drugi_uklad:" ) {
-                    dsbWejscie_na_drugi_uklad.deserialize( parser, sound_type::single );
-                    dsbWejscie_na_drugi_uklad.owner( this );
+                    m_powertrainsounds.motor_parallel.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.motor_parallel.owner( this );
                 }
                 // braking sounds
                 else if( token == "brakesound:" ) {
@@ -5356,14 +5044,14 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     // assign default samples to sound emitters which weren't included in the config file
     // engine
     if( MoverParameters->Power > 0 ) {
-        if( true == dsbWejscie_na_bezoporow.empty() ) {
+        if( true == m_powertrainsounds.dsbWejscie_na_bezoporow.empty() ) {
             // hunter-111211: domyslne, gdy brak
-            dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow.wav", sound_type::single );
-            dsbWejscie_na_bezoporow.owner( this );
+            m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow.wav", sound_type::single );
+            m_powertrainsounds.dsbWejscie_na_bezoporow.owner( this );
         }
-        if( true == dsbWejscie_na_drugi_uklad.empty() ) {
-            dsbWejscie_na_drugi_uklad.deserialize( "wescie_na_drugi_uklad.wav", sound_type::single );
-            dsbWejscie_na_drugi_uklad.owner( this );
+        if( true == m_powertrainsounds.motor_parallel.empty() ) {
+            m_powertrainsounds.motor_parallel.deserialize( "wescie_na_drugi_uklad.wav", sound_type::single );
+            m_powertrainsounds.motor_parallel.owner( this );
         }
     }
     // braking sounds
@@ -5409,22 +5097,20 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     Global::asCurrentDynamicPath = "";
 
     // position sound emitters which weren't defined in the config file
-    auto const nullvector { glm::vec3() };
-    // engine sounds , centre of the vehicle
+    // engine sounds, centre of the vehicle
     auto const enginelocation { glm::vec3 {0.f, MoverParameters->Dim.H * 0.5f, 0.f } };
+    m_powertrainsounds.position( enginelocation );
+    // other engine compartment sounds
+    auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &dsbDieselIgnition,
-        &rsSilnik,
-        &dsbRelay, &dsbWejscie_na_bezoporow, &dsbWejscie_na_drugi_uklad,
-        &rsPrzekladnia, &rsEngageSlippery, &rsDieselInc, &sTurbo,
-        &rsWentylator, &sConverter, &sCompressor, &sSmallCompressor
+        &sConverter, &sCompressor, &sSmallCompressor
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {
             sound->offset( enginelocation );
         }
     }
-    // TODO: other sound types
+
     // pantographs
     if( pants != nullptr ) {
         std::size_t pantographindex { 0 };
@@ -5944,6 +5630,320 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     return MoverParameters->EnginePowerSource.SourceType;
 }
 
+
+void
+TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
+
+    auto const nullvector { glm::vec3() };
+    std::vector<sound_source *> enginesounds = {
+        &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &rsWentylator,
+        &engine, &engine_ignition, &engine_revving, &engine_turbo,
+        &transmission, &rsEngageSlippery
+    };
+    for( auto sound : enginesounds ) {
+        if( sound->offset() == nullvector ) {
+            sound->offset( Location );
+        }
+    }
+}
+
+void
+TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, double const Deltatime ) {
+
+    if( Vehicle.Power == 0 ) { return; }
+
+    double frequency { 1.0 };
+    double volume { 0.0 };
+
+    // engine sounds
+    if( ( true == Vehicle.Mains )
+     && ( false == Vehicle.dizel_enginestart ) ) {
+
+        if( ( std::fabs( Vehicle.enrot ) > 0.01 )
+            // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
+         || ( Vehicle.EngineType == Dumb ) ) {
+
+            // frequency calculation
+            auto normalizer { 1.f };
+            if( true == engine.is_combined() ) {
+                // for combined engine sound we calculate sound point in rpm, to make .mmd files setup easier
+                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                normalizer = 60.f * 0.01f;
+            }
+            frequency =
+                engine.m_frequencyoffset
+                + engine.m_frequencyfactor * std::abs( Vehicle.enrot ) * normalizer;
+
+            if( Vehicle.EngineType == Dumb ) {
+                frequency -= 0.2 * Vehicle.EnginePower / ( 1 + Vehicle.Power * 1000 );
+            }
+
+            // base volume calculation
+            switch( Vehicle.EngineType ) {
+                // TODO: check calculated values
+                case DieselElectric: {
+                    volume =
+                        engine.m_amplitudeoffset
+                        + engine.m_amplitudefactor * ( Vehicle.EnginePower / 1000 / Vehicle.Power )
+                        + 0.2 * ( Vehicle.enrot * 60 ) / ( Vehicle.DElist[ Vehicle.MainCtrlPosNo ].RPM );
+                    break;
+                }
+                case DieselEngine: {
+                    if( Vehicle.enrot > 0.0 ) {
+                        volume = (
+                            Vehicle.EnginePower > 0 ?
+                                engine.m_amplitudeoffset + engine.m_amplitudefactor * Vehicle.dizel_fill :
+                                engine.m_amplitudeoffset * 0.9f + engine.m_amplitudefactor * std::fabs( Vehicle.enrot / Vehicle.dizel_nmax ) );
+                    }
+                    break;
+                }
+                default: {
+                    volume =
+                        engine.m_amplitudeoffset
+                        + engine.m_amplitudefactor * ( Vehicle.EnginePower / 1000 + std::fabs( Vehicle.enrot ) * 60.0 );
+                    break;
+                }
+            }
+
+            if( engine_volume >= 0.05 ) {
+                engine
+                    .pitch( frequency )
+                    .gain( engine_volume )
+                    .play( sound_flags::exclusive | sound_flags::looping );
+
+                if( ( Vehicle.EngineType == DieselElectric )
+                 || ( Vehicle.EngineType == DieselEngine ) ) {
+                    // diesel engine revolutions increase
+                    float enginerevvolume { 0 };
+                    if( engine_revs_last != -1.f ) {
+                        // calculate potential recent increase of engine revolutions
+                        auto const revolutionsperminute { Vehicle.enrot * 60 };
+                        auto const revolutionsdifference { revolutionsperminute - engine_revs_last };
+                        auto const idlerevolutionsthreshold { 1.01 * (
+                            Vehicle.EngineType == DieselElectric ?
+                                Vehicle.DElist[ 0 ].RPM :
+                                Vehicle.dizel_nmin * 60 ) };
+
+                        engine_revs_change = std::max( 0.0, engine_revs_change - 2.5 * Deltatime );
+                        if( ( revolutionsperminute > idlerevolutionsthreshold )
+                         && ( revolutionsdifference > 1.0 * Deltatime ) ) {
+                            engine_revs_change = clamp( engine_revs_change + 5.0 * Deltatime, 0.0, 1.25 );
+                        }
+                        enginerevvolume = engine_revs_change;
+                    }
+                    engine_revs_last = Vehicle.enrot * 60;
+
+                    if( enginerevvolume > 0.02 ) {
+                        engine_revving
+                            .gain( enginerevvolume )
+                            .play( sound_flags::exclusive | sound_flags::looping );
+                    }
+                    else {
+                        engine_revving.stop();
+                    }
+                }
+            } // enginevolume > 0.05
+        }
+        else {
+            engine.stop();
+        }
+    }
+    engine_volume = interpolate( engine_volume, volume, 0.25 );
+    if( engine_volume < 0.05 ) {
+        engine.stop();
+    }
+
+
+    // youBy - przenioslem, bo diesel tez moze miec turbo
+    if( Vehicle.TurboTest > 0 ) {
+        // udawanie turbo:
+        auto const goalpitch { std::max( 0.025, ( engine_volume + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
+        auto const goalvolume { std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) };
+        auto const currentvolume { engine_turbo.gain() };
+        auto const changerate { 0.4 * Deltatime };
+
+        if( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest )
+         && ( Vehicle.enrot > 0.1 ) ) {
+
+            engine_turbo_pitch = (
+                engine_turbo_pitch > goalpitch ?
+                    std::max( goalpitch, engine_turbo_pitch - changerate * 0.5 ) :
+                    std::min( goalpitch, engine_turbo_pitch + changerate ) );
+
+            volume = (
+                currentvolume > goalvolume ?
+                    std::max( goalvolume, currentvolume - changerate ) :
+                    std::min( goalvolume, currentvolume + changerate ) );
+
+            engine_turbo
+                .pitch( 0.4 + engine_turbo_pitch * 0.4 )
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            engine_turbo_pitch = std::max( goalpitch, engine_turbo_pitch - changerate * 0.5 );
+            volume = std::max( 0.0, engine_turbo.gain() - 2.0 * Deltatime );
+            if( volume > 0.05 ) {
+                engine_turbo
+                    .pitch( 0.4 + engine_turbo_pitch * 0.4 )
+                    .gain( volume );
+            }
+            else {
+                engine_turbo.stop();
+                engine_turbo_pitch = goalpitch;
+            }
+        }
+    }
+
+    // diesel startup
+    if( ( Vehicle.EngineType == DieselEngine )
+     || ( Vehicle.EngineType == DieselElectric ) ) {
+
+        if( true == Vehicle.dizel_enginestart ) {
+            engine_ignition.play( sound_flags::exclusive );
+        }
+    }
+
+
+    if( Vehicle.dizel_engage > 0.1 ) {
+        if( std::abs( Vehicle.dizel_engagedeltaomega ) > 0.2 ) {
+            frequency = rsEngageSlippery.m_frequencyoffset + rsEngageSlippery.m_frequencyfactor * std::fabs( Vehicle.dizel_engagedeltaomega );
+            volume = rsEngageSlippery.m_amplitudeoffset + rsEngageSlippery.m_amplitudefactor * ( Vehicle.dizel_engage );
+        }
+        else {
+            frequency = 1.f; // rsEngageSlippery.FA+0.7*rsEngageSlippery.FM*(fabs(mvControlled->enrot)+mvControlled->nmax);
+            volume = (
+                Vehicle.dizel_engage > 0.2 ?
+                    rsEngageSlippery.m_amplitudeoffset + 0.2 * rsEngageSlippery.m_amplitudefactor * ( Vehicle.enrot / Vehicle.nmax ) :
+                    0.f );
+        }
+
+        rsEngageSlippery
+            .pitch( frequency )
+            .gain( volume )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        rsEngageSlippery.stop();
+    }
+
+    // motor sounds
+    volume = 0.0;
+    if( ( true == Vehicle.Mains )
+     && ( false == Vehicle.dizel_enginestart ) ) {
+
+        if( std::fabs( Vehicle.enrot ) > 0.01 ) {
+
+            // frequency calculation
+            auto normalizer { 1.f };
+            if( true == motor.is_combined() ) {
+                // for combined motor sound we calculate sound point in rpm, to make .mmd files setup easier
+                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                normalizer = 60.f * 0.01f;
+            }
+            auto const motorrevolutions { std::abs( Vehicle.nrot ) * Vehicle.Transmision.Ratio };
+            frequency =
+                motor.m_frequencyoffset
+                + motor.m_frequencyfactor * motorrevolutions * normalizer;
+
+            // base volume calculation
+            switch( Vehicle.EngineType ) {
+                case ElectricInductionMotor: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
+                    break;
+                }
+                case ElectricSeriesMotor: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * ( Vehicle.EnginePower / 1000 + motorrevolutions * 60.0 );
+                    break;
+                }
+                default: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * motorrevolutions * 60.0;
+                    break;
+                }
+            }
+
+            if( Vehicle.EngineType == ElectricSeriesMotor ) {
+                // volume variation
+                if( ( volume < 1.0 )
+                 && ( Vehicle.EnginePower < 100 ) ) {
+
+                    auto const volumevariation { Random( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
+                    if( volumevariation < 2 ) {
+                        volume += volumevariation / 200;
+                    }
+                }
+
+                if( ( Vehicle.DynamicBrakeFlag )
+                 && ( Vehicle.EnginePower > 0.1 ) ) {
+                    // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
+                    volume += 0.8;
+                }
+            }
+            // scale motor volume based on whether they're active
+            motor_momentum =
+                clamp(
+                    motor_momentum
+                    - 1.0 * Deltatime // smooth out decay
+                    + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
+                    0.0, 1.25 );
+            volume *= std::max( 0.25f, motor_momentum );
+
+            if( motor_volume >= 0.05 ) {
+                motor
+                    .pitch( frequency )
+                    .gain( motor_volume )
+                    .play( sound_flags::exclusive | sound_flags::looping );
+            }
+        }
+        else {
+            motor.stop();
+        }
+    }
+    motor_volume = interpolate( motor_volume, volume, 0.25 );
+    if( motor_volume < 0.05 ) {
+        motor.stop();
+    }
+
+    if( ( Vehicle.EngineType == ElectricSeriesMotor )
+     || ( Vehicle.EngineType == ElectricInductionMotor ) ) {
+
+        if( Vehicle.RventRot > 0.1 ) {
+            // play ventilator sound if the ventilators are rotating fast enough...
+            volume = (
+                Vehicle.EngineType == ElectricInductionMotor ?
+                    rsWentylator.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) ) + rsWentylator.m_amplitudeoffset :
+                    rsWentylator.m_amplitudefactor * Vehicle.RventRot + rsWentylator.m_amplitudeoffset );
+
+            rsWentylator
+                .pitch( rsWentylator.m_frequencyfactor * Vehicle.RventRot + rsWentylator.m_frequencyoffset )
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            // ...otherwise shut down the sound
+            rsWentylator.stop();
+        }
+    }
+
+
+    if( Vehicle.TrainType == dt_ET40 ) {
+        if( Vehicle.Vel > 0.1 ) {
+            transmission
+                .pitch( transmission.m_frequencyfactor * ( Vehicle.Vel ) + transmission.m_frequencyoffset  )
+                .gain( transmission.m_amplitudefactor * ( Vehicle.Vel ) + transmission.m_amplitudeoffset )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            transmission.stop();
+        }
+    }
+}
 
 
 // legacy method, calculates changes in simulation state over specified time

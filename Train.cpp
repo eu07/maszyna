@@ -1538,7 +1538,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 Train->m_linebreakerstate = 2;
                 // for diesels, we complete the engine start here
                 // TODO: consider arranging a better way to start the diesel engines
-                if( Train->mvControlled->EngineType == DieselEngine ) {
+                if( ( Train->mvControlled->EngineType == DieselEngine )
+                 || ( Train->mvControlled->EngineType == DieselElectric ) ) {
                     if( Train->mvControlled->MainSwitch( true ) ) {
                         // side-effects
                         Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
@@ -1619,7 +1620,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
         else {
             // ...after closing the circuit
             // we don't need to start the diesel twice, but the other types still need to be launched
-            if( Train->mvControlled->EngineType != DieselEngine ) {
+            if( ( Train->mvControlled->EngineType != DieselEngine )
+             && ( Train->mvControlled->EngineType != DieselElectric ) ) {
                 if( Train->mvControlled->MainSwitch( true ) ) {
                     // side-effects
                     Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
