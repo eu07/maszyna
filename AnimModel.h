@@ -139,7 +139,7 @@ public:
         vAngle.x = Angles.x;
         vAngle.y = Angles.y;
         vAngle.z = Angles.z; };
-    void LightSet( int n, float v );
+    void LightSet( int const n, float const v );
     void AnimationVND( void *pData, double a, double b, double c, double d );
     bool TerrainLoaded();
     int TerrainCount();
@@ -178,8 +178,8 @@ private:
 
     std::string asText; // tekst dla wyświetlacza znakowego
     TAnimAdvanced *pAdvanced { nullptr };
-    TLightState lsLights[ iMaxNumLights ];
-    float fDark { DefaultDarkThresholdLevel }; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
+    float lsLights[ iMaxNumLights ];
+//    float fDark { DefaultDarkThresholdLevel }; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
     float fOnTime { 0.66f };
     float fOffTime { 0.66f + 0.66f }; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
