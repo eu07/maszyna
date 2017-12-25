@@ -407,14 +407,15 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
         *parser >> token;
         break;
     case tp_Sound:
-        // Params[0].asRealSound->Init(asNodeName.c_str(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble());
-        // McZapkie-070502: dzwiek przestrzenny (ale do poprawy)
-        // Params[1].asdouble=Parser->GetNextSymbol().ToDouble();
-        // Params[2].asdouble=Parser->GetNextSymbol().ToDouble();
-        // Params[3].asdouble=Parser->GetNextSymbol().ToDouble(); //polozenie X,Y,Z - do poprawy!
         parser->getTokens();
         *parser >> Params[0].asInt; // 0: wylaczyc, 1: wlaczyc; -1: wlaczyc zapetlone
+        Params[1].asdouble = 0.0;
         parser->getTokens();
+        if( parser->peek() != "endevent" ) {
+            // optional parameter, radio channel to receive/broadcast the sound
+            *parser >> Params[1].asdouble;
+            parser->getTokens();
+        }
         *parser >> token;
         break;
     case tp_Exit:
@@ -1032,7 +1033,14 @@ event_manager::CheckQuery() {
                         break;
                     }
                     case 1: {
-                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive );
+                        if( m_workevent->Params[ 1 ].asdouble > 0.0 ) {
+                            Global::pWorld->radio_message(
+                                m_workevent->Params[ 9 ].tsTextSound,
+                                static_cast<int>( m_workevent->Params[ 1 ].asdouble ) );
+                        }
+                        else {
+                            m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive );
+                        }
                         break;
                     }
                     case -1: {

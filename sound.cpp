@@ -268,6 +268,18 @@ sound_source::deserialize_soundset( cParser &Input ) {
     }
 }
 
+// copies list of sounds from provided source
+sound_source &
+sound_source::copy_sounds( sound_source const &Source ) {
+
+    m_sounds = Source.m_sounds;
+    m_soundchunks = Source.m_soundchunks;
+    m_soundchunksempty = Source.m_soundchunksempty;
+    // NOTE: should probably zero the .playing fields here as precaution
+    // TODO: add this if we ever start copying sounds from active sources
+    return *this;
+}
+
 // issues contextual play commands for the audio renderer
 void
 sound_source::play( int const Flags ) {

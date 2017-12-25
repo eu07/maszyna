@@ -85,10 +85,6 @@ class TWorld
     // NOTE: direct access is a shortcut, but world etc needs some restructuring regardless
     friend opengl_renderer;
 
-    void InOutKey( bool const Near = true );
-    void FollowView(bool wycisz = true);
-    void DistantView( bool const Near = false );
-
 public:
 // types
 
@@ -99,14 +95,16 @@ TWorld();
 ~TWorld();
 
 // methods
+    void CreateE3D( std::string const &dir = "", bool dyn = false );
     bool Init( GLFWwindow *w );
     bool InitPerformed() { return m_init; }
-    GLFWwindow *window;
-    void OnKeyDown(int cKey);
-    // void UpdateWindow();
-    void OnMouseMove(double x, double y);
-    void OnCommandGet(multiplayer::DaneRozkaz *pRozkaz);
     bool Update();
+    void OnKeyDown( int cKey );
+    void OnMouseMove( double x, double y );
+    void OnCommandGet( multiplayer::DaneRozkaz *pRozkaz );
+    // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel
+    void radio_message( sound_source *Message, int const Channel );
+    void CabChange( TDynamicObject *old, TDynamicObject *now );
     void TrainDelete(TDynamicObject *d = NULL);
     TTrain const *
         train() const { return Train; }
@@ -115,11 +113,18 @@ TWorld();
     // calculates current season of the year based on set simulation date
     void compute_season( int const Yearday ) const;
 
+// members
+
 private:
     void Update_Environment();
     void Update_Camera( const double Deltatime );
     void Update_UI();
     void ResourceSweep();
+    // handles vehicle change flag
+    void ChangeDynamic();
+    void InOutKey( bool const Near = true );
+    void FollowView( bool wycisz = true );
+    void DistantView( bool const Near = false );
 
     TCamera Camera;
     TCamera DebugCamera;
@@ -140,13 +145,8 @@ private:
     double VelPrev; // poprzednia prędkość
     int tprev; // poprzedni czas
     double Acc; // przyspieszenie styczne
-    bool m_init{ false }; // indicates whether initial update of the world was performed
-
-  public:
-    void CreateE3D(std::string const &dir = "", bool dyn = false);
-    void CabChange(TDynamicObject *old, TDynamicObject *now);
-    // handles vehicle change flag
-    void ChangeDynamic();
+    bool m_init { false }; // indicates whether initial update of the world was performed
+    GLFWwindow *window;
 };
 
 //---------------------------------------------------------------------------
