@@ -8,6 +8,16 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #pragma once
+
+int const null_handle = 0;
+
+enum class resource_state {
+    none,
+    loading,
+    good,
+    failed
+};
+
 /*
 #include <vector>
 #include <algorithm>
@@ -56,6 +66,11 @@ class ResourceManager
 };
 */
 
+using resource_timestamp = std::chrono::steady_clock::time_point;
+
+// takes containers providing access to specific element through operator[]
+// with elements of std::pair<resource *, resource_timestamp>
+// the element should provide method release() freeing resources owned by the element
 template <class Container_>
 class garbage_collector {
 

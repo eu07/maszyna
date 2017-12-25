@@ -1027,11 +1027,11 @@ event_manager::CheckQuery() {
                         break;
                     }
                     case 1: {
-                        m_workevent->Params[ 9 ].tsTextSound->loop(false).play();
+                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive );
                         break;
                     }
                     case -1: {
-                        m_workevent->Params[ 9 ].tsTextSound->loop().play();
+                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive | sound_flags::looping );
                         break;
                     }
                     default: {
@@ -1565,14 +1565,19 @@ event_manager::InitLaunchers() {
             }
         }
 
-        launcher->Event1 = (
-            launcher->asEvent1Name != "none" ?
-                simulation::Events.FindEvent( launcher->asEvent1Name ) :
-                nullptr );
-        launcher->Event2 = (
-            launcher->asEvent2Name != "none" ?
-                simulation::Events.FindEvent( launcher->asEvent2Name ) :
-                nullptr );
+        if( launcher->asEvent1Name != "none" ) {
+            launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
+            if( launcher->Event1 == nullptr ) {
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent1Name + "\"" );
+            }
+        }
+
+        if( launcher->asEvent2Name != "none" ) {
+            launcher->Event2 = simulation::Events.FindEvent( launcher->asEvent2Name );
+            if( launcher->Event2 == nullptr ) {
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent2Name + "\"" );
+            }
+        }
     }
 }
 

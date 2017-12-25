@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "Console.h"
 #include "Logs.h"
+#include "renderer.h"
 
 void TButton::Clear(int i)
 {
@@ -24,8 +25,8 @@ void TButton::Clear(int i)
     Update(); // kasowanie bitu Feedback, o ile jakiś ustawiony
 };
 
-void TButton::Init(std::string const &asName, TModel3d *pModel, bool bNewOn)
-{
+void TButton::Init( std::string const &asName, TModel3d *pModel, bool bNewOn ) {
+
     if( pModel == nullptr ) { return; }
 
     pModelOn = pModel->GetFromName( asName + "_on" );
@@ -34,7 +35,7 @@ void TButton::Init(std::string const &asName, TModel3d *pModel, bool bNewOn)
     Update();
 };
 
-void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
+void TButton::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pModel1, TModel3d *pModel2 ) {
 
     std::string submodelname;
 
@@ -46,59 +47,66 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
     else {
         // new, block type config
         // TODO: rework the base part into yaml-compatible flow style mapping
-        cParser mappingparser( Parser.getToken<std::string>( false, "}" ) );
-        submodelname = mappingparser.getToken<std::string>( false );
-        // new, variable length section
-        while( true == Load_mapping( mappingparser ) ) {
+        submodelname = Parser.getToken<std::string>( false );
+        while( true == Load_mapping( Parser ) ) {
             ; // all work done by while()
         }
     }
 
+    // bind defined sounds with the button owner
+    m_soundfxincrease.owner( Owner );
+    m_soundfxdecrease.owner( Owner );
+
     if( pModel1 ) {
         // poszukiwanie submodeli w modelu
         Init( submodelname, pModel1, false );
-        if( ( pModelOn != nullptr ) || ( pModelOff != nullptr ) ) {
-            // we got our models, bail out
-            return;
-        }
     }
-    if( pModel2 ) {
+    if( ( pModelOn  == nullptr )
+     && ( pModelOff == nullptr )
+     && ( pModel2   != nullptr ) ) {
         // poszukiwanie submodeli w modelu
         Init( submodelname, pModel2, false );
-        if( ( pModelOn != nullptr ) || ( pModelOff != nullptr ) ) {
-            // we got our models, bail out
-            return;
-        }
     }
-    // if we failed to locate even one state submodel, cry
-    ErrorLog( "Failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + pModel1->NameGet() + "\"" );
-};
+
+    if( ( pModelOn  == nullptr )
+     && ( pModelOff == nullptr ) ) {
+        // if we failed to locate even one state submodel, cry
+        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + pModel1->NameGet() + "\"" );
+    }
+
+    // pass submodel location to defined sounds
+    auto const offset { model_offset() };
+    m_soundfxincrease.offset( offset );
+    m_soundfxdecrease.offset( offset );
+}
 
 bool
 TButton::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, " ,\n\r\t" ) ) {
-        return false;
-    }
+    // token can be a key or block end
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
+    // if not block end then the key is followed by assigned value or sub-block
+         if( key == "soundinc:" ) { m_soundfxincrease.deserialize( Input, sound_type::single ); }
+    else if( key == "sounddec:" ) { m_soundfxdecrease.deserialize( Input, sound_type::single ); }
 
-    std::string key, value;
-    Input
-        >> key
-        >> value;
-
-    if( key == "soundinc:" ) {
-        m_soundfxincrease = (
-            value != "none" ?
-                sound_man->create_sound(value) :
-                nullptr );
-    }
-    else if( key == "sounddec:" ) {
-        m_soundfxdecrease = (
-            value != "none" ?
-                sound_man->create_sound(value) :
-                nullptr );
-    }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
+}
+
+// returns offset of submodel associated with the button from the model centre
+glm::vec3
+TButton::model_offset() const {
+
+    auto const
+        submodel { (
+            pModelOn ? pModelOn :
+            pModelOff ? pModelOff :
+            nullptr ) };
+
+    return (
+        submodel != nullptr ?
+            submodel->offset( 1.f ) :
+            glm::vec3() );
 }
 
 void
@@ -142,20 +150,6 @@ void TButton::AssignBool(bool const *bValue) {
 
 void
 TButton::play() {
-
-    play(
-        m_state == true ?
-            m_soundfxincrease :
-            m_soundfxdecrease );
-}
-
-void
-TButton::play( sound* Sound ) {
-
-    if( Sound == nullptr ) { return; }
-
-	Sound->stop();
-	Sound->play();
-
-    return;
+    if( m_state == true ) { m_soundfxincrease.play(); }
+    else                  { m_soundfxdecrease.play(); }
 }

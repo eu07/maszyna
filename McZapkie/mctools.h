@@ -116,11 +116,12 @@ void win1250_to_ascii( std::string &Input );
 inline
 std::string
 extract_value( std::string const &Key, std::string const &Input ) {
-
+    // NOTE, HACK: the leading space allows to uniformly look for " variable=" substring
+    std::string const input { " " + Input };
     std::string value;
-    auto lookup = Input.find( Key + "=" );
+    auto lookup = input.find( " " + Key + "=" );
     if( lookup != std::string::npos ) {
-        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
+        value = input.substr( input.find_first_not_of( ' ', lookup + Key.size() + 2 ) );
         lookup = value.find( ' ' );
         if( lookup != std::string::npos ) {
             // trim everything past the value

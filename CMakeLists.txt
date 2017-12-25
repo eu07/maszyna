@@ -18,7 +18,6 @@ set(SOURCES
 "TractionPower.cpp"
 "Train.cpp"
 "TrkFoll.cpp"
-"VBO.cpp"
 "World.cpp"
 "AirCoupler.cpp"
 "AnimModel.cpp"
@@ -76,6 +75,8 @@ set(SOURCES
 "scenenode.cpp"
 "simulation.cpp"
 "vertex.cpp"
+"audio.cpp"
+"audiorenderer.cpp"
 )
 
 set (PREFIX "")

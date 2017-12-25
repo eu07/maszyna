@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "dumb3d.h"
 #include "Float3d.h"
-#include "VBO.h"
+#include "openglgeometrybank.h"
 #include "material.h"
 
 using namespace Math3D;
@@ -124,7 +124,9 @@ private:
 
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-    geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
+public: // temporary access, clean this up during refactoring
+    gfx::geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
+private:
     material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };
@@ -134,20 +136,18 @@ private:
 
 public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
-    vertex_array Vertices;
+    gfx::vertex_array Vertices;
     float m_boundingradius { 0 };
     size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
-public:
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
-public:
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
     TSubModel *Parent{ nullptr }; // nadrzędny, np. do wymnażania macierzy
     int iVisible{ 1 }; // roboczy stan widoczności
 	std::string m_materialname; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
 private:
-	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices );
+	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
 	void RaAnimation(glm::mat4 &m, TAnimType a);
 
@@ -173,9 +173,12 @@ public:
 	void SetRotateIK1(float3 vNewAngles);
 	TSubModel * GetFromName( std::string const &search, bool i = true );
 	inline float4x4 * GetMatrix() { return fMatrix; };
-	inline void Hide() { iVisible = 0; };
+    inline float4x4 const * GetMatrix() const { return fMatrix; };
+    // returns offset vector from root
+    glm::vec3 offset( float const Geometrytestoffsetthreshold = 0.f ) const;
+    inline void Hide() { iVisible = 0; };
 
-    void create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank );
+    void create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank );
 	int FlagsCheck();
 	void WillBeAnimated()
 	{
@@ -201,7 +204,7 @@ public:
 		return *(fMatrix->TranslationGet()) + Child->Translation1Get(); }
     material_handle GetMaterial() const {
 		return m_material; }
-	void ParentMatrix(float4x4 *m);
+	void ParentMatrix(float4x4 *m) const;
 	float MaxY( float4x4 const &m );
 
 	void deserialize(std::istream&);
@@ -214,7 +217,7 @@ public:
     // places contained geometry in provided ground node
 };
 
-class TModel3d : public CMesh
+class TModel3d
 {
     friend class opengl_renderer;
 
@@ -222,7 +225,9 @@ private:
 	TSubModel *Root; // drzewo submodeli
 	int iFlags; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
-	int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
+    int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
+    gfx::geometrybank_handle m_geometrybank;
+    bool m_geometrycreated { false };
 private:
 	std::vector<std::string> Textures; // nazwy tekstur
 	std::vector<std::string> Names; // nazwy submodeli
@@ -230,15 +235,16 @@ private:
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
+
 public:
+    TModel3d();
+    ~TModel3d();
     float bounding_radius() const {
         return (
             Root ?
                 Root->m_boundingradius :
                 0.f ); }
 	inline TSubModel * GetSMRoot() { return (Root); };
-	TModel3d();
-	~TModel3d();
 	TSubModel * GetFromName(std::string const &Name);
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);

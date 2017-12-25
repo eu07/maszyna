@@ -103,7 +103,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
     // try to locate requested material in the databank
     auto const databanklookup = find_in_databank( filename );
-    if( databanklookup != npos ) {
+    if( databanklookup != null_handle ) {
         return databanklookup;
     }
     // if this fails, try to look for it on disk
@@ -147,7 +147,7 @@ material_manager::find_in_databank( std::string const &Materialname ) const {
     return (
         lookup != m_materialmappings.end() ?
             lookup->second :
-            npos );
+            null_handle );
 }
 
 // checks whether specified file exists.

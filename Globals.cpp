@@ -40,6 +40,7 @@ float Global::FieldOfView = 45.0f;
 GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
+bool Global::CabWindowOpen { false };
 int Global::iCameraLast = -1;
 std::string Global::asVersion = "UNKNOWN";
 bool Global::ControlPicking = false; // indicates controls pick mode is enabled
@@ -53,19 +54,15 @@ std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
 int Global::iPause = 0; // 0x10; // globalna pauza ruchu
 bool Global::bActive = true; // czy jest aktywnym oknem
 TWorld *Global::pWorld = NULL;
-cParser *Global::pParser = NULL;
 TCamera *Global::pCamera = NULL; // parametry kamery
-TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
 float4 Global::UITextColor = float4( 225.0f / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
-// parametry scenerii
 vector3 Global::pCameraPosition;
 vector3 Global::DebugCameraPosition;
-double Global::pCameraRotation;
-double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
+// parametry scenerii
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
@@ -126,8 +123,6 @@ bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
 int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
 int Global::iSlowMotionMask = -1; // maska wyłączanych właściwości dla zwiększenia FPS
 // bool Global::bTerrainCompact=true; //czy zapisać teren w pliku
-TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
-std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
 double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
 double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
@@ -136,7 +131,12 @@ bool Global::FullPhysics { true }; // full calculations performed for each simul
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
+
+// sound renderer
 bool Global::bSoundEnabled = true;
+float Global::AudioVolume = 1.5f;
+std::string Global::AudioRenderer;
+
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::MultipleLogs{ false };
 
@@ -274,6 +274,16 @@ void Global::ConfigParse(cParser &Parser)
             // dzw.
             Parser.getTokens();
             Parser >> Global::bSoundEnabled;
+        }
+        else if( token == "sound.openal.renderer" ) {
+            // selected device for audio renderer
+            Global::AudioRenderer = Parser.getToken<std::string>( false ); // case-sensitive
+        }
+        else if( token == "sound.volume" ) {
+            // selected device for audio renderer
+            Parser.getTokens();
+            Parser >> Global::AudioVolume;
+            Global::AudioVolume = clamp( Global::AudioVolume, 1.f, 4.f );
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
@@ -916,16 +926,6 @@ vector3 Global::GetCameraPosition()
 void Global::SetCameraPosition(vector3 pNewCameraPosition)
 {
     pCameraPosition = pNewCameraPosition;
-}
-
-void Global::SetCameraRotation(double Yaw)
-{ // ustawienie bezwzględnego kierunku kamery z korekcją do przedziału <-M_PI,M_PI>
-    pCameraRotation = Yaw;
-    while (pCameraRotation < -M_PI)
-        pCameraRotation += 2 * M_PI;
-    while (pCameraRotation > M_PI)
-        pCameraRotation -= 2 * M_PI;
-    pCameraRotationDeg = pCameraRotation * 180.0 / M_PI;
 }
 
 void Global::TrainDelete(TDynamicObject *d)

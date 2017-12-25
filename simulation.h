@@ -67,15 +67,11 @@ private:
     TEventLauncher * deserialize_eventlauncher( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TAnimModel * deserialize_model( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TDynamicObject * deserialize_dynamic( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
-    sound * deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
+    sound_source * deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     // skips content of stream until specified token
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
-};
-
-class sound_table : public basic_table<sound>
-{
 };
 
 extern state_manager State;

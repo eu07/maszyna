@@ -23,8 +23,7 @@ class TModel3d; //siatka modelu wspólna dla egzemplarzy
 class TSubModel; // fragment modelu (tu do wyświetlania terenu)
 class TMemCell; // komórka pamięci
 class cParser;
-class sound;
-class text_sound;
+class sound_source;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów

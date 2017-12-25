@@ -338,7 +338,7 @@ basic_cell::insert( TAnimModel *Instance ) {
 
 // adds provided sound instance to the cell
 void
-basic_cell::insert( sound *Sound ) {
+basic_cell::insert( sound_source *Sound ) {
 
     m_active = true;
 
@@ -504,7 +504,7 @@ basic_cell::center( glm::dvec3 Center ) {
 
 // generates renderable version of held non-instanced geometry
 void
-basic_cell::create_geometry( geometrybank_handle const &Bank ) {
+basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
     if( false == m_active ) { return; } // nothing to do here
 
@@ -863,7 +863,7 @@ void
 basic_region::serialize( std::string const &Scenariofile ) const {
 
     auto filename { Scenariofile };
-    if( filename[ 0 ] == '$' ) {
+    while( filename[ 0 ] == '$' ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
@@ -906,7 +906,7 @@ bool
 basic_region::deserialize( std::string const &Scenariofile ) {
 
     auto filename { Scenariofile };
-    if( filename[ 0 ] == '$' ) {
+    while( filename[ 0 ] == '$' ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
@@ -1161,19 +1161,7 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
 
 // inserts provided sound in the region
 void
-basic_region::insert_sound( sound *Sound, scratch_data &Scratchpad ) {
-
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Sound->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Sound );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: sound node placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
+basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
 }
 
 // inserts provided event launcher in the region

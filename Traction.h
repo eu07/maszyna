@@ -51,7 +51,7 @@ class TTraction : public editor::basic_node {
     int PowerState { 0 }; // type of incoming power, if any
     // visualization data
     glm::dvec3 m_origin;
-    geometry_handle m_geometry;
+    gfx::geometry_handle m_geometry;
 
     explicit TTraction( scene::node_data const &Nodedata );
 
@@ -65,7 +65,7 @@ class TTraction : public editor::basic_node {
         endpoints() const;
     // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
     // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
-    std::size_t create_geometry( geometrybank_handle const &Bank );
+    std::size_t create_geometry( gfx::geometrybank_handle const &Bank );
     int TestPoint(glm::dvec3 const &Point);
     void Connect(int my, TTraction *with, int to);
     void Init();

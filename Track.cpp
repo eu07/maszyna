@@ -940,7 +940,7 @@ const int nnumPts = 12;
 // szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
 // tę wersję opracował Tolein (bez pochylenia)
 // TODO: profile definitions in external files
-basic_vertex const szyna[ nnumPts ] = {
+gfx::basic_vertex const szyna[ nnumPts ] = {
     {{ 0.111f, -0.180f, 0.f}, { 1.000f,  0.000f, 0.f}, {0.00f, 0.f}},
     {{ 0.046f, -0.150f, 0.f}, { 0.707f,  0.707f, 0.f}, {0.15f, 0.f}},
     {{ 0.044f, -0.050f, 0.f}, { 0.707f, -0.707f, 0.f}, {0.25f, 0.f}},
@@ -957,7 +957,7 @@ basic_vertex const szyna[ nnumPts ] = {
 // iglica - vextor3(x,y,mapowanie tekstury)
 // 1 mm więcej, żeby nie nachodziły tekstury?
 // TODO: automatic generation from base profile TBD: reuse base profile?
-basic_vertex const iglica[ nnumPts ] = {
+gfx::basic_vertex const iglica[ nnumPts ] = {
     {{ 0.010f, -0.180f, 0.f}, { 1.000f, 0.000f, 0.f}, {0.00f, 0.f}},
     {{ 0.010f, -0.155f, 0.f}, { 1.000f, 0.000f, 0.f}, {0.15f, 0.f}},
     {{ 0.010f, -0.070f, 0.f}, { 1.000f, 0.000f, 0.f}, {0.25f, 0.f}},
@@ -1062,7 +1062,7 @@ void TTrack::RaAssign( TAnimModel *am, TEvent *done, TEvent *joined )
 };
 
 // wypełnianie tablic VBO
-void TTrack::create_geometry( geometrybank_handle const &Bank ) {
+void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
     // Ra: trzeba rozdzielić szyny od podsypki, aby móc grupować wg tekstur
     auto const fHTW = 0.5f * std::abs(fTrackWidth);
     auto const side = std::abs(fTexWidth); // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -1122,7 +1122,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             sin2 = std::sin(roll2),
             cos2 = std::cos(roll2);
         // zwykla szyna: //Ra: czemu główki są asymetryczne na wysokości 0.140?
-        basic_vertex rpts1[24], rpts2[24], rpts3[24], rpts4[24];
+        gfx::basic_vertex rpts1[24], rpts2[24], rpts3[24], rpts4[24];
         for( int i = 0; i < 12; ++i ) {
 
             rpts1[ i ] = {
@@ -1186,7 +1186,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         case tt_Normal:
             if (m_material2)
             { // podsypka z podkładami jest tylko dla zwykłego toru
-                basic_vertex bpts1[ 8 ]; // punkty głównej płaszczyzny nie przydają się do robienia boków
+                gfx::basic_vertex bpts1[ 8 ]; // punkty głównej płaszczyzny nie przydają się do robienia boków
                 if( fTexLength == 4.f ) {
                     // stare mapowanie z różną gęstością pikseli i oddzielnymi teksturami na każdy profil
                     auto const normalx = std::cos( glm::radians( 75.f ) );
@@ -1314,7 +1314,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.5f + map12, 0.f} }; // prawy skos
                     }
                 }
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -4 : 4, fTexLength);
                 if( ( Bank != 0 ) && ( true == Geometry2.empty() ) ) {
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1326,7 +1326,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             }
             if (m_material1)
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 if( ( Bank != 0 ) && ( true == Geometry1.empty() ) ) {
                     Segment->RenderLoft( vertices, m_origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1347,7 +1347,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         case tt_Switch: // dla zwrotnicy dwa razy szyny
             if( m_material1 || m_material2 ) {
                 // iglice liczone tylko dla zwrotnic
-                basic_vertex rpts3[24], rpts4[24];
+                gfx::basic_vertex rpts3[24], rpts4[24];
                 for( int i = 0; i < 12; ++i ) {
 
                     rpts3[ i ] = {
@@ -1378,7 +1378,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 // TODO, TBD: change all track geometry to triangles, to allow packing data in less, larger buffers
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                    vertex_array vertices;
+                    gfx::vertex_array vertices;
                     if( m_material1 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength );
@@ -1408,7 +1408,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 }
                 else
                 { // lewa działa lepiej niż prawa
-                    vertex_array vertices;
+                    gfx::vertex_array vertices;
                     if( m_material1 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
@@ -1446,7 +1446,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         {
         case tt_Normal: // drogi proste, bo skrzyżowania osobno
         {
-            basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
+            gfx::basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
             if (m_material1 || m_material2) {
                 // punkty się przydadzą, nawet jeśli nawierzchni nie ma
 /*
@@ -1489,13 +1489,13 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             }
             if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
             if (m_material2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
-                basic_vertex
+                gfx::basic_vertex
                     rpts1[6],
                     rpts2[6]; // współrzędne przekroju i mapowania dla prawej i lewej strony
                 if (fTexHeight1 >= 0.f)
@@ -1649,7 +1649,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                             {0.484375f - map2l, 0.f} }; // lewy brzeg lewego chodnika
                     }
                 }
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 if( iTrapezoid ) // trapez albo przechyłki
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony
                   // odcinka
@@ -1728,7 +1728,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 SwitchExtension->bPoints ?
                     nullptr :
                     SwitchExtension->vPoints; // zmienna robocza, NULL gdy tablica punktów już jest wypełniona
-            basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
+            gfx::basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
             if (m_material1 || m_material2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
             { // double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
                 auto const max = fTexRatio1 * fTexLength; // test: szerokość proporcjonalna do długości
@@ -1761,7 +1761,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             // ale pobocza renderują się później, więc nawierzchnia nie załapuje się na renderowanie w swoim czasie
             if( m_material2 ) 
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
-                basic_vertex
+                gfx::basic_vertex
                     rpts1[6],
                     rpts2[6]; // współrzędne przekroju i mapowania dla prawej i lewej strony
                 // Ra 2014-07: trzeba to przerobić na pętlę i pobierać profile (przynajmniej 2..4) z sąsiednich dróg
@@ -1900,7 +1900,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     }
                 }
                 bool render = ( m_material2 != 0 ); // renderować nie trzeba, ale trzeba wyznaczyć punkty brzegowe nawierzchni
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 if (SwitchExtension->iRoads == 4)
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
@@ -1956,7 +1956,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             }
 
             if( m_material1 ) {
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 // jeśli podana tekstura nawierzchni
                 // we start with a vertex in the middle...
                 vertices.emplace_back(
@@ -2006,7 +2006,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         {
         case tt_Normal: // drogi proste, bo skrzyżowania osobno
         {
-            basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
+            gfx::basic_vertex bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
             if (m_material1 || m_material2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
             { // double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
                 auto const max = (
@@ -2056,14 +2056,14 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             }
             if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
-                vertex_array vertices;
+                gfx::vertex_array vertices;
                 Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
             if (m_material2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
-                vertex_array vertices;
-                basic_vertex
+                gfx::vertex_array vertices;
+                gfx::basic_vertex
                     rpts1[6],
                     rpts2[6]; // współrzędne przekroju i mapowania dla prawej i lewej strony
 
@@ -2425,7 +2425,7 @@ TTrack * TTrack::RaAnimate()
             auto const fHTW2 = fHTW; // Ra: na razie niech tak będzie
             auto const cos1 = 1.0f, sin1 = 0.0f, cos2 = 1.0f, sin2 = 0.0f; // Ra: ...
 
-            basic_vertex
+            gfx::basic_vertex
                 rpts3[ 24 ],
                 rpts4[ 24 ];
             for (int i = 0; i < 12; ++i) {
@@ -2456,7 +2456,7 @@ TTrack * TTrack::RaAnimate()
                      {szyna[ i ].texture.x, 0.f} };
             }
 
-            vertex_array vertices;
+            gfx::vertex_array vertices;
 
             if (SwitchExtension->RightSwitch)
             { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
@@ -2520,7 +2520,7 @@ TTrack * TTrack::RaAnimate()
                         dynamic->Move( 0.000001 );
                     }
                     // NOTE: passing empty handle is a bit of a hack here. could be refactored into something more elegant
-                    create_geometry( geometrybank_handle() );
+                    create_geometry( {} );
                 } // animacja trwa nadal
         }
         else

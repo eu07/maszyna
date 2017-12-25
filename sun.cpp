@@ -13,6 +13,15 @@ cSun::cSun() {
 	setLocation( 19.00f, 52.00f );					// default location roughly in centre of Poland
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
+}
+
+cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
+
+void
+cSun::init() {
+
+    sunsphere = gluNewQuadric();
+    gluQuadricNormals( sunsphere, GLU_SMOOTH );
 
 #ifdef _WIN32
 	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
@@ -25,15 +34,6 @@ cSun::cSun() {
     time_t utc = mktime(gmtime(&ts.tv_sec));
 	m_observer.timezone = (local - utc) / 3600.0f;
 #endif
-}
-
-cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
-
-void
-cSun::init() {
-
-    sunsphere = gluNewQuadric();
-    gluQuadricNormals( sunsphere, GLU_SMOOTH );
 }
 
 void

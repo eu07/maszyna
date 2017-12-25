@@ -38,11 +38,6 @@ double GetDeltaRenderTime()
     return DeltaRenderTime;
 }
 
-double GetfSinceStart()
-{
-    return fSinceStart;
-}
-
 void SetDeltaTime(double t)
 {
     DeltaTime = t;

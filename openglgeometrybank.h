@@ -18,6 +18,8 @@ http://mozilla.org/MPL/2.0/.
 #endif
 #include "ResourceManager.h"
 
+namespace gfx {
+
 struct basic_vertex {
 
     glm::vec3 position; // 3d space
@@ -93,38 +95,37 @@ public:
 
 // methods:
     // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
-    geometry_handle
-        create( vertex_array &Vertices, unsigned int const Type );
+    gfx::geometry_handle
+        create( gfx::vertex_array const &Vertices, unsigned int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+        replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 );
     // adds supplied vertex data at the end of specified chunk
     bool
-        append( vertex_array &Vertices, geometry_handle const &Geometry );
+        append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams = basic_streams );
+        draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams = basic_streams );
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last, stream_units const &Units, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Units, Streams ); ++First; } }
+        draw( Iterator_ First, Iterator_ Last, gfx::stream_units const &Units, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Units, Streams ); ++First; } }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void
         release();
     // provides direct access to vertex data of specfied chunk
-    vertex_array const &
-        vertices( geometry_handle const &Geometry ) const;
+    gfx::vertex_array const &
+        vertices( gfx::geometry_handle const &Geometry ) const;
 
 protected:
 // types:
     struct geometry_chunk {
         unsigned int type; // kind of geometry used by the chunk
-        vertex_array vertices; // geometry data
-        // NOTE: constructor doesn't copy provided vertex data, but moves it
-        geometry_chunk( vertex_array &Vertices, unsigned int Type ) :
-                                                       type( Type )
+        gfx::vertex_array vertices; // geometry data
+        geometry_chunk( gfx::vertex_array const &Vertices, unsigned int Type ) :
+                                                            type( Type )
         {
-            vertices.swap( Vertices );
+            vertices = Vertices;
         }
     };
 
@@ -133,11 +134,11 @@ protected:
 // methods
     inline
     geometry_chunk &
-        chunk( geometry_handle const Geometry ) {
+        chunk( gfx::geometry_handle const Geometry ) {
             return m_chunks[ Geometry.chunk - 1 ]; }
     inline
     geometry_chunk const &
-        chunk( geometry_handle const Geometry ) const {
+        chunk( gfx::geometry_handle const Geometry ) const {
             return m_chunks[ Geometry.chunk - 1 ]; }
 
 // members:
@@ -146,11 +147,11 @@ protected:
 private:
 // methods:
     // create() subclass details
-    virtual void create_( geometry_handle const &Geometry ) = 0;
+    virtual void create_( gfx::geometry_handle const &Geometry ) = 0;
     // replace() subclass details
-    virtual void replace_( geometry_handle const &Geometry ) = 0;
+    virtual void replace_( gfx::geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) = 0;
+    virtual void draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -170,7 +171,7 @@ public:
     void
         reset() {
             m_activebuffer = 0;
-            m_activestreams = stream::none; }
+            m_activestreams = gfx::stream::none; }
 
 private:
 // types:
@@ -185,13 +186,13 @@ private:
 // methods:
     // create() subclass details
     void
-        create_( geometry_handle const &Geometry );
+        create_( gfx::geometry_handle const &Geometry );
     // replace() subclass details
     void
-        replace_( geometry_handle const &Geometry );
+        replace_( gfx::geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
     // release() subclass details
     void
         release_();
@@ -201,7 +202,7 @@ private:
         delete_buffer();
     static
     void
-        bind_streams( stream_units const &Units, unsigned int const Streams );
+        bind_streams( gfx::stream_units const &Units, unsigned int const Streams );
     static
     void
         release_streams();
@@ -240,18 +241,18 @@ private:
 // methods:
     // create() subclass details
     void
-        create_( geometry_handle const &Geometry );
+        create_( gfx::geometry_handle const &Geometry );
     // replace() subclass details
     void
-        replace_( geometry_handle const &Geometry );
+        replace_( gfx::geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
     // release () subclass details
     void
         release_();
     void
-        delete_list( geometry_handle const &Geometry );
+        delete_list( gfx::geometry_handle const &Geometry );
 
 // members:
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
@@ -269,20 +270,20 @@ public:
     // performs a resource sweep
     void update();
     // creates a new geometry bank. returns: handle to the bank or NULL
-    geometrybank_handle
+    gfx::geometrybank_handle
         create_bank();
     // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-    geometry_handle
-        create_chunk( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type );
+    gfx::geometry_handle
+        create_chunk( gfx::vertex_array const &Vertices, gfx::geometrybank_handle const &Geometry, int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+        replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 );
     // adds supplied vertex data at the end of specified chunk
     bool
-        append( vertex_array &Vertices, geometry_handle const &Geometry );
+        append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
+        draw( gfx::geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
     template <typename Iterator_>
     void
         draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) {
@@ -290,38 +291,40 @@ public:
                 draw( *First, Streams );
                 ++First; } }
     // provides direct access to vertex data of specfied chunk
-    vertex_array const &
-        vertices( geometry_handle const &Geometry ) const;
+    gfx::vertex_array const &
+        vertices( gfx::geometry_handle const &Geometry ) const;
     // sets target texture unit for the texture data stream
-    stream_units &
+    gfx::stream_units &
         units() { return m_units; }
 
 private:
 // types:
     typedef std::pair<
         std::shared_ptr<geometry_bank>,
-        std::chrono::steady_clock::time_point > geometrybanktimepoint_pair;
+        resource_timestamp > geometrybanktimepoint_pair;
 
     typedef std::deque< geometrybanktimepoint_pair > geometrybanktimepointpair_sequence;
 
     // members:
     geometrybanktimepointpair_sequence m_geometrybanks;
     garbage_collector<geometrybanktimepointpair_sequence> m_garbagecollector { m_geometrybanks, 60, 120, "geometry buffer" };
-    stream_units m_units;
+    gfx::stream_units m_units;
 
 // methods
     inline
     bool
-        valid( geometry_handle const &Geometry ) const {
+        valid( gfx::geometry_handle const &Geometry ) const {
             return ( ( Geometry.bank != 0 )
                   && ( Geometry.bank <= m_geometrybanks.size() ) ); }
     inline
     geometrybanktimepointpair_sequence::value_type &
-        bank( geometry_handle const Geometry ) {
+        bank( gfx::geometry_handle const Geometry ) {
             return m_geometrybanks[ Geometry.bank - 1 ]; }
     inline
     geometrybanktimepointpair_sequence::value_type const &
-        bank( geometry_handle const Geometry ) const {
+        bank( gfx::geometry_handle const Geometry ) const {
             return m_geometrybanks[ Geometry.bank - 1 ]; }
 
 };
+
+} // namespace gfx

@@ -55,7 +55,6 @@ private:
     std::string
         find_on_disk( std::string const &Materialname ) const;
 // members:
-    material_handle const npos { -1 };
     material_sequence m_materials;
     index_map m_materialmappings;
 

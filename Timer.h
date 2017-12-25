@@ -16,8 +16,6 @@ double GetTime();
 double GetDeltaTime();
 double GetDeltaRenderTime();
 
-double GetfSinceStart();
-
 void SetDeltaTime(double v);
 
 bool GetSoundTimer();

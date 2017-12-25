@@ -1,184 +1,218 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+﻿/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #pragma once
 
-#include <AL/al.h>
-#include <AL/alc.h>
-#include <cinttypes>
-#include <chrono>
-#include <unordered_map>
-#include <unordered_set>
-#include <glm/glm.hpp>
-#include "dumb3d.h"
-#include "parser.h"
+#include "audiorenderer.h"
+#include "Classes.h"
 #include "Names.h"
 
-class load_error : public std::runtime_error
-{
-public:
-	load_error(std::string const &f);
+float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
+float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
+float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
+
+enum class sound_type {
+    single,
+    multipart
 };
 
-class sound_buffer
-{
-	ALuint id;
-	uint32_t refcount;
-	std::chrono::time_point<std::chrono::steady_clock> last_unref;
-	int samplerate;
-
-public:
-	sound_buffer(std::string &file);
-	~sound_buffer();
-
-	int get_samplerate();
-	ALuint get_id();
-	void ref();
-	void unref();
-	std::chrono::time_point<std::chrono::steady_clock> unused_since();
+enum sound_parameters {
+    range     = 0x1,
+    amplitude = 0x2,
+    frequency = 0x4
 };
 
-//m7todo: make constructor/destructor private friend to sound_manager
-class sound
-{
-	bool pos_dirty;
-	glm::vec3 last_pos;
-	float dt_sum;
-
-public:
-	enum mode_t
-	{
-		global,
-		spatial,
-		anchored
-	};
-
-protected:
-	float max_dist;
-	mode_t mode;
-	glm::vec3 pos;
-	int samplerate;
-
-	ALuint id;
-	sound();
-
-public:
-	float gain_off;
-	float gain_mul;
-	float pitch_off;
-	float pitch_mul;
-
-	virtual ~sound();
-
-	glm::vec3 location(); //get position
-	virtual bool is_playing() = 0;
-
-	virtual void play() = 0;
-	virtual void stop() = 0;
-	virtual void update(float dt);
-
-	sound& set_mode(mode_t);
-	sound& dist(float);
-	sound& gain(float);
-	sound& pitch(float);
-	virtual sound& loop(bool loop = true) = 0;
-
-	sound& position(glm::vec3);
-	sound& position(Math3D::vector3 const &);
+enum sound_flags {
+    looping = 0x1, // the main sample will be looping; implied for multi-sounds
+    exclusive = 0x2 // the source won't dispatch more than one active instance of the sound; implied for multi-sounds
 };
 
-class simple_sound : public sound
-{
-	sound_buffer *buffer;
-
-	bool looping;
-	bool playing;
-
-public:
-	simple_sound(sound_buffer *buf);
-	~simple_sound();
-
-	void play();
-	void stop();
-	void update(float dt);
-
-	sound& loop(bool loop = true);
-
-	bool is_playing();
+enum class sound_placement {
+    general, // source is equally audible in potential carrier and outside of it
+    internal, // source is located inside of the carrier, and less audible when the listener is outside
+    engine, // source is located in the engine compartment, less audible when the listener is outside and even less in the cabs
+    external // source is located on the outside of the carrier, and less audible when the listener is inside
 };
 
-class complex_sound : public sound
-{
-	sound_buffer *pre, *buffer, *post;
-
-	enum class state
-	{
-		premain, // playing pre and continue to main
-		prepost, // playing pre and jump to post
-		main, //playing main
-		post // playing post or idling
-	} cs;
-
-	bool shut_by_dist;
+// mini controller and audio dispatcher; issues play commands for the audio renderer,
+// updates parameters of created audio emitters for the playback duration
+// TODO: move to simulation namespace after clean up of owner classes
+class sound_source {
 
 public:
-	complex_sound(sound_buffer* pre, sound_buffer* main, sound_buffer* post);
-	~complex_sound();
+// constructors
+    sound_source( sound_placement const Placement, float const Range = 50.f );
 
-	bool is_playing();
+// destructor
+    ~sound_source();
 
-	void play();
-	void stop();
-	void update(float dt);
+// methods
+    // restores state of the class from provided data stream
+    sound_source &
+        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+    sound_source &
+        deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+    // issues contextual play commands for the audio renderer
+    void
+        play( int const Flags = 0 );
+    // stops currently active play commands controlled by this emitter
+    void
+        stop( bool const Skipend = false );
+    // adjusts parameters of provided implementation-side sound source
+    void
+        update( audio::openal_source &Source );
+    // sets base volume of the emiter to specified value
+    sound_source &
+        gain( float const Gain );
+    // returns current base volume of the emitter
+    float
+        gain() const;
+    // sets base pitch of the emitter to specified value
+    sound_source &
+        pitch( float const Pitch );
+    // owner setter/getter
+    void
+        owner( TDynamicObject const *Owner );
+    TDynamicObject const *
+        owner() const;
+    // sound source offset setter/getter
+    void
+        offset( glm::vec3 const Offset );
+    glm::vec3 const &
+        offset() const;
+    // sound source name setter/getter
+    void
+        name( std::string Name );
+    std::string const &
+        name() const;
+    // returns true if there isn't any sound buffer associated with the object, false otherwise
+    bool
+        empty() const;
+    // returns true if the source is emitting any sound; by default doesn't take into account optional ending soudnds
+    bool
+        is_playing( bool const Includesoundends = false ) const;
+    // returns true if the source uses sample table
+    bool
+        is_combined() const;
+    // returns location of the sound source in simulation region space
+    glm::dvec3 const
+        location() const;
 
-	sound& loop(bool loop = true);
+// members
+    float m_amplitudefactor { 1.f }; // helper, value potentially used by gain calculation
+    float m_amplitudeoffset { 0.f }; // helper, value potentially used by gain calculation
+    float m_frequencyfactor { 1.f }; // helper, value potentially used by pitch calculation
+    float m_frequencyoffset { 0.f }; // helper, value potentially used by pitch calculation
+
+private:
+// types
+    struct sound_data {
+        audio::buffer_handle buffer;
+        int playing; // number of currently active sample instances
+    };
+
+    struct chunk_data {
+        int threshold; // nominal point of activation for the given chunk
+        float fadein; // actual activation point for the given chunk
+        float fadeout; // actual end point of activation range for the given chunk
+        float pitch; // base pitch of the chunk
+    };
+
+    using soundchunk_pair = std::pair<sound_data, chunk_data>;
+
+    using sound_handle = std::uint32_t;
+    enum sound_id : std::uint32_t {
+        begin,
+        main,
+        end,
+        // 31 bits for index into relevant array, msb selects between the sample table and the basic array
+        chunk = ( 1u << 31 )
+    };
+
+// methods
+    // extracts name of the sound file from provided data stream
+    std::string
+        deserialize_filename( cParser &Input );
+    // imports member data pair from the provided data stream
+    bool
+        deserialize_mapping( cParser &Input );
+    // imports values for initial, main and ending sounds from provided data stream
+    void
+        deserialize_soundset( cParser &Input );
+    // issues contextual play commands for the audio renderer
+    void
+        play_basic();
+    void
+        play_combined();
+    // calculates requested sound point, used to select specific sample from the sample table
+    float
+        compute_combined_point() const;
+    void
+        update_basic( audio::openal_source &Source );
+    void
+        update_combined( audio::openal_source &Source );
+    void
+        update_crossfade( sound_handle const Chunk );
+    void
+        update_counter( sound_handle const Sound, int const Value );
+    void
+        update_location();
+    // potentially updates area-based gain factor of the source. returns: true if location has changed
+    bool
+        update_soundproofing();
+    void
+        insert( sound_handle const Sound );
+    template <class Iterator_>
+    void
+        insert( Iterator_ First, Iterator_ Last ) {
+            uint32_sequence sounds;
+            std::vector<audio::buffer_handle> buffers;
+            std::for_each(
+                First, Last,
+                [&]( sound_handle const &soundhandle ) {
+                    sounds.emplace_back( soundhandle );
+                    buffers.emplace_back( sound( soundhandle ).buffer ); } );
+            audio::renderer.insert( std::begin( buffers ), std::end( buffers ), this, sounds );
+            update_counter( *First, 1 ); }
+    sound_data &
+        sound( sound_handle const Sound );
+    sound_data const &
+        sound( sound_handle const Sound ) const;
+
+// members
+    TDynamicObject const * m_owner { nullptr }; // optional, the vehicle carrying this sound source
+    glm::vec3 m_offset; // relative position of the source, either from the owner or the region centre
+    sound_placement m_placement;
+    float m_range { 50.f }; // audible range of the emitted sounds
+    std::string m_name;
+    int m_flags { 0 }; // requested playback parameters
+    sound_properties m_properties; // current properties of the emitted sounds
+    float m_pitchvariation { 0.f }; // emitter-specific shift in base pitch
+    bool m_stop { false }; // indicates active sample instances should be terminated
+    bool m_playbeginning { true }; // indicates started sounds should be preceeded by opening bookend if there's one
+    std::array<sound_data, 3> m_sounds { {} }; // basic sounds emitted by the source, main and optional bookends
+    std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range
+    bool m_soundchunksempty { true }; // helper, cached check whether sample table is linked with any actual samples
+    int m_crossfaderange {}; // range of transition from one chunk to another 
 };
 
-class text_sound : public simple_sound
-{
-public:
-	text_sound(sound_buffer *buf);
+// owner setter/getter
+inline void sound_source::owner( TDynamicObject const *Owner ) { m_owner = Owner; }
+inline TDynamicObject const * sound_source::owner() const { return m_owner; }
+// sound source offset setter/getter
+inline void sound_source::offset( glm::vec3 const Offset ) { m_offset = Offset; }
+inline glm::vec3 const & sound_source::offset() const { return m_offset; }
+// sound source name setter/getter
+inline void sound_source::name( std::string Name ) { m_name = Name; }
+inline std::string const & sound_source::name() const { return m_name; }
 
-	void play();
+// collection of sound sources present in the scene
+class sound_table : public basic_table<sound_source> {
+
 };
-
-class sound_manager
-{
-	static bool created;
-
-	ALCdevice *dev;
-	ALCcontext *ctx;
-
-	void (*alDeferUpdatesSOFT)() = nullptr;
-	void (*alProcessUpdatesSOFT)() = nullptr;
-	void (*alcDevicePauseSOFT)(ALCdevice*) = nullptr;
-	void (*alcDeviceResumeSOFT)(ALCdevice*) = nullptr;
-
-	const std::chrono::duration<float> gc_time = std::chrono::duration<float>(60.0f);
-	std::unordered_map<std::string, sound_buffer*> buffers;
-	std::unordered_set<sound*> sounds;
-
-	std::string find_file(std::string);
-	sound_buffer* find_buffer(std::string);
-	
-	sound_buffer* get_buffer(std::string const &);
-
-public:
-	glm::vec3 pos, last_pos;
-	glm::mat3 rot;
-
-	sound_manager();
-	~sound_manager();
-
-	simple_sound* create_sound(std::string const &file);
-	text_sound* create_text_sound(std::string const &file);
-	complex_sound* create_complex_sound(std::string const &pre, std::string const &main, std::string const &post);
-	complex_sound* create_complex_sound(cParser &);
-	void destroy_sound(sound**);
-
-	void update(float dt);
-	void set_listener(glm::vec3 const &pos, glm::mat3 const &rot);
-};
-
-extern std::unique_ptr<sound_manager> sound_man;

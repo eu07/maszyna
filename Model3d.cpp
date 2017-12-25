@@ -46,21 +46,13 @@ std::string *TSubModel::pasText;
 // 0x3F3F003F - wszystkie wymienne tekstury używane w danym cyklu
 // Ale w TModel3d okerśla przezroczystość tekstur wymiennych!
 
-TSubModel::~TSubModel()
-{
-/*
-	if (uiDisplayList)
-		glDeleteLists(uiDisplayList, 1);
-*/
-	if (iFlags & 0x0200)
+TSubModel::~TSubModel() {
+
+    if (iFlags & 0x0200)
 	{ // wczytany z pliku tekstowego musi sam posprzątać
-	  // SafeDeleteArray(Indices);
 		SafeDelete(Next);
 		SafeDelete(Child);
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
-/*
-		delete[] Vertices;
-*/
 	}
 	delete[] smLetter; // używany tylko roboczo dla TP_TEXT, do przyspieszenia
 					   // wyświetlania
@@ -99,7 +91,7 @@ TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool co
     }
 }
 
-int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
+int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
     for( int faceidx = Startface; faceidx < facecount; ++faceidx ) {
@@ -984,7 +976,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
 };
 
 void
-TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank ) {
+TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank ) {
 
     // data offset is used to determine data offset of each submodel into single shared geometry bank
     // (the offsets are part of legacy system which we now need to work around for backward compatibility)
@@ -1051,16 +1043,17 @@ void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, g
 */
 };
 
-void TSubModel::ParentMatrix(float4x4 *m)
-{ // pobranie transformacji względem wstawienia modelu
-  // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D), to
-  // dodatkowy obrót
-  // obrót T3D jest wymagany np. do policzenia wysokości pantografów
-	m->Identity();
-	if (fMatrix)
-		*m = float4x4(*fMatrix); // skopiowanie, bo będziemy mnożyć
-							 // m(3)[1]=m[3][1]+0.054; //w górę o wysokość ślizgu (na razie tak)
-	TSubModel *sm = this;
+void TSubModel::ParentMatrix( float4x4 *m ) const { // pobranie transformacji względem wstawienia modelu
+  // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D),
+  // to dodatkowy obrót obrót T3D jest wymagany np. do policzenia wysokości pantografów
+    if( fMatrix != nullptr ) {
+        // skopiowanie, bo będziemy mnożyć
+        *m = float4x4( *fMatrix );
+    }
+    else {
+        m->Identity();
+    }
+	auto *sm = this;
 	while (sm->Parent)
 	{ // przenieść tę funkcję do modelu
 		if (sm->Parent->GetMatrix())
@@ -1162,6 +1155,37 @@ TSubModel *TModel3d::GetFromName(std::string const &Name)
 		return Root ? Root->GetFromName(Name) : nullptr;
 	}
 };
+
+// returns offset vector from root
+glm::vec3
+TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
+
+    float4x4 parentmatrix;
+    ParentMatrix( &parentmatrix );
+    
+    auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
+
+    if( glm::length2( offset ) < Geometrytestoffsetthreshold ) {
+    // offset of zero generally means the submodel has optimized identity matrix
+    // for such cases we resort to an estimate from submodel geometry
+    // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
+        if( m_geometry != null_handle ) {
+            auto const &vertices{ GfxRenderer.Vertices( m_geometry ) };
+            if( false == vertices.empty() ) {
+                // transformation matrix for the submodel can still contain rotation and/or scaling,
+                // so we pass the vertex positions through it rather than just grab them directly
+                offset = glm::vec3();
+                auto const vertexfactor { 1.f / vertices.size() };
+                auto const transformationmatrix { glm::make_mat4( parentmatrix.readArray() ) };
+                for( auto const &vertex : vertices ) {
+                    offset += glm::vec3 { transformationmatrix * glm::vec4 { vertex.position, 1 } } * vertexfactor;
+                }
+            }
+        }
+    }
+
+    return offset;
+}
 
 bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {
@@ -1475,7 +1499,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel = Root[ submodeloffset.second ];
-                vertex_array vertices; vertices.resize( submodel.iNumVerts );
+                gfx::vertex_array vertices; vertices.resize( submodel.iNumVerts );
                 iNumVerts += submodel.iNumVerts;
                 for( auto &vertex : vertices ) {
                     vertex.deserialize( s );

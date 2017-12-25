@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scenenode.h"
 #include "Track.h"
 #include "Traction.h"
+#include "sound.h"
 
 class opengl_renderer;
 namespace scene {
@@ -105,7 +106,7 @@ public:
         insert( TAnimModel *Instance );
     // adds provided sound instance to the cell
     void
-        insert( sound *Sound );
+        insert( sound_source *Sound );
     // adds provided event launcher to the cell
     void
         insert( TEventLauncher *Launcher );
@@ -132,7 +133,7 @@ public:
         center( glm::dvec3 Center );
     // generates renderable version of held non-instanced geometry in specified geometry bank
     void
-        create_geometry( geometrybank_handle const &Bank );
+        create_geometry( gfx::geometrybank_handle const &Bank );
     // provides access to bounding area data
     bounding_area const &
         area() const {
@@ -144,7 +145,7 @@ private:
     using linesnode_sequence = std::vector<lines_node>;
     using traction_sequence = std::vector<TTraction *>;
     using instance_sequence = std::vector<TAnimModel *>;
-    using sound_sequence = std::vector<sound *>;
+    using sound_sequence = std::vector<sound_source *>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // methods
     void
@@ -258,7 +259,7 @@ private:
     shapenode_sequence m_shapes; // large pieces of opaque geometry and (legacy) terrain
     // TODO: implement dedicated, higher fidelity, fixed resolution terrain mesh item
     // gfx renderer data
-    geometrybank_handle m_geometrybank;
+    gfx::geometrybank_handle m_geometrybank;
     bool m_geometrycreated { false };
 };
 
@@ -311,7 +312,7 @@ public:
         insert_instance( TAnimModel *Instance, scratch_data &Scratchpad );
     // inserts provided sound in the region
     void
-        insert_sound( sound *Sound, scratch_data &Scratchpad );
+        insert_sound( sound_source *Sound, scratch_data &Scratchpad );
     // inserts provided event launcher in the region
     void
         insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );

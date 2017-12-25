@@ -1,684 +1,871 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+﻿/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "stdafx.h"
-#include "McZapkie/mctools.h"
-#include "Globals.h"
+
 #include "sound.h"
-#include "Logs.h"
-#include <sndfile.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
+#include "parser.h"
+#include "Globals.h"
+#include "World.h"
+#include "Train.h"
 
-load_error::load_error(std::string const &f) : std::runtime_error("sound: cannot find " + f)
-{
+// constructors
+sound_source::sound_source( sound_placement const Placement, float const Range ) :
+    m_placement( Placement ),
+    m_range( Range )
+{}
 
+// destructor
+sound_source::~sound_source() {
+
+    audio::renderer.erase( this );
 }
 
-sound_manager::sound_manager()
-{
-	if (created)
-		throw std::runtime_error("sound_manager can be instantinated only once");
-	created = true;
-
-	dev = alcOpenDevice(0);
-	if (!dev)
-		throw std::runtime_error("sound: cannot open device");
-
-	ALCint attr[3] = { ALC_MONO_SOURCES, 20000, 0 };
-	// we're requesting horrible max amount of sources here
-	// because we create AL source object for each sound object,
-	// even if not active currently. considier creating AL source
-	// object only when source is played and destroying it afterwards
-
-	ctx = alcCreateContext(dev, attr);
-	if (!ctx)
-		throw std::runtime_error("sound: cannot create context");
-
-	if (!alcMakeContextCurrent(ctx))
-		throw std::runtime_error("sound: cannot select context");
-
-	if (alIsExtensionPresent("AL_SOFT_deferred_updates"))
-	{
-		alDeferUpdatesSOFT = (void(*)())alGetProcAddress("alDeferUpdatesSOFT");
-		alProcessUpdatesSOFT = (void(*)())alGetProcAddress("alProcessUpdatesSOFT");
-	}
-	if (!alDeferUpdatesSOFT || !alProcessUpdatesSOFT)
-		WriteLog("sound: warning: extension AL_SOFT_deferred_updates not found");
-
-	if (alcIsExtensionPresent(dev, "ALC_SOFT_pause_device"))
-	{
-		alcDevicePauseSOFT = (void(*)(ALCdevice*))alcGetProcAddress(dev, "alcDevicePauseSOFT");
-		alcDeviceResumeSOFT = (void(*)(ALCdevice*))alcGetProcAddress(dev, "alcDeviceResumeSOFT");
-	}
-	if (!alcDevicePauseSOFT || !alcDeviceResumeSOFT)
-		WriteLog("sound: warning: extension ALC_SOFT_pause_device not found");
-
-	alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-
-	alGetError();
+// restores state of the class from provided data stream
+sound_source &
+sound_source::deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters ) {
+	auto cp = cParser{ Input };
+    return deserialize( cp, Legacytype, Legacyparameters );
 }
 
-sound_manager::~sound_manager()
-{
-	alcMakeContextCurrent(0);
-	alcDestroyContext(ctx);
-	alcCloseDevice(dev);
+sound_source &
+sound_source::deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters ) {
 
-	created = false;
+    // cache parser config, as it may change during deserialization
+    auto const inputautoclear { Input.autoclear() };
+
+    Input.getTokens( 1, true, "\n\r\t ,;" );
+    if( Input.peek() == "{" ) {
+        // block type config
+        while( true == deserialize_mapping( Input ) ) {
+            ; // all work done by while()
+        }
+
+        if( false == m_soundchunks.empty() ) {
+            // arrange loaded sound chunks in requested order
+            std::sort(
+                std::begin( m_soundchunks ), std::end( m_soundchunks ),
+                []( soundchunk_pair const &Left, soundchunk_pair const &Right ) {
+                    return ( Left.second.threshold < Right.second.threshold ); } );
+            // calculate and cache full range points for each chunk, including crossfade sections:
+            // on the far end the crossfade section extends to the threshold point of the next chunk...
+            for( std::size_t idx = 0; idx < m_soundchunks.size() - 1; ++idx ) {
+                m_soundchunks[ idx ].second.fadeout = m_soundchunks[ idx + 1 ].second.threshold;
+            }
+            //  ...and on the other end from the threshold point back into the range of previous chunk
+            m_soundchunks.front().second.fadein = std::max( 0, m_soundchunks.front().second.threshold );
+            for( std::size_t idx = 1; idx < m_soundchunks.size(); ++idx ) {
+                auto const previouschunkwidth { m_soundchunks[ idx ].second.threshold - m_soundchunks[ idx - 1 ].second.threshold };
+                m_soundchunks[ idx ].second.fadein = m_soundchunks[ idx ].second.threshold - 0.01f * m_crossfaderange * previouschunkwidth;
+            }
+            m_soundchunks.back().second.fadeout = std::max( 100, m_soundchunks.back().second.threshold );
+            // test if the chunk table contains any actual samples while at it
+            for( auto &soundchunk : m_soundchunks ) {
+                if( soundchunk.first.buffer != null_handle ) {
+                    m_soundchunksempty = false;
+                    break;
+                }
+            }
+        }
+    }
+    else {
+        // legacy type config
+
+        // set the parser to preserve retrieved tokens, so we don't need to mess with separately passing the initial read
+        Input.autoclear( false );
+
+        switch( Legacytype ) {
+            case sound_type::single: {
+                // single sample only
+                m_sounds[ main ].buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                break;
+            }
+            case sound_type::multipart: {
+                // three samples: start, middle, stop
+                for( auto &sound : m_sounds ) {
+                    sound.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+
+        if( Legacyparameters & sound_parameters::range ) {
+            Input.getTokens( 1, false );
+            Input >> m_range;
+        }
+        if( Legacyparameters & sound_parameters::amplitude ) {
+            Input.getTokens( 2, false );
+            Input
+                >> m_amplitudefactor
+                >> m_amplitudeoffset;
+        }
+        if( Legacyparameters & sound_parameters::frequency ) {
+            Input.getTokens( 2, false );
+            Input
+                >> m_frequencyfactor
+                >> m_frequencyoffset;
+        }
+    }
+    // restore parser behaviour
+    Input.autoclear( inputautoclear );
+
+    return *this;
 }
 
-sound_buffer* sound_manager::find_buffer(std::string name)
-{
-	size_t pos = name.rfind('.');
-	if (pos != name.npos)
-		name.erase(pos);
+// extracts name of the sound file from provided data stream
+std::string
+sound_source::deserialize_filename( cParser &Input ) {
 
-	std::replace(name.begin(), name.end(), '\\', '/');
-
-	auto search = buffers.find(name);
-	if (search != buffers.end())
-		return search->second;
-	else
-		return nullptr;
+    auto token { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+    if( token != "[" ) {
+        // simple case, single file
+        return token;
+    }
+    // if instead of filename we've encountered '[' this marks a beginning of random sounds
+    // we retrieve all entries, then return a random one
+    std::vector<std::string> filenames;
+    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
+        && ( token != "]" ) ) {
+        filenames.emplace_back( token );
+    }
+    if( false == filenames.empty() ) {
+        std::shuffle( std::begin( filenames ), std::end( filenames ), Global::random_engine );
+        return filenames.front();
+    }
+    else {
+        // shouldn't ever get here but, eh
+        return "";
+    }
 }
 
-std::string sound_manager::find_file(std::string name)
-{
-	if (FileExists(name))
-		return name;
+// imports member data pair from the config file
+bool
+sound_source::deserialize_mapping( cParser &Input ) {
+    // token can be a key or block end
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
 
-    size_t pos = name.rfind('.');
-    if (pos != name.npos)  
-        name.erase(pos);
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
-	std::vector<std::string> exts { ".wav", ".WAV", ".flac", ".ogg" };
-	for (auto const &ext : exts)
-		if (FileExists(name + ext))
-			return name + ext;
+    // if not block end then the key is followed by assigned value or sub-block
+    if( key == "soundmain:" ) {
+        sound( sound_id::main ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+    }
+    else if( key == "soundset:" ) {
+        deserialize_soundset( Input );
+    }
+    else if( key == "soundbegin:" ) {
+        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+    }
+    else if( key == "soundend:" ) {
+        sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+    }
+    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
+        // sound chunks, defined with key soundX where X = activation threshold
+        auto const indexstart { key.find_first_of( "1234567890" ) };
+        auto const indexend { key.find_first_not_of( "1234567890", indexstart ) };
+        if( indexstart != std::string::npos ) {
+            // NOTE: we'll sort the chunks at the end of deserialization
+            m_soundchunks.emplace_back(
+                soundchunk_pair {
+                    // sound data
+                    { audio::renderer.fetch_buffer( deserialize_filename( Input ) ), 0 },
+                    // chunk data
+                    { std::stoi( key.substr( indexstart, indexend - indexstart ) ), 0, 0, 1.f } } );
+        }
+    }
+    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "pitch" ) == 0 ) {
+        // sound chunk pitch, defined with key pitchX where X = activation threshold
+        auto const indexstart { key.find_first_of( "1234567890" ) };
+        auto const indexend { key.find_first_not_of( "1234567890", indexstart ) };
+        if( indexstart != std::string::npos ) {
+            auto const index { std::stoi( key.substr( indexstart, indexend - indexstart ) ) };
+            auto const pitch { Input.getToken<float>( false, "\n\r\t ,;" ) };
+            for( auto &chunk : m_soundchunks ) {
+                if( chunk.second.threshold == index ) {
+                    chunk.second.pitch = pitch;
+                    break;
+                }
+            }
+        }
+    }
+    else if( key == "crossfade:" ) {
+        // for combined sounds, percentage of assigned range allocated to crossfade sections
+        Input.getTokens( 1, "\n\r\t ,;" );
+        Input >> m_crossfaderange;
+        m_crossfaderange = clamp( m_crossfaderange, 0, 100 );
+    }
+    else if( key == "placement:" ) {
+        auto const value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+        std::map<std::string, sound_placement> const placements {
+            { "internal", sound_placement::internal },
+            { "engine", sound_placement::engine },
+            { "external", sound_placement::external },
+            { "general", sound_placement::general } };
+        auto lookup{ placements.find( value ) };
+        if( lookup != placements.end() ) {
+            m_placement = lookup->second;
+        }
+    }
+    else if( key == "offset:" ) {
+        // point in 3d space, in format [ x, y, z ]
+        Input.getTokens( 3, false, "\n\r\t ,;[]" );
+        Input
+            >> m_offset.x
+            >> m_offset.y
+            >> m_offset.z;
+    }
+    else {
+        // floating point properties
+        std::map<std::string, float &> const properties {
+            { "frequencyfactor:", m_frequencyfactor },
+            { "frequencyoffset:", m_frequencyoffset },
+            { "amplitudefactor:", m_amplitudefactor },
+            { "amplitudeoffset:", m_amplitudeoffset },
+            { "range:", m_range } };
 
-	return "";
+        auto lookup { properties.find( key ) };
+        if( lookup != properties.end() ) {
+            Input.getTokens( 1, false, "\n\r\t ,;" );
+            Input >> lookup->second;
+        }
+    }
+
+    return true; // return value marks a [ key: value ] pair was extracted, nothing about whether it's recognized
 }
 
-sound_buffer* sound_manager::get_buffer(std::string const &name)
-{
-	sound_buffer* buf = find_buffer(Global::asCurrentDynamicPath + name);
-	if (buf)
-		return buf;
+// imports values for initial, main and ending sounds from provided data stream
+void
+sound_source::deserialize_soundset( cParser &Input ) {
 
-	buf = find_buffer("sounds/" + name);
-	if (buf)
-		return buf;
-
-	std::string file = find_file(Global::asCurrentDynamicPath + name);
-	if (!file.size())
-		file = find_file("sounds/" + name);
-	if (!file.size())
-		file = find_file(name);
-
-	if (!file.size())
-		throw load_error(name);
-
-	std::replace(file.begin(), file.end(), '\\', '/');
-
-	buf = new sound_buffer(file);
-	
-    size_t pos = file.rfind('.');
-    if (pos != file.npos)  
-        file.erase(pos);
-	buffers.emplace(file, buf);
-
-	return buf;
-}
-
-simple_sound* sound_manager::create_sound(std::string const &file)
-{
-	try
-	{
-		WriteLog("creating source with " + file);
-		simple_sound *s = new simple_sound(get_buffer(file));
-		sounds.emplace(s);
-		return s;
-	}
-	catch (load_error& e)
-	{
-		WriteLog(e.what());
-	}
-	return nullptr;
-}
-
-text_sound* sound_manager::create_text_sound(std::string const &file)
-{
-	try
-	{
-		WriteLog("creating source with " + file);
-		text_sound *s = new text_sound(get_buffer(file));
-		sounds.emplace(s);
-		return s;
-	}
-	catch (load_error& e)
-	{
-		WriteLog(e.what());
-	}
-	return nullptr;
-}
-
-complex_sound* sound_manager::create_complex_sound(std::string const &pre, std::string const &main, std::string const &post)
-{
-	try
-	{
-		WriteLog("creating source with " + pre + ", " + main + ", " + post);
-		complex_sound *s = new complex_sound(get_buffer(pre), get_buffer(main), get_buffer(post));
-		sounds.emplace(s);
-		return s;
-	}
-	catch (load_error& e)
-	{
-		WriteLog(e.what());
-	}
-	return nullptr;
-}
-
-complex_sound* sound_manager::create_complex_sound(cParser &parser)
-{
-	std::string pre, main, post;
-	double attenuation;
-
-	parser.getTokens(3, true, "\n\t ;,"); // samples separated with commas
-	parser >> pre >> main >> post;
-	parser.getTokens(1, false);
-	parser >> attenuation;
-
-	complex_sound* s = create_complex_sound(pre, main, post);
-	if (s)
-		s->dist(attenuation);
-	return s;
-}
-
-void sound_manager::destroy_sound(sound **s)
-{
-	if (*s != nullptr)
-	{
-		sounds.erase(*s);
-		delete *s;
-		*s = nullptr;
-	}
-}
-
-void sound_manager::update(float dt)
-{
-	ALenum err = alGetError();
-	if (err != AL_NO_ERROR)
-	{
-		std::string errname;
-		if (err == AL_INVALID_NAME)
-			errname = "AL_INVALID_NAME";
-		else if (err == AL_INVALID_ENUM)
-			errname = "AL_INVALID_ENUM";
-		else if (err == AL_INVALID_VALUE)
-			errname = "AL_INVALID_VALUE";
-		else if (err == AL_INVALID_OPERATION)
-			errname = "AL_INVALID_OPERATION";
-		else if (err == AL_OUT_OF_MEMORY)
-			errname = "AL_OUT_OF_MEMORY";
-		else
-			errname = "?";
-		
-		throw std::runtime_error("sound: al error: " + errname);
-	}
-
-	if (dt > 0.0f)
-	{
-		if (alcDeviceResumeSOFT)
-			alcDeviceResumeSOFT(dev);
-
-		auto now = std::chrono::steady_clock::now();
-		auto it = buffers.begin();
-		while (it != buffers.end())
-		{
-			if (now - it->second->unused_since() > gc_time)
-			{
-				delete it->second;
-				it = buffers.erase(it);
-			}
-			else
-				it++;
-		}
-
-		glm::vec3 velocity = (pos - last_pos) / dt;
-		alListenerfv(AL_VELOCITY, glm::value_ptr(velocity));
-		last_pos = pos;
-
-		for (auto &s : sounds)
-			s->update(dt);
-	}
-	else
-	{
-		if (alcDevicePauseSOFT)
-			alcDevicePauseSOFT(dev);
-	}
-
-
-	if (alProcessUpdatesSOFT)
-	{
-		alProcessUpdatesSOFT();
-		alDeferUpdatesSOFT();
-	}
-}
-
-void sound_manager::set_listener(glm::vec3 const &p, glm::mat3 const &r)
-{
-	pos = p;
-	rot = r;
-	glm::vec3 at = glm::vec3(0.0, 0.0, -1.0) * r;
-	glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * r;
-
-	alListenerfv(AL_POSITION, glm::value_ptr(pos));
-	glm::vec3 ori[] = { at, up };
-	alListenerfv(AL_ORIENTATION, (ALfloat*)ori);
-}
-
-sound::sound()
-{
-	id = 0;
-	alGenSources(1, &id);
-	if (!id)
-		throw std::runtime_error("sound: cannot generate source");
-	dist(5.0f * 3.82f);
-	set_mode(global);
-	gain_off = 0.0f;
-	gain_mul = 1.0f;
-	pitch_off = 0.0f;
-	pitch_mul = 1.0f;
-	dt_sum = 0.0f;
-}
-
-sound& sound::set_mode(mode_t m)
-{
-	mode = m;
-
-	if (mode == global || mode == anchored)
-		alSourcei(id, AL_SOURCE_RELATIVE, AL_TRUE);
-	else if (mode == spatial)
-		alSourcei(id, AL_SOURCE_RELATIVE, AL_FALSE);
-
-	return *this;
-}
-
-simple_sound::simple_sound(sound_buffer *buf) : sound::sound()
-{
-	looping = false;
-	playing = false;
-	buffer = buf;
-	alSourcei(id, AL_BUFFER, buffer->get_id());
-	buffer->ref();
-	samplerate = buffer->get_samplerate();
-}
-
-sound::~sound()
-{
-	alDeleteSources(1, &id);
-}
-
-simple_sound::~simple_sound()
-{
-	buffer->unref();
-}
-
-sound& sound::position(glm::vec3 p)
-{
-	if (mode == global)
-	{
-		set_mode(spatial);
-		last_pos = p;
-	}
-
-	if (p != pos || mode == anchored)
-	{
-		pos = p;
-		pos_dirty = true;
-
-		if (mode == anchored)
-			p = (p - sound_man->pos) * glm::inverse(sound_man->rot);
-
-		alSourcefv(id, AL_POSITION, glm::value_ptr(p));
-	}
-
-	return *this;
-}
-
-glm::vec3 sound::location()
-{
-	return pos;
-}
-
-sound& sound::position(Math3D::vector3 const &pos)
-{
-	position((glm::vec3)glm::make_vec3(&pos.x));
-	return *this;
-}
-
-sound& sound::dist(float dist)
-{
-	max_dist = dist * 2.0f;
-	float half_dist = dist / 3.82f;
-	alSourcef(id, AL_REFERENCE_DISTANCE, half_dist / 1.32f);
-	alSourcef(id, AL_ROLLOFF_FACTOR, 3.0f);
-	alSourcef(id, AL_MAX_DISTANCE, max_dist);
-	return *this;
-}
-
-void simple_sound::play()
-{
-	if (playing || (mode != global && glm::distance(pos, sound_man->pos) > max_dist))
-		return;
-
-	alSourcePlay(id);
-	playing = true;
-}
-
-void simple_sound::stop()
-{
-	if (!playing)
-		return;
-
-	alSourceStop(id);
-	playing = false;
-}
-
-void sound::update(float dt)
-{
-	if (mode == spatial)
-		dt_sum += dt;
-	if (mode == spatial && pos_dirty)
-	{
-		glm::vec3 velocity = (pos - last_pos) / dt_sum; // m/s
-		alSourcefv(id, AL_VELOCITY, glm::value_ptr(velocity));
-		last_pos = pos;
-		pos_dirty = false;
-		dt_sum = 0.0f;
-	}
-}
-
-void simple_sound::update(float dt)
-{
-	sound::update(dt);
-
-	if (playing)
-	{
-	    ALint v;
-	    alGetSourcei(id, AL_SOURCE_STATE, &v);
-		if (v != AL_PLAYING)
-			playing = false;
-		else if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
-			stop();
-	}
-}
-
-sound& sound::gain(float gain)
-{
-	gain = gain * gain_mul + gain_off;
-	if (Global::soundgainmode == Global::scaled)
-		gain /= 1.75f;
-	if (Global::soundgainmode == Global::compat)
-		gain = std::pow(10.0f, ((-50.0f + 50.0f * gain) / 20.0f));
-	gain = std::min(std::max(0.0f, gain), 2.0f);
-	alSourcef(id, AL_GAIN, gain);
-	return *this;
-}
-
-sound& sound::pitch(float pitch)
-{
-	pitch = pitch * pitch_mul + pitch_off;
-	if (Global::soundpitchmode == Global::compat)
-		pitch *= 22050.0f / (float)samplerate;
-	pitch = std::min(std::max(0.05f, pitch), 20.0f);
-	alSourcef(id, AL_PITCH, pitch);
-	return *this;
-}
-
-sound& simple_sound::loop(bool loop)
-{
-	if (loop != looping)
-	{
-		alSourcei(id, AL_LOOPING, (ALint)loop);
-		looping = loop;
-	}
-	return *this;
-}
-
-bool simple_sound::is_playing()
-{
-	return playing;
-}
-
-//m7todo: implement text_sound
-text_sound::text_sound(sound_buffer *buf) : simple_sound::simple_sound(buf)
-{
-
-}
-
-void text_sound::play()
-{
-	simple_sound::play();
-}
-
-complex_sound::complex_sound(sound_buffer* pre, sound_buffer* main, sound_buffer* post) : sound::sound()
-{
-	this->pre = pre;
-	this->buffer = main;
-	this->post = post;
-
-	pre->ref();
-	buffer->ref();
-	post->ref();
-
-	samplerate = buffer->get_samplerate();
-	shut_by_dist = false;
-
-	cs = state::post;
-}
-
-complex_sound::~complex_sound()
-{
-	pre->unref();
-	buffer->unref();
-	post->unref();
-}
-
-void complex_sound::play()
-{
-	if (cs != state::post)
-		return;
-
-    if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
+    auto token { Input.getToken<std::string>( true, "\n\r\t ,;|" ) };
+    if( token != "[" ) {
+        // simple case, basic set of three filenames separated with |
+        // three samples: start, middle, stop
+        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( token );
+        sound( sound_id::main ).buffer  = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
+        sound( sound_id::end ).buffer   = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
         return;
-
-	alSourceRewind(id);
-
-	if (shut_by_dist)
-	{
-		shut_by_dist = false;
-
-		alSourcei(id, AL_LOOPING, AL_TRUE);
-		alSourcei(id, AL_BUFFER, 0);
-		alSourcei(id, AL_BUFFER, buffer->get_id());
-		alSourcePlay(id);
-
-		cs = state::main;
-	}
-	else
-	{
-		alSourcei(id, AL_LOOPING, AL_FALSE);
-		alSourcei(id, AL_BUFFER, 0);
-		ALuint buffers[] = { pre->get_id(), buffer->get_id() };
-		alSourceQueueBuffers(id, 2, buffers);
-		alSourcePlay(id);
-
-		cs = state::premain;
-	}
+    }
+    // if instead of filename we've encountered '[' this marks a beginning of random sets
+    // we retrieve all entries, then process a random one
+    std::vector<std::string> soundsets;
+    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
+        && ( token != "]" ) ) {
+        soundsets.emplace_back( token );
+    }
+    if( false == soundsets.empty() ) {
+        std::shuffle( std::begin( soundsets ), std::end( soundsets ), Global::random_engine );
+		auto cp = cParser( soundsets.front() );
+        return deserialize_soundset(cp);
+    }
 }
 
-void complex_sound::stop()
-{
-	if (shut_by_dist)
-	{
-		alSourceRewind(id);
+// issues contextual play commands for the audio renderer
+void
+sound_source::play( int const Flags ) {
 
-		cs = state::post;
-	}
-	else if (cs == state::main || (Global::soundstopmode == Global::playstop && cs == state::premain))
-	{
-		alSourceRewind(id);
+    if( ( false == Global::bSoundEnabled )
+     || ( true == empty() ) ) {
+        // if the sound is disabled altogether or nothing can be emitted from this source, no point wasting time
+        return;
+    }
+    if( m_range > 0 ) {
+        auto const cutoffrange { m_range * 5 };
+        if( glm::length2( location() - glm::dvec3 { Global::pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
+            // while we drop sounds from beyond sensible and/or audible range
+            // we act as if it was activated normally, meaning no need to include the opening bookend in subsequent calls
+            m_playbeginning = false;
+            return;
+        }
+    }
 
-		alSourcei(id, AL_LOOPING, AL_FALSE);
-		alSourcei(id, AL_BUFFER, 0);
-		alSourcei(id, AL_BUFFER, post->get_id());
+    // initialize emitter-specific pitch variation if it wasn't yet set
+    if( m_pitchvariation == 0.f ) {
+        m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
+    }
 
-		alSourcePlay(id);
+    m_flags = Flags;
 
-		cs = state::post;
-	}
-	else if (cs == state::premain)
-	{
-		if (Global::soundstopmode == Global::queue)
-			cs = state::prepost;
-		else if (Global::soundstopmode == Global::stop)
-		{
-			alSourceRewind(id);
-			cs = state::post;
-		}
-	}
+    if( sound( sound_id::main ).buffer != null_handle ) {
+        // basic variant: single main sound, with optional bookends
+        play_basic();
+    }
+    else {
+        // combined variant, main sound consists of multiple chunks, with optional bookends
+        play_combined();
+    }
 }
 
-void complex_sound::update(float dt)
-{
-	sound::update(dt);
+void
+sound_source::play_basic() {
 
-	if (cs == state::premain || cs == state::prepost)
-	{
-		ALint processed;
-		alGetSourcei(id, AL_BUFFERS_PROCESSED, &processed);
-		if (processed > 0) // already processed pre
-		{
-			if (cs == state::premain)
-			{
-				cs = state::main;
-
-				ALuint pre_id = pre->get_id();
-				alSourceUnqueueBuffers(id, 1, &pre_id);
-				alSourcei(id, AL_LOOPING, AL_TRUE);
-				if (processed > 1) // underrun occured
-					alSourcePlay(id);
-
-			}
-			else if (cs == state::prepost)
-			{
-				cs = state::main;
-				stop();
-			}
-		}
-	}
-
-	if (cs == state::main)
-		if (mode != global && glm::distance(pos, sound_man->pos) > max_dist)
-		{
-			shut_by_dist = true;
-			stop();
-		}
+    if( false == is_playing() ) {
+        // dispatch appropriate sound
+        if( ( true == m_playbeginning )
+         && ( sound( sound_id::begin ).buffer != null_handle ) ) {
+            std::vector<sound_id> sounds { sound_id::begin, sound_id::main };
+            insert( std::begin( sounds ), std::end( sounds ) );
+            m_playbeginning = false;
+        }
+        else {
+            insert( sound_id::main );
+        }
+    }
+    else {
+        // for single part non-looping samples we allow spawning multiple instances, if not prevented by set flags
+        if( ( sound( sound_id::begin ).buffer == null_handle )
+         && ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) == 0 ) ) {
+            insert( sound_id::main );
+        }
+    }
 }
 
-sound& complex_sound::loop(bool loop)
-{
-	throw std::runtime_error("cannot loop complex_sound");
-	return *this;
+void
+sound_source::play_combined() {
+    // combined sound consists of table od samples, each sample associated with certain range of values of controlling variable
+    // current value of the controlling variable is passed to the source with pitch() call
+    auto const soundpoint { compute_combined_point() };
+    for( std::uint32_t idx = 0; idx < m_soundchunks.size(); ++idx ) {
+
+        auto const &soundchunk { m_soundchunks[ idx ] };
+        // a chunk covers range from fade in point, where it starts rising in volume over crossfade distance,
+        // lasts until fadeout - crossfade distance point, past which it grows quiet until fade out point where it ends
+        if( soundpoint < soundchunk.second.fadein )  { break; }
+        if( soundpoint > soundchunk.second.fadeout ) { continue; }
+        
+        if( ( soundchunk.first.playing > 0 )
+         || ( soundchunk.first.buffer == null_handle ) ) {
+            // combined sounds only play looped, single copy of each activated chunk
+            continue;
+        }
+
+        if( idx > 0 ) {
+            insert( sound_id::chunk | idx );
+        }
+        else {
+            // initial chunk requires some safety checks if the optional bookend is present,
+            // so we don't queue another instance while the bookend is still playing
+            if( sound( sound_id::begin ).buffer == null_handle ) {
+                // no bookend, safe to play the chunk
+                insert( sound_id::chunk | idx );
+            }
+            else {
+                // branches:
+                // beginning requested, not playing; queue beginning and chunk
+                // beginning not requested, not playing; queue chunk
+                // otherwise skip, one instance is already in the audio queue
+                if( sound( sound_id::begin ).playing == 0 ) {
+                    if( true == m_playbeginning ) {
+                        std::vector<sound_handle> sounds{ sound_id::begin, sound_id::chunk | idx };
+                        insert( std::begin( sounds ), std::end( sounds ) );
+                        m_playbeginning = false;
+                    }
+                    else {
+                        insert( sound_id::chunk | idx );
+                    }
+                }
+            }
+        }
+    }
 }
 
-bool complex_sound::is_playing()
-{
-	return cs != state::post; // almost accurate
+// calculates requested sound point, used to select specific sample from the sample table
+float
+sound_source::compute_combined_point() const {
+
+    return (
+        m_properties.pitch < 1.1f ?
+            // most sounds use 0-1 value range, we clamp these to 0-99 to allow more intuitive sound definition in .mmd files
+            clamp( m_properties.pitch, 0.f, 0.99f ) :
+            std::max( 0.f, m_properties.pitch )
+        ) * 100.f;
 }
 
-int sound_buffer::get_samplerate()
-{
-	return samplerate;
+// stops currently active play commands controlled by this emitter
+void
+sound_source::stop( bool const Skipend ) {
+
+    // if the source was stopped on simulation side, we should play the opening bookend next time it's activated
+    m_playbeginning = true;
+
+    if( false == is_playing() ) { return; }
+
+    m_stop = true;
+
+    if( ( false == Skipend )
+     && ( sound( sound_id::end ).buffer != null_handle )
+     && ( sound( sound_id::end ).buffer != sound( sound_id::main ).buffer ) // end == main can happen in malformed legacy cases
+     && ( sound( sound_id::end ).playing == 0 ) ) {
+        // spawn potentially defined sound end sample, if the emitter is currently active
+        insert( sound_id::end );
+    }
 }
 
-sound_buffer::sound_buffer(std::string &file)
-{
-	WriteLog("creating sound buffer from " + file);
+// adjusts parameters of provided implementation-side sound source
+void
+sound_source::update( audio::openal_source &Source ) {
 
-	SF_INFO si;
-	si.format = 0;
-
-	SNDFILE *sf = sf_open(file.c_str(), SFM_READ, &si);
-	if (sf == nullptr)
-		throw std::runtime_error("sound: sf_open failed");
-
-	int16_t *fbuf = new int16_t[si.frames * si.channels];
-	if (sf_readf_short(sf, fbuf, si.frames) != si.frames)
-		throw std::runtime_error("sound: incomplete file");
-
-	sf_close(sf);
-
-	samplerate = si.samplerate;
-
-	int16_t *buf = nullptr;
-	if (si.channels == 1)
-		buf = fbuf;
-	else
-	{
-		WriteLog("sound: warning: mixing multichannel file to mono");
-		buf = new int16_t[si.frames];
-		for (size_t i = 0; i < si.frames; i++)
-		{
-			int32_t accum = 0;
-			for (size_t j = 0; j < si.channels; j++)
-				accum += fbuf[i * si.channels + j];
-			buf[i] = accum / si.channels;
-		}
-	}
-
-	id = 0;
-	alGenBuffers(1, &id);
-	if (!id)
-		throw std::runtime_error("sound: cannot generate buffer");
-
-	alBufferData(id, AL_FORMAT_MONO16, buf, si.frames * 2, si.samplerate);
-
-	if (si.channels != 1)
-		delete[] buf;
-	delete[] fbuf;
+    if( sound( sound_id::main ).buffer != null_handle ) {
+        // basic variant: single main sound, with optional bookends
+        update_basic( Source );
+        return;
+    }
+    if( false == m_soundchunksempty ) {
+        // combined variant, main sound consists of multiple chunks, with optional bookends
+        update_combined( Source );
+        return;
+    }
 }
 
-sound_buffer::~sound_buffer()
-{
-	alDeleteBuffers(1, &id);
+void
+sound_source::update_basic( audio::openal_source &Source ) {
+
+    if( true == Source.is_playing ) {
+
+        if( ( true == m_stop )
+         && ( Source.sounds[ Source.sound_index ] != sound_id::end ) ) {
+            // kill the sound if stop was requested, unless it's sound bookend sample
+            Source.stop();
+            update_counter( Source.sounds[ Source.sound_index ], -1 );
+            if( false == is_playing() ) {
+                m_stop = false;
+            }
+            return;
+        }
+
+        if( sound( sound_id::begin ).buffer != null_handle ) {
+            // potentially a multipart sound
+            // detect the moment when the sound moves from startup sample to the main
+            auto const soundhandle { Source.sounds[ Source.sound_index ] };
+            if( ( false == Source.is_looping )
+             && ( soundhandle == sound_id::main ) ) {
+                // when it happens update active sample counters, and activate the looping
+                update_counter( sound_id::begin, -1 );
+                update_counter( soundhandle, 1 );
+                Source.loop( true );
+            }
+        }
+        // check and update if needed current sound properties
+        update_location();
+        update_soundproofing();
+        Source.sync_with( m_properties );
+        if( Source.sync != sync_state::good ) {
+            // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
+            update_counter( Source.sounds[ Source.sound_index ], -1 );
+        }
+
+    }
+    else {
+        // if the emitter isn't playing it's either done or wasn't yet started
+        // we can determine this from number of processed buffers
+        if( Source.sound_index != Source.sounds.size() ) {
+            // the emitter wasn't yet started
+            auto const soundhandle { Source.sounds[ Source.sound_index ] };
+            // emitter initialization
+            if( ( soundhandle == sound_id::main )
+             && ( true == TestFlag( m_flags, sound_flags::looping ) ) ) {
+                // main sample can be optionally set to loop
+                Source.loop( true );
+            }
+            Source.range( m_range );
+            Source.pitch( m_pitchvariation );
+            update_location();
+            update_soundproofing();
+            Source.sync_with( m_properties );
+            if( Source.sync == sync_state::good ) {
+                // all set, start playback
+                Source.play();
+                if( false == Source.is_playing ) {
+                    // if the playback didn't start update the state counter
+                    update_counter( soundhandle, -1 );
+                }
+            }
+            else {
+                // if the initial sync went wrong we skip the activation so the renderer can clean the emitter on its end
+                update_counter( soundhandle, -1 );
+            }
+        }
+        else {
+            // the emitter is either all done or was terminated early
+            update_counter( Source.sounds[ Source.sound_index - 1 ], -1 );
+        }
+    }
 }
 
-void sound_buffer::ref()
-{
-	refcount++;
+void
+sound_source::update_combined( audio::openal_source &Source ) {
+
+    if( true == Source.is_playing ) {
+
+        auto const soundhandle { Source.sounds[ Source.sound_index ] };
+
+        if( ( true == m_stop )
+         && ( soundhandle != sound_id::end ) ) {
+            // kill the sound if stop was requested, unless it's sound bookend sample
+            Source.stop();
+            update_counter( soundhandle, -1 );
+            if( false == is_playing() ) {
+                m_stop = false;
+            }
+            return;
+        }
+
+        if( sound( sound_id::begin ).buffer != null_handle ) {
+            // potentially a multipart sound
+            // detect the moment when the sound moves from startup sample to the main
+            auto const soundhandle { Source.sounds[ Source.sound_index ] };
+            if( ( false == Source.is_looping )
+             && ( soundhandle == ( sound_id::chunk | 0 ) ) ) {
+                // when it happens update active sample counters, and activate the looping
+                update_counter( sound_id::begin, -1 );
+                update_counter( soundhandle, 1 );
+                Source.loop( true );
+            }
+        }
+
+        if( ( soundhandle & sound_id::chunk ) != 0 ) {
+            // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
+            auto const soundpoint { compute_combined_point() };
+            auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
+            if( ( soundpoint < soundchunk.second.fadein )
+             || ( soundpoint > soundchunk.second.fadeout ) ) {
+                Source.stop();
+                update_counter( soundhandle, -1 );
+                return;
+            }
+        }
+
+        // check and update if needed current sound properties
+        update_location();
+        update_soundproofing();
+        // pitch and volume are adjusted on per-chunk basis
+        // since they're relative to base values, backup these...
+        auto const baseproperties = m_properties;
+        // ...adjust per-chunk parameters...
+        update_crossfade( soundhandle );
+        // ... pass the parameters to the audio renderer...
+        Source.sync_with( m_properties );
+        if( Source.sync != sync_state::good ) {
+            // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
+            update_counter( Source.sounds[ Source.sound_index ], -1 );
+        }
+        // ...and restore base properties
+        m_properties = baseproperties;
+    }
+    else {
+        // if the emitter isn't playing it's either done or wasn't yet started
+        // we can determine this from number of processed buffers
+        if( Source.sound_index != Source.sounds.size() ) {
+            // the emitter wasn't yet started
+            auto const soundhandle { Source.sounds[ Source.sound_index ] };
+            // emitter initialization
+            if( ( soundhandle != sound_id::begin )
+             && ( soundhandle != sound_id::end )
+             && ( true == TestFlag( m_flags, sound_flags::looping ) ) ) {
+                // main sample can be optionally set to loop
+                Source.loop( true );
+            }
+            Source.range( m_range );
+            Source.pitch( m_pitchvariation );
+            update_location();
+            update_soundproofing();
+            // pitch and volume are adjusted on per-chunk basis
+            auto const baseproperties = m_properties;
+            update_crossfade( soundhandle );
+            Source.sync_with( m_properties );
+            if( Source.sync == sync_state::good ) {
+                // all set, start playback
+                Source.play();
+                if( false == Source.is_playing ) {
+                    // if the playback didn't start update the state counter
+                    update_counter( soundhandle, -1 );
+                }
+            }
+            else {
+                // if the initial sync went wrong we skip the activation so the renderer can clean the emitter on its end
+                update_counter( soundhandle, -1 );
+            }
+            m_properties = baseproperties;
+        }
+        else {
+            // the emitter is either all done or was terminated early
+            update_counter( Source.sounds[ Source.sound_index - 1 ], -1 );
+        }
+    }
 }
 
-void sound_buffer::unref()
-{
-	refcount--;
-	last_unref = std::chrono::steady_clock::now();
+void
+sound_source::update_crossfade( sound_handle const Chunk ) {
+
+    if( ( Chunk & sound_id::chunk ) == 0 ) {
+        // bookend sounds are played at their base pitch
+        m_properties.pitch = 1.f;
+        return;
+    }
+
+    auto const soundpoint { compute_combined_point() };
+
+    // NOTE: direct access to implementation details ahead, kinda fugly
+    auto const chunkindex { Chunk ^ sound_id::chunk };
+    auto const &chunkdata { m_soundchunks[ chunkindex ].second };
+
+    // relative pitch adjustment
+    // pitch of each chunk is modified based on ratio of the chunk's pitch to that of its neighbour
+    if( soundpoint < chunkdata.threshold ) {
+
+        if( chunkindex > 0 ) {
+            // interpolate between the pitch of previous chunk and this chunk's base pitch,
+            // based on how far the current soundpoint is in the range of previous chunk
+            auto const &previouschunkdata{ m_soundchunks[ chunkindex - 1 ].second };
+            m_properties.pitch =
+                interpolate(
+                    previouschunkdata.pitch / chunkdata.pitch,
+                    1.f,
+                    clamp(
+                        ( soundpoint - previouschunkdata.threshold ) / ( chunkdata.threshold - previouschunkdata.threshold ),
+                        0.f, 1.f ) );
+        }
+    }
+    else {
+
+        if( chunkindex < ( m_soundchunks.size() - 1 ) ) {
+            // interpolate between this chunk's base pitch and the pitch of next chunk
+            // based on how far the current soundpoint is in the range of this chunk
+            auto const &nextchunkdata { m_soundchunks[ chunkindex + 1 ].second };
+            m_properties.pitch =
+                interpolate(
+                    1.f,
+                    nextchunkdata.pitch / chunkdata.pitch,
+                    clamp(
+                        ( soundpoint - chunkdata.threshold ) / ( nextchunkdata.threshold - chunkdata.threshold ),
+                        0.f, 1.f ) );
+        }
+        else {
+            // pitch of the last (or the only) chunk remains fixed throughout
+            m_properties.pitch = 1.f;
+        }
+    }
+
+    // if there's no crossfade sections, our work is done
+    if( m_crossfaderange == 0 ) { return; }
+
+    if( chunkindex > 0 ) {
+        // chunks other than the first can have fadein
+        auto const fadeinwidth { chunkdata.threshold - chunkdata.fadein };
+        if( soundpoint < chunkdata.threshold ) {
+            m_properties.gain *=
+                interpolate(
+                    0.f, 1.f,
+                    clamp(
+                        ( soundpoint - chunkdata.fadein ) / fadeinwidth,
+                        0.f, 1.f ) );
+            return;
+        }
+    }
+    if( chunkindex < ( m_soundchunks.size() - 1 ) ) {
+        // chunks other than the last can have fadeout
+        // TODO: cache widths in the chunk data struct?
+        // fadeout point of this chunk and activation threshold of the next are the same
+        // fadein range of the next chunk and the fadeout of the processed one are the same
+        auto const fadeoutwidth { chunkdata.fadeout - m_soundchunks[ chunkindex + 1 ].second.fadein };
+        auto const fadeoutstart { chunkdata.fadeout - fadeoutwidth };
+        if( soundpoint > fadeoutstart ) {
+            m_properties.gain *=
+                interpolate(
+                    1.f, 0.f,
+                    clamp(
+                        ( soundpoint - fadeoutstart ) / fadeoutwidth,
+                        0.f, 1.f ) );
+            return;
+        }
+    }
 }
 
-ALuint sound_buffer::get_id()
-{
-	return id;
+// sets base volume of the emiter to specified value
+sound_source &
+sound_source::gain( float const Gain ) {
+
+    m_properties.gain = clamp( Gain, 0.f, 2.f );
+    return *this;
 }
 
-std::chrono::time_point<std::chrono::steady_clock> sound_buffer::unused_since()
-{
-	if (refcount > 0)
-		return std::chrono::time_point<std::chrono::steady_clock>::max();
+// returns current base volume of the emitter
+float
+sound_source::gain() const {
 
-	return last_unref;
+    return m_properties.gain;
 }
 
-bool sound_manager::created = false;
+// sets base pitch of the emitter to specified value
+sound_source &
+sound_source::pitch( float const Pitch ) {
+
+    m_properties.pitch = Pitch;
+    return *this;
+}
+
+bool
+sound_source::empty() const {
+
+    // NOTE: we test only the main sound, won't bother playing potential bookends if this is missing
+    return ( ( sound( sound_id::main ).buffer == null_handle ) && ( m_soundchunksempty ) );
+}
+
+// returns true if the source is emitting any sound
+bool
+sound_source::is_playing( bool const Includesoundends ) const {
+
+    auto isplaying { ( sound( sound_id::begin ).playing + sound( sound_id::main ).playing ) > 0 };
+    if( ( false == isplaying )
+     && ( false == m_soundchunks.empty() ) ) {
+        // for emitters with sample tables check also if any of the chunks is active
+        for( auto const &soundchunk : m_soundchunks ) {
+            if( soundchunk.first.playing > 0 ) {
+                isplaying = true;
+                break; // one will do
+            }
+        }
+    }
+    return isplaying;
+}
+
+// returns true if the source uses sample table
+bool
+sound_source::is_combined() const {
+
+    return ( ( !m_soundchunks.empty() ) && ( sound( sound_id::main ).buffer == null_handle ) );
+}
+
+// returns location of the sound source in simulation region space
+glm::dvec3 const
+sound_source::location() const {
+
+    if( m_owner == nullptr ) {
+        // if emitter isn't attached to any vehicle the offset variable defines location in region space
+        return { m_offset };
+    }
+    // otherwise combine offset with the location of the carrier
+    return {
+        m_owner->GetPosition()
+        + m_owner->VectorLeft() * m_offset.x
+        + m_owner->VectorUp() * m_offset.y
+        + m_owner->VectorFront() * m_offset.z };
+}
+
+void
+sound_source::update_counter( sound_handle const Sound, int const Value ) {
+
+    sound( Sound ).playing += Value;
+    assert( sound( Sound ).playing >= 0 );
+}
+
+void
+sound_source::update_location() {
+
+    m_properties.location = location();
+}
+
+float const EU07_SOUNDPROOFING_STRONG { 0.25f };
+float const EU07_SOUNDPROOFING_SOME { 0.65f };
+float const EU07_SOUNDPROOFING_NONE { 1.f };
+
+bool
+sound_source::update_soundproofing() {
+    // NOTE, HACK: current cab id can vary from -1 to +1, and we use another higher priority value for open cab window
+    // we use this as modifier to force re-calculations when moving between compartments or changing window state
+    int const activecab = (
+        Global::CabWindowOpen ? 2 :
+        FreeFlyModeFlag ? 0 :
+        ( Global::pWorld->train() ?
+            Global::pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
+            0 ) );
+    // location-based gain factor:
+    std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
+        FreeFlyModeFlag ?
+            nullptr :
+            ( Global::pWorld->train() ?
+                Global::pWorld->train()->Dynamic() :
+                nullptr ) ) )
+        + activecab;
+
+    if( soundproofingstamp == m_properties.soundproofing_stamp ) { return false; }
+
+    // listener location has changed, calculate new location-based gain factor
+    switch( m_placement ) {
+        case sound_placement::general: {
+            m_properties.soundproofing = EU07_SOUNDPROOFING_NONE;
+            break;
+        }
+        case sound_placement::external: {
+            m_properties.soundproofing = (
+                ( ( soundproofingstamp == 0 ) || ( true == Global::CabWindowOpen ) ) ?
+                    EU07_SOUNDPROOFING_NONE : // listener outside or has a window open
+                    EU07_SOUNDPROOFING_STRONG ); // listener in a vehicle with windows shut
+            break;
+        }
+        case sound_placement::internal: {
+            m_properties.soundproofing = (
+                soundproofingstamp == 0 ?
+                    EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
+                    ( Global::pWorld->train()->Dynamic() != m_owner ?
+                        EU07_SOUNDPROOFING_STRONG : // in another vehicle
+                        ( activecab == 0 ?
+                            EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
+                            EU07_SOUNDPROOFING_NONE ) ) ); // listener in the cab of the same vehicle
+            break;
+        }
+        case sound_placement::engine: {
+            m_properties.soundproofing = (
+                ( ( soundproofingstamp == 0 ) || ( true == Global::CabWindowOpen ) ) ?
+                    EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
+                    ( Global::pWorld->train()->Dynamic() != m_owner ?
+                        EU07_SOUNDPROOFING_STRONG : // in another vehicle
+                        ( activecab == 0 ?
+                            EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
+                            EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
+            break;
+        }
+        default: {
+            // shouldn't ever land here, but, eh
+            m_properties.soundproofing = EU07_SOUNDPROOFING_NONE;
+            break;
+        }
+    }
+
+    m_properties.soundproofing_stamp = soundproofingstamp;
+    return true;
+}
+
+void
+sound_source::insert( sound_handle const Sound ) {
+
+    std::vector<sound_handle> sounds { Sound };
+    return insert( std::begin( sounds ), std::end( sounds ) );
+}
+
+sound_source::sound_data &
+sound_source::sound( sound_handle const Sound ) {
+
+    return (
+        ( Sound & sound_id::chunk ) == sound_id::chunk ?
+            m_soundchunks[ Sound ^ sound_id::chunk ].first :
+            m_sounds[ Sound ] );
+}
+
+sound_source::sound_data const &
+sound_source::sound( sound_handle const Sound ) const {
+
+    return (
+        ( Sound & sound_id::chunk ) == sound_id::chunk ?
+            m_soundchunks[ Sound ^ sound_id::chunk ].first :
+            m_sounds[ Sound ] );
+}

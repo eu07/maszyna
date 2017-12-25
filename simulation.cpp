@@ -317,8 +317,8 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
-         && ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 )
-           || ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) != 0 ) ) ) {
+         && ( ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
+           || ( ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
             simulation::Lights.insert( vehicle );
         }
     }
@@ -469,8 +469,9 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
     else if( nodedata.type == "sound" )
 	{
         auto *sound { deserialize_sound( Input, Scratchpad, nodedata ) };
-        if( false == simulation::Sounds.insert( sound, nodedata.name ) )
-            ErrorLog( "Bad scenario: sound node with duplicate name \"" + nodedata.name + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        if( false == simulation::Sounds.insert( sound ) ) {
+            ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
+        }
         simulation::Region->insert_sound( sound, Scratchpad );
     }
 
@@ -839,7 +840,7 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
     return vehicle;
 }
 
-sound *
+sound_source *
 state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
 
     glm::dvec3 location;
@@ -851,13 +852,10 @@ state_manager::deserialize_sound( cParser &Input, scene::scratch_data &Scratchpa
     // adjust location
     location = transform( location, Scratchpad );
 
-    auto const soundname { Input.getToken<std::string>() };
-	auto *sound = sound_man->create_text_sound(soundname);
-	sound->position((glm::vec3)location);
-	if (Nodedata.range_max != -1.0)
-		sound->dist(Nodedata.range_max);
-	else
-		sound->set_mode(sound::global);
+    auto *sound = new sound_source( sound_placement::external, Nodedata.range_max );
+    sound->offset( location );
+    sound->name( Nodedata.name );
+    sound->deserialize( Input, sound_type::single );
 
     skip_until( Input, "endsound" );
 

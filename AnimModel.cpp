@@ -574,16 +574,17 @@ void TAnimModel::RaPrepare()
     bool state; // stan światła
     for (int i = 0; i < iNumLights; ++i)
     {
-        switch (lsLights[i])
+        auto const lightmode { static_cast<int>( lsLights[ i ] ) };
+        switch (lightmode)
         {
         case ls_Blink: // migotanie
             state = fBlinkTimer < fOnTime;
             break;
         case ls_Dark: // zapalone, gdy ciemno
-            state = Global::fLuminance <= fDark;
+            state = Global::fLuminance <= ( lsLights[i] - 3.0 );
             break;
         default: // zapalony albo zgaszony
-            state = (lsLights[i] == ls_On);
+            state = (lightmode == ls_On);
         }
         if (LightsOn[i])
             LightsOn[i]->iVisible = state;
@@ -755,12 +756,12 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
 };
 
 //---------------------------------------------------------------------------
-void TAnimModel::LightSet(int n, float v)
+void TAnimModel::LightSet(int const n, float const v)
 { // ustawienie światła (n) na wartość (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
-    lsLights[ n ] = TLightState( static_cast<int>( v ) );
-    switch( lsLights[ n ] ) {
+    lsLights[ n ] = v;
+    switch( static_cast<int>( lsLights[ n ] ) ) {
         // interpretacja ułamka zależnie od typu
         case ls_Off: {
             // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
@@ -776,8 +777,10 @@ void TAnimModel::LightSet(int n, float v)
         }
         case ls_Dark: {
             // zapalenie świateł zależne od oświetlenia scenerii
-            if( v > 3.0 ) { fDark = v - 3.0; } // ustawienie indywidualnego progu zapalania
-            else          { fDark = DefaultDarkThresholdLevel; } // standardowy próg zaplania
+            if( v == 3.0 ) {
+                // standardowy próg zaplania
+                lsLights[ n ] = 3.0 + DefaultDarkThresholdLevel;
+            } 
             break;
         }
     }
