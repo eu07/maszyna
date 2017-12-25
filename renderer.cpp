@@ -828,7 +828,7 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     if( true == Alpha ) {
 
         ::glEnable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.04f );
+        ::glAlphaFunc( GL_GREATER, 0.0f );
     }
     else {
         ::glDisable( GL_BLEND );
