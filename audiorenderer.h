@@ -56,20 +56,7 @@ struct openal_source {
 // methods
     template <class Iterator_>
     openal_source &
-        bind( sound_source *Controller, uint32_sequence Sounds, Iterator_ First, Iterator_ Last ) {
-            controller = Controller;
-            sounds = Sounds;
-            // look up and queue assigned buffers
-            std::vector<ALuint> buffers;
-            std::for_each(
-                First, Last,
-                [&]( audio::buffer_handle const &buffer ) {
-                    buffers.emplace_back( audio::renderer.buffer( buffer ).id ); } );
-            if( id != audio::null_resource ) {
-                ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
-                ::alSourceRewind( id ); }
-            is_multipart = ( buffers.size() > 1 );
-            return *this; }
+        bind( sound_source *Controller, uint32_sequence Sounds, Iterator_ First, Iterator_ Last );
     // starts playback of queued buffers
     void
         play();
@@ -162,6 +149,32 @@ private:
 };
 
 extern openal_renderer renderer;
+
+
+
+template <class Iterator_>
+openal_source &
+openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_ First, Iterator_ Last ) {
+
+    controller = Controller;
+    sounds = Sounds;
+    // look up and queue assigned buffers
+    std::vector<ALuint> buffers;
+    std::for_each(
+        First, Last,
+        [&]( audio::buffer_handle const &buffer ) {
+            buffers.emplace_back( audio::renderer.buffer( buffer ).id ); } );
+
+    if( id != audio::null_resource ) {
+        ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
+        ::alSourceRewind( id );
+    }
+    is_multipart = ( buffers.size() > 1 );
+
+    return *this;
+}
+
+
 
 inline
 float

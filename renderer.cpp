@@ -111,7 +111,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     ::glDepthFunc( GL_LEQUAL );
     glEnable( GL_DEPTH_TEST );
-    glAlphaFunc( GL_GREATER, 0.04f );
+    glAlphaFunc( GL_GREATER, 0.f );
     glEnable( GL_ALPHA_TEST );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glEnable( GL_BLEND );
@@ -828,11 +828,11 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     if( true == Alpha ) {
 
         ::glEnable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.04f );
+        ::glAlphaFunc( GL_GREATER, 0.f );
     }
     else {
         ::glDisable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.50f );
+        ::glAlphaFunc( GL_GREATER, 0.5f );
     }
 
     switch( m_renderpass.draw_mode ) {
@@ -1807,6 +1807,10 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
 void
 opengl_renderer::Render( TAnimModel *Instance ) {
 
+    if( false == Instance->m_visible ) {
+        return;
+    }
+
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
@@ -2633,6 +2637,10 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 
 void
 opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
+
+    if( false == Instance->m_visible ) {
+        return;
+    }
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {

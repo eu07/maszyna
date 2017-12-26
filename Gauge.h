@@ -46,7 +46,7 @@ public:
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
 // members
-    TSubModel *SubModel; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
+    TSubModel *SubModel { nullptr }; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 
 private:
 // methods

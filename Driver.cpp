@@ -1886,21 +1886,10 @@ bool TController::CheckVehicles(TOrders user)
         fMass += p->MoverParameters->TotalMass; // dodanie masy łącznie z ładunkiem
         if (fVelMax < 0 ? true : p->MoverParameters->Vmax < fVelMax)
             fVelMax = p->MoverParameters->Vmax; // ustalenie maksymalnej prędkości dla składu
-        /* //youBy: bez przesady, to jest proteza, napelniac mozna, a nawet trzeba, ale z umiarem!
-          //uwzględnić jeszcze wyłączenie hamulca
-          if
-          ((p->MoverParameters->BrakeSystem!=Pneumatic)&&(p->MoverParameters->BrakeSystem!=ElectroPneumatic))
-           iDrivigFlags&=~moveOerlikons; //no jednak nie
-          else if (p->MoverParameters->BrakeSubsystem!=Oerlikon)
-           iDrivigFlags&=~moveOerlikons; //wtedy też nie */
         p = p->Neightbour(dir); // pojazd podłączony od wskazanej strony
     }
     if (main)
         iDrivigFlags |= movePrimary; // nie znaleziono innego, można się porządzić
-    /* //tabelka z listą pojazdów jest na razie nie potrzebna
-     delete[] pVehicles;
-     pVehicles=new TDynamicObject*[iVehicles];
-    */
     ControllingSet(); // ustalenie członu do sterowania (może być inny niż zasiedziany)
     int pantmask = 1;
     if (iDrivigFlags & movePrimary)
@@ -2187,42 +2176,19 @@ bool TController::PrepareEngine()
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
     iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
-    // with Controlling do
-    if ( mvControlling->EnginePowerSource.SourceType == CurrentCollector )
-/*
-      || ( (mvOccupied->TrainType==dt_EZT)
-        && (mvControlling->GetTrainsetVoltage() > 0.0 ) ) ) // sprawdzanie, czy zasilanie jest może w innym członie
-*/
-    {
+
+    if ( mvControlling->EnginePowerSource.SourceType == CurrentCollector ) {
         voltfront = true;
         voltrear = true;
     }
-    //   begin
-    //     if Couplers[0].Connected<>nil)
-    //     begin
-    //       if Couplers[0].Connected^.PantFrontVolt or Couplers[0].Connected^.PantRearVolt)
-    //         voltfront:=true
-    //       else
-    //         voltfront:=false;
-    //     end
-    //     else
-    //        voltfront:=false;
-    //     if Couplers[1].Connected<>nil)
-    //     begin
-    //      if Couplers[1].Connected^.PantFrontVolt or Couplers[1].Connected^.PantRearVolt)
-    //        voltrear:=true
-    //      else
-    //        voltrear:=false;
-    //     end
-    //     else
-    //        voltrear:=false;
-    //   end
-    else
-        // if EnginePowerSource.SourceType<>CurrentCollector)
-        if (mvOccupied->TrainType != dt_EZT)
-        voltfront = true; // Ra 2014-06: to jest wirtualny prąd dla spalinowych???
-    if (AIControllFlag) // jeśli prowadzi komputer
-    { // część wykonawcza dla sterowania przez komputer
+    else {
+        if( mvOccupied->TrainType != dt_EZT ) {
+            // Ra 2014-06: to jest wirtualny prąd dla spalinowych???
+            voltfront = true;
+        }
+    }
+    if (AIControllFlag) {
+        // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch(true);
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
@@ -2244,39 +2210,42 @@ bool TController::PrepareEngine()
                     mvControlling->PantCompFlag = false; // sprężarkę pantografów można już wyłączyć
             }
         }
-        // if (mvOccupied->TrainType==dt_EZT)
-        //{//Ra 2014-12: po co to tutaj?
-        // mvControlling->PantFront(true);
-        // mvControlling->PantRear(true);
-        //}
-        // if (mvControlling->EngineType==DieselElectric)
-        // mvControlling->Battery=true; //Ra: to musi być tak?
     }
+
     if (mvControlling->PantFrontVolt || mvControlling->PantRearVolt || voltfront || voltrear)
     { // najpierw ustalamy kierunek, jeśli nie został ustalony
-        if (!iDirection) // jeśli nie ma ustalonego kierunku
-            if (mvOccupied->V == 0)
-            { // ustalenie kierunku, gdy stoi
+        if( !iDirection ) {
+            // jeśli nie ma ustalonego kierunku
+            if( mvOccupied->V == 0 ) { // ustalenie kierunku, gdy stoi
                 iDirection = mvOccupied->CabNo; // wg wybranej kabiny
-                if (!iDirection) // jeśli nie ma ustalonego kierunku
-                    if ((mvControlling->PantFrontVolt != 0.0) ||
-                        (mvControlling->PantRearVolt != 0.0) || voltfront || voltrear)
-                    {
-                        if (mvOccupied->Couplers[1].CouplingFlag ==
-                            ctrain_virtual) // jeśli z tyłu nie ma nic
+                if( !iDirection ) {
+                    // jeśli nie ma ustalonego kierunku
+                    if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
+                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == ctrain_virtual ) {
+                            // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
-                        if (mvOccupied->Couplers[0].CouplingFlag ==
-                            ctrain_virtual) // jeśli z przodu nie ma nic
+                        }
+                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == ctrain_virtual ) {
+                            // jeśli z przodu nie ma nic
                             iDirection = 1; // jazda w kierunku sprzęgu 0
+                        }
                     }
+                }
             }
-            else // ustalenie kierunku, gdy jedzie
-                if ((mvControlling->PantFrontVolt != 0.0) || (mvControlling->PantRearVolt != 0.0) ||
-                    voltfront || voltrear)
-                if (mvOccupied->V < 0) // jedzie do tyłu
-                    iDirection = -1; // jazda w kierunku sprzęgu 1
-                else // jak nie do tyłu, to do przodu
-                    iDirection = 1; // jazda w kierunku sprzęgu 0
+            else {
+                // ustalenie kierunku, gdy jedzie
+                if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
+                    if( mvOccupied->V < 0 ) {
+                        // jedzie do tyłu
+                        iDirection = -1; // jazda w kierunku sprzęgu 1
+                    }
+                    else {
+                        // jak nie do tyłu, to do przodu
+                        iDirection = 1; // jazda w kierunku sprzęgu 0
+                    }
+                }
+            }
+        }
         if (AIControllFlag) // jeśli prowadzi komputer
         { // część wykonawcza dla sterowania przez komputer
             if (mvControlling->ConvOvldFlag)
@@ -2285,38 +2254,48 @@ bool TController::PrepareEngine()
                     ; // zerowanie napędu
                 mvControlling->ConvOvldFlag = false; // reset nadmiarowego
             }
-            else if (!mvControlling->Mains)
-            {
-                // if TrainType=dt_SN61)
-                //   begin
-                //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
-                //      OK:=IncMainCtrl(1);
-                //   end;
+            else if (false == mvControlling->Mains) {
                 while (DecSpeed(true))
                     ; // zerowanie napędu
-                OK = mvControlling->MainSwitch(true);
-                if (mvControlling->EngineType == DieselEngine)
-                { // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
-                    // kiedyś działało...
-                    if (!mvControlling->MainCtrlPos)
-                    {
-                        if (mvControlling->RList[0].R ==
-                            0.0) // gdy na pozycji 0 dawka paliwa jest zerowa, to zgaśnie
-                            mvControlling->IncMainCtrl(1); // dlatego trzeba zwiększyć pozycję
-                        if (!mvControlling->ScndCtrlPos) // jeśli bieg nie został ustawiony
-                            if (!mvControlling->MotorParam[0].AutoSwitch) // gdy biegi ręczne
-                                if (mvControlling->MotorParam[0].mIsat == 0.0) // bl,mIsat,fi,mfi
-                                    mvControlling->IncScndCtrl(1); // pierwszy bieg
+
+                if( ( mvOccupied->EngineType == DieselEngine )
+                 || ( mvOccupied->EngineType == DieselElectric ) ) {
+                    // start helper devices before spinning up the engine
+                    // TODO: replace with dedicated diesel engine subsystems
+                    mvOccupied->ConverterSwitch( true );
+                    mvOccupied->CompressorSwitch( true );
+                }
+                if( mvOccupied->TrainType == dt_SN61 ) {
+                    // specjalnie dla SN61 żeby nie zgasł
+                    if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
+                        mvControlling->IncMainCtrl( 1 );
                     }
                 }
+                OK = mvControlling->MainSwitch(true);
+/*
+                if (mvControlling->EngineType == DieselEngine) {
+                    // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
+                    // kiedyś działało...
+                    if (!mvControlling->MainCtrlPos) {
+                        if( mvControlling->RList[ 0 ].R == 0.0 ) {
+                            // gdy na pozycji 0 dawka paliwa jest zerowa, to zgaśnie dlatego trzeba zwiększyć pozycję
+                            mvControlling->IncMainCtrl( 1 );
+                        }
+                        if( ( !mvControlling->ScndCtrlPos ) // jeśli bieg nie został ustawiony
+                         && ( !mvControlling->MotorParam[ 0 ].AutoSwitch ) // gdy biegi ręczne
+                         && ( mvControlling->MotorParam[ 0 ].mIsat == 0.0 ) ) { // bl,mIsat,fi,mfi
+                            // pierwszy bieg
+                            mvControlling->IncScndCtrl( 1 );
+                        }
+                    }
+                }
+*/
             }
-            else
-            { // Ra: iDirection określa, w którą stronę jedzie skład względem sprzęgów pojazdu z AI
-                OK = (OrderDirectionChange(iDirection, mvOccupied) == -1);
+            else { 
+                OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
+                mvOccupied->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvControlling->CompressorSwitch(true);
-                mvControlling->ConverterSwitch(true);
-                mvControlling->CompressorSwitch(true);
+                mvControlling->CompressorSwitch( true );
             }
         }
         else
@@ -2721,20 +2700,22 @@ bool TController::IncSpeed()
         break;
     case DieselEngine:
         if (mvControlling->ShuntModeAllow)
-        { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga
-            // zerowania kierunku)
+        { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga zerowania kierunku)
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
         }
-        if ((mvControlling->Vel > mvControlling->dizel_minVelfullengage) &&
-            (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0))
-            OK = mvControlling->IncMainCtrl(1);
-        if (mvControlling->RList[mvControlling->MainCtrlPos].Mn == 0)
-            OK = mvControlling->IncMainCtrl(1);
-        if (!mvControlling->Mains)
-        {
-            mvControlling->MainSwitch(true);
-            mvControlling->ConverterSwitch(true);
-            mvControlling->CompressorSwitch(true);
+        if( true == Ready ) {
+            if( ( mvControlling->Vel > mvControlling->dizel_minVelfullengage )
+             && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 ) ) {
+                OK = mvControlling->IncMainCtrl( 1 );
+            }
+            if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
+                OK = mvControlling->IncMainCtrl( 1 );
+            }
+        }
+        if( false == mvControlling->Mains ) {
+            mvControlling->MainSwitch( true );
+            mvControlling->ConverterSwitch( true );
+            mvControlling->CompressorSwitch( true );
         }
         break;
     }
@@ -3194,12 +3175,11 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             vCommandLocation = *NewLocation;
         if ((NewValue1 != 0.0) && (OrderList[OrderPos] != Obey_train))
         { // o ile jazda
-            if (!iEngineActive)
-                OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw, światła ustawi
-            // JumpToNextOrder()
-            // if (OrderList[OrderPos]!=Obey_train) //jeśli nie pociągowa
-            OrderNext(Obey_train); // to uruchomić jazdę pociągową (od razu albo po odpaleniu
-            // silnika
+            if( iEngineActive == 0 ) {
+                // trzeba odpalić silnik najpierw, światła ustawi
+                OrderNext( Prepare_engine );
+            }
+            OrderNext(Obey_train); // to uruchomić jazdę pociągową (od razu albo po odpaleniu silnika
             OrderCheck(); // jeśli jazda pociągowa teraz, to wykonać niezbędne operacje
         }
         if (NewValue1 != 0.0) // jeśli jechać
@@ -3502,6 +3482,7 @@ TController::UpdateSituation(double dt) {
 	index = std::min(BrakeAccTableSize, std::max(1, index));
 	fBrake_a0[0] = fBrake_a0[index];
 	fBrake_a1[0] = fBrake_a1[index];
+
     Ready = true; // wstępnie gotowy
     fReady = 0.0; // założenie, że odhamowany
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
@@ -3510,8 +3491,8 @@ TController::UpdateSituation(double dt) {
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
-        if (Ready) // bo jak coś nie odhamowane, to dalej nie ma co sprawdzać
-            // if (p->MoverParameters->BrakePress>=0.03*p->MoverParameters->MaxBrakePress)
+        if (Ready) {
+            // bo jak coś nie odhamowane, to dalej nie ma co sprawdzać
             if (p->MoverParameters->BrakePress >= 0.4) // wg UIC określone sztywno na 0.04
             {
                 Ready = false; // nie gotowy
@@ -3529,6 +3510,7 @@ TController::UpdateSituation(double dt) {
                             Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
                 }
             }
+        }
         if (fReady < p->MoverParameters->BrakePress)
             fReady = p->MoverParameters->BrakePress; // szukanie najbardziej zahamowanego
         if( ( dy = p->VectorFront().y ) != 0.0 ) {
@@ -3547,6 +3529,25 @@ TController::UpdateSituation(double dt) {
             // if (mvOccupied->BrakePress<0.08) //to wystarczy, że zadziałają liniowe (nie ma ich jeszcze!!!)
             if (fReady < 0.8) // delikatniejszy warunek, obejmuje wszystkie wagony
                 Ready = true; //żeby uznać za odhamowany
+    // second pass, for diesel engines verify the engines are fully started
+    // TODO: cache presence of diesel engines in the consist, to skip this test if there isn't any
+    p = pVehicles[ 0 ]; // pojazd na czole składu
+    while( ( true == Ready )
+        && ( p != nullptr ) ) {
+
+        auto const *vehicle { p->MoverParameters };
+
+        if( ( vehicle->EngineType == DieselEngine )
+         || ( vehicle->EngineType == DieselElectric ) ) {
+
+            Ready = (
+                vehicle->enrot > 0.9 * (
+                    vehicle->EngineType == DieselEngine ?
+                        vehicle->dizel_nmin :
+                        vehicle->DElist[ 0 ].RPM / 60.0 ) );
+        }
+        p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
+    }
 
     // crude way to deal with automatic door opening on W4 preventing further ride
     // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
@@ -5696,10 +5697,12 @@ void TController::DirectionForward(bool forward)
     else
         while (mvOccupied->ActiveDir >= 0)
             mvOccupied->DirectionBackward(); // do tyłu w obecnej kabinie
-    if (mvOccupied->EngineType == DieselEngine) // specjalnie dla SN61
-        if (iDrivigFlags & moveActive) // jeśli był już odpalony
-            if (mvControlling->RList[mvControlling->MainCtrlPos].Mn == 0)
-                mvControlling->IncMainCtrl(1); //żeby nie zgasł
+    if( mvOccupied->TrainType == dt_SN61 ) {
+        // specjalnie dla SN61 żeby nie zgasł
+        if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
+            mvControlling->IncMainCtrl( 1 );
+        }
+    }
 };
 
 std::string TController::Relation()

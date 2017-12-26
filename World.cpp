@@ -1396,7 +1396,7 @@ TWorld::Update_UI() {
                 uitextline2 += ( vehicle->MoverParameters->PantPressLockActive ? "!" : ( vehicle->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
                 uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( vehicle->MoverParameters->CompressorAllow ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
+                uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorPower > 1 ) ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->CompressorGovernorLock ? "!" : "." );
 /*
                 uitextline2 +=
