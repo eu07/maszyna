@@ -313,7 +313,6 @@ TTrain::TTrain() {
     //-----
     pMechSittingPosition = vector3(0, 0, 0); // ABu: 180404
     InstrumentLightActive = false; // ABu: 030405
-    iRadioChannel = 0;
     fTachoTimer = 0.0; // włączenie skoków wskazań prędkościomierza
 
     //
@@ -3376,7 +3375,7 @@ void TTrain::UpdateMechPosition(double dt)
 vector3
 TTrain::GetWorldMechPosition() {
 
-    vector3 position = DynamicObject->mMatrix *pMechPosition; // położenie względem środka pojazdu w układzie scenerii
+    vector3 position = DynamicObject->mMatrix * pMechPosition; // położenie względem środka pojazdu w układzie scenerii
     position += DynamicObject->GetPosition();
     return position;
 }
@@ -5164,6 +5163,16 @@ bool TTrain::Update( double const Deltatime )
     // sounds
     update_sounds( Deltatime );
 
+    if( false == m_radiomessages.empty() ) {
+        // erase completed radio messages from the list
+        m_radiomessages.erase(
+            std::remove_if(
+                std::begin( m_radiomessages ), std::end( m_radiomessages ),
+                []( sound_source &source ) {
+                    return ( false == source.is_playing() ); } ),
+            std::end( m_radiomessages ) );
+    }
+
     return true; //(DynamicObject->Update(dt));
 } // koniec update
 
@@ -5610,7 +5619,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         &rsFadeSound, &rsRunningNoise,
-        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm
+        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound
     };
     for( auto sound : sounds ) {
         sound->offset( nullvector );
@@ -5794,6 +5803,13 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         if( dsbBuzzer.offset() == nullvector ) {
             dsbBuzzer.offset( btLampkaCzuwaka.model_offset() );
         }
+        // radio has two potential items which can provide the position
+        if( m_radiosound.offset() == nullvector ) {
+            m_radiosound.offset( ggRadioButton.model_offset() );
+        }
+        if( m_radiosound.offset() == nullvector ) {
+            m_radiosound.offset( btLampkaRadio.model_offset() );
+        }
         auto const localbrakeoffset { ggLocalBrake.model_offset() };
         std::vector<sound_source *> localbrakesounds = {
             &rsSBHiss, &rsSBHissU
@@ -5915,6 +5931,26 @@ void TTrain::DynamicSet(TDynamicObject *d)
                     (TMoverParameters *)mvOccupied->Couplers[0].Connected; // wskaźnik na drugiego
         }
 };
+
+void
+TTrain::radio_message( sound_source *Message, int const Channel ) {
+
+    if( ( false == mvOccupied->Radio )
+     || ( iRadioChannel != Channel ) ) {
+        // skip message playback if the radio isn't able to receive it
+        return;
+    }
+    auto const radiorange { 7500 * 7500 };
+    if( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > radiorange ) {
+        return;
+    }
+
+    m_radiomessages.emplace_back( m_radiosound );
+    // assign sound to the template and play it
+    m_radiomessages.back()
+        .copy_sounds( *Message )
+        .play( sound_flags::exclusive );
+}
 
 void TTrain::Silence()
 { // wyciszenie dźwięków przy wychodzeniu

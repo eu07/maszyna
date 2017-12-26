@@ -2063,6 +2063,15 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
 };
 
 //---------------------------------------------------------------------------
+// passes specified sound to all vehicles within range as a radio message broadcasted on specified channel
+void
+TWorld::radio_message( sound_source *Message, int const Channel ) {
+
+    if( Train != nullptr ) {
+        Train->radio_message( Message, Channel );
+    }
+}
+
 void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 { // ewentualna zmiana kabiny użytkownikowi
     if (Train)

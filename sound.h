@@ -58,6 +58,9 @@ public:
         deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
     sound_source &
         deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+    // copies list of sounds from provided source
+    sound_source &
+        copy_sounds( sound_source const &Source );
     // issues contextual play commands for the audio renderer
     void
         play( int const Flags = 0 );

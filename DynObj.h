@@ -308,7 +308,6 @@ private:
 
 // methods
     void ABuLittleUpdate(double ObjSqrDist);
-    double ComputeRadius( Math3D::vector3 p1, Math3D::vector3 p2, Math3D::vector3 p3, Math3D::vector3 p4);
     void ABuBogies();
     void ABuModelRoll();
     void TurnOff();
@@ -348,46 +347,25 @@ private:
 	TButton btMechanik1;
 	TButton btMechanik2;
 
-//    int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
     double dRailLength { 0.0 };
     std::vector<axle_sounds> m_axlesounds;
-    powertrain_sounds m_powertrainsounds;
     // engine sounds
-/*
-    sound_source dsbDieselIgnition { sound_placement::engine }; // moved from cab
-    sound_source rsSilnik { sound_placement::engine };
-    double enginevolume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
-    sound_source m_tractionmotor { sound_placement::external };
-    sound_source dsbRelay { sound_placement::engine };
-    sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
-    sound_source dsbWejscie_na_drugi_uklad { sound_placement::engine }; // moved from cab
-    sound_source rsPrzekladnia { sound_placement::engine };
-    sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
-    sound_source rsDieselInc { sound_placement::engine }; // youBy
-    float m_lastenginerevolutions { -1.f }; // helper, cached rpm of the engine
-    float m_enginerevolutionschange { 0.f }; // recent change of engine revolutions
-    sound_source sTurbo { sound_placement::engine };
-    sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
-    sound_source sConverter { sound_placement::engine };
-    sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
-    sound_source sSmallCompressor { sound_placement::engine };
-*/
+    powertrain_sounds m_powertrainsounds;
     sound_source sConverter { sound_placement::engine };
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
     sound_source sSmallCompressor { sound_placement::engine };
     // braking sounds
     sound_source dsbPneumaticRelay { sound_placement::external };
+    sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
+    sound_source sBrakeAcc { sound_placement::external };
+    bool bBrakeAcc { false };
+    sound_source rsPisk { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // McZapkie-260302
     sound_source rsUnbrake { sound_placement::external }; // yB - odglos luzowania
     float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in brake cylinder
     float m_brakepressurechange { 0.f }; // recent change of pressure in brake cylinder
     sound_source sReleaser { sound_placement::external };
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
-    sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
-    sound_source sBrakeAcc { sound_placement::external };
-    bool bBrakeAcc;
-    sound_source rsPisk { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // McZapkie-260302
-    sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202
     // moving part and other external sounds
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
@@ -396,11 +374,10 @@ private:
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rsOuterNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
+    sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202
 
-    double eng_vol_act;
-    double eng_frq_act;
-    double eng_dfrq;
     Math3D::vector3 modelShake;
 
     bool renderme; // yB - czy renderowac

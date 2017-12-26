@@ -3880,39 +3880,28 @@ double TMoverParameters::BrakeForceP(double press, double velocity)
 // Q: 20160713
 // oblicza siłę na styku koła i szyny
 // *************************************************************************************************
-double TMoverParameters::BrakeForce(const TTrackParam &Track)
-{
-    double K, Fb, NBrakeAxles, sm = 0;
-    // const OerlikonForceFactor=1.5;
+double TMoverParameters::BrakeForce( TTrackParam const &Track ) {
 
-    if (NPoweredAxles > 0)
-        NBrakeAxles = NPoweredAxles;
-    else
-        NBrakeAxles = NAxles;
-    switch (LocalBrake)
-    {
-    case NoBrake:
-        K = 0;
-		break;
-    case ManualBrake:
-        K = MaxBrakeForce * ManualBrakeRatio();
-		break;
-    case HydraulicBrake:
-        K = MaxBrakeForce * LocalBrakeRatio();
-		break;
-    case PneumaticBrake:
-        if (Compressor < MaxBrakePress[3])
-            K = MaxBrakeForce * LocalBrakeRatio() / 2.0;
-        else
-            K = 0;
+    double K{ 0 }, Fb{ 0 }, sm{ 0 };
+
+    switch( LocalBrake ) {
+        case ManualBrake: {
+            K = MaxBrakeForce * ManualBrakeRatio();
+            break;
+        }
+        case HydraulicBrake: {
+            K = MaxBrakeForce * LocalBrakeRatio();
+            break;
+        }
+        default: {
+            break;
+        }
     }
 
     if (MBrake == true)
     {
         K = MaxBrakeForce * ManualBrakeRatio();
     }
-
-    // 0.03
 
     u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
     if (u * BrakeRigEff > Ntotal) // histereza na nacisku klockow
@@ -3923,6 +3912,11 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
         if (u * (2.0 - BrakeRigEff) < Ntotal) // histereza na nacisku klockow
             Ntotal = u * (2.0 - BrakeRigEff);
     }
+
+    auto const NBrakeAxles { (
+        NPoweredAxles > 0 ?
+            NPoweredAxles :
+            NAxles ) };
 
     if (NBrakeAxles * NBpA > 0)
     {

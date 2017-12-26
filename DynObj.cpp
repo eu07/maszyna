@@ -1628,21 +1628,11 @@ TDynamicObject::TDynamicObject() {
     // McZapkie-270202
     Controller = AIdriver;
     bDisplayCab = false; // 030303
-    bBrakeAcc = false;
     NextConnected = PrevConnected = NULL;
     NextConnectedNo = PrevConnectedNo = 2; // ABu: Numery sprzegow. 2=nie podłączony
-    asName = "";
     bEnabled = true;
     MyTrack = NULL;
     // McZapkie-260202
-/*
-    dRailLength = 25.0;
-    for (int i = 0; i < MaxAxles; i++)
-        dRailPosition[i] = 0.0;
-    for (int i = 0; i < MaxAxles; i++)
-        dWheelsPosition[i] = 0.0; // będzie wczytane z MMD
-    iAxles = 0;
-*/
     dWheelAngle[0] = 0.0;
     dWheelAngle[1] = 0.0;
     dWheelAngle[2] = 0.0;
@@ -1651,11 +1641,6 @@ TDynamicObject::TDynamicObject() {
     NoVoltTime = 0;
     dDoorMoveL = 0.0;
     dDoorMoveR = 0.0;
-    // for (int i=0;i<8;i++)
-    //{
-    // DoorSpeedFactor[i]=random(150);
-    // DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
-    //}
     mdModel = NULL;
     mdKabina = NULL;
     // smWiazary[0]=smWiazary[1]=NULL;
@@ -1671,9 +1656,6 @@ TDynamicObject::TDynamicObject() {
     smBogie[0] = smBogie[1] = NULL;
     bogieRot[0] = bogieRot[1] = vector3(0, 0, 0);
     modelRot = vector3(0, 0, 0);
-    eng_vol_act = 0.8;
-    eng_dfrq = 0;
-    eng_frq_act = 1;
     cp1 = cp2 = sp1 = sp2 = 0;
     iDirection = 1; // stoi w kierunku tradycyjnym (0, gdy jest odwrócony)
     iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (przełączenie
@@ -1692,9 +1674,6 @@ TDynamicObject::TDynamicObject() {
     iAnimType[ANIM_PANTS] = 0; // 5-pantografy (2)
     iAnimType[ANIM_STEAMS] = 0; // 6-tłoki (napęd parowozu)
     iAnimations = 0; // na razie nie ma żadnego
-/*
-    pAnimations = NULL;
-*/
     pAnimated = NULL;
     fShade = 0.0; // standardowe oświetlenie na starcie
     iHornWarning = 1; // numer syreny do użycia po otrzymaniu sygnału do jazdy
@@ -1715,16 +1694,10 @@ TDynamicObject::TDynamicObject() {
     fAdjustment = 0.0; // korekcja odległości pomiędzy wózkami (np. na łukach)
 }
 
-TDynamicObject::~TDynamicObject()
-{ // McZapkie-250302 - zamykanie logowania
-    // parametrow fizycznych
-    SafeDelete(Mechanik);
-    SafeDelete(MoverParameters);
-
-/*
-    delete[] pAnimations; // obiekty obsługujące animację
-*/
-    delete[] pAnimated; // lista animowanych submodeli
+TDynamicObject::~TDynamicObject() {
+    SafeDelete( Mechanik );
+    SafeDelete( MoverParameters );
+    SafeDeleteArray( pAnimated ); // lista animowanych submodeli
 }
 
 double
@@ -2479,86 +2452,6 @@ void TDynamicObject::LoadUpdate()
     // }
     MoverParameters->LoadStatus &= 3; // po zakończeniu będzie równe zero
 };
-
-/*
-double ComputeRadius(double p1x, double p1z, double p2x, double p2z,
-                                double p3x, double p3z, double p4x, double p4z)
-{
-
-    double v1z= p1x-p2x;
-    double v1x= p1z-p2z;
-    double v4z= p3x-p4x;
-    double v4x= p3z-p4z;
-    double A1= p2z-p1z;
-    double B1= p1x-p2x;
-    double C1= -p1z*B1-p1x*A1;
-    double A2= p4z-p3z;
-    double B2= p3x-p4x;
-    double C2= -p3z*B1-p3x*A1;
-    double y= (A1*C2/A2-C1)/(B1-A1*B2/A2);
-    double x= (-B2*y-C2)/A2;
-}
-*/
-double TDynamicObject::ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4)
-{
-    //    vector3 v1
-
-    //    TLine l1= TLine(p1,p1-p2);
-    //    TLine l4= TLine(p4,p4-p3);
-    //    TPlane p1= l1.GetPlane();
-    //    vector3 pt;
-    //    CrossPoint(pt,l4,p1);
-    double R = 0.0;
-    vector3 p12 = p1 - p2;
-    vector3 p34 = p3 - p4;
-    p12 = CrossProduct(p12, vector3(0.0, 0.1, 0.0));
-    p12 = Normalize(p12);
-    p34 = CrossProduct(p34, vector3(0.0, 0.1, 0.0));
-    p34 = Normalize(p34);
-    if (fabs(p1.x - p2.x) > 0.01)
-    {
-        if (fabs(p12.x - p34.x) > 0.001)
-            R = (p1.x - p4.x) / (p34.x - p12.x);
-    }
-    else
-    {
-        if (fabs(p12.z - p34.z) > 0.001)
-            R = (p1.z - p4.z) / (p34.z - p12.z);
-    }
-    return (R);
-}
-
-/*
-double TDynamicObject::ComputeRadius()
-{
-  double L=0;
-  double d=0;
-  d=sqrt(SquareMagnitude(Axle0.pPosition-Axle1.pPosition));
-  L=Axle1.GetLength(Axle1.pPosition,Axle1.pPosition-Axle2.pPosition,Axle0.pPosition-Axle3.pPosition,Axle0.pPosition);
-
-  double eps=0.01;
-  double R= 0;
-  double L_d;
-  if ((L>0) || (d>0))
-   {
-     L_d= L-d;
-     if (L_d>eps)
-      {
-        R=L*sqrt(L/(24*(L_d)));
-      }
-   }
-  return R;
-}
-*/
-
-/* Ra: na razie nie potrzebne
-void TDynamicObject::UpdatePos()
-{
-  MoverParameters->Loc.X= -vPosition.x;
-  MoverParameters->Loc.Y=  vPosition.z;
-  MoverParameters->Loc.Z=  vPosition.y;
-}
-*/
 
 /*
 Ra:
@@ -3691,13 +3584,18 @@ void TDynamicObject::RenderSounds() {
         sSand.stop();
     }
 
+    auto brakeforceratio { 0.0 };
     if( //( false == mvOccupied->SlippingWheels ) &&
         ( MoverParameters->UnitBrakeForce > 10.0 )
-     && ( GetVelocity() > 0.05 ) ) {
+     && ( MoverParameters->Vel > 0.05 ) ) {
 
+        brakeforceratio =
+            clamp(
+                MoverParameters->UnitBrakeForce / ( MoverParameters->BrakeForceR( 1.0, MoverParameters->Vel ) / ( MoverParameters->NAxles * std::max( 1, MoverParameters->NBpA ) ) ),
+                0.0, 1.0 );
         rsBrake
-            .pitch( rsBrake.m_frequencyfactor * GetVelocity() + rsBrake.m_frequencyoffset )
-            .gain( rsBrake.m_amplitudefactor * std::sqrt( ( GetVelocity() * MoverParameters->UnitBrakeForce ) ) + rsBrake.m_amplitudeoffset )
+            .pitch( rsBrake.m_frequencyoffset + MoverParameters->Vel * rsBrake.m_frequencyfactor )
+            .gain( rsBrake.m_amplitudeoffset + std::sqrt( brakeforceratio * interpolate( 0.4, 1.0, ( MoverParameters->Vel / ( 1 + MoverParameters->Vmax ) ) ) ) )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -3811,51 +3709,9 @@ void TDynamicObject::RenderSounds() {
         volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
         frequency = rsOuterNoise.m_frequencyfactor * MoverParameters->Vel + rsOuterNoise.m_frequencyoffset;
 
-        if( false == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) {
-            // McZpakie-221103: halas zalezny od kola
-            switch( MyTrack->eEnvironment ) {
-                case e_tunnel: {
-                    volume *= 3;
-                    frequency *= 0.95;
-                    break;
-                }
-                case e_canyon: {
-                    volume *= 1.1;
-                    break;
-                }
-                case e_bridge: {
-                    volume *= 2;
-                    frequency *= 0.98;
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        else {
-            // uszkodzone kolo (podkucie)
-            switch( MyTrack->eEnvironment ) {
-                case e_tunnel: {
-                    volume *= 2;
-                    break;
-                }
-                case e_canyon: {
-                    volume *= 1.1;
-                    break;
-                }
-                case e_bridge: {
-                    volume *= 1.5;
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        if( std::abs( MoverParameters->nrot ) > 0.01 ) {
+        if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
-            volume *= 1 + 0.25 * ( MoverParameters->UnitBrakeForce / ( 1 + MoverParameters->MaxBrakeForce ) );
+            volume *= 1 + 0.25 * brakeforceratio;
         }
         // scale volume by track quality
         volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;
@@ -3876,6 +3732,17 @@ void TDynamicObject::RenderSounds() {
     else {
         // don't play the optional ending sound if the listener switches views
         rsOuterNoise.stop( false == FreeFlyModeFlag );
+    }
+    // flat spot sound
+    if( ( GetVelocity() > 1.0 )
+     && ( true == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) ) {
+        m_wheelflat
+            .pitch( m_wheelflat.m_frequencyoffset + std::abs( MoverParameters->nrot ) * m_wheelflat.m_frequencyfactor )
+            .gain( m_wheelflat.m_amplitudeoffset + 0.4 + 0.6 * ( MoverParameters->Vel * m_wheelflat.m_amplitudefactor ) )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        m_wheelflat.stop();
     }
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek
@@ -4891,6 +4758,14 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     rsOuterNoise.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
                 }
 
+                else if( token == "wheelflat:" ) {
+                    // szum podczas jazdy:
+                    m_wheelflat.deserialize( parser, sound_type::single, sound_parameters::frequency );
+                    m_wheelflat.owner( this );
+
+                    m_wheelflat.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
+                }
+
 			} while( ( token != "" )
 				  && ( token != "endsounds" ) );
 
@@ -4951,8 +4826,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // hamowanie zwykle:
                     rsBrake.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
                     rsBrake.owner( this );
-
-                    rsBrake.m_amplitudefactor /= ( 1 + MoverParameters->MaxBrakeForce * 1000 );
+                    // NOTE: can't pre-calculate amplitude normalization based on max brake force, as this varies depending on vehicle speed
                     rsBrake.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
                 }
                 else if( token == "slipperysound:" ) {
@@ -5049,6 +4923,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
         }
     }
     // other sounds
+    if( true == m_wheelflat.empty() ) {
+        m_wheelflat.deserialize( "lomotpodkucia.wav 0.23 0.0", sound_type::single, sound_parameters::frequency );
+        m_wheelflat.owner( this );
+
+        m_wheelflat.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
+    }
     if( true == rscurve.empty() ) {
         // hunter-111211: domyslne, gdy brak
         rscurve.deserialize( "curve.wav", sound_type::single );

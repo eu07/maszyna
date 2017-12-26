@@ -421,6 +421,8 @@ public: // reszta może by?publiczna
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
+    std::vector<sound_source> m_radiomessages; // list of currently played radio messages
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -469,7 +471,7 @@ private:
     float fPPress, fNPress;
 //    float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
-    int iRadioChannel; // numer aktualnego kana?u radiowego
+    int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     TPythonScreens pyScreens;
 
   public:
@@ -477,6 +479,8 @@ private:
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() { return iRadioChannel; };
+    // plays provided sound from position of the radio
+    void radio_message( sound_source *Message, int const Channel );
     inline TDynamicObject *Dynamic() { return DynamicObject; };
     inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };
