@@ -247,10 +247,6 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     NBpA = i_nbpa;
     BrakeDelays = i_BD;
     BrakeDelayFlag = bdelay_P;
-    DCV = false;
-    ASBP = 0.0;
-    BrakeStatus = b_hld;
-    SoundFlag = 0;
     // 210.88
     //  SizeBR:=i_bcn*i_bcr*i_bcr*i_bcd*40.17*MaxBP/(5-MaxBP);  //objetosc ZP w stosunku do cylindra
     //  14" i cisnienia 4.2 atm
@@ -258,7 +254,6 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     SizeBC = i_bcn * i_bcr * i_bcr * i_bcd * 210.88 * MaxBP /
              4.2; // objetosc CH w stosunku do cylindra 14" i cisnienia 4.2 atm
 
-    //  BrakeCyl:=TReservoir.Create;
     BrakeCyl = std::make_shared<TBrakeCyl>();
     BrakeRes = std::make_shared<TReservoir>();
     ValveRes = std::make_shared<TReservoir>();
@@ -268,7 +263,6 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     BrakeRes->CreateCap(i_brc);
     ValveRes->CreateCap(0.25);
 
-    //  FM.Free;
     // materialy cierne
     i_mat = i_mat & (255 - bp_MHS);
     switch (i_mat)

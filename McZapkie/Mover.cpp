@@ -8262,10 +8262,9 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         //   end
     else if (Command == "CompressorSwitch") /*NBMX*/
 	{
-		if ((CValue1 == 1))
-			CompressorAllow = true;
-		else if ((CValue1 == 0))
-			CompressorAllow = false;
+        if( CompressorPower < 2 ) {
+            CompressorAllow = ( CValue1 == 1 );
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "DoorOpen") /*NBMX*/

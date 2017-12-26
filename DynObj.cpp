@@ -3533,7 +3533,7 @@ void TDynamicObject::RenderSounds() {
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
     // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the leak rate
-    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * ( std::max( MoverParameters->BrakePress, 0.0 ) / MoverParameters->MaxBrakePress[ 3 ] ) );
+    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * ( std::max( 0.0, MoverParameters->BrakePress ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) ) );
     if( volume > 0.075f ) {
         rsUnbrake
             .gain( volume )
@@ -3591,7 +3591,7 @@ void TDynamicObject::RenderSounds() {
 
         brakeforceratio =
             clamp(
-                MoverParameters->UnitBrakeForce / ( MoverParameters->BrakeForceR( 1.0, MoverParameters->Vel ) / ( MoverParameters->NAxles * std::max( 1, MoverParameters->NBpA ) ) ),
+                MoverParameters->UnitBrakeForce / std::max( 1.0, MoverParameters->BrakeForceR( 1.0, MoverParameters->Vel ) / ( MoverParameters->NAxles * std::max( 1, MoverParameters->NBpA ) ) ),
                 0.0, 1.0 );
         rsBrake
             .pitch( rsBrake.m_frequencyoffset + MoverParameters->Vel * rsBrake.m_frequencyfactor )

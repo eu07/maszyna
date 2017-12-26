@@ -22,8 +22,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 
-#define EU07_NEW_CAB_RENDERCODE
-
 opengl_renderer GfxRenderer;
 extern TWorld World;
 
@@ -111,7 +109,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     ::glDepthFunc( GL_LEQUAL );
     glEnable( GL_DEPTH_TEST );
-    glAlphaFunc( GL_GREATER, 0.04f );
+    glAlphaFunc( GL_GREATER, 0.f );
     glEnable( GL_ALPHA_TEST );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glEnable( GL_BLEND );
@@ -431,13 +429,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glEnable( GL_TEXTURE_2D );
                 }
 #endif
-#ifdef EU07_NEW_CAB_RENDERCODE
                 if( World.Train != nullptr ) {
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, false, false );
                     Render_cab( World.Train->Dynamic(), false );
                 }
-#endif
                 switch_units( true, true, true );
                 Render( simulation::Region );
 /*
@@ -832,7 +828,7 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     }
     else {
         ::glDisable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.50f );
+        ::glAlphaFunc( GL_GREATER, 0.5f );
     }
 
     switch( m_renderpass.draw_mode ) {
@@ -909,7 +905,7 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         if( ( true == Global::RenderShadows ) && ( true == Shadows ) && ( false == Global::bWireFrame ) ) {
 
             ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-            ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( m_shadowcolor ) ); // TODO: dynamically calculated shadow colour, based on sun height
+            ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( m_shadowcolor ) );
 
             ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE ); // darken the previous stage
             ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS );
@@ -1393,17 +1389,6 @@ opengl_renderer::Render( scene::basic_region *Region ) {
 
     m_sectionqueue.clear();
     m_cellqueue.clear();
-/*
-    for( auto *section : Region->sections( m_renderpass.camera.position(), m_renderpass.draw_range * Global::fDistanceFactor ) ) {
-#ifdef EU07_USE_DEBUG_CULLING
-        if( m_worldcamera.camera.visible( section->m_area ) ) {
-#else
-        if( m_renderpass.camera.visible( section->m_area ) ) {
-#endif
-            m_sectionqueue.emplace_back( section );
-        }
-    }
-*/
     // build a list of region sections to render
     glm::vec3 const cameraposition { m_renderpass.camera.position() };
     auto const camerax = static_cast<int>( std::floor( cameraposition.x / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
@@ -1420,11 +1405,7 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             if( column >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
             auto *section { Region->m_sections[ row * scene::EU07_REGIONSIDESECTIONCOUNT + column ] };
             if( ( section != nullptr )
-#ifdef EU07_USE_DEBUG_CULLING
-             && ( m_worldcamera.camera.visible( section->m_area ) ) ) {
-#else
              && ( m_renderpass.camera.visible( section->m_area ) ) ) {
-#endif
                 m_sectionqueue.emplace_back( section );
             }
         }
@@ -1501,38 +1482,6 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                     auto const originoffset { section->m_area.center - m_renderpass.camera.position() };
                     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                     // render
-#ifdef EU07_USE_DEBUG_CULLING
-                    // debug
-                    ::glLineWidth( 2.f );
-                    float const width = section->m_area.radius;
-                    float const height = section->m_area.radius * 0.2f;
-                    glDisable( GL_LIGHTING );
-                    glDisable( GL_TEXTURE_2D );
-                    glColor3ub( 255, 128, 128 );
-                    glBegin( GL_LINE_LOOP );
-                    glVertex3f( -width, height, width );
-                    glVertex3f( -width, height, -width );
-                    glVertex3f( width, height, -width );
-                    glVertex3f( width, height, width );
-                    glEnd();
-                    glBegin( GL_LINE_LOOP );
-                    glVertex3f( -width, 0, width );
-                    glVertex3f( -width, 0, -width );
-                    glVertex3f( width, 0, -width );
-                    glVertex3f( width, 0, width );
-                    glEnd();
-                    glBegin( GL_LINES );
-                    glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
-                    glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
-                    glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
-                    glVertex3f( width, height, width ); glVertex3f( width, 0, width );
-                    glEnd();
-                    glColor3ub( 255, 255, 255 );
-                    glEnable( GL_TEXTURE_2D );
-                    glEnable( GL_LIGHTING );
-                    glLineWidth( 1.f );
-#endif
-                    // shapes
                     for( auto const &shape : section->m_shapes ) { Render( shape, true ); }
                     // post-render cleanup
                     ::glPopMatrix();
@@ -1552,11 +1501,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
             case rendermode::pickscenery: {
                 for( auto &cell : section->m_cells ) {
                     if( ( true == cell.m_active )
-#ifdef EU07_USE_DEBUG_CULLING
-                     && ( m_worldcamera.camera.visible( cell.m_area ) ) ) {
-#else
                      && ( m_renderpass.camera.visible( cell.m_area ) ) ) {
-#endif
                         // store visible cells with content as well as their current distance, for sorting later
                         m_cellqueue.emplace_back(
                             glm::length2( m_renderpass.camera.position() - cell.m_area.center ),
@@ -1605,35 +1550,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
                 // render
-#ifdef EU07_USE_DEBUG_CULLING
-                // debug
-                float const width = cell->m_area.radius;
-                float const height = cell->m_area.radius * 0.15f;
-                glDisable( GL_LIGHTING );
-                glDisable( GL_TEXTURE_2D );
-                glColor3ub( 255, 255, 0 );
-                glBegin( GL_LINE_LOOP );
-                glVertex3f( -width, height, width );
-                glVertex3f( -width, height, -width );
-                glVertex3f( width, height, -width );
-                glVertex3f( width, height, width );
-                glEnd();
-                glBegin( GL_LINE_LOOP );
-                glVertex3f( -width, 0, width );
-                glVertex3f( -width, 0, -width );
-                glVertex3f( width, 0, -width );
-                glVertex3f( width, 0, width );
-                glEnd();
-                glBegin( GL_LINES );
-                glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
-                glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
-                glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
-                glVertex3f( width, height, width ); glVertex3f( width, 0, width );
-                glEnd();
-                glColor3ub( 255, 255, 255 );
-                glEnable( GL_TEXTURE_2D );
-                glEnable( GL_LIGHTING );
-#endif
                 // opaque non-instanced shapes
                 for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
                 // tracks
@@ -1804,6 +1720,10 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
 
 void
 opengl_renderer::Render( TAnimModel *Instance ) {
+
+    if( false == Instance->m_visible ) {
+        return;
+    }
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
@@ -1988,7 +1908,6 @@ opengl_renderer::Render_cab( TDynamicObject *Dynamic, bool const Alpha ) {
                     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
                 }
                 // render
-#ifdef EU07_NEW_CAB_RENDERCODE
                 if( true == Alpha ) {
                     // translucent parts
                     Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
@@ -1997,10 +1916,6 @@ opengl_renderer::Render_cab( TDynamicObject *Dynamic, bool const Alpha ) {
                     // opaque parts
                     Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
                 }
-#else
-                Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
-                Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
-#endif
                 // post-render restore
                 if( Dynamic->fShade > 0.0f ) {
                     // change light level based on light level of the occupied track
@@ -2631,6 +2546,10 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 
 void
 opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
+
+    if( false == Instance->m_visible ) {
+        return;
+    }
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
