@@ -140,7 +140,7 @@ public:
         FindEvent( std::string const &Name );
     // legacy method, inserts specified event in the event query
     bool
-        AddToQuery( TEvent *Event, TDynamicObject *Owner );
+        AddToQuery( TEvent *Event, TDynamicObject *Owner, double delay = 0.0 );
     // legacy method, executes queued events
     bool
         CheckQuery();

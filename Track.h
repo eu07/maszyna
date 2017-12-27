@@ -102,7 +102,7 @@ public:
     TIsolated(const std::string &n, TIsolated *i);
     // methods
     static void DeleteAll();
-    static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
+    static TIsolated * Find(const std::string &n, bool create = true); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
     bool Busy() {
         return (iAxles > 0); };

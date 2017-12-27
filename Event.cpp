@@ -819,7 +819,7 @@ event_manager::FindEvent( std::string const &Name ) {
 
 // legacy method, inserts specified event in the event query
 bool
-event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
+event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner, double delay ) {
 
     if( ( false == Event->m_ignored ) && ( true == Event->bEnabled ) ) {
         // jeśli może być dodany do kolejki (nie używany w skanowaniu)
@@ -869,7 +869,7 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                 // standardowe dodanie do kolejki
                 ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
                 WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
-                Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+                Event->fStartTime = delay + std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
                 if( Event->fRandomDelay > 0.0 ) {
                     // doliczenie losowego czasu opóźnienia
                     Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;

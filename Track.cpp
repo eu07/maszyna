@@ -83,7 +83,7 @@ void TIsolated::DeleteAll() {
     }
 }
 
-TIsolated * TIsolated::Find(std::string const &n)
+TIsolated * TIsolated::Find(std::string const &n, bool create)
 { // znalezienie obiektu albo utworzenie nowego
     TIsolated *p = pRoot;
     while (p)
@@ -92,6 +92,8 @@ TIsolated * TIsolated::Find(std::string const &n)
             return p;
         p = p->pNext;
     }
+	if (!create)
+		return nullptr;
     pRoot = new TIsolated(n, pRoot); // BUG: source of a memory leak
     return pRoot;
 };
