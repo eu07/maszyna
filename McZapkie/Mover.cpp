@@ -3914,10 +3914,7 @@ double TMoverParameters::BrakeForce( TTrackParam const &Track ) {
             Ntotal = u * (2.0 - BrakeRigEff);
     }
 
-    auto const NBrakeAxles { (
-        NPoweredAxles > 0 ?
-            NPoweredAxles :
-            NAxles ) };
+    auto const NBrakeAxles { NAxles };
 
     if (NBrakeAxles * NBpA > 0)
     {

@@ -3541,10 +3541,11 @@ TController::UpdateSituation(double dt) {
          || ( vehicle->EngineType == DieselElectric ) ) {
 
             Ready = (
-                vehicle->enrot > 0.9 * (
+                ( vehicle->Vel > 0.5 )
+             || ( vehicle->enrot > 0.8 * (
                     vehicle->EngineType == DieselEngine ?
                         vehicle->dizel_nmin :
-                        vehicle->DElist[ 0 ].RPM / 60.0 ) );
+                        vehicle->DElist[ 0 ].RPM / 60.0 ) ) );
         }
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
