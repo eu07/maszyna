@@ -371,6 +371,9 @@ int main(int argc, char *argv[])
 	catch (std::runtime_error e)
 	{
         ErrorLog(e.what());
+#ifdef _WIN32
+		MessageBox(NULL, e.what(), "MaSzyna", MB_OK);
+#endif
 		return -1;
 	}
 
@@ -406,6 +409,9 @@ int main(int argc, char *argv[])
 	catch (std::runtime_error e)
     {
     	ErrorLog(e.what());
+#ifdef _WIN32
+		MessageBox(NULL, e.what(), "MaSzyna", MB_OK);
+#endif
 		return -1;
 	}
 	catch( std::bad_alloc const &Error ) {

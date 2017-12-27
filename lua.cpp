@@ -43,7 +43,11 @@ void lua::interpret(std::string file)
 
 int lua::atpanic(lua_State *s)
 {
-    ErrorLog(std::string(lua_tostring(s, -1)));
+	std::string err(lua_tostring(s, -1));
+    ErrorLog(err);
+#ifdef _WIN32
+        MessageBox(NULL, err.c_str(), "MaSzyna", MB_OK);
+#endif
     return 0;
 }
 
