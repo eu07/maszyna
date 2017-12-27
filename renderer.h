@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
+//#define EU07_USE_DEBUG_CABSHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
 
 struct opengl_light {
@@ -205,7 +206,7 @@ public:
         info_stats() const;
 
 // members
-    GLenum static const sunlight{ GL_LIGHT0 };
+    GLenum static const sunlight { GL_LIGHT0 };
     std::size_t m_drawcount { 0 };
 
 private:
@@ -214,6 +215,7 @@ private:
         none,
         color,
         shadows,
+        cabshadows,
         reflections,
         pickcontrols,
         pickscenery
@@ -269,6 +271,8 @@ private:
     void
         setup_units( bool const Diffuse, bool const Shadows, bool const Reflections );
     void
+        setup_shadow_map( GLuint const Texture, glm::mat4 const &Transformation );
+    void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
@@ -306,7 +310,7 @@ private:
     void
         Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last );
     bool
-        Render_cab( TDynamicObject *Dynamic, bool const Alpha = false );
+        Render_cab( TDynamicObject const *Dynamic, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
     void
@@ -354,13 +358,22 @@ private:
     GLuint m_picktexture { 0 };
     GLuint m_pickdepthbuffer { 0 };
 #endif
+    // main shadowmap resources
     int m_shadowbuffersize { 2048 };
     GLuint m_shadowframebuffer { 0 };
     GLuint m_shadowtexture { 0 };
 #ifdef EU07_USE_DEBUG_SHADOWMAP
     GLuint m_shadowdebugtexture{ 0 };
 #endif
+#ifdef EU07_USE_DEBUG_CABSHADOWMAP
+    GLuint m_cabshadowdebugtexture{ 0 };
+#endif
     glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
+    // cab shadowmap resources
+    GLuint m_cabshadowframebuffer { 0 };
+    GLuint m_cabshadowtexture { 0 };
+    glm::mat4 m_cabshadowtexturematrix; // conversion from cab-centric world space to light-centric clip space
+    // environment map resources
     GLuint m_environmentframebuffer { 0 };
     GLuint m_environmentcubetexture { 0 };
     GLuint m_environmentdepthbuffer { 0 };
@@ -389,9 +402,11 @@ private:
     float m_speculartranslucentscalefactor { 1.f };
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
 
-    renderpass_config m_renderpass;
+    renderpass_config m_renderpass; // parameters for current render pass
     section_sequence m_sectionqueue; // list of sections in current render pass
     cell_sequence m_cellqueue;
+    renderpass_config m_shadowpass; // parametrs of most recent shadowmap pass
+    renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
     std::vector<editor::basic_node const *> m_picksceneryitems;

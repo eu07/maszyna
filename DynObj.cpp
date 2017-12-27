@@ -3735,10 +3735,10 @@ void TDynamicObject::RenderSounds() {
     }
     // flat spot sound
     if( ( GetVelocity() > 1.0 )
-     && ( true == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) ) {
+     && ( MoverParameters->WheelFlat > 5.0 ) ) {
         m_wheelflat
             .pitch( m_wheelflat.m_frequencyoffset + std::abs( MoverParameters->nrot ) * m_wheelflat.m_frequencyfactor )
-            .gain( m_wheelflat.m_amplitudeoffset + 0.4 + 0.6 * ( MoverParameters->Vel * m_wheelflat.m_amplitudefactor ) )
+            .gain( m_wheelflat.m_amplitudeoffset + m_wheelflat.m_amplitudefactor * ( ( 1.0 + ( MoverParameters->Vel / MoverParameters->Vmax ) + clamp( MoverParameters->WheelFlat / 60.0, 0.0, 1.0 ) ) / 3.0 ) )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
