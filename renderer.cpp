@@ -621,7 +621,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #ifdef EU07_USE_DEBUG_CABSHADOWMAP
                 setup_units( true, false, false );
 #else
-                setup_units( true, false, false );
+                setup_units( false, false, false );
 #endif
                 Render_cab( World.Train->Dynamic(), false );
                 Render_cab( World.Train->Dynamic(), true );
@@ -1948,7 +1948,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     ++m_debugstats.dynamics;
 
     // setup
-    TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
+    TSubModel::iInstance = ( size_t )Dynamic; //żeby nie robić cudzych animacji
     glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
@@ -2251,7 +2251,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 /*
                             setup_shadow_color( colors::white );
 */
-                            switch_units( m_unitstate.diffuse, false, false );
+                            switch_units( unitstate.diffuse, false, false );
                         }
 
                         // main draw call
@@ -2267,7 +2267,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 /*
                             setup_shadow_color( m_shadowcolor );
 */
-                            switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
+                            switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
                         }
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
@@ -2378,7 +2378,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 /*
                             setup_shadow_color( m_shadowcolor );
 */
-                            switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
+                            switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                             ::glPopMatrix();
                             ::glPopAttrib();
@@ -2876,7 +2876,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     if( false == Dynamic->renderme ) { return false; }
 
     // setup
-    TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
+    TSubModel::iInstance = ( size_t )Dynamic; //żeby nie robić cudzych animacji
     glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
@@ -3015,78 +3015,104 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
         if( Submodel->eType < TP_ROTATOR ) {
             // renderowanie obiektów OpenGL
-            if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
-            {
+            if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) {
+                // rysuj gdy element przezroczysty
+                switch( m_renderpass.draw_mode ) {
+                    case rendermode::color: {
+
 // NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
 // for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-                switch( Submodel->m_normalizenormals ) {
-                    case TSubModel::normalize: {
-                        ::glEnable( GL_NORMALIZE ); break; }
-                    case TSubModel::rescale: {
-                        ::glEnable( GL_RESCALE_NORMAL ); break; }
-                    default: {
-                        break; }
-                }
+                        switch( Submodel->m_normalizenormals ) {
+                            case TSubModel::normalize: {
+                                ::glEnable( GL_NORMALIZE ); break; }
+                            case TSubModel::rescale: {
+                                ::glEnable( GL_RESCALE_NORMAL ); break; }
+                            default: {
+                                break; }
+                        }
 #else
-                if( true == m_renderspecular ) {
-                    ::glEnable( GL_NORMALIZE );
-                }
+                        if( true == m_renderspecular ) {
+                            ::glEnable( GL_NORMALIZE );
+                        }
 #endif
-                // textures...
-                if( Submodel->m_material < 0 ) { // zmienialne skóry
-                    Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                }
-                else {
-                    // również 0
-                    Bind_Material( Submodel->m_material );
-                }
-                // ...colors...
-                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
-                if( ( true == m_renderspecular ) && ( Global::DayLight.specular.a > 0.01f ) ) {
-                    ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global::DayLight.specular.a * m_speculartranslucentscalefactor ) );
-                }
-                // ...luminance
-                auto const unitstate = m_unitstate;
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
-                    // disable shadows so they don't obstruct self-lit items
+                        // material configuration:
+                        // textures...
+                        if( Submodel->m_material < 0 ) { // zmienialne skóry
+                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
+                        }
+                        else {
+                            // również 0
+                            Bind_Material( Submodel->m_material );
+                        }
+                        // ...colors...
+                        ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        if( ( true == m_renderspecular ) && ( Global::DayLight.specular.a > 0.01f ) ) {
+                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global::DayLight.specular.a * m_speculartranslucentscalefactor ) );
+                        }
+                        // ...luminance
+                        auto const unitstate = m_unitstate;
+                        if( Global::fLuminance < Submodel->fLight ) {
+                            // zeby swiecilo na kolorowo
+                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
+                            // disable shadows so they don't obstruct self-lit items
 /*
-                    setup_shadow_color( colors::white );
+                            setup_shadow_color( colors::white );
 */
-                    switch_units( m_unitstate.diffuse, false, false );
-                }
+                            switch_units( unitstate.diffuse, false, false );
+                        }
 
-                // main draw call
-                m_geometry.draw( Submodel->m_geometry );
+                        // main draw call
+                        m_geometry.draw( Submodel->m_geometry );
 
-                // post-draw reset
-                if( ( true == m_renderspecular ) && ( Global::DayLight.specular.a > 0.01f ) ) {
-                    ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
-                }
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // restore default (lack of) brightness
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
+                        // post-draw reset
+                        if( ( true == m_renderspecular ) && ( Global::DayLight.specular.a > 0.01f ) ) {
+                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
+                        }
+                        if( Global::fLuminance < Submodel->fLight ) {
+                            // restore default (lack of) brightness
+                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
 /*
-                    setup_shadow_color( m_shadowcolor );
+                            setup_shadow_color( m_shadowcolor );
 */
-                    switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
-                }
+                            switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
+                        }
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-                switch( Submodel->m_normalizenormals ) {
-                    case TSubModel::normalize: {
-                        ::glDisable( GL_NORMALIZE ); break; }
-                    case TSubModel::rescale: {
-                        ::glDisable( GL_RESCALE_NORMAL ); break; }
-                    default: {
-                        break; }
-                }
+                        switch( Submodel->m_normalizenormals ) {
+                            case TSubModel::normalize: {
+                                ::glDisable( GL_NORMALIZE ); break; }
+                            case TSubModel::rescale: {
+                                ::glDisable( GL_RESCALE_NORMAL ); break; }
+                            default: {
+                                break; }
+                        }
 #else
-                if( true == m_renderspecular ) {
-                    ::glDisable( GL_NORMALIZE );
-                }
+                        if( true == m_renderspecular ) {
+                            ::glDisable( GL_NORMALIZE );
+                        }
 #endif
+                        break;
+                    }
+                    case rendermode::cabshadows: {
+                        // scenery picking and shadow both use enforced colour and no frills
+                        // material configuration:
+                        // textures...
+                        if( Submodel->m_material < 0 ) { // zmienialne skóry
+                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
+                        }
+                        else {
+                            // również 0
+                            Bind_Material( Submodel->m_material );
+                        }
+                        // main draw call
+                        m_geometry.draw( Submodel->m_geometry );
+                        // post-draw reset
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
             }
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
@@ -3128,7 +3154,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         setup_shadow_color( colors::white );
 */
                         auto const unitstate = m_unitstate;
-                        switch_units( m_unitstate.diffuse, false, false );
+                        switch_units( unitstate.diffuse, false, false );
 
                         // main draw call
                         m_geometry.draw( m_billboardgeometry );
@@ -3144,7 +3170,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 /*
                         setup_shadow_color( m_shadowcolor );
 */
-                        switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
+                        switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                         ::glPopMatrix();
                         ::glPopAttrib();
@@ -3182,10 +3208,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
         if( Submodel->iFlags & 0xC000 )
             ::glPopMatrix();
     }
-
+/*
     if( Submodel->b_aAnim < at_SecondsJump )
         Submodel->b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
-
+*/
     if( Submodel->Next != nullptr )
         if( Submodel->iAlpha & Submodel->iFlags & 0x2F000000 )
             Render_Alpha( Submodel->Next );
@@ -3309,8 +3335,8 @@ opengl_renderer::Update( double const Deltatime ) {
     float targetfactor;
          if( framerate > 90.0 ) { targetfactor = 3.0f; }
     else if( framerate > 60.0 ) { targetfactor = 1.5f; }
-    else if( framerate > 30.0 ) { targetfactor = Global::iWindowHeight / 768.0f; }
-    else                        { targetfactor = Global::iWindowHeight / 768.0f * 0.75f; }
+    else if( framerate > 30.0 ) { targetfactor = 1.25; }
+    else                        { targetfactor = std::max( Global::iWindowHeight / 768.f, 1.f ); }
 
     if( targetfactor > Global::fDistanceFactor ) {
 
