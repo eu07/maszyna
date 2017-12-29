@@ -402,6 +402,7 @@ int main(int argc, char *argv[])
             input::Keyboard.poll();
             if (input::uart)
                 input::uart->poll();
+			simulation::Commands.update();
             if( true == Global::InputMouse )   { input::Mouse.poll(); }
             if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
         }

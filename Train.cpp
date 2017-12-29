@@ -719,14 +719,13 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
 }
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
-
     if( Command.action != GLFW_RELEASE ) {
 
         if( Train->mvOccupied->BrakeHandle == FV4a ) {
-            Train->mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
+            Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep * Command.time_delta );
         }
         else {
-            if( Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep ) ) {
+            if( Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep * Command.time_delta ) ) {
                 // nieodpowiedni warunek; true, jeśli można dalej kręcić
                 Train->keybrakecount = 0;
                 if( ( Train->is_eztoer() ) && ( Train->mvOccupied->BrakeCtrlPos < 3 ) ) {
@@ -743,7 +742,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
     if( Command.action != GLFW_RELEASE ) {
         // press or hold
         if( Train->mvOccupied->BrakeHandle == FV4a ) {
-            Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
+            Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep * Command.time_delta );
         }
         else {
             // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
@@ -756,7 +755,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
                     // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
                     Train->dsbPneumaticSwitch.play();
                 }
-                Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep );
+                Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep * Command.time_delta );
             }
             else
                 Train->keybrakecount += 1;

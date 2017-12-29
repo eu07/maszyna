@@ -19,70 +19,70 @@ namespace simulation {
 command_queue Commands;
 commanddescription_sequence Commands_descriptions = {
 
-    { "mastercontrollerincrease", command_target::vehicle },
-    { "mastercontrollerincreasefast", command_target::vehicle },
-    { "mastercontrollerdecrease", command_target::vehicle },
-    { "mastercontrollerdecreasefast", command_target::vehicle },
-    { "secondcontrollerincrease", command_target::vehicle },
-    { "secondcontrollerincreasefast", command_target::vehicle },
-    { "secondcontrollerdecrease", command_target::vehicle },
-    { "secondcontrollerdecreasefast", command_target::vehicle },
-    { "mucurrentindicatorothersourceactivate", command_target::vehicle },
-    { "independentbrakeincrease", command_target::vehicle },
-    { "independentbrakeincreasefast", command_target::vehicle },
-    { "independentbrakedecrease", command_target::vehicle },
-    { "independentbrakedecreasefast", command_target::vehicle },
-    { "independentbrakebailoff", command_target::vehicle },
-    { "trainbrakeincrease", command_target::vehicle },
-    { "trainbrakedecrease", command_target::vehicle },
-    { "trainbrakecharging", command_target::vehicle },
-    { "trainbrakerelease", command_target::vehicle },
-    { "trainbrakefirstservice", command_target::vehicle },
-    { "trainbrakeservice", command_target::vehicle },
-    { "trainbrakefullservice", command_target::vehicle },
-    { "trainbrakeemergency", command_target::vehicle },
-    { "manualbrakeincrease", command_target::vehicle },
-    { "manualbrakedecrease", command_target::vehicle },
-    { "alarmchaintoggle", command_target::vehicle },
-    { "wheelspinbrakeactivate", command_target::vehicle },
-    { "sandboxactivate", command_target::vehicle },
-    { "reverserincrease", command_target::vehicle },
-    { "reverserdecrease", command_target::vehicle },
-    { "linebreakertoggle", command_target::vehicle },
-    { "convertertoggle", command_target::vehicle },
-    { "convertertogglelocal", command_target::vehicle },
-    { "converteroverloadrelayreset", command_target::vehicle },
-    { "compressortoggle", command_target::vehicle },
-    { "compressortogglelocal", command_target::vehicle },
-    { "motoroverloadrelaythresholdtoggle", command_target::vehicle },
-    { "motoroverloadrelayreset", command_target::vehicle },
-    { "notchingrelaytoggle", command_target::vehicle },
-    { "epbrakecontroltoggle", command_target::vehicle },
-    { "brakeactingspeedincrease", command_target::vehicle },
-    { "brakeactingspeeddecrease", command_target::vehicle },
-    { "mubrakingindicatortoggle", command_target::vehicle },
-    { "alerteracknowledge", command_target::vehicle },
-    { "hornlowactivate", command_target::vehicle },
-    { "hornhighactivate", command_target::vehicle },
-    { "radiotoggle", command_target::vehicle },
-    { "radiostoptest", command_target::vehicle },
+    { "mastercontrollerincrease", command_target::vehicle, command_mode::oneoff },
+    { "mastercontrollerincreasefast", command_target::vehicle, command_mode::oneoff },
+    { "mastercontrollerdecrease", command_target::vehicle, command_mode::oneoff },
+    { "mastercontrollerdecreasefast", command_target::vehicle, command_mode::oneoff },
+    { "secondcontrollerincrease", command_target::vehicle, command_mode::oneoff },
+    { "secondcontrollerincreasefast", command_target::vehicle, command_mode::oneoff },
+    { "secondcontrollerdecrease", command_target::vehicle, command_mode::oneoff },
+    { "secondcontrollerdecreasefast", command_target::vehicle, command_mode::oneoff },
+    { "mucurrentindicatorothersourceactivate", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakeincrease", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakeincreasefast", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakedecrease", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakedecreasefast", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakebailoff", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakeincrease", command_target::vehicle, command_mode::continuous },
+    { "trainbrakedecrease", command_target::vehicle, command_mode::continuous },
+    { "trainbrakecharging", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakerelease", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakefirstservice", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakeservice", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakefullservice", command_target::vehicle, command_mode::oneoff },
+    { "trainbrakeemergency", command_target::vehicle, command_mode::oneoff },
+    { "manualbrakeincrease", command_target::vehicle, command_mode::oneoff },
+    { "manualbrakedecrease", command_target::vehicle, command_mode::oneoff },
+    { "alarmchaintoggle", command_target::vehicle, command_mode::oneoff },
+    { "wheelspinbrakeactivate", command_target::vehicle, command_mode::oneoff },
+    { "sandboxactivate", command_target::vehicle, command_mode::oneoff },
+    { "reverserincrease", command_target::vehicle, command_mode::oneoff },
+    { "reverserdecrease", command_target::vehicle, command_mode::oneoff },
+    { "linebreakertoggle", command_target::vehicle, command_mode::oneoff },
+    { "convertertoggle", command_target::vehicle, command_mode::oneoff },
+    { "convertertogglelocal", command_target::vehicle, command_mode::oneoff },
+    { "converteroverloadrelayreset", command_target::vehicle, command_mode::oneoff },
+    { "compressortoggle", command_target::vehicle, command_mode::oneoff },
+    { "compressortogglelocal", command_target::vehicle, command_mode::oneoff },
+    { "motoroverloadrelaythresholdtoggle", command_target::vehicle, command_mode::oneoff },
+    { "motoroverloadrelayreset", command_target::vehicle, command_mode::oneoff },
+    { "notchingrelaytoggle", command_target::vehicle, command_mode::oneoff },
+    { "epbrakecontroltoggle", command_target::vehicle, command_mode::oneoff },
+    { "brakeactingspeedincrease", command_target::vehicle, command_mode::oneoff },
+    { "brakeactingspeeddecrease", command_target::vehicle, command_mode::oneoff },
+    { "mubrakingindicatortoggle", command_target::vehicle, command_mode::oneoff },
+    { "alerteracknowledge", command_target::vehicle, command_mode::oneoff },
+    { "hornlowactivate", command_target::vehicle, command_mode::oneoff },
+    { "hornhighactivate", command_target::vehicle, command_mode::oneoff },
+    { "radiotoggle", command_target::vehicle, command_mode::oneoff },
+    { "radiostoptest", command_target::vehicle, command_mode::oneoff },
 /*
 const int k_FailedEngineCutOff = 35;
 */
-    { "viewturn", command_target::entity },
-    { "movevector", command_target::entity },
-    { "moveleft", command_target::entity },
-    { "moveright", command_target::entity },
-    { "moveforward", command_target::entity },
-    { "moveback", command_target::entity },
-    { "moveup", command_target::entity },
-    { "movedown", command_target::entity },
-    { "moveleftfast", command_target::entity },
-    { "moverightfast", command_target::entity },
-    { "moveforwardfast", command_target::entity },
-    { "movebackfast", command_target::entity },
-    { "moveupfast", command_target::entity },
-    { "movedownfast", command_target::entity },
+    { "viewturn", command_target::entity, command_mode::oneoff },
+    { "movevector", command_target::entity, command_mode::oneoff },
+    { "moveleft", command_target::entity, command_mode::oneoff },
+    { "moveright", command_target::entity, command_mode::oneoff },
+    { "moveforward", command_target::entity, command_mode::oneoff },
+    { "moveback", command_target::entity, command_mode::oneoff },
+    { "moveup", command_target::entity, command_mode::oneoff },
+    { "movedown", command_target::entity, command_mode::oneoff },
+    { "moveleftfast", command_target::entity, command_mode::oneoff },
+    { "moverightfast", command_target::entity, command_mode::oneoff },
+    { "moveforwardfast", command_target::entity, command_mode::oneoff },
+    { "movebackfast", command_target::entity, command_mode::oneoff },
+    { "moveupfast", command_target::entity, command_mode::oneoff },
+    { "movedownfast", command_target::entity, command_mode::oneoff },
 /*
 const int k_CabForward = 42;
 const int k_CabBackward = 43;
@@ -92,51 +92,51 @@ const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
 */
-    { "doortoggleleft", command_target::vehicle },
-    { "doortoggleright", command_target::vehicle },
-    { "departureannounce", command_target::vehicle },
-    { "doorlocktoggle", command_target::vehicle },
-    { "pantographcompressorvalvetoggle", command_target::vehicle },
-    { "pantographcompressoractivate", command_target::vehicle },
-    { "pantographtogglefront", command_target::vehicle },
-    { "pantographtogglerear", command_target::vehicle },
-    { "pantographlowerall", command_target::vehicle },
-    { "heatingtoggle", command_target::vehicle },
+    { "doortoggleleft", command_target::vehicle, command_mode::oneoff },
+    { "doortoggleright", command_target::vehicle, command_mode::oneoff },
+    { "departureannounce", command_target::vehicle, command_mode::oneoff },
+    { "doorlocktoggle", command_target::vehicle, command_mode::oneoff },
+    { "pantographcompressorvalvetoggle", command_target::vehicle, command_mode::oneoff },
+    { "pantographcompressoractivate", command_target::vehicle, command_mode::oneoff },
+    { "pantographtogglefront", command_target::vehicle, command_mode::oneoff },
+    { "pantographtogglerear", command_target::vehicle, command_mode::oneoff },
+    { "pantographlowerall", command_target::vehicle, command_mode::oneoff },
+    { "heatingtoggle", command_target::vehicle, command_mode::oneoff },
 /*
 // const int k_FreeFlyMode= 59;
 */
-    { "lightspresetactivatenext", command_target::vehicle },
-    { "lightspresetactivateprevious", command_target::vehicle },
-    { "headlighttoggleleft", command_target::vehicle },
-    { "headlighttoggleright", command_target::vehicle },
-    { "headlighttoggleupper", command_target::vehicle },
-    { "redmarkertoggleleft", command_target::vehicle },
-    { "redmarkertoggleright", command_target::vehicle },
-    { "headlighttogglerearleft", command_target::vehicle },
-    { "headlighttogglerearright", command_target::vehicle },
-    { "headlighttogglerearupper", command_target::vehicle },
-    { "redmarkertogglerearleft", command_target::vehicle },
-    { "redmarkertogglerearright", command_target::vehicle },
-    { "headlightsdimtoggle", command_target::vehicle },
-    { "motorconnectorsopen", command_target::vehicle },
-    { "motordisconnect", command_target::vehicle },
-    { "interiorlighttoggle", command_target::vehicle },
-    { "interiorlightdimtoggle", command_target::vehicle },
-    { "instrumentlighttoggle", command_target::vehicle },
+    { "lightspresetactivatenext", command_target::vehicle, command_mode::oneoff },
+    { "lightspresetactivateprevious", command_target::vehicle, command_mode::oneoff },
+    { "headlighttoggleleft", command_target::vehicle, command_mode::oneoff },
+    { "headlighttoggleright", command_target::vehicle, command_mode::oneoff },
+    { "headlighttoggleupper", command_target::vehicle, command_mode::oneoff },
+    { "redmarkertoggleleft", command_target::vehicle, command_mode::oneoff },
+    { "redmarkertoggleright", command_target::vehicle, command_mode::oneoff },
+    { "headlighttogglerearleft", command_target::vehicle, command_mode::oneoff },
+    { "headlighttogglerearright", command_target::vehicle, command_mode::oneoff },
+    { "headlighttogglerearupper", command_target::vehicle, command_mode::oneoff },
+    { "redmarkertogglerearleft", command_target::vehicle, command_mode::oneoff },
+    { "redmarkertogglerearright", command_target::vehicle, command_mode::oneoff },
+    { "headlightsdimtoggle", command_target::vehicle, command_mode::oneoff },
+    { "motorconnectorsopen", command_target::vehicle, command_mode::oneoff },
+    { "motordisconnect", command_target::vehicle, command_mode::oneoff },
+    { "interiorlighttoggle", command_target::vehicle, command_mode::oneoff },
+    { "interiorlightdimtoggle", command_target::vehicle, command_mode::oneoff },
+    { "instrumentlighttoggle", command_target::vehicle, command_mode::oneoff },
 /*
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
-    { "generictoggle0", command_target::vehicle },
-    { "generictoggle1", command_target::vehicle },
-    { "generictoggle2", command_target::vehicle },
-    { "generictoggle3", command_target::vehicle },
-    { "generictoggle4", command_target::vehicle },
-    { "generictoggle5", command_target::vehicle },
-    { "generictoggle6", command_target::vehicle },
-    { "generictoggle7", command_target::vehicle },
-    { "generictoggle8", command_target::vehicle },
-    { "generictoggle9", command_target::vehicle },
+    { "generictoggle0", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle1", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle2", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle3", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle4", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle5", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle6", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle7", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle8", command_target::vehicle, command_mode::oneoff },
+    { "generictoggle9", command_target::vehicle, command_mode::oneoff },
     { "batterytoggle", command_target::vehicle }
 /*
 const int k_WalkMode = 73;
@@ -145,13 +145,35 @@ const int k_WalkMode = 73;
 
 }
 
+void command_queue::update()
+{
+	double delta = Timer::GetDeltaTime();
+	for (user_command c : m_active_continuous)
+	{
+	    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( c ) ];
+		command_data data { c, GLFW_REPEAT, 0, 0, command_data::desired_state_t::TOGGLE, delta };
+	    auto lookup = m_commands.emplace((size_t)desc.target, commanddata_sequence() );
+	    lookup.first->second.emplace( data );
+	}
+}
+
 // posts specified command for specified recipient
 void
 command_queue::push( command_data const &Command, std::size_t const Recipient ) {
-
-    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
-    // recipient stack was either located or created, so we can add to it quite safely
-    lookup.first->second.emplace( Command );
+    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
+	if (desc.mode == command_mode::continuous)
+	{
+		if (Command.action == GLFW_PRESS)
+			m_active_continuous.emplace(Command.command);
+		else if (Command.action == GLFW_RELEASE)
+			m_active_continuous.erase(Command.command);
+	}
+	else
+	{
+	    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
+	    // recipient stack was either located or created, so we can add to it quite safely
+	    lookup.first->second.emplace( Command );
+	}
 }
 
 // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
@@ -195,7 +217,7 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
             Action,
             Param1,
             Param2,
-            state, Timer::GetDeltaTime() },
+            state, Timer::GetDeltaTime()},
         static_cast<std::size_t>( command.target ) | Recipient );
 /*
 #ifdef _DEBUG

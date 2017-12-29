@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <unordered_map>
 #include <queue>
+#include <unordered_set>
 
 enum class user_command {
 
@@ -155,10 +156,15 @@ enum class command_target {
     entity  = 0x40000
 };
 
-struct command_description {
+enum class command_mode {
+	oneoff,
+	continuous
+};
 
+struct command_description {
     std::string name;
     command_target target;
+	command_mode mode;
 };
 
 struct command_data {
@@ -191,6 +197,7 @@ public:
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
         pop( command_data &Command, std::size_t const Recipient );
+	void update();
 
 private:
 // types
@@ -199,6 +206,9 @@ private:
 // members
     commanddatasequence_map m_commands;
 
+	// TODO: this set should contain more than just user_command
+	// also, maybe that and all continuous input logic should be in command_relay?
+	std::unordered_set<user_command> m_active_continuous;
 };
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
