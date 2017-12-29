@@ -719,7 +719,7 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
 }
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_REPEAT ) {
 
         if( Train->mvOccupied->BrakeHandle == FV4a ) {
             Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep * Command.time_delta );
@@ -739,7 +739,7 @@ void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Co
 
 void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_REPEAT ) {
         // press or hold
         if( Train->mvOccupied->BrakeHandle == FV4a ) {
             Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep * Command.time_delta );
@@ -762,7 +762,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             // koniec wersji dostarczonej przez ZiomalCl
         }
     }
-    else {
+    else if (Command.action == GLFW_RELEASE) {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )
@@ -3393,7 +3393,7 @@ bool TTrain::Update( double const Deltatime )
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {
             // debug data
-            if( commanddata.action != GLFW_RELEASE ) {
+            if( commanddata.action == GLFW_PRESS ) {
                 WriteLog( mvOccupied->Name + " received command: [" + simulation::Commands_descriptions[ static_cast<std::size_t>( commanddata.command ) ].name + "]" );
             }
             // pass the command to the assigned handler

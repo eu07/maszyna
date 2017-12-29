@@ -168,12 +168,10 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 		else if (Command.action == GLFW_RELEASE)
 			m_active_continuous.erase(Command.command);
 	}
-	else
-	{
-	    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
-	    // recipient stack was either located or created, so we can add to it quite safely
-	    lookup.first->second.emplace( Command );
-	}
+
+    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
+    // recipient stack was either located or created, so we can add to it quite safely
+    lookup.first->second.emplace( Command );
 }
 
 // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
