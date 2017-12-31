@@ -3771,8 +3771,15 @@ bool TTrain::Update( double const Deltatime )
                  || (true == mvControlled->Mains) ) ?
                     true :
                     false ) );
+            // NOTE: 'off' variant uses the same test, but opposite resulting states
+            btLampkaWylSzybkiOff.Turn(
+                ( ( ( m_linebreakerstate > 0 )
+                 || ( true == mvControlled->Mains ) ) ?
+                    false :
+                    true ) );
 
-            btLampkaPrzetw.Turn( !mvControlled->ConverterFlag );
+            btLampkaPrzetw.Turn( mvControlled->ConverterFlag );
+            btLampkaPrzetwOff.Turn( false == mvControlled->ConverterFlag );
             btLampkaNadmPrzetw.Turn( mvControlled->ConvOvldFlag );
 
             btLampkaOpory.Turn(
@@ -3818,6 +3825,7 @@ bool TTrain::Update( double const Deltatime )
 
             btLampkaNapNastHam.Turn(mvControlled->ActiveDir != 0); // napiecie na nastawniku hamulcowym
             btLampkaSprezarka.Turn(mvControlled->CompressorFlag); // mutopsitka dziala
+            btLampkaSprezarkaOff.Turn( false == mvControlled->CompressorFlag );
             // boczniki
             unsigned char scp; // Ra: dopisałem "unsigned"
             // Ra: w SU45 boczniki wchodzą na MainCtrlPos, a nie na MainCtrlActualPos
@@ -3838,23 +3846,11 @@ bool TTrain::Update( double const Deltatime )
                 btLampkaBocznik3.Turn( false );
                 btLampkaBocznik4.Turn( false );
             }
-            /*
-                    { //sprezarka w drugim wozie
-                    bool comptemp=false;
-                    if (DynamicObject->NextConnected)
-                       if
-               (TestFlag(mvControlled->Couplers[1].CouplingFlag,ctrain_controll))
-                          comptemp=DynamicObject->NextConnected->MoverParameters->CompressorFlag;
-                    if ((DynamicObject->PrevConnected) && (!comptemp))
-                       if
-               (TestFlag(mvControlled->Couplers[0].CouplingFlag,ctrain_controll))
-                          comptemp=DynamicObject->PrevConnected->MoverParameters->CompressorFlag;
-                    btLampkaSprezarkaB.Turn(comptemp);
-            */
         }
         else {
             // wylaczone
             btLampkaWylSzybki.Turn( false );
+            btLampkaWylSzybkiOff.Turn( false );
             btLampkaWysRozr.Turn( false );
             btLampkaOpory.Turn( false );
             btLampkaStyczn.Turn( false );
@@ -3863,8 +3859,10 @@ bool TTrain::Update( double const Deltatime )
             btLampkaBoczniki.Turn( false );
             btLampkaNapNastHam.Turn( false );
             btLampkaPrzetw.Turn( false );
+            btLampkaPrzetwOff.Turn( false );
             btLampkaNadmPrzetw.Turn( false );
             btLampkaSprezarka.Turn( false );
+            btLampkaSprezarkaOff.Turn( false );
             btLampkaBezoporowa.Turn( false );
         }
         if (mvControlled->Signalling == true) {
@@ -3904,6 +3902,7 @@ bool TTrain::Update( double const Deltatime )
                 if ( mvControlled->Battery || mvControlled->ConverterFlag ) {
 
                     btLampkaWylSzybkiB.Turn( tmp->MoverParameters->Mains );
+                    btLampkaWylSzybkiBOff.Turn( false == tmp->MoverParameters->Mains );
 
                     btLampkaOporyB.Turn(tmp->MoverParameters->ResistorsFlagCheck());
                     btLampkaBezoporowaB.Turn(
@@ -3942,8 +3941,8 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaPoslizg.Turn(tmp->MoverParameters->SlippingWheels);
                     //-----------------
 
-                    btLampkaSprezarkaB.Turn(
-                        tmp->MoverParameters->CompressorFlag); // mutopsitka dziala
+                    btLampkaSprezarkaB.Turn( tmp->MoverParameters->CompressorFlag ); // mutopsitka dziala
+                    btLampkaSprezarkaBOff.Turn( false == tmp->MoverParameters->CompressorFlag );
                     if ((tmp->MoverParameters->BrakePress >= 0.145f * 10) &&
                         (mvControlled->Battery == true) && (mvControlled->Signalling == true))
                     {
@@ -3954,39 +3953,46 @@ bool TTrain::Update( double const Deltatime )
                     {
                         btLampkaHamowanie2zes.Turn( false );
                     }
-                    btLampkaNadmPrzetwB.Turn(
-                        tmp->MoverParameters->ConvOvldFlag); // nadmiarowy przetwornicy?
-                    btLampkaPrzetwB.Turn(
-                        !tmp->MoverParameters->ConverterFlag); // zalaczenie przetwornicy
+                    btLampkaNadmPrzetwB.Turn( tmp->MoverParameters->ConvOvldFlag ); // nadmiarowy przetwornicy?
+                    btLampkaPrzetwB.Turn( tmp->MoverParameters->ConverterFlag ); // zalaczenie przetwornicy
+                    btLampkaPrzetwBOff.Turn( false == tmp->MoverParameters->ConverterFlag );
                 }
                 else // wylaczone
                 {
                     btLampkaWylSzybkiB.Turn( false );
+                    btLampkaWylSzybkiBOff.Turn( false );
                     btLampkaOporyB.Turn( false );
                     btLampkaStycznB.Turn( false );
                     btLampkaSprezarkaB.Turn( false );
+                    btLampkaSprezarkaBOff.Turn( false );
                     btLampkaBezoporowaB.Turn( false );
                     btLampkaHamowanie2zes.Turn( false );
                     btLampkaNadmPrzetwB.Turn( false );
                     btLampkaPrzetwB.Turn( false );
+                    btLampkaPrzetwBOff.Turn( false );
                 }
         }
 
-        if( mvControlled->Battery || mvControlled->ConverterFlag )
-        {
-            switch (mvControlled->TrainType)
-            { // zależnie od typu lokomotywy
-            case dt_EZT:
-                btLampkaHamienie.Turn((mvControlled->BrakePress >= 0.2) &&
-                                      mvControlled->Signalling);
-                break;
-            case dt_ET41: // odhamowanie drugiego członu
-                if (mvSecond) // bo może komuś przyjść do głowy jeżdżenie jednym członem
-                    btLampkaHamienie.Turn(mvSecond->BrakePress < 0.4);
-                break;
-            default:
-                btLampkaHamienie.Turn((mvOccupied->BrakePress >= 0.1) ||
-                                      mvControlled->DynamicBrakeFlag);
+        if( mvControlled->Battery || mvControlled->ConverterFlag ) {
+            switch (mvControlled->TrainType) {
+                // zależnie od typu lokomotywy
+                case dt_EZT: {
+                    btLampkaHamienie.Turn( ( mvControlled->BrakePress >= 0.2 ) && mvControlled->Signalling );
+                    break;
+                }
+                case dt_ET41: {
+                    // odhamowanie drugiego członu
+                    if( mvSecond ) {
+                        // bo może komuś przyjść do głowy jeżdżenie jednym członem
+                        btLampkaHamienie.Turn( mvSecond->BrakePress < 0.4 );
+                    }
+                    break;
+                }
+                default: {
+                    btLampkaHamienie.Turn( ( mvOccupied->BrakePress >= 0.1 ) || mvControlled->DynamicBrakeFlag );
+                    btLampkaBrakingOff.Turn( ( mvOccupied->BrakePress < 0.1 ) && ( false == mvControlled->DynamicBrakeFlag ) );
+                    break;
+                }
             }
             // KURS90
             btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
@@ -4017,6 +4023,7 @@ bool TTrain::Update( double const Deltatime )
         else
         { // gdy bateria wyłączona
             btLampkaHamienie.Turn( false );
+            btLampkaBrakingOff.Turn( false );
             btLampkaMaxSila.Turn( false );
             btLampkaPrzekrMaxSila.Turn( false );
             btLampkaRadio.Turn( false );
@@ -6053,20 +6060,24 @@ void TTrain::clear_cab_controls()
 				// Numer 14 jest używany dla buczka SHP w innym miejscu
     btLampkaPoslizg.Clear(6);
     btLampkaStyczn.Clear(5);
-    btLampkaNadmPrzetw.Clear((mvControlled->TrainType & (dt_EZT)) ? -1 :
-                                                                    7); // EN57 nie ma tej lampki
-    btLampkaPrzetw.Clear((mvControlled->TrainType & (dt_EZT)) ? 7 : -1); // za to ma tę
+    btLampkaNadmPrzetw.Clear(((mvControlled->TrainType & dt_EZT) != 0) ? -1 : 7); // EN57 nie ma tej lampki
+    btLampkaPrzetw.Clear();
+    btLampkaPrzetwOff.Clear(((mvControlled->TrainType & dt_EZT) != 0) ? 7 : -1 ); // za to ma tę
+    btLampkaPrzetwB.Clear();
+    btLampkaPrzetwBOff.Clear();
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);
     btLampkaUkrotnienie.Clear();
     btLampkaHamPosp.Clear();
     btLampkaWylSzybki.Clear(3);
+    btLampkaWylSzybkiOff.Clear();
+    btLampkaWylSzybkiB.Clear();
+    btLampkaWylSzybkiBOff.Clear();
     btLampkaNadmWent.Clear(9);
     btLampkaNadmSpr.Clear(8);
     btLampkaOpory.Clear(2);
-    btLampkaWysRozr.Clear((mvControlled->TrainType & (dt_ET22)) ? -1 :
-                                                                  10); // ET22 nie ma tej lampki
+    btLampkaWysRozr.Clear(((mvControlled->TrainType & dt_ET22) != 0) ? -1 : 10); // ET22 nie ma tej lampki
     btLampkaBezoporowa.Clear();
     btLampkaBezoporowaB.Clear();
     btLampkaMaxSila.Clear();
@@ -6090,15 +6101,16 @@ void TTrain::clear_cab_controls()
     btLampkaBocznik4.Clear();
     btLampkaRadiotelefon.Clear();
     btLampkaHamienie.Clear();
+    btLampkaBrakingOff.Clear();
     btLampkaSprezarka.Clear();
     btLampkaSprezarkaB.Clear();
+    btLampkaSprezarkaOff.Clear();
+    btLampkaSprezarkaBOff.Clear();
     btLampkaNapNastHam.Clear();
     btLampkaStycznB.Clear();
     btLampkaHamowanie1zes.Clear();
     btLampkaHamowanie2zes.Clear();
     btLampkaNadmPrzetwB.Clear();
-    btLampkaPrzetwB.Clear();
-    btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
     // light indicators
@@ -6333,12 +6345,18 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-contactors:", btLampkaStyczn },
         { "i-conv_ovld:", btLampkaNadmPrzetw },
         { "i-converter:", btLampkaPrzetw },
+        { "i-converteroff:", btLampkaPrzetwOff },
+        { "i-converterb:", btLampkaPrzetwB },
+        { "i-converterboff:", btLampkaPrzetwBOff },
         { "i-diff_relay:", btLampkaPrzekRozn },
         { "i-diff_relay2:", btLampkaPrzekRoznPom },
         { "i-motor_ovld:", btLampkaNadmSil },
         { "i-train_controll:", btLampkaUkrotnienie },
         { "i-brake_delay_r:", btLampkaHamPosp },
         { "i-mainbreaker:", btLampkaWylSzybki },
+        { "i-mainbreakerb:", btLampkaWylSzybkiB },
+        { "i-mainbreakeroff:", btLampkaWylSzybkiOff },
+        { "i-mainbreakerboff:", btLampkaWylSzybkiBOff },
         { "i-vent_ovld:", btLampkaNadmWent },
         { "i-comp_ovld:", btLampkaNadmSpr },
         { "i-resistors:", btLampkaOpory },
@@ -6359,17 +6377,18 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-scnd3:", btLampkaBocznik3 },
         { "i-scnd4:", btLampkaBocznik4 },
         { "i-braking:", btLampkaHamienie },
+        { "i-brakingoff:", btLampkaBrakingOff },
         { "i-dynamicbrake:", btLampkaED },
         { "i-braking-ezt:", btLampkaHamowanie1zes },
         { "i-braking-ezt2:", btLampkaHamowanie2zes },
         { "i-compressor:", btLampkaSprezarka },
         { "i-compressorb:", btLampkaSprezarkaB },
+        { "i-compressoroff:", btLampkaSprezarkaOff },
+        { "i-compressorboff:", btLampkaSprezarkaBOff },
         { "i-voltbrake:", btLampkaNapNastHam },
-        { "i-mainbreakerb:", btLampkaWylSzybkiB },
         { "i-resistorsb:", btLampkaOporyB },
         { "i-contactorsb:", btLampkaStycznB },
         { "i-conv_ovldb:", btLampkaNadmPrzetwB },
-        { "i-converterb:", btLampkaPrzetwB },
         { "i-forward:", btLampkaForward },
         { "i-backward:", btLampkaBackward },
         { "i-upperlight:", btLampkaUpperLight },

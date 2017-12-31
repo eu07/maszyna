@@ -310,18 +310,22 @@ public: // reszta może by?publiczna
     TButton btLampkaStyczn;
     TButton btLampkaNadmPrzetw;
     TButton btLampkaPrzetw;
+    TButton btLampkaPrzetwOff;
     TButton btLampkaPrzekRozn;
     TButton btLampkaPrzekRoznPom;
     TButton btLampkaNadmSil;
     TButton btLampkaWylSzybki;
+    TButton btLampkaWylSzybkiOff;
     TButton btLampkaNadmWent;
     TButton btLampkaNadmSpr;
     // yB: drugie lampki dla EP05 i ET42
     TButton btLampkaOporyB;
     TButton btLampkaStycznB;
     TButton btLampkaWylSzybkiB;
+    TButton btLampkaWylSzybkiBOff;
     TButton btLampkaNadmPrzetwB;
     TButton btLampkaPrzetwB;
+    TButton btLampkaPrzetwBOff;
     // KURS90 lampki jazdy bezoporowej dla EU04
     TButton btLampkaBezoporowaB;
     TButton btLampkaBezoporowa;
@@ -344,12 +348,15 @@ public: // reszta może by?publiczna
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
     TButton btLampkaSprezarkaB;
+    TButton btLampkaSprezarkaOff;
+    TButton btLampkaSprezarkaBOff;
     TButton btLampkaBocznik1;
     TButton btLampkaBocznik2;
     TButton btLampkaBocznik3;
     TButton btLampkaBocznik4;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
+    TButton btLampkaBrakingOff;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
     // KURS90
     TButton btLampkaBoczniki;

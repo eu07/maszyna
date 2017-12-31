@@ -4778,8 +4778,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // szum podczas jazdy:
                     m_wheelflat.deserialize( parser, sound_type::single, sound_parameters::frequency );
                     m_wheelflat.owner( this );
-
-                    m_wheelflat.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
                 }
 
 			} while( ( token != "" )
@@ -4942,8 +4940,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     if( true == m_wheelflat.empty() ) {
         m_wheelflat.deserialize( "lomotpodkucia.wav 0.23 0.0", sound_type::single, sound_parameters::frequency );
         m_wheelflat.owner( this );
-
-        m_wheelflat.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
     }
     if( true == rscurve.empty() ) {
         // hunter-111211: domyslne, gdy brak

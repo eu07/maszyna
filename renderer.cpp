@@ -425,7 +425,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // run shadowmaps pass before color
                 Timer::subsystem.gfx_shadows.start();
                 Render_pass( rendermode::shadows );
-                Render_pass( rendermode::cabshadows );
+                if( false == FreeFlyModeFlag ) {
+                    Render_pass( rendermode::cabshadows );
+                }
                 Timer::subsystem.gfx_shadows.stop();
                 m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
 #ifdef EU07_USE_DEBUG_SHADOWMAP
@@ -758,7 +760,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
     switch( Mode ) {
         case rendermode::color:        { Config.draw_range = Global::BaseDrawRange; break; }
         case rendermode::shadows:      { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
-        case rendermode::cabshadows:   { Config.draw_range = 10.f; break; }
+        case rendermode::cabshadows:   { Config.draw_range = ( Global::pWorld->train()->Dynamic()->MoverParameters->ActiveCab != 0 ? 10.f : 20.f ); break; }
         case rendermode::reflections:  { Config.draw_range = Global::BaseDrawRange; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
         case rendermode::pickscenery:  { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
