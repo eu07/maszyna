@@ -3508,7 +3508,7 @@ TController::UpdateSituation(double dt) {
             // if (mvOccupied->BrakePress<0.08) //to wystarczy, że zadziałają liniowe (nie ma ich jeszcze!!!)
             if (fReady < 0.8) // delikatniejszy warunek, obejmuje wszystkie wagony
                 Ready = true; //żeby uznać za odhamowany
-    // second pass, for diesel engines verify the engines are fully started
+    // second pass, for diesel engines verify the (live) engines are fully started
     // TODO: cache presence of diesel engines in the consist, to skip this test if there isn't any
     p = pVehicles[ 0 ]; // pojazd na czole składu
     while( ( true == Ready )
@@ -3520,7 +3520,8 @@ TController::UpdateSituation(double dt) {
          || ( vehicle->EngineType == DieselElectric ) ) {
 
             Ready = (
-                ( vehicle->Vel > 0.5 )
+                ( vehicle->Vel > 0.5 ) // already moving
+             || ( false == vehicle->Mains ) // deadweight vehicle
              || ( vehicle->enrot > 0.8 * (
                     vehicle->EngineType == DieselEngine ?
                         vehicle->dizel_nmin :
