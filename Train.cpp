@@ -5690,14 +5690,12 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 *parser >> token;
                 if (token != "none")
                 {
-
-                    Global::asCurrentTexturePath =
-                        DynamicObject->asBaseDir; // bieżąca sciezka do tekstur to dynamic/...
-                    TModel3d *kabina =
-                        TModelsManager::GetModel(DynamicObject->asBaseDir + token,
-                                                 true); // szukaj kabinę jako oddzielny model
-                    Global::asCurrentTexturePath =
-                        szTexturePath; // z powrotem defaultowa sciezka do tekstur
+                    // bieżąca sciezka do tekstur to dynamic/...
+                    Global::asCurrentTexturePath = DynamicObject->asBaseDir;
+                    // szukaj kabinę jako oddzielny model
+                    TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true);
+                    // z powrotem defaultowa sciezka do tekstur
+                    Global::asCurrentTexturePath = szTexturePath;
                     // if (DynamicObject->mdKabina!=k)
                     if (kabina != nullptr)
                     {
@@ -5708,16 +5706,11 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     // else
                     // break; //wyjście z pętli, bo model zostaje bez zmian
                 }
-                else if (cabindex == 1)
-                {
+                else if (cabindex == 1) {
                     // model tylko, gdy nie ma kabiny 1
-                    DynamicObject->mdKabina =
-                        DynamicObject
-                            ->mdModel; // McZapkie-170103: szukaj elementy kabiny w glownym modelu
+                    // McZapkie-170103: szukaj elementy kabiny w glownym modelu
+                    DynamicObject->mdKabina = DynamicObject->mdModel;
                 }
-/*
-                Universal4Active = false;
-*/
                 clear_cab_controls();
             }
             if (nullptr == DynamicObject->mdKabina)
@@ -5737,8 +5730,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             }
             else if (token == "pyscreen:")
             {
-                pyScreens.init(*parser, DynamicObject->mdKabina, DynamicObject->name(),
-                               NewCabNo);
+                pyScreens.init(*parser, DynamicObject->mdKabina, DynamicObject->name(), NewCabNo);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");
@@ -5750,9 +5742,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pyScreens.start();
     if (DynamicObject->mdKabina)
     {
-        DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
-        set_cab_controls();
-
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
         // try first to bind sounds to location of possible devices
         if( dsbReverserKey.offset() == nullvector ) {
@@ -5800,12 +5789,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 sound->offset( caboffset );
             }
         }
-/*
-        // HACK: for some reason simulation at the start is slow until a sound is played
-        // until we do a proper fix, try to play a 'silent' sound when cab is entered
-        // TBD: it could be instead a legit sound of door closing
-        play_sound( dsbSwitch, DSBVOLUME_MIN );
-*/
+
+        DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
+        set_cab_controls();
+
         return true;
     }
     return (token == "none");
