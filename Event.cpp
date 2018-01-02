@@ -1039,12 +1039,12 @@ event_manager::CheckQuery() {
                                 static_cast<int>( m_workevent->Params[ 1 ].asdouble ) );
                         }
                         else {
-                            m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive );
+                            m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive | sound_flags::event );
                         }
                         break;
                     }
                     case -1: {
-                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive | sound_flags::looping );
+                        m_workevent->Params[ 9 ].tsTextSound->play( sound_flags::exclusive | sound_flags::looping | sound_flags::event );
                         break;
                     }
                     default: {

@@ -65,6 +65,8 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
     // and get rid of the source, we shouldn't need it anymore
     // TBD, TODO: delay data fetching and transfers until the buffer is actually used?
     std::vector<std::int16_t>().swap( data );
+
+    fetch_caption();
 }
 
 // mix specified number of interleaved multi-channel data, down to mono
@@ -84,6 +86,20 @@ openal_buffer::narrow_to_mono( std::uint16_t const Channelcount ) {
             accumulator = 0;
             channelcount = Channelcount;
         }
+    }
+}
+
+// retrieves sound caption in currently set language
+void
+openal_buffer::fetch_caption() {
+
+    std::string captionfilename { name };
+    captionfilename.erase( captionfilename.rfind( '.' ) ); // obcięcie rozszerzenia
+    captionfilename += "-" + Global::asLang + ".txt"; // już może być w różnych językach
+    if( true == FileExists( captionfilename ) ) {
+        // wczytanie
+        std::ifstream inputfile( captionfilename );
+        caption.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
     }
 }
 

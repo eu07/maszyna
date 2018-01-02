@@ -30,7 +30,8 @@ enum sound_parameters {
 
 enum sound_flags {
     looping = 0x1, // the main sample will be looping; implied for multi-sounds
-    exclusive = 0x2 // the source won't dispatch more than one active instance of the sound; implied for multi-sounds
+    exclusive = 0x2, // the source won't dispatch more than one active instance of the sound; implied for multi-sounds
+    event = 0x80 // sound was activated by an event; we should keep note of the activation state for the update() calls it may receive
 };
 
 enum class sound_placement {
@@ -64,6 +65,9 @@ public:
     // issues contextual play commands for the audio renderer
     void
         play( int const Flags = 0 );
+    // maintains playback of sounds started by event
+    void
+        play_event();
     // stops currently active play commands controlled by this emitter
     void
         stop( bool const Skipend = false );
@@ -194,15 +198,15 @@ private:
     sound_placement m_placement;
     float m_range { 50.f }; // audible range of the emitted sounds
     std::string m_name;
-    int m_flags { 0 }; // requested playback parameters
+    int m_flags {}; // requested playback parameters
     sound_properties m_properties; // current properties of the emitted sounds
-    float m_pitchvariation { 0.f }; // emitter-specific shift in base pitch
+    float m_pitchvariation {}; // emitter-specific shift in base pitch
     bool m_stop { false }; // indicates active sample instances should be terminated
     bool m_playbeginning { true }; // indicates started sounds should be preceeded by opening bookend if there's one
     std::array<sound_data, 3> m_sounds { {} }; // basic sounds emitted by the source, main and optional bookends
     std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range
     bool m_soundchunksempty { true }; // helper, cached check whether sample table is linked with any actual samples
-    int m_crossfaderange {}; // range of transition from one chunk to another 
+    int m_crossfaderange {}; // range of transition from one chunk to another
 };
 
 // owner setter/getter

@@ -149,11 +149,7 @@ private:
     using path_sequence = std::vector<TTrack *>;
     using traction_sequence = std::vector<TTraction *>;
     using instance_sequence = std::vector<TAnimModel *>;
-#ifdef EU07_USE_OLD_SOUNDCODE
-    using sound_sequence = std::vector<TTextSound *>;
-#else
     using sound_sequence = std::vector<sound_source *>;
-#endif
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // methods
     void
@@ -320,11 +316,7 @@ public:
         insert_instance( TAnimModel *Instance, scratch_data &Scratchpad );
     // inserts provided sound in the region
     void
-#ifdef EU07_USE_OLD_SOUNDCODE
-        insert_sound( TTextSound *Sound, scratch_data &Scratchpad );
-#else
         insert_sound( sound_source *Sound, scratch_data &Scratchpad );
-#endif
     // inserts provided event launcher in the region
     void
         insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );

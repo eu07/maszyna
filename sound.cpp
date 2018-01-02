@@ -289,6 +289,10 @@ sound_source::play( int const Flags ) {
         // if the sound is disabled altogether or nothing can be emitted from this source, no point wasting time
         return;
     }
+
+    // NOTE: we cache the flags early, even if the sound is out of range, to mark activated event sounds 
+    m_flags = Flags;
+
     if( m_range > 0 ) {
         auto const cutoffrange { m_range * 5 };
         if( glm::length2( location() - glm::dvec3 { Global::pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
@@ -303,8 +307,6 @@ sound_source::play( int const Flags ) {
     if( m_pitchvariation == 0.f ) {
         m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
-
-    m_flags = Flags;
 
     if( sound( sound_id::main ).buffer != null_handle ) {
         // basic variant: single main sound, with optional bookends
@@ -401,12 +403,26 @@ sound_source::compute_combined_point() const {
         ) * 100.f;
 }
 
+// maintains playback of sounds started by event
+void
+sound_source::play_event() {
+
+    if( true == TestFlag( m_flags, ( sound_flags::event | sound_flags::looping ) ) ) {
+        // events can potentially start scenery sounds out of the sound's audible range
+        // such sounds are stopped on renderer side, but unless stopped by the simulation keep their activation flags
+        // we use this to discern event-started sounds which should be re-activated if the listener gets close enough
+        play( m_flags );
+    }
+}
+
 // stops currently active play commands controlled by this emitter
 void
 sound_source::stop( bool const Skipend ) {
 
     // if the source was stopped on simulation side, we should play the opening bookend next time it's activated
     m_playbeginning = true;
+    // clear the event flags to discern between manual stop and out-of-range/sound-end stop
+    m_flags = 0;
 
     if( false == is_playing() ) { return; }
 

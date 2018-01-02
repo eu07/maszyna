@@ -20,11 +20,16 @@ ALuint const null_resource{ ~( ALuint { 0 } ) };
 struct openal_buffer {
 // members
     ALuint id { null_resource }; // associated AL resource
-    unsigned int rate { 0 }; // sample rate of the data
+    unsigned int rate {}; // sample rate of the data
     std::string name;
+    std::string caption;
 // constructors
     openal_buffer() = default;
     explicit openal_buffer( std::string const &Filename );
+// methods
+    // retrieves sound caption in currently set language
+    void
+        fetch_caption();
 
 private:
 // methods

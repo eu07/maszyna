@@ -1050,28 +1050,11 @@ void TTranscripts::AddLine(std::string const &txt, float show, float hide, bool 
             }
 */
 };
-void TTranscripts::Add(std::string const &txt, float len, bool backgorund)
+void TTranscripts::Add(std::string const &txt, bool backgorund)
 { // dodanie tekstów, długość dźwięku, czy istotne
     if (true == txt.empty())
         return; // pusty tekst
-/*
-    int i = 0, j = int(0.5 + 10.0 * len); //[0.1s]
-    if (*txt == '[')
-    { // powinny być dwa nawiasy
-        while (*++txt ? *txt != ']' : false)
-            if ((*txt >= '0') && (*txt <= '9'))
-                i = 10 * i + int(*txt - '0'); // pierwsza liczba aż do ]
-        if (*txt ? *++txt == '[' : false)
-        {
-            j = 0; // drugi nawias określa czas zakończenia wyświetlania
-            while (*++txt ? *txt != ']' : false)
-                if ((*txt >= '0') && (*txt <= '9'))
-                    j = 10 * j + int(*txt - '0'); // druga liczba aż do ]
-            if (*txt)
-                ++txt; // pominięcie drugiego ]
-        }
-    }
-*/
+
     std::string asciitext{ txt }; win1250_to_ascii( asciitext ); // TODO: launch relevant conversion table based on language
     cParser parser( asciitext );
     while( true == parser.getTokens( 3, false, "[]\n" ) ) {
@@ -1088,7 +1071,7 @@ void TTranscripts::Add(std::string const &txt, float len, bool backgorund)
     std::string transcript; parser >> transcript;
     while( false == transcript.empty() ) {
 
-        WriteLog( "Transcript text with no display/hide times: \"" + transcript + "\"" );
+//        WriteLog( "Transcript text with no display/hide times: \"" + transcript + "\"" );
         AddLine( transcript, 0.0, 0.12 * transcript.size(), false );
         transcript = ""; parser >> transcript;
     }

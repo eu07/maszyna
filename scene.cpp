@@ -122,16 +122,9 @@ basic_cell::update_events() {
 void
 basic_cell::update_sounds() {
 
-    // sounds
     auto const deltatime = Timer::GetDeltaRenderTime();
     for( auto *sound : m_sounds ) {
-#ifdef EU07_USE_OLD_SOUNDCODE
-        if( ( sound->GetStatus() & DSBSTATUS_PLAYING ) == DSBPLAY_LOOPING ) {
-            sound->Play( 1, DSBPLAY_LOOPING, true, sound->vSoundPosition );
-            sound->AdjFreq( 1.0, deltatime );
-        }
-#else
-#endif
+        sound->play_event();
     }
     // TBD, TODO: move to sound renderer
     for( auto *path : m_paths ) {
@@ -350,11 +343,7 @@ basic_cell::insert( TAnimModel *Instance ) {
 
 // adds provided sound instance to the cell
 void
-#ifdef EU07_USE_OLD_SOUNDCODE
-basic_cell::insert( TTextSound *Sound ) {
-#else
 basic_cell::insert( sound_source *Sound ) {
-#endif
 
     m_active = true;
 
@@ -1177,13 +1166,7 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
 
 // inserts provided sound in the region
 void
-#ifdef EU07_USE_OLD_SOUNDCODE
-basic_region::insert_sound( TTextSound *Sound, scratch_data &Scratchpad ) {
-#else
 basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
-#endif
-
-#ifdef EU07_USE_OLD_SOUNDCODE
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     auto location = Sound->location();
 
@@ -1195,8 +1178,6 @@ basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: sound node \"" + Sound->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
-#else
-#endif
 }
 
 // inserts provided event launcher in the region
