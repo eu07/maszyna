@@ -5306,8 +5306,8 @@ TTrain::update_sounds( double const Deltatime ) {
      && ( false == Global::CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
-        volume = rsRunningNoise.m_amplitudefactor * mvOccupied->Vel + rsRunningNoise.m_amplitudeoffset;
-        auto frequency { rsRunningNoise.m_frequencyfactor * mvOccupied->Vel + rsRunningNoise.m_frequencyoffset };
+        volume = rsRunningNoise.m_amplitudeoffset + rsRunningNoise.m_amplitudefactor * mvOccupied->Vel;
+        auto frequency { rsRunningNoise.m_frequencyoffset + rsRunningNoise.m_frequencyfactor * mvOccupied->Vel };
 
         if( std::abs( mvOccupied->nrot ) > 0.01 ) {
             // hamulce wzmagaja halas

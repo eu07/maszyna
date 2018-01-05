@@ -4191,43 +4191,59 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 // *************************************************************************************************
 double TMoverParameters::TractionForce(double dt)
 {
-    double PosRatio, dmoment, dtrans, tmp;// , tmpV;
-    int i;
+    double PosRatio, dmoment, dtrans, tmp;
 
     Ft = 0;
     dtrans = 0;
     dmoment = 0;
-    // tmpV =Abs(nrot * WheelDiameter / 2);
     // youBy
-    if (EngineType == DieselElectric)
-    {
-        tmp = DElist[MainCtrlPos].RPM / 60.0;
-        if ((Heating) && (HeatingPower > 0) && (MainCtrlPosNo > MainCtrlPos))
-        {
-            i = MainCtrlPosNo;
-            while (DElist[i - 2].RPM / 60.0 > tmp)
-                i--;
-            tmp = DElist[i].RPM / 60.0;
-        }
+    switch( EngineType ) {
+        case DieselElectric: {
+            if( true == ConverterFlag ) {
+                // NOTE: converter is currently a stand-in for a fuel pump
+                tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
-        if (enrot != tmp * int(ConverterFlag))
-            if (abs(tmp * int(ConverterFlag) - enrot) < 0.001)
-                enrot = tmp * int(ConverterFlag);
-            else if ((enrot < DElist[0].RPM * 0.01) && (ConverterFlag))
-                enrot += (tmp * int(ConverterFlag) - enrot) * dt / 5.0;
+                if( ( true == Heating )
+                 && ( HeatingPower > 0 )
+                 && ( MainCtrlPosNo > MainCtrlPos ) ) {
+
+                    int i = MainCtrlPosNo;
+                    while( DElist[ i - 2 ].RPM / 60.0 > tmp ) {
+                        --i;
+                    }
+                    tmp = DElist[ i ].RPM / 60.0;
+                }
+            }
+            else {
+                tmp = 0.0;
+            }
+
+            if( enrot != tmp ) {
+                enrot = clamp(
+                    enrot + ( dt / 1.25 ) * ( // TODO: equivalent of dizel_aim instead of fixed inertia
+                        enrot < tmp ?
+                             1.0 :
+                            -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
+                    0.0, std::max( tmp, enrot ) );
+                if( std::abs( tmp - enrot ) < 0.001 ) {
+                    enrot = tmp;
+                }
+            }
+            break;
+        }
+        case DieselEngine: {
+            if( ShuntMode ) // dodatkowa przekładnia np. dla 2Ls150
+                dtrans = AnPos * Transmision.Ratio * MotorParam[ ScndCtrlActualPos ].mIsat;
             else
-                enrot += (tmp * int(ConverterFlag) - enrot) * 1.5 * dt;
-    }
-    else if (EngineType != DieselEngine)
-        enrot = Transmision.Ratio * nrot;
-    else // dla DieselEngine
-    {
-        if (ShuntMode) // dodatkowa przekładnia np. dla 2Ls150
-            dtrans = AnPos * Transmision.Ratio * MotorParam[ScndCtrlActualPos].mIsat;
-        else
-            dtrans = Transmision.Ratio * MotorParam[ScndCtrlActualPos].mIsat;
-        dmoment = dizel_Momentum(dizel_fill, dtrans * nrot * ActiveDir, dt); // oblicza tez
-                                                                                 // enrot
+                dtrans = Transmision.Ratio * MotorParam[ ScndCtrlActualPos ].mIsat;
+
+            dmoment = dizel_Momentum( dizel_fill, dtrans * nrot * ActiveDir, dt ); // oblicza tez enrot
+            break;
+        }
+        default: {
+            enrot = Transmision.Ratio * nrot;
+            break;
+        }
     }
 
     eAngle += enrot * dt;
@@ -4252,7 +4268,7 @@ double TMoverParameters::TractionForce(double dt)
                  && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
                    || ( tmpV > 0.1 ) ) ) {
 
-                    i = 0;
+                    int i = 0;
                     while( ( i < RlistSize - 1 )
                         && ( DElist[ i + 1 ].RPM < tmpV ) ) {
                         ++i;
@@ -4891,7 +4907,7 @@ double TMoverParameters::TractionForce(double dt)
                 dizel_fill = 0;
                 EnginePower = 0;
                 {
-                    for (i = 0; i < 21; i++)
+                    for (int i = 0; i < 21; ++i)
                         eimv[i] = 0;
                 }
                 Hamulec->SetED(0);
@@ -5647,7 +5663,7 @@ bool TMoverParameters::dizel_Update(double dt)
 
         enrot = std::max(
             enrot,
-            0.1 * ( // TODO: dac zaleznie od temperatury i baterii
+            0.35 * ( // TODO: dac zaleznie od temperatury i baterii
                 EngineType == DieselEngine ?
                     dizel_nmin :
                     DElist[ 0 ].RPM / 60.0 ) );

@@ -688,32 +688,32 @@ void TWorld::OnKeyDown(int cKey)
                     }
             }
         }
-        else if (cKey == Global::Keys[k_EndSign])
-        { // Ra 2014-07: zabrane z kabiny
+        else if (cKey == Global::Keys[k_EndSign]) {
+            // Ra 2014-07: zabrane z kabiny
             auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
-            if (vehicle)
+
+            if( vehicle == nullptr ) { return; }
+
+            int const CouplNr {
+                clamp(
+                    vehicle->DirectionGet()
+                    * ( LengthSquared3( vehicle->HeadPosition() - Camera.Pos ) > LengthSquared3( vehicle->RearPosition() - Camera.Pos ) ?
+                         1 :
+                        -1 ),
+                    0, 1 ) }; // z [-1,1] zrobić [0,1]
+            int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę tapety pulpitu :/
+            if (Global::shiftState) // z [Shift] zapalanie
+                set = mask = light::rearendsignals; // bez [Ctrl] założyć tabliczki
+            else if (Global::ctrlState)
+                set = mask = ( light::redmarker_left | light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
+            else
+                mask = ( light::rearendsignals | light::redmarker_left | light::redmarker_right ); // wyłączanie ściąga wszystko
+            if (((vehicle->iLights[CouplNr]) & mask) != set)
             {
-                int CouplNr = (LengthSquared3(vehicle->HeadPosition() - Camera.Pos) >
-                                       LengthSquared3(vehicle->RearPosition() - Camera.Pos) ?
-                                   1 :
-                                   -1) *
-                              vehicle->DirectionGet();
-                if (CouplNr < 0)
-                    CouplNr = 0; // z [-1,1] zrobić [0,1]
-                int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę tapety pulpitu :/
-                if (Global::shiftState) // z [Shift] zapalanie
-                    set = mask = light::rearendsignals; // bez [Ctrl] założyć tabliczki
-                else if (Global::ctrlState)
-                    set = mask = ( light::redmarker_left | light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
-                else
-                    mask = 2 + 32 + 64; // wyłączanie ściąga wszystko
-                if (((vehicle->iLights[CouplNr]) & mask) != set)
-                {
-                    vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
-                    if (Train)
-                    { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->dsbSwitch.play();
-                    }
+                vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
+                if (Train)
+                { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
+                    Train->dsbSwitch.play();
                 }
             }
         }
@@ -1252,6 +1252,15 @@ TWorld::Update_UI() {
 
                 uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos ) + ( mover->SlippingWheels ? " !" : "  " );
 
+                uitextline4 = (
+                    true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
+                        "!ALERTER! " :
+                        "          " );
+                uitextline4 += (
+                    true == TestFlag( mover->SecuritySystem.Status, s_active ) ?
+                        "!SHP! " :
+                        "      " );
+
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
                     uitextline2 +=
@@ -1265,7 +1274,7 @@ TWorld::Update_UI() {
 
                     auto const trackblockdistance{ std::abs( Controlled->Mechanik->TrackBlock() ) };
                     if( trackblockdistance <= 75.0 ) {
-                        uitextline4 = "                 Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
+                        uitextline4 += " Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
                     }
                 }
             }

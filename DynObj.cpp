@@ -4596,6 +4596,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
 				}
 
+                else if( token == "dieselinc:" ) {
+                    // dzwiek przy wlazeniu na obroty woodwarda
+                    m_powertrainsounds.engine_revving.deserialize( parser, sound_type::single, sound_parameters::range );
+                    m_powertrainsounds.engine_revving.owner( this );
+                }
+
                 else if( ( token == "tractionmotor:" )
                       && ( MoverParameters->Power > 0 ) ) {
                     // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
@@ -4657,12 +4663,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// dzwiek przy wykolejeniu
                     rsDerailment.deserialize( parser, sound_type::single, sound_parameters::range );
                     rsDerailment.owner( this );
-                }
-
-				else if( token == "dieselinc:" ) {
-					// dzwiek przy wlazeniu na obroty woodwarda
-                    m_powertrainsounds.engine_revving.deserialize( parser, sound_type::single, sound_parameters::range );
-                    m_powertrainsounds.engine_revving.owner( this );
                 }
 
 				else if( token == "curve:" ) {
@@ -5595,8 +5595,14 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                     }
                     engine_revs_last = Vehicle.enrot * 60;
 
+                    if( false == engine_revving.is_combined() ) {
+                        // if the sound comes with multiple samples we reuse rpm-based calculation from the engine
+                        frequency = engine_revving.m_frequencyoffset + engine_revving.m_frequencyfactor * 1.0;
+                    }
+
                     if( enginerevvolume > 0.02 ) {
                         engine_revving
+                            .pitch( frequency )
                             .gain( enginerevvolume )
                             .play( sound_flags::exclusive | sound_flags::looping );
                     }
