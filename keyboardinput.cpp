@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "keyboardinput.h"
+#include "globals.h"
 #include "logs.h"
 #include "parser.h"
 #include "world.h"
@@ -131,14 +132,14 @@ keyboard_input::key( int const Key, int const Action ) {
         return false;
     }
 
-    if( true == update_movement( Key, Action ) ) {
-        // if the received key was one of movement keys, it's been handled and we don't need to bother further
-        return true;
-    }
-
     // store key state
     if( Key != -1 ) {
         m_keys[ Key ] = Action;
+    }
+
+    if( true == update_movement( Key, Action ) ) {
+        // if the received key was one of movement keys, it's been handled and we don't need to bother further
+        return true;
     }
 
     // include active modifiers for currently pressed key, except if the key is a modifier itself
@@ -260,7 +261,13 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         // viewturn
         { -1 },
-        // movevector
+        // movehorizontal
+        { -1 },
+        // movehorizontalfast
+        { -1 },
+        // movevertical
+        { -1 },
+        // moveverticalfast
         { -1 },
         // moveleft
         { GLFW_KEY_LEFT },
@@ -274,18 +281,6 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_PAGE_UP },
         // movedown
         { GLFW_KEY_PAGE_DOWN },
-        // moveleftfast
-        { -1 },
-        // moverightfast
-        { -1 },
-        // moveforwardfast
-        { -1 },
-        // movebackfast
-        { -1 },
-        // moveupfast
-        { -1 },
-        // movedownfast
-        { -1 },
 /*
 const int k_CabForward = 42;
 const int k_CabBackward = 43;
@@ -422,10 +417,7 @@ keyboard_input::bind() {
 bool
 keyboard_input::update_movement( int const Key, int const Action ) {
 
-    bool shift =
-        ( ( Key == GLFW_KEY_LEFT_SHIFT )
-       || ( Key == GLFW_KEY_RIGHT_SHIFT ) );
-    bool movementkey =
+    bool const movementkey =
         ( ( Key == m_bindingscache.forward )
        || ( Key == m_bindingscache.back )
        || ( Key == m_bindingscache.left )
@@ -433,93 +425,61 @@ keyboard_input::update_movement( int const Key, int const Action ) {
        || ( Key == m_bindingscache.up )
        || ( Key == m_bindingscache.down ) );
 
-    if( false == ( shift || movementkey ) ) { return false; }
+    return ( true == movementkey );
+}
 
-    if( false == shift ) {
-        // TODO: pass correct entity id once the missing systems are in place
-        if( Key == m_bindingscache.forward ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveforwardfast :
-                    user_command::moveforward ),
-                0, 0,
-                m_keys[ m_bindingscache.forward ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.back ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::movebackfast :
-                    user_command::moveback ),
-                0, 0,
-                m_keys[ m_bindingscache.back ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.left ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveleftfast :
-                    user_command::moveleft ),
-                0, 0,
-                m_keys[ m_bindingscache.left ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.right ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moverightfast :
-                    user_command::moveright ),
-                0, 0,
-                m_keys[ m_bindingscache.right ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.up ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveupfast :
-                    user_command::moveup ),
-                0, 0,
-                m_keys[ m_bindingscache.up ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.down ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::movedownfast :
-                    user_command::movedown ),
-                0, 0,
-                m_keys[ m_bindingscache.down ],
-                0 );
-            return true;
-        }
-    }
-    else {
-        // if it's not the movement keys but one of shift keys, we might potentially need to update movement state
-        if( m_keys[ Key ] == Action ) {
-            // but not if it's just repeat
-            return false;
-        }
-        // bit of recursion voodoo here, we fake relevant key presses so we don't have to duplicate the code from above
-        if( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ) { update_movement( m_bindingscache.forward, m_keys[ m_bindingscache.forward ] ); }
-        if( m_keys[ m_bindingscache.back ] != GLFW_RELEASE ) { update_movement( m_bindingscache.back, m_keys[ m_bindingscache.back ] ); }
-        if( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ) { update_movement( m_bindingscache.left, m_keys[ m_bindingscache.left ] ); }
-        if( m_keys[ m_bindingscache.right ] != GLFW_RELEASE ) { update_movement( m_bindingscache.right, m_keys[ m_bindingscache.right ] ); }
-        if( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ) { update_movement( m_bindingscache.up, m_keys[ m_bindingscache.up ] ); }
-        if( m_keys[ m_bindingscache.down ] != GLFW_RELEASE ) { update_movement( m_bindingscache.down, m_keys[ m_bindingscache.down ] ); }
+void
+keyboard_input::poll() {
+
+    glm::vec2 const movementhorizontal {
+        // x-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
+          m_keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
+          0.f ),
+        // z-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
+          m_keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
+          0.f ) };
+
+    if( (   movementhorizontal.x != 0.f ||   movementhorizontal.y != 0.f )
+     || ( m_movementhorizontal.x != 0.f || m_movementhorizontal.y != 0.f ) ) {
+        double const movexparam = static_cast<double>( movementhorizontal.x );
+        double const movezparam = static_cast<double>( movementhorizontal.y );
+        m_relay.post(
+            ( true == Global::ctrlState ?
+                user_command::movehorizontalfast :
+                user_command::movehorizontal ),
+            reinterpret_cast<std::uint64_t const &>( movexparam ),
+            reinterpret_cast<std::uint64_t const &>( movezparam ),
+            GLFW_PRESS,
+            0 );
     }
 
-    return false;
+    m_movementhorizontal = movementhorizontal;
+
+    float const movementvertical {
+        // y-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
+          m_keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
+          0.f ) };
+
+    if( (   movementvertical != 0.f )
+     || ( m_movementvertical != 0.f ) ) {
+        double const moveyparam = static_cast<double>( movementvertical );
+        m_relay.post(
+            ( true == Global::ctrlState ?
+                user_command::moveverticalfast :
+                user_command::movevertical ),
+            reinterpret_cast<std::uint64_t const &>( moveyparam ),
+            0,
+            GLFW_PRESS,
+            0 );
+    }
+
+    m_movementvertical = movementvertical;
 }
 
 //---------------------------------------------------------------------------

@@ -65,19 +65,16 @@ enum class user_command {
 const int k_FailedEngineCutOff = 35;
 */
     viewturn,
-    movevector,
+    movehorizontal,
+    movehorizontalfast,
+    movevertical,
+    moveverticalfast,
     moveleft,
     moveright,
     moveforward,
     moveback,
     moveup,
     movedown,
-    moveleftfast,
-    moverightfast,
-    moveforwardfast,
-    movebackfast,
-    moveupfast,
-    movedownfast,
 /*
 const int k_CabForward = 42;
 const int k_CabBackward = 43;

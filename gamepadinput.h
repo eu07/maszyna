@@ -65,8 +65,6 @@ private:
 // methods
     void on_button( gamepad_button const Button, int const Action );
     void process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, glm::vec2 const &Triggers );
-    void process_axis( float const Value, float const Previousvalue, float const Multiplier, user_command Command, std::uint16_t const Recipient );
-    void process_axis( float const Value, float const Previousvalue, float const Multiplier, user_command Command1, user_command Command2, /*user_command Command3,*/ std::uint16_t const Recipient );
     void process_mode( float const Value, std::uint16_t const Recipient );
 
 // members

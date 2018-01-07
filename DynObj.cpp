@@ -3493,7 +3493,7 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->ConverterFlag ) {
         frequency = (
             MoverParameters->EngineType == ElectricSeriesMotor ?
-                MoverParameters->Voltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) :
+                ( MoverParameters->RunningTraction.TractionVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
                 1.0 );
         frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
         sConverter

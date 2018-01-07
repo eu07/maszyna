@@ -3744,12 +3744,12 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
                 || ( ( Couplers[ side::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
             // potem ulepszyc! pantogtrafy!
             Voltage =
-            std::max(
-                RunningTraction.TractionVoltage,
+                std::max(
+                    RunningTraction.TractionVoltage,
 #ifdef EU07_USE_OLD_HVCOUPLERS
-                std::max( HVCouplers[side::front][hvcoupler::voltage], HVCouplers[side::rear][hvcoupler::voltage] ) );
+                    std::max( HVCouplers[side::front][hvcoupler::voltage], HVCouplers[side::rear][hvcoupler::voltage] ) );
 #else
-                std::max( Couplers[ side::front ].power_high.voltage, Couplers[ side::rear ].power_high.voltage ) );
+                    std::max( Couplers[ side::front ].power_high.voltage, Couplers[ side::rear ].power_high.voltage ) );
 #endif
         }
         else {

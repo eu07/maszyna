@@ -27,7 +27,7 @@ public:
     bool
         key( int const Key, int const Action );
     void
-        poll() {}
+        poll();
 
 private:
 // types
@@ -70,6 +70,8 @@ private:
     bool m_shift{ false };
     bool m_ctrl{ false };
     bindings_cache m_bindingscache;
+    glm::vec2 m_movementhorizontal;
+    float m_movementvertical;
     std::array<char, GLFW_KEY_LAST + 1> m_keys;
 };
 

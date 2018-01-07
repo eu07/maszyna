@@ -70,19 +70,16 @@ commanddescription_sequence Commands_descriptions = {
 const int k_FailedEngineCutOff = 35;
 */
     { "viewturn", command_target::entity },
-    { "movevector", command_target::entity },
+    { "movehorizontal", command_target::entity },
+    { "movehorizontalfast", command_target::entity },
+    { "movevertical", command_target::entity },
+    { "moveverticalfast", command_target::entity },
     { "moveleft", command_target::entity },
     { "moveright", command_target::entity },
     { "moveforward", command_target::entity },
     { "moveback", command_target::entity },
     { "moveup", command_target::entity },
     { "movedown", command_target::entity },
-    { "moveleftfast", command_target::entity },
-    { "moverightfast", command_target::entity },
-    { "moveforwardfast", command_target::entity },
-    { "movebackfast", command_target::entity },
-    { "moveupfast", command_target::entity },
-    { "movedownfast", command_target::entity },
 /*
 const int k_CabForward = 42;
 const int k_CabBackward = 43;
