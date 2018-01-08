@@ -1,5 +1,5 @@
 version: '{build}'
-image: Visual Studio 2015
+image: Visual Studio 2017
 clone_depth: 1
 build_script:
 - cmd: >-
@@ -11,7 +11,7 @@ build_script:
     
     cd x86
     
-    cmake ../.. -T v140_xp
+    cmake ../.. -T v141_xp
     
     cmake --build . --config RelWithDebInfo
     
