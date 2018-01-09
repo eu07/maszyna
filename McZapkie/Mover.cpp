@@ -7598,6 +7598,11 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
     extract_value( dizel_nmax, "nmax", Input, "" );
     extract_value( dizel_nominalfill, "nominalfill", Input, "" );
     extract_value( dizel_Mstand, "Mstand", Input, "" );
+
+    if( dizel_nMmax == dizel_nmax ) {
+        // HACK: guard against cases where nMmax == nmax, leading to division by 0 in momentum calculation
+        dizel_nMmax = dizel_nmax - 1.0 / 60.0;
+    }
 }
 
 void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {

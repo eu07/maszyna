@@ -512,9 +512,7 @@ void TWorld::OnKeyDown(int cKey)
                         // works always in debug mode, or for stopped/slow moving vehicles otherwise
                         Controlled = tmp; // przejmujemy nowy
                         mvControlled = Controlled->ControlledFind()->MoverParameters;
-                        if( Train )
-                            Train->Silence(); // wyciszenie dźwięków opuszczanego pojazdu
-                        else
+                        if( Train == nullptr )
                             Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
                         if( Train->Init( Controlled ) ) { // przejmujemy sterowanie
                             if( !DebugModeFlag ) // w DebugMode nadal prowadzi AI
@@ -646,11 +644,15 @@ void TWorld::OnKeyDown(int cKey)
         if( Controlled->MoverParameters->Radio )
             simulation::Region->RadioStop( Camera.Pos );
 	}
-    else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie działa, F4 tak
+    else if (!Global::iPause) //podczas pauzy sterownaie nie działa
         if (Train)
             if (Controlled)
-                if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == GLFW_KEY_Q))
-                    Train->OnKeyDown(cKey); // przekazanie klawisza do kabiny
+                if( ( cKey == GLFW_KEY_Q )
+                 || ( ( Controlled->Controller == Humandriver )
+                   || ( true == DebugModeFlag ) ) ) {
+                    Train->OnKeyDown( cKey ); // przekazanie klawisza do kabiny
+                }
+
     if (FreeFlyModeFlag) // aby nie odluźniało wagonu za lokomotywą
     { // operacje wykonywane na dowolnym pojeździe, przeniesione tu z kabiny
 /*
@@ -659,17 +661,12 @@ void TWorld::OnKeyDown(int cKey)
         if (cKey == Global::Keys[k_Releaser]) // odluźniacz
         { // działa globalnie, sprawdzić zasięg
             TDynamicObject *temp = Global::DynamicNearest();
-            if (temp)
-            {
-                if (Global::ctrlState) // z ctrl odcinanie
-                {
+            if (temp) {
+                if (Global::ctrlState) // z ctrl odcinanie {
                     temp->MoverParameters->Hamulec->SetBrakeStatus( temp->MoverParameters->Hamulec->GetBrakeStatus() ^ 128 );
                 }
-                else if (temp->MoverParameters->BrakeReleaser(1))
-                {
-                    // temp->sBrakeAcc->
-                    // dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                    // dsbPneumaticRelay->Play(0,0,0); //temp->Position()-Camera.Pos //???
+                else {
+                    temp->MoverParameters->BrakeReleaser(1);
                 }
             }
         }
@@ -722,20 +719,14 @@ void TWorld::OnKeyDown(int cKey)
             auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
             {
-                if (Global::ctrlState)
-                    if ((vehicle->MoverParameters->LocalBrake == ManualBrake) ||
-                        (vehicle->MoverParameters->MBrake == true))
-                        vehicle->MoverParameters->IncManualBrakeLevel(1);
-                    else
-                        ;
-                else if (vehicle->MoverParameters->LocalBrake != ManualBrake)
-                    if (vehicle->MoverParameters->IncLocalBrakeLevelFAST())
-                        if (Train)
-                        { // dźwięk oczywiście jest w kabinie
-#ifdef EU07_USE_OLD_SOUNDCODE
-                            Train->dsbPneumaticRelay.play();
-#endif
-                        }
+                if( Global::ctrlState ) {
+                    if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+                     || ( vehicle->MoverParameters->MBrake == true ) )
+                        vehicle->MoverParameters->IncManualBrakeLevel( 1 );
+                }
+                else if( vehicle->MoverParameters->LocalBrake != ManualBrake ) {
+                    vehicle->MoverParameters->IncLocalBrakeLevelFAST();
+                }
             }
         }
         else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
@@ -743,28 +734,17 @@ void TWorld::OnKeyDown(int cKey)
             auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
             {
-                if (Global::ctrlState)
-                    if ((vehicle->MoverParameters->LocalBrake == ManualBrake) ||
-                        (vehicle->MoverParameters->MBrake == true))
-                        vehicle->MoverParameters->DecManualBrakeLevel(1);
-                    else
-                        ;
-                else if (vehicle->MoverParameters->LocalBrake != ManualBrake)
-                    if (vehicle->MoverParameters->DecLocalBrakeLevelFAST())
-                        if (Train)
-                        { // dźwięk oczywiście jest w kabinie
-#ifdef EU07_USE_OLD_SOUNDCODE
-                            Train->dsbPneumaticRelay.play();
-#endif
-                        }
+                if( Global::ctrlState ) {
+                    if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+                     || ( vehicle->MoverParameters->MBrake == true ) )
+                        vehicle->MoverParameters->DecManualBrakeLevel( 1 );
+                }
+                else if( vehicle->MoverParameters->LocalBrake != ManualBrake ) {
+                    vehicle->MoverParameters->DecLocalBrakeLevelFAST();
+                }
             }
         }
     }
-}
-
-void TWorld::OnMouseMove(double x, double y)
-{ // McZapkie:060503-definicja obracania myszy
-    Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);
 }
 
 void TWorld::InOutKey( bool const Near )
@@ -775,8 +755,6 @@ void TWorld::InOutKey( bool const Near )
         if (Train) {
             // cache current cab position so there's no need to set it all over again after each out-in switch
             Train->pMechSittingPosition = Train->pMechOffset;
-            // wyłączenie dźwięków kabiny
-            Train->Silence();
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
@@ -2101,26 +2079,28 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 void TWorld::ChangeDynamic() {
 
     // Ra: to nie może być tak robione, to zbytnia proteza jest
-    Train->Silence(); // wyłączenie dźwięków opuszczanej kabiny
-    if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
-        if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-        { // jeśli prowadzi AI, to mu nie robimy dywersji!
+    if( Train->Dynamic()->Mechanik ) {
+        // AI może sobie samo pójść
+        if( false == Train->Dynamic()->Mechanik->AIControllFlag ) {
+            // tylko jeśli ręcznie prowadzony
+            // jeśli prowadzi AI, to mu nie robimy dywersji!
             Train->Dynamic()->MoverParameters->CabDeactivisation();
             Train->Dynamic()->Controller = AIdriver;
-            // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
             Train->Dynamic()->MoverParameters->ActiveCab = 0;
-            Train->Dynamic()->MoverParameters->BrakeLevelSet(
-                Train->Dynamic()->MoverParameters->Handle->GetPos(
-                bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
+            Train->Dynamic()->MoverParameters->BrakeLevelSet( Train->Dynamic()->MoverParameters->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
             Train->Dynamic()->MechInside = false;
         }
+    }
     TDynamicObject *temp = Global::changeDynObj;
     Train->Dynamic()->bDisplayCab = false;
-    Train->Dynamic()->ABuSetModelShake( vector3( 0, 0, 0 ) );
+    Train->Dynamic()->ABuSetModelShake( {} );
 
     if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
-        if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-            Train->Dynamic()->Mechanik->MoveTo( temp ); // przsunięcie obiektu zarządzającego
+        if( false == Train->Dynamic()->Mechanik->AIControllFlag ) {
+            // tylko jeśli ręcznie prowadzony
+            // przsunięcie obiektu zarządzającego
+            Train->Dynamic()->Mechanik->MoveTo( temp );
+        }
 
     Train->DynamicSet( temp );
     Controlled = temp;
@@ -2129,20 +2109,17 @@ void TWorld::ChangeDynamic() {
     if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
         if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
         {
-            Train->Dynamic()->MoverParameters->LimPipePress =
-                Controlled->MoverParameters->PipePress;
-            Train->Dynamic()
-                ->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+            Train->Dynamic()->MoverParameters->LimPipePress = Controlled->MoverParameters->PipePress;
+            Train->Dynamic()->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
             Train->Dynamic()->Controller = Humandriver;
             Train->Dynamic()->MechInside = true;
         }
-    Train->InitializeCab( Train->Dynamic()->MoverParameters->CabNo,
-        Train->Dynamic()->asBaseDir +
-        Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
+    Train->InitializeCab(
+        Train->Dynamic()->MoverParameters->CabNo,
+        Train->Dynamic()->asBaseDir + Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
     if( !FreeFlyModeFlag ) {
         Train->Dynamic()->bDisplayCab = true;
-        Train->Dynamic()->ABuSetModelShake(
-            vector3( 0, 0, 0 ) ); // zerowanie przesunięcia przed powrotem?
+        Train->Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
         Train->MechStop();
         FollowView(); // na pozycję mecha
     }

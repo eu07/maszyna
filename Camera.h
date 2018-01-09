@@ -42,7 +42,7 @@ class TCamera
     void Reset() {
         Pitch = Yaw = Roll = 0; };
     void OnCursorMove(double const x, double const y);
-    void OnCommand( command_data const &Command );
+    bool OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
     bool SetMatrix(glm::dmat4 &Matrix);

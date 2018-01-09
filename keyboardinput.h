@@ -61,7 +61,7 @@ private:
     void
         bind();
     bool
-        update_movement( int const Key, int const Action );
+        is_movement_key( int const Key ) const;
 
 // members
     commandsetup_sequence m_commands;

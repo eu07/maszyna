@@ -61,9 +61,7 @@ enum class user_command {
     hornhighactivate,
     radiotoggle,
     radiostoptest,
-/*
-const int k_FailedEngineCutOff = 35;
-*/
+
     viewturn,
     movehorizontal,
     movehorizontalfast,

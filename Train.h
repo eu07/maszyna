@@ -492,7 +492,6 @@ private:
     inline TMoverParameters *Controlled() { return mvControlled; };
     inline TMoverParameters const *Controlled() const { return mvControlled; };
     void DynamicSet(TDynamicObject *d);
-    void Silence();
 
 };
 //---------------------------------------------------------------------------

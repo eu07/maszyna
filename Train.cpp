@@ -5903,42 +5903,6 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
         .play( sound_flags::exclusive );
 }
 
-void TTrain::Silence()
-{ // wyciszenie dźwięków przy wychodzeniu
-#ifdef EU07_USE_OLD_SOUNDCODE
-    dsbNastawnikJazdy.Stop();
-    dsbNastawnikBocz.Stop();
-    dsbRelay.Stop();
-    dsbPneumaticRelay.Stop();
-    dsbSwitch.Stop();
-    dsbPneumaticSwitch.Stop();
-    dsbReverserKey.Stop();
-    dsbCouplerAttach.Stop();
-    dsbCouplerDetach.Stop();
-    dsbDieselIgnition.Stop();
-    dsbWejscie_na_bezoporow.Stop();
-    dsbWejscie_na_drugi_uklad.Stop();
-    rsBrake.Stop();
-    rsSlippery.Stop();
-    rsHiss.Stop();
-    rsHissU.Stop();
-    rsHissE.Stop();
-    rsHissX.Stop();
-    rsHissT.Stop();
-    rsSBHiss.Stop();
-    rsRunningNoise.Stop();
-    rsEngageSlippery.Stop();
-    rsFadeSound.Stop();
-    dsbHasler.Stop(); // wyłączenie dźwięków opuszczanej kabiny
-    dsbBuzzer.Stop();
-    dsbSlipAlarm.Stop(); // dźwięk alarmu przy poślizgu
-    // sConverter.Stop();
-    // sSmallCompressor->Stop();
-    dsbCouplerStretch.Stop();
-    dsbBufferClamp.Stop();
-#endif
-};
-
 void TTrain::SetLights()
 {
     TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);

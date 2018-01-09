@@ -31,27 +31,29 @@ void TCamera::Init(vector3 NPos, vector3 NAngle)
     Type = (Global::bFreeFly ? tp_Free : tp_Follow);
 };
 
-void TCamera::OnCursorMove(double x, double y)
-{
-    // McZapkie-170402: zeby mysz dzialala zawsze    if (Type==tp_Follow)
+void TCamera::OnCursorMove(double x, double y) {
+
     Yaw -= x;
-    Pitch -= y;
-    if (Yaw > M_PI)
+    while( Yaw > M_PI ) {
         Yaw -= 2 * M_PI;
-    else if (Yaw < -M_PI)
+    }
+    while( Yaw < -M_PI ) {
         Yaw += 2 * M_PI;
-    if (Type == tp_Follow) // jeżeli jazda z pojazdem
-    {
-        clamp(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
+    }
+    Pitch -= y;
+    if (Type == tp_Follow) {
+        // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
+        Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
     }
 }
 
-void
+bool
 TCamera::OnCommand( command_data const &Command ) {
 
     auto const walkspeed { 1.0 };
     auto const runspeed { 7.5 };
 
+    bool iscameracommand { true };
     switch( Command.command ) {
 
         case user_command::viewturn: {
@@ -122,7 +124,15 @@ TCamera::OnCommand( command_data const &Command ) {
 
             break;
         }
+
+        default: {
+
+            iscameracommand = false;
+            break;
+        }
     } // switch
+
+    return iscameracommand;
 }
 
 void TCamera::Update()

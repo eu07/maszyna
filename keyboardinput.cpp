@@ -137,7 +137,7 @@ keyboard_input::key( int const Key, int const Action ) {
         m_keys[ Key ] = Action;
     }
 
-    if( true == update_movement( Key, Action ) ) {
+    if( true == is_movement_key( Key ) ) {
         // if the received key was one of movement keys, it's been handled and we don't need to bother further
         return true;
     }
@@ -350,10 +350,6 @@ const int k_ProgramHelp = 48;
         // instrumentlighttoggle
         { GLFW_KEY_SEMICOLON },
 /*
-const int k_Univ1 = 66;
-const int k_Univ2 = 67;
-const int k_Univ3 = 68;
-const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
@@ -403,8 +399,7 @@ keyboard_input::bind() {
         }
         ++commandcode;
     }
-
-    // cache movement key bindings, so we can test them faster in the input loop
+    // cache movement key bindings
     m_bindingscache.forward = m_commands[ static_cast<std::size_t>( user_command::moveforward ) ].binding;
     m_bindingscache.back = m_commands[ static_cast<std::size_t>( user_command::moveback ) ].binding;
     m_bindingscache.left = m_commands[ static_cast<std::size_t>( user_command::moveleft ) ].binding;
@@ -413,11 +408,10 @@ keyboard_input::bind() {
     m_bindingscache.down = m_commands[ static_cast<std::size_t>( user_command::movedown ) ].binding;
 }
 
-// NOTE: ugliest code ever, gg
 bool
-keyboard_input::update_movement( int const Key, int const Action ) {
+keyboard_input::is_movement_key( int const Key ) const {
 
-    bool const movementkey =
+    bool const ismovementkey =
         ( ( Key == m_bindingscache.forward )
        || ( Key == m_bindingscache.back )
        || ( Key == m_bindingscache.left )
@@ -425,7 +419,7 @@ keyboard_input::update_movement( int const Key, int const Action ) {
        || ( Key == m_bindingscache.up )
        || ( Key == m_bindingscache.down ) );
 
-    return ( true == movementkey );
+    return ismovementkey;
 }
 
 void

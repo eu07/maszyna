@@ -66,9 +66,7 @@ commanddescription_sequence Commands_descriptions = {
     { "hornhighactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
     { "radiostoptest", command_target::vehicle },
-/*
-const int k_FailedEngineCutOff = 35;
-*/
+
     { "viewturn", command_target::entity },
     { "movehorizontal", command_target::entity },
     { "movehorizontalfast", command_target::entity },
