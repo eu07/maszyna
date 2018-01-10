@@ -82,7 +82,6 @@ class TTrain
     TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
-    void OnKeyDown(int cKey);
 
     inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline vector3 GetUp() { return DynamicObject->VectorUp(); };

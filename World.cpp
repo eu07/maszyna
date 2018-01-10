@@ -230,15 +230,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-#ifdef EU07_USE_OLD_SOUNDCODE
-    if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
-        WriteLog( "Sound subsystem setup complete" );
-    }
-    else {
-        ErrorLog( "Sound subsystem setup failed" );
-        return false;
-    }
-#endif
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
@@ -643,103 +634,52 @@ void TWorld::OnKeyDown(int cKey) {
         if( Controlled->MoverParameters->Radio )
             simulation::Region->RadioStop( Camera.Pos );
 	}
-    else if (!Global::iPause) //podczas pauzy sterownaie nie działa
-        if (Train)
-            if (Controlled)
-                if( ( Controlled->Controller == Humandriver )
-                 || ( true == DebugModeFlag ) ) {
-                    Train->OnKeyDown( cKey ); // przekazanie klawisza do kabiny
-                }
+    else {
 
-    if (FreeFlyModeFlag) // aby nie odluźniało wagonu za lokomotywą
-    { // operacje wykonywane na dowolnym pojeździe, przeniesione tu z kabiny
-        // NOTE: disabled so it doesn't interfere with new system controls in outside view
-        // TODO: implement as part of the new system
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-        if (cKey == Global::Keys[k_Releaser]) // odluźniacz
-        { // działa globalnie, sprawdzić zasięg
-            TDynamicObject *temp{ std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
-            if( temp ) {
-                if( Global::ctrlState ) // z ctrl odcinanie {
-                    temp->MoverParameters->Hamulec->SetBrakeStatus( temp->MoverParameters->Hamulec->GetBrakeStatus() ^ b_dmg );
-            }
-            else {
-                temp->MoverParameters->BrakeReleaser( 1 );
-            }
-        }
-    else if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
-        { // zmiana próżny/ładowny; Ra: zabrane z kabiny
-                auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
-            if (vehicle)
-            {
-                if (Global::shiftState ? vehicle->MoverParameters->IncBrakeMult() :
-                                         vehicle->MoverParameters->DecBrakeMult())
-                    if (Train)
-                    { // dźwięk oczywiście jest w kabinie
-                        Train->dsbSwitch.play();
+        if( ( true == DebugModeFlag )
+         && ( false == Global::shiftState )
+         && ( true == Global::ctrlState )
+         && ( Controlled != nullptr )
+         && ( Controlled->Controller == Humandriver ) ) {
+
+            if( DebugModeFlag ) {
+                // przesuwanie składu o 100m
+                TDynamicObject *d = Controlled;
+                if( cKey == GLFW_KEY_LEFT_BRACKET ) {
+                    while( d ) {
+                        d->Move( 100.0 * d->DirectionGet() );
+                        d = d->Next(); // pozostałe też
                     }
-            }
-        }
-        else if (cKey == Global::Keys[k_EndSign]) {
-            // Ra 2014-07: zabrane z kabiny
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
-
-            if( vehicle == nullptr ) { return; }
-
-            int const CouplNr {
-                clamp(
-                    vehicle->DirectionGet()
-                    * ( LengthSquared3( vehicle->HeadPosition() - Camera.Pos ) > LengthSquared3( vehicle->RearPosition() - Camera.Pos ) ?
-                         1 :
-                        -1 ),
-                    0, 1 ) }; // z [-1,1] zrobić [0,1]
-            int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakąś idiotyczną zmianę tapety pulpitu :/
-            if (Global::shiftState) // z [Shift] zapalanie
-                set = mask = light::rearendsignals; // bez [Ctrl] założyć tabliczki
-            else if (Global::ctrlState)
-                set = mask = ( light::redmarker_left | light::redmarker_right ); // z [Ctrl] zapalić światła czerwone
-            else
-                mask = ( light::rearendsignals | light::redmarker_left | light::redmarker_right ); // wyłączanie ściąga wszystko
-            if (((vehicle->iLights[CouplNr]) & mask) != set)
-            {
-                vehicle->iLights[CouplNr] = (vehicle->iLights[CouplNr] & ~mask) | set;
-                if (Train)
-                { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                    Train->dsbSwitch.play();
+                    d = Controlled->Prev();
+                    while( d ) {
+                        d->Move( 100.0 * d->DirectionGet() );
+                        d = d->Prev(); // w drugą stronę też
+                    }
+                }
+                else if( cKey == GLFW_KEY_RIGHT_BRACKET ) {
+                    while( d ) {
+                        d->Move( -100.0 * d->DirectionGet() );
+                        d = d->Next(); // pozostałe też
+                    }
+                    d = Controlled->Prev();
+                    while( d ) {
+                        d->Move( -100.0 * d->DirectionGet() );
+                        d = d->Prev(); // w drugą stronę też
+                    }
+                }
+                else if( cKey == GLFW_KEY_TAB ) {
+                    while( d ) {
+                        d->MoverParameters->V += d->DirectionGet()*2.78;
+                        d = d->Next(); // pozostałe też
+                    }
+                    d = Controlled->Prev();
+                    while( d ) {
+                        d->MoverParameters->V += d->DirectionGet()*2.78;
+                        d = d->Prev(); // w drugą stronę też
+                    }
                 }
             }
         }
-        else if (cKey == Global::Keys[k_IncLocalBrakeLevel])
-        { // zahamowanie dowolnego pojazdu
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
-            if (vehicle)
-            {
-                if( Global::ctrlState ) {
-                    if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
-                     || ( vehicle->MoverParameters->MBrake == true ) )
-                        vehicle->MoverParameters->IncManualBrakeLevel( 1 );
-                }
-                else if( vehicle->MoverParameters->LocalBrake != ManualBrake ) {
-                    vehicle->MoverParameters->IncLocalBrakeLevelFAST();
-                }
-            }
-        }
-        else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
-        { // odhamowanie dowolnego pojazdu
-            auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
-            if (vehicle)
-            {
-                if( Global::ctrlState ) {
-                    if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
-                     || ( vehicle->MoverParameters->MBrake == true ) )
-                        vehicle->MoverParameters->DecManualBrakeLevel( 1 );
-                }
-                else if( vehicle->MoverParameters->LocalBrake != ManualBrake ) {
-                    vehicle->MoverParameters->DecLocalBrakeLevelFAST();
-                }
-            }
-        }
-#endif
     }
 }
 
