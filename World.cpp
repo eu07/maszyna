@@ -1677,6 +1677,40 @@ TWorld::Update_UI() {
                         UITable->text_lines.emplace_back( parameters, Global::UITextColor );
                     }
                 }
+				if (vehicle->MoverParameters->EngineType == DieselEngine) {
+					std::string parameters = "param       value";
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "efill: " + to_string(vehicle->MoverParameters->dizel_fill, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "etorq: " + to_string(vehicle->MoverParameters->dizel_Torque, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "creal: " + to_string(vehicle->MoverParameters->dizel_engage, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "cdesi: " + to_string(vehicle->MoverParameters->dizel_engagestate, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "cdelt: " + to_string(vehicle->MoverParameters->dizel_engagedeltaomega, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "gears: " + to_string(vehicle->MoverParameters->dizel_automaticgearstatus, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hydro      value";
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCnI: " + to_string(vehicle->MoverParameters->hydro_TC_nIn, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCnO: " + to_string(vehicle->MoverParameters->hydro_TC_nOut, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCTM: " + to_string(vehicle->MoverParameters->hydro_TC_TMRatio, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCTI: " + to_string(vehicle->MoverParameters->hydro_TC_TorqueIn, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCTO: " + to_string(vehicle->MoverParameters->hydro_TC_TorqueOut, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCfl: " + to_string(vehicle->MoverParameters->hydro_TC_Fill, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					parameters = "hTCLR: " + to_string(vehicle->MoverParameters->hydro_TC_LockupRate, 2, 9);
+					UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+					//parameters = "hTCXX: " + to_string(vehicle->MoverParameters->hydro_TC_nIn, 2, 9);
+					//UITable->text_lines.emplace_back(parameters, Global::UITextColor);
+				}
 
             } // if( DebugModeFlag && Controlled )
 

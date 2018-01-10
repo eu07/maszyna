@@ -769,6 +769,31 @@ public:
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
 	double dizel_engageDia = 0.5; double dizel_engageMaxForce = 6000.0; double dizel_engagefriction = 0.5; /*parametry sprzegla*/
+	double engagedownspeed = 0.9;
+	double engageupspeed = 0.5;
+	/*parametry przetwornika momentu*/
+	bool hydro_TC = false; /*obecnosc hydraulicznego przetwornika momentu*/
+	double hydro_TC_TMMax = 2.0; /*maksymalne wzmocnienie momentu*/
+	double hydro_TC_CouplingPoint = 0.85; /*wzgledna predkosc zasprzeglenia*/
+	double hydro_TC_LockupTorque = 3000.0; /*moment graniczny sprzegla blokujacego*/
+	double hydro_TC_LockupRate = 1.0; /*szybkosc zalaczania sprzegla blokujacego*/
+	double hydro_TC_UnlockRate = 1.0; /*szybkosc rozlaczania sprzegla blokujacego*/
+	double hydro_TC_FillRateInc = 1.0; /*szybkosc napelniania sprzegla*/
+	double hydro_TC_FillRateDec = 1.0; /*szybkosc oprozniania sprzegla*/
+	double hydro_TC_TorqueInIn = 4.5; /*stala momentu proporcjonalnego do kwadratu obrotow wejsciowych*/
+	double hydro_TC_TorqueInOut = 0.0; /*stala momentu proporcjonalnego do roznica obrotow wejsciowych i wyjsciowych*/
+	double hydro_TC_TorqueOutOut = 0.0; /*stala momentu proporcjonalnego do kwadratu obrotow wyjsciowych*/
+	double hydro_TC_LockupSpeed = 1.0; /*prog predkosci zalaczania sprzegla blokujacego*/
+	double hydro_TC_UnlockSpeed = 1.0; /*prog predkosci rozlaczania sprzegla blokujacego*/
+	/*parametry retardera*/
+	bool hydro_R = false; /*obecnosc retardera*/
+	int hydro_R_Placement = 0; /*umiejscowienie retardera: 0 - za skrzynia biegow, 1 - miedzy przetwornikiem a biegami, 2 - przed skrzynia biegow */
+	double hydro_R_TorqueInIn = 1.0; /*stala momentu proporcjonalnego do kwadratu obrotow wejsciowych*/
+	double hydro_R_MaxTorque = 1.0; /*maksymalny moment retardera*/
+	double hydro_R_MaxPower = 1.0; /*maksymalna moc retardera - ogranicza moment*/
+	double hydro_R_FillRateInc = 1.0; /*szybkosc napelniania sprzegla*/
+	double hydro_R_FillRateDec = 1.0; /*szybkosc oprozniania sprzegla*/
+	double hydro_R_MinVel = 1.0; /*minimalna predkosc, przy ktorej retarder dziala*/
     /*- dla lokomotyw spalinowo-elektrycznych -*/
 	double AnPos = 0.0; // pozycja sterowania dokladnego (analogowego)
 	bool AnalogCtrl = false; //
@@ -957,6 +982,24 @@ public:
 	double dizel_automaticgearstatus = 0.0; /*0 - bez zmiany, -1 zmiana na nizszy +1 zmiana na wyzszy*/
 	bool dizel_enginestart = false;      /*czy trwa rozruch silnika*/
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
+	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
+	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
+
+	/* - zmienne dla przetowrnika momentu */
+	double hydro_TC_Fill = 0.0; /*napelnienie*/
+	bool hydro_TC_Lockup = false; /*zapiecie sprzegla*/
+	double hydro_TC_TorqueIn = 0.0; /*moment*/
+	double hydro_TC_TorqueOut = 0.0; /*moment*/
+	double hydro_TC_TMRatio = 1.0; /*aktualne przelozenie momentu*/
+	double hydro_TC_Request = 0.0; /*zadanie sily*/
+	double hydro_TC_nIn = 0.0; /*predkosc obrotowa walu wejsciowego*/
+	double hydro_TC_nOut = 0.0; /*predkosc obrotowa walu wyjsciowego*/
+
+	/* - zmienne dla przetowrnika momentu */
+	double hydro_R_Fill = 0.0; /*napelnienie*/
+	double hydro_R_Torque = 0.0; /*moment*/
+	double hydro_R_Request = 0.0; /*zadanie sily hamowania*/
+	double hydro_R_n = 0.0; /*predkosc obrotowa retardera*/
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimv[21];

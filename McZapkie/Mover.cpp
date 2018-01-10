@@ -4440,7 +4440,7 @@ double TMoverParameters::TractionForce(double dt)
             if (MainCtrlPos > 1)
                 dmoment -=
                     dizel_Mstand * (0.2 * enrot / dizel_nmax); // dodatkowe opory z powodu sprezarki}
-            Mm = dizel_engage * dmoment;
+            Mm = dmoment; //bylo * dizel_engage
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
             Ft = Fw * NPoweredAxles; // sila trakcyjna
@@ -5544,8 +5544,6 @@ bool TMoverParameters::dizel_EngageSwitch(double state)
 // *************************************************************************************************
 bool TMoverParameters::dizel_EngageChange(double dt)
 {
-    const double engagedownspeed = 0.9;
-    const double engageupspeed = 0.5;
     double engagespeed = 0; // OK:boolean;
     bool DEC;
 
@@ -5585,7 +5583,7 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
     OK = false;
     if (MotorParam[ScndCtrlActualPos].AutoSwitch && Mains)
     {
-        if (RList[MainCtrlPos].Mn == 0)
+        if ((RList[MainCtrlPos].Mn == 0)&&(!hydro_TC))
         {
             if (dizel_engagestate > 0)
                 dizel_EngageSwitch(0);
@@ -5634,7 +5632,10 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
                 dizel_EngageSwitch(1.0);
 				break;
             default:
-                dizel_EngageSwitch(0.0);
+				if (hydro_TC && hydro_TC_Fill>0.01)
+					dizel_EngageSwitch(1.0);
+				else
+					dizel_EngageSwitch(0.0);
             }
         else
             dizel_EngageSwitch(0.0);
@@ -5690,9 +5691,9 @@ double TMoverParameters::dizel_fillcheck(int mcp)
     nreg = 0;
     if (Mains && (MainCtrlPosNo > 0))
     {
-        if (dizel_enginestart &&
-            (LastSwitchingTime >= 0.9 * InitialCtrlDelay)) // wzbogacenie przy rozruchu
-            realfill = 1;
+		if (dizel_enginestart &&
+			(LastSwitchingTime >= 0.9 * InitialCtrlDelay)) // wzbogacenie przy rozruchu
+			realfill = 1;
         else
             realfill = RList[mcp].R; // napelnienie zalezne od MainCtrlPos
         if (dizel_nmax_cutoff > 0)
@@ -5704,7 +5705,7 @@ double TMoverParameters::dizel_fillcheck(int mcp)
                 nreg = dizel_nmin;
 				break;
             case 2:
-                if (dizel_automaticgearstatus == 0)
+                if ((dizel_automaticgearstatus == 0)&&(true/*(!hydro_TC) || (dizel_engage>dizel_fill)*/))
                     nreg = dizel_nmax;
                 else
                     nreg = dizel_nmin;
@@ -5712,12 +5713,18 @@ double TMoverParameters::dizel_fillcheck(int mcp)
             default:
                 realfill = 0; // sluczaj
             }
-            if (enrot > nreg)
+            /*if (enrot > nreg)
                 realfill = realfill * (3.9 - 3.0 * abs(enrot) / nreg);
             if (enrot > dizel_nmax_cutoff)
                 realfill = realfill * (9.8 - 9.0 * abs(enrot) / dizel_nmax_cutoff);
             if (enrot < dizel_nmin)
-                realfill = realfill * (1.0 + (dizel_nmin - abs(enrot)) / dizel_nmin);
+                realfill = realfill * (1.0 + (dizel_nmin - abs(enrot)) / dizel_nmin);*/	
+			if (enrot > nreg) //nad predkoscia regulatora zeruj dawke
+				realfill = 0; 
+			if (enrot < nreg) //pod predkoscia regulatora dawka zadana
+				realfill = realfill;
+			if ((enrot < dizel_nmin * 0.98)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
+				realfill = 1;
         }
     }
     if (realfill < 0)
@@ -5733,11 +5740,17 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 // *************************************************************************************************
 double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 { // liczy moment sily wytwarzany przez silnik spalinowy}
-    double Moment = 0, enMoment = 0, eps = 0, newn = 0, friction = 0;
-
+    double Moment = 0, enMoment = 0, gearMoment = 0, eps = 0, newn = 0, friction = 0, neps = 0;
+	double TorqueH = 0, TorqueL = 0, TorqueC = 0;
+	n = n * CabNo;
+	if (MotorParam[ScndCtrlActualPos].mIsat < 0.001)
+		n = enrot;
     friction = dizel_engagefriction;
+	hydro_TC_nIn = enrot; //wal wejsciowy przetwornika momentu
+	hydro_TC_nOut = dizel_n_old; //wal wyjsciowy przetwornika momentu
+	neps = (n - dizel_n_old) / dt; //przyspieszenie katowe walu wejsciowego skrzyni biegow
+
     if( enrot > 0 ) {
-//        Moment = dizel_Mmax * dizel_fill - ( dizel_Mmax - dizel_Mnmax * dizel_fill ) * sqr( enrot / ( dizel_nmax - dizel_nMmax * dizel_fill ) ) - dizel_Mstand; // Q: zamieniam SQR() na sqr()
         Moment = ( dizel_Mmax - ( dizel_Mmax - dizel_Mnmax ) * square( ( enrot - dizel_nMmax ) / ( dizel_nMmax - dizel_nmax ) ) ) * dizel_fill - dizel_Mstand;
     }
     else {
@@ -5748,43 +5761,126 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
         // wstrzymywanie przy malych obrotach
         Moment -= dizel_Mstand;
     }
-    //!! abs
-    if (abs(abs(n) - enrot) < 0.1)
-    {
-        if ((Moment) > (dizel_engageMaxForce * dizel_engage * dizel_engageDia * friction *
-                        2)) // zerwanie przyczepnosci sprzegla
-            enrot +=  dt * Moment / dizel_AIM;
-        else
-        {
-            dizel_engagedeltaomega = 0;
-            enrot = abs(n); // jest przyczepnosc tarcz
-        }
-    }
-    else
-    {
-        if ((enrot == 0) && (Moment < 0))
-            newn = 0;
-        else
-        {
-            //!! abs
-            dizel_engagedeltaomega = enrot - n; // sliganie tarcz
-            enMoment = Moment -
-                       Sign(dizel_engagedeltaomega) * dizel_engageMaxForce * dizel_engage *
-                           dizel_engageDia * friction;
-            Moment = Sign(dizel_engagedeltaomega) * dizel_engageMaxForce * dizel_engage *
-                     dizel_engageDia * friction;
-            dizel_engagedeltaomega = abs(enrot - abs(n));
-            eps = enMoment / dizel_AIM;
-            newn = enrot + eps * dt;
-            if ((newn * enrot <= 0) && (eps * enrot < 0))
-                newn = 0;
-        }
-        enrot = newn;
-    }
-    if ((enrot == 0) && (!dizel_enginestart))
-        Mains = false;
+	if (true == dizel_enginestart)
+		Moment += dizel_Mstand / (0.3 + std::max(0.0, enrot/dizel_nmin)); //rozrusznik
 
-    return Moment;
+	dizel_Torque = Moment;
+
+	if (hydro_TC) //jesli przetwornik momentu
+	{
+		//napelnianie przetwornika
+		if ((MainCtrlPos > 0) && (Mains) && (enrot>dizel_nmin*0.9))
+			hydro_TC_Fill += hydro_TC_FillRateInc * dt;
+		//oproznianie przetwornika
+		if (((MainCtrlPos == 0) && (Vel<3))
+			|| (!Mains)
+			|| (enrot<dizel_nmin*0.8))
+			hydro_TC_Fill -= hydro_TC_FillRateDec * dt;
+		//obcinanie zakresu
+		hydro_TC_Fill = clamp(hydro_TC_Fill, 0.0, 1.0);
+
+		//blokowanie sprzegla blokującego
+		if ((Vel > hydro_TC_LockupSpeed) && (Mains) && (enrot > 0.9 * dizel_nmin) && (MainCtrlPos>0))
+			hydro_TC_LockupRate += hydro_TC_FillRateInc*dt;
+		//luzowanie sprzegla blokujacego
+		if ((Vel < (MainCtrlPos>0 ? hydro_TC_LockupSpeed : hydro_TC_UnlockSpeed)) || (!Mains) || (enrot < 0.8 * dizel_nmin))
+			hydro_TC_LockupRate -= hydro_TC_FillRateDec*dt;
+		//obcinanie zakresu
+		hydro_TC_LockupRate = clamp(hydro_TC_LockupRate, 0.0, 1.0);
+	}
+	else
+	{
+		hydro_TC_Fill = 0.0;
+		hydro_TC_LockupRate = 0.0;
+	}
+
+	//obliczanie momentow poszczegolnych sprzegiel
+	//sprzeglo glowne (skrzynia biegow)
+	TorqueC = dizel_engageMaxForce * dizel_engage * dizel_engageDia * friction;
+
+	if (hydro_TC) //jesli hydro
+	{
+		double HydroTorque = 0;
+		HydroTorque += hydro_TC_nIn * hydro_TC_nIn * hydro_TC_TorqueInIn;
+		HydroTorque += (hydro_TC_nIn - hydro_TC_nOut) * hydro_TC_TorqueInOut;
+		HydroTorque += hydro_TC_nOut * hydro_TC_nOut * hydro_TC_TorqueOutOut;
+		double nOut2In = hydro_TC_nOut / std::max(0.01, hydro_TC_nIn);
+		if (nOut2In < hydro_TC_CouplingPoint)
+		{
+			hydro_TC_TMRatio = 1 + (hydro_TC_TMMax - 1) * square(1 - nOut2In / hydro_TC_CouplingPoint);
+			hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill;
+			hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+		}
+		else
+		{
+			hydro_TC_TMRatio = (1 - nOut2In) / (1 - hydro_TC_CouplingPoint);
+			hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+			hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+		}
+		TorqueH = hydro_TC_TorqueOut;
+		TorqueL = hydro_TC_LockupTorque * hydro_TC_LockupRate;
+	}
+	else
+	{
+		TorqueH = 0; //brak przetwornika oznacza brak momentu
+		TorqueL = 1 + TorqueC * 2; //zabezpieczenie, polaczenie trwale
+	}
+
+	//sprawdzanie dociskow poszczegolnych sprzegiel
+	if (abs(Moment) > Min0R(TorqueC, TorqueL + abs(hydro_TC_TorqueIn)) || (abs(dizel_n_old - enrot) > 0.1)) //slizga sie z powodu roznic predkosci albo przekroczenia momentu
+	{
+		dizel_engagedeltaomega = enrot - dizel_n_old;
+
+		if (TorqueC > TorqueL)
+		{
+			if (TorqueC > TorqueL + abs(TorqueH))
+			{
+				hydro_TC_nOut = n;
+				gearMoment = TorqueL + abs(TorqueH) * sign(dizel_engagedeltaomega);
+				enMoment = Moment - (TorqueL + abs(hydro_TC_TorqueIn))* sign(dizel_engagedeltaomega);
+			}
+			else
+			{
+				hydro_TC_nOut = enrot - (n - enrot)*(TorqueC - TorqueL) / TorqueH; //slizganie proporcjonalne, zeby przetwornik nadrabial
+				gearMoment = TorqueC * sign(dizel_engagedeltaomega);
+				enMoment = Moment - gearMoment;
+			}
+
+		}
+		else
+		{
+			hydro_TC_nOut = enrot;
+			gearMoment = (TorqueC) * sign(dizel_engagedeltaomega);
+			enMoment = Moment - gearMoment;
+		}
+		eps = enMoment / dizel_AIM;
+		newn = enrot + eps * dt;
+		if ((newn - n)*(enrot - dizel_n_old) < 0) //przejscie przez zero - slizgalo sie i przestało
+			newn = n;
+		if ((newn * enrot <= 0) && (eps * enrot < 0)) //przejscie przez zero obrotow
+			newn = 0;
+		enrot = newn;
+	}
+	else //nie slizga sie (jeszcze)
+	{
+		dizel_engagedeltaomega = 0;
+		gearMoment = Moment;
+		enMoment = 0;
+		double enrot_min = enrot - (Min0R(TorqueC, TorqueL + abs(hydro_TC_TorqueIn)) - Moment) / dizel_AIM * dt;
+		double enrot_max = enrot + (Min0R(TorqueC, TorqueL + abs(hydro_TC_TorqueIn)) + Moment) / dizel_AIM * dt;
+		enrot = clamp(n,enrot_min,enrot_max);
+	}
+
+
+	if ((enrot <= 0) && (!dizel_enginestart))
+	{
+		Mains = false;
+		enrot = 0;
+	}
+
+	dizel_n_old = n; //obecna predkosc katowa na potrzeby kolejnej klatki
+
+    return gearMoment;
 }
 
 // *************************************************************************************************
@@ -7455,6 +7551,9 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );
+			
+			extract_value(engageupspeed, "EUS", Input, "0.5");
+			extract_value(engagedownspeed, "EDS", Input, "0.9");
 
             if( true == extract_value( AnPos, "ShuntMode", Input, "" ) ) {
                 //dodatkowa przekładnia dla SM03 (2Ls150)
@@ -7464,7 +7563,34 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                     //"rozruch wysoki" ma dawać większą siłę
                     AnPos = 1.0 / AnPos; //im większa liczba, tym wolniej jedzie
                 }
+
             }
+			hydro_TC = (extract_value("IsTC", Input) == "Yes");
+			if (true == hydro_TC) {
+				extract_value(hydro_TC_TMMax, "TC_TMMax", Input, "");
+				extract_value(hydro_TC_CouplingPoint, "TC_CP", Input, "");
+				extract_value(hydro_TC_LockupTorque, "TC_LT", Input, "");
+				extract_value(hydro_TC_LockupRate, "TC_LR", Input, "");
+				extract_value(hydro_TC_UnlockRate, "TC_ULR", Input, "");
+				extract_value(hydro_TC_FillRateInc, "TC_FRI", Input, "");
+				extract_value(hydro_TC_FillRateDec, "TC_FRD", Input, "");
+				extract_value(hydro_TC_TorqueInIn, "TC_TII", Input, "");
+				extract_value(hydro_TC_TorqueInOut, "TC_TIO", Input, "");
+				extract_value(hydro_TC_TorqueOutOut, "TC_TOO", Input, "");
+				extract_value(hydro_TC_LockupSpeed, "TC_LS", Input, "");
+				extract_value(hydro_TC_UnlockSpeed, "TC_ULS", Input, "");
+
+				hydro_R = (extract_value("IsRetarder", Input) == "Yes");
+				if (true == hydro_R) {
+					extract_value(hydro_R_Placement, "R_Place", Input, "");
+					extract_value(hydro_R_TorqueInIn, "R_TII", Input, "");
+					extract_value(hydro_R_MaxTorque, "R_MT", Input, "");
+					extract_value(hydro_R_MaxPower, "R_MP", Input, "");
+					extract_value(hydro_R_FillRateInc, "R_FRI", Input, "");
+					extract_value(hydro_R_FillRateDec, "R_FRD", Input, "");
+					extract_value(hydro_R_MinVel, "R_MinVel", Input, "");
+				}
+			}
             break;
         }
         case DieselElectric: { //youBy
