@@ -487,8 +487,18 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
         }
         if( fRadius != 0 ) // gdy podany promień
             segsize = clamp( std::fabs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
-        else
-            segsize = 10.0; // for straights, 10m per segment works good enough
+        else {
+            // HACK: crude check whether claimed straight is an actual straight piece
+            // NOTE: won't detect cases where control points are placed on the straight line formed by the ends, but, eh
+            if( ( cp1 == Math3D::vector3() )
+             && ( cp1 == Math3D::vector3() ) ) {
+                segsize = 10.0; // for straights, 10m per segment works good enough
+            }
+            else {
+                // HACK: divide roughly in 10 segments. 
+                segsize = clamp( fTrackLength * ( 0.1 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+            }
+        }
 
         if ((((p1 + p1 + p2) / 3.0 - p1 - cp1).Length() < 0.02) ||
             (((p1 + p2 + p2) / 3.0 - p2 + cp1).Length() < 0.02))

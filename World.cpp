@@ -338,8 +338,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     return true;
 };
 
-void TWorld::OnKeyDown(int cKey)
-{
+void TWorld::OnKeyDown(int cKey) {
     // dump keypress info in the log
     if( !Global::iPause ) {
         // podczas pauzy klawisze nie działają
@@ -647,32 +646,28 @@ void TWorld::OnKeyDown(int cKey)
     else if (!Global::iPause) //podczas pauzy sterownaie nie działa
         if (Train)
             if (Controlled)
-                if( ( cKey == GLFW_KEY_Q )
-                 || ( ( Controlled->Controller == Humandriver )
-                   || ( true == DebugModeFlag ) ) ) {
+                if( ( Controlled->Controller == Humandriver )
+                 || ( true == DebugModeFlag ) ) {
                     Train->OnKeyDown( cKey ); // przekazanie klawisza do kabiny
                 }
 
     if (FreeFlyModeFlag) // aby nie odluźniało wagonu za lokomotywą
     { // operacje wykonywane na dowolnym pojeździe, przeniesione tu z kabiny
-/*
         // NOTE: disabled so it doesn't interfere with new system controls in outside view
         // TODO: implement as part of the new system
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (cKey == Global::Keys[k_Releaser]) // odluźniacz
         { // działa globalnie, sprawdzić zasięg
-            TDynamicObject *temp = Global::DynamicNearest();
-            if (temp) {
-                if (Global::ctrlState) // z ctrl odcinanie {
-                    temp->MoverParameters->Hamulec->SetBrakeStatus( temp->MoverParameters->Hamulec->GetBrakeStatus() ^ 128 );
-                }
-                else {
-                    temp->MoverParameters->BrakeReleaser(1);
-                }
+            TDynamicObject *temp{ std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
+            if( temp ) {
+                if( Global::ctrlState ) // z ctrl odcinanie {
+                    temp->MoverParameters->Hamulec->SetBrakeStatus( temp->MoverParameters->Hamulec->GetBrakeStatus() ^ b_dmg );
+            }
+            else {
+                temp->MoverParameters->BrakeReleaser( 1 );
             }
         }
-        else
-*/
-            if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
+    else if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
         { // zmiana próżny/ładowny; Ra: zabrane z kabiny
                 auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, false ) ) };
             if (vehicle)
@@ -744,6 +739,7 @@ void TWorld::OnKeyDown(int cKey)
                 }
             }
         }
+#endif
     }
 }
 
@@ -1453,6 +1449,7 @@ TWorld::Update_UI() {
 
                 uitextline3 +=
                     "; LcB: " + to_string( vehicle->MoverParameters->LocBrakePress, 2 )
+                    + "; hat: " + to_string( vehicle->MoverParameters->BrakeCtrlPos2, 2 )
                     + "; pipes: " + to_string( vehicle->MoverParameters->PipePress, 2 )
                     + "/" + to_string( vehicle->MoverParameters->ScndPipePress, 2 )
                     + "/" + to_string( vehicle->MoverParameters->EqvtPipePress, 2 )

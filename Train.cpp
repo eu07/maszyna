@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 
 #include "Globals.h"
+#include "simulation.h"
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "Timer.h"
@@ -194,6 +195,8 @@ void TCab::Update()
 // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
 TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 
+    { user_command::aidriverenable, &TTrain::OnCommand_aidriverenable },
+    { user_command::aidriverdisable, &TTrain::OnCommand_aidriverdisable },
     { user_command::mastercontrollerincrease, &TTrain::OnCommand_mastercontrollerincrease },
     { user_command::mastercontrollerincreasefast, &TTrain::OnCommand_mastercontrollerincreasefast },
     { user_command::mastercontrollerdecrease, &TTrain::OnCommand_mastercontrollerdecrease },
@@ -216,7 +219,12 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::trainbrakefirstservice, &TTrain::OnCommand_trainbrakefirstservice },
     { user_command::trainbrakeservice, &TTrain::OnCommand_trainbrakeservice },
     { user_command::trainbrakefullservice, &TTrain::OnCommand_trainbrakefullservice },
+    { user_command::trainbrakehandleoff, &TTrain::OnCommand_trainbrakehandleoff },
     { user_command::trainbrakeemergency, &TTrain::OnCommand_trainbrakeemergency },
+    { user_command::trainbrakebasepressureincrease, &TTrain::OnCommand_trainbrakebasepressureincrease },
+    { user_command::trainbrakebasepressuredecrease, &TTrain::OnCommand_trainbrakebasepressuredecrease },
+    { user_command::trainbrakebasepressurereset, &TTrain::OnCommand_trainbrakebasepressurereset },
+    { user_command::trainbrakeoperationtoggle, &TTrain::OnCommand_trainbrakeoperationtoggle },
     { user_command::manualbrakeincrease, &TTrain::OnCommand_manualbrakeincrease },
     { user_command::manualbrakedecrease, &TTrain::OnCommand_manualbrakedecrease },
     { user_command::alarmchaintoggle, &TTrain::OnCommand_alarmchaintoggle },
@@ -225,6 +233,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
     { user_command::brakeactingspeedincrease, &TTrain::OnCommand_brakeactingspeedincrease },
     { user_command::brakeactingspeeddecrease, &TTrain::OnCommand_brakeactingspeeddecrease },
+    { user_command::brakeloadcompensationincrease, &TTrain::OnCommand_brakeloadcompensationincrease },
+    { user_command::brakeloadcompensationdecrease, &TTrain::OnCommand_brakeloadcompensationdecrease },
     { user_command::mubrakingindicatortoggle, &TTrain::OnCommand_mubrakingindicatortoggle },
     { user_command::reverserincrease, &TTrain::OnCommand_reverserincrease },
     { user_command::reverserdecrease, &TTrain::OnCommand_reverserdecrease },
@@ -258,6 +268,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::headlighttogglerearupper, &TTrain::OnCommand_headlighttogglerearupper },
     { user_command::redmarkertogglerearleft, &TTrain::OnCommand_redmarkertogglerearleft },
     { user_command::redmarkertogglerearright, &TTrain::OnCommand_redmarkertogglerearright },
+    { user_command::redmarkerstoggle, &TTrain::OnCommand_redmarkerstoggle },
+    { user_command::endsignalstoggle, &TTrain::OnCommand_endsignalstoggle },
     { user_command::headlightsdimtoggle, &TTrain::OnCommand_headlightsdimtoggle },
     { user_command::interiorlighttoggle, &TTrain::OnCommand_interiorlighttoggle },
     { user_command::interiorlightdimtoggle, &TTrain::OnCommand_interiorlightdimtoggle },
@@ -265,11 +277,17 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorlocktoggle, &TTrain::OnCommand_doorlocktoggle },
     { user_command::doortoggleleft, &TTrain::OnCommand_doortoggleleft },
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
+    { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
+    { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
+    { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
+    { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
     { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
+    { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
+    { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle1, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle2, &TTrain::OnCommand_generictoggle },
@@ -528,7 +546,46 @@ bool TTrain::is_eztoer() const {
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
 }
 
+// locates nearest vehicle belonging to the consist
+TDynamicObject *
+TTrain::find_nearest_consist_vehicle() const {
+
+    if( false == FreeFlyModeFlag ) {
+        return DynamicObject;
+    }
+    auto coupler { -2 }; // scan for vehicle, not any specific coupler
+    auto *vehicle{ DynamicObject->ABuScanNearestObject( DynamicObject->GetTrack(), 1, 1500, coupler ) };
+    if( vehicle == nullptr )
+        vehicle = DynamicObject->ABuScanNearestObject( DynamicObject->GetTrack(), -1, 1500, coupler );
+    // TBD, TODO: perform owner test for the located vehicle
+    return vehicle;
+}
+
+
 // command handlers
+void TTrain::OnCommand_aidriverenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // on press
+        if( Train->DynamicObject->Mechanik == nullptr ) { return; }
+
+        if( true == Train->DynamicObject->Mechanik->AIControllFlag ) {
+            //żeby nie trzeba było rozłączać dla zresetowania
+            Train->DynamicObject->Mechanik->TakeControl( false );
+        }
+        Train->DynamicObject->Mechanik->TakeControl( true );
+    }
+}
+
+void TTrain::OnCommand_aidriverdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // on press
+        if( Train->DynamicObject->Mechanik )
+            Train->DynamicObject->Mechanik->TakeControl( false );
+    }
+}
+
 void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
@@ -690,25 +747,42 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
 }
 
 void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command ) {
-    // TODO: check if this set of conditions can be simplified.
-    // it'd be more flexible to have an attribute indicating whether bail off position is supported
-    if( ( Train->mvControlled->TrainType != dt_EZT )
-     && ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
-       || ( Train->mvControlled->EngineType == DieselElectric )
-       || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
-     && ( Train->mvOccupied->BrakeCtrlPosNo > 0 ) ) {
 
-        if( Command.action != GLFW_RELEASE ) {
-            // press or hold
-            Train->mvOccupied->BrakeReleaser( 1 );
-            // visual feedback
-            Train->ggReleaserButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( false == FreeFlyModeFlag ) {
+        // TODO: check if this set of conditions can be simplified.
+        // it'd be more flexible to have an attribute indicating whether bail off position is supported
+        if( ( Train->mvControlled->TrainType != dt_EZT )
+         && ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
+           || ( Train->mvControlled->EngineType == DieselElectric )
+           || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
+         && ( Train->mvOccupied->BrakeCtrlPosNo > 0 ) ) {
+
+            if( Command.action != GLFW_RELEASE ) {
+                // press or hold
+                Train->mvOccupied->BrakeReleaser( 1 );
+                // visual feedback
+                Train->ggReleaserButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                // release
+                Train->mvOccupied->BrakeReleaser( 0 );
+                // visual feedback
+                Train->ggReleaserButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
-        else {
-            // release
-            Train->mvOccupied->BrakeReleaser( 0 );
-            // visual feedback
-            Train->ggReleaserButton.UpdateValue( 0.0, Train->dsbSwitch );
+    }
+    else {
+        // car brake handling, while in walk mode
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle != nullptr ) {
+            if( Command.action != GLFW_RELEASE ) {
+                // press or hold
+                vehicle->MoverParameters->BrakeReleaser( 1 );
+            }
+            else {
+                // release
+                vehicle->MoverParameters->BrakeReleaser( 0 );
+            }
         }
     }
 }
@@ -874,6 +948,14 @@ void TTrain::OnCommand_trainbrakefullservice( TTrain *Train, command_data const 
     }
 }
 
+void TTrain::OnCommand_trainbrakehandleoff( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_NP ) );
+    }
+}
+
 void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -888,14 +970,70 @@ void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &C
     }
 }
 
+void TTrain::OnCommand_trainbrakebasepressureincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        switch( Train->mvOccupied->BrakeHandle ) {
+            case FV4a: {
+                Train->mvOccupied->BrakeCtrlPos2 = clamp( Train->mvOccupied->BrakeCtrlPos2 - 0.01, -1.5, 2.0 );
+                break;
+            }
+            default: {
+                Train->mvOccupied->BrakeLevelAdd( 0.01 );
+                break;
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_trainbrakebasepressuredecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        switch( Train->mvOccupied->BrakeHandle ) {
+            case FV4a: {
+                Train->mvOccupied->BrakeCtrlPos2 = clamp( Train->mvOccupied->BrakeCtrlPos2 + 0.01, -1.5, 2.0 );
+                break;
+            }
+            default: {
+                Train->mvOccupied->BrakeLevelAdd( -0.01 );
+                break;
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_trainbrakebasepressurereset( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->BrakeCtrlPos2 = 0;
+    }
+}
+
+void TTrain::OnCommand_trainbrakeoperationtoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle == nullptr ) { return; }
+
+        vehicle->MoverParameters->Hamulec->SetBrakeStatus( vehicle->MoverParameters->Hamulec->GetBrakeStatus() ^ b_dmg );
+    }
+}
+
 void TTrain::OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( ( Train->mvOccupied->LocalBrake == ManualBrake )
-         || ( Train->mvOccupied->MBrake == true ) ) {
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle == nullptr ) { return; }
 
-            Train->mvOccupied->IncManualBrakeLevel( 1 );
+        if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+         || ( vehicle->MoverParameters->MBrake == true ) ) {
+
+            vehicle->MoverParameters->IncManualBrakeLevel( 1 );
         }
     }
 }
@@ -904,10 +1042,13 @@ void TTrain::OnCommand_manualbrakedecrease( TTrain *Train, command_data const &C
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( ( Train->mvOccupied->LocalBrake == ManualBrake )
-         || ( Train->mvOccupied->MBrake == true ) ) {
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle == nullptr ) { return; }
 
-            Train->mvOccupied->DecManualBrakeLevel( 1 );
+        if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+         || ( vehicle->MoverParameters->MBrake == true ) ) {
+
+            vehicle->MoverParameters->DecManualBrakeLevel( 1 );
         }
     }
 }
@@ -940,26 +1081,38 @@ void TTrain::OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const
         }
         return;
     }
-    if( Train->mvOccupied->BrakeSystem == ElectroPneumatic ) {
-        return;
-    }
 
-    if( Command.action != GLFW_RELEASE ) {
-        // press or hold
-        Train->mvControlled->AntiSlippingBrake();
-        // visual feedback
-        Train->ggAntiSlipButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Train->mvOccupied->BrakeSystem != ElectroPneumatic ) {
+        // standard behaviour
+        if( Command.action != GLFW_RELEASE ) {
+            // press or hold
+            Train->mvControlled->AntiSlippingBrake();
+            // visual feedback
+            Train->ggAntiSlipButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // release
+            // visual feedback
+            Train->ggAntiSlipButton.UpdateValue( 0.0 );
+        }
     }
     else {
-        // release
-/*
-        // audio feedback
-        if( Train->ggAntiSlipButton.GetValue() > 0.5 ) {
-            Train->play_sound( Train->dsbSwitch );
+        // electro-pneumatic, custom case
+        if( Command.action != GLFW_RELEASE ) {
+            // press or hold
+            if( ( Train->mvOccupied->BrakeHandle == St113 )
+             && ( Train->mvControlled->EpFuse == true ) ) {
+                Train->mvOccupied->SwitchEPBrake( 1 );
+            }
+            // visual feedback
+            Train->ggAntiSlipButton.UpdateValue( 1.0, Train->dsbPneumaticSwitch );
         }
-*/
-        // visual feedback
-        Train->ggAntiSlipButton.UpdateValue( 0.0 );
+        else {
+            // release
+            Train->mvOccupied->SwitchEPBrake( 0 );
+            // visual feedback
+            Train->ggAntiSlipButton.UpdateValue( 0.0 );
+        }
     }
 }
 
@@ -1023,36 +1176,45 @@ void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &
 void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( ( Train->mvOccupied->BrakeDelayFlag & bdelay_M ) != 0 ) {
+
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle == nullptr ) { return; }
+
+        if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) != 0 ) {
             // can't speed it up any more than this
             return;
         }
         auto const fasterbrakesetting = (
-            Train->mvOccupied->BrakeDelayFlag < bdelay_R ?
-                Train->mvOccupied->BrakeDelayFlag << 1 :
-                Train->mvOccupied->BrakeDelayFlag | bdelay_M );
-        if( true == Train->mvOccupied->BrakeDelaySwitch( fasterbrakesetting ) ) {
-            // visual feedback
-            if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
-                Train->ggBrakeProfileCtrl.UpdateValue(
-                    ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
-                        2.0 :
-                        Train->mvOccupied->BrakeDelayFlag - 1 ),
-                    Train->dsbSwitch );
-            }
-            if( Train->ggBrakeProfileG.SubModel != nullptr ) {
-                Train->ggBrakeProfileG.UpdateValue(
-                    ( Train->mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        1.0 :
-                        0.0 ),
-                    Train->dsbSwitch );
-            }
-            if( Train->ggBrakeProfileR.SubModel != nullptr ) {
-                Train->ggBrakeProfileR.UpdateValue(
-                    ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
-                        1.0 :
-                        0.0 ),
-                    Train->dsbSwitch );
+            vehicle->MoverParameters->BrakeDelayFlag < bdelay_R ?
+                vehicle->MoverParameters->BrakeDelayFlag << 1 :
+                vehicle->MoverParameters->BrakeDelayFlag | bdelay_M );
+
+        if( true == vehicle->MoverParameters->BrakeDelaySwitch( fasterbrakesetting ) ) {
+
+            if( vehicle == Train->DynamicObject ) {
+                // visual feedback
+                // TODO: add setting indicator to vehicle
+                if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
+                    Train->ggBrakeProfileCtrl.UpdateValue(
+                        ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
+                            2.0 :
+                            Train->mvOccupied->BrakeDelayFlag - 1 ),
+                        Train->dsbSwitch );
+                }
+                if( Train->ggBrakeProfileG.SubModel != nullptr ) {
+                    Train->ggBrakeProfileG.UpdateValue(
+                        ( Train->mvOccupied->BrakeDelayFlag == bdelay_G ?
+                            1.0 :
+                            0.0 ),
+                        Train->dsbSwitch );
+                }
+                if( Train->ggBrakeProfileR.SubModel != nullptr ) {
+                    Train->ggBrakeProfileR.UpdateValue(
+                        ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
+                            1.0 :
+                            0.0 ),
+                        Train->dsbSwitch );
+                }
             }
         }
     }
@@ -1061,37 +1223,68 @@ void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data con
 void TTrain::OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( Train->mvOccupied->BrakeDelayFlag == bdelay_G ) {
+
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle == nullptr ) { return; }
+
+        if( vehicle->MoverParameters->BrakeDelayFlag == bdelay_G ) {
             // can't slow it down any more than this
             return;
         }
         auto const slowerbrakesetting = (
-            Train->mvOccupied->BrakeDelayFlag < bdelay_M ?
-                Train->mvOccupied->BrakeDelayFlag >> 1 :
-                Train->mvOccupied->BrakeDelayFlag ^ bdelay_M );
-        if( true == Train->mvOccupied->BrakeDelaySwitch( slowerbrakesetting ) ) {
-            // visual feedback
-            if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
-                Train->ggBrakeProfileCtrl.UpdateValue(
-                    ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
-                        2.0 :
-                        Train->mvOccupied->BrakeDelayFlag - 1 ),
-                    Train->dsbSwitch );
+            vehicle->MoverParameters->BrakeDelayFlag < bdelay_M ?
+                vehicle->MoverParameters->BrakeDelayFlag >> 1 :
+                vehicle->MoverParameters->BrakeDelayFlag ^ bdelay_M );
+
+        if( true == vehicle->MoverParameters->BrakeDelaySwitch( slowerbrakesetting ) ) {
+
+            if( vehicle == Train->DynamicObject ) {
+                // visual feedback
+                // TODO: add setting indicator to vehicle
+                if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
+                    Train->ggBrakeProfileCtrl.UpdateValue(
+                        ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
+                            2.0 :
+                            Train->mvOccupied->BrakeDelayFlag - 1 ),
+                        Train->dsbSwitch );
+                }
+                if( Train->ggBrakeProfileG.SubModel != nullptr ) {
+                    Train->ggBrakeProfileG.UpdateValue(
+                        ( Train->mvOccupied->BrakeDelayFlag == bdelay_G ?
+                            1.0 :
+                            0.0 ),
+                        Train->dsbSwitch );
+                }
+                if( Train->ggBrakeProfileR.SubModel != nullptr ) {
+                    Train->ggBrakeProfileR.UpdateValue(
+                        ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
+                            1.0 :
+                            0.0 ),
+                        Train->dsbSwitch );
+                }
             }
-            if( Train->ggBrakeProfileG.SubModel != nullptr ) {
-                Train->ggBrakeProfileG.UpdateValue(
-                    ( Train->mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        1.0 :
-                        0.0 ),
-                    Train->dsbSwitch );
-            }
-            if( Train->ggBrakeProfileR.SubModel != nullptr ) {
-                Train->ggBrakeProfileR.UpdateValue(
-                    ( ( Train->mvOccupied->BrakeDelayFlag & bdelay_R ) != 0 ?
-                        1.0 :
-                        0.0 ),
-                    Train->dsbSwitch );
-            }
+        }
+    }
+}
+
+void TTrain::OnCommand_brakeloadcompensationincrease( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle != nullptr ) {
+            vehicle->MoverParameters->IncBrakeMult();
+        }
+    }
+}
+
+void TTrain::OnCommand_brakeloadcompensationdecrease( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        auto *vehicle { Train->find_nearest_consist_vehicle() };
+        if( vehicle != nullptr ) {
+            vehicle->MoverParameters->DecBrakeMult();
         }
     }
 }
@@ -2442,6 +2635,58 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
     }
 }
 
+void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
+
+        if( vehicle == nullptr ) { return; }
+
+        int const CouplNr {
+            clamp(
+                vehicle->DirectionGet()
+                * ( LengthSquared3( vehicle->HeadPosition() - Global::pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global::pCameraPosition ) ?
+                     1 :
+                    -1 ),
+                0, 1 ) }; // z [-1,1] zrobić [0,1]
+
+        auto const lightset { light::redmarker_left | light::redmarker_right };
+
+        vehicle->iLights[ CouplNr ] = (
+            false == TestFlag( vehicle->iLights[ CouplNr ], lightset ) ?
+                vehicle->iLights[ CouplNr ] |= lightset : // turn signals on
+                vehicle->iLights[ CouplNr ] ^= lightset ); // turn signals off
+    }
+}
+
+void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
+
+        if( vehicle == nullptr ) { return; }
+
+        int const CouplNr {
+            clamp(
+                vehicle->DirectionGet()
+                * ( LengthSquared3( vehicle->HeadPosition() - Global::pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global::pCameraPosition ) ?
+                     1 :
+                    -1 ),
+                0, 1 ) }; // z [-1,1] zrobić [0,1]
+
+        auto const lightset { light::rearendsignals };
+
+        vehicle->iLights[ CouplNr ] = (
+            false == TestFlag( vehicle->iLights[ CouplNr ], lightset ) ?
+                vehicle->iLights[ CouplNr ] |= lightset : // turn signals on
+                vehicle->iLights[ CouplNr ] ^= lightset ); // turn signals off
+    }
+}
+
 void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &Command ) {
 
     // NOTE: the check is disabled, as we're presuming light control is present in every vehicle
@@ -2721,6 +2966,48 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
     }
 }
 
+void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
+
+    if( true == FreeFlyModeFlag ) {
+        // tryb freefly
+        auto coupler { -1 };
+        auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
+        if( vehicle == nullptr )
+            vehicle = Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), -1, 1500, coupler );
+
+        if( ( coupler != -1 )
+         && ( vehicle != nullptr ) ) {
+
+            vehicle->couple( coupler );
+        }
+        if( Train->DynamicObject->Mechanik ) {
+            // aktualizacja flag kierunku w składzie
+            Train->DynamicObject->Mechanik->CheckVehicles( Connect );
+        }
+    }
+}
+
+void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command ) {
+
+    if( true == FreeFlyModeFlag ) {
+        // tryb freefly
+        auto coupler { -1 };
+        auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
+        if( vehicle == nullptr )
+            vehicle = Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), -1, 1500, coupler );
+
+        if( ( coupler != -1 )
+         && ( vehicle != nullptr ) ) {
+
+            vehicle->uncouple( coupler );
+        }
+        if( Train->DynamicObject->Mechanik ) {
+            // aktualizacja flag kierunku w składzie
+            Train->DynamicObject->Mechanik->CheckVehicles( Disconnect );
+        }
+    }
+}
+
 void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggDepartureSignalButton.SubModel == nullptr ) {
@@ -2854,10 +3141,57 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
     }
 }
 
+void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->iRadioChannel = clamp( Train->iRadioChannel + 1, 1, 10 );
+    }
+}
+
+void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->iRadioChannel = clamp( Train->iRadioChannel - 1, 1, 10 );
+    }
+}
+
+
 void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
         Train->Dynamic()->RadioStop();
+    }
+}
+
+void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        if( false == Train->CabChange( 1 ) ) {
+            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::front ].CouplingFlag, coupling::gangway ) ) {
+                // przejscie do nastepnego pojazdu
+                Global::changeDynObj = Train->DynamicObject->PrevConnected;
+                Global::changeDynObj->MoverParameters->ActiveCab = (
+                    Train->DynamicObject->PrevConnectedNo ?
+                    -1 :
+                     1 );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        if( false == Train->CabChange( -1 ) ) {
+            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::rear ].CouplingFlag, coupling::gangway ) ) {
+                // przejscie do nastepnego pojazdu
+                Global::changeDynObj = Train->DynamicObject->NextConnected;
+                Global::changeDynObj->MoverParameters->ActiveCab = (
+                    Train->DynamicObject->NextConnectedNo ?
+                    -1 :
+                     1 );
+            }
+        }
     }
 }
 
@@ -2870,32 +3204,15 @@ void TTrain::OnKeyDown(int cKey)
        && ( mvOccupied->BrakeSubsystem == ss_ESt )
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
 
-    if (Global::shiftState)
+    if ( false == Global::shiftState)
 	{ // wciśnięty [Shift]
-            if( cKey == Global::Keys[ k_BrakeProfile ] ) // McZapkie-240302-B:
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        if( cKey == Global::Keys[ k_BrakeProfile ] ) // McZapkie-240302-B:
         //-----------
-
-        // przelacznik opoznienia
-        // hamowania
+        // przelacznik opoznienia hamowania
         { // yB://ABu: male poprawki, zeby bylo mozna ustawic dowolny wagon
             int CouplNr = -2;
-            if( !FreeFlyModeFlag )
-            {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-                if( Global::ctrlState )
-                    if (mvOccupied->BrakeDelaySwitch(bdelay_R + bdelay_M))
-                    {
-                        play_sound( dsbPneumaticRelay );
-                    }
-                    else
-                        ;
-                else if (mvOccupied->BrakeDelaySwitch(bdelay_P))
-                {
-                    play_sound( dsbPneumaticRelay );
-                }
-#endif
-            }
-            else
+            if( true == FreeFlyModeFlag )
             {
                 TDynamicObject *temp;
                 temp = (DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), -1, 1500, CouplNr));
@@ -2917,43 +3234,20 @@ void TTrain::OnKeyDown(int cKey)
                         temp->MoverParameters->BrakeDelayFlag < bdelay_R ?
                             temp->MoverParameters->BrakeDelayFlag << 1 :
                             temp->MoverParameters->BrakeDelayFlag | bdelay_M );
-                    if( true == temp->MoverParameters->BrakeDelaySwitch( fasterbrakesetting ) ) {
-#ifdef EU07_USE_OLD_SOUNDCODE
-                        dsbPneumaticRelay.play();
-#endif
-                    }
+                    temp->MoverParameters->BrakeDelaySwitch( fasterbrakesetting );
                 }
             }
         }
         else if( cKey == GLFW_KEY_Q ) // ze Shiftem - włączenie AI
-        { // McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w
-            // trybie debugmode)
+        { // McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
             if (DynamicObject->Mechanik)
             {
                 if (DebugModeFlag)
-					if (DynamicObject->Mechanik->AIControllFlag) //żeby nie trzeba było
-						// rozłączać dla
-                        // zresetowania
-                        DynamicObject->Mechanik->TakeControl(false);
-                DynamicObject->Mechanik->TakeControl(true);
-            }
-        }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-        else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
-		// włączenie
-        {
-			if (mvOccupied->LightsPosNo > 0) //kręciolek od swiatel
-            {
-                if ((mvOccupied->LightsPos < mvOccupied->LightsPosNo) || (mvOccupied->LightsWrap))
-                {
-                    mvOccupied->LightsPos++;
-                    if (mvOccupied->LightsPos > mvOccupied->LightsPosNo)
-                    {
-                        mvOccupied->LightsPos = 1;
+                    if( DynamicObject->Mechanik->AIControllFlag ) {
+                        //żeby nie trzeba było rozłączać dla zresetowania
+                        DynamicObject->Mechanik->TakeControl( false );
                     }
-                    play_sound( dsbSwitch );
-                    SetLights();
-                }
+                DynamicObject->Mechanik->TakeControl(true);
             }
         }
 #endif
@@ -2963,7 +3257,7 @@ void TTrain::OnKeyDown(int cKey)
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if( cKey == Global::Keys[ k_IncLocalBrakeLevel ] )
         { // Ra 2014-09: w
-            // trybie latania
+          // trybie latania
             // obsługa jest w
             // World.cpp
             if (!FreeFlyModeFlag)
@@ -2993,9 +3287,7 @@ void TTrain::OnKeyDown(int cKey)
                     mvOccupied->DecLocalBrakeLevel(1);
             }
         }
-        else
-#endif
-            if (cKey == Global::Keys[k_Brake2]) {
+        else if (cKey == Global::Keys[k_Brake2]) {
             if (Global::ctrlState)
                 mvOccupied->BrakeLevelSet(
                     mvOccupied->Handle->GetPos(bh_NP)); // yB: czy ten stos funkcji nie powinien być jako oddzielna funkcja movera?
@@ -3007,13 +3299,12 @@ void TTrain::OnKeyDown(int cKey)
                 mvOccupied->BrakeCtrlPos2 = 0; // wyrownaj kapturek
             }
         }
-        if (cKey == Global::Keys[k_BrakeProfile])
+        else if (cKey == Global::Keys[k_BrakeProfile])
         { // yB://ABu: male poprawki, zeby
             // bylo mozna ustawic dowolny
             // wagon
             int CouplNr = -2;
             if( false == FreeFlyModeFlag ) {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
                 if( Global::ctrlState )
                     if (mvOccupied->BrakeDelaySwitch(bdelay_R))
                     {
@@ -3025,7 +3316,6 @@ void TTrain::OnKeyDown(int cKey)
                 {
                     play_sound( dsbPneumaticRelay );
                 }
-#endif
             }
             else {
                 TDynamicObject *temp;
@@ -3066,11 +3356,13 @@ void TTrain::OnKeyDown(int cKey)
         else if (cKey == Global::Keys[k_CabForward])
         {
             if( !CabChange( 1 ) ) {
-                if( TestFlag( DynamicObject->MoverParameters->Couplers[ 0 ].CouplingFlag,
-                    ctrain_passenger ) ) { // przejscie do nastepnego pojazdu
+                if( TestFlag( DynamicObject->MoverParameters->Couplers[ 0 ].CouplingFlag, ctrain_passenger ) ) {
+                    // przejscie do nastepnego pojazdu
                     Global::changeDynObj = DynamicObject->PrevConnected;
-                    Global::changeDynObj->MoverParameters->ActiveCab =
-                        DynamicObject->PrevConnectedNo ? -1 : 1;
+                    Global::changeDynObj->MoverParameters->ActiveCab = (
+                        DynamicObject->PrevConnectedNo ?
+                           -1 :
+                            1 );
                 }
             }
 /*
@@ -3082,12 +3374,13 @@ void TTrain::OnKeyDown(int cKey)
         else if (cKey == Global::Keys[k_CabBackward])
         {
             if (!CabChange(-1))
-                if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,
-                             ctrain_passenger))
-                { // przejscie do poprzedniego
+                if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag, ctrain_passenger)) {
+                    // przejscie do poprzedniego
                     Global::changeDynObj = DynamicObject->NextConnected;
-                    Global::changeDynObj->MoverParameters->ActiveCab =
-                        DynamicObject->NextConnectedNo ? -1 : 1;
+                    Global::changeDynObj->MoverParameters->ActiveCab = (
+                        DynamicObject->NextConnectedNo ?
+                           -1 :
+                            1 );
                 }
 /*
             NOTE: disabled to allow 'prototypical' 'tricking' pantograph compressor to run unattended
@@ -3117,7 +3410,6 @@ void TTrain::OnKeyDown(int cKey)
                 }
 
             }
-
         }
         else if (cKey == Global::Keys[k_DeCouple]) {
 
@@ -3141,7 +3433,7 @@ void TTrain::OnKeyDown(int cKey)
             }
 
         }
-
+#endif
         //    else
         if (DebugModeFlag)
         { // przesuwanie składu o 100m
@@ -3189,6 +3481,7 @@ void TTrain::OnKeyDown(int cKey)
 				}
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (cKey == GLFW_KEY_MINUS)
         { // zmniejszenie numeru kanału radiowego
             if (iRadioChannel > 0)
@@ -3199,6 +3492,7 @@ void TTrain::OnKeyDown(int cKey)
             if (iRadioChannel < 8)
                 ++iRadioChannel; // 0=wyłączony
         }
+#endif
     }
 }
 
@@ -4758,8 +5052,7 @@ bool TTrain::Update( double const Deltatime )
                 btInstrumentLight.Turn( false );
 
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
-        // hunter-091012: przepisanie univ4 i zrobione z uwzglednieniem przelacznika
-        // swiatla
+        // hunter-091012: przepisanie univ4 i zrobione z uwzglednieniem przelacznika swiatla
         if (Console::Pressed(Global::Keys[k_Univ4]))
         {
             if( Global::shiftState )
@@ -4813,7 +5106,6 @@ bool TTrain::Update( double const Deltatime )
                 play_sound( dsbPneumaticSwitch );
             }
         }
-#endif
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_IncBrakeLevel])))
         {
             if (Global::ctrlState)
@@ -4822,7 +5114,6 @@ bool TTrain::Update( double const Deltatime )
                 if (mvOccupied->BrakeCtrlPos2 < -1.5)
                     mvOccupied->BrakeCtrlPos2 = -1.5;
             }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else
             {
                 //        mvOccupied->BrakeCtrlPosR+=(mvOccupied->BrakeCtrlPosR>mvOccupied->BrakeCtrlPosNo?0:dt*2);
@@ -4830,7 +5121,6 @@ bool TTrain::Update( double const Deltatime )
                 //        mvOccupied->BrakeCtrlPos=
                 //        floor(mvOccupied->BrakeCtrlPosR+0.499);
             }
-#endif
         }
 
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_DecBrakeLevel])))
@@ -4841,7 +5131,6 @@ bool TTrain::Update( double const Deltatime )
                 if (mvOccupied->BrakeCtrlPos2 < -3)
                     mvOccupied->BrakeCtrlPos2 = -3;
             }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else
             {
                 //        mvOccupied->BrakeCtrlPosR-=(mvOccupied->BrakeCtrlPosR<-1?0:dt*2);
@@ -4849,7 +5138,6 @@ bool TTrain::Update( double const Deltatime )
                 //        floor(mvOccupied->BrakeCtrlPosR+0.499);
                 mvOccupied->BrakeLevelAdd(-dt * 2);
             }
-#endif
         }
 
         if( ( mvOccupied->BrakeSystem == ElectroPneumatic )
@@ -4871,7 +5159,6 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
 
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (Console::Pressed(Global::Keys[k_DepartureSignal]))
         {
             ggDepartureSignalButton.PutValue(1);

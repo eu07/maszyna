@@ -31,6 +31,7 @@ keyboard_input::recall_bindings() {
     std::unordered_map<std::string, int> nametokeymap = {
         { "0", GLFW_KEY_0 }, { "1", GLFW_KEY_1 }, { "2", GLFW_KEY_2 }, { "3", GLFW_KEY_3 }, { "4", GLFW_KEY_4 },
         { "5", GLFW_KEY_5 }, { "6", GLFW_KEY_6 }, { "7", GLFW_KEY_7 }, { "8", GLFW_KEY_8 }, { "9", GLFW_KEY_9 },
+        { "-", GLFW_KEY_MINUS }, { "=", GLFW_KEY_EQUAL },
         { "a", GLFW_KEY_A }, { "b", GLFW_KEY_B }, { "c", GLFW_KEY_C }, { "d", GLFW_KEY_D }, { "e", GLFW_KEY_E },
         { "f", GLFW_KEY_F }, { "g", GLFW_KEY_G }, { "h", GLFW_KEY_H }, { "i", GLFW_KEY_I }, { "j", GLFW_KEY_J },
         { "k", GLFW_KEY_K }, { "l", GLFW_KEY_L }, { "m", GLFW_KEY_M }, { "n", GLFW_KEY_N }, { "o", GLFW_KEY_O },
@@ -41,6 +42,7 @@ keyboard_input::recall_bindings() {
         { ";", GLFW_KEY_SEMICOLON }, { "'", GLFW_KEY_APOSTROPHE }, { "enter", GLFW_KEY_ENTER },
         { ",", GLFW_KEY_COMMA }, { ".", GLFW_KEY_PERIOD }, { "/", GLFW_KEY_SLASH },
         { "space", GLFW_KEY_SPACE },
+        { "insert", GLFW_KEY_INSERT },{ "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
         // numpad block
         { "num_/", GLFW_KEY_KP_DIVIDE }, { "num_*", GLFW_KEY_KP_MULTIPLY }, { "num_-", GLFW_KEY_KP_SUBTRACT },
         { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
@@ -165,6 +167,10 @@ void
 keyboard_input::default_bindings() {
 
     m_commands = {
+        // aidriverenable
+        { GLFW_KEY_Q | keymodifier::shift },
+        // aidriverdisable
+        { GLFW_KEY_Q },
         // mastercontrollerincrease
         { GLFW_KEY_KP_ADD },
         // mastercontrollerincreasefast
@@ -207,17 +213,27 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_5 },
         // trainbrakefullservice
         { GLFW_KEY_KP_2 },
+        // trainbrakehandleoff
+        { GLFW_KEY_KP_5 | keymodifier::control },
         // trainbrakeemergency
         { GLFW_KEY_KP_0 },
+        // trainbrakebasepressureincrease
+        { GLFW_KEY_KP_3 | keymodifier::control },
+        // trainbrakebasepressuredecrease
+        { GLFW_KEY_KP_9 | keymodifier::control },
+        // trainbrakebasepressurereset
+        { GLFW_KEY_KP_6 | keymodifier::control },
+        // trainbrakeoperationtoggle
+        { GLFW_KEY_KP_4 | keymodifier::control },
         // manualbrakeincrease
         { GLFW_KEY_KP_1 | keymodifier::control },
         // manualbrakedecrease
         { GLFW_KEY_KP_7 | keymodifier::control },
         // alarm chain toggle
         { GLFW_KEY_B | keymodifier::shift | keymodifier::control },
-        // wheelspinbrakeactivate,
+        // wheelspinbrakeactivate
         { GLFW_KEY_KP_ENTER },
-        // sandboxactivate,
+        // sandboxactivate
         { GLFW_KEY_S },
         // reverserincrease
         { GLFW_KEY_D },
@@ -247,6 +263,10 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
+        // brakeloadcompensationincrease
+        { GLFW_KEY_H | keymodifier::shift | keymodifier::control },
+        // brakeloadcompensationdecrease
+        { GLFW_KEY_H | keymodifier::control },
         // mubrakingindicatortoggle
         { GLFW_KEY_L | keymodifier::shift },
         // alerteracknowledge
@@ -257,8 +277,16 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_A | keymodifier::shift },
         // radiotoggle
         { GLFW_KEY_R | keymodifier::control },
+        // radiochannelincrease
+        { GLFW_KEY_R | keymodifier::shift },
+        // radiochanneldecrease
+        { GLFW_KEY_R },
         // radiostoptest
         { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
+        // cabchangeforward
+        { GLFW_KEY_HOME },
+        // cabchangebackward
+        { GLFW_KEY_END },
         // viewturn
         { -1 },
         // movehorizontal
@@ -281,11 +309,11 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_PAGE_UP },
         // movedown
         { GLFW_KEY_PAGE_DOWN },
+        // carcouplingincrease
+        { GLFW_KEY_INSERT },
+        // carcouplingdisconnect
+        { GLFW_KEY_DELETE },
 /*
-const int k_CabForward = 42;
-const int k_CabBackward = 43;
-const int k_Couple = 44;
-const int k_DeCouple = 45;
 const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
@@ -337,12 +365,16 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
         // redmarkertogglerearright
         { GLFW_KEY_I | keymodifier::control | keymodifier::shift },
+        // redmarkerstoggle
+        { GLFW_KEY_E | keymodifier::shift },
+        // endsignalstoggle
+        { GLFW_KEY_E },
         // headlightsdimtoggle
         { GLFW_KEY_L | keymodifier::control },
         // motorconnectorsopen
         { GLFW_KEY_L },
         // motordisconnect
-        { GLFW_KEY_E | keymodifier::shift },
+        { GLFW_KEY_E | keymodifier::control },
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
         // interiorlightdimtoggle
@@ -350,7 +382,6 @@ const int k_ProgramHelp = 48;
         // instrumentlighttoggle
         { GLFW_KEY_SEMICOLON },
 /*
-const int k_EndSign = 70;
 const int k_Active = 71;
 */
         // "generictoggle0"

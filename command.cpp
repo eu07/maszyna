@@ -19,6 +19,8 @@ namespace simulation {
 command_queue Commands;
 commanddescription_sequence Commands_descriptions = {
 
+    { "aidriverenable", command_target::vehicle },
+    { "aidriverdisable", command_target::vehicle },
     { "mastercontrollerincrease", command_target::vehicle },
     { "mastercontrollerincreasefast", command_target::vehicle },
     { "mastercontrollerdecrease", command_target::vehicle },
@@ -40,7 +42,12 @@ commanddescription_sequence Commands_descriptions = {
     { "trainbrakefirstservice", command_target::vehicle },
     { "trainbrakeservice", command_target::vehicle },
     { "trainbrakefullservice", command_target::vehicle },
+    { "trainbrakehandleoff", command_target::vehicle },
     { "trainbrakeemergency", command_target::vehicle },
+    { "trainbrakebasepressureincrease", command_target::vehicle },
+    { "trainbrakebasepressuredecrease", command_target::vehicle },
+    { "trainbrakebasepressurereset", command_target::vehicle },
+    { "trainbrakeoperationtoggle", command_target::vehicle },
     { "manualbrakeincrease", command_target::vehicle },
     { "manualbrakedecrease", command_target::vehicle },
     { "alarmchaintoggle", command_target::vehicle },
@@ -60,12 +67,19 @@ commanddescription_sequence Commands_descriptions = {
     { "epbrakecontroltoggle", command_target::vehicle },
     { "brakeactingspeedincrease", command_target::vehicle },
     { "brakeactingspeeddecrease", command_target::vehicle },
+    { "brakeloadcompensationincrease", command_target::vehicle },
+    { "brakeloadcompensationdecrease", command_target::vehicle },
     { "mubrakingindicatortoggle", command_target::vehicle },
     { "alerteracknowledge", command_target::vehicle },
     { "hornlowactivate", command_target::vehicle },
     { "hornhighactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
+    { "radiochannelincrease", command_target::vehicle },
+    { "radiochanneldecrease", command_target::vehicle },
     { "radiostoptest", command_target::vehicle },
+    // TBD, TODO: make cab change controls entity-centric
+    { "cabchangeforward", command_target::vehicle },
+    { "cabchangebackward", command_target::vehicle },
 
     { "viewturn", command_target::entity },
     { "movehorizontal", command_target::entity },
@@ -78,15 +92,9 @@ commanddescription_sequence Commands_descriptions = {
     { "moveback", command_target::entity },
     { "moveup", command_target::entity },
     { "movedown", command_target::entity },
-/*
-const int k_CabForward = 42;
-const int k_CabBackward = 43;
-const int k_Couple = 44;
-const int k_DeCouple = 45;
-const int k_ProgramQuit = 46;
-// const int k_ProgramPause= 47;
-const int k_ProgramHelp = 48;
-*/
+    // TBD, TODO: make coupling controls entity-centric
+    { "carcouplingincrease", command_target::vehicle },
+    { "carcouplingdisconnect", command_target::vehicle },
     { "doortoggleleft", command_target::vehicle },
     { "doortoggleright", command_target::vehicle },
     { "departureannounce", command_target::vehicle },
@@ -97,9 +105,6 @@ const int k_ProgramHelp = 48;
     { "pantographtogglerear", command_target::vehicle },
     { "pantographlowerall", command_target::vehicle },
     { "heatingtoggle", command_target::vehicle },
-/*
-// const int k_FreeFlyMode= 59;
-*/
     { "lightspresetactivatenext", command_target::vehicle },
     { "lightspresetactivateprevious", command_target::vehicle },
     { "headlighttoggleleft", command_target::vehicle },
@@ -112,16 +117,14 @@ const int k_ProgramHelp = 48;
     { "headlighttogglerearupper", command_target::vehicle },
     { "redmarkertogglerearleft", command_target::vehicle },
     { "redmarkertogglerearright", command_target::vehicle },
+    { "redmarkerstoggle", command_target::vehicle },
+    { "endsignalstoggle", command_target::vehicle },
     { "headlightsdimtoggle", command_target::vehicle },
     { "motorconnectorsopen", command_target::vehicle },
     { "motordisconnect", command_target::vehicle },
     { "interiorlighttoggle", command_target::vehicle },
     { "interiorlightdimtoggle", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
-/*
-const int k_EndSign = 70;
-const int k_Active = 71;
-*/
     { "generictoggle0", command_target::vehicle },
     { "generictoggle1", command_target::vehicle },
     { "generictoggle2", command_target::vehicle },
@@ -133,9 +136,6 @@ const int k_Active = 71;
     { "generictoggle8", command_target::vehicle },
     { "generictoggle9", command_target::vehicle },
     { "batterytoggle", command_target::vehicle }
-/*
-const int k_WalkMode = 73;
-*/
 };
 
 }
