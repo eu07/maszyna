@@ -204,7 +204,8 @@ enum sound {
     bufferclash = 0x4,
     relay = 0x10,
     parallel = 0x20,
-    pneumatic = 0x40
+    shuntfield = 0x40,
+    pneumatic = 0x80
 };
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType

@@ -3608,13 +3608,14 @@ void TDynamicObject::RenderSounds() {
     }
 
     // McZapkie-280302 - pisk mocno zacisnietych hamulcow
-    if( //( false == MoverParameters->SlippingWheels ) &&
-          ( MoverParameters->UnitBrakeForce > rsPisk.m_amplitudefactor )
-       && ( MoverParameters->Vel > 2.5 ) ) {
+    if( MoverParameters->Vel > 2.5 ) {
 
-        rsPisk
-            .gain( MoverParameters->UnitBrakeForce / ( rsPisk.m_amplitudefactor + 1 ) + rsPisk.m_amplitudeoffset )
-            .play( sound_flags::exclusive | sound_flags::looping );
+        volume = rsPisk.m_amplitudeoffset + interpolate( -1.0, 1.0, brakeforceratio ) * rsPisk.m_amplitudefactor;
+        if( volume > 0.075 ) {
+            rsPisk
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
     }
     else {
         // don't stop the sound too abruptly
@@ -3769,24 +3770,6 @@ void TDynamicObject::RenderSounds() {
 
     // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
     // gdy zachodza pewne wydarzenia komentowane dzwiekiem.
-    if( TestFlag( MoverParameters->SoundFlag, sound::relay ) ) {
-        // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
-        if( true == TestFlag( MoverParameters->SoundFlag, sound::parallel ) ) {
-            if( TestFlag( MoverParameters->SoundFlag, sound::loud ) )
-                m_powertrainsounds.dsbWejscie_na_bezoporow.play();
-            else
-                m_powertrainsounds.motor_parallel.play();
-        }
-        else {
-            m_powertrainsounds.motor_relay
-                .gain(
-                    true == TestFlag( MoverParameters->SoundFlag, sound::loud ) ?
-                        1.0f :
-                        0.8f )
-                .play();
-        }
-    }
-
     if( TestFlag( MoverParameters->SoundFlag, sound::pneumatic ) ) {
         // pneumatic relay
         dsbPneumaticRelay
@@ -3796,7 +3779,6 @@ void TDynamicObject::RenderSounds() {
                     0.8f )
             .play();
     }
-
     // couplers
     int couplerindex { 0 };
     for( auto &couplersounds : m_couplersounds ) {
@@ -4642,6 +4624,11 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     rsPisk.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude );
                     rsPisk.owner( this );
 
+                    if( rsPisk.m_amplitudefactor > 10.f ) {
+                        // HACK: convert old style activation point threshold to the new, regular amplitude adjustment system
+                        rsPisk.m_amplitudefactor = 1.f;
+                        rsPisk.m_amplitudeoffset = 0.f;
+                    }
                     rsPisk.m_amplitudeoffset *= ( 105.f - Random( 10.f ) ) / 100.f;
                 }
 
@@ -4821,10 +4808,10 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.motor_relay.deserialize( parser, sound_type::single );
                     m_powertrainsounds.motor_relay.owner( this );
                 }
-                else if( token == "pneumaticrelay:" ) {
-                    // wylaczniki pneumatyczne:
-                    dsbPneumaticRelay.deserialize( parser, sound_type::single );
-                    dsbPneumaticRelay.owner( this );
+                else if( token == "shuntfield:" ) {
+                    // styczniki itp:
+                    m_powertrainsounds.motor_shuntfield.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.motor_shuntfield.owner( this );
                 }
                 else if( token == "wejscie_na_bezoporow:" ) {
                     // hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
@@ -4834,6 +4821,11 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 else if( token == "wejscie_na_drugi_uklad:" ) {
                     m_powertrainsounds.motor_parallel.deserialize( parser, sound_type::single );
                     m_powertrainsounds.motor_parallel.owner( this );
+                }
+                else if( token == "pneumaticrelay:" ) {
+                    // wylaczniki pneumatyczne:
+                    dsbPneumaticRelay.deserialize( parser, sound_type::single );
+                    dsbPneumaticRelay.owner( this );
                 }
                 // braking sounds
                 else if( token == "brakesound:" ) {
@@ -5778,6 +5770,50 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         motor.stop();
     }
 
+    auto const soundflags { Vehicle.SoundFlag };
+    if( TestFlag( soundflags, sound::relay ) ) {
+        // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
+        if( true == TestFlag( soundflags, sound::shuntfield ) ) {
+            // shunt field
+            motor_shuntfield
+                .pitch(
+                    true == motor_shuntfield.is_combined() ?
+                        Vehicle.ScndCtrlActualPos * 0.01f :
+                        motor_shuntfield.m_frequencyoffset + 1.f * motor_shuntfield.m_frequencyfactor )
+                .gain(
+                    motor_shuntfield.m_amplitudeoffset + (
+                        true == TestFlag( soundflags, sound::loud ) ?
+                            1.0f :
+                            0.8f )
+                        * motor_shuntfield.m_amplitudefactor )
+                .play();
+        }
+        else if( true == TestFlag( soundflags, sound::parallel ) ) {
+            // parallel mode
+            if( TestFlag( soundflags, sound::loud ) ) {
+                dsbWejscie_na_bezoporow.play();
+            }
+            else {
+                motor_parallel.play();
+            }
+        }
+        else {
+            // series mode
+            motor_relay
+                .pitch(
+                    true == motor_relay.is_combined() ?
+                        Vehicle.MainCtrlActualPos * 0.01f :
+                        motor_relay.m_frequencyoffset + 1.f * motor_relay.m_frequencyfactor )
+                .gain(
+                    motor_relay.m_amplitudeoffset + (
+                        true == TestFlag( soundflags, sound::loud ) ?
+                            1.0f :
+                            0.8f )
+                        * motor_relay.m_amplitudefactor )
+                .play();
+        }
+    }
+
     if( ( Vehicle.EngineType == ElectricSeriesMotor )
      || ( Vehicle.EngineType == ElectricInductionMotor ) ) {
 
@@ -5798,7 +5834,6 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             rsWentylator.stop();
         }
     }
-
 
     if( Vehicle.TrainType == dt_ET40 ) {
         if( Vehicle.Vel > 0.1 ) {

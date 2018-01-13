@@ -4622,24 +4622,19 @@ double TMoverParameters::TractionForce(double dt)
                         {
                             if( ( ScndCtrlPos < ScndCtrlPosNo )
                              && ( MainCtrlPos >= 10 ) ) {
-                                if( ScndCtrlPos == 0 ) {
-                                    if( Im < MPTRelay[ ScndCtrlPos ].Iup ) {
-                                        ++ScndCtrlPos;
-                                    }
+
+                                if( Im < MPTRelay[ ScndCtrlPos ].Iup ) {
+                                    ++ScndCtrlPos;
                                 }
-                                else {
-                                    if( Vel > MPTRelay[ ScndCtrlPos ].Iup ) {
-                                        ++ScndCtrlPos;
-                                    }
-                                    // check for cases where the speed drops below threshold for level 2 or 3
-                                    if( ( ScndCtrlPos > 1 )
-                                     && ( Vel < MPTRelay[ ScndCtrlPos - 1 ].Idown ) ) {
-                                        --ScndCtrlPos;
-                                    }
+                                // check for cases where the speed drops below threshold for level 2 or 3
+                                if( ( ScndCtrlPos > 1 )
+                                 && ( Vel < MPTRelay[ ScndCtrlPos - 1 ].Idown ) ) {
+                                    --ScndCtrlPos;
                                 }
                             }
                             // malenie
                             if( ( ScndCtrlPos > 0 ) && ( MainCtrlPos < 10 ) ) {
+
                                 if( ScndCtrlPos == 1 ) {
                                     if( Im > MPTRelay[ ScndCtrlPos - 1 ].Idown ) {
                                         --ScndCtrlPos;
@@ -4659,6 +4654,13 @@ double TMoverParameters::TractionForce(double dt)
                             if( MainCtrlPos < 7 ) {
                                 ScndCtrlPos = 0;
                             }
+/*
+                            // crude woodward approximation; difference between rpm for consecutive positions is ~5%
+                            // so we get full throttle until ~half way between desired and previous position, or zero on rpm reduction
+                            auto const woodward { clamp(
+                                ( DElist[ MainCtrlPos ].RPM / ( enrot * 60.0 ) - 1.0 ) * 50.0,
+                                0.0, 1.0 ) };
+*/
                             break;
                         }
                         case 46:
@@ -5224,7 +5226,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 {
                     if ((LastRelayTime > CtrlDelay) && (ARFASI2))
                     {
-                        ScndCtrlActualPos++;
+                        ++ScndCtrlActualPos;
+                        SetFlag( SoundFlag, sound::shuntfield );
                         OK = true;
                     }
                 }
@@ -5232,7 +5235,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 {
                     if ((LastRelayTime > CtrlDownDelay) && (TrainType != dt_EZT))
                     {
-                        ScndCtrlActualPos--;
+                        --ScndCtrlActualPos;
+                        SetFlag( SoundFlag, sound::shuntfield );
                         OK = true;
                     }
                 }
@@ -5260,7 +5264,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                      && ( MainCtrlPos != MainCtrlPosNo )
                      && ( FastSerialCircuit == 1 ) ) {
 
-                        MainCtrlActualPos++;
+                        ++MainCtrlActualPos;
                         //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         //                 szybkie wchodzenie na bezoporowa (303E)
                         OK = true;
@@ -5275,7 +5279,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                              (DelayCtrlFlag))) // et22 z walem grupowym
                             if (!DelayCtrlFlag) // najpierw przejscie
                             {
-                                MainCtrlActualPos++;
+                                ++MainCtrlActualPos;
                                 DelayCtrlFlag = true; // tryb przejscia
                                 OK = true;
                             }
@@ -5289,7 +5293,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                                 ;
                         else // nie ET22 z wałem grupowym
                         {
-                            MainCtrlActualPos++;
+                            ++MainCtrlActualPos;
                             OK = true;
                         }
                         //---------
@@ -5313,7 +5317,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                     if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
                         (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
                     {
-                        MainCtrlActualPos--;
+                        --MainCtrlActualPos;
                         //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         //                 szybkie wchodzenie na bezoporowa (303E)
                         OK = true;
@@ -5323,13 +5327,12 @@ bool TMoverParameters::AutoRelayCheck(void)
                     {
                         if (TrainType != dt_EZT) // tutaj powinien być tryb sterowania wałem
                         {
-                            MainCtrlActualPos--;
+                            --MainCtrlActualPos;
                             OK = true;
                         }
                         if (MainCtrlActualPos > 0) // hunter-111211: poprawki
-                            if (RList[MainCtrlActualPos].R ==
-                                0) // dzwieki schodzenia z bezoporowej}
-                            {
+                            if (RList[MainCtrlActualPos].R == 0) {
+                                // dzwieki schodzenia z bezoporowej}
                                 SetFlag(SoundFlag, sound::parallel);
                             }
                     }
@@ -5338,7 +5341,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 {
                     if (LastRelayTime > CtrlDownDelay)
                     {
-                        ScndCtrlActualPos--; // boczniki nie dzialaja na poz. oporowych
+                        --ScndCtrlActualPos; // boczniki nie dzialaja na poz. oporowych
+                        SetFlag( SoundFlag, sound::shuntfield );
                         OK = true;
                     }
                 }
@@ -5369,45 +5373,61 @@ bool TMoverParameters::AutoRelayCheck(void)
             else
                 DelayCtrlFlag = false;
 
-            if ((!StLinFlag) && ((MainCtrlActualPos > 0) || (ScndCtrlActualPos > 0)))
-                if ((TrainType == dt_EZT) && (CoupledCtrl)) // EN57 wal jednokierunkowy calosciowy
-                {
-                    if (MainCtrlActualPos == 1)
-                    {
-                        MainCtrlActualPos = 0;
-                        OK = true;
-                    }
-                    else if (LastRelayTime > CtrlDownDelay)
-                    {
-                        if (MainCtrlActualPos < RlistSize)
-                            MainCtrlActualPos++; // dojdz do konca
-                        else if (ScndCtrlActualPos < ScndCtrlPosNo)
-                            ScndCtrlActualPos++; // potem boki
-                        else
-                        { // i sie przewroc na koniec
+            if( ( false == StLinFlag )
+             && ( ( MainCtrlActualPos > 0 )
+               || ( ScndCtrlActualPos > 0 ) ) ) {
+
+                if( true == CoupledCtrl ) {
+
+                    if( TrainType == dt_EZT ) {
+                        // EN57 wal jednokierunkowy calosciowy
+                        if( MainCtrlActualPos == 1 ) {
+
                             MainCtrlActualPos = 0;
-                            ScndCtrlActualPos = 0;
+                            OK = true;
                         }
-                        OK = true;
+                        else {
+
+                            if( LastRelayTime > CtrlDownDelay ) {
+
+                                if( MainCtrlActualPos < RlistSize ) {
+                                    // dojdz do konca
+                                    ++MainCtrlActualPos;
+                                }
+                                else if( ScndCtrlActualPos < ScndCtrlPosNo ) {
+                                    // potem boki
+                                    ++ScndCtrlActualPos;
+                                    SetFlag( SoundFlag, sound::shuntfield );
+                                }
+                                else {
+                                    // i sie przewroc na koniec
+                                    MainCtrlActualPos = 0;
+                                    ScndCtrlActualPos = 0;
+                                }
+                                OK = true;
+                            }
+                        }
+                    }
+                    else {
+                        // wal kulakowy dwukierunkowy
+                        if( LastRelayTime > CtrlDownDelay ) {
+                            if( ScndCtrlActualPos > 0 ) {
+                                --ScndCtrlActualPos;
+                                SetFlag( SoundFlag, sound::shuntfield );
+                            }
+                            else {
+                                --MainCtrlActualPos;
+                            }
+                            OK = true;
+                        }
                     }
                 }
-                else if (CoupledCtrl) // wal kulakowy dwukierunkowy
-                {
-                    if (LastRelayTime > CtrlDownDelay)
-                    {
-                        if (ScndCtrlActualPos > 0)
-                            ScndCtrlActualPos--;
-                        else
-                            MainCtrlActualPos--;
-                        OK = true;
-                    }
-                }
-                else
-                {
+                else {
                     MainCtrlActualPos = 0;
                     ScndCtrlActualPos = 0;
                     OK = true;
                 }
+            }
         }
         if (OK)
             LastRelayTime = 0;

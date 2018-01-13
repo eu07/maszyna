@@ -51,7 +51,7 @@ bool
 TCamera::OnCommand( command_data const &Command ) {
 
     auto const walkspeed { 1.0 };
-    auto const runspeed { 7.5 };
+    auto const runspeed { 10.0 };
 
     bool iscameracommand { true };
     switch( Command.command ) {
@@ -158,9 +158,9 @@ void TCamera::Update()
      || ( true == DebugCameraFlag ) ) {
         // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
-        Velocity.x = clamp( Velocity.x + m_moverate.x * 10.0 * deltatime, -m_moverate.x, m_moverate.x );
-        Velocity.z = clamp( Velocity.z + m_moverate.z * 10.0 * deltatime, -m_moverate.z, m_moverate.z );
-        Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -m_moverate.y, m_moverate.y );
+        Velocity.x = clamp( Velocity.x + m_moverate.x * 10.0 * deltatime, -std::abs( m_moverate.x ), std::abs( m_moverate.x ) );
+        Velocity.z = clamp( Velocity.z + m_moverate.z * 10.0 * deltatime, -std::abs( m_moverate.z ), std::abs( m_moverate.z ) );
+        Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -std::abs( m_moverate.y ), std::abs( m_moverate.y ) );
     }
 
     if( ( Type == tp_Free )
