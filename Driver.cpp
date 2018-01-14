@@ -4563,7 +4563,6 @@ TController::UpdateSituation(double dt) {
 				AbsAccS /= fMass;
 			}
 			AbsAccS_pub = AbsAccS;
-            AbsAccS_avg = interpolate( AbsAccS_avg, mvOccupied->AccS * iDirection, 0.25 );
 
 #if LOGVELOCITY
             // WriteLog("VelDesired="+AnsiString(VelDesired)+",

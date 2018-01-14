@@ -1116,7 +1116,6 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 {
     const double Vepsilon = 1e-5;
     const double  Aepsilon = 1e-3; // ASBSpeed=0.8;
-    double Vprev, AccSprev, d;
 
     // T_MoverParameters::ComputeMovement(dt, dt1, Shape, Track, ElectricTraction, NewLoc, NewRot);
     // // najpierw kawalek z funkcji w pliku mover.pas
@@ -1260,12 +1259,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
     if (dL == 0) // oblicz przesuniecie}
     {
-        Vprev = V;
-        AccSprev = AccS;
-        // dt:=ActualTime-LastUpdatedTime;                             //przyrost czasu
+        auto const AccSprev { AccS };
         // przyspieszenie styczne
-        AccS = (FTotal / TotalMass + AccSprev) /
-               2.0; // prawo Newtona ale z wygladzaniem (średnia z poprzednim)
+        AccS = interpolate(
+            AccSprev,
+            FTotal / TotalMass,
+            0.5 );
+            // clamp( dt * 3.0, 0.0, 1.0 ) ); // prawo Newtona ale z wygladzaniem (średnia z poprzednim)
 
         if (TestFlag(DamageFlag, dtrain_out))
             AccS = -Sign(V) * g * 1; // random(0.0, 0.1)
@@ -1276,7 +1276,29 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         else
             AccN = g * Shape.dHrail / TrackW;
 
+        // velocity change
+        auto const Vprev { V };
+        V += ( 3.0 * AccS - AccSprev ) * dt / 2.0; // przyrost predkosci
+        if( ( V * Vprev <= 0 )
+         && ( std::abs( FStand ) > std::abs( FTrain ) ) ) {
+            // tlumienie predkosci przy hamowaniu
+            // zahamowany
+            V = 0;
+        }
+
+        // tangential acceleration, from velocity change
+        AccSVBased = interpolate(
+            AccSVBased,
+            ( V - Vprev ) / dt,
+            clamp( dt * 3.0, 0.0, 1.0 ) );
+
+        // vertical acceleration
+        AccVert = (
+            std::abs( AccVert ) < 0.01 ?
+                0.0 :
+                AccVert * 0.5 );
         // szarpanie
+/*
 #ifdef EU07_USE_FUZZYLOGIC
         if( FuzzyLogic( ( 10.0 + Track.DamageFlag ) * Mass * Vel / Vmax, 500000.0, p_accn ) ) {
             // Ra: czemu tu masa bez ładunku?
@@ -1288,7 +1310,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
         if (AccV > 1.0)
             AccN += (7.0 - Random(5)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
-
+*/
         // wykolejanie na luku oraz z braku szyn
         if (TestFlag(CategoryFlag, 1))
         {
@@ -1323,22 +1345,14 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 Mains = false;
                 DerailReason = 4; // Ra: powód wykolejenia: nieodpowiednia trajektoria
             }
-        V += (3.0 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
-        if (TestFlag(DamageFlag, dtrain_out))
-            if (Vel < 1)
-            {
-                V = 0;
-                AccS = 0;
-            }
-
-        if ((V * Vprev <= 0) && (abs(FStand) > abs(FTrain))) // tlumienie predkosci przy hamowaniu
-        { // zahamowany
-            V = 0;
-            // AccS:=0; //Ra 2014-03: ale siła grawitacji działa, więc nie może być zerowe
+        if( ( true == TestFlag( DamageFlag, dtrain_out ) )
+         && ( Vel < 1.0 ) ) {
+            V = 0.0;
+            AccS = 0.0;
         }
 
-        //   { dL:=(V+AccS*dt/2)*dt;                                      //przyrost dlugosci czyli
-        //   przesuniecie
+        // dL:=(V+AccS*dt/2)*dt;                                      
+        // przyrost dlugosci czyli przesuniecie
         dL = (3.0 * V - Vprev) * dt / 2.0; // metoda Adamsa-Bashfortha}
         // ale jesli jest kolizja (zas. zach. pedu) to...}
         for (int b = 0; b < 2; b++)
@@ -1350,10 +1364,11 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     if (Power > 1.0) // w rozrządczym nie (jest błąd w FIZ!) - Ra 2014-07: teraz we wszystkich
         UpdatePantVolume(dt); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
 
-    if (EngineType == WheelsDriven)
-        d = (double)CabNo * dL; // na chwile dla testu
-    else
-        d = dL;
+    auto const d { (
+        EngineType == WheelsDriven ?
+            dL * CabNo : // na chwile dla testu
+            dL ) };
+
     DistCounter += fabs(dL) / 1000.0;
     dL = 0;
 
@@ -1414,6 +1429,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     // if (Vel>10) and (not DebugmodeFlag) then
     if (!DebugModeFlag)
         SecuritySystemCheck(dt1);
+
     return d;
 };
 
@@ -1425,7 +1441,6 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
                                              TTrackParam &Track, const TLocation &NewLoc,
                                              TRotation &NewRot)
 {
-    double Vprev, AccSprev, d;
     int b;
     // T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);
 
@@ -1437,76 +1452,40 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
 
     if (dL == 0) // oblicz przesuniecie
     {
-        Vprev = V;
-        AccSprev = AccS;
-        // dt =ActualTime-LastUpdatedTime;                               //przyrost czasu
+        auto const AccSprev { AccS };
         // przyspieszenie styczne
-        AccS = (FTotal / TotalMass + AccSprev) /
-               2.0; // prawo Newtona ale z wygladzaniem (średnia z poprzednim)
+        AccS = interpolate(
+            AccSprev,
+            FTotal / TotalMass,
+            0.5 );
+            // clamp( dt * 3.0, 0.0, 1.0 ) ); // prawo Newtona ale z wygladzaniem (średnia z poprzednim)
 
         if (TestFlag(DamageFlag, dtrain_out))
             AccS = -Sign(V) * g * 1; // * random(0.0, 0.1)
-        // przyspieszenie normalne}
-        //     if Abs(Shape.R)>0.01 then
-        //      AccN:=SQR(V)/Shape.R+g*Shape.dHrail/TrackW
-        //     else AccN:=g*Shape.dHrail/TrackW;
 
-        // szarpanie}
-#ifdef EU07_USE_FUZZYLOGIC
-        if( FuzzyLogic( ( 10.0 + Track.DamageFlag ) * Mass * Vel / Vmax, 500000.0, p_accn ) ) {
-            // Ra: czemu tu masa bez ładunku?
-            AccV /= ( 2.0 * 0.95 + 2.0 * Random() * 0.1 ); // 95-105% of base modifier (2.0)
-        }
-        else
-#endif
-            AccV = AccV / 2.0;
+        // simple mode skips calculation of normal acceleration
 
-        if (AccV > 1.0)
-            AccN += (7.0 - Random(5)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
-
-        //     {wykolejanie na luku oraz z braku szyn}
-        //     if TestFlag(CategoryFlag,1) then
-        //      begin
-        //       if FuzzyLogic((AccN/g)*(1+0.1*(Track.DamageFlag and
-        //       dtrack_freerail)),TrackW/Dim.H,1)
-        //       or TestFlag(Track.DamageFlag,dtrack_norail) then
-        //        if SetFlag(DamageFlag,dtrain_out) then
-        //         begin
-        //           EventFlag:=true;
-        //           MainS:=false;
-        //           RunningShape.R:=0;
-        //         end;
-        //     {wykolejanie na poszerzeniu toru}
-        //        if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10,1) then
-        //         if SetFlag(DamageFlag,dtrain_out) then
-        //          begin
-        //            EventFlag:=true;
-        //            MainS:=false;
-        //            RunningShape.R:=0;
-        //          end;
-        //      end;
-        //     {wykolejanie wkutek niezgodnosci kategorii toru i pojazdu}
-        //     if not TestFlag(RunningTrack.CategoryFlag,CategoryFlag) then
-        //      if SetFlag(DamageFlag,dtrain_out) then
-        //        begin
-        //          EventFlag:=true;
-        //          MainS:=false;
-        //        end;
-
-        V += (3.0 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
-
-        if (TestFlag(DamageFlag, dtrain_out))
-            if (Vel < 1)
-            {
-                V = 0;
-                AccS = 0; // Ra 2014-03: ale siła grawitacji działa, więc nie może być zerowe
-            }
-
-        if ((V * Vprev <= 0) && (abs(FStand) > abs(FTrain))) // tlumienie predkosci przy hamowaniu
-        { // zahamowany}
+        // velocity change
+        auto const Vprev { V };
+        V += ( 3.0 * AccS - AccSprev ) * dt / 2.0; // przyrost predkosci
+        if( ( V * Vprev <= 0 )
+         && ( std::abs( FStand ) > std::abs( FTrain ) ) ) {
+            // tlumienie predkosci przy hamowaniu
+            // zahamowany
             V = 0;
-            AccS = 0;
         }
+
+        // simple mode skips calculation of tangential acceleration
+
+        // simple mode skips calculation of vertical acceleration
+        AccVert = 0.0;
+
+        if( ( true == TestFlag( DamageFlag, dtrain_out ) )
+         && ( Vel < 1.0 ) ) {
+            V = 0.0;
+            AccS = 0.0;
+        }
+
         dL = (3.0 * V - Vprev) * dt / 2.0; // metoda Adamsa-Bashfortha
         // ale jesli jest kolizja (zas. zach. pedu) to...
         for (b = 0; b < 2; b++)
@@ -1516,10 +1495,12 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     // QQQ
     if (Power > 1.0) // w rozrządczym nie (jest błąd w FIZ!)
         UpdatePantVolume(dt); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
-    if (EngineType == WheelsDriven)
-        d = (double)CabNo * dL; // na chwile dla testu
-    else
-        d = dL;
+
+    auto const d { (
+        EngineType == WheelsDriven ?
+            dL * CabNo : // na chwile dla testu
+            dL ) };
+
     DistCounter += fabs(dL) / 1000.0;
     dL = 0;
 
@@ -1553,6 +1534,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
         Hamulec->ASB(0);
     BrakeSlippingTimer += dt;
+
     return d;
 };
 
@@ -4621,7 +4603,7 @@ double TMoverParameters::TractionForce(double dt)
                         case 45:
                         {
                             if( ( ScndCtrlPos < ScndCtrlPosNo )
-                             && ( MainCtrlPos >= 10 ) ) {
+                             && ( MainCtrlPos >= 11 ) ) {
 
                                 if( Im < MPTRelay[ ScndCtrlPos ].Iup ) {
                                     ++ScndCtrlPos;
@@ -4633,7 +4615,7 @@ double TMoverParameters::TractionForce(double dt)
                                 }
                             }
                             // malenie
-                            if( ( ScndCtrlPos > 0 ) && ( MainCtrlPos < 10 ) ) {
+                            if( ( ScndCtrlPos > 0 ) && ( MainCtrlPos < 11 ) ) {
 
                                 if( ScndCtrlPos == 1 ) {
                                     if( Im > MPTRelay[ ScndCtrlPos - 1 ].Idown ) {
@@ -4647,11 +4629,11 @@ double TMoverParameters::TractionForce(double dt)
                                 }
                             }
                             // 3rd level drops with master controller at position lower than 10...
-                            if( MainCtrlPos < 10 ) {
+                            if( MainCtrlPos < 11 ) {
                                 ScndCtrlPos = std::min( 2, ScndCtrlPos );
                             }
                             // ...and below position 7 field shunt drops altogether
-                            if( MainCtrlPos < 7 ) {
+                            if( MainCtrlPos < 8 ) {
                                 ScndCtrlPos = 0;
                             }
 /*
@@ -4666,7 +4648,7 @@ double TMoverParameters::TractionForce(double dt)
                         case 46:
                         {
                             // wzrastanie
-                            if( ( MainCtrlPos >= 10 )
+                            if( ( MainCtrlPos >= 12 )
                              && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
                                 if( ( ScndCtrlPos ) % 2 == 0 ) {
                                     if( ( MPTRelay[ ScndCtrlPos ].Iup > Im ) ) {
@@ -4681,24 +4663,27 @@ double TMoverParameters::TractionForce(double dt)
                                 }
                             }
                             // malenie
-                            if( ( MainCtrlPos < 10 )
+                            if( ( MainCtrlPos < 12 )
                              && ( ScndCtrlPos > 0 ) ) {
-                                if( ( ScndCtrlPos ) % 2 == 0 ) {
-                                    if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) ) {
-                                        --ScndCtrlPos;
+                                if( Vel < 50.0 ) {
+                                    // above 50 km/h already active shunt field can be maintained until lower controller setting
+                                    if( ( ScndCtrlPos ) % 2 == 0 ) {
+                                        if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) ) {
+                                            --ScndCtrlPos;
+                                        }
                                     }
-                                }
-                                else {
-                                    if( ( MPTRelay[ ScndCtrlPos + 1 ].Idown < Im )
-                                     && ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) ) {
-                                        --ScndCtrlPos;
+                                    else {
+                                        if( ( MPTRelay[ ScndCtrlPos + 1 ].Idown < Im )
+                                            && ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) ) {
+                                            --ScndCtrlPos;
+                                        }
                                     }
                                 }
                             }
-                            if( MainCtrlPos < 10 ) {
+                            if( MainCtrlPos < 11 ) {
                                 ScndCtrlPos = std::min( 2, ScndCtrlPos );
                             }
-                            if( MainCtrlPos < 7 ) {
+                            if( MainCtrlPos < 8 ) {
                                 ScndCtrlPos = 0;
                             }
                             break;

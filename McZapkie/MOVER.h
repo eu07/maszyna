@@ -850,8 +850,9 @@ public:
 	double V = 0.0;    //predkosc w [m/s] względem sprzęgów (dodania gdy jedzie w stronę 0)
 	double Vel = 0.0;  //moduł prędkości w [km/h], używany przez AI
 	double AccS = 0.0; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie siły)
-	double AccN = 0.0; //przyspieszenie normalne w [m/s^2]
-	double AccV = 0.0;
+    double AccSVBased {}; // tangential acceleration calculated from velocity change
+	double AccN = 0.0; // przyspieszenie normalne w [m/s^2]
+	double AccVert = 0.0; // vertical acceleration
 	double nrot = 0.0;
 	double WheelFlat = 0.0;
 	/*! rotacja kol [obr/s]*/

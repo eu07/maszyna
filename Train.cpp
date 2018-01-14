@@ -3213,8 +3213,8 @@ void TTrain::UpdateMechPosition(double dt)
             shake += 1.25 * MechSpring.ComputateForces(
                 vector3(
                 -mvControlled->AccN * dt * 5.0, // highlight side sway
-                mvControlled->AccV * dt,
-                -mvControlled->AccS * dt * 1.25 ), // accent acceleration/deceleration
+                -mvControlled->AccVert * dt,
+                -mvControlled->AccSVBased * dt * 1.25 ), // accent acceleration/deceleration
                 pMechShake );
 
             if( Random( iVel ) > 25.0 ) {

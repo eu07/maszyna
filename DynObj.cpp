@@ -1749,10 +1749,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // McZapkie: TypeName musi byc nazwą CHK/MMD pojazdu
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
-        if (ConversionError == -8)
-            ErrorLog("Missed file: " + BaseDir + "\\" + Type_Name + ".fiz");
-        Error("Cannot load dynamic object " + asName + " from:\r\n" + BaseDir + "\\" + Type_Name +
-              ".fiz\r\nError " + to_string(ConversionError));
+        if (ConversionError == 666)
+            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "\\" + Type_Name + ".fiz" + "\"" );
+        else {
+            ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "\\" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
+        }
         return 0.0; // zerowa długość to brak pojazdu
     }
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch
@@ -2964,27 +2965,26 @@ bool TDynamicObject::Update(double dt, double dt1)
                     }
                 }
 
+                auto axleindex { 0 };
                 for( auto &axle : m_axlesounds ) {
                     axle.distance -= dDOMoveLen * Sign( dDOMoveLen );
                     if( axle.distance < 0 ) {
                         axle.distance += dRailLength;
-/*
-                        // McZapkie-040302
-                        if( i == iAxles - 1 ) {
-                            rsStukot[ 0 ].stop();
-                            MoverParameters->AccV += 0.5 * GetVelocity() / ( 1 + MoverParameters->Vmax );
-                        }
-                        else {
-                            rsStukot[ i + 1 ].stop();
-                        }
-                        if( i == 1 ) {
-                            MoverParameters->AccV -= 0.5 * GetVelocity() / ( 1 + MoverParameters->Vmax );
-                        }
-*/
                         if( MoverParameters->Vel > 2.5 ) {
                             axle.clatter.gain( volume ).play();
+                            // crude bump simulation, drop down on even axles, move back up on the odd ones
+                            MoverParameters->AccVert +=
+                                interpolate(
+                                    0.25, 0.50,
+                                    clamp(
+                                        GetVelocity() / ( 1 + MoverParameters->Vmax ),
+                                        0.0, 1.0 ) )
+                                * ( ( axleindex % 2 ) != 0 ?
+                                     1 :
+                                    -1 );
                         }
                     }
+                    ++axleindex;
                 }
             }
         }
@@ -3621,9 +3621,9 @@ void TDynamicObject::RenderSounds() {
         // don't stop the sound too abruptly
         volume = std::max( 0.0, rsPisk.gain() - ( rsPisk.gain() * 2.5 * dt ) );
         rsPisk.gain( volume );
-        if( volume < 0.05 ) {
-            rsPisk.stop();
-        }
+    }
+    if( volume < 0.05 ) {
+        rsPisk.stop();
     }
 
     // other sounds
