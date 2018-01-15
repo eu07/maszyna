@@ -15,6 +15,8 @@ http://mozilla.org/MPL/2.0/.
 
 enum class user_command {
 
+    aidriverenable,
+    aidriverdisable,
     mastercontrollerincrease,
     mastercontrollerincreasefast,
     mastercontrollerdecrease,
@@ -36,7 +38,12 @@ enum class user_command {
     trainbrakefirstservice,
     trainbrakeservice,
     trainbrakefullservice,
+    trainbrakehandleoff,
     trainbrakeemergency,
+    trainbrakebasepressureincrease,
+    trainbrakebasepressuredecrease,
+    trainbrakebasepressurereset,
+    trainbrakeoperationtoggle,
     manualbrakeincrease,
     manualbrakedecrease,
     alarmchaintoggle,
@@ -56,38 +63,33 @@ enum class user_command {
     epbrakecontroltoggle,
     brakeactingspeedincrease,
     brakeactingspeeddecrease,
+    brakeloadcompensationincrease,
+    brakeloadcompensationdecrease,
     mubrakingindicatortoggle,
     alerteracknowledge,
     hornlowactivate,
     hornhighactivate,
     radiotoggle,
+    radiochannelincrease,
+    radiochanneldecrease,
     radiostoptest,
-/*
-const int k_FailedEngineCutOff = 35;
-*/
+    cabchangeforward,
+    cabchangebackward,
+
     viewturn,
-    movevector,
+    movehorizontal,
+    movehorizontalfast,
+    movevertical,
+    moveverticalfast,
     moveleft,
     moveright,
     moveforward,
     moveback,
     moveup,
     movedown,
-    moveleftfast,
-    moverightfast,
-    moveforwardfast,
-    movebackfast,
-    moveupfast,
-    movedownfast,
-/*
-const int k_CabForward = 42;
-const int k_CabBackward = 43;
-const int k_Couple = 44;
-const int k_DeCouple = 45;
-const int k_ProgramQuit = 46;
-// const int k_ProgramPause= 47;
-const int k_ProgramHelp = 48;
-*/
+
+    carcouplingincrease,
+    carcouplingdisconnect,
     doortoggleleft,
     doortoggleright,
     departureannounce,
@@ -98,9 +100,6 @@ const int k_ProgramHelp = 48;
     pantographtogglerear,
     pantographlowerall,
     heatingtoggle,
-/*
-// const int k_FreeFlyMode= 59;
-*/
     lightspresetactivatenext,
     lightspresetactivateprevious,
     headlighttoggleleft,
@@ -113,16 +112,14 @@ const int k_ProgramHelp = 48;
     headlighttogglerearupper,
     redmarkertogglerearleft,
     redmarkertogglerearright,
+    redmarkerstoggle,
+    endsignalstoggle,
     headlightsdimtoggle,
     motorconnectorsopen,
     motordisconnect,
     interiorlighttoggle,
     interiorlightdimtoggle,
     instrumentlighttoggle,
-/*
-const int k_EndSign = 70;
-const int k_Active = 71;
-*/
     generictoggle0,
     generictoggle1,
     generictoggle2,
@@ -134,9 +131,7 @@ const int k_Active = 71;
     generictoggle8,
     generictoggle9,
     batterytoggle,
-/*
-const int k_WalkMode = 73;
-*/
+
     none = -1
 };
 
@@ -164,7 +159,7 @@ enum class command_mode {
 struct command_description {
     std::string name;
     command_target target;
-	command_mode mode;
+	command_mode mode = command_mode::oneoff;
 };
 
 struct command_data {

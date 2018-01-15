@@ -83,7 +83,6 @@ class TTrain
 	~TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
-    void OnKeyDown(int cKey);
 
     inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline vector3 GetUp() { return DynamicObject->VectorUp(); };
@@ -114,9 +113,14 @@ class TTrain
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
+    // locates nearest vehicle belonging to the consist
+    TDynamicObject *find_nearest_consist_vehicle() const;
+
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
+    static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_aidriverdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerdecrease( TTrain *Train, command_data const &Command );
@@ -139,7 +143,12 @@ class TTrain
     static void OnCommand_trainbrakefirstservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakehandleoff( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakebasepressureincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakebasepressuredecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakebasepressurereset( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakeoperationtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_manualbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
@@ -148,6 +157,8 @@ class TTrain
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeloadcompensationincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeloadcompensationdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserdecrease( TTrain *Train, command_data const &Command );
@@ -181,6 +192,8 @@ class TTrain
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_endsignalstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const &Command );
@@ -188,11 +201,17 @@ class TTrain
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
+    static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
+    static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members
@@ -495,7 +514,6 @@ private:
 	inline TMoverParameters *Occupied() { return mvOccupied; };
 	inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
-    void Silence();
 
 	float get_tacho();
 	float get_tank_pressure();

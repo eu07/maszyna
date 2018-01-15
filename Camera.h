@@ -26,15 +26,6 @@ enum TCameraType
 class TCamera
 {
   private:
-    struct keys {
-        bool forward{ false };
-        bool back{ false };
-        bool left{ false };
-        bool right{ false };
-        bool up{ false };
-        bool down{ false };
-        bool run{ false };
-    } m_keys;
     glm::dvec3 m_moverate;
 
   public: // McZapkie: potrzebuje do kiwania na boki
@@ -51,7 +42,7 @@ class TCamera
     void Reset() {
         Pitch = Yaw = Roll = 0; };
     void OnCursorMove(double const x, double const y);
-    void OnCommand( command_data const &Command );
+    bool OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
     bool SetMatrix(glm::dmat4 &Matrix);

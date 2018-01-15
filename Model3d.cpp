@@ -648,13 +648,14 @@ void TSubModel::InitialRotate(bool doit)
             if (fMatrix->IdentityIs())
                 iFlags &= ~0x8000; // jednak jednostkowa po obróceniu
         }
-        if (Child)
-            Child->InitialRotate(false); // potomnych nie obracamy już, tylko
-        // ewentualnie optymalizujemy
-        else if (Global::iConvertModels & 2) // optymalizacja jest opcjonalna
+        if( Child ) {
+            // potomnych nie obracamy już, tylko ewentualnie optymalizujemy
+            Child->InitialRotate( false );
+        }
+        else if (Global::iConvertModels & 2) {
+            // optymalizacja jest opcjonalna
             if ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
-            { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować
-                // go
+            { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować go
                 float4x4 *mat = GetMatrix(); // transform submodelu
                 if( false == Vertices.empty() ) {
                     for( auto &vertex : Vertices ) {
@@ -675,6 +676,7 @@ void TSubModel::InitialRotate(bool doit)
                 mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzchołków
                 iFlags &= ~0x8000; // transform jedynkowy
             }
+        }
     }
     else // jak jest jednostkowy i nie ma animacji
         if (doit)
@@ -1166,11 +1168,11 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
     auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
 
     if( glm::length2( offset ) < Geometrytestoffsetthreshold ) {
-    // offset of zero generally means the submodel has optimized identity matrix
-    // for such cases we resort to an estimate from submodel geometry
-    // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
+        // offset of zero generally means the submodel has optimized identity matrix
+        // for such cases we resort to an estimate from submodel geometry
+        // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
         if( m_geometry != null_handle ) {
-            auto const &vertices{ GfxRenderer.Vertices( m_geometry ) };
+            auto const &vertices { GfxRenderer.Vertices( m_geometry ) };
             if( false == vertices.empty() ) {
                 // transformation matrix for the submodel can still contain rotation and/or scaling,
                 // so we pass the vertex positions through it rather than just grab them directly
@@ -1181,6 +1183,16 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
                     offset += glm::vec3 { transformationmatrix * glm::vec4 { vertex.position, 1 } } * vertexfactor;
                 }
             }
+        }
+    }
+
+    if( true == TestFlag( iFlags, 0x0200 ) ) {
+        // flip coordinates for t3d file which wasn't yet initialized
+        if( std::abs( offset.y ) > offset.z ) {
+            // NOTE, HACK: results require flipping if the model wasn't yet initialized, so we're using crude method to detect possible cases
+            // TODO: sort out this mess, either unify offset lookups to take place before (or after) initialization,
+            // or provide way to determine on submodel level whether the initialization took place
+            offset = { -offset.x, offset.z, offset.y };
         }
     }
 

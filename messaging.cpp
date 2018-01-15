@@ -122,7 +122,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     r.fPar[7] = 0; // prędkość ruchu Z
     r.fPar[8] = Vehicle->MoverParameters->AccS; // przyspieszenie X
     r.fPar[9] = Vehicle->MoverParameters->AccN; // przyspieszenie Y //na razie nie
-    r.fPar[10] = Vehicle->MoverParameters->AccV; // przyspieszenie Z
+    r.fPar[10] = Vehicle->MoverParameters->AccVert; // przyspieszenie Z
     r.fPar[11] = Vehicle->MoverParameters->DistCounter; // przejechana odległość w km
     r.fPar[12] = Vehicle->MoverParameters->PipePress; // ciśnienie w PG
     r.fPar[13] = Vehicle->MoverParameters->ScndPipePress; // ciśnienie w PZ

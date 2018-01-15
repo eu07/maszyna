@@ -57,14 +57,30 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
             // on the far end the crossfade section extends to the threshold point of the next chunk...
             for( std::size_t idx = 0; idx < m_soundchunks.size() - 1; ++idx ) {
                 m_soundchunks[ idx ].second.fadeout = m_soundchunks[ idx + 1 ].second.threshold;
+/*
+                m_soundchunks[ idx ].second.fadeout =
+                    interpolate<float>(
+                        m_soundchunks[ idx ].second.threshold,
+                        m_soundchunks[ idx + 1 ].second.threshold,
+                        m_crossfaderange * 0.01f );
+*/
             }
             //  ...and on the other end from the threshold point back into the range of previous chunk
             m_soundchunks.front().second.fadein = std::max( 0, m_soundchunks.front().second.threshold );
+//            m_soundchunks.front().second.fadein = m_soundchunks.front().second.threshold;
             for( std::size_t idx = 1; idx < m_soundchunks.size(); ++idx ) {
                 auto const previouschunkwidth { m_soundchunks[ idx ].second.threshold - m_soundchunks[ idx - 1 ].second.threshold };
                 m_soundchunks[ idx ].second.fadein = m_soundchunks[ idx ].second.threshold - 0.01f * m_crossfaderange * previouschunkwidth;
+/*
+                m_soundchunks[ idx ].second.fadein =
+                    interpolate<float>(
+                        m_soundchunks[ idx ].second.threshold,
+                        m_soundchunks[ idx - 1 ].second.threshold,
+                        m_crossfaderange * 0.01f );
+*/
             }
             m_soundchunks.back().second.fadeout = std::max( 100, m_soundchunks.back().second.threshold );
+//            m_soundchunks.back().second.fadeout = m_soundchunks.back().second.threshold;
             // test if the chunk table contains any actual samples while at it
             for( auto &soundchunk : m_soundchunks ) {
                 if( soundchunk.first.buffer != null_handle ) {
@@ -290,6 +306,10 @@ sound_source::play( int const Flags ) {
         // if the sound is disabled altogether or nothing can be emitted from this source, no point wasting time
         return;
     }
+
+    // NOTE: we cache the flags early, even if the sound is out of range, to mark activated event sounds 
+    m_flags = Flags;
+
     if( m_range > 0 ) {
         auto const cutoffrange { m_range * 5 };
         if( glm::length2( location() - glm::dvec3 { Global::pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
@@ -304,8 +324,6 @@ sound_source::play( int const Flags ) {
     if( m_pitchvariation == 0.f ) {
         m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
-
-    m_flags = Flags;
 
     if( sound( sound_id::main ).buffer != null_handle ) {
         // basic variant: single main sound, with optional bookends
@@ -352,7 +370,7 @@ sound_source::play_combined() {
         // a chunk covers range from fade in point, where it starts rising in volume over crossfade distance,
         // lasts until fadeout - crossfade distance point, past which it grows quiet until fade out point where it ends
         if( soundpoint < soundchunk.second.fadein )  { break; }
-        if( soundpoint > soundchunk.second.fadeout ) { continue; }
+        if( soundpoint >= soundchunk.second.fadeout ) { continue; }
         
         if( ( soundchunk.first.playing > 0 )
          || ( soundchunk.first.buffer == null_handle ) ) {
@@ -402,12 +420,26 @@ sound_source::compute_combined_point() const {
         ) * 100.f;
 }
 
+// maintains playback of sounds started by event
+void
+sound_source::play_event() {
+
+    if( true == TestFlag( m_flags, ( sound_flags::event | sound_flags::looping ) ) ) {
+        // events can potentially start scenery sounds out of the sound's audible range
+        // such sounds are stopped on renderer side, but unless stopped by the simulation keep their activation flags
+        // we use this to discern event-started sounds which should be re-activated if the listener gets close enough
+        play( m_flags );
+    }
+}
+
 // stops currently active play commands controlled by this emitter
 void
 sound_source::stop( bool const Skipend ) {
 
     // if the source was stopped on simulation side, we should play the opening bookend next time it's activated
     m_playbeginning = true;
+    // clear the event flags to discern between manual stop and out-of-range/sound-end stop
+    m_flags = 0;
 
     if( false == is_playing() ) { return; }
 
@@ -549,7 +581,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
             auto const soundpoint { compute_combined_point() };
             auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
             if( ( soundpoint < soundchunk.second.fadein )
-             || ( soundpoint > soundchunk.second.fadeout ) ) {
+             || ( soundpoint >= soundchunk.second.fadeout ) ) {
                 Source.stop();
                 update_counter( soundhandle, -1 );
                 return;
@@ -666,7 +698,6 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
             m_properties.pitch = 1.f;
         }
     }
-
     // if there's no crossfade sections, our work is done
     if( m_crossfaderange == 0 ) { return; }
 

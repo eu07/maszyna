@@ -64,6 +64,22 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 	if (si.channels != 1)
 		delete[] buf;
 	delete[] fbuf;
+
+	fetch_caption();
+}
+
+// retrieves sound caption in currently set language
+void
+openal_buffer::fetch_caption() {
+
+	std::string captionfilename{ name };
+	captionfilename.erase(captionfilename.rfind('.')); // obcięcie rozszerzenia
+	captionfilename += "-" + Global::asLang + ".txt"; // już może być w różnych językach
+	if (true == FileExists(captionfilename)) {
+		// wczytanie
+		std::ifstream inputfile(captionfilename);
+		caption.assign(std::istreambuf_iterator<char>(inputfile), std::istreambuf_iterator<char>());
+	}
 }
 
 buffer_manager::~buffer_manager() {

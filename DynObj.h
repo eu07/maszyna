@@ -290,6 +290,7 @@ private:
         sound_source motor_relay { sound_placement::engine };
         sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
         sound_source motor_parallel { sound_placement::engine }; // moved from cab
+        sound_source motor_shuntfield { sound_placement::engine };
         sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
         sound_source engine { sound_placement::engine }; // generally diesel engine
         sound_source engine_ignition { sound_placement::engine }; // moved from cab

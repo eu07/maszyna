@@ -214,7 +214,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
             double const movex = static_cast<double>( Leftstick.x );
             double const movez = static_cast<double>( Leftstick.y );
             m_relay.post(
-                user_command::movevector,
+                user_command::movehorizontal,
                 reinterpret_cast<std::uint64_t const &>( movex ),
                 reinterpret_cast<std::uint64_t const &>( movez ),
                 GLFW_PRESS,
@@ -229,42 +229,6 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
     m_rightstick = Rightstick;
     m_leftstick = Leftstick;
     m_triggers = Triggers;
-}
-
-void
-gamepad_input::process_axis( float const Value, float const Previousvalue, float const Multiplier, user_command Command, std::uint16_t const Recipient ) {
-
-    process_axis( Value, Previousvalue, Multiplier, Command, Command, Recipient );
-}
-
-void
-gamepad_input::process_axis( float const Value, float const Previousvalue, float const Multiplier, user_command Command1, user_command Command2, std::uint16_t const Recipient ) {
-
-    user_command command{ Command1 };
-    if( Value * Multiplier > 0.9 ) {
-        command = Command2;
-    }
-
-    if( Value * Multiplier > 0.0f ) {
-
-        m_relay.post(
-                command,
-                0, 0,
-                GLFW_PRESS,
-                Recipient
-                );
-    }
-    else {
-        // if we had movement before but not now, report this as 'button' release
-        if( Previousvalue != 0.0f ) {
-            m_relay.post(
-                command, // doesn't matter which movement 'mode' we report
-                0, 0,
-                GLFW_RELEASE,
-                0
-                );
-        }
-    }
 }
 
 void

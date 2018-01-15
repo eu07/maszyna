@@ -121,6 +121,11 @@ basic_cell::update_events() {
 // legacy method, updates sounds and polls event launchers within radius around specified point
 void
 basic_cell::update_sounds() {
+
+    auto const deltatime = Timer::GetDeltaRenderTime();
+    for( auto *sound : m_sounds ) {
+        sound->play_event();
+    }
     // TBD, TODO: move to sound renderer
     for( auto *path : m_paths ) {
         // dźwięki pojazdów, również niewidocznych
@@ -1162,6 +1167,17 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
 // inserts provided sound in the region
 void
 basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
+    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
+    auto location = Sound->location();
+
+    if( point_inside( location ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( location ).insert( Sound );
+    }
+    else {
+        // tracks are guaranteed to hava a name so we can skip the check
+        ErrorLog( "Bad scenario: sound node \"" + Sound->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
+    }
 }
 
 // inserts provided event launcher in the region

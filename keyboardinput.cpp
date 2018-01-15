@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "keyboardinput.h"
 #include "Logs.h"
+#include "Globals.h"
 #include "parser.h"
 #include "World.h"
 
@@ -30,6 +31,7 @@ keyboard_input::recall_bindings() {
     std::unordered_map<std::string, int> nametokeymap = {
         { "0", GLFW_KEY_0 }, { "1", GLFW_KEY_1 }, { "2", GLFW_KEY_2 }, { "3", GLFW_KEY_3 }, { "4", GLFW_KEY_4 },
         { "5", GLFW_KEY_5 }, { "6", GLFW_KEY_6 }, { "7", GLFW_KEY_7 }, { "8", GLFW_KEY_8 }, { "9", GLFW_KEY_9 },
+        { "-", GLFW_KEY_MINUS }, { "=", GLFW_KEY_EQUAL },
         { "a", GLFW_KEY_A }, { "b", GLFW_KEY_B }, { "c", GLFW_KEY_C }, { "d", GLFW_KEY_D }, { "e", GLFW_KEY_E },
         { "f", GLFW_KEY_F }, { "g", GLFW_KEY_G }, { "h", GLFW_KEY_H }, { "i", GLFW_KEY_I }, { "j", GLFW_KEY_J },
         { "k", GLFW_KEY_K }, { "l", GLFW_KEY_L }, { "m", GLFW_KEY_M }, { "n", GLFW_KEY_N }, { "o", GLFW_KEY_O },
@@ -40,6 +42,7 @@ keyboard_input::recall_bindings() {
         { ";", GLFW_KEY_SEMICOLON }, { "'", GLFW_KEY_APOSTROPHE }, { "enter", GLFW_KEY_ENTER },
         { ",", GLFW_KEY_COMMA }, { ".", GLFW_KEY_PERIOD }, { "/", GLFW_KEY_SLASH },
         { "space", GLFW_KEY_SPACE },
+        { "insert", GLFW_KEY_INSERT },{ "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
         // numpad block
         { "num_/", GLFW_KEY_KP_DIVIDE }, { "num_*", GLFW_KEY_KP_MULTIPLY }, { "num_-", GLFW_KEY_KP_SUBTRACT },
         { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
@@ -131,14 +134,14 @@ keyboard_input::key( int const Key, int const Action ) {
         return false;
     }
 
-    if( true == update_movement( Key, Action ) ) {
-        // if the received key was one of movement keys, it's been handled and we don't need to bother further
-        return true;
-    }
-
     // store key state
     if( Key != -1 ) {
         m_keys[ Key ] = Action;
+    }
+
+    if( true == is_movement_key( Key ) ) {
+        // if the received key was one of movement keys, it's been handled and we don't need to bother further
+        return true;
     }
 
     // include active modifiers for currently pressed key, except if the key is a modifier itself
@@ -164,6 +167,10 @@ void
 keyboard_input::default_bindings() {
 
     m_commands = {
+        // aidriverenable
+        { GLFW_KEY_Q | keymodifier::shift },
+        // aidriverdisable
+        { GLFW_KEY_Q },
         // mastercontrollerincrease
         { GLFW_KEY_KP_ADD },
         // mastercontrollerincreasefast
@@ -206,17 +213,27 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_5 },
         // trainbrakefullservice
         { GLFW_KEY_KP_2 },
+        // trainbrakehandleoff
+        { GLFW_KEY_KP_5 | keymodifier::control },
         // trainbrakeemergency
         { GLFW_KEY_KP_0 },
+        // trainbrakebasepressureincrease
+        { GLFW_KEY_KP_3 | keymodifier::control },
+        // trainbrakebasepressuredecrease
+        { GLFW_KEY_KP_9 | keymodifier::control },
+        // trainbrakebasepressurereset
+        { GLFW_KEY_KP_6 | keymodifier::control },
+        // trainbrakeoperationtoggle
+        { GLFW_KEY_KP_4 | keymodifier::control },
         // manualbrakeincrease
         { GLFW_KEY_KP_1 | keymodifier::control },
         // manualbrakedecrease
         { GLFW_KEY_KP_7 | keymodifier::control },
         // alarm chain toggle
         { GLFW_KEY_B | keymodifier::shift | keymodifier::control },
-        // wheelspinbrakeactivate,
+        // wheelspinbrakeactivate
         { GLFW_KEY_KP_ENTER },
-        // sandboxactivate,
+        // sandboxactivate
         { GLFW_KEY_S },
         // reverserincrease
         { GLFW_KEY_D },
@@ -246,6 +263,10 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
+        // brakeloadcompensationincrease
+        { GLFW_KEY_H | keymodifier::shift | keymodifier::control },
+        // brakeloadcompensationdecrease
+        { GLFW_KEY_H | keymodifier::control },
         // mubrakingindicatortoggle
         { GLFW_KEY_L | keymodifier::shift },
         // alerteracknowledge
@@ -256,11 +277,25 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_A | keymodifier::shift },
         // radiotoggle
         { GLFW_KEY_R | keymodifier::control },
+        // radiochannelincrease
+        { GLFW_KEY_R | keymodifier::shift },
+        // radiochanneldecrease
+        { GLFW_KEY_R },
         // radiostoptest
         { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
+        // cabchangeforward
+        { GLFW_KEY_HOME },
+        // cabchangebackward
+        { GLFW_KEY_END },
         // viewturn
         { -1 },
-        // movevector
+        // movehorizontal
+        { -1 },
+        // movehorizontalfast
+        { -1 },
+        // movevertical
+        { -1 },
+        // moveverticalfast
         { -1 },
         // moveleft
         { GLFW_KEY_LEFT },
@@ -274,23 +309,11 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_PAGE_UP },
         // movedown
         { GLFW_KEY_PAGE_DOWN },
-        // moveleftfast
-        { -1 },
-        // moverightfast
-        { -1 },
-        // moveforwardfast
-        { -1 },
-        // movebackfast
-        { -1 },
-        // moveupfast
-        { -1 },
-        // movedownfast
-        { -1 },
+        // carcouplingincrease
+        { GLFW_KEY_INSERT },
+        // carcouplingdisconnect
+        { GLFW_KEY_DELETE },
 /*
-const int k_CabForward = 42;
-const int k_CabBackward = 43;
-const int k_Couple = 44;
-const int k_DeCouple = 45;
 const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
@@ -342,12 +365,16 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
         // redmarkertogglerearright
         { GLFW_KEY_I | keymodifier::control | keymodifier::shift },
+        // redmarkerstoggle
+        { GLFW_KEY_E | keymodifier::shift },
+        // endsignalstoggle
+        { GLFW_KEY_E },
         // headlightsdimtoggle
         { GLFW_KEY_L | keymodifier::control },
         // motorconnectorsopen
         { GLFW_KEY_L },
         // motordisconnect
-        { GLFW_KEY_E | keymodifier::shift },
+        { GLFW_KEY_E | keymodifier::control },
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
         // interiorlightdimtoggle
@@ -355,11 +382,6 @@ const int k_ProgramHelp = 48;
         // instrumentlighttoggle
         { GLFW_KEY_SEMICOLON },
 /*
-const int k_Univ1 = 66;
-const int k_Univ2 = 67;
-const int k_Univ3 = 68;
-const int k_Univ4 = 69;
-const int k_EndSign = 70;
 const int k_Active = 71;
 */
         // "generictoggle0"
@@ -408,8 +430,7 @@ keyboard_input::bind() {
         }
         ++commandcode;
     }
-
-    // cache movement key bindings, so we can test them faster in the input loop
+    // cache movement key bindings
     m_bindingscache.forward = m_commands[ static_cast<std::size_t>( user_command::moveforward ) ].binding;
     m_bindingscache.back = m_commands[ static_cast<std::size_t>( user_command::moveback ) ].binding;
     m_bindingscache.left = m_commands[ static_cast<std::size_t>( user_command::moveleft ) ].binding;
@@ -418,14 +439,10 @@ keyboard_input::bind() {
     m_bindingscache.down = m_commands[ static_cast<std::size_t>( user_command::movedown ) ].binding;
 }
 
-// NOTE: ugliest code ever, gg
 bool
-keyboard_input::update_movement( int const Key, int const Action ) {
+keyboard_input::is_movement_key( int const Key ) const {
 
-    bool shift =
-        ( ( Key == GLFW_KEY_LEFT_SHIFT )
-       || ( Key == GLFW_KEY_RIGHT_SHIFT ) );
-    bool movementkey =
+    bool const ismovementkey =
         ( ( Key == m_bindingscache.forward )
        || ( Key == m_bindingscache.back )
        || ( Key == m_bindingscache.left )
@@ -433,93 +450,61 @@ keyboard_input::update_movement( int const Key, int const Action ) {
        || ( Key == m_bindingscache.up )
        || ( Key == m_bindingscache.down ) );
 
-    if( false == ( shift || movementkey ) ) { return false; }
+    return ismovementkey;
+}
 
-    if( false == shift ) {
-        // TODO: pass correct entity id once the missing systems are in place
-        if( Key == m_bindingscache.forward ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveforwardfast :
-                    user_command::moveforward ),
-                0, 0,
-                m_keys[ m_bindingscache.forward ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.back ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::movebackfast :
-                    user_command::moveback ),
-                0, 0,
-                m_keys[ m_bindingscache.back ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.left ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveleftfast :
-                    user_command::moveleft ),
-                0, 0,
-                m_keys[ m_bindingscache.left ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.right ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moverightfast :
-                    user_command::moveright ),
-                0, 0,
-                m_keys[ m_bindingscache.right ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.up ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::moveupfast :
-                    user_command::moveup ),
-                0, 0,
-                m_keys[ m_bindingscache.up ],
-                0 );
-            return true;
-        }
-        else if( Key == m_bindingscache.down ) {
-            m_keys[ Key ] = Action;
-            m_relay.post(
-                ( m_shift ?
-                    user_command::movedownfast :
-                    user_command::movedown ),
-                0, 0,
-                m_keys[ m_bindingscache.down ],
-                0 );
-            return true;
-        }
-    }
-    else {
-        // if it's not the movement keys but one of shift keys, we might potentially need to update movement state
-        if( m_keys[ Key ] == Action ) {
-            // but not if it's just repeat
-            return false;
-        }
-        // bit of recursion voodoo here, we fake relevant key presses so we don't have to duplicate the code from above
-        if( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ) { update_movement( m_bindingscache.forward, m_keys[ m_bindingscache.forward ] ); }
-        if( m_keys[ m_bindingscache.back ] != GLFW_RELEASE ) { update_movement( m_bindingscache.back, m_keys[ m_bindingscache.back ] ); }
-        if( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ) { update_movement( m_bindingscache.left, m_keys[ m_bindingscache.left ] ); }
-        if( m_keys[ m_bindingscache.right ] != GLFW_RELEASE ) { update_movement( m_bindingscache.right, m_keys[ m_bindingscache.right ] ); }
-        if( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ) { update_movement( m_bindingscache.up, m_keys[ m_bindingscache.up ] ); }
-        if( m_keys[ m_bindingscache.down ] != GLFW_RELEASE ) { update_movement( m_bindingscache.down, m_keys[ m_bindingscache.down ] ); }
+void
+keyboard_input::poll() {
+
+    glm::vec2 const movementhorizontal {
+        // x-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
+          m_keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
+          0.f ),
+        // z-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
+          m_keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
+          0.f ) };
+
+    if( (   movementhorizontal.x != 0.f ||   movementhorizontal.y != 0.f )
+     || ( m_movementhorizontal.x != 0.f || m_movementhorizontal.y != 0.f ) ) {
+        double const movexparam = static_cast<double>( movementhorizontal.x );
+        double const movezparam = static_cast<double>( movementhorizontal.y );
+        m_relay.post(
+            ( true == Global::ctrlState ?
+                user_command::movehorizontalfast :
+                user_command::movehorizontal ),
+            reinterpret_cast<std::uint64_t const &>( movexparam ),
+            reinterpret_cast<std::uint64_t const &>( movezparam ),
+            GLFW_PRESS,
+            0 );
     }
 
-    return false;
+    m_movementhorizontal = movementhorizontal;
+
+    float const movementvertical {
+        // y-axis
+        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
+          m_keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
+          0.f ) };
+
+    if( (   movementvertical != 0.f )
+     || ( m_movementvertical != 0.f ) ) {
+        double const moveyparam = static_cast<double>( movementvertical );
+        m_relay.post(
+            ( true == Global::ctrlState ?
+                user_command::moveverticalfast :
+                user_command::movevertical ),
+            reinterpret_cast<std::uint64_t const &>( moveyparam ),
+            0,
+            GLFW_PRESS,
+            0 );
+    }
+
+    m_movementvertical = movementvertical;
 }
 
 //---------------------------------------------------------------------------
