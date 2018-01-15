@@ -77,6 +77,7 @@ set(SOURCES
 "vertex.cpp"
 "audio.cpp"
 "audiorenderer.cpp"
+"motiontelemetry.cpp"
 )
 
 set (PREFIX "")
@@ -114,8 +115,7 @@ if (WIN32)
 	set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/${ARCH}/libsndfile-1.lib")
 	set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/${ARCH}/lua51.lib")
 	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")	
-	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")	
-	
+	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")
 endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -191,3 +191,7 @@ target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 find_package(libserialport REQUIRED)
 include_directories(${libserialport_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
+
+if (WIN32)
+	target_link_libraries(${PROJECT_NAME} ws2_32)
+endif()

@@ -40,6 +40,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "resource.h"
 #include "uilayer.h"
 #include "uart.h"
+#include "motiontelemetry.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
@@ -61,6 +62,7 @@ mouse_input Mouse;
 gamepad_input Gamepad;
 glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
 std::unique_ptr<uart_input> uart;
+std::unique_ptr<motiontelemetry> motiontelemetry;
 }
 
 void screenshot_save_thread( char *img )
@@ -356,6 +358,8 @@ int main(int argc, char *argv[])
 		input::Gamepad.init();
         if (Global::uart_conf.enable)
             input::uart = std::make_unique<uart_input>();
+		if (Global::motiontelemetry_conf.enable)
+			input::motiontelemetry = std::make_unique<motiontelemetry>();
 
 		Global::pWorld = &World;
 		if( false == World.Init( window ) ) {
@@ -398,6 +402,8 @@ int main(int argc, char *argv[])
         while( ( false == glfwWindowShouldClose( window ) )
             && ( true == World.Update() )
             && ( true == GfxRenderer.Render() ) ) {
+			if (input::motiontelemetry)
+				input::motiontelemetry->update();
             glfwPollEvents();
             input::Keyboard.poll();
             if (input::uart)

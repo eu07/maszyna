@@ -166,6 +166,7 @@ double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
 
 Global::uart_conf_t Global::uart_conf;
+motiontelemetry::conf_t Global::motiontelemetry_conf;
 
 //randomizacja
 std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
@@ -776,6 +777,15 @@ void Global::ConfigParse(cParser &Parser)
 		{
 			Parser.getTokens(1);
 			Parser >> Global::uart_conf.debug;
+		}
+		else if (token == "motiontelemetry")
+		{
+			Parser.getTokens(4);
+			Global::motiontelemetry_conf.enable = true;
+			Parser >> Global::motiontelemetry_conf.proto;
+			Parser >> Global::motiontelemetry_conf.address;
+			Parser >> Global::motiontelemetry_conf.port;
+			Parser >> Global::motiontelemetry_conf.updatetime;
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

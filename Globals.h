@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "renderer.h"
 #include "dumb3d.h"
+#include "motiontelemetry.h"
 
 // definicje klawiszy
 const int k_IncMainCtrl = 0; //[Num+]
@@ -311,6 +312,7 @@ public:
 		bool debug = false;
     };
     static uart_conf_t uart_conf;
+	static motiontelemetry::conf_t motiontelemetry_conf;
 
 	static opengl_light DayLight;
 
