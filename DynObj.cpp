@@ -5560,15 +5560,11 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             }
 
             if( engine_volume >= 0.05 ) {
-                engine
-                    .pitch( frequency )
-                    .gain( engine_volume )
-                    .play( sound_flags::exclusive | sound_flags::looping );
 
+                auto enginerevvolume { 0.f };
                 if( ( Vehicle.EngineType == DieselElectric )
                  || ( Vehicle.EngineType == DieselEngine ) ) {
-                    // diesel engine revolutions increase
-                    float enginerevvolume { 0 };
+                    // diesel engine revolutions increase; it can potentially decrease volume of base engine sound
                     if( engine_revs_last != -1.f ) {
                         // calculate potential recent increase of engine revolutions
                         auto const revolutionsperminute { Vehicle.enrot * 60 };
@@ -5583,25 +5579,36 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                          && ( revolutionsdifference > 1.0 * Deltatime ) ) {
                             engine_revs_change = clamp( engine_revs_change + 5.0 * Deltatime, 0.0, 1.25 );
                         }
-                        enginerevvolume = engine_revs_change;
+                        enginerevvolume = 0.8 * engine_revs_change;
                     }
                     engine_revs_last = Vehicle.enrot * 60;
 
-                    if( false == engine_revving.is_combined() ) {
-                        // if the sound comes with multiple samples we reuse rpm-based calculation from the engine
-                        frequency = engine_revving.m_frequencyoffset + engine_revving.m_frequencyfactor * 1.0;
-                    }
+                    auto const enginerevfrequency { (
+                        false == engine_revving.is_combined() ?
+                            // if the sound contains multiple samples we reuse rpm-based calculation from the engine
+                            frequency :
+                            engine_revving.m_frequencyoffset + 1.f * engine_revving.m_frequencyfactor ) };
 
                     if( enginerevvolume > 0.02 ) {
                         engine_revving
-                            .pitch( frequency )
+                            .pitch( enginerevfrequency )
                             .gain( enginerevvolume )
-                            .play( sound_flags::exclusive | sound_flags::looping );
+                            .play( sound_flags::exclusive );
                     }
                     else {
                         engine_revving.stop();
                     }
-                }
+                } // diesel engines
+
+                // multi-part revving sound pieces replace base engine sound, single revving simply gets mixed with the base
+                auto const enginevolume { (
+                    ( ( enginerevvolume > 0.02 ) && ( true == engine_revving.is_combined() ) ) ?
+                        std::max( 0.0, engine_volume - enginerevvolume ) :
+                        engine_volume ) };
+                engine
+                    .pitch( frequency )
+                    .gain( enginevolume )
+                    .play( sound_flags::exclusive | sound_flags::looping );
             } // enginevolume > 0.05
         }
         else {

@@ -114,6 +114,9 @@ class TTrain
     bool is_eztoer() const;
     // locates nearest vehicle belonging to the consist
     TDynamicObject *find_nearest_consist_vehicle() const;
+    // moves train brake lever to specified position, potentially emits switch sound if conditions are met
+    void set_train_brake( int const Position );
+
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -377,6 +380,10 @@ public: // reszta może by?publiczna
     TButton btLampkaHamienie;
     TButton btLampkaBrakingOff;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
+    TButton btLampkaBrakeProfileG; // cargo train brake acting speed
+    TButton btLampkaBrakeProfileP; // passenger train brake acting speed
+    TButton btLampkaBrakeProfileR; // rapid brake acting speed
+
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -468,7 +475,6 @@ private:
 
     double fPoslizgTimer;
     TTrack *tor;
-    int keybrakecount;
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };
     float fTachoVelocityJump{ 0.0f }; // ze skakaniem

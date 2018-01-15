@@ -321,7 +321,6 @@ TTrain::TTrain() {
     pMechOffset = vector3(0, 0, 0);
     fBlinkTimer = 0;
     fHaslerTimer = 0;
-    keybrakecount = 0;
     DynamicSet(NULL); // ustawia wszystkie mv*
     iCabLightFlag = 0;
     // hunter-091012
@@ -544,6 +543,24 @@ bool TTrain::is_eztoer() const {
        && ( mvControlled->Battery == true )
        && ( mvControlled->EpFuse == true )
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
+}
+
+// moves train brake lever to specified position, potentially emits switch sound if conditions are met
+void TTrain::set_train_brake( int const Position ) {
+
+    auto const originalbrakeposition { mvOccupied->BrakeCtrlPos };
+
+    mvOccupied->BrakeLevelSet( Position );
+
+    if( mvOccupied->BrakeCtrlPos == originalbrakeposition ) { return; }
+
+    if( ( true == is_eztoer() )
+     && ( false == (
+            ( ( originalbrakeposition == 0 ) || ( originalbrakeposition >= 5 ) )
+         && ( ( mvOccupied->BrakeCtrlPos == 0 ) || ( mvOccupied->BrakeCtrlPos >= 5 ) ) ) ) ) {
+        // sound feedback if the lever movement activates one of the switches
+        dsbPneumaticSwitch.play();
+    }
 }
 
 // locates nearest vehicle belonging to the consist
@@ -795,14 +812,7 @@ void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Co
             Train->mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
         }
         else {
-            if( Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep ) ) {
-                // nieodpowiedni warunek; true, jeśli można dalej kręcić
-                Train->keybrakecount = 0;
-                if( ( Train->is_eztoer() ) && ( Train->mvOccupied->BrakeCtrlPos < 3 ) ) {
-                    // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
-                    Train->dsbPneumaticSwitch.play();
-                }
-            }
+            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos + Global::fBrakeStep );
         }
     }
 }
@@ -815,21 +825,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
         }
         else {
-            // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
-            if( ( Train->mvOccupied->BrakeCtrlPos > -1 )
-             || ( Train->keybrakecount > 1 ) ) {
-
-                if( ( Train->is_eztoer() )
-                 && ( Train->mvControlled->Mains )
-                 && ( Train->mvOccupied->BrakeCtrlPos != -1 ) ) {
-                    // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
-                    Train->dsbPneumaticSwitch.play();
-                }
-                Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep );
-            }
-            else
-                Train->keybrakecount += 1;
-            // koniec wersji dostarczonej przez ZiomalCl
+            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos - Global::fBrakeStep );
         }
     }
     else {
@@ -837,16 +833,9 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )
          && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global::iFeedbackMode != 4 )
-         && ( !( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+         && ( Global::iFeedbackMode < 3 ) ) {
             // Odskakiwanie hamulce EP
-            Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPos + 1 );
-            Train->keybrakecount = 0;
-            if( ( Train->mvOccupied->TrainType == dt_EZT )
-             && ( Train->mvControlled->Mains )
-             && ( Train->mvControlled->ActiveDir != 0 ) ) {
-                Train->dsbPneumaticSwitch.play();
-            }
+            Train->set_train_brake( 0 );
         }
     }
 }
@@ -855,30 +844,16 @@ void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Co
 
     if( Command.action != GLFW_RELEASE ) {
         // press or hold
-        // sound feedback
-        if( ( Train->is_eztoer() )
-         && ( Train->mvControlled->Mains )
-         && ( Train->mvOccupied->BrakeCtrlPos != -1 ) ) {
-            Train->dsbPneumaticSwitch.play();
-        }
-
-        Train->mvOccupied->BrakeLevelSet( -1 );
+        Train->set_train_brake( -1 );
     }
     else {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )
          && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global::iFeedbackMode != 4 )
-         && ( !( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+         && ( Global::iFeedbackMode < 3 ) ) {
             // Odskakiwanie hamulce EP
-            Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPos + 1 );
-            Train->keybrakecount = 0;
-            if( ( Train->mvOccupied->TrainType == dt_EZT )
-             && ( Train->mvControlled->Mains )
-             && ( Train->mvControlled->ActiveDir != 0 ) ) {
-                Train->dsbPneumaticSwitch.play();
-            }
+            Train->set_train_brake( 0 );
         }
     }
 }
@@ -887,14 +862,7 @@ void TTrain::OnCommand_trainbrakerelease( TTrain *Train, command_data const &Com
 
     if( Command.action == GLFW_PRESS ) {
 
-        // sound feedback
-        if( ( Train->is_eztoer() )
-         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
-           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-            Train->dsbPneumaticSwitch.play();
-        }
-
-        Train->mvOccupied->BrakeLevelSet( 0 );
+        Train->set_train_brake( 0 );
     }
 }
 
@@ -902,14 +870,7 @@ void TTrain::OnCommand_trainbrakefirstservice( TTrain *Train, command_data const
 
     if( Command.action == GLFW_PRESS ) {
 
-        // sound feedback
-        if( ( Train->is_eztoer() )
-         && ( Train->mvControlled->Mains )
-         && ( Train->mvOccupied->BrakeCtrlPos != 1 ) ) {
-            Train->dsbPneumaticSwitch.play();
-        }
-
-        Train->mvOccupied->BrakeLevelSet( 1 );
+        Train->set_train_brake( 1 );
     }
 }
 
@@ -917,19 +878,11 @@ void TTrain::OnCommand_trainbrakeservice( TTrain *Train, command_data const &Com
 
     if( Command.action == GLFW_PRESS ) {
 
-        // sound feedback
-        if( ( Train->is_eztoer() )
-         && ( Train->mvControlled->Mains )
-         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
-           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-            Train->dsbPneumaticSwitch.play();
-        }
-
-        Train->mvOccupied->BrakeLevelSet(
+        Train->set_train_brake( (
             Train->mvOccupied->BrakeCtrlPosNo / 2
             + ( Train->mvOccupied->BrakeHandle == FV4a ?
-                   1 :
-                   0 ) );
+                1 :
+                0 ) ) );
     }
 }
 
@@ -937,14 +890,7 @@ void TTrain::OnCommand_trainbrakefullservice( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
 
-        // sound feedback
-        if( ( Train->is_eztoer() )
-         && ( Train->mvControlled->Mains )
-         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
-           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-            Train->dsbPneumaticSwitch.play();
-        }
-        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPosNo - 1 );
+        Train->set_train_brake( Train->mvOccupied->BrakeCtrlPosNo - 1 );
     }
 }
 
@@ -952,7 +898,7 @@ void TTrain::OnCommand_trainbrakehandleoff( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_NP ) );
+        Train->set_train_brake( Train->mvOccupied->Handle->GetPos( bh_NP ) );
     }
 }
 
@@ -960,7 +906,7 @@ void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_EB ) );
+        Train->set_train_brake( Train->mvOccupied->Handle->GetPos( bh_EB ) );
 /*
         if( Train->mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
             // hamulec bezpieczeństwa dla wagonów
@@ -3988,6 +3934,9 @@ bool TTrain::Update( double const Deltatime )
             btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
             btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do tyłu
             btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
+            btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
+            btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
+            btLampkaBrakeProfileR.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_R ) );
             // light indicators
             // NOTE: sides are hardcoded to deal with setups where single cab is equipped with all indicators
             btLampkaUpperLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_upper ) != 0 );
@@ -4005,6 +3954,9 @@ bool TTrain::Update( double const Deltatime )
         { // gdy bateria wyłączona
             btLampkaHamienie.Turn( false );
             btLampkaBrakingOff.Turn( false );
+            btLampkaBrakeProfileG.Turn( false );
+            btLampkaBrakeProfileP.Turn( false );
+            btLampkaBrakeProfileR.Turn( false );
             btLampkaMaxSila.Turn( false );
             btLampkaPrzekrMaxSila.Turn( false );
             btLampkaRadio.Turn( false );
@@ -5267,6 +5219,9 @@ void TTrain::clear_cab_controls()
     btLampkaRadiotelefon.Clear();
     btLampkaHamienie.Clear();
     btLampkaBrakingOff.Clear();
+    btLampkaBrakeProfileG.Clear();
+    btLampkaBrakeProfileP.Clear();
+    btLampkaBrakeProfileR.Clear();
     btLampkaSprezarka.Clear();
     btLampkaSprezarkaB.Clear();
     btLampkaSprezarkaOff.Clear();
@@ -5544,6 +5499,9 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-braking:", btLampkaHamienie },
         { "i-brakingoff:", btLampkaBrakingOff },
         { "i-dynamicbrake:", btLampkaED },
+        { "i-brakeprofileg:", btLampkaBrakeProfileG },
+        { "i-brakeprofilep:", btLampkaBrakeProfileP },
+        { "i-brakeprofiler:", btLampkaBrakeProfileR },
         { "i-braking-ezt:", btLampkaHamowanie1zes },
         { "i-braking-ezt2:", btLampkaHamowanie2zes },
         { "i-compressor:", btLampkaSprezarka },
