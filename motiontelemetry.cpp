@@ -58,9 +58,17 @@ void motiontelemetry::update()
 	if (!t)
 		return;
 
-	float forward = t->Occupied()->AccSVBased;
-	float lateral = t->Occupied()->AccN;
-	float vertical = t->Occupied()->AccVert;
+	float velocity = t->Occupied()->V;
+	float forward = t->Occupied()->AccSVBased / 9.81;
+	float lateral = t->Occupied()->AccN / 9.81;
+	float vertical = t->Occupied()->AccVert / 9.81 + 1.0;
+
+	if (t->Occupied()->ActiveCab < 0)
+	{
+		velocity *= -1;
+		forward *= -1;
+		lateral *= -1;
+	}
 
 	WriteLog("forward: " + std::to_string(forward) + ", lateral: " + std::to_string(lateral) + ", vertical: " + std::to_string(vertical));
 }
