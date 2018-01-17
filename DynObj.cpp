@@ -3710,7 +3710,7 @@ void TDynamicObject::RenderSounds() {
 
         if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
-            volume *= 1 + 0.25 * brakeforceratio;
+            volume *= 1 + 0.125 * brakeforceratio;
         }
         // scale volume by track quality
         volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;
@@ -3994,9 +3994,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
                 else {
                     // Ra: tu wczytywanie modelu ładunku jest w porządku
-                   if( false == asLoadName.empty() ) {
-                        // try first specialized version of the load model, vehiclename_loadname
-                        mdLoad = TModelsManager::GetModel( BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d", true );
+                    if( false == asLoadName.empty() ) {
+                         // try first specialized version of the load model, vehiclename_loadname
+                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d" };
+                        if( true == FileExists( specializedloadfilename ) ) {
+                            mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
+                        }
                         if( mdLoad == nullptr ) {
                             // if this fails, try generic load model
                             mdLoad = TModelsManager::GetModel( asLoadName, true );
@@ -4246,15 +4249,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                         { // gdy ktoś przesadził ze skalowaniem
                                             pants[i].fParamPants->fHeight =
                                                 0.0; // niech będzie odczyt z pantfactors:
-                                            ErrorLog("Bad model: " + asModel + ", scale of " +
-                                                     (sm->pName) + " is " +
-                                                     std::to_string(100.0 * det) + "%");
+                                            ErrorLog(
+                                                "Bad model: " + asModel + ", scale of " + (sm->pName) + " is " + std::to_string(100.0 * det) + "%",
+                                                logtype::model );
                                         }
                                     }
                                 }
                             }
                             else
-                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName); // brak ramienia
+                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model); // brak ramienia
                         }
                 }
 
@@ -4288,7 +4291,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                 }
                             }
                             else
-								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName ); // brak ramienia
+								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model ); // brak ramienia
 						}
                     }
                 }
@@ -5584,7 +5587,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                     engine_revs_last = Vehicle.enrot * 60;
 
                     auto const enginerevfrequency { (
-                        false == engine_revving.is_combined() ?
+                        true == engine_revving.is_combined() ?
                             // if the sound contains multiple samples we reuse rpm-based calculation from the engine
                             frequency :
                             engine_revving.m_frequencyoffset + 1.f * engine_revving.m_frequencyfactor ) };

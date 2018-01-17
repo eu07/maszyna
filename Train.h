@@ -115,7 +115,7 @@ class TTrain
     // locates nearest vehicle belonging to the consist
     TDynamicObject *find_nearest_consist_vehicle() const;
     // moves train brake lever to specified position, potentially emits switch sound if conditions are met
-    void set_train_brake( int const Position );
+    void set_train_brake( double const Position );
 
 
     // command handlers

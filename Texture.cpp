@@ -604,14 +604,27 @@ opengl_texture::release( bool const Backup ) {
     if( id == -1 ) { return; }
 
     if( true == Backup ) {
-        // query texture details needed to perform the backup...
         ::glBindTexture( GL_TEXTURE_2D, id );
-        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint *)&data_format );
-        GLint datasize;
-        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&datasize );
-        data.resize( datasize );
-        // ...fetch the data...
-        ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+        GLint datasize {};
+        GLint iscompressed {};
+        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
+        if( iscompressed == GL_TRUE ) {
+            // texture is compressed on the gpu side
+            // query texture details needed to perform the backup...
+            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
+            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
+            data.resize( datasize );
+            // ...fetch the data...
+            ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+        }
+        else {
+            // for whatever reason texture didn't get compressed during upload
+            // fallback on plain rgba storage...
+            data_format = GL_RGBA;
+            data.resize( data_width * data_height * 4 );
+            // ...fetch the data...
+            ::glGetTexImage( GL_TEXTURE_2D, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
+        }
         // ...and update texture object state
         data_mapcount = 1; // we keep copy of only top mipmap level
         data_state = resource_state::good;

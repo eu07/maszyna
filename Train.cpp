@@ -546,17 +546,17 @@ bool TTrain::is_eztoer() const {
 }
 
 // moves train brake lever to specified position, potentially emits switch sound if conditions are met
-void TTrain::set_train_brake( int const Position ) {
+void TTrain::set_train_brake( double const Position ) {
 
-    auto const originalbrakeposition { mvOccupied->BrakeCtrlPos };
+    auto const originalbrakeposition { static_cast<int>( 100.0 * mvOccupied->fBrakeCtrlPos ) };
 
     mvOccupied->BrakeLevelSet( Position );
 
-    if( mvOccupied->BrakeCtrlPos == originalbrakeposition ) { return; }
+    if( static_cast<int>( 100.0 * mvOccupied->fBrakeCtrlPos ) == originalbrakeposition ) { return; }
 
     if( ( true == is_eztoer() )
      && ( false == (
-            ( ( originalbrakeposition == 0 ) || ( originalbrakeposition >= 5 ) )
+            ( ( originalbrakeposition / 100 == 0 ) || ( originalbrakeposition / 100 >= 5 ) )
          && ( ( mvOccupied->BrakeCtrlPos == 0 ) || ( mvOccupied->BrakeCtrlPos >= 5 ) ) ) ) ) {
         // sound feedback if the lever movement activates one of the switches
         dsbPneumaticSwitch.play();

@@ -181,6 +181,7 @@ public:
     static std::string asCurrentDynamicPath;
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     static bool MultipleLogs;
+    static unsigned int DisabledLogTypes;
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static std::string asHumanCtrlVehicle;
     // world environment

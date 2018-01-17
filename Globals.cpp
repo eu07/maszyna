@@ -139,7 +139,8 @@ float Global::AudioVolume = 1.5f;
 std::string Global::AudioRenderer;
 
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
-bool Global::MultipleLogs{ false };
+bool Global::MultipleLogs { false };
+unsigned int Global::DisabledLogTypes { 0 };
 
 // parametry do kalibracji
 // kolejno współczynniki dla potęg 0, 1, 2, 3 wartości odczytanej z urządzenia
@@ -330,6 +331,10 @@ void Global::ConfigParse(cParser &Parser)
         else if( token == "multiplelogs" ) {
             Parser.getTokens();
             Parser >> Global::MultipleLogs;
+        }
+        else if( token == "logs.filter" ) {
+            Parser.getTokens();
+            Parser >> Global::DisabledLogTypes;
         }
         else if( token == "adjustscreenfreq" )
         {

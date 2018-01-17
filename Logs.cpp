@@ -47,75 +47,50 @@ std::string filename_scenery() {
     }
 }
 
-void WriteConsoleOnly(const char *str, double value) {
+void WriteLog( const char *str, logtype const Type ) {
 
-    std::snprintf(logbuffer , sizeof(logbuffer), "%s %f \n", str, value);
-    // stdout=  GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD wr = 0;
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), logbuffer, (DWORD)strlen(logbuffer), &wr, NULL);
-    // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
-}
+    if( str == nullptr ) { return; }
+    if( true == TestFlag( Global::DisabledLogTypes, Type ) ) { return; }
 
-void WriteConsoleOnly(const char *str, bool newline)
-{
-    // printf("%n ffafaf /n",str);
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-                            FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-    DWORD wr = 0;
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, (DWORD)strlen(str), &wr, NULL);
-    if (newline)
-        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
-}
+    if (Global::iWriteLogEnabled & 1) {
+        if( !output.is_open() ) {
 
-void WriteLog(const char *str, double value) {
-
-    if (Global::iWriteLogEnabled) {
-        if (str) {
-            std::snprintf(logbuffer, sizeof(logbuffer), "%s %f", str, value);
-            WriteLog(logbuffer);
-        }
-    }
-};
-
-void WriteLog(const char *str, bool newline)
-{
-    if (str)
-    {
-        if (Global::iWriteLogEnabled & 1)
-        {
-            if( !output.is_open() ) {
-                
-                std::string const filename =
-                    ( Global::MultipleLogs ?
+            std::string const filename =
+                ( Global::MultipleLogs ?
                     "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" :
                     "log.txt" );
-                output.open( filename, std::ios::trunc );
-            }
-            output << str;
-            if (newline)
-                output << "\n";
-            output.flush();
+            output.open( filename, std::ios::trunc );
         }
-        // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
-        if (Global::iWriteLogEnabled & 2)
-            WriteConsoleOnly(str, newline);
+        output << str << "\n";
+        output.flush();
     }
-};
 
-void ErrorLog(const char *str)
-{ // Ra: bezwarunkowa rejestracja poważnych błędów
+    if( Global::iWriteLogEnabled & 2 ) {
+        // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
+        SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN | FOREGROUND_INTENSITY );
+        DWORD wr = 0;
+        WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
+        WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
+    }
+}
+
+// Ra: bezwarunkowa rejestracja poważnych błędów
+void ErrorLog( const char *str, logtype const Type ) {
+
+    if( str == nullptr ) { return; }
+    if( true == TestFlag( Global::DisabledLogTypes, Type ) ) { return; }
+
     if (!errors.is_open()) {
 
         std::string const filename =
             ( Global::MultipleLogs ?
-            "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
-            "errors.txt" );
+                "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
+                "errors.txt" );
         errors.open( filename, std::ios::trunc );
         errors << "EU07.EXE " + Global::asVersion << "\n";
     }
-    if (str)
-        errors << str;
-    errors << "\n";
+
+    errors << str << "\n";
     errors.flush();
 };
 
@@ -134,15 +109,15 @@ void Error(const char *&asMessage, bool box)
     WriteLog(asMessage);
 }
 
-void ErrorLog(const std::string &str, bool newline)
+void ErrorLog(const std::string &str, logtype const Type )
 {
-    ErrorLog(str.c_str());
-    WriteLog(str.c_str(), newline);
+    ErrorLog( str.c_str(), Type );
+    WriteLog( str.c_str(), Type );
 }
 
-void WriteLog(const std::string &str, bool newline)
+void WriteLog(const std::string &str, logtype const Type )
 { // Ra: wersja z AnsiString jest zamienna z Error()
-    WriteLog(str.c_str(), newline);
+    WriteLog( str.c_str(), Type );
 };
 
 void CommLog(const char *str)

@@ -374,7 +374,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( ( std::abs( scale.x - 1.0f ) > 0.01 )
          || ( std::abs( scale.y - 1.0f ) > 0.01 )
          || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")", logtype::model );
             m_normalizenormals = (
                 ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
                     rescale :
@@ -460,7 +460,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount));
+							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount), logtype::model );
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
@@ -472,7 +472,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 								--facecount; // o jeden trójkąt mniej
 								iNumVerts -= 3; // czyli o 3 wierzchołki
 								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"" );
+								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"", logtype::model );
 							}
                         }
 					}
@@ -511,14 +511,14 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                                 vertexnormal += facenormals[ adjacenvertextidx / 3 ];
                             }
                             else {
-                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling" );
+                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
                             }
                             // i szukanie od kolejnego trójkąta
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
                         }
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
                         if( glm::length2( vertexnormal ) == 0.0f ) {
-                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"" );
+                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"", logtype::model );
                         }
                         Vertices[ vertexidx ].normal = (
                             glm::length2( vertexnormal ) > 0.0f ?
@@ -1520,7 +1520,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         if( ( false == submodel.m_normalizenormals )
                          && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
                             submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
-                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization" );
+                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
                         }
                     }
                 }
@@ -1646,7 +1646,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             }
         }
         else {
-            ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
+            ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ), logtype::model );
             m_material = null_handle;
         }
     }
@@ -1686,7 +1686,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         if( ( std::abs( scale.x - 1.0f ) > 0.01 )
          || ( std::abs( scale.y - 1.0f ) > 0.01 )
          || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")", logtype::model );
             m_normalizenormals = (
                 ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
                     rescale :

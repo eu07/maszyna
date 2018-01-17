@@ -606,11 +606,12 @@ void TMoverParameters::BrakeLevelSet(double b)
     if (fBrakeCtrlPos == b)
         return; // nie przeliczać, jak nie ma zmiany
     fBrakeCtrlPos = b;
-    BrakeCtrlPosR = b;
     if (fBrakeCtrlPos < Handle->GetPos(bh_MIN))
         fBrakeCtrlPos = Handle->GetPos(bh_MIN); // odcięcie
     else if (fBrakeCtrlPos > Handle->GetPos(bh_MAX))
         fBrakeCtrlPos = Handle->GetPos(bh_MAX);
+    // TODO: verify whether BrakeCtrlPosR and fBrakeCtrlPos can be rolled into single variable
+    BrakeCtrlPosR = fBrakeCtrlPos;
     int x = static_cast<int>(std::floor(fBrakeCtrlPos)); // jeśli odwołujemy się do BrakeCtrlPos w pośrednich, to musi być
     // obcięte a nie zaokrągone
     while ((x > BrakeCtrlPos) && (BrakeCtrlPos < BrakeCtrlPosNo)) // jeśli zwiększyło się o 1
@@ -4507,32 +4508,40 @@ double TMoverParameters::TractionForce(double dt)
                     Im = DElist[MainCtrlPos].Imax;
                 }
 
-                if (Im > 0) // jak pod obciazeniem
-                    if (Flat) // ograniczenie napiecia w pradnicy - plaszczak u gory
-                        Voltage = 1000.0 * tmp / abs(Im);
-                    else // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
-
-                    {
-                        Voltage = sqrt(abs(square(DElist[MainCtrlPos].Umax) -
-                                           square(DElist[MainCtrlPos].Umax * Im /
-                                               DElist[MainCtrlPos].Imax))) *
-                                      (MainCtrlPos - 1) +
-                                  (1.0 - Im / DElist[MainCtrlPos].Imax) * DElist[MainCtrlPos].Umax *
-                                      (MainCtrlPosNo - MainCtrlPos);
-                        Voltage = Voltage / (MainCtrlPosNo - 1);
-                        Voltage = Min0R(Voltage, (1000.0 * tmp / abs(Im)));
-                        if (Voltage < (Im * 0.05))
-                            Voltage = Im * 0.05;
+                if( Im > 0 ) {
+                    // jak pod obciazeniem
+                    if( true == Flat ) {
+                        // ograniczenie napiecia w pradnicy - plaszczak u gory
+                        Voltage = 1000.0 * tmp / std::abs( Im );
                     }
-                if ((Voltage > DElist[MainCtrlPos].Umax) ||
-                    (Im == 0)) // gdy wychodzi za duze napiecie
-                    Voltage = DElist[MainCtrlPos].Umax *
-                              int(ConverterFlag); // albo przy biegu jalowym (jest cos takiego?)
+                    else {
+                        // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
+                        Voltage =
+                            std::sqrt(
+                                std::abs(
+                                    square( DElist[ MainCtrlPos ].Umax )
+                                    - square( DElist[ MainCtrlPos ].Umax * Im / DElist[ MainCtrlPos ].Imax ) ) )
+                            * ( MainCtrlPos - 1 )
+                            + ( 1.0 - Im / DElist[ MainCtrlPos ].Imax ) * DElist[ MainCtrlPos ].Umax * ( MainCtrlPosNo - MainCtrlPos );
+                        Voltage /= ( MainCtrlPosNo - 1 );
+                        Voltage = clamp(
+                            Voltage,
+                            Im * 0.05, ( 1000.0 * tmp / std::abs( Im ) ) );
+                    }
+                }
+
+                if( ( Voltage > DElist[ MainCtrlPos ].Umax )
+                 || ( Im == 0 ) ) {
+                    // gdy wychodzi za duze napiecie albo przy biegu jalowym (jest cos takiego?)
+                    Voltage = DElist[ MainCtrlPos ].Umax * ( ConverterFlag ? 1 : 0 ); 
+                }
 
                 EnginePower = Voltage * Im / 1000.0;
-
+/*
+                // NOTE: this part is experimentally disabled, as it generated early traction force drop for undetermined purpose
                 if ((tmpV > 2) && (EnginePower < tmp))
                     Ft = Ft * EnginePower / tmp;
+*/
             }
 
             if ((Imax > 1) && (Im > Imax))
