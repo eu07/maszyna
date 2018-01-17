@@ -816,6 +816,7 @@ public:
 	double eimc[26];
 	bool EIMCLogForce; // 
     static std::vector<std::string> const eimc_labels;
+    double InverterFrequency { 0.0 }; // current frequency of power inverters
 	/*-dla wagonow*/
     double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/

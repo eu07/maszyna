@@ -4597,16 +4597,19 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.motor.m_amplitudefactor /= amplitudedivisor;
                 }
 
-				else if( token == "ventilator:" ) {
+				else if( token == "inverter:" ) {
+					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
+                    m_powertrainsounds.inverter.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.inverter.owner( this );
+				}
+
+                else if( token == "ventilator:" ) {
 					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
                     m_powertrainsounds.rsWentylator.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
                     m_powertrainsounds.rsWentylator.owner( this );
 
-                    if( ( MoverParameters->EngineType == ElectricSeriesMotor )
-                     || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
-                        m_powertrainsounds.rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
-                        m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
-                    }
+                    m_powertrainsounds.rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
+                    m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
 				}
 
 				else if( ( token == "transmission:" )
@@ -5779,7 +5782,34 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( motor_volume < 0.05 ) {
         motor.stop();
     }
+    // inverter sounds
+    if( Vehicle.EngineType == ElectricInductionMotor ) {
+        if( Vehicle.InverterFrequency > 0.1 ) {
 
+            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) );
+
+            inverter
+                .pitch( inverter.m_frequencyoffset + inverter.m_frequencyfactor * Vehicle.InverterFrequency )
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            inverter.stop();
+        }
+    }
+    // ventillator sounds
+    if( Vehicle.RventRot > 0.1 ) {
+
+        rsWentylator
+            .pitch( rsWentylator.m_frequencyoffset + rsWentylator.m_frequencyfactor * Vehicle.RventRot )
+            .gain( rsWentylator.m_amplitudeoffset + rsWentylator.m_amplitudefactor * Vehicle.RventRot )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        // ...otherwise shut down the sound
+        rsWentylator.stop();
+    }
+    // relay sounds
     auto const soundflags { Vehicle.SoundFlag };
     if( TestFlag( soundflags, sound::relay ) ) {
         // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
@@ -5789,7 +5819,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 .pitch(
                     true == motor_shuntfield.is_combined() ?
                         Vehicle.ScndCtrlActualPos * 0.01f :
-                        motor_shuntfield.m_frequencyoffset + 1.f * motor_shuntfield.m_frequencyfactor )
+                        motor_shuntfield.m_frequencyoffset + motor_shuntfield.m_frequencyfactor * 1.f )
                 .gain(
                     motor_shuntfield.m_amplitudeoffset + (
                         true == TestFlag( soundflags, sound::loud ) ?
@@ -5813,7 +5843,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 .pitch(
                     true == motor_relay.is_combined() ?
                         Vehicle.MainCtrlActualPos * 0.01f :
-                        motor_relay.m_frequencyoffset + 1.f * motor_relay.m_frequencyfactor )
+                        motor_relay.m_frequencyoffset + motor_relay.m_frequencyfactor * 1.f )
                 .gain(
                     motor_relay.m_amplitudeoffset + (
                         true == TestFlag( soundflags, sound::loud ) ?
@@ -5824,32 +5854,11 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         }
     }
 
-    if( ( Vehicle.EngineType == ElectricSeriesMotor )
-     || ( Vehicle.EngineType == ElectricInductionMotor ) ) {
-
-        if( Vehicle.RventRot > 0.1 ) {
-            // play ventilator sound if the ventilators are rotating fast enough...
-            volume = (
-                Vehicle.EngineType == ElectricInductionMotor ?
-                    rsWentylator.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) ) + rsWentylator.m_amplitudeoffset :
-                    rsWentylator.m_amplitudefactor * Vehicle.RventRot + rsWentylator.m_amplitudeoffset );
-
-            rsWentylator
-                .pitch( rsWentylator.m_frequencyfactor * Vehicle.RventRot + rsWentylator.m_frequencyoffset )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            // ...otherwise shut down the sound
-            rsWentylator.stop();
-        }
-    }
-
     if( Vehicle.TrainType == dt_ET40 ) {
         if( Vehicle.Vel > 0.1 ) {
             transmission
-                .pitch( transmission.m_frequencyfactor * ( Vehicle.Vel ) + transmission.m_frequencyoffset  )
-                .gain( transmission.m_amplitudefactor * ( Vehicle.Vel ) + transmission.m_amplitudeoffset )
+                .pitch( transmission.m_frequencyoffset + transmission.m_frequencyfactor * Vehicle.Vel )
+                .gain( transmission.m_amplitudeoffset + transmission.m_amplitudefactor * Vehicle.Vel )
                 .play( sound_flags::exclusive | sound_flags::looping );
         }
         else {

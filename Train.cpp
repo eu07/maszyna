@@ -4136,7 +4136,7 @@ bool TTrain::Update( double const Deltatime )
         else // wylaczone
         {
             btLampkaCzuwaka.Turn( false );
-            btLampkaSHP.Turn( true );
+            btLampkaSHP.Turn( false );
         }
         // przelaczniki
         // ABu030405 obsluga lampki uniwersalnej:

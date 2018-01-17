@@ -4239,36 +4239,13 @@ double TMoverParameters::TractionForce(double dt)
 */
     // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala predkosc wentylatorow)
     // wentylatory rozruchowe
-    // TODO: move this to update, it doesn't exactly have much to do with traction
-    if( true == Mains ) {
+    // TBD, TODO: move this to update, it doesn't exactly have much to do with traction
+    switch( EngineType ) {
 
-        switch( EngineType ) {
-            case ElectricInductionMotor: {
-                // TBD, TODO: currently ignores RVentType, fix this?
-                auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
-
-                if( ( RlistSize > 0 )
-                 && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
-                   || ( tmpV > 0.1 ) ) ) {
-
-                    int i = 0;
-                    while( ( i < RlistSize - 1 )
-                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
-                        ++i;
-                    }
-                    RventRot =
-                        ( tmpV - DElist[ i ].RPM )
-                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
-                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
-                        + DElist[ i ].GenPower;
-                }
-                else {
-                    RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
-                }
-                break;
-            }
-            case ElectricSeriesMotor: {
+        case ElectricSeriesMotor: {
+            if( true == Mains ) {
                 switch( RVentType ) {
+
                     case 1: { // manual
                         if( ( ActiveDir != 0 )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
@@ -4279,6 +4256,7 @@ double TMoverParameters::TractionForce(double dt)
                         }
                         break;
                     }
+
                     case 2: { // automatic
                         if( ( std::abs( Itot ) > RVentMinI )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
@@ -4293,26 +4271,32 @@ double TMoverParameters::TractionForce(double dt)
                         }
                         break;
                     }
+
                     default: {
                         break;
                     }
                 } // rventtype
+            } // mains
+            else {
+                RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
             }
-            case DieselElectric: {
+        }
+
+        case DieselElectric: {
+            if( true == Mains ) {
                 // TBD, TODO: currently ignores RVentType, fix this?
                 RventRot += clamp( DElist[ MainCtrlPos ].RPM - RventRot, -100.0, 50.0 ) * dt;
-                break;
             }
-            case DieselEngine:
-            default: {
-                break;
+            else {
+                RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
             }
-        } // enginetype
+            break;
+        }
+
+        default: {
+            break;
+        }
     }
-    else {
-        RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
-    }
-    RventRot = std::max( 0.0, RventRot );
 
     if (ActiveDir != 0)
         switch (EngineType)
@@ -4715,8 +4699,7 @@ double TMoverParameters::TractionForce(double dt)
                     MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
-            if ((Mains))
-            {
+            if( true == Mains ) {
 
                 dtrans = Hamulec->GetEDBCP();
                 if (((DoorLeftOpened) || (DoorRightOpened)))
@@ -4884,35 +4867,56 @@ double TMoverParameters::TractionForce(double dt)
                 Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
+                // power inverters
+                auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
+
+                if( ( RlistSize > 0 )
+                 && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
+                   || ( tmpV > 0.1 ) ) ) {
+
+                    int i = 0;
+                    while( ( i < RlistSize - 1 )
+                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
+                        ++i;
+                    }
+                    InverterFrequency =
+                        ( tmpV - DElist[ i ].RPM )
+                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
+                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
+                        + DElist[ i ].GenPower;
+                }
+                else {
+                    InverterFrequency = 0.0;
+                }
 
                 Mm = eimv[eimv_M] * DirAbsolute;
                 Mw = Mm * Transmision.Ratio;
                 Fw = Mw * 2.0 / WheelDiameter;
                 Ft = Fw * NPoweredAxles;
                 eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
-                //       RventRot;
-            }
+            } // mains
             else
             {
-                Im = 0;
-                Mm = 0;
-                Mw = 0;
-                Fw = 0;
-                Ft = 0;
-                Itot = 0;
-                dizel_fill = 0;
-                EnginePower = 0;
+                Im = 0.0;
+                Mm = 0.0;
+                Mw = 0.0;
+                Fw = 0.0;
+                Ft = 0.0;
+                Itot = 0.0;
+                dizel_fill = 0.0;
+                EnginePower = 0.0;
                 {
                     for (int i = 0; i < 21; ++i)
-                        eimv[i] = 0;
+                        eimv[i] = 0.0;
                 }
-                Hamulec->SetED(0);
-                RventRot = 0.0; //(Hamulec as TLSt).SetLBP(LocBrakePress);
+                Hamulec->SetED(0.0);
+                InverterFrequency = 0.0; //(Hamulec as TLSt).SetLBP(LocBrakePress);
             }
 			break;
         } // ElectricInductionMotor
+
         case None:
-        {
+        default: {
             break;
         }
         } // case EngineType
