@@ -1234,7 +1234,7 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)
 	{
-		ErrorLog("Failed to load 3d model \"" + FileName + "\"");
+		ErrorLog("Bad model: failed to load 3d model \"" + FileName + "\"");
 	}
 	return result;
 };
@@ -1697,7 +1697,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
-	WriteLog("Loading binary format 3d model data from \"" + FileName + "\"...");
+    WriteLog( "Loading binary format 3d model data from \"" + FileName + "\"...", logtype::model );
 	
 	std::ifstream file(FileName, std::ios::binary);
 
@@ -1710,12 +1710,12 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 	deserialize(file, size, dynamic);
 	file.close();
 
-	WriteLog("Finished loading 3d model data from \"" + FileName + "\"");
+    WriteLog( "Finished loading 3d model data from \"" + FileName + "\"", logtype::model );
 };
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego
-	WriteLog("Loading text format 3d model data from \"" + FileName + "\"...");
+    WriteLog( "Loading text format 3d model data from \"" + FileName + "\"...", logtype::model );
 	iFlags |= 0x0200; // wczytano z pliku tekstowego (właścicielami tablic są submodle)
 	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models\\"...
 	TSubModel *SubModel;

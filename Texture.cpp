@@ -39,7 +39,7 @@ opengl_texture::load() {
 
     if( name.size() < 3 ) { goto fail; }
 
-    WriteLog( "Loading texture data from \"" + name + "\"" );
+    WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
 
     data_state = resource_state::loading;
     {
@@ -67,7 +67,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Failed to load texture \"" + name + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -91,7 +91,7 @@ opengl_texture::load_BMP() {
     BITMAPINFO info;
     unsigned int infosize = header.bfOffBits - sizeof( BITMAPFILEHEADER );
     if( infosize > sizeof( info ) ) {
-        WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
+        WriteLog( "Warning - BMP header is larger than expected, possible format difference.", logtype::texture );
     }
     file.read( (char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
 
@@ -100,7 +100,7 @@ opengl_texture::load_BMP() {
 
     if( info.bmiHeader.biCompression != BI_RGB ) {
 
-        ErrorLog( "Compressed BMP textures aren't supported." );
+        ErrorLog( "Bad texture: compressed BMP textures aren't supported.", logtype::texture );
         data_state = resource_state::failed;
         return;
     }
@@ -289,7 +289,7 @@ opengl_texture::load_DDS() {
 */
     if( datasize == 0 ) {
         // catch malformed .dds files
-        WriteLog( "File \"" + name + "\" is malformed and holds no texture data." );
+        WriteLog( "Bad texture: file \"" + name + "\" is malformed and holds no texture data.", logtype::texture );
         data_state = resource_state::failed;
         return;
     }
@@ -330,7 +330,7 @@ opengl_texture::load_TEX() {
         hasalpha = true;
     }
     else {
-        ErrorLog( "Unrecognized TEX texture sub-format: " + std::string(head) );
+        ErrorLog( "Bad texture: unrecognized TEX texture sub-format: " + std::string(head), logtype::texture );
         data_state = resource_state::failed;
         return;
     };
@@ -793,7 +793,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 
     if( true == filename.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
-        ErrorLog( "Texture file missing: \"" + Filename + "\"" );
+        ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
         return npos;
     }
 
@@ -808,7 +808,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( filename, textureindex );
 
-    WriteLog( "Created texture object for \"" + filename + "\"" );
+    WriteLog( "Created texture object for \"" + filename + "\"", logtype::texture );
 
     if( true == Loadnow ) {
 

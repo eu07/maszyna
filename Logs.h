@@ -14,7 +14,8 @@ enum logtype : unsigned int {
 
     generic = 0x1,
     file = 0x2,
-    model = 0x4
+    model = 0x4,
+    texture = 0x8
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );
