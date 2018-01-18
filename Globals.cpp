@@ -780,12 +780,16 @@ void Global::ConfigParse(cParser &Parser)
 		}
 		else if (token == "motiontelemetry")
 		{
-			Parser.getTokens(4);
+			Parser.getTokens(8);
 			Global::motiontelemetry_conf.enable = true;
 			Parser >> Global::motiontelemetry_conf.proto;
 			Parser >> Global::motiontelemetry_conf.address;
 			Parser >> Global::motiontelemetry_conf.port;
 			Parser >> Global::motiontelemetry_conf.updatetime;
+			Parser >> Global::motiontelemetry_conf.includegravity;
+			Parser >> Global::motiontelemetry_conf.fwdposbased;
+			Parser >> Global::motiontelemetry_conf.latposbased;
+			Parser >> Global::motiontelemetry_conf.axlebumpscale;
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

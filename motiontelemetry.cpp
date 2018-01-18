@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "motiontelemetry.h"
 #include "Globals.h"
 #include "Logs.h"
@@ -54,21 +55,99 @@ void motiontelemetry::update()
 		return;
 	last_update = now;
 
+	if (Global::iPause)
+		return;
+
 	TTrain *t = Global::pWorld->train();
 	if (!t)
 		return;
 
-	float velocity = t->Occupied()->V;
-	float forward = t->Occupied()->AccSVBased / 9.81;
-	float lateral = t->Occupied()->AccN / 9.81;
-	float vertical = t->Occupied()->AccVert / 9.81 + 1.0;
+	double dt = Timer::GetDeltaTime();
+
+	glm::dvec3 front = t->Dynamic()->VectorFront();
+	glm::dvec3 up = t->Dynamic()->VectorUp();
+	glm::dvec3 left = t->Dynamic()->VectorLeft();
+
+	glm::dvec3 pos = t->Dynamic()->GetPosition();
+	glm::dvec3 vel = (pos - last_pos) / dt;
+	glm::dvec3 acc = (vel - last_vel) / dt;
+	
+	glm::dvec3 local_acc;
+	
+	if (conf.includegravity)
+	{
+		glm::dvec3 gravity(0.0, 9.81, 0.0);
+		local_acc = glm::dvec3(-glm::dot(gravity, left), glm::dot(gravity, up), glm::dot(gravity, front));
+	}
+
+	if (conf.latposbased)
+		local_acc.x -= glm::dot(acc, left);
+	else
+		local_acc.x -= t->Occupied()->AccN;
+
+	local_acc.y += glm::dot(acc, up) + t->Occupied()->AccVert * conf.axlebumpscale;
+
+	if (conf.fwdposbased)
+		local_acc.z += glm::dot(acc, front);
+	else
+		local_acc.z += t->Occupied()->AccSVBased;
+
+	local_acc /= 9.81;
+
+	// roll calculation, maybe too complicated?
+
+	// transform to left-handed
+	front.z *= -1;
+	up.z *= -1;
+
+	// make sure that vectors are orthonormal
+	glm::dvec3 oright = glm::normalize(glm::cross(up, front));
+	glm::dvec3 oup = glm::cross(front, oright);
+
+	// right and up vector without roll
+	glm::dvec3 right0 = glm::normalize(glm::cross(glm::dvec3(0.0, 1.0, 0.0), front));
+	glm::dvec3 up0 = glm::cross(front, right0);
+
+	double cosroll = glm::dot(up0, oup);
+	double sinroll;
+
+	if (abs(right0.x) > abs(right0.y) && abs(right0.x) > abs(right0.z))
+		sinroll = (up0.x * cosroll - oup.x) / right0.x;
+	else if (abs(right0.y) > abs(right0.x) && abs(right0.y) > abs(right0.z))
+		sinroll = (up0.y * cosroll - oup.y) / right0.y;
+	else
+		sinroll = (up0.z * cosroll - oup.z) / right0.z;
+
+	glm::dvec3 rot(asin(-front.y), atan2(front.x, front.z), asin(sinroll));
+
+	double velocity = t->Occupied()->V;
+	double yaw_vel = (rot.y - last_yaw) / dt;
+
+	last_yaw = rot.y;
+	last_pos = pos;
+	last_vel = vel;
 
 	if (t->Occupied()->ActiveCab < 0)
 	{
 		velocity *= -1;
-		forward *= -1;
-		lateral *= -1;
+		local_acc.x *= -1;
+		local_acc.z *= -1;
+		yaw_vel *= -1;
+		rot *= -1;
 	}
 
-	WriteLog("forward: " + std::to_string(forward) + ", lateral: " + std::to_string(lateral) + ", vertical: " + std::to_string(vertical));
+	float buffer[12] = { 0 };
+	buffer[0] = Timer::GetTime();
+	buffer[1] = velocity;
+	buffer[2] = local_acc.y;
+	buffer[3] = local_acc.z;
+	buffer[4] = local_acc.x;
+	buffer[5] = glm::degrees(rot.x);
+	buffer[6] = glm::degrees(rot.z);
+	buffer[7] = glm::degrees(rot.y);
+	buffer[8] = yaw_vel;
+	buffer[9] = 1.0f;
+
+	if (send(sock, (char*)buffer, sizeof(buffer), 0) == -1)
+		WriteLog("motiontelemetry: socket send failed");
 }
