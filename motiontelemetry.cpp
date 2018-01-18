@@ -20,11 +20,8 @@ motiontelemetry::motiontelemetry()
 	struct addrinfo hints, *res;
 	memset(&hints, 0, sizeof(hints));
 
-	protoent *pe = getprotobyname(conf.proto.c_str());
-	if (!pe)
-		throw std::runtime_error("motiontelemetry: unknown protocol");
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = pe->p_proto;
+	hints.ai_socktype = (conf.proto == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
 
 	if (getaddrinfo(conf.address.c_str(), conf.port.c_str(), &hints, &res))
 		throw std::runtime_error("motiontelemetry: getaddrinfo failed");
