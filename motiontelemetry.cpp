@@ -24,7 +24,7 @@ motiontelemetry::motiontelemetry()
 	if (!pe)
 		throw std::runtime_error("motiontelemetry: unknown protocol");
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_socktype = pe->p_proto;
 
 	if (getaddrinfo(conf.address.c_str(), conf.port.c_str(), &hints, &res))
 		throw std::runtime_error("motiontelemetry: getaddrinfo failed");
