@@ -589,8 +589,12 @@ opengl_texture::create() {
             }
         }
 
-        data = std::vector<char>();
-        data_state = resource_state::none;
+        if( ( true == Global::ResourceMove )
+         || ( false == Global::ResourceSweep ) ) {
+            // if garbage collection is disabled we don't expect having to upload the texture more than once
+            data = std::vector<char>();
+            data_state = resource_state::none;
+        }
         is_ready = true;
     }
 
@@ -599,11 +603,14 @@ opengl_texture::create() {
 
 // releases resources allocated on the opengl end, storing local copy if requested
 void
-opengl_texture::release( bool const Backup ) {
+opengl_texture::release() {
 
     if( id == -1 ) { return; }
 
-    if( true == Backup ) {
+    if( true == Global::ResourceMove ) {
+        // if resource move is enabled we don't keep a cpu side copy after upload
+        // so need to re-acquire the data before release
+        // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
         ::glBindTexture( GL_TEXTURE_2D, id );
         GLint datasize {};
         GLint iscompressed {};

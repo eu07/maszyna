@@ -4472,12 +4472,27 @@ TTrain::update_sounds( double const Deltatime ) {
      && ( false == Global::CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
-        volume = rsRunningNoise.m_amplitudeoffset + rsRunningNoise.m_amplitudefactor * mvOccupied->Vel;
-        auto frequency { rsRunningNoise.m_frequencyoffset + rsRunningNoise.m_frequencyfactor * mvOccupied->Vel };
+        // frequency calculation
+        auto const normalizer { (
+            true == rsRunningNoise.is_combined() ?
+                mvOccupied->Vmax * 0.01f :
+                1.f ) };
+        auto const frequency {
+            rsRunningNoise.m_frequencyoffset
+            + rsRunningNoise.m_frequencyfactor * mvOccupied->Vel * normalizer };
 
+        // volume calculation
+        volume =
+            rsRunningNoise.m_amplitudeoffset
+            + rsRunningNoise.m_amplitudefactor * mvOccupied->Vel;
         if( std::abs( mvOccupied->nrot ) > 0.01 ) {
             // hamulce wzmagaja halas
-            volume *= 1 + 0.25 * ( mvOccupied->UnitBrakeForce / ( 1 + mvOccupied->MaxBrakeForce ) );
+            auto const brakeforceratio { (
+            clamp(
+                mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
+                0.0, 1.0 ) ) };
+
+            volume *= 1 + 0.125 * brakeforceratio;
         }
         // scale volume by track quality
         volume *= ( 20.0 + DynamicObject->MyTrack->iDamageFlag ) / 21;
@@ -4489,10 +4504,16 @@ TTrain::update_sounds( double const Deltatime ) {
                 clamp(
                     mvOccupied->Vel / 40.0,
                     0.0, 1.0 ) );
-        rsRunningNoise
-            .pitch( frequency )
-            .gain( volume )
-            .play( sound_flags::exclusive | sound_flags::looping );
+
+        if( volume > 0.05 ) {
+            rsRunningNoise
+                .pitch( frequency )
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsRunningNoise.stop();
+        }
     }
     else {
         // don't play the optional ending sound if the listener switches views

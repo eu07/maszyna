@@ -214,6 +214,8 @@ public:
     static bool bSmoothTraction; // wygładzanie drutów
     static float SplineFidelity; // determines segment size during conversion of splines to geometry
     static GLfloat FogColor[];
+    static bool ResourceSweep; // gfx resource garbage collection
+    static bool ResourceMove; // gfx resources are moved between cpu and gpu side instead of sending a copy
     // sound renderer variables
     static bool bSoundEnabled;
     static float AudioVolume;

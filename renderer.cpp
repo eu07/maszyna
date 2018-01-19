@@ -1325,6 +1325,10 @@ opengl_renderer::Render( world_environment *Environment ) {
         // turn on moon shadows after nautical twilight, if the moon is actually up
         m_shadowcolor = glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f };
     }
+    // soften shadows depending on sky overcast factor
+    m_shadowcolor = glm::min(
+        colors::white,
+        m_shadowcolor + glm::vec4{ glm::vec3{ 0.5f * Global::Overcast }, 1.f } );
 
     if( Global::bWireFrame ) {
         // bez nieba w trybie rysowania linii
@@ -3362,7 +3366,8 @@ opengl_renderer::Update( double const Deltatime ) {
                 ::glEnable( GL_MULTISAMPLE );
     }
 
-    if( true == World.InitPerformed() ) {
+    if( ( true == Global::ResourceSweep )
+     && ( true == World.InitPerformed() ) ) {
         // garbage collection
         m_geometry.update();
         m_textures.update();

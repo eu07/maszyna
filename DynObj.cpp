@@ -3697,6 +3697,7 @@ void TDynamicObject::RenderSounds() {
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
+     && ( false == rsOuterNoise.empty() )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
         FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
         // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
@@ -3705,9 +3706,19 @@ void TDynamicObject::RenderSounds() {
         Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
         false ) ) {
 
-        volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
-        frequency = rsOuterNoise.m_frequencyfactor * MoverParameters->Vel + rsOuterNoise.m_frequencyoffset;
+        // frequency calculation
+        auto const normalizer { (
+            true == rsOuterNoise.is_combined() ?
+                MoverParameters->Vmax * 0.01f :
+                1.f ) };
+        frequency =
+            rsOuterNoise.m_frequencyoffset
+            + rsOuterNoise.m_frequencyfactor * MoverParameters->Vel * normalizer;
 
+        // volume calculation
+        volume =
+            rsOuterNoise.m_amplitudeoffset +
+            rsOuterNoise.m_amplitudefactor * MoverParameters->Vel;
         if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
             volume *= 1 + 0.125 * brakeforceratio;
@@ -3723,10 +3734,15 @@ void TDynamicObject::RenderSounds() {
                     MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) );
 
-        rsOuterNoise
-            .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
-            .gain( volume )
-            .play( sound_flags::exclusive | sound_flags::looping );
+        if( volume > 0.05 ) {
+            rsOuterNoise
+                .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsOuterNoise.stop();
+        }
     }
     else {
         // don't play the optional ending sound if the listener switches views
@@ -5524,12 +5540,13 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
          || ( Vehicle.EngineType == Dumb ) ) {
 
             // frequency calculation
-            auto normalizer { 1.f };
-            if( true == engine.is_combined() ) {
-                // for combined engine sound we calculate sound point in rpm, to make .mmd files setup easier
-                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                normalizer = 60.f * 0.01f;
-            }
+            auto const normalizer { (
+                true == engine.is_combined() ?
+                    // for combined engine sound we calculate sound point in rpm, to make .mmd files setup easier
+                    // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                    60.f * 0.01f :
+                    // for legacy single-piece sounds the standard frequency calculation is left untouched
+                    1.f ) };
             frequency =
                 engine.m_frequencyoffset
                 + engine.m_frequencyfactor * std::abs( Vehicle.enrot ) * normalizer;

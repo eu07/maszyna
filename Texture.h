@@ -30,7 +30,7 @@ struct opengl_texture {
         create();
     // releases resources allocated on the opengl end, storing local copy if requested
     void
-        release( bool const Backup = true );
+        release();
     inline
     int
         width() const {
