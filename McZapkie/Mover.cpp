@@ -4252,7 +4252,7 @@ double TMoverParameters::TractionForce(double dt)
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
                         }
                         break;
                     }
@@ -4267,7 +4267,7 @@ double TMoverParameters::TractionForce(double dt)
                             RventRot += ( RVentnmax * Im / ImaxLo - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
                         }
                         break;
                     }
@@ -4278,7 +4278,7 @@ double TMoverParameters::TractionForce(double dt)
                 } // rventtype
             } // mains
             else {
-                RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
             }
         }
 

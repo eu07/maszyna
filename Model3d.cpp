@@ -1166,7 +1166,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
     
     auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
 
-    if( glm::length2( offset ) < Geometrytestoffsetthreshold ) {
+    if( glm::length( offset ) < Geometrytestoffsetthreshold ) {
         // offset of zero generally means the submodel has optimized identity matrix
         // for such cases we resort to an estimate from submodel geometry
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here

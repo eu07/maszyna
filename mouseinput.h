@@ -34,10 +34,6 @@ private:
 
         user_command left;
         user_command right;
-
-        mouse_commands( user_command const Left, user_command const Right ):
-                                      left(Left),             right(Right)
-        {}
     };
 
     typedef std::unordered_map<std::string, mouse_commands> controlcommands_map;

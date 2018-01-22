@@ -464,6 +464,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
     PyDict_SetItemString( dict, "pantpress", PyGetFloat( mvControlled->PantPress ) );
     PyDict_SetItemString( dict, "universal3", PyGetBool( InstrumentLightActive ) );
+    PyDict_SetItemString( dict, "radio_channel", PyGetInt( iRadioChannel ) );
     // movement data
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
@@ -3079,6 +3080,13 @@ void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         Train->iRadioChannel = clamp( Train->iRadioChannel + 1, 1, 10 );
+        // visual feedback
+        Train->ggRadioChannelSelector.UpdateValue( Train->iRadioChannel - 1 );
+        Train->ggRadioChannelNext.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioChannelNext.UpdateValue( 0.0 );
     }
 }
 
@@ -3086,6 +3094,13 @@ void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         Train->iRadioChannel = clamp( Train->iRadioChannel - 1, 1, 10 );
+        // visual feedback
+        Train->ggRadioChannelSelector.UpdateValue( Train->iRadioChannel - 1 );
+        Train->ggRadioChannelPrevious.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioChannelPrevious.UpdateValue( 0.0 );
     }
 }
 
@@ -3283,9 +3298,7 @@ bool TTrain::Update( double const Deltatime )
     }
 
     if (DynamicObject->mdKabina)
-    { // Ra: TODO: odczyty klawiatury/pulpitu nie
-        // powinny być uzależnione od istnienia modelu
-        // kabiny
+    { // Ra: TODO: odczyty klawiatury/pulpitu nie powinny być uzależnione od istnienia modelu kabiny
         tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
         float maxtacho = 3;
@@ -3307,9 +3320,10 @@ bool TTrain::Update( double const Deltatime )
             if (fTachoCount < maxtacho)
                 fTachoCount += Deltatime * 3; // szybciej zacznij stukac
         }
-        else if (fTachoCount > 0)
-            fTachoCount -= Deltatime * 0.66; // schodz powoli - niektore haslery to ze 4
-        // sekundy potrafia stukac
+        else if( fTachoCount > 0 ) {
+            // schodz powoli - niektore haslery to ze 4 sekundy potrafia stukac
+            fTachoCount -= Deltatime * 0.66;
+        }
 
         // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys
 		if ((mvControlled->EngineType != DieselElectric)
@@ -4170,6 +4184,9 @@ bool TTrain::Update( double const Deltatime )
         ggConverterFuseButton.Update();
         ggStLinOffButton.Update();
         ggRadioButton.Update();
+        ggRadioChannelSelector.Update();
+        ggRadioChannelPrevious.Update();
+        ggRadioChannelNext.Update();
         ggDepartureSignalButton.Update();
 
         ggPantFrontButton.Update();
@@ -5162,6 +5179,10 @@ void TTrain::clear_cab_controls()
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
     ggStLinOffButton.Clear();
+    ggRadioButton.Clear();
+    ggRadioChannelSelector.Clear();
+    ggRadioChannelPrevious.Clear();
+    ggRadioChannelNext.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
     ggDepartureSignalButton.Clear();
@@ -5299,6 +5320,7 @@ void TTrain::set_cab_controls() {
     if( true == mvOccupied->Radio ) {
         ggRadioButton.PutValue( 1.0 );
     }
+    ggRadioChannelSelector.PutValue( iRadioChannel - 1 );
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
         ggPantFrontButton.PutValue(
@@ -5630,6 +5652,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "converteroff_sw:", ggConverterOffButton },
         { "main_sw:", ggMainButton },
         { "radio_sw:", ggRadioButton },
+        { "radiochannel_sw:", ggRadioChannelSelector },
+        { "radiochannelprev_sw:", ggRadioChannelPrevious },
+        { "radiochannelnext_sw:", ggRadioChannelNext },
         { "pantfront_sw:", ggPantFrontButton },
         { "pantrear_sw:", ggPantRearButton },
         { "pantfrontoff_sw:", ggPantFrontButtonOff },

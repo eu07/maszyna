@@ -2975,7 +2975,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                             // crude bump simulation, drop down on even axles, move back up on the odd ones
                             MoverParameters->AccVert +=
                                 interpolate(
-                                    0.25, 0.50,
+                                    0.01, 0.05,
                                     clamp(
                                         GetVelocity() / ( 1 + MoverParameters->Vmax ),
                                         0.0, 1.0 ) )

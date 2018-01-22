@@ -105,7 +105,7 @@ TButton::model_offset() const {
 
     return (
         submodel != nullptr ?
-            submodel->offset( 1.f ) :
+            submodel->offset( 2.5f ) :
             glm::vec3() );
 }
 

@@ -164,7 +164,7 @@ state_manager::deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad
     std::string token { Input.getToken<std::string>() };
     if( token != "endatmo" ) {
         // optional overcast parameter
-        Global::Overcast = clamp( std::stof( token ), 0.f, 1.f );
+        Global::Overcast = clamp( std::stof( token ), 0.f, 2.f );
     }
     while( ( false == token.empty() )
         && ( token != "endatmo" ) ) {
