@@ -375,6 +375,15 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
+        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
+         || ( std::abs( scale.y - 1.0f ) > 0.01 )
+         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")", logtype::model );
+            m_normalizenormals = (
+                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
+                    rescale :
+                    normalize );
+        }
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -455,7 +464,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount));
+							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount), logtype::model );
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
@@ -467,7 +476,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 								--facecount; // o jeden trójkąt mniej
 								iNumVerts -= 3; // czyli o 3 wierzchołki
 								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"" );
+								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"", logtype::model );
 							}
                         }
 					}
@@ -506,14 +515,14 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                                 vertexnormal += facenormals[ adjacenvertextidx / 3 ];
                             }
                             else {
-                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling" );
+                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
                             }
                             // i szukanie od kolejnego trójkąta
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
                         }
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
                         if( glm::length2( vertexnormal ) == 0.0f ) {
-                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"" );
+                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"", logtype::model );
                         }
                         Vertices[ vertexidx ].normal = (
                             glm::length2( vertexnormal ) > 0.0f ?
@@ -1167,7 +1176,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
     
     auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
 
-    if( glm::length2( offset ) < Geometrytestoffsetthreshold ) {
+    if( glm::length( offset ) < Geometrytestoffsetthreshold ) {
         // offset of zero generally means the submodel has optimized identity matrix
         // for such cases we resort to an estimate from submodel geometry
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
@@ -1235,7 +1244,7 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)
 	{
-		ErrorLog("Failed to load 3d model \"" + FileName + "\"");
+		ErrorLog("Bad model: failed to load 3d model \"" + FileName + "\"");
 	}
 	return result;
 };
@@ -1518,6 +1527,11 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     if( submodel.eType < TP_ROTATOR ) {
                         // normal vectors debug routine
                         auto normallength = glm::length2( vertex.normal );
+                        if( ( false == submodel.m_normalizenormals )
+                         && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
+                            submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
+                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
+                        }
                     }
                 }
                 // remap geometry type for custom type submodels
@@ -1642,7 +1656,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             }
         }
         else {
-            ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
+            ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ), logtype::model );
             m_material = null_handle;
         }
     }
@@ -1679,12 +1693,21 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
+        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
+         || ( std::abs( scale.y - 1.0f ) > 0.01 )
+         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")", logtype::model );
+            m_normalizenormals = (
+                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
+                    rescale :
+                    normalize );
+        }
     }
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
-	WriteLog("Loading binary format 3d model data from \"" + FileName + "\"...");
+    WriteLog( "Loading binary format 3d model data from \"" + FileName + "\"...", logtype::model );
 	
 	std::string fn = FileName;
 	std::replace(fn.begin(), fn.end(), '\\', '/');
@@ -1699,12 +1722,12 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 	deserialize(file, size, dynamic);
 	file.close();
 
-	WriteLog("Finished loading 3d model data from \"" + FileName + "\"");
+    WriteLog( "Finished loading 3d model data from \"" + FileName + "\"", logtype::model );
 };
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego
-	WriteLog("Loading text format 3d model data from \"" + FileName + "\"...");
+    WriteLog( "Loading text format 3d model data from \"" + FileName + "\"...", logtype::model );
 	iFlags |= 0x0200; // wczytano z pliku tekstowego (właścicielami tablic są submodle)
 	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models\\"...
 	TSubModel *SubModel;

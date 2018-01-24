@@ -40,7 +40,7 @@ opengl_texture::load() {
 
     if( name.size() < 3 ) { goto fail; }
 
-    WriteLog( "Loading texture data from \"" + name + "\"" );
+    WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
 
     data_state = resource_state::loading;
     {
@@ -69,7 +69,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Failed to load texture \"" + name + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -138,7 +138,7 @@ opengl_texture::load_BMP() {
     BITMAPINFO info;
     unsigned int infosize = header.bfOffBits - sizeof( BITMAPFILEHEADER );
     if( infosize > sizeof( info ) ) {
-        WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
+        WriteLog( "Warning - BMP header is larger than expected, possible format difference.", logtype::texture );
     }
     file.read( (char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
 
@@ -147,7 +147,7 @@ opengl_texture::load_BMP() {
 
     if( info.bmiHeader.biCompression != BI_RGB ) {
 
-        ErrorLog( "Compressed BMP textures aren't supported." );
+        ErrorLog( "Bad texture: compressed BMP textures aren't supported.", logtype::texture );
         data_state = resource_state::failed;
         return;
     }
@@ -336,7 +336,7 @@ opengl_texture::load_DDS() {
 */
     if( datasize == 0 ) {
         // catch malformed .dds files
-        WriteLog( "File \"" + name + "\" is malformed and holds no texture data." );
+        WriteLog( "Bad texture: file \"" + name + "\" is malformed and holds no texture data.", logtype::texture );
         data_state = resource_state::failed;
         return;
     }
@@ -377,7 +377,7 @@ opengl_texture::load_TEX() {
         hasalpha = true;
     }
     else {
-        ErrorLog( "Unrecognized TEX texture sub-format: " + std::string(head) );
+        ErrorLog( "Bad texture: unrecognized TEX texture sub-format: " + std::string(head), logtype::texture );
         data_state = resource_state::failed;
         return;
     };
@@ -636,10 +636,12 @@ opengl_texture::create() {
             }
         }
 
-		// TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
-		data.clear();
-		data.shrink_to_fit();
-        data_state = resource_state::none;
+        if( ( true == Global::ResourceMove )
+         || ( false == Global::ResourceSweep ) ) {
+            // if garbage collection is disabled we don't expect having to upload the texture more than once
+            data = std::vector<char>();
+            data_state = resource_state::none;
+        }
         is_ready = true;
     }
 
@@ -648,19 +650,35 @@ opengl_texture::create() {
 
 // releases resources allocated on the opengl end, storing local copy if requested
 void
-opengl_texture::release( bool const Backup ) {
+opengl_texture::release() {
 
     if( id == -1 ) { return; }
 
-    if( true == Backup ) {
-        // query texture details needed to perform the backup...
+    if( true == Global::ResourceMove ) {
+        // if resource move is enabled we don't keep a cpu side copy after upload
+        // so need to re-acquire the data before release
+        // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
         ::glBindTexture( GL_TEXTURE_2D, id );
-        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint *)&data_format );
-        GLint datasize;
-        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&datasize );
-        data.resize( datasize );
-        // ...fetch the data...
-        ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+        GLint datasize {};
+        GLint iscompressed {};
+        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
+        if( iscompressed == GL_TRUE ) {
+            // texture is compressed on the gpu side
+            // query texture details needed to perform the backup...
+            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
+            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
+            data.resize( datasize );
+            // ...fetch the data...
+            ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+        }
+        else {
+            // for whatever reason texture didn't get compressed during upload
+            // fallback on plain rgba storage...
+            data_format = GL_RGBA;
+            data.resize( data_width * data_height * 4 );
+            // ...fetch the data...
+            ::glGetTexImage( GL_TEXTURE_2D, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
+        }
         // ...and update texture object state
         data_mapcount = 1; // we keep copy of only top mipmap level
         data_state = resource_state::good;
@@ -816,7 +834,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 
     if( true == filename.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
-        ErrorLog( "Texture file missing: \"" + Filename + "\"" );
+        ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
         return npos;
     }
 
@@ -831,7 +849,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( filename, textureindex );
 
-    WriteLog( "Created texture object for \"" + filename + "\"" );
+    WriteLog( "Created texture object for \"" + filename + "\"", logtype::texture );
 
     if( true == Loadnow ) {
 

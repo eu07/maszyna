@@ -1577,13 +1577,11 @@ TWorld::Update_UI() {
                     "vel: " + to_string( vehicle->GetVelocity(), 2 ) + "/" + to_string( vehicle->MoverParameters->nrot* M_PI * vehicle->MoverParameters->WheelDiameter * 3.6, 2 )
                     + " km/h;" + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "    " )
                     + " dist: " + to_string( vehicle->MoverParameters->DistCounter, 2 ) + " km"
-                    + "; pos: ("
-                    + to_string( vehicle->GetPosition().x, 2 ) + ", "
-                    + to_string( vehicle->GetPosition().y, 2 ) + ", "
-                    + to_string( vehicle->GetPosition().z, 2 ) + "), PM="
-                    + to_string( vehicle->MoverParameters->WheelFlat, 1 ) + " mm; enrot="
-                    + to_string( vehicle->MoverParameters->enrot * 60, 0 ) + " tmrot="
-                    + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 );
+                    + "; pos: [" + to_string( vehicle->GetPosition().x, 2 ) + ", " + to_string( vehicle->GetPosition().y, 2 ) + ", " + to_string( vehicle->GetPosition().z, 2 ) + "]"
+                    + ", PM=" + to_string( vehicle->MoverParameters->WheelFlat, 1 )
+                    + " mm; enrot=" + to_string( vehicle->MoverParameters->enrot * 60, 0 )
+                    + " tmrot=" + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 )
+                    + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot, 1 );
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
@@ -2207,14 +2205,14 @@ world_environment::update() {
     auto const skydomecolour = m_skydome.GetAverageColor();
     auto const skydomehsv = RGBtoHSV( skydomecolour );
     // sun strength is reduced by overcast level
-    keylightintensity *= ( 1.0f - Global::Overcast * 0.65f );
+    keylightintensity *= ( 1.0f - std::min( 1.f, Global::Overcast ) * 0.65f );
 
     // intensity combines intensity of the sun and the light reflected by the sky dome
     // it'd be more technically correct to have just the intensity of the sun here,
     // but whether it'd _look_ better is something to be tested
     auto const intensity = std::min( 1.15f * ( 0.05f + keylightintensity + skydomehsv.z ), 1.25f );
     // the impact of sun component is reduced proportionally to overcast level, as overcast increases role of ambient light
-    auto const diffuselevel = interpolate( keylightintensity, intensity * ( 1.0f - twilightfactor ), 1.0f - Global::Overcast * 0.75f );
+    auto const diffuselevel = interpolate( keylightintensity, intensity * ( 1.0f - twilightfactor ), 1.0f - std::min( 1.f, Global::Overcast ) * 0.75f );
     // ...update light colours and intensity.
     keylightcolor = keylightcolor * diffuselevel;
     Global::DayLight.diffuse = glm::vec4( keylightcolor, Global::DayLight.diffuse.a );

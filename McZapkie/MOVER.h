@@ -84,7 +84,7 @@ extern int ConversionError;
 const double Steel2Steel_friction = 0.15;      //tarcie statyczne
 const double g = 9.81;                     //przyspieszenie ziemskie
 const double SandSpeed = 0.1;              //ile kg/s}
-const double RVentSpeed = 0.4;             //rozpedzanie sie wentylatora obr/s^2}
+const double RVentSpeed = 3.5;             //rozpedzanie sie wentylatora obr/s^2}
 const double RVentMinI = 50.0;             //przy jakim pradzie sie wylaczaja}
 const double Pirazy2 = 6.2831853071794f;
 #define PI 3.1415926535897f
@@ -816,6 +816,7 @@ public:
 	double eimc[26];
 	bool EIMCLogForce; // 
     static std::vector<std::string> const eimc_labels;
+    double InverterFrequency { 0.0 }; // current frequency of power inverters
 	/*-dla wagonow*/
     double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
@@ -944,17 +945,21 @@ public:
 	bool InsideConsist = false;
 	/*-zmienne dla lokomotywy elektrycznej*/
 	TTractionParam RunningTraction;/*parametry sieci trakcyjnej najblizej lokomotywy*/
-	double enrot = 0.0;
-    double Im = 0.0;
-    double Itot = 0.0;
+	double enrot = 0.0; // ilosc obrotow silnika
+    double Im = 0.0; // prad silnika
+/*
+    // currently not used
     double IHeating = 0.0;
     double ITraction = 0.0;
+*/
+    double Itot = 0.0; // prad calkowity
     double TotalCurrent = 0.0;
+    // momenty
     double Mm = 0.0;
     double Mw = 0.0;
+    // sily napedne
     double Fw = 0.0;
     double Ft = 0.0;
-	/*ilosc obrotow, prad silnika i calkowity, momenty, sily napedne*/
 	//Ra: Im jest ujemny, jeśli lok jedzie w stronę sprzęgu 1
 	//a ujemne powinien być przy odwróconej polaryzacji sieci...
 	//w wielu miejscach jest używane abs(Im)

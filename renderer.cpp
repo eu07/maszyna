@@ -1325,6 +1325,10 @@ opengl_renderer::Render( world_environment *Environment ) {
         // turn on moon shadows after nautical twilight, if the moon is actually up
         m_shadowcolor = glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f };
     }
+    // soften shadows depending on sky overcast factor
+    m_shadowcolor = glm::min(
+        colors::white,
+        m_shadowcolor + glm::vec4{ glm::vec3{ 0.5f * Global::Overcast }, 1.f } );
 
     if( Global::bWireFrame ) {
         // bez nieba w trybie rysowania linii
@@ -1447,7 +1451,7 @@ opengl_renderer::Render( world_environment *Environment ) {
             GL_LIGHT_MODEL_AMBIENT,
             glm::value_ptr(
                 interpolate( Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f )
-                * ( 1.0f - Global::Overcast * 0.5f ) // overcast darkens the clouds
+                * interpolate( 1.f, 0.35f, Global::Overcast / 2.f ) // overcast darkens the clouds
                 * 2.5f // arbitrary adjustment factor
             ) );
         // render
@@ -3129,11 +3133,17 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         static_cast<float>( TSubModel::fSquareDist / Submodel->fSquareMaxDist ) ); // pozycja punktu świecącego względem kamery
                 Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.f, 0.f, -1.f, 1.f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
-                float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency is ~0.5 at full 'brightness'
+                float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
-
+                    // only bother if the viewer is inside the visibility cone
+                    if( Global::Overcast > 1.0 ) {
+                        // increase the glare in rainy/foggy conditions
+                        glarelevel += std::max( 0.f, 0.5f * ( Global::Overcast - 1.f ) );
+                    }
+                    // scale it down based on view angle
                     glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
-                    glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
+                    // reduce the glare in bright daylight
+                    glarelevel = clamp( glarelevel - static_cast<float>(Global::fLuminance), 0.f, 1.f );
 
                     if( glarelevel > 0.0f ) {
                         // setup
@@ -3360,7 +3370,8 @@ opengl_renderer::Update( double const Deltatime ) {
                 ::glEnable( GL_MULTISAMPLE );
     }
 
-    if( true == World.InitPerformed() ) {
+    if( ( true == Global::ResourceSweep )
+     && ( true == World.InitPerformed() ) ) {
         // garbage collection
         m_geometry.update();
         m_textures.update();

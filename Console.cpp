@@ -282,16 +282,16 @@ void Console::ValueSet(int x, double y)
         {
             x = Global::iPoKeysPWM[x];
             if (Global::iCalibrateOutDebugInfo == x)
-                WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y), false);
+                WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y));
             if (Global::fCalibrateOutMax[x] > 0)
             {
                 y = clamp( y, 0.0, Global::fCalibrateOutMax[x]);
                 if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" cutted=" + std::to_string(y), false);
+                    WriteLog(" cutted=" + std::to_string(y));
                 y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
                                                      // maksymalna wartość
                 if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" fraction=" + std::to_string(y), false);
+                    WriteLog(" fraction=" + std::to_string(y));
             }
             double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
                              Global::fCalibrateOut[x][3]) *

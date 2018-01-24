@@ -605,11 +605,12 @@ void TMoverParameters::BrakeLevelSet(double b)
     if (fBrakeCtrlPos == b)
         return; // nie przeliczać, jak nie ma zmiany
     fBrakeCtrlPos = b;
-    BrakeCtrlPosR = b;
     if (fBrakeCtrlPos < Handle->GetPos(bh_MIN))
         fBrakeCtrlPos = Handle->GetPos(bh_MIN); // odcięcie
     else if (fBrakeCtrlPos > Handle->GetPos(bh_MAX))
         fBrakeCtrlPos = Handle->GetPos(bh_MAX);
+    // TODO: verify whether BrakeCtrlPosR and fBrakeCtrlPos can be rolled into single variable
+    BrakeCtrlPosR = fBrakeCtrlPos;
     int x = static_cast<int>(std::floor(fBrakeCtrlPos)); // jeśli odwołujemy się do BrakeCtrlPos w pośrednich, to musi być
     // obcięte a nie zaokrągone
     while ((x > BrakeCtrlPos) && (BrakeCtrlPos < BrakeCtrlPosNo)) // jeśli zwiększyło się o 1
@@ -4237,46 +4238,24 @@ double TMoverParameters::TractionForce(double dt)
 */
     // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala predkosc wentylatorow)
     // wentylatory rozruchowe
-    // TODO: move this to update, it doesn't exactly have much to do with traction
-    if( true == Mains ) {
+    // TBD, TODO: move this to update, it doesn't exactly have much to do with traction
+    switch( EngineType ) {
 
-        switch( EngineType ) {
-            case ElectricInductionMotor: {
-                // TBD, TODO: currently ignores RVentType, fix this?
-                auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
-
-                if( ( RlistSize > 0 )
-                 && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
-                   || ( tmpV > 0.1 ) ) ) {
-
-                    int i = 0;
-                    while( ( i < RlistSize - 1 )
-                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
-                        ++i;
-                    }
-                    RventRot =
-                        ( tmpV - DElist[ i ].RPM )
-                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
-                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
-                        + DElist[ i ].GenPower;
-                }
-                else {
-                    RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
-                }
-                break;
-            }
-            case ElectricSeriesMotor: {
+        case ElectricSeriesMotor: {
+            if( true == Mains ) {
                 switch( RVentType ) {
+
                     case 1: { // manual
                         if( ( ActiveDir != 0 )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
                         }
                         break;
                     }
+
                     case 2: { // automatic
                         if( ( std::abs( Itot ) > RVentMinI )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
@@ -4287,30 +4266,36 @@ double TMoverParameters::TractionForce(double dt)
                             RventRot += ( RVentnmax * Im / ImaxLo - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
                         }
                         break;
                     }
+
                     default: {
                         break;
                     }
                 } // rventtype
+            } // mains
+            else {
+                RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
             }
-            case DieselElectric: {
+        }
+
+        case DieselElectric: {
+            if( true == Mains ) {
                 // TBD, TODO: currently ignores RVentType, fix this?
                 RventRot += clamp( DElist[ MainCtrlPos ].RPM - RventRot, -100.0, 50.0 ) * dt;
-                break;
             }
-            case DieselEngine:
-            default: {
-                break;
+            else {
+                RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
             }
-        } // enginetype
+            break;
+        }
+
+        default: {
+            break;
+        }
     }
-    else {
-        RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
-    }
-    RventRot = std::max( 0.0, RventRot );
 
     if (ActiveDir != 0)
         switch (EngineType)
@@ -4443,29 +4428,36 @@ double TMoverParameters::TractionForce(double dt)
             }
             else // jazda ciapongowa
             {
-
                 auto power = Power;
                 if( true == Heating ) { power -= HeatingPower; }
                 if( power < 0.0 ) { power = 0.0; }
-                tmp = std::min( DElist[ MainCtrlPos ].GenPower, power );// Power - HeatingPower * double( Heating ));
+                // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
+                auto const currentgenpower { (
+                    DElist[ MainCtrlPos ].RPM > 0 ?
+                        DElist[ MainCtrlPos ].GenPower * ( 60.0 * enrot / DElist[ MainCtrlPos ].RPM ) :
+                        0.0 ) };
+                    
+                tmp = std::min( power, currentgenpower );
 
-                PosRatio = DElist[MainCtrlPos].GenPower / DElist[MainCtrlPosNo].GenPower;
+                PosRatio = currentgenpower / DElist[MainCtrlPosNo].GenPower;
                 // stosunek mocy teraz do mocy max
-                if ((MainCtrlPos > 0) && (ConverterFlag))
-                    if (tmpV <
-                        (Vhyp * power /
-                         DElist[MainCtrlPosNo].GenPower)) // czy na czesci prostej, czy na hiperboli
-                        Ft = (Ftmax -
-                              ((Ftmax - 1000.0 * DElist[MainCtrlPosNo].GenPower / (Vhyp + Vadd)) *
-                               (tmpV / Vhyp) / PowerCorRatio)) *
-                             PosRatio; // posratio - bo sila jakos tam sie rozklada
+                if( ( MainCtrlPos > 0 ) && ( ConverterFlag ) ) {
 
-                    // Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower /
-                    //(Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //wersja z Megapacka
-                    else // na hiperboli                             //1.107 -
-                        // wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
-                        Ft = 1000.0 * tmp / (tmpV + Vadd) /
-                             PowerCorRatio; // tu jest zawarty stosunek mocy
+                    if( tmpV < ( Vhyp * power / DElist[ MainCtrlPosNo ].GenPower ) ) {
+                        // czy na czesci prostej, czy na hiperboli
+                        Ft = ( Ftmax
+                               - ( ( Ftmax - 1000.0 * DElist[ MainCtrlPosNo ].GenPower / ( Vhyp + Vadd ) )
+                                   * ( tmpV / Vhyp )
+                                   / PowerCorRatio ) )
+                            * PosRatio; // posratio - bo sila jakos tam sie rozklada
+                    }
+                    else {
+                        // na hiperboli
+                        // 1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
+                        Ft = 1000.0 * tmp / ( tmpV + Vadd ) /
+                            PowerCorRatio; // tu jest zawarty stosunek mocy
+                    }
+                }
                 else
                     Ft = 0; // jak nastawnik na zero, to sila tez zero
 
@@ -4506,32 +4498,40 @@ double TMoverParameters::TractionForce(double dt)
                     Im = DElist[MainCtrlPos].Imax;
                 }
 
-                if (Im > 0) // jak pod obciazeniem
-                    if (Flat) // ograniczenie napiecia w pradnicy - plaszczak u gory
-                        Voltage = 1000.0 * tmp / abs(Im);
-                    else // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
-
-                    {
-                        Voltage = sqrt(abs(square(DElist[MainCtrlPos].Umax) -
-                                           square(DElist[MainCtrlPos].Umax * Im /
-                                               DElist[MainCtrlPos].Imax))) *
-                                      (MainCtrlPos - 1) +
-                                  (1.0 - Im / DElist[MainCtrlPos].Imax) * DElist[MainCtrlPos].Umax *
-                                      (MainCtrlPosNo - MainCtrlPos);
-                        Voltage = Voltage / (MainCtrlPosNo - 1);
-                        Voltage = Min0R(Voltage, (1000.0 * tmp / abs(Im)));
-                        if (Voltage < (Im * 0.05))
-                            Voltage = Im * 0.05;
+                if( Im > 0 ) {
+                    // jak pod obciazeniem
+                    if( true == Flat ) {
+                        // ograniczenie napiecia w pradnicy - plaszczak u gory
+                        Voltage = 1000.0 * tmp / std::abs( Im );
                     }
-                if ((Voltage > DElist[MainCtrlPos].Umax) ||
-                    (Im == 0)) // gdy wychodzi za duze napiecie
-                    Voltage = DElist[MainCtrlPos].Umax *
-                              int(ConverterFlag); // albo przy biegu jalowym (jest cos takiego?)
+                    else {
+                        // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
+                        Voltage =
+                            std::sqrt(
+                                std::abs(
+                                    square( DElist[ MainCtrlPos ].Umax )
+                                    - square( DElist[ MainCtrlPos ].Umax * Im / DElist[ MainCtrlPos ].Imax ) ) )
+                            * ( MainCtrlPos - 1 )
+                            + ( 1.0 - Im / DElist[ MainCtrlPos ].Imax ) * DElist[ MainCtrlPos ].Umax * ( MainCtrlPosNo - MainCtrlPos );
+                        Voltage /= ( MainCtrlPosNo - 1 );
+                        Voltage = clamp(
+                            Voltage,
+                            Im * 0.05, ( 1000.0 * tmp / std::abs( Im ) ) );
+                    }
+                }
+
+                if( ( Voltage > DElist[ MainCtrlPos ].Umax )
+                 || ( Im == 0 ) ) {
+                    // gdy wychodzi za duze napiecie albo przy biegu jalowym (jest cos takiego?)
+                    Voltage = DElist[ MainCtrlPos ].Umax * ( ConverterFlag ? 1 : 0 ); 
+                }
 
                 EnginePower = Voltage * Im / 1000.0;
-
+/*
+                // NOTE: this part is experimentally disabled, as it generated early traction force drop for undetermined purpose
                 if ((tmpV > 2) && (EnginePower < tmp))
                     Ft = Ft * EnginePower / tmp;
+*/
             }
 
             if ((Imax > 1) && (Im > Imax))
@@ -4705,8 +4705,7 @@ double TMoverParameters::TractionForce(double dt)
                     MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
-            if ((Mains))
-            {
+            if( true == Mains ) {
 
                 dtrans = Hamulec->GetEDBCP();
                 if (((DoorLeftOpened) || (DoorRightOpened)))
@@ -4874,35 +4873,56 @@ double TMoverParameters::TractionForce(double dt)
                 Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
+                // power inverters
+                auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
+
+                if( ( RlistSize > 0 )
+                 && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
+                   || ( tmpV > 0.1 ) ) ) {
+
+                    int i = 0;
+                    while( ( i < RlistSize - 1 )
+                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
+                        ++i;
+                    }
+                    InverterFrequency =
+                        ( tmpV - DElist[ i ].RPM )
+                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
+                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
+                        + DElist[ i ].GenPower;
+                }
+                else {
+                    InverterFrequency = 0.0;
+                }
 
                 Mm = eimv[eimv_M] * DirAbsolute;
                 Mw = Mm * Transmision.Ratio;
                 Fw = Mw * 2.0 / WheelDiameter;
                 Ft = Fw * NPoweredAxles;
                 eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
-                //       RventRot;
-            }
+            } // mains
             else
             {
-                Im = 0;
-                Mm = 0;
-                Mw = 0;
-                Fw = 0;
-                Ft = 0;
-                Itot = 0;
-                dizel_fill = 0;
-                EnginePower = 0;
+                Im = 0.0;
+                Mm = 0.0;
+                Mw = 0.0;
+                Fw = 0.0;
+                Ft = 0.0;
+                Itot = 0.0;
+                dizel_fill = 0.0;
+                EnginePower = 0.0;
                 {
                     for (int i = 0; i < 21; ++i)
-                        eimv[i] = 0;
+                        eimv[i] = 0.0;
                 }
-                Hamulec->SetED(0);
-                RventRot = 0.0; //(Hamulec as TLSt).SetLBP(LocBrakePress);
+                Hamulec->SetED(0.0);
+                InverterFrequency = 0.0; //(Hamulec as TLSt).SetLBP(LocBrakePress);
             }
 			break;
         } // ElectricInductionMotor
+
         case None:
-        {
+        default: {
             break;
         }
         } // case EngineType

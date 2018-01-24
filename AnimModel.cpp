@@ -422,9 +422,8 @@ TAnimModel::~TAnimModel()
 bool TAnimModel::Init(TModel3d *pNewModel)
 {
     fBlinkTimer = double(Random(1000 * fOffTime)) / (1000 * fOffTime);
-    ;
     pModel = pNewModel;
-    return (pModel != NULL);
+    return (pModel != nullptr);
 }
 
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
@@ -578,10 +577,10 @@ void TAnimModel::RaPrepare()
         switch (lightmode)
         {
         case ls_Blink: // migotanie
-            state = fBlinkTimer < fOnTime;
+            state = ( fBlinkTimer < fOnTime );
             break;
         case ls_Dark: // zapalone, gdy ciemno
-            state = Global::fLuminance <= ( lsLights[i] - 3.0 );
+            state = ( Global::fLuminance <= ( lsLights[i] - 3.0 ) );
             break;
         default: // zapalony albo zgaszony
             state = (lightmode == ls_On);

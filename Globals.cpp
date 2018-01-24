@@ -115,6 +115,8 @@ std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction { true }; // wygładzanie drutów starym sposobem
 float Global::SplineFidelity { 1.f }; // determines segment size during conversion of splines to geometry
+bool Global::ResourceSweep { true }; // gfx resource garbage collection
+bool Global::ResourceMove { false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::DLFont{ false }; // switch indicating presence of basic font
@@ -138,7 +140,8 @@ float Global::AudioVolume = 1.5f;
 std::string Global::AudioRenderer;
 
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
-bool Global::MultipleLogs{ false };
+bool Global::MultipleLogs { false };
+unsigned int Global::DisabledLogTypes { 0 };
 
 // parametry do kalibracji
 // kolejno współczynniki dla potęg 0, 1, 2, 3 wartości odczytanej z urządzenia
@@ -321,6 +324,10 @@ void Global::ConfigParse(cParser &Parser)
         else if( token == "multiplelogs" ) {
             Parser.getTokens();
             Parser >> Global::MultipleLogs;
+        }
+        else if( token == "logs.filter" ) {
+            Parser.getTokens();
+            Parser >> Global::DisabledLogTypes;
         }
         else if( token == "adjustscreenfreq" )
         {
@@ -522,6 +529,16 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> splinefidelity;
             Global::SplineFidelity = clamp( splinefidelity, 1.f, 4.f );
+        }
+        else if( token == "gfx.resource.sweep" ) {
+
+            Parser.getTokens();
+            Parser >> Global::ResourceSweep;
+        }
+        else if( token == "gfx.resource.move" ) {
+
+            Parser.getTokens();
+            Parser >> Global::ResourceMove;
         }
         else if (token == "timespeed")
         {

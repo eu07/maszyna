@@ -2977,7 +2977,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                             // crude bump simulation, drop down on even axles, move back up on the odd ones
                             MoverParameters->AccVert +=
                                 interpolate(
-                                    0.25, 0.50,
+                                    0.01, 0.05,
                                     clamp(
                                         GetVelocity() / ( 1 + MoverParameters->Vmax ),
                                         0.0, 1.0 ) )
@@ -3699,6 +3699,7 @@ void TDynamicObject::RenderSounds() {
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
+     && ( false == rsOuterNoise.empty() )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
         FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
         // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
@@ -3707,12 +3708,22 @@ void TDynamicObject::RenderSounds() {
         Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
         false ) ) {
 
-        volume = rsOuterNoise.m_amplitudefactor * MoverParameters->Vel + rsOuterNoise.m_amplitudeoffset;
-        frequency = rsOuterNoise.m_frequencyfactor * MoverParameters->Vel + rsOuterNoise.m_frequencyoffset;
+        // frequency calculation
+        auto const normalizer { (
+            true == rsOuterNoise.is_combined() ?
+                MoverParameters->Vmax * 0.01f :
+                1.f ) };
+        frequency =
+            rsOuterNoise.m_frequencyoffset
+            + rsOuterNoise.m_frequencyfactor * MoverParameters->Vel * normalizer;
 
+        // volume calculation
+        volume =
+            rsOuterNoise.m_amplitudeoffset +
+            rsOuterNoise.m_amplitudefactor * MoverParameters->Vel;
         if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
-            volume *= 1 + 0.25 * brakeforceratio;
+            volume *= 1 + 0.125 * brakeforceratio;
         }
         // scale volume by track quality
         volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;
@@ -3725,10 +3736,15 @@ void TDynamicObject::RenderSounds() {
                     MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) );
 
-        rsOuterNoise
-            .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
-            .gain( volume )
-            .play( sound_flags::exclusive | sound_flags::looping );
+        if( volume > 0.05 ) {
+            rsOuterNoise
+                .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsOuterNoise.stop();
+        }
     }
     else {
         // don't play the optional ending sound if the listener switches views
@@ -3979,9 +3995,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
                 else {
                     // Ra: tu wczytywanie modelu ładunku jest w porządku
-                   if( false == asLoadName.empty() ) {
-                        // try first specialized version of the load model, vehiclename_loadname
-                        mdLoad = TModelsManager::GetModel( BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d", true );
+                    if( false == asLoadName.empty() ) {
+                         // try first specialized version of the load model, vehiclename_loadname
+                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d" };
+                        if( true == FileExists( specializedloadfilename ) ) {
+                            mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
+                        }
                         if( mdLoad == nullptr ) {
                             // if this fails, try generic load model
                             mdLoad = TModelsManager::GetModel( asLoadName, true );
@@ -4231,15 +4250,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                         { // gdy ktoś przesadził ze skalowaniem
                                             pants[i].fParamPants->fHeight =
                                                 0.0; // niech będzie odczyt z pantfactors:
-                                            ErrorLog("Bad model: " + asModel + ", scale of " +
-                                                     (sm->pName) + " is " +
-                                                     std::to_string(100.0 * det) + "%");
+                                            ErrorLog(
+                                                "Bad model: " + asModel + ", scale of " + (sm->pName) + " is " + std::to_string(100.0 * det) + "%",
+                                                logtype::model );
                                         }
                                     }
                                 }
                             }
                             else
-                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName); // brak ramienia
+                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model); // brak ramienia
                         }
                 }
 
@@ -4273,7 +4292,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                 }
                             }
                             else
-								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName ); // brak ramienia
+								ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model ); // brak ramienia
 						}
                     }
                 }
@@ -4579,16 +4598,19 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.motor.m_amplitudefactor /= amplitudedivisor;
                 }
 
-				else if( token == "ventilator:" ) {
+				else if( token == "inverter:" ) {
+					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
+                    m_powertrainsounds.inverter.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    m_powertrainsounds.inverter.owner( this );
+				}
+
+                else if( token == "ventilator:" ) {
 					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
                     m_powertrainsounds.rsWentylator.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
                     m_powertrainsounds.rsWentylator.owner( this );
 
-                    if( ( MoverParameters->EngineType == ElectricSeriesMotor )
-                     || ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
-                        m_powertrainsounds.rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
-                        m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
-                    }
+                    m_powertrainsounds.rsWentylator.m_amplitudefactor /= MoverParameters->RVentnmax;
+                    m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
 				}
 
 				else if(token == "transmission:") {
@@ -5503,12 +5525,13 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
          || ( Vehicle.EngineType == Dumb ) ) {
 
             // frequency calculation
-            auto normalizer { 1.f };
-            if( true == engine.is_combined() ) {
-                // for combined engine sound we calculate sound point in rpm, to make .mmd files setup easier
-                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                normalizer = 60.f * 0.01f;
-            }
+            auto const normalizer { (
+                true == engine.is_combined() ?
+                    // for combined engine sound we calculate sound point in rpm, to make .mmd files setup easier
+                    // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                    60.f * 0.01f :
+                    // for legacy single-piece sounds the standard frequency calculation is left untouched
+                    1.f ) };
             frequency =
                 engine.m_frequencyoffset
                 + engine.m_frequencyfactor * std::abs( Vehicle.enrot ) * normalizer;
@@ -5545,15 +5568,11 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             }
 
             if( engine_volume >= 0.05 ) {
-                engine
-                    .pitch( frequency )
-                    .gain( engine_volume )
-                    .play( sound_flags::exclusive | sound_flags::looping );
 
+                auto enginerevvolume { 0.f };
                 if( ( Vehicle.EngineType == DieselElectric )
                  || ( Vehicle.EngineType == DieselEngine ) ) {
-                    // diesel engine revolutions increase
-                    float enginerevvolume { 0 };
+                    // diesel engine revolutions increase; it can potentially decrease volume of base engine sound
                     if( engine_revs_last != -1.f ) {
                         // calculate potential recent increase of engine revolutions
                         auto const revolutionsperminute { Vehicle.enrot * 60 };
@@ -5568,25 +5587,36 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                          && ( revolutionsdifference > 1.0 * Deltatime ) ) {
                             engine_revs_change = clamp( engine_revs_change + 5.0 * Deltatime, 0.0, 1.25 );
                         }
-                        enginerevvolume = engine_revs_change;
+                        enginerevvolume = 0.8 * engine_revs_change;
                     }
                     engine_revs_last = Vehicle.enrot * 60;
 
-                    if( false == engine_revving.is_combined() ) {
-                        // if the sound comes with multiple samples we reuse rpm-based calculation from the engine
-                        frequency = engine_revving.m_frequencyoffset + engine_revving.m_frequencyfactor * 1.0;
-                    }
+                    auto const enginerevfrequency { (
+                        true == engine_revving.is_combined() ?
+                            // if the sound contains multiple samples we reuse rpm-based calculation from the engine
+                            frequency :
+                            engine_revving.m_frequencyoffset + 1.f * engine_revving.m_frequencyfactor ) };
 
                     if( enginerevvolume > 0.02 ) {
                         engine_revving
-                            .pitch( frequency )
+                            .pitch( enginerevfrequency )
                             .gain( enginerevvolume )
-                            .play( sound_flags::exclusive | sound_flags::looping );
+                            .play( sound_flags::exclusive );
                     }
                     else {
                         engine_revving.stop();
                     }
-                }
+                } // diesel engines
+
+                // multi-part revving sound pieces replace base engine sound, single revving simply gets mixed with the base
+                auto const enginevolume { (
+                    ( ( enginerevvolume > 0.02 ) && ( true == engine_revving.is_combined() ) ) ?
+                        std::max( 0.0, engine_volume - enginerevvolume ) :
+                        engine_volume ) };
+                engine
+                    .pitch( frequency )
+                    .gain( enginevolume )
+                    .play( sound_flags::exclusive | sound_flags::looping );
             } // enginevolume > 0.05
         }
         else {
@@ -5754,7 +5784,34 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( motor_volume < 0.05 ) {
         motor.stop();
     }
+    // inverter sounds
+    if( Vehicle.EngineType == ElectricInductionMotor ) {
+        if( Vehicle.InverterFrequency > 0.1 ) {
 
+            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) );
+
+            inverter
+                .pitch( inverter.m_frequencyoffset + inverter.m_frequencyfactor * Vehicle.InverterFrequency )
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            inverter.stop();
+        }
+    }
+    // ventillator sounds
+    if( Vehicle.RventRot > 0.1 ) {
+
+        rsWentylator
+            .pitch( rsWentylator.m_frequencyoffset + rsWentylator.m_frequencyfactor * Vehicle.RventRot )
+            .gain( rsWentylator.m_amplitudeoffset + rsWentylator.m_amplitudefactor * Vehicle.RventRot )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        // ...otherwise shut down the sound
+        rsWentylator.stop();
+    }
+    // relay sounds
     auto const soundflags { Vehicle.SoundFlag };
     if( TestFlag( soundflags, sound::relay ) ) {
         // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
@@ -5764,7 +5821,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 .pitch(
                     true == motor_shuntfield.is_combined() ?
                         Vehicle.ScndCtrlActualPos * 0.01f :
-                        motor_shuntfield.m_frequencyoffset + 1.f * motor_shuntfield.m_frequencyfactor )
+                        motor_shuntfield.m_frequencyoffset + motor_shuntfield.m_frequencyfactor * 1.f )
                 .gain(
                     motor_shuntfield.m_amplitudeoffset + (
                         true == TestFlag( soundflags, sound::loud ) ?
@@ -5788,7 +5845,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 .pitch(
                     true == motor_relay.is_combined() ?
                         Vehicle.MainCtrlActualPos * 0.01f :
-                        motor_relay.m_frequencyoffset + 1.f * motor_relay.m_frequencyfactor )
+                        motor_relay.m_frequencyoffset + motor_relay.m_frequencyfactor * 1.f )
                 .gain(
                     motor_relay.m_amplitudeoffset + (
                         true == TestFlag( soundflags, sound::loud ) ?
@@ -5799,32 +5856,11 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         }
     }
 
-    if( ( Vehicle.EngineType == ElectricSeriesMotor )
-     || ( Vehicle.EngineType == ElectricInductionMotor ) ) {
-
-        if( Vehicle.RventRot > 0.1 ) {
-            // play ventilator sound if the ventilators are rotating fast enough...
-            volume = (
-                Vehicle.EngineType == ElectricInductionMotor ?
-                    rsWentylator.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) ) + rsWentylator.m_amplitudeoffset :
-                    rsWentylator.m_amplitudefactor * Vehicle.RventRot + rsWentylator.m_amplitudeoffset );
-
-            rsWentylator
-                .pitch( rsWentylator.m_frequencyfactor * Vehicle.RventRot + rsWentylator.m_frequencyoffset )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            // ...otherwise shut down the sound
-            rsWentylator.stop();
-        }
-    }
-
     if( Vehicle.TrainType == dt_ET40 ) {
         if( Vehicle.Vel > 0.1 ) {
             transmission
-                .pitch( transmission.m_frequencyfactor * ( Vehicle.Vel ) + transmission.m_frequencyoffset  )
-                .gain( transmission.m_amplitudefactor * ( Vehicle.Vel ) + transmission.m_amplitudeoffset )
+                .pitch( transmission.m_frequencyoffset + transmission.m_frequencyfactor * Vehicle.Vel )
+                .gain( transmission.m_amplitudeoffset + transmission.m_amplitudefactor * Vehicle.Vel )
                 .play( sound_flags::exclusive | sound_flags::looping );
         }
         else {

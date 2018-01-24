@@ -342,6 +342,15 @@ mouse_input::default_bindings() {
         { "radio_sw:", {
             user_command::radiotoggle,
             user_command::none } },
+        { "radiochannel_sw:", {
+            user_command::radiochannelincrease,
+            user_command::radiochanneldecrease } },
+        { "radiochannelprev_sw:", {
+            user_command::radiochanneldecrease,
+            user_command::none } },
+        { "radiochannelnext_sw:", {
+            user_command::radiochannelincrease,
+            user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,
             user_command::none } },

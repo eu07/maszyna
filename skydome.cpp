@@ -274,8 +274,8 @@ void CSkyDome::RebuildColors() {
 		float const y = PerezFunctionO2( perezy, icostheta, gamma, cosgamma2, zenithy );
 
 		// luminance(Y) for clear & overcast sky
-		float const yclear = PerezFunctionO2( perezluminance, icostheta, gamma, cosgamma2, zenithluminance );
-		float const yover = zenithluminance * ( 1.0f + 2.0f * vertex.y ) / 3.0f;
+		float const yclear = std::max( 0.01f, PerezFunctionO2( perezluminance, icostheta, gamma, cosgamma2, zenithluminance ) );
+		float const yover = std::max( 0.01f, zenithluminance * ( 1.0f + 2.0f * vertex.y ) / 3.0f );
 		
 		float const Y = interpolate( yclear, yover, m_overcast );
 		float const X = (x / y) * Y;  

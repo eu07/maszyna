@@ -90,7 +90,6 @@ class TTrain
     void UpdateMechPosition(double dt);
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
-    void update_sounds( double const Deltatime );
     void MechStop();
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
@@ -115,6 +114,10 @@ class TTrain
     bool is_eztoer() const;
     // locates nearest vehicle belonging to the consist
     TDynamicObject *find_nearest_consist_vehicle() const;
+    // moves train brake lever to specified position, potentially emits switch sound if conditions are met
+    void set_train_brake( double const Position );
+    // update function subroutines
+    void update_sounds( double const Deltatime );
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -269,6 +272,9 @@ public: // reszta może by?publiczna
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
     TGauge ggStLinOffButton;
     TGauge ggRadioButton;
+    TGauge ggRadioChannelSelector;
+    TGauge ggRadioChannelPrevious;
+    TGauge ggRadioChannelNext;
     TGauge ggUpperLightButton;
     TGauge ggLeftLightButton;
     TGauge ggRightLightButton;
@@ -378,6 +384,10 @@ public: // reszta może by?publiczna
     TButton btLampkaHamienie;
     TButton btLampkaBrakingOff;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
+    TButton btLampkaBrakeProfileG; // cargo train brake acting speed
+    TButton btLampkaBrakeProfileP; // passenger train brake acting speed
+    TButton btLampkaBrakeProfileR; // rapid brake acting speed
+
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -469,7 +479,6 @@ private:
 
     double fPoslizgTimer;
     TTrack *tor;
-    int keybrakecount;
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };
     float fTachoVelocityJump{ 0.0f }; // ze skakaniem

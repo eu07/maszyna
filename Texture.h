@@ -30,7 +30,7 @@ struct opengl_texture {
         create();
     // releases resources allocated on the opengl end, storing local copy if requested
     void
-        release( bool const Backup = true );
+        release();
     inline
     int
         width() const {
@@ -63,7 +63,7 @@ private:
     int data_width{ 0 },
         data_height{ 0 },
         data_mapcount{ 0 };
-    GLuint data_format{ 0 },
+    GLint data_format{ 0 },
         data_components{ 0 };
 /*
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed

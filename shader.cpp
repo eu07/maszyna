@@ -20,7 +20,7 @@ inline bool strcend(std::string const &value, std::string const &ending)
 
 gl_shader::gl_shader(std::string filename)
 {
-	WriteLog("loading shader " + filename + " ..", false);
+	WriteLog("loading shader " + filename + " ..");
 
 	std::stringstream stream;
 	std::ifstream f;

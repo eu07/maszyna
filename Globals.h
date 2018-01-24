@@ -181,6 +181,7 @@ public:
     static std::string asCurrentDynamicPath;
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     static bool MultipleLogs;
+    static unsigned int DisabledLogTypes;
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static std::string asHumanCtrlVehicle;
     // world environment
@@ -212,6 +213,8 @@ public:
     static bool bSmoothTraction; // wygładzanie drutów
     static float SplineFidelity; // determines segment size during conversion of splines to geometry
     static GLfloat FogColor[];
+    static bool ResourceSweep; // gfx resource garbage collection
+    static bool ResourceMove; // gfx resources are moved between cpu and gpu side instead of sending a copy
     // sound renderer variables
     static bool bSoundEnabled;
     static float AudioVolume;

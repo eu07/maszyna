@@ -71,7 +71,7 @@ void TButton::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pMod
     if( ( pModelOn  == nullptr )
      && ( pModelOff == nullptr ) ) {
         // if we failed to locate even one state submodel, cry
-        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + pModel1->NameGet() + "\"" );
+        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + pModel1->NameGet() + "\"", logtype::model );
     }
 
     // pass submodel location to defined sounds
@@ -105,7 +105,7 @@ TButton::model_offset() const {
 
     return (
         submodel != nullptr ?
-            submodel->offset( 1.f ) :
+            submodel->offset( 2.5f ) :
             glm::vec3() );
 }
 
