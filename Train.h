@@ -211,6 +211,7 @@ class TTrain
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiostopsend( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
@@ -274,6 +275,8 @@ public: // reszta może by?publiczna
     TGauge ggRadioChannelSelector;
     TGauge ggRadioChannelPrevious;
     TGauge ggRadioChannelNext;
+    TGauge ggRadioTest;
+    TGauge ggRadioStop;
     TGauge ggUpperLightButton;
     TGauge ggLeftLightButton;
     TGauge ggRightLightButton;
@@ -357,6 +360,7 @@ public: // reszta może by?publiczna
     TButton btLampkaUkrotnienie;
     TButton btLampkaHamPosp;
     TButton btLampkaRadio;
+    TButton btLampkaRadioStop;
     TButton btLampkaHamowanie1zes;
     TButton btLampkaHamowanie2zes;
     TButton btLampkaOpory;
@@ -458,6 +462,7 @@ public: // reszta może by?publiczna
     sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<sound_source> m_radiomessages; // list of currently played radio messages
+    sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?

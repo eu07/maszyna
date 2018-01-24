@@ -915,14 +915,12 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     smWahacze[i]->SetRotate(float3(1, 0, 0),
                                             fWahaczeAmp * cos(MoverParameters->eAngle));
         
-		if (Mechanik) {
+		if( ( Mechanik != nullptr )
+         && ( Mechanik->GetAction() != actSleep ) ) {
             // rysowanie figurki mechanika
-            if( MoverParameters->ActiveCab > 0 ) {
-                btMechanik1.Turn( true );
-                btnOn = true;
-            }
-            if( MoverParameters->ActiveCab < 0 ) {
-                btMechanik2.Turn( true );
+            btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
+            btMechanik2.Turn( MoverParameters->ActiveCab < 0 );
+            if( MoverParameters->ActiveCab != 0 ) {
                 btnOn = true;
             }
         }
@@ -2309,7 +2307,7 @@ void TDynamicObject::Move(double fDistance)
                 { // liczymy proporcję
                     double d = Axle0.GetTranslation(); // aktualne położenie na torze
                     if (Axle0.GetDirection() < 0)
-                        d = t0->fTrackLength - d; // od drugiej strony liczona długość
+                        d = t0->Length() - d; // od drugiej strony liczona długość
                     d /= fAxleDist; // rozsataw osi procentowe znajdowanie się na torze
 
                     float shadefrom = 1.0f, shadeto = 1.0f;
@@ -3483,9 +3481,9 @@ void TDynamicObject::RenderSounds() {
 
     if( Global::iPause != 0 ) { return; }
 
-    double const dt { Timer::GetDeltaRenderTime() };
-    double volume { 0.0 };
-    double frequency { 1.0 };
+    double const dt{ Timer::GetDeltaRenderTime() };
+    double volume{ 0.0 };
+    double frequency{ 1.0 };
 
     m_powertrainsounds.render( *MoverParameters, dt );
 
@@ -3493,8 +3491,8 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->ConverterFlag ) {
         frequency = (
             MoverParameters->EngineType == ElectricSeriesMotor ?
-                ( MoverParameters->RunningTraction.TractionVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
-                1.0 );
+            ( MoverParameters->RunningTraction.TractionVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
+            1.0 );
         frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
         sConverter
             .pitch( clamp( frequency, 0.5, 1.25 ) ) // arbitrary limits )
@@ -3526,7 +3524,7 @@ void TDynamicObject::RenderSounds() {
     // brake system and braking sounds:
     if( m_lastbrakepressure != -1.f ) {
         // calculate rate of pressure drop in brake cylinder, once it's been initialized
-        auto const brakepressuredifference { m_lastbrakepressure - MoverParameters->BrakePress };
+        auto const brakepressuredifference{ m_lastbrakepressure - MoverParameters->BrakePress };
         m_brakepressurechange = interpolate<float>( m_brakepressurechange, brakepressuredifference / dt, 0.005f );
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
@@ -3562,9 +3560,9 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->SlippingWheels ) {
 
         if( ( MoverParameters->UnitBrakeForce > 100.0 )
-         && ( GetVelocity() > 1.0 ) ) {
+            && ( GetVelocity() > 1.0 ) ) {
 
-            auto const velocitydifference { GetVelocity() / MoverParameters->Vmax };
+            auto const velocitydifference{ GetVelocity() / MoverParameters->Vmax };
             rsSlippery
                 .gain( rsSlippery.m_amplitudeoffset + rsSlippery.m_amplitudefactor * velocitydifference )
                 .play( sound_flags::exclusive | sound_flags::looping );
@@ -3582,10 +3580,10 @@ void TDynamicObject::RenderSounds() {
         sSand.stop();
     }
 
-    auto brakeforceratio { 0.0 };
+    auto brakeforceratio{ 0.0 };
     if( //( false == mvOccupied->SlippingWheels ) &&
         ( MoverParameters->UnitBrakeForce > 10.0 )
-     && ( MoverParameters->Vel > 0.05 ) ) {
+        && ( MoverParameters->Vel > 0.05 ) ) {
 
         brakeforceratio =
             clamp(
@@ -3639,7 +3637,7 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if( ( true == MoverParameters->DoorLeftOpened )
-     && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
+        && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x > 0.f ) {
@@ -3650,7 +3648,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( false == MoverParameters->DoorLeftOpened )
-     && ( dDoorMoveL > 0.01 ) ) {
+        && ( dDoorMoveL > 0.01 ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x > 0.f ) {
@@ -3661,7 +3659,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( true == MoverParameters->DoorRightOpened )
-     && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
+        && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x < 0.f ) {
@@ -3672,7 +3670,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( false == MoverParameters->DoorRightOpened )
-     && ( dDoorMoveR > 0.01 ) ) {
+        && ( dDoorMoveR > 0.01 ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x < 0.f ) {
@@ -3699,15 +3697,15 @@ void TDynamicObject::RenderSounds() {
     if( ( GetVelocity() > 0.5 )
      && ( false == rsOuterNoise.empty() )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
-        FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
-        // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
-        ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
-        ctOwner != Global::pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
-        Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
-        false ) ) {
+            FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
+            // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
+            ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
+            ctOwner != Global::pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
+            Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
+            false ) ) {
 
-        // frequency calculation
-        auto const normalizer { (
+            // frequency calculation
+        auto const normalizer{ (
             true == rsOuterNoise.is_combined() ?
                 MoverParameters->Vmax * 0.01f :
                 1.f ) };
@@ -3749,15 +3747,18 @@ void TDynamicObject::RenderSounds() {
         rsOuterNoise.stop( false == FreeFlyModeFlag );
     }
     // flat spot sound
-    if( ( GetVelocity() > 1.0 )
-     && ( MoverParameters->WheelFlat > 5.0 ) ) {
-        m_wheelflat
-            .pitch( m_wheelflat.m_frequencyoffset + std::abs( MoverParameters->nrot ) * m_wheelflat.m_frequencyfactor )
-            .gain( m_wheelflat.m_amplitudeoffset + m_wheelflat.m_amplitudefactor * ( ( 1.0 + ( MoverParameters->Vel / MoverParameters->Vmax ) + clamp( MoverParameters->WheelFlat / 60.0, 0.0, 1.0 ) ) / 3.0 ) )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        m_wheelflat.stop();
+    if( MoverParameters->CategoryFlag == 1 ) {
+        // trains only
+        if( ( GetVelocity() > 1.0 )
+         && ( MoverParameters->WheelFlat > 5.0 ) ) {
+            m_wheelflat
+                .pitch( m_wheelflat.m_frequencyoffset + std::abs( MoverParameters->nrot ) * m_wheelflat.m_frequencyfactor )
+                .gain( m_wheelflat.m_amplitudeoffset + m_wheelflat.m_amplitudefactor * ( ( 1.0 + ( MoverParameters->Vel / MoverParameters->Vmax ) + clamp( MoverParameters->WheelFlat / 60.0, 0.0, 1.0 ) ) / 3.0 ) )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            m_wheelflat.stop();
+        }
     }
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek

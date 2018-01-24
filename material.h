@@ -24,13 +24,20 @@ struct opengl_material {
 
     bool has_alpha { false }; // alpha state, calculated from presence of alpha in texture1
     std::string name;
-// methods:
+
+// methods
     bool
         deserialize( cParser &Input, bool const Loadnow );
+
 private:
+// methods
     // imports member data pair from the config file, overriding existing parameter values of lower priority
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
+
+// members
+    int priority1 { -1 }; // priority of last loaded primary texture
+    int priority2 { -1 }; // priority of last loaded secondary texture
 };
 
 class material_manager {

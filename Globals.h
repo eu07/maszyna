@@ -189,6 +189,7 @@ public:
     static double fFogStart;
     static double fFogEnd;
     static std::string Season; // season of the year, based on simulation date
+    static std::string Weather; // current weather
 
     // TODO: put these things in the renderer
     static float BaseDrawRange;

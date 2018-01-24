@@ -48,6 +48,7 @@ private:
     user_command m_mousecommandleft { user_command::none }; // last if any command issued with left mouse button
     user_command m_mousecommandright { user_command::none }; // last if any command issued with right mouse button
     double m_updaterate { 0.075 };
+    double m_updatedelay { 0.25 };
     double m_updateaccumulator { 0.0 };
     bool m_pickmodepanning { false }; // indicates mouse is in view panning mode
     glm::dvec2 m_cursorposition; // stored last cursor position, used for panning

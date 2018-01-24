@@ -4252,7 +4252,7 @@ double TMoverParameters::TractionForce(double dt)
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
+                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
                         }
                         break;
                     }
@@ -4260,14 +4260,30 @@ double TMoverParameters::TractionForce(double dt)
                     case 2: { // automatic
                         if( ( std::abs( Itot ) > RVentMinI )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+/*
                             RventRot += ( RVentnmax * abs( Itot ) / ( ImaxLo * RList[ MainCtrlActualPos ].Bn ) - RventRot ) * RVentSpeed * dt;
+*/
+                            RventRot = std::min(
+                                RVentnmax,
+                                RventRot
+                                + ( RVentnmax
+                                    * std::abs( Itot )
+                                    * std::min( 1.25, ( ( std::abs( Itot ) / NPoweredAxles ) / RVentMinI ) )
+                                    / ImaxLo
+                                    - RventRot )
+                                * RVentSpeed * dt );
+/*
+RventRot = std::min(
+RVentnmax,
+RventRot + ( ( std::abs( Itot ) / ( RList[ MainCtrlActualPos ].Bn * RList[ MainCtrlActualPos ].Mn ) ) / RVentMinI ) * RVentSpeed * dt );
+*/
                         }
                         else if( ( DynamicBrakeType == dbrake_automatic )
                               && ( true == DynamicBrakeFlag ) ) {
                             RventRot += ( RVentnmax * Im / ImaxLo - RventRot ) * RVentSpeed * dt;
                         }
                         else {
-                            RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
+                            RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
                         }
                         break;
                     }
@@ -4278,8 +4294,9 @@ double TMoverParameters::TractionForce(double dt)
                 } // rventtype
             } // mains
             else {
-                RventRot = std::max( 0.0, RventRot - RVentSpeed * dt );
+                RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
             }
+            break;
         }
 
         case DieselElectric: {
@@ -7739,6 +7756,8 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
         RVentnmax /= 60.0;
         extract_value( RVentCutOff, "RVentCutOff", Input, "" );
     }
+    extract_value( RVentMinI, "RVentMinI", Input, "" );
+    extract_value( RVentSpeed, "RVentSpeed", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {

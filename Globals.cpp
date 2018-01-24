@@ -68,6 +68,7 @@ double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 std::string Global::Season; // season of the year, based on simulation date
+std::string Global::Weather { "clear" }; // current weather
 
 float Global::BaseDrawRange { 2500.f };
 opengl_light Global::DayLight;

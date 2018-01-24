@@ -285,6 +285,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
+    { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
     { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
     { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
     { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
@@ -3104,11 +3105,33 @@ void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &
     }
 }
 
+void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        if( true == Train->mvOccupied->Radio ) {
+            simulation::Region->RadioStop( Train->Dynamic()->GetPosition() );
+        }
+        // visual feedback
+        Train->ggRadioStop.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioStop.UpdateValue( 0.0 );
+    }
+}
 
 void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        Train->Dynamic()->RadioStop();
+        if( Train->RadioChannel() == 10 ) {
+            Train->Dynamic()->RadioStop();
+        }
+        // visual feedback
+        Train->ggRadioTest.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioTest.UpdateValue( 0.0 );
     }
 }
 
@@ -3939,6 +3962,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
             btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
             btLampkaRadio.Turn(mvOccupied->Radio);
+            btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
             btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
             // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
             btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
@@ -3974,6 +3998,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMaxSila.Turn( false );
             btLampkaPrzekrMaxSila.Turn( false );
             btLampkaRadio.Turn( false );
+            btLampkaRadioStop.Turn( false );
             btLampkaHamulecReczny.Turn( false );
             btLampkaDoorLeft.Turn( false );
             btLampkaDoorRight.Turn( false );
@@ -4187,6 +4212,8 @@ bool TTrain::Update( double const Deltatime )
         ggRadioChannelSelector.Update();
         ggRadioChannelPrevious.Update();
         ggRadioChannelNext.Update();
+        ggRadioStop.Update();
+        ggRadioTest.Update();
         ggDepartureSignalButton.Update();
 
         ggPantFrontButton.Update();
@@ -4563,6 +4590,15 @@ TTrain::update_sounds( double const Deltatime ) {
         }
     }
 
+    // radiostop
+    if( ( true == mvOccupied->Radio )
+     && ( true == mvOccupied->RadioStopFlag ) ) {
+        m_radiostop.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        m_radiostop.stop();
+    }
+
     if( fTachoCount > 3.f ) {
         dsbHasler.play( sound_flags::exclusive | sound_flags::looping );
     }
@@ -4647,6 +4683,11 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // bzyczek shp:
                 dsbBuzzer.deserialize( parser, sound_type::single );
                 dsbBuzzer.owner( DynamicObject );
+            }
+            else if( token == "radiostop:" ) {
+                // radiostop
+                m_radiostop.deserialize( parser, sound_type::single );
+                m_radiostop.owner( DynamicObject );
             }
             else if (token == "slipalarm:")
             {
@@ -4787,7 +4828,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         &rsFadeSound, &rsRunningNoise,
-        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound
+        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound, &m_radiostop
     };
     for( auto sound : sounds ) {
         sound->offset( nullvector );
@@ -4966,6 +5007,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         }
         if( m_radiosound.offset() == nullvector ) {
             m_radiosound.offset( btLampkaRadio.model_offset() );
+        }
+        if( m_radiostop.offset() == nullvector ) {
+            m_radiostop.offset( m_radiosound.offset() );
         }
         auto const localbrakeoffset { ggLocalBrake.model_offset() };
         std::vector<sound_source *> localbrakesounds = {
@@ -5183,6 +5227,8 @@ void TTrain::clear_cab_controls()
     ggRadioChannelSelector.Clear();
     ggRadioChannelPrevious.Clear();
     ggRadioChannelNext.Clear();
+    ggRadioStop.Clear();
+    ggRadioTest.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
     ggDepartureSignalButton.Clear();
@@ -5242,6 +5288,7 @@ void TTrain::clear_cab_controls()
     btLampkaMaxSila.Clear();
     btLampkaPrzekrMaxSila.Clear();
     btLampkaRadio.Clear();
+    btLampkaRadioStop.Clear();
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
     btInstrumentLight.Clear();
@@ -5502,6 +5549,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-maxft:", btLampkaMaxSila },
         { "i-maxftt:", btLampkaPrzekrMaxSila },
         { "i-radio:", btLampkaRadio },
+        { "i-radiostop:", btLampkaRadioStop },
         { "i-manual_brake:", btLampkaHamulecReczny },
         { "i-door_blocked:", btLampkaBlokadaDrzwi },
         { "i-slippery:", btLampkaPoslizg },
@@ -5655,6 +5703,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },
         { "radiochannelnext_sw:", ggRadioChannelNext },
+        { "radiostop_sw:", ggRadioStop },
+        { "radiotest_sw:", ggRadioTest },
         { "pantfront_sw:", ggPantFrontButton },
         { "pantrear_sw:", ggPantRearButton },
         { "pantfrontoff_sw:", ggPantFrontButtonOff },

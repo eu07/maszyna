@@ -57,19 +57,27 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 ; // all work is done in the header
             }
         }
+        else if( key == Global::Weather ) {
+            // weather textures override generic and seasonal textures
+            while( true == deserialize_mapping( blockparser, 2, Loadnow ) ) {
+                ; // all work is done in the header
+            }
+        }
     }
     else if( key == "texture1:" ) {
         // TODO: full-fledged priority system
         if( ( texture1 == null_handle )
-         || ( Priority > 0 ) ) {
+         || ( Priority > priority1 ) ) {
             texture1 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
+            priority1 = Priority;
         }
     }
     else if( key == "texture2:" ) {
         // TODO: full-fledged priority system
         if( ( texture2 == null_handle )
-         || ( Priority > 0 ) ) {
+         || ( Priority > priority2 ) ) {
             texture2 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
+            priority2 = Priority;
         }
     }
 

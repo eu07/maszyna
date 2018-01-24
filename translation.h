@@ -66,6 +66,8 @@ static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "radiochannel_sw:", "radio channel" },
     { "radiochannelprev_sw:", "radio channel" },
     { "radiochannelnext_sw:", "radio channel" },
+    { "radiotest_sw:", "radiostop test" },
+    { "radiostop_sw:", "radiostop" },
     { "pantfront_sw:", "pantograph A" },
     { "pantrear_sw:", "pantograph B" },
     { "pantfrontoff_sw:", "pantograph A" },

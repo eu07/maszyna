@@ -629,11 +629,6 @@ void TWorld::OnKeyDown(int cKey) {
             Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
-    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) && ( Global::shiftState ) ) {
-        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy // added shift to prevent odd issue with glfw producing pause presses on its own
-        if( Controlled->MoverParameters->Radio )
-            simulation::Region->RadioStop( Camera.Pos );
-	}
     else {
 
         if( ( true == DebugModeFlag )
@@ -1424,15 +1419,16 @@ TWorld::Update_UI() {
                     uitextline4 +=
                         "Driver: Vd=" + to_string( vehicle->Mechanik->VelDesired, 0 )
                         + " Ad=" + to_string( vehicle->Mechanik->AccDesired, 2 )
-						+ " Ah=" + to_string( vehicle->Mechanik->fAccThreshold, 2 )
-						+ "@" + to_string( vehicle->Mechanik->fBrake_a0[0], 2 )
-						+ "+" + to_string( vehicle->Mechanik->fBrake_a1[0], 2 )
+                        + " Ah=" + to_string( vehicle->Mechanik->fAccThreshold, 2 )
+                        + "@" + to_string( vehicle->Mechanik->fBrake_a0[ 0 ], 2 )
+                        + "+" + to_string( vehicle->Mechanik->fBrake_a1[ 0 ], 2 )
                         + " Bd=" + to_string( vehicle->Mechanik->fBrakeDist, 0 )
                         + " Pd=" + to_string( vehicle->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( vehicle->Mechanik->VelNext, 0 )
                         + " VSl=" + to_string( vehicle->Mechanik->VelSignalLast, 0 )
                         + " VLl=" + to_string( vehicle->Mechanik->VelLimitLast, 0 )
-                        + " VRd=" + to_string( vehicle->Mechanik->VelRoad, 0 );
+                        + " VRd=" + to_string( vehicle->Mechanik->VelRoad, 0 )
+                        + " VRst=" + to_string( vehicle->Mechanik->VelRestricted, 0 );
 
                     if( ( vehicle->Mechanik->VelNext == 0.0 )
                      && ( vehicle->Mechanik->eSignNext ) ) {

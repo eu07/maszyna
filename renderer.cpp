@@ -1460,8 +1460,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         Render_Alpha( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         // post-render cleanup
-        GLfloat noambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, noambient );
+        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( colors::none ) );
         ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glDisable( GL_LIGHTING );
     }

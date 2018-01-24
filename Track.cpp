@@ -406,7 +406,12 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
     if (Global::iWriteLogEnabled & 4)
         WriteLog(str);
     parser->getTokens(4);
-    *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
+    float discard {};
+    *parser
+        >> discard
+        >> fTrackWidth
+        >> fFriction
+        >> fSoundDistance;
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
     *parser >> iQualityFlag >> iDamageFlag;
@@ -485,30 +490,40 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             p2.y += 0.18;
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
-        if( fRadius != 0 ) // gdy podany promień
-            segsize = clamp( std::fabs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+
+        if( ( ( ( p1 + p1 + p2 ) / 3.0 - p1 - cp1 ).Length() < 0.02 )
+         || ( ( ( p1 + p2 + p2 ) / 3.0 - p2 + cp1 ).Length() < 0.02 ) ) {
+            // "prostowanie" prostych z kontrolnymi, dokładność 2cm
+            cp1 = cp2 = Math3D::vector3( 0, 0, 0 );
+        }
+
+        if( fRadius != 0 ) {
+            // gdy podany promień
+            segsize = clamp( std::abs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+        }
         else {
             // HACK: crude check whether claimed straight is an actual straight piece
-            // NOTE: won't detect cases where control points are placed on the straight line formed by the ends, but, eh
             if( ( cp1 == Math3D::vector3() )
-             && ( cp1 == Math3D::vector3() ) ) {
+             && ( cp2 == Math3D::vector3() ) ) {
                 segsize = 10.0; // for straights, 10m per segment works good enough
             }
             else {
                 // HACK: divide roughly in 10 segments. 
-                segsize = clamp( fTrackLength * ( 0.1 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+                segsize = clamp( ( p1 - p2 ).Length() * ( 0.1 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
             }
         }
 
-        if ((((p1 + p1 + p2) / 3.0 - p1 - cp1).Length() < 0.02) ||
-            (((p1 + p2 + p2) / 3.0 - p2 + cp1).Length() < 0.02))
-            cp1 = cp2 = vector3(0, 0, 0); //"prostowanie" prostych z kontrolnymi, dokładność 2cm
+        if( ( cp1 == vector3( 0, 0, 0 ) )
+         && ( cp2 == vector3( 0, 0, 0 ) ) ) {
+            // Ra: hm, czasem dla prostego są podane...
+            // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
+            Segment->Init( p1, p2, segsize, r1, r2 );
+        }
+        else {
+            // gdy łuk (ustawia bCurve=true)
+            Segment->Init( p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2 );
+        }
 
-        if ((cp1 == vector3(0, 0, 0)) &&
-            (cp2 == vector3(0, 0, 0))) // Ra: hm, czasem dla prostego są podane...
-            Segment->Init(p1, p2, segsize, r1, r2); // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
-        else
-            Segment->Init(p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2); // gdy łuk (ustawia bCurve=true)
         if ((r1 != 0) || (r2 != 0))
             iTrapezoid = 1; // są przechyłki do uwzględniania w rysowaniu
         if (eType == tt_Table) // obrotnica ma doklejkę

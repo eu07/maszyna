@@ -71,6 +71,7 @@ enum class user_command {
     radiotoggle,
     radiochannelincrease,
     radiochanneldecrease,
+    radiostopsend,
     radiostoptest,
     cabchangeforward,
     cabchangebackward,

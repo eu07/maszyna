@@ -184,7 +184,7 @@ private:
     double fVelocity = -1.0; // ograniczenie prędkości // prędkość dla AI (powyżej rośnie prawdopowobieństwo wykolejenia)
 public:
     // McZapkie-100502:
-    double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
+//    double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
     double fRadius = 0.0; // promień, dla zwrotnicy kopiowany z tabeli
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
     TGroundNode *nFouling[ 2 ] = { nullptr, nullptr }; // współrzędne ukresu albo oporu kozła

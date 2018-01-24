@@ -253,18 +253,21 @@ void TSpeedPos::CommandCheck()
         break;
     default:
         // inna komenda w evencie skanowanym powoduje zatrzymanie i wysłanie tej komendy
-        iFlags &= ~(spShuntSemaphor | spPassengerStopPoint |
-                    spStopOnSBL); // nie manewrowa, nie przystanek, nie zatrzymać na SBL
-        fVelNext = 0.0; // jak nieznana komenda w komórce sygnałowej, to zatrzymujemy
+        // nie manewrowa, nie przystanek, nie zatrzymać na SBL
+        iFlags &= ~(spShuntSemaphor | spPassengerStopPoint | spStopOnSBL);
+        // jak nieznana komenda w komórce sygnałowej, to zatrzymujemy
+        fVelNext = 0.0;
     }
 };
 
 bool TSpeedPos::Update()
 {
-    if( fDist < 0.0 )
-        iFlags |= spElapsed; // trzeba zazanaczyć, że minięty
-    if (iFlags & spTrack) // road/track
-    {
+    if( fDist < 0.0 ) {
+        // trzeba zazanaczyć, że minięty
+        iFlags |= spElapsed;
+    }
+    if (iFlags & spTrack) {
+        // road/track
         if (trTrack) {
             // może być NULL, jeśli koniec toru (???)
             fVelNext = trTrack->VelocityGet(); // aktualizacja prędkości (może być zmieniana eventem)
@@ -301,10 +304,15 @@ bool TSpeedPos::Update()
             }
         }
     }
-    else if (iFlags & spEvent) // jeśli event
-    { // odczyt komórki pamięci najlepiej by było zrobić jako notyfikację, czyli zmiana komórki
-        // wywoła jakąś podaną funkcję
-        CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
+    else if (iFlags & spEvent) {
+        // jeśli event
+        if( ( ( iFlags & spElapsed ) == 0 )
+         || ( fVelNext == 0.0 ) ) {
+            // ignore already passed signals, but keep an eye on overrun stops
+            // odczyt komórki pamięci najlepiej by było zrobić jako notyfikację,
+            // czyli zmiana komórki wywoła jakąś podaną funkcję
+            CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
+        }
     }
     return false;
 };
@@ -1107,23 +1115,28 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         // koniec toru)
                     }
                 }
-                else if (sSpeedTable[i].iFlags & spStopOnSBL)
-                { // jeśli S1 na SBL
-                    if (mvOccupied->Vel < 2.0) // stanąć nie musi, ale zwolnić przynajmniej
-                        if (sSpeedTable[i].fDist < fMaxProximityDist) // jest w maksymalnym zasięgu
-                        {
-                            eSignSkip = sSpeedTable[i]
-                                            .evEvent; // to można go pominąć (wziąć drugą prędkosć)
-                            iDrivigFlags |= moveVisibility; // jazda na widoczność - skanować
-                            // możliwość kolizji i nie podjeżdżać
-                            // zbyt blisko
+                else if (sSpeedTable[i].iFlags & spStopOnSBL) {
+                    // jeśli S1 na SBL
+                    if( mvOccupied->Vel < 2.0 ) {
+                        // stanąć nie musi, ale zwolnić przynajmniej
+                        if( ( sSpeedTable[ i ].fDist < fMaxProximityDist )
+                         && ( TrackBlock() > 1000.0 ) ) {
+                            // jest w maksymalnym zasięgu to można go pominąć (wziąć drugą prędkosć)
+                            // as long as there isn't any obstacle in arbitrary view range
+                            eSignSkip = sSpeedTable[ i ].evEvent;
+                            // jazda na widoczność - skanować możliwość kolizji i nie podjeżdżać zbyt blisko
                             // usunąć flagę po podjechaniu blisko semafora zezwalającego na jazdę
-                            // ostrożnie interpretować sygnały - semafor może zezwalać na jazdę
-                            // pociągu z przodu!
+                            // ostrożnie interpretować sygnały - semafor może zezwalać na jazdę pociągu z przodu!
+                            iDrivigFlags |= moveVisibility;
+                            // store the ordered restricted speed and don't exceed it until the flag is cleared
+                            VelRestricted = sSpeedTable[ i ].evEvent->ValueGet( 2 );
                         }
-                    if (eSignSkip != sSpeedTable[i].evEvent) // jeśli ten SBL nie jest do pominięcia
-    // TODO sprawdzić do której zmiennej jest przypisywane v i zmienić to tutaj
-						v = sSpeedTable[i].evEvent->ValueGet(1); // to ma 0 odczytywać
+                    }
+                    if( eSignSkip != sSpeedTable[ i ].evEvent ) {
+                        // jeśli ten SBL nie jest do pominięcia to ma 0 odczytywać
+                        v = sSpeedTable[ i ].evEvent->ValueGet( 1 );
+                        // TODO sprawdzić do której zmiennej jest przypisywane v i zmienić to tutaj
+                    }
                 }
                 else if (sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
                 { // to semaphor
@@ -1230,41 +1243,42 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
                             }
                     }
-                    else if (!(sSpeedTable[i].iFlags & spSectionVel)) //jeśli jakiś event pasywny ale nie ograniczenie
-                        if (go == cm_Unknown) // jeśli nie było komendy wcześniej - pierwsza się liczy
-                            // - ustawianie VelSignal
-                        if (v < 0.0 ? true : v >= 1.0) // bo wartość 0.1 służy do hamowania tylko
-                            {
-                            go = cm_SetVelocity; // może odjechać
-                            // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo semafor może
-                            // być daleko
-                            // VelSignal=v; //nie do końca tak, to jest druga prędkość; -1 nie
-                            // wpisywać...
-                                if (VelSignal == 0.0)
-                                VelSignal = -1.0; // aby stojący ruszył
-                            if (sSpeedTable[i].fDist < 0.0) // jeśli przejechany
-                                {
-                                    VelSignal = (v != 0 ? -1.0 : 0.0);
-                                    // ustawienie, gdy przejechany jest lepsze niż
-                                    // wcale, ale to jeszcze nie to
-                                if (sSpeedTable[i].iFlags & spEvent) // jeśli event
-                                        if ((sSpeedTable[i].evEvent != eSignSkip) ?
-                                                true :
-                                            (sSpeedTable[i].fVelNext != 0.0)) // ale inny niż ten,
-                                        // na którym minięto
-                                        // S1, chyba że się
-                                        // już zmieniło
-                                        iDrivigFlags &= ~moveVisibility; // sygnał zezwalający na
-                                // jazdę wyłącza jazdę na
-                                // widoczność (S1 na SBL)
-
-								// usunąć jeśli nie jest ograniczeniem prędkości
-                                    sSpeedTable[i].iFlags =
-                                    0; // to można usunąć (nie mogą być usuwane w skanowaniu)
+                    else if( !( sSpeedTable[ i ].iFlags & spSectionVel ) ) {
+                        //jeśli jakiś event pasywny ale nie ograniczenie
+                        if( go == cm_Unknown ) {
+                            // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
+                            if( ( v < 0.0 )
+                             || ( v >= 1.0 ) ) {
+                                // bo wartość 0.1 służy do hamowania tylko
+                                go = cm_SetVelocity; // może odjechać
+                                // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo semafor może być daleko
+                                // VelSignal=v; //nie do końca tak, to jest druga prędkość; -1 nie wpisywać...
+                                if( VelSignal == 0.0 ) {
+                                    // aby stojący ruszył
+                                    VelSignal = -1.0;
+                                }
+                                if( sSpeedTable[ i ].fDist < 0.0 ) {
+                                    // jeśli przejechany
+                                    VelSignal = ( v == 0.0 ? 0.0 : -1.0 );
+                                    // ustawienie, gdy przejechany jest lepsze niż wcale, ale to jeszcze nie to
+                                    if( sSpeedTable[ i ].iFlags & spEvent ) {
+                                        // jeśli event
+                                        if( ( sSpeedTable[ i ].evEvent != eSignSkip )
+                                         || ( sSpeedTable[ i ].fVelNext != VelRestricted ) ) {
+                                            // ale inny niż ten, na którym minięto S1, chyba że się już zmieniło
+                                            // sygnał zezwalający na jazdę wyłącza jazdę na widoczność (po S1 na SBL)
+                                            iDrivigFlags &= ~moveVisibility;
+                                            // remove restricted speed
+                                            VelRestricted = -1.0;
+                                        }
+                                    }
+                                    // jeśli nie jest ograniczeniem prędkości to można usunąć
+                                    // (nie mogą być usuwane w skanowaniu)
+                                    sSpeedTable[ i ].iFlags = 0;
                                 }
                             }
-                            else if (sSpeedTable[i].evEvent->StopCommand())
-                            { // jeśli prędkość jest zerowa, a komórka zawiera komendę
+                            else if( sSpeedTable[ i ].evEvent->StopCommand() ) {
+                                // jeśli prędkość jest zerowa, a komórka zawiera komendę
                                 eSignNext = sSpeedTable[ i ].evEvent; // dla informacji
                                 if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
                                     // jeśli ma stać, dostaje komendę od razu
@@ -1276,6 +1290,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
                             }
+                        }
+                    }
                 } // jeśli nie ma zawalidrogi
             } // jeśli event
             if (v >= 0.0)
@@ -1366,7 +1382,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
         fVelDes = Min0R(fVelDes, VelLimitLast);
     if (VelRoad >= 0.0)
         fVelDes = Min0R(fVelDes, VelRoad);
-	// nastepnego semafora albo zwrotnicy to uznajemy, że mijamy W5
+    if( VelRestricted >= 0.0 )
+        fVelDes = Min0R( fVelDes, VelRestricted );
+    // nastepnego semafora albo zwrotnicy to uznajemy, że mijamy W5
     FirstSemaphorDist = d_to_next_sem; // przepisanie znalezionej wartosci do zmiennej
     return go;
 };
@@ -3740,7 +3758,6 @@ TController::UpdateSituation(double dt) {
 
     // check for potential colliders
     {
-        auto const collisionscanrange = 300.0 + fBrakeDist;
         auto rearvehicle = (
             pVehicles[ 0 ] == pVehicles[ 1 ] ?
                 pVehicles[ 0 ] :
@@ -3764,7 +3781,7 @@ TController::UpdateSituation(double dt) {
                 pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
                      1 :
                     -1 ),
-                collisionscanrange );
+                routescanrange );
         }
         else {
             // towards coupler 1
@@ -3782,7 +3799,7 @@ TController::UpdateSituation(double dt) {
                 pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
                     -1 :
                      1 ),
-                collisionscanrange );
+                routescanrange );
         }
     }
 

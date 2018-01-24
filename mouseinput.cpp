@@ -25,6 +25,10 @@ mouse_input::init() {
     DWORD systemkeyboardspeed;
     ::SystemParametersInfo( SPI_GETKEYBOARDSPEED, 0, &systemkeyboardspeed, 0 );
     m_updaterate = interpolate( 0.5, 0.04, systemkeyboardspeed / 31.0 );
+    DWORD systemkeyboarddelay;
+    ::SystemParametersInfo( SPI_GETKEYBOARDDELAY, 0, &systemkeyboarddelay, 0 );
+    m_updatedelay = interpolate( 0.25, 1.0, systemkeyboarddelay / 3.0 );
+
 #endif
     return true;
 }
@@ -139,7 +143,7 @@ mouse_input::button( int const Button, int const Action ) {
                         // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                         // TODO: pass correct entity id once the missing systems are in place
                         m_relay.post( mousecommand, 0, 0, Action, 0 );
-                        m_updateaccumulator = 0.0; // prevent potential command repeat right after issuing one
+                        m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
 
                         switch( mousecommand ) {
                             case user_command::mastercontrollerincrease:
@@ -183,23 +187,21 @@ mouse_input::poll() {
         updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::iWindowHeight ) );
     }
 
-    if( m_updateaccumulator < updaterate ) {
-        // too early for any work
-        return;
-    }
-    m_updateaccumulator -= updaterate;
+    while( m_updateaccumulator > updaterate ) {
 
-    if( m_mousecommandleft != user_command::none ) {
-        // NOTE: basic keyboard controls don't have any parameters
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-        // TODO: pass correct entity id once the missing systems are in place
-        m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
-    }
-    if( m_mousecommandright != user_command::none ) {
-        // NOTE: basic keyboard controls don't have any parameters
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-        // TODO: pass correct entity id once the missing systems are in place
-        m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+        if( m_mousecommandleft != user_command::none ) {
+            // NOTE: basic keyboard controls don't have any parameters
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+        }
+        if( m_mousecommandright != user_command::none ) {
+            // NOTE: basic keyboard controls don't have any parameters
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+        }
+        m_updateaccumulator -= updaterate;
     }
 }
 
@@ -350,6 +352,12 @@ mouse_input::default_bindings() {
             user_command::none } },
         { "radiochannelnext_sw:", {
             user_command::radiochannelincrease,
+            user_command::none } },
+        { "radiostop_sw:", {
+            user_command::radiostopsend,
+            user_command::none } },
+        { "radiotest_sw:", {
+            user_command::radiostoptest,
             user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,

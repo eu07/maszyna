@@ -152,7 +152,7 @@ class TSpeedPos
     inline
     void
         UpdateDistance( double dist ) {
-        fDist -= dist; }
+            fDist -= dist; }
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
@@ -224,7 +224,7 @@ private:
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
-    TAction eAction = actSleep; // aktualny stan
+    TAction eAction { actUnknown }; // aktualny stan
   public:
     inline 
     TAction GetAction() {
@@ -258,6 +258,7 @@ private:
     double VelLimitLast = -1.0; // prędkość zadana przez ograniczenie // ostatnie ograniczenie bez ograniczenia
     double VelRoad = -1.0; // aktualna prędkość drogowa (ze znaku W27) (PutValues albo komendą) // prędkość drogowa bez ograniczenia
     double VelNext = 120.0; // prędkość, jaka ma być po przejechaniu długości ProximityDist
+    double VelRestricted = -1.0; // speed of travel after passing a permissive signal at stop
   private:
     double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do punktu, <0:podana wartość
     double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora

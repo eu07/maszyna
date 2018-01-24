@@ -42,7 +42,7 @@ keyboard_input::recall_bindings() {
         { ";", GLFW_KEY_SEMICOLON }, { "'", GLFW_KEY_APOSTROPHE }, { "enter", GLFW_KEY_ENTER },
         { ",", GLFW_KEY_COMMA }, { ".", GLFW_KEY_PERIOD }, { "/", GLFW_KEY_SLASH },
         { "space", GLFW_KEY_SPACE },
-        { "insert", GLFW_KEY_INSERT },{ "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
+        { "pause", GLFW_KEY_PAUSE }, { "insert", GLFW_KEY_INSERT }, { "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
         // numpad block
         { "num_/", GLFW_KEY_KP_DIVIDE }, { "num_*", GLFW_KEY_KP_MULTIPLY }, { "num_-", GLFW_KEY_KP_SUBTRACT },
         { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
@@ -281,6 +281,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_R | keymodifier::shift },
         // radiochanneldecrease
         { GLFW_KEY_R },
+        // radiostopsend
+        { GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
         // radiostoptest
         { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         // cabchangeforward
