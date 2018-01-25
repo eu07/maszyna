@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Logs.h"
 #include "sn_utils.h"
+#include "renderer.h"
 
 namespace scene {
 

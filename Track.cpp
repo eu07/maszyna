@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
+#include "renderer.h"
 
 // 101206 Ra: trapezoidalne drogi i tory
 // 110720 Ra: rozprucie zwrotnicy i odcinki izolowane

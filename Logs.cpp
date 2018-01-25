@@ -11,6 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 
 #include "Globals.h"
+#include "mctools.h"
+#include "winheaders.h"
 
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
@@ -80,6 +82,7 @@ void WriteLog( const char *str, logtype const Type ) {
         output.flush();
     }
 
+#ifdef _WIN32
     if( Global::iWriteLogEnabled & 2 ) {
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN | FOREGROUND_INTENSITY );
@@ -87,6 +90,7 @@ void WriteLog( const char *str, logtype const Type ) {
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
     }
+#endif
 }
 
 // Ra: bezwarunkowa rejestracja poważnych błędów

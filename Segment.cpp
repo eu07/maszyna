@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 #include "Track.h"
+#include "renderer.h"
 
 //---------------------------------------------------------------------------
 

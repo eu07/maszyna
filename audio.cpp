@@ -9,11 +9,14 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 
+#include <sndfile.h>
+
 #include "audio.h"
 #include "Globals.h"
 #include "McZapkie/mctools.h"
 #include "Logs.h"
-#include <sndfile.h>
+#include "ResourceManager.h"
+#include "usefull.h"
 
 namespace audio {
 

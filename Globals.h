@@ -10,9 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "renderer.h"
+#include "opengllight.h"
 #include "dumb3d.h"
 #include "motiontelemetry.h"
+#include "Classes.h"
+#include "Float3d.h"
 
 // definicje klawiszy
 const int k_IncMainCtrl = 0; //[Num+]

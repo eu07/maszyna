@@ -20,6 +20,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
+#include "World.h"
+#include "messaging.h"
 
 TEvent::TEvent( std::string const &m ) :
                        asNodeName( m )

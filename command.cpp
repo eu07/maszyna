@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "Timer.h"
+#include "mctools.h"
 
 namespace simulation {
 

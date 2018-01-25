@@ -27,6 +27,8 @@ class sound_source;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
+class TWorld;
+class TCamera;
 
 namespace Mtable
 {

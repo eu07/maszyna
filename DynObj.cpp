@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Traction.h"
 #include "sound.h"
 #include "MdlMngr.h"
+#include "renderer.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)

@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "sound.h"
+#include "Camera.h"
 
 void
 control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {

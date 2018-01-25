@@ -5,7 +5,17 @@
 #include "Train.h"
 #include "Timer.h"
 #include "Driver.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
 #include <ws2tcpip.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
 
 motiontelemetry::motiontelemetry()
 {

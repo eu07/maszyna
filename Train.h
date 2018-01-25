@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
+#include "World.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
