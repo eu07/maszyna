@@ -18,54 +18,6 @@ enum class resource_state {
     failed
 };
 
-/*
-#include <vector>
-#include <algorithm>
-
-class Resource
-{
-
-  public:
-    virtual void Release() = 0;
-    double GetLastUsage() const
-    {
-        return _lastUsage;
-    }
-
-  protected:
-    void SetLastUsage(double const lastUsage)
-    {
-        _lastUsage = lastUsage;
-    }
-
-  private:
-      double _lastUsage = 0.0;
-};
-
-class ResourceManager
-{
-
-  public:
-    static void Register(Resource *resource);
-    static void Unregister(Resource *resource);
-
-    static void Sweep(double currentTime);
-    static void SetExpiry(double expiry)
-    {
-        _expiry = expiry;
-    }
-
-  private:
-    typedef std::vector<Resource *> Resources;
-
-    static double _expiry;
-    static double _lastUpdate;
-    static double _lastReport;
-
-    static Resources _resources;
-};
-*/
-
 using resource_timestamp = std::chrono::steady_clock::time_point;
 
 // takes containers providing access to specific element through operator[]

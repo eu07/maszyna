@@ -8,11 +8,13 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-
 #include "audiorenderer.h"
+
 #include "sound.h"
 #include "globals.h"
+#include "camera.h"
 #include "logs.h"
+#include "utilities.h"
 
 namespace audio {
 
@@ -94,7 +96,7 @@ openal_source::sync_with( sound_properties const &State ) {
 */
     // location
     properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global::pCameraPosition };
+    sound_distance = properties.location - glm::dvec3 { Global.pCameraPosition };
     if( sound_range > 0 ) {
         // range cutoff check
         auto const cutoffrange = (
@@ -122,7 +124,7 @@ openal_source::sync_with( sound_properties const &State ) {
         properties.soundproofing = State.soundproofing;
         properties.soundproofing_stamp = State.soundproofing_stamp;
 
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global::AudioVolume );
+        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global.AudioVolume );
     }
     if( sound_range > 0 ) {
         auto const rangesquared { sound_range * sound_range };
@@ -138,7 +140,7 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global::AudioVolume );
+            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global.AudioVolume );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
@@ -254,7 +256,7 @@ openal_renderer::init() {
     //
 //    ::alDistanceModel( AL_LINEAR_DISTANCE );
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
-    ::alListenerf( AL_GAIN, clamp( Global::AudioVolume, 1.f, 4.f ) );
+    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 1.f, 4.f ) );
     // all done
     m_ready = true;
     return true;
@@ -288,14 +290,14 @@ openal_renderer::update( double const Deltatime ) {
 
     // update listener
     glm::dmat4 cameramatrix;
-    Global::pCamera->SetMatrix( cameramatrix );
+    Global.pCamera->SetMatrix( cameramatrix );
     auto rotationmatrix { glm::mat3{ cameramatrix } };
     glm::vec3 const orientation[] = {
         glm::vec3{ 0, 0,-1 } * rotationmatrix ,
         glm::vec3{ 0, 1, 0 } * rotationmatrix };
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
 /*
-    glm::dvec3 const listenerposition { Global::pCameraPosition };
+    glm::dvec3 const listenerposition { Global.pCameraPosition };
     // not used yet
     glm::vec3 const velocity { ( listenerposition - m_listenerposition ) / Deltatime };
     m_listenerposition = listenerposition;
@@ -380,7 +382,7 @@ bool
 openal_renderer::init_caps() {
 
     // NOTE: default value of audio renderer variable is empty string, meaning argument of NULL i.e. 'preferred' device
-    m_device = ::alcOpenDevice( Global::AudioRenderer.c_str() );
+    m_device = ::alcOpenDevice( Global.AudioRenderer.c_str() );
     if( m_device == nullptr ) {
         ErrorLog( "Failed to obtain audio device" );
         return false;

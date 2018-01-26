@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "MWD.h" // maciek001: obsluga portu COM
 #include "PoKeys55.h"
-#include "mczapkie/mctools.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 // Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
@@ -166,7 +166,7 @@ int Console::On()
         break;
     }
 
-	if (Global::bMWDmasterEnable)
+	if (Global.bMWDmasterEnable)
 	{
 		WriteLog("Opening ComPort");
 		MWDComm = new TMWDComm();
@@ -289,7 +289,7 @@ void Console::BitsUpdate(int mask)
         }
         break;
 	}
-	if (Global::bMWDmasterEnable)
+	if (Global.bMWDmasterEnable)
 	{
 		// maciek001: MWDComm lampki i kontrolki
 		// out3: ogrzewanie sk?adu, opory rozruchowe, poslizg, zaluzjewent, -, -, czuwak, shp
@@ -343,7 +343,7 @@ void Console::BitsUpdate(int mask)
 
 bool Console::Pressed(int x)
 { // na razie tak - czyta się tylko klawiatura
-	if (glfwGetKey(Global::window, x) == GLFW_TRUE)
+	if (glfwGetKey(Global.window, x) == GLFW_TRUE)
 		return true;
 	else
 		return false;
@@ -354,79 +354,79 @@ void Console::ValueSet(int x, double y)
     if (iMode == 4)
         if (PoKeys55[0])
         {
-            x = Global::iPoKeysPWM[x];
-            if (Global::iCalibrateOutDebugInfo == x)
+            x = Global.iPoKeysPWM[x];
+            if (Global.iCalibrateOutDebugInfo == x)
                 WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y));
-            if (Global::fCalibrateOutMax[x] > 0)
+            if (Global.fCalibrateOutMax[x] > 0)
             {
-                y = clamp( y, 0.0, Global::fCalibrateOutMax[x]);
-                if (Global::iCalibrateOutDebugInfo == x)
+                y = clamp( y, 0.0, Global.fCalibrateOutMax[x]);
+                if (Global.iCalibrateOutDebugInfo == x)
                     WriteLog(" cutted=" + std::to_string(y));
-                y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
+                y = y / Global.fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
                                                      // maksymalna wartość
-                if (Global::iCalibrateOutDebugInfo == x)
+                if (Global.iCalibrateOutDebugInfo == x)
                     WriteLog(" fraction=" + std::to_string(y));
             }
-            double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
-                             Global::fCalibrateOut[x][3]) *
+            double temp = (((((Global.fCalibrateOut[x][5] * y) + Global.fCalibrateOut[x][4]) * y +
+                             Global.fCalibrateOut[x][3]) *
                                 y +
-                            Global::fCalibrateOut[x][2]) *
+                            Global.fCalibrateOut[x][2]) *
                                y +
-                           Global::fCalibrateOut[x][1]) *
+                           Global.fCalibrateOut[x][1]) *
                               y +
-                          Global::fCalibrateOut[x][0]; // zakres <0;1>
-            if (Global::iCalibrateOutDebugInfo == x)
+                          Global.fCalibrateOut[x][0]; // zakres <0;1>
+            if (Global.iCalibrateOutDebugInfo == x)
                 WriteLog(" calibrated=" + std::to_string(temp));
             PoKeys55[0]->PWM(x, temp);
         }
-	if (Global::bMWDmasterEnable)
+	if (Global.bMWDmasterEnable)
 	{
 		unsigned int iliczba;
 		switch (x)
 		{
-		case 0: iliczba = (unsigned int)floor((y / (Global::fMWDzg[0] * 10) * Global::fMWDzg[1]) + 0.5); // zbiornik główny
+		case 0: iliczba = (unsigned int)floor((y / (Global.fMWDzg[0] * 10) * Global.fMWDzg[1]) + 0.5); // zbiornik główny
 			MWDComm->WriteDataBuff[12] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[11] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main tank press " + to_string(MWDComm->WriteDataBuff[12]) + " " + to_string(MWDComm->WriteDataBuff[11]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Main tank press " + to_string(MWDComm->WriteDataBuff[12]) + " " + to_string(MWDComm->WriteDataBuff[11]));
 			break;
-		case 1: iliczba = (unsigned int)floor((y / (Global::fMWDpg[0] * 10) * Global::fMWDpg[1]) + 0.5); // przewód główny
+		case 1: iliczba = (unsigned int)floor((y / (Global.fMWDpg[0] * 10) * Global.fMWDpg[1]) + 0.5); // przewód główny
 			MWDComm->WriteDataBuff[10] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[9] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main pipe press " + to_string(MWDComm->WriteDataBuff[10]) + " " + to_string(MWDComm->WriteDataBuff[9]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Main pipe press " + to_string(MWDComm->WriteDataBuff[10]) + " " + to_string(MWDComm->WriteDataBuff[9]));
 			break;
-		case 2: iliczba = (unsigned int)floor((y / (Global::fMWDph[0] * 10) * Global::fMWDph[1]) + 0.5); // cylinder hamulcowy
+		case 2: iliczba = (unsigned int)floor((y / (Global.fMWDph[0] * 10) * Global.fMWDph[1]) + 0.5); // cylinder hamulcowy
 			MWDComm->WriteDataBuff[8] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[7] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Break press " + to_string(MWDComm->WriteDataBuff[8]) + " " + to_string(MWDComm->WriteDataBuff[7]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Break press " + to_string(MWDComm->WriteDataBuff[8]) + " " + to_string(MWDComm->WriteDataBuff[7]));
 			break;
-		case 3: iliczba = (unsigned int)floor((y / Global::fMWDvolt[0] * Global::fMWDvolt[1]) + 0.5); // woltomierz WN
+		case 3: iliczba = (unsigned int)floor((y / Global.fMWDvolt[0] * Global.fMWDvolt[1]) + 0.5); // woltomierz WN
 			MWDComm->WriteDataBuff[14] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[13] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Hi Volt meter " + to_string(MWDComm->WriteDataBuff[14]) + " " + to_string(MWDComm->WriteDataBuff[13]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Hi Volt meter " + to_string(MWDComm->WriteDataBuff[14]) + " " + to_string(MWDComm->WriteDataBuff[13]));
 			break;
-		case 4: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 1
+		case 4: iliczba = (unsigned int)floor((y / Global.fMWDamp[0] * Global.fMWDamp[1]) + 0.5);	// amp WN 1
 			MWDComm->WriteDataBuff[16] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[15] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter1 " + to_string(MWDComm->WriteDataBuff[16]) + " " + to_string(MWDComm->WriteDataBuff[15]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Apm meter1 " + to_string(MWDComm->WriteDataBuff[16]) + " " + to_string(MWDComm->WriteDataBuff[15]));
 			break;
-		case 5: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 2
+		case 5: iliczba = (unsigned int)floor((y / Global.fMWDamp[0] * Global.fMWDamp[1]) + 0.5);	// amp WN 2
 			MWDComm->WriteDataBuff[18] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[17] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter2 " + to_string(MWDComm->WriteDataBuff[18]) + " " + to_string(MWDComm->WriteDataBuff[17]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Apm meter2 " + to_string(MWDComm->WriteDataBuff[18]) + " " + to_string(MWDComm->WriteDataBuff[17]));
 			break;
-		case 6: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 3
+		case 6: iliczba = (unsigned int)floor((y / Global.fMWDamp[0] * Global.fMWDamp[1]) + 0.5);	// amp WN 3
 			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
 			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter3 " + to_string(MWDComm->WriteDataBuff[20]) + " " + to_string(MWDComm->WriteDataBuff[19]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Apm meter3 " + to_string(MWDComm->WriteDataBuff[20]) + " " + to_string(MWDComm->WriteDataBuff[19]));
 			break;
-		case 7: if (Global::iPause) MWDComm->WriteDataBuff[0] = 0; //skoro pauza to hasler stoi i nie nabija kilometrów CHYBA NIE DZIAŁA!
+		case 7: if (Global.iPause) MWDComm->WriteDataBuff[0] = 0; //skoro pauza to hasler stoi i nie nabija kilometrów CHYBA NIE DZIAŁA!
 				else MWDComm->WriteDataBuff[0] = (unsigned char)floor(y); 	// prędkość dla np haslera
-				if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Speed: " + to_string(MWDComm->WriteDataBuff[0]));
+				if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Speed: " + to_string(MWDComm->WriteDataBuff[0]));
 			break;
-		case 8: iliczba = (unsigned int)floor((y / Global::fMWDlowVolt[0] * Global::fMWDlowVolt[1]) + 0.5);	// volt NN
+		case 8: iliczba = (unsigned int)floor((y / Global.fMWDlowVolt[0] * Global.fMWDlowVolt[1]) + 0.5);	// volt NN
 			MWDComm->WriteDataBuff[22] = (unsigned int)(iliczba >> 8);
 			MWDComm->WriteDataBuff[21] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Low Volt meter " + to_string(MWDComm->WriteDataBuff[22]) + " " + to_string(MWDComm->WriteDataBuff[21]));
+			if (Global.bMWDmasterEnable && Global.iMWDDebugMode & 8) WriteLog("Low Volt meter " + to_string(MWDComm->WriteDataBuff[22]) + " " + to_string(MWDComm->WriteDataBuff[21]));
 			break; // przygotowane do wdrożenia, jeszcze nie wywoływane
 		}
 	}
@@ -436,18 +436,18 @@ void Console::Update()
 { // funkcja powinna być wywoływana regularnie, np. raz w każdej ramce ekranowej
     if (iMode == 4)
         if (PoKeys55[0])
-            if (PoKeys55[0]->Update((Global::iPause & 8) > 0))
+            if (PoKeys55[0]->Update((Global.iPause & 8) > 0))
             { // wykrycie przestawionych przełączników?
-                Global::iPause &= ~8;
+                Global.iPause &= ~8;
             }
             else
             { // błąd komunikacji - zapauzować symulację?
-                if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global::iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
-                Global::iPause |= 8; // tak???
+                if (!(Global.iPause & 8)) // jeśli jeszcze nie oflagowana
+                    Global.iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
+                Global.iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }
-	if (Global::bMWDmasterEnable)
+	if (Global.bMWDmasterEnable)
 	{
 		if (MWDComm->GetMWDState()) MWDComm->Run();
 		else MWDComm->Close();
@@ -467,19 +467,19 @@ float Console::AnalogCalibrateGet(int x)
     if (iMode == 4 && PoKeys55[0])
     {
 		float b = PoKeys55[0]->fAnalog[x];
-		b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
-			Global::fCalibrateIn[x][3]) * b +
-			Global::fCalibrateIn[x][2]) * b +
-			Global::fCalibrateIn[x][1]) * b +
-			Global::fCalibrateIn[x][0];
+		b = (((((Global.fCalibrateIn[x][5] * b) + Global.fCalibrateIn[x][4]) * b +
+			Global.fCalibrateIn[x][3]) * b +
+			Global.fCalibrateIn[x][2]) * b +
+			Global.fCalibrateIn[x][1]) * b +
+			Global.fCalibrateIn[x][0];
 		if (x == 0) return (b + 2) / 8;
 		if (x == 1) return b/10;
 		else return b;
 	}
-	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
+	if (Global.bMWDmasterEnable && Global.bMWDBreakEnable)
 	{
 		float b = (float)MWDComm->uiAnalog[x];
-		return (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
+		return (b - Global.fMWDAnalogInCalib[x][0]) / (Global.fMWDAnalogInCalib[x][1] - Global.fMWDAnalogInCalib[x][0]);
 	}
     return -1.0; // odcięcie
 };

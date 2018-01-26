@@ -11,7 +11,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "scenenode.h"
-#include "dumb3d.h"
 #include "names.h"
 
 class TMemCell : public editor::basic_node {

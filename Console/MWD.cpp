@@ -79,7 +79,7 @@ TMWDComm::~TMWDComm() // destruktor
 
 bool TMWDComm::Open() // otwieranie portu COM
 {
-    LPCSTR portId = Global::sMWDPortId.c_str();
+    LPCSTR portId = Global.sMWDPortId.c_str();
     hComm = CreateFile(portId, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
                        FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -99,7 +99,7 @@ bool TMWDComm::Open() // otwieranie portu COM
     CommDCB.DCBlength = sizeof(DCB);
     GetCommState(hComm, &CommDCB);
 
-    CommDCB.BaudRate = Global::iMWDBaudrate;
+    CommDCB.BaudRate = Global.iMWDBaudrate;
     CommDCB.fBinary = TRUE;
     CommDCB.fParity = FALSE;
     CommDCB.fOutxCtsFlow = FALSE; // No CTS output flow control
@@ -133,9 +133,9 @@ bool TMWDComm::Open() // otwieranie portu COM
 
 bool TMWDComm::Close() // zamykanie portu COM
 {
-	Global::bMWDmasterEnable = false;              // główne włączenie portu!
-	Global::bMWDInputEnable = false;               // włącz wejścia
-	Global::bMWDBreakEnable = false;               // włącz wejścia analogowe
+	Global.bMWDmasterEnable = false;              // główne włączenie portu!
+	Global.bMWDInputEnable = false;               // włącz wejścia
+	Global.bMWDBreakEnable = false;               // włącz wejścia analogowe
 
     WriteLog("COM Port is closing...");
     int i = 0;
@@ -164,25 +164,25 @@ bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i za
 {
 	DWORD bytes_read;
 	ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
-	if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Data receive. Checking data...");
-	if (Global::bMWDBreakEnable)
+	if (Global.bMWDdebugEnable && Global.iMWDDebugMode == 128) WriteLog("Data receive. Checking data...");
+	if (Global.bMWDBreakEnable)
 	{
 		uiAnalog[0] = (ReadDataBuff[9] << 8) + ReadDataBuff[8];
 		uiAnalog[1] = (ReadDataBuff[11] << 8) + ReadDataBuff[10];
 		uiAnalog[2] = (ReadDataBuff[13] << 8) + ReadDataBuff[12];
 		uiAnalog[3] = (ReadDataBuff[15] << 8) + ReadDataBuff[14];
-		if (Global::bMWDdebugEnable && (Global::iMWDDebugMode & 1))
+		if (Global.bMWDdebugEnable && (Global.iMWDDebugMode & 1))
 		{
 			WriteLog("Main Break = " + to_string(uiAnalog[0]));
 			WriteLog("Locomotiv Break = " + to_string(uiAnalog[1]));
 		}
-		if (Global::bMWDdebugEnable && (Global::iMWDDebugMode & 2))
+		if (Global.bMWDdebugEnable && (Global.iMWDDebugMode & 2))
 		{
 			WriteLog("Analog input 1 = " + to_string(uiAnalog[2]));
 			WriteLog("Analog imput 2 = " + to_string(uiAnalog[3]));
 		}
 	}
-	if (Global::bMWDInputEnable) CheckData();
+	if (Global.bMWDInputEnable) CheckData();
 	return TRUE;
 }
 
@@ -200,14 +200,14 @@ bool TMWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźn
 	if (GetMWDState())
 	{
 		MWDTime++;
-		if (!(MWDTime % Global::iMWDdivider))
+		if (!(MWDTime % Global.iMWDdivider))
 		{
 			MWDTime = 0;
-			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Sending data...");
+			if (Global.bMWDdebugEnable && Global.iMWDDebugMode == 128) WriteLog("Sending data...");
 			SendData();
-			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
+			if (Global.bMWDdebugEnable && Global.iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
 			ReadData();
-			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!");
+			if (Global.bMWDdebugEnable && Global.iMWDDebugMode == 128) WriteLog(" complet!");
 			return 1;
 		}
 	}

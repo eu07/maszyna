@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mouseinput.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "globals.h"
 #include "timer.h"
 #include "world.h"
@@ -36,7 +36,7 @@ mouse_input::init() {
 void
 mouse_input::move( double Mousex, double Mousey ) {
 
-    if( false == Global::ControlPicking ) {
+    if( false == Global.ControlPicking ) {
         // default control mode
         m_relay.post(
             user_command::viewturn,
@@ -71,7 +71,7 @@ mouse_input::move( double Mousex, double Mousey ) {
 void
 mouse_input::button( int const Button, int const Action ) {
 
-    if( false == Global::ControlPicking ) { return; }
+    if( false == Global.ControlPicking ) { return; }
 
     if( true == FreeFlyModeFlag ) {
         // world editor controls
@@ -128,7 +128,7 @@ mouse_input::button( int const Button, int const Action ) {
                         );
                     if( mousecommand != user_command::none ) {
                         // check manually for commands which have 'fast' variants launched with shift modifier
-                        if( Global::shiftState ) {
+                        if( Global.shiftState ) {
                             switch( mousecommand ) {
                                 case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
                                 case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
@@ -184,7 +184,7 @@ mouse_input::poll() {
 
     auto updaterate { m_updaterate };
     if( m_varyingpollrate ) {
-        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::iWindowHeight ) );
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global.iWindowHeight ) );
     }
 
     while( m_updateaccumulator > updaterate ) {

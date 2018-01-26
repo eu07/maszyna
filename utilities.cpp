@@ -12,7 +12,6 @@ Brakes.
 Copyright (C) 2007-2014 Maciej Cierniak
 */
 #include "stdafx.h"
-#include "mctools.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -24,9 +23,8 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #define stat _stat
 #endif
 
-#include "Globals.h"
-
-/*================================================*/
+#include "utilities.h"
+#include "globals.h"
 
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
@@ -89,7 +87,7 @@ bool ClearFlag( int &Flag, int const Value ) {
 inline double Random(double a, double b)
 {
     std::uniform_real_distribution<> dis(a, b);
-    return dis(Global::random_engine);
+    return dis(Global.random_engine);
 }
 
 bool FuzzyLogic(double Test, double Threshold, double Probability)
@@ -266,6 +264,25 @@ win1250_to_ascii( std::string &Input ) {
             input = lookup->second;
     }
 }
+
+// Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów
+char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+                     "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+                     "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+
+std::string Bezogonkow(std::string str, bool _)
+{ // wycięcie liter z ogonkami, bo OpenGL nie umie wyświetlić
+    for (unsigned int i = 1; i < str.length(); ++i)
+        if (str[i] & 0x80)
+            str[i] = bezogonkowo[str[i] & 0x7F];
+        else if (str[i] < ' ') // znaki sterujące nie są obsługiwane
+            str[i] = ' ';
+        else if (_)
+            if (str[i] == '_') // nazwy stacji nie mogą zawierać spacji
+                str[i] = ' '; // więc trzeba wyświetlać inaczej
+    return str;
+};
 
 template <>
 bool

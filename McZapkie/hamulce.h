@@ -35,7 +35,6 @@ Knorr/West EP - żeby był
 #pragma once
 
 #include "friction.h" // Pascal unit
-#include "mctools.h" // Pascal unit
 
 static int const LocalBrakePosNo = 10;         /*ilosc nastaw hamulca recznego lub pomocniczego*/
 static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/

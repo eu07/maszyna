@@ -3,7 +3,7 @@
 #include "sun.h"
 #include "globals.h"
 #include "mtable.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "world.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ void
 cSun::update() {
 
     move();
-    glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
+    glm::vec3 position( 0.f, 0.f, -2000.f * Global.fDistanceFactor );
     position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
     position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );
 

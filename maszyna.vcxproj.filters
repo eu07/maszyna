@@ -135,9 +135,6 @@
     <ClCompile Include="console\LPT.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
-    <ClCompile Include="mczapkie\mctools.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
     <ClCompile Include="mczapkie\Mover.cpp">
       <Filter>Source Files\mczapkie</Filter>
     </ClCompile>
@@ -234,6 +231,12 @@
     <ClCompile Include="audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="uitranscripts.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -255,9 +258,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PyInt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="usefull.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Classes.h">
@@ -294,9 +294,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="McZapkie\Oerlikon_ESt.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\mctools.h">
       <Filter>Header Files\mczapkie</Filter>
     </ClInclude>
     <ClInclude Include="McZapkie\hamulce.h">
@@ -453,6 +450,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="audiorenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uitranscripts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

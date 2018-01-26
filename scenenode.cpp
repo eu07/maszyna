@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scenenode.h"
 
+#include "model3d.h"
 #include "renderer.h"
 #include "logs.h"
 #include "sn_utils.h"

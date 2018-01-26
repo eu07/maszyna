@@ -17,8 +17,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 #include "Globals.h"
 #include "logs.h"
-#include "mczapkie/mctools.h"
-#include "Usefull.h"
+#include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
@@ -291,7 +290,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if (Opacity > 1.0f)
             Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
 /*
-        if ((Global::iConvertModels & 1) == 0) // dla zgodności wstecz
+        if ((Global.iConvertModels & 1) == 0) // dla zgodności wstecz
             Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
 */
         if (!parser.expectToken("map:"))
@@ -331,7 +330,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
             Name_Material(material);
             if( material.find_first_of( "/\\" ) == material.npos ) {
-                material.insert( 0, Global::asCurrentTexturePath );
+                material.insert( 0, Global.asCurrentTexturePath );
             }
             m_material = GfxRenderer.Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
@@ -657,7 +656,7 @@ void TSubModel::InitialRotate(bool doit)
             // potomnych nie obracamy już, tylko ewentualnie optymalizujemy
             Child->InitialRotate( false );
         }
-        else if (Global::iConvertModels & 2) {
+        else if (Global.iConvertModels & 2) {
             // optymalizacja jest opcjonalna
             if ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
             { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować go
@@ -788,7 +787,7 @@ void TSubModel::SetRotateXYZ(float3 vNewAngles)
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
-void TSubModel::SetRotateXYZ(vector3 vNewAngles)
+void TSubModel::SetRotateXYZ( Math3D::vector3 vNewAngles)
 { // obrócenie submodelu o
   // podane kąty wokół osi
   // lokalnego układu
@@ -808,7 +807,7 @@ void TSubModel::SetTranslate(float3 vNewTransVector)
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
-void TSubModel::SetTranslate(vector3 vNewTransVector)
+void TSubModel::SetTranslate( Math3D::vector3 vNewTransVector)
 { // przesunięcie submodelu (np. w kabinie)
 	v_TransVector.x = vNewTransVector.x;
 	v_TransVector.y = vNewTransVector.y;
@@ -907,14 +906,14 @@ void TSubModel::RaAnimation(TAnimType a)
 		glRotatef(simulation::Time.data().wMinute * 6.0 + simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
-		glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+		glRotatef(2.0 * Global.fTimeAngleDeg, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours24: // godziny płynnie 24h/360°
-		glRotatef(Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+		glRotatef(Global.fTimeAngleDeg, 0.0, 1.0, 0.0);
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
-        matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+        Math3D::matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		glLoadIdentity(); // macierz jedynkowa
 		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
@@ -927,9 +926,9 @@ void TSubModel::RaAnimation(TAnimType a)
 		glRotated(1.5 * std::sin(M_PI * simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
 		break;
 	case at_Sky: // animacja nieba
-		glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
-														// glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-		glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
+		glRotated(Global.fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
+														// glRotatef(Global.fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
+		glRotated(-fmod(Global.fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
 		break;
 	case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
 		glRotatef(v_Angles.z, 0.0f, 1.0f, 0.0f); // obrót względem osi pionowej (azymut)
@@ -945,7 +944,7 @@ void TSubModel::RaAnimation(TAnimType a)
 				if ((sm->pName[0]) >= '0')
 					if ((sm->pName[0]) <= '5') // zegarek ma 6 cyfr maksymalnie
 						sm->SetRotate(float3(0, 1, 0),
-							-Global::fClockAngleDeg[(sm->pName[0]) - '0']);
+							-Global.fClockAngleDeg[(sm->pName[0]) - '0']);
 			}
 			sm = sm->NextGet();
 		} while (sm);
@@ -1633,7 +1632,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         if( materialindex < t->size() ) {
             m_materialname = t->at( materialindex );
             if( m_materialname.find_last_of( "/\\" ) == std::string::npos ) {
-                m_materialname = Global::asCurrentTexturePath + m_materialname;
+                m_materialname = Global.asCurrentTexturePath + m_materialname;
             }
             m_material = GfxRenderer.Fetch_Material( m_materialname );
             if( ( iFlags & 0x30 ) == 0 ) {
@@ -1741,7 +1740,7 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 	}
 	// Ra: od wersji 334 przechylany jest cały model, a nie tylko pierwszy submodel
 	// ale bujanie kabiny nadal używa bananów :( od 393 przywrócone, ale z dodatkowym warunkiem
-	if (Global::iConvertModels & 4)
+	if (Global.iConvertModels & 4)
 	{ // automatyczne banany czasem psuły przechylanie kabin...
 		if (dynamic && Root)
 		{
@@ -1778,7 +1777,7 @@ void TModel3d::Init()
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );
         }
-        if( ( Global::iConvertModels > 0 )
+        if( ( Global.iConvertModels > 0 )
          && ( false == asBinary.empty() ) ) {
             SaveToBinFile( asBinary );
             asBinary = ""; // zablokowanie powtórnego zapisu

@@ -460,12 +460,12 @@ keyboard_input::poll() {
 
     glm::vec2 const movementhorizontal {
         // x-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
           m_keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
           0.f ),
         // z-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
           m_keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
           0.f ) };
@@ -475,7 +475,7 @@ keyboard_input::poll() {
         double const movexparam = static_cast<double>( movementhorizontal.x );
         double const movezparam = static_cast<double>( movementhorizontal.y );
         m_relay.post(
-            ( true == Global::ctrlState ?
+            ( true == Global.ctrlState ?
                 user_command::movehorizontalfast :
                 user_command::movehorizontal ),
             reinterpret_cast<std::uint64_t const &>( movexparam ),
@@ -488,7 +488,7 @@ keyboard_input::poll() {
 
     float const movementvertical {
         // y-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
           m_keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
           0.f ) };
@@ -497,7 +497,7 @@ keyboard_input::poll() {
      || ( m_movementvertical != 0.f ) ) {
         double const moveyparam = static_cast<double>( movementvertical );
         m_relay.post(
-            ( true == Global::ctrlState ?
+            ( true == Global.ctrlState ?
                 user_command::moveverticalfast :
                 user_command::movevertical ),
             reinterpret_cast<std::uint64_t const &>( moveyparam ),

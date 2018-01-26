@@ -10,6 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AirCoupler.h"
 
+#include "model3d.h"
+#include "parser.h"
+
 TAirCoupler::TAirCoupler()
 {
     Clear();

@@ -47,7 +47,7 @@ WyslijEvent(const std::string &e, const std::string &d)
     cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(12 + i + j); // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
 }
 
@@ -65,7 +65,7 @@ WyslijUszkodzenia(const std::string &t, char fl)
     cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
 	cData.cbData = (DWORD)(11 + i); // 8+licznik i zero kończące
 	cData.lpData = &r;
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 }
 
@@ -82,7 +82,7 @@ WyslijString(const std::string &t, int n)
     cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(10 + i); // 8+licznik i zero kończące
     cData.lpData = &r;
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 }
 
@@ -102,7 +102,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
 	int i = 32;
 	size_t j = Vehicle->asName.length();
     r.iPar[0] = i; // ilość danych liczbowych
-    r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
+    r.fPar[1] = Global.fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
     r.fPar[2] = Vehicle->MoverParameters->Loc.X; // pozycja X
     r.fPar[3] = Vehicle->MoverParameters->Loc.Y; // pozycja Y
     r.fPar[4] = Vehicle->MoverParameters->Loc.Z; // pozycja Z
@@ -164,7 +164,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + Vehicle->asName + " sent");
 }
@@ -211,7 +211,7 @@ WyslijObsadzone()
 	cData.cbData = 8 + 1984; // 8+licznik i zero kończące
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
 }
 
@@ -226,8 +226,8 @@ WyslijParam(int nr, int fl)
     switch (nr)
     { // można tym przesyłać różne zestawy parametrów
     case 5: // czas i pauza
-        r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
-        r.iPar[2] = Global::iPause; // stan zapauzowania
+        r.fPar[1] = Global.fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
+        r.iPar[2] = Global.iPause; // stan zapauzowania
         i = 8; // dwa parametry po 4 bajty każdy
         break;
     }
@@ -235,7 +235,7 @@ WyslijParam(int nr, int fl)
     cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
-    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 }
 #endif
 

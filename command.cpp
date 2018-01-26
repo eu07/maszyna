@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "logs.h"
 #include "timer.h"
+#include "utilities.h"
 
 namespace simulation {
 
@@ -178,7 +179,7 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
     if( ( command.target == command_target::vehicle )
      && ( true == FreeFlyModeFlag )
      && ( ( false == DebugModeFlag )
-       && ( true == Global::RealisticControlMode ) ) ) {
+       && ( true == Global.RealisticControlMode ) ) ) {
         // in realistic control mode don't pass vehicle commands if the user isn't in one, unless we're in debug mode
         return;
     }

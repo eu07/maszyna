@@ -1,6 +1,9 @@
 #pragma once
 
-#include "float3d.h"
+namespace colors {
+
+glm::vec4 const none{ 0.f, 0.f, 0.f, 1.f };
+glm::vec4 const white{ 1.f, 1.f, 1.f, 1.f };
 
 inline
 glm::vec3
@@ -116,3 +119,5 @@ HSVtoRGB( glm::vec3 const &HSV ) {
     }
     return rgb;
 }
+
+} // namespace colors

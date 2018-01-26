@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "TractionPower.h"
 
+#include "parser.h"
 #include "Logs.h"
 
 //---------------------------------------------------------------------------

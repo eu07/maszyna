@@ -9,8 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "classes.h"
 #include "texture.h"
-#include "parser.h"
 
 typedef int material_handle;
 

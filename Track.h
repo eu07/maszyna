@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <deque>
 
+#include "classes.h"
 #include "Segment.h"
 #include "material.h"
 #include "scenenode.h"
@@ -273,10 +274,6 @@ protected:
     // calculates path's bounding radius
     void
         radius_();
-
-private:
-    void EnvironmentSet();
-    void EnvironmentReset();
 };
 
 

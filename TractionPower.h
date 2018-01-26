@@ -9,8 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "classes.h"
 #include "scenenode.h"
-#include "parser.h" //Tolaris-010603
 #include "names.h"
 
 class TTractionPowerSource : public editor::basic_node {

@@ -11,8 +11,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "audio.h"
 #include "globals.h"
-#include "mczapkie/mctools.h"
+#include "utilities.h"
 #include "logs.h"
+#include "resourcemanager.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
@@ -95,7 +96,7 @@ openal_buffer::fetch_caption() {
 
     std::string captionfilename { name };
     captionfilename.erase( captionfilename.rfind( '.' ) ); // obcięcie rozszerzenia
-    captionfilename += "-" + Global::asLang + ".txt"; // już może być w różnych językach
+    captionfilename += "-" + Global.asLang + ".txt"; // już może być w różnych językach
     if( true == FileExists( captionfilename ) ) {
         // wczytanie
         std::ifstream inputfile( captionfilename );
@@ -133,13 +134,13 @@ buffer_manager::create( std::string const &Filename ) {
 
     audio::buffer_handle lookup { null_handle };
     std::string filelookup;
-    if( false == Global::asCurrentDynamicPath.empty() ) {
+    if( false == Global.asCurrentDynamicPath.empty() ) {
         // try dynamic-specific sounds first
-        lookup = find_buffer( Global::asCurrentDynamicPath + filename );
+        lookup = find_buffer( Global.asCurrentDynamicPath + filename );
         if( lookup != null_handle ) {
             return lookup;
         }
-        filelookup = find_file( Global::asCurrentDynamicPath + filename );
+        filelookup = find_file( Global.asCurrentDynamicPath + filename );
         if( false == filelookup.empty() ) {
             return emplace( filelookup );
         }

@@ -10,7 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "PoKeys55.h"
 #include <setupapi.h>
-#include "mczapkie/mctools.h"
+#include "utilities.h"
+
 //---------------------------------------------------------------------------
 // HIDscaner: http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
 //#define MY_DEVICE_ID  "Vid_04d8&Pid_003F"

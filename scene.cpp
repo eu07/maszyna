@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "timer.h"
 #include "logs.h"
 #include "sn_utils.h"
+#include "renderer.h"
 
 namespace scene {
 
@@ -54,7 +55,7 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
             // jeśli ponad pantografem (bo może łapać druty spod wiaduktu)
             auto const fHorizontal = std::abs( glm::dot( vGdzie, vLeft ) ) - pantograph->fWidth;
 
-            if( ( Global::bEnableTraction )
+            if( ( Global.bEnableTraction )
              && ( fVertical < pantograph->PantWys - 0.15 ) ) {
                 // jeśli drut jest niżej niż 15cm pod ślizgiem przełączamy w tryb połamania, o ile jedzie;
                 // (bEnableTraction) aby dało się jeździć na koślawych sceneriach
@@ -104,10 +105,10 @@ basic_cell::update_events() {
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
         if( ( true == launcher->check_conditions() )
-         && ( SquareMagnitude( launcher->location() - Global::pCameraPosition ) < launcher->dRadius ) ) {
+         && ( SquareMagnitude( launcher->location() - Global.pCameraPosition ) < launcher->dRadius ) ) {
 
             WriteLog( "Eventlauncher " + launcher->name() );
-            if( ( true == Global::shiftState )
+            if( ( true == Global.shiftState )
              && ( launcher->Event2 != nullptr ) ) {
                 simulation::Events.AddToQuery( launcher->Event2, nullptr );
             }
@@ -827,9 +828,9 @@ void
 basic_region::update_events() {
     // render events and sounds from sectors near enough to the viewer
     auto const range = EU07_SECTIONSIZE; // arbitrary range
-    auto const &sectionlist = sections( Global::pCameraPosition, range );
+    auto const &sectionlist = sections( Global.pCameraPosition, range );
     for( auto *section : sectionlist ) {
-        section->update_events( Global::pCameraPosition, range );
+        section->update_events( Global.pCameraPosition, range );
     }
 }
 
@@ -838,9 +839,9 @@ void
 basic_region::update_sounds() {
     // render events and sounds from sectors near enough to the viewer
     auto const range = 2750.f; // audible range of 100 db sound
-    auto const &sectionlist = sections( Global::pCameraPosition, range );
+    auto const &sectionlist = sections( Global.pCameraPosition, range );
     for( auto *section : sectionlist ) {
-        section->update_sounds( Global::pCameraPosition, range );
+        section->update_sounds( Global.pCameraPosition, range );
     }
 }
 
@@ -872,7 +873,7 @@ basic_region::serialize( std::string const &Scenariofile ) const {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
-    filename = Global::asCurrentSceneryPath + filename;
+    filename = Global.asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type
@@ -915,7 +916,7 @@ basic_region::deserialize( std::string const &Scenariofile ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
-    filename = Global::asCurrentSceneryPath + filename;
+    filename = Global.asCurrentSceneryPath + filename;
     if( ( filename.rfind( '.' ) != std::string::npos )
      && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
         // trim extension, it's typically going to be for different file type

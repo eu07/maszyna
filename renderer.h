@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "openglgeometrybank.h"
 #include "material.h"
+#include "light.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
@@ -24,48 +25,19 @@ http://mozilla.org/MPL/2.0/.
 //#define EU07_USE_DEBUG_CABSHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
 
-struct opengl_light {
+struct opengl_light : public basic_light {
 
-    GLuint id{ (GLuint)-1 };
-    glm::vec3 direction;
-    glm::vec4
-        position { 0.f, 0.f, 0.f, 1.f }, // 4th parameter specifies directional(0) or omni-directional(1) light source
-        ambient { 0.f, 0.f, 0.f, 1.f },
-        diffuse { 1.f, 1.f, 1.f, 1.f },
-        specular { 1.f, 1.f, 1.f, 1.f };
+    GLuint id { (GLuint)-1 };
 
-    inline
-    void apply_intensity( float const Factor = 1.0f ) {
+    void
+        apply_intensity( float const Factor = 1.0f );
+    void
+        apply_angle();
 
-        if( Factor == 1.0 ) {
-
-            glLightfv( id, GL_AMBIENT, glm::value_ptr(ambient) );
-            glLightfv( id, GL_DIFFUSE, glm::value_ptr(diffuse) );
-            glLightfv( id, GL_SPECULAR, glm::value_ptr(specular) );
-        }
-        else {
-            // temporary light scaling mechanics (ultimately this work will be left to the shaders
-            glm::vec4 scaledambient( ambient.r * Factor, ambient.g * Factor, ambient.b * Factor, ambient.a );
-            glm::vec4 scaleddiffuse( diffuse.r * Factor, diffuse.g * Factor, diffuse.b * Factor, diffuse.a );
-            glm::vec4 scaledspecular( specular.r * Factor, specular.g * Factor, specular.b * Factor, specular.a );
-            glLightfv( id, GL_AMBIENT, glm::value_ptr(scaledambient) );
-            glLightfv( id, GL_DIFFUSE, glm::value_ptr(scaleddiffuse) );
-            glLightfv( id, GL_SPECULAR, glm::value_ptr(scaledspecular) );
-        }
-    }
-    inline
-    void apply_angle() {
-
-        glLightfv( id, GL_POSITION, glm::value_ptr(position) );
-        if( position.w == 1.f ) {
-            glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr(direction) );
-        }
-    }
-    inline
-    void set_position( glm::vec3 const &Position ) {
-
-        position = glm::vec4( Position, position.w );
-    }
+    opengl_light &
+        operator=( basic_light const &Right ) {
+            basic_light::operator=( Right );
+            return *this; }
 };
 
 // encapsulates basic rendering setup.
@@ -275,6 +247,8 @@ private:
     void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
+        setup_environment_light( TEnvironmentType const Environment = e_flat );
+    void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
     // helper, texture manager method; activates specified texture unit
     void
@@ -343,6 +317,7 @@ private:
     gfx::geometrybank_manager m_geometry;
     material_manager m_materials;
     texture_manager m_textures;
+    opengl_light m_sunlight;
     opengllight_array m_lights;
 
     gfx::geometry_handle m_billboardgeometry { 0, 0 };
@@ -398,6 +373,7 @@ private:
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };
+    TEnvironmentType m_environment { e_flat };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations

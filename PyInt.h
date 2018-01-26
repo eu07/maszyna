@@ -12,8 +12,7 @@
 #else
 #include "Python.h"
 #endif
-#include "parser.h"
-#include "Model3d.h"
+#include "classes.h"
 
 #define PyGetFloat(param) PyFloat_FromDouble(param >= 0 ? param : -param)
 #define PyGetFloatS(param) PyFloat_FromDouble(param)

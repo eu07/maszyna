@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "EvLaunch.h"
+
 #include "Globals.h"
 #include "Logs.h"
 #include "Event.h"
@@ -22,6 +23,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "parser.h"
 #include "Console.h"
+#include "world.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 
@@ -128,14 +131,14 @@ bool TEventLauncher::check_conditions()
     bool bCond = false;
     if (iKey != 0)
     {
-        if( Global::bActive ) {
+        if( Global.bActive ) {
             // tylko jeśli okno jest aktywne
             if( iKey > 255 ) {
                 // key and modifier
                 auto const modifier = ( iKey & 0xff00 ) >> 8;
                 bCond = ( Console::Pressed( iKey & 0xff ) )
-                     && ( ( modifier & 1 ) ? Global::shiftState : true )
-                     && ( ( modifier & 2 ) ? Global::ctrlState : true );
+                     && ( ( modifier & 1 ) ? Global.shiftState : true )
+                     && ( ( modifier & 2 ) ? Global.ctrlState : true );
             }
             else {
                 // just key

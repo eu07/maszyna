@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "simulation.h"
+#include "world.h"
+#include "camera.h"
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "Timer.h"
@@ -317,9 +319,9 @@ TTrain::TTrain() {
     fPPress = fNPress = 0;
 
     // asMessage="";
-    pMechShake = vector3(0, 0, 0);
-    vMechMovement = vector3(0, 0, 0);
-    pMechOffset = vector3(0, 0, 0);
+    pMechShake = Math3D::vector3(0, 0, 0);
+    vMechMovement = Math3D::vector3(0, 0, 0);
+    pMechOffset = Math3D::vector3(0, 0, 0);
     fBlinkTimer = 0;
     fHaslerTimer = 0;
     DynamicSet(NULL); // ustawia wszystkie mv*
@@ -328,7 +330,7 @@ TTrain::TTrain() {
     bCabLight = false;
     bCabLightDim = false;
     //-----
-    pMechSittingPosition = vector3(0, 0, 0); // ABu: 180404
+    pMechSittingPosition = Math3D::vector3(0, 0, 0); // ABu: 180404
     InstrumentLightActive = false; // ABu: 030405
     fTachoTimer = 0.0; // włączenie skoków wskazań prędkościomierza
 
@@ -356,7 +358,7 @@ TTrain::TTrain() {
 
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powiązanie ręcznego sterowania kabiną z pojazdem
-    // Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzęsienia
+    // Global.pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzęsienia
     DynamicSet(NewDynamicObject);
     if (!e3d)
         if (DynamicObject->Mechanik == NULL)
@@ -376,8 +378,8 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
          }
     */
     MechSpring.Init(0.015, 250);
-    vMechVelocity = vector3(0, 0, 0);
-    pMechOffset = vector3( 0, 0, 0 );
+    vMechVelocity = Math3D::vector3(0, 0, 0);
+    pMechOffset = Math3D::vector3( 0, 0, 0 );
     fMechSpringX = 1;
     fMechSpringY = 0.5;
     fMechSpringZ = 0.5;
@@ -814,7 +816,7 @@ void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Co
             Train->mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
         }
         else {
-            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos + Global::fBrakeStep );
+            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos + Global.fBrakeStep );
         }
     }
 }
@@ -827,7 +829,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
         }
         else {
-            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos - Global::fBrakeStep );
+            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos - Global.fBrakeStep );
         }
     }
     else {
@@ -835,7 +837,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )
          && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global::iFeedbackMode < 3 ) ) {
+         && ( Global.iFeedbackMode < 3 ) ) {
             // Odskakiwanie hamulce EP
             Train->set_train_brake( 0 );
         }
@@ -853,7 +855,7 @@ void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Co
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )
          && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global::iFeedbackMode < 3 ) ) {
+         && ( Global.iFeedbackMode < 3 ) ) {
             // Odskakiwanie hamulce EP
             Train->set_train_brake( 0 );
         }
@@ -2576,14 +2578,14 @@ void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Comm
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global::pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global::pCameraPosition ) ?
+                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global.pCameraPosition ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -2602,14 +2604,14 @@ void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Comm
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global::pCameraPosition, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global::pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global::pCameraPosition ) ?
+                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global.pCameraPosition ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -3141,8 +3143,8 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
         if( false == Train->CabChange( 1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::front ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global::changeDynObj = Train->DynamicObject->PrevConnected;
-                Global::changeDynObj->MoverParameters->ActiveCab = (
+                Global.changeDynObj = Train->DynamicObject->PrevConnected;
+                Global.changeDynObj->MoverParameters->ActiveCab = (
                     Train->DynamicObject->PrevConnectedNo ?
                     -1 :
                      1 );
@@ -3157,8 +3159,8 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
         if( false == Train->CabChange( -1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::rear ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global::changeDynObj = Train->DynamicObject->NextConnected;
-                Global::changeDynObj->MoverParameters->ActiveCab = (
+                Global.changeDynObj = Train->DynamicObject->NextConnected;
+                Global.changeDynObj->MoverParameters->ActiveCab = (
                     Train->DynamicObject->NextConnectedNo ?
                     -1 :
                      1 );
@@ -3189,13 +3191,13 @@ void TTrain::UpdateMechPosition(double dt)
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
     double const iVel = std::min( DynamicObject->GetVelocity(), 150.0 );
 
-    if( !Global::iSlowMotion // musi być pełna prędkość
+    if( !Global.iSlowMotion // musi być pełna prędkość
         && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
             shake += 1.25 * MechSpring.ComputateForces(
-                vector3(
+                Math3D::vector3(
                 -mvControlled->AccN * dt * 5.0, // highlight side sway
                 -mvControlled->AccVert * dt,
                 -mvControlled->AccSVBased * dt * 1.25 ), // accent acceleration/deceleration
@@ -3204,7 +3206,7 @@ void TTrain::UpdateMechPosition(double dt)
             if( Random( iVel ) > 25.0 ) {
                 // extra shake at increased velocity
                 shake += MechSpring.ComputateForces(
-                    vector3(
+                    Math3D::vector3(
                     ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
                     ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
                     ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
@@ -3224,14 +3226,14 @@ void TTrain::UpdateMechPosition(double dt)
         if( ( pMechShake.y > fMechMaxSpring ) || ( pMechShake.y < -fMechMaxSpring ) )
             vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
-        pMechPosition = pMechOffset + vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
+        pMechPosition = pMechOffset + Math3D::vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
 //        vMechMovement = 0.5 * vMechMovement;
     }
     else { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
-        pMechPosition = pMechOffset + vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
+        pMechPosition = pMechOffset + Math3D::vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
 //        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
@@ -3278,10 +3280,10 @@ void TTrain::UpdateMechPosition(double dt)
 };
 
 // returns position of the mechanic in the scene coordinates
-vector3
+Math3D::vector3
 TTrain::GetWorldMechPosition() {
 
-    vector3 position = DynamicObject->mMatrix * pMechPosition; // położenie względem środka pojazdu w układzie scenerii
+    auto position = DynamicObject->mMatrix * pMechPosition; // położenie względem środka pojazdu w układzie scenerii
     position += DynamicObject->GetPosition();
     return position;
 }
@@ -3310,13 +3312,13 @@ bool TTrain::Update( double const Deltatime )
 
     // update driver's position
     {
-        vector3 Vec = Global::pCamera->Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
+        auto Vec = Global.pCamera->Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
         Vec.y = -Vec.y;
         if( mvOccupied->ActiveCab < 0 ) {
             Vec *= -1.0f;
             Vec.y = -Vec.y;
         }
-        Vec.RotateY( Global::pCamera->Yaw );
+        Vec.RotateY( Global.pCamera->Yaw );
         vMechMovement = Vec;
     }
 
@@ -3491,7 +3493,7 @@ bool TTrain::Update( double const Deltatime )
             fEIMParams[1 + i][9] = 0;
         }
 
-        if (Global::iFeedbackMode == 4)
+        if (Global.iFeedbackMode == 4)
         { // wykonywać tylko gdy wyprowadzone na pulpit
             Console::ValueSet(0,
                               mvOccupied->Compressor); // Ra: sterowanie miernikiem: zbiornik główny
@@ -3509,7 +3511,7 @@ bool TTrain::Update( double const Deltatime )
             /// napędu
         }
 
-		if (Global::bMWDmasterEnable) // pobieranie danych dla pulpitu port (COM)
+		if (Global.bMWDmasterEnable) // pobieranie danych dla pulpitu port (COM)
 		{ 
 			Console::ValueSet(0, mvOccupied->Compressor); // zbiornik główny
 			Console::ValueSet(1, mvOccupied->PipePress); // przewód główny
@@ -4067,7 +4069,7 @@ bool TTrain::Update( double const Deltatime )
         {
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
-						(Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
+						(Global.iFeedbackMode == 4 || (Global.bMWDmasterEnable && Global.bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -4076,7 +4078,7 @@ bool TTrain::Update( double const Deltatime )
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 8.0 - 2.0;
                     b = clamp<double>( b, -2.0, mvOccupied->BrakeCtrlPosNo ); // przycięcie zmiennej do granic
-					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FV4a break position = " + to_string(b));
+					if (Global.bMWDdebugEnable && Global.iMWDDebugMode & 4) WriteLog("FV4a break position = " + to_string(b));
 					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 					mvOccupied->BrakeLevelSet(b);
 				}
@@ -4085,7 +4087,7 @@ bool TTrain::Update( double const Deltatime )
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 7.0 - 1.0;
                     b = clamp<double>( b, -1.0, mvOccupied->BrakeCtrlPosNo ); // przycięcie zmiennej do granic
-					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FVel6 break position = " + to_string(b));
+					if (Global.bMWDdebugEnable && Global.iMWDDebugMode & 4) WriteLog("FVel6 break position = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
                 }
@@ -4103,8 +4105,8 @@ bool TTrain::Update( double const Deltatime )
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
              && ( mvOccupied->BrakeLocHandle == FD1 )
-             && ( ( Global::iFeedbackMode == 4 )
-               || ( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+             && ( ( Global.iFeedbackMode == 4 )
+               || ( Global.bMWDmasterEnable && Global.bMWDBreakEnable ) ) ) {
                 // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
                 // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
                 auto const b = clamp<double>(
@@ -4113,8 +4115,8 @@ bool TTrain::Update( double const Deltatime )
                     ManualBrakePosNo );
                 ggLocalBrake.UpdateValue( b ); // przesów bez zaokrąglenia
                 mvOccupied->LocalBrakePos = int( 1.09 * b ); // sposób zaokrąglania jest do ustalenia
-                if( ( true == Global::bMWDdebugEnable )
-                 && ( ( Global::iMWDDebugMode & 4 ) != 0 ) ) {
+                if( ( true == Global.bMWDdebugEnable )
+                 && ( ( Global.iMWDDebugMode & 4 ) != 0 ) ) {
                     WriteLog( "FD1 break position = " + to_string( b ) );
                 }
             }
@@ -4513,7 +4515,7 @@ TTrain::update_sounds( double const Deltatime ) {
 
     // szum w czasie jazdy
     if( ( false == FreeFlyModeFlag )
-     && ( false == Global::CabWindowOpen )
+     && ( false == Global.CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
         // frequency calculation
@@ -4936,11 +4938,11 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 if (token != "none")
                 {
                     // bieżąca sciezka do tekstur to dynamic/...
-                    Global::asCurrentTexturePath = DynamicObject->asBaseDir;
+                    Global.asCurrentTexturePath = DynamicObject->asBaseDir;
                     // szukaj kabinę jako oddzielny model
                     TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true);
                     // z powrotem defaultowa sciezka do tekstur
-                    Global::asCurrentTexturePath = szTexturePath;
+                    Global.asCurrentTexturePath = szTexturePath;
                     // if (DynamicObject->mdKabina!=k)
                     if (kabina != nullptr)
                     {
@@ -5048,23 +5050,23 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
 void TTrain::MechStop()
 { // likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
-    pMechPosition = vector3(0, 0, 0);
-    pMechShake = vector3(0, 0, 0);
-    vMechMovement = vector3(0, 0, 0);
-    vMechVelocity = vector3(0, 0, 0); // tu zostawały jakieś ułamki, powodujące uciekanie kamery
+    pMechPosition = Math3D::vector3(0, 0, 0);
+    pMechShake = Math3D::vector3(0, 0, 0);
+    vMechMovement = Math3D::vector3(0, 0, 0);
+    vMechVelocity = Math3D::vector3(0, 0, 0); // tu zostawały jakieś ułamki, powodujące uciekanie kamery
 };
 
-vector3 TTrain::MirrorPosition(bool lewe)
+Math3D::vector3 TTrain::MirrorPosition(bool lewe)
 { // zwraca współrzędne widoku kamery z lusterka
     switch (iCabn)
     {
     case 1: // przednia (1)
         return DynamicObject->mMatrix *
-               vector3(lewe ? Cabine[iCabn].CabPos2.x : Cabine[iCabn].CabPos1.x,
+               Math3D::vector3(lewe ? Cabine[iCabn].CabPos2.x : Cabine[iCabn].CabPos1.x,
                        1.5 + Cabine[iCabn].CabPos1.y, Cabine[iCabn].CabPos2.z);
     case 2: // tylna (-1)
         return DynamicObject->mMatrix *
-               vector3(lewe ? Cabine[iCabn].CabPos1.x : Cabine[iCabn].CabPos2.x,
+               Math3D::vector3(lewe ? Cabine[iCabn].CabPos1.x : Cabine[iCabn].CabPos2.x,
                        1.5 + Cabine[iCabn].CabPos1.y, Cabine[iCabn].CabPos1.z);
     }
     return DynamicObject->GetPosition(); // współrzędne środka pojazdu

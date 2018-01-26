@@ -9,11 +9,12 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Mover.h"
+
+#include "Oerlikon_ESt.h"
+#include "../utilities.h"
 #include "../globals.h"
 #include "../logs.h"
-#include "Oerlikon_ESt.h"
 #include "../parser.h"
-#include "mctools.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -4260,23 +4261,13 @@ double TMoverParameters::TractionForce(double dt)
                     case 2: { // automatic
                         if( ( std::abs( Itot ) > RVentMinI )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
-/*
-                            RventRot += ( RVentnmax * abs( Itot ) / ( ImaxLo * RList[ MainCtrlActualPos ].Bn ) - RventRot ) * RVentSpeed * dt;
-*/
-                            RventRot = std::min(
-                                RVentnmax,
-                                RventRot
-                                + ( RVentnmax
-                                    * std::abs( Itot )
-                                    * std::min( 1.25, ( ( std::abs( Itot ) / NPoweredAxles ) / RVentMinI ) )
-                                    / ImaxLo
+
+                            RventRot +=
+                                ( RVentnmax
+                                    * std::min( 1.0, ( ( Im / NPoweredAxles ) / RVentMinI ) )
+                                    * Im / ImaxLo
                                     - RventRot )
-                                * RVentSpeed * dt );
-/*
-RventRot = std::min(
-RVentnmax,
-RventRot + ( ( std::abs( Itot ) / ( RList[ MainCtrlActualPos ].Bn * RList[ MainCtrlActualPos ].Mn ) ) / RVentMinI ) * RVentSpeed * dt );
-*/
+                                * RVentSpeed * dt;
                         }
                         else if( ( DynamicBrakeType == dbrake_automatic )
                               && ( true == DynamicBrakeFlag ) ) {

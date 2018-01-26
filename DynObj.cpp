@@ -16,12 +16,15 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 #include "simulation.h"
+#include "world.h"
 #include "train.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "logs.h"
 #include "Console.h"
 #include "MdlMngr.h"
+#include "renderer.h"
+#include "uitranscripts.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
@@ -40,7 +43,7 @@ bool TDynamicObject::bDynamicRemove { false };
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
-    vPos = vector3(0, 0, 0); // przypisanie domyśnych współczynników do pantografów
+    vPos = Math3D::vector3(0, 0, 0); // przypisanie domyśnych współczynników do pantografów
     fLenL1 = 1.22; // 1.176289 w modelach
     fLenU1 = 1.755; // 1.724482197 w modelach
     fHoriz = 0.535; // 0.54555075 przesunięcie ślizgu w długości pojazdu względem
@@ -287,7 +290,7 @@ odwrócony
 };
 */
 
-void TDynamicObject::ABuSetModelShake(vector3 mShake)
+void TDynamicObject::ABuSetModelShake( Math3D::vector3 mShake )
 {
     modelShake = mShake;
 };
@@ -406,14 +409,14 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
 
         if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3{
+                Math3D::vector3{
                     0.0,
                     0.0,
                     dDoorMoveR } );
         }
         else {
             pAnim->smAnimated->SetTranslate(
-                vector3{
+                Math3D::vector3{
                     0.0,
                     0.0,
                     dDoorMoveL } );
@@ -492,7 +495,7 @@ void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
 
         if( pAnim->iNumber & 1 ) {
             pAnim->smAnimated->SetTranslate(
-                vector3 {
+                Math3D::vector3 {
                     std::min(
                         dDoorMoveR * 2,
                         MoverParameters->DoorMaxPlugShift ),
@@ -503,7 +506,7 @@ void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
         }
         else {
             pAnim->smAnimated->SetTranslate(
-                vector3 {
+                Math3D::vector3 {
                     std::min(
                         dDoorMoveL * 2,
                         MoverParameters->DoorMaxPlugShift ),
@@ -629,7 +632,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             // 'render' - juz
             // nie
             // przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
-            if (Global::bnewAirCouplers)
+            if (Global.bnewAirCouplers)
             {
                 SetPneumatic(false, false); // wczytywanie z t3d ulozenia wezykow
                 SetPneumatic(true, false); // i zapisywanie do zmiennej
@@ -809,10 +812,10 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 double dist = MoverParameters->Couplers[i].Dist / 2.0;
                 if (smBuforLewy[i])
                     if (dist < 0)
-                        smBuforLewy[i]->SetTranslate(vector3(dist, 0, 0));
+                        smBuforLewy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
                 if (smBuforPrawy[i])
                     if (dist < 0)
-                        smBuforPrawy[i]->SetTranslate(vector3(dist, 0, 0));
+                        smBuforPrawy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
             }
         }
 
@@ -989,19 +992,19 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
 
         if( CouplNr == -2 ) {
             // wektor [kamera-obiekt] - poszukiwanie obiektu
-            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vPosition ) < 100.0 ) {
+            if( LengthSquared3( Global.pCameraPosition - dynamic->vPosition ) < 100.0 ) {
                 // 10 metrów
                 return dynamic;
             }
         }
         else {
             // jeśli (CouplNr) inne niz -2, szukamy sprzęgu
-            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
+            if( LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 0;
                 return dynamic;
             }
-            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
+            if( LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 1;
                 return dynamic;
@@ -1611,7 +1614,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
 //----------ABu: koniec skanowania pojazdow
 
 TDynamicObject::TDynamicObject() {
-    modelShake = vector3(0, 0, 0);
+    modelShake = Math3D::vector3(0, 0, 0);
     fTrackBlock = 10000.0; // brak przeszkody na drodze
     btnOn = false;
     vUp = vWorldUp;
@@ -1650,8 +1653,8 @@ TDynamicObject::TDynamicObject() {
     smBuforLewy[0] = smBuforLewy[1] = NULL;
     smBuforPrawy[0] = smBuforPrawy[1] = NULL;
     smBogie[0] = smBogie[1] = NULL;
-    bogieRot[0] = bogieRot[1] = vector3(0, 0, 0);
-    modelRot = vector3(0, 0, 0);
+    bogieRot[0] = bogieRot[1] = Math3D::vector3(0, 0, 0);
+    modelRot = Math3D::vector3(0, 0, 0);
     cp1 = cp2 = sp1 = sp2 = 0;
     iDirection = 1; // stoi w kierunku tradycyjnym (0, gdy jest odwrócony)
     iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (przełączenie
@@ -2137,7 +2140,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // potem juz liczona prawidlowa wartosc masy
     MoverParameters->ComputeConstans();
     // wektor podłogi dla wagonów, przesuwa ładunek
-    vFloor = vector3(0, 0, MoverParameters->Floor);
+    vFloor = Math3D::vector3(0, 0, MoverParameters->Floor);
 
     // długość większa od zera oznacza OK; 2mm docisku?
     return MoverParameters->Dim.L;
@@ -2148,7 +2151,7 @@ TDynamicObject::create_controller( std::string const Type, bool const Trainset )
 
     if( Type == "" ) { return; }
 
-    if( asName == Global::asHumanCtrlVehicle ) {
+    if( asName == Global.asHumanCtrlVehicle ) {
         // jeśli pojazd wybrany do prowadzenia
         if( MoverParameters->EngineType != Dumb ) {
             // wsadzamy tam sterującego
@@ -2276,7 +2279,7 @@ void TDynamicObject::Move(double fDistance)
         // MoverParameters->Loc.Y= vPosition.z;
         // MoverParameters->Loc.Z= vPosition.y;
         // obliczanie pozycji sprzęgów do liczenia zderzeń
-        vector3 dir = (0.5 * MoverParameters->Dim.L) * vFront; // wektor sprzęgu
+        auto dir = (0.5 * MoverParameters->Dim.L) * vFront; // wektor sprzęgu
         vCoulpler[0] = vPosition + dir; // współrzędne sprzęgu na początku
         vCoulpler[1] = vPosition - dir; // współrzędne sprzęgu na końcu
         MoverParameters->vCoulpler[0] = vCoulpler[0]; // tymczasowo kopiowane na inny poziom
@@ -2433,9 +2436,9 @@ void TDynamicObject::LoadUpdate()
             asBaseDir + MoverParameters->LoadType + ".t3d"; // zapamiętany katalog pojazdu
         // asLoadName=MoverParameters->LoadType;
         // if (MoverParameters->LoadType!=AnsiString("passengers"))
-        Global::asCurrentTexturePath = asBaseDir; // bieżąca ścieżka do tekstur to dynamic/...
+        Global.asCurrentTexturePath = asBaseDir; // bieżąca ścieżka do tekstur to dynamic/...
         mdLoad = TModelsManager::GetModel(asLoadName.c_str()); // nowy ładunek
-        Global::asCurrentTexturePath =
+        Global.asCurrentTexturePath =
             std::string(szTexturePath); // z powrotem defaultowa sciezka do tekstur
         // Ra: w MMD można by zapisać położenie modelu ładunku (np. węgiel) w
         // zależności od
@@ -2580,7 +2583,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // TTrackParam tp;
     tp.Width = MyTrack->fTrackWidth;
     // McZapkie-250202
-    tp.friction = MyTrack->fFriction * Global::fFriction;
+    tp.friction = MyTrack->fFriction * Global.fFriction;
     tp.CategoryFlag = MyTrack->iCategoryFlag & 15;
     tp.DamageFlag = MyTrack->iDamageFlag;
     tp.QualityFlag = MyTrack->iQualityFlag;
@@ -2605,7 +2608,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // tmpTraction.TractionVoltage=0;
     if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
     { // dla EZT tylko silnikowy
-        // if (Global::bLiveTraction)
+        // if (Global.bLiveTraction)
         { // Ra 2013-12: to niżej jest chyba trochę bez sensu
             double v = MoverParameters->PantRearVolt;
             if (v == 0.0) {
@@ -2932,7 +2935,6 @@ bool TDynamicObject::Update(double dt, double dt1)
         bDynamicRemove = true; // sprawdzić
         return false;
     }
-    Global::ABuDebug = dDOMoveLen / dt1;
     ResetdMoveLen();
 
     // McZapkie-260202
@@ -3015,15 +3017,13 @@ bool TDynamicObject::Update(double dt, double dt1)
            {
             MoverParameters->DecMainCtrl(1);
            } */
-        if ((!Console::Pressed(Global::Keys[k_IncMainCtrl])) &&
-            (MoverParameters->MainCtrlPos > MoverParameters->MainCtrlActualPos))
-        {
-            MoverParameters->DecMainCtrl(1);
+        if( ( glfwGetKey( Global.window, GLFW_KEY_KP_ADD ) != GLFW_TRUE )
+         && ( MoverParameters->MainCtrlPos > MoverParameters->MainCtrlActualPos ) ) {
+            MoverParameters->DecMainCtrl( 1 );
         }
-        if ((!Console::Pressed(Global::Keys[k_DecMainCtrl])) &&
-            (MoverParameters->MainCtrlPos < MoverParameters->MainCtrlActualPos))
-        {
-            MoverParameters->IncMainCtrl(1); // Ra 15-01: a to nie miało być tylko cofanie?
+        if( ( glfwGetKey( Global.window, GLFW_KEY_KP_SUBTRACT ) != GLFW_TRUE )
+         && ( MoverParameters->MainCtrlPos < MoverParameters->MainCtrlActualPos ) ) {
+            MoverParameters->IncMainCtrl( 1 ); // Ra 15-01: a to nie miało być tylko cofanie?
         }
     }
 
@@ -3087,7 +3087,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             switch (i) // numer pantografu
             { // trzeba usunąć to rozróżnienie
             case 0:
-                if( ( Global::bLiveTraction == false )
+                if( ( Global.bLiveTraction == false )
                     && ( p->hvPowerWire == nullptr ) ) {
                     // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantFrontVolt =
@@ -3120,7 +3120,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantFrontVolt = 0.0;
                 break;
             case 1:
-                if( ( false == Global::bLiveTraction )
+                if( ( false == Global.bLiveTraction )
                  && ( nullptr == p->hvPowerWire ) ) {
                     // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantRearVolt =
@@ -3149,7 +3149,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                         MoverParameters->PantRearVolt = 0.0;
                 }
                 else {
-//                    Global::iPause ^= 2;
+//                    Global.iPause ^= 2;
                     MoverParameters->PantRearVolt = 0.0;
                 }
                 break;
@@ -3479,7 +3479,7 @@ void TDynamicObject::TurnOff()
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
 void TDynamicObject::RenderSounds() {
 
-    if( Global::iPause != 0 ) { return; }
+    if( Global.iPause != 0 ) { return; }
 
     double const dt{ Timer::GetDeltaRenderTime() };
     double volume{ 0.0 };
@@ -3698,10 +3698,10 @@ void TDynamicObject::RenderSounds() {
      && ( false == rsOuterNoise.empty() )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
             FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
-            // Global::pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
+            // Global.pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
             ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
-            ctOwner != Global::pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
-            Global::CabWindowOpen ? true : // sticking head out we get to hear outer noise
+            ctOwner != Global.pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
+            Global.CabWindowOpen ? true : // sticking head out we get to hear outer noise
             false ) ) {
 
             // frequency calculation
@@ -3867,7 +3867,7 @@ void TDynamicObject::RenderSounds() {
 void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, std::string ReplacableSkin ) {
 
     double dSDist;
-    Global::asCurrentDynamicPath = BaseDir;
+    Global.asCurrentDynamicPath = BaseDir;
     std::string asFileName = BaseDir + TypeName + ".mmd";
     std::string asLoadName;
     if( false == MoverParameters->LoadType.empty() ) {
@@ -3907,12 +3907,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
             asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
-            Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
+            Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
             assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
             {
-				std::string nowheretexture = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+				std::string nowheretexture = TextureTest(Global.asCurrentTexturePath + "nowhere"); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
                     m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( nowheretexture );
                 }
@@ -3926,7 +3926,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         int skinindex = 0;
                         std::string texturename; nameparser >> texturename;
                         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( Global::asCurrentTexturePath + texturename );
+                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + texturename );
                             ++skinindex;
                             texturename = ""; nameparser >> texturename;
                         }
@@ -3936,7 +3936,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         // otherwise try the basic approach
                         int skinindex = 0;
                         do {
-                            material_handle material = GfxRenderer.Fetch_Material( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
+                            material_handle material = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
                             if( material == null_handle ) {
                                 break;
                             }
@@ -3946,12 +3946,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         m_materialdata.multi_textures = skinindex;
                         if( m_materialdata.multi_textures == 0 ) {
                             // zestaw nie zadziałał, próbujemy normanie
-                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global::asCurrentTexturePath + ReplacableSkin );
+                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin );
                         }
                     }
                 }
                 else {
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global::asCurrentTexturePath + ReplacableSkin );
+                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin );
                 }
                 if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
@@ -4024,7 +4024,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     }
                 }
             }
-            Global::asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
+            Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
 				token = "";
 				parser.getTokens(); parser >> token;
@@ -4043,7 +4043,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 							parser.getTokens( 1, false );
                             parser >> ile; // ilość danego typu animacji
                             // if (co==ANIM_PANTS)
-                            // if (!Global::bLoadTraction)
+                            // if (!Global.bLoadTraction)
                             //  if (!DebugModeFlag) //w debugmode pantografy mają "niby działać"
                             //   ile=0; //wyłączenie animacji pantografów
                             if (co < ANIM_TYPES)
@@ -4104,9 +4104,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					parser.getTokens();
 					parser >> asModel;
                     asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
-                    Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
+                    Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
-                    // Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyś uproszczone wnętrze mieszało tekstury nieba
+                    // Global.asCurrentTexturePath=AnsiString(szTexturePath); //kiedyś uproszczone wnętrze mieszało tekstury nieba
                 }
 
 				if( token == "brakemode:" ) {
@@ -4140,7 +4140,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 							pAnimations[i].yUpdate = std::bind( &TDynamicObject::UpdateAxle, this, std::placeholders::_1 );
                             pAnimations[i].fMaxDist = 50 * MoverParameters->WheelDiameter; // nie kręcić w większej odległości
                             pAnimations[i].fMaxDist *= pAnimations[i].fMaxDist * MoverParameters->WheelDiameter; // 50m do kwadratu, a średnica do trzeciej
-                            pAnimations[i].fMaxDist *= Global::fDistanceFactor; // współczynnik przeliczeniowy jakości ekranu
+                            pAnimations[i].fMaxDist *= Global.fDistanceFactor; // współczynnik przeliczeniowy jakości ekranu
                         }
                     }
                     // Ra: ustawianie indeksów osi
@@ -4970,8 +4970,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     if (mdLowPolyInt)
         mdLowPolyInt->Init();
 
-    Global::asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
-    Global::asCurrentDynamicPath = "";
+    Global.asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
+    Global.asCurrentDynamicPath = "";
 
     // position sound emitters which weren't defined in the config file
     // engine sounds, centre of the vehicle
@@ -5046,7 +5046,7 @@ void TDynamicObject::RadioStop()
             // add onscreen notification for human driver
             // TODO: do it selectively for the 'local' driver once the multiplayer is in
             if( false == Mechanik->AIControllFlag ) {
-                Global::tranTexts.AddLine( "!! RADIO-STOP !!", 0.0, 10.0, false );
+                ui::Transcripts.AddLine( "!! RADIO-STOP !!", 0.0, 10.0, false );
             }
         }
     }
@@ -5255,7 +5255,7 @@ void TDynamicObject::CoupleDist()
         // double d1=MoverParameters->Couplers[1].CoupleDist; //sprzęg z tyłu
         // samochodu można olać,
         // dopóki nie jeździ na wstecznym
-        vector3 p1, p2;
+        Math3D::vector3 p1, p2;
         double d, w; // dopuszczalny dystans w poprzek
         MoverParameters->SetCoupleDist(); // liczenie standardowe
         if (MoverParameters->Couplers[0].Connected) // jeśli cokolwiek podłączone
@@ -5425,9 +5425,9 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
         // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
         return;
     }
-	numer = Global::Bezogonkow(numer);
+	numer = Bezogonkow(numer);
     asDestination = to;
-    to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
+    to = Bezogonkow(to); // do szukania pliku obcinamy ogonki
 
     std::vector<std::string> destinations = {
         asBaseDir + numer + "@" + MoverParameters->TypeName,
@@ -6020,7 +6020,7 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
             }
 
             if( ( pantograph->hvPowerWire == nullptr )
-             && ( false == Global::bLiveTraction ) ) {
+             && ( false == Global.bLiveTraction ) ) {
                 // jeśli drut nie znaleziony ale można oszukiwać to dajemy coś tam dla picu
                 Vehicle->pants[ pantographindex ].fParamPants->PantTraction = 1.4;
             }

@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <glm/glm.hpp>
-#include "usefull.h"
+#include "utilities.h"
 
 // geometry vertex with double precision position
 struct world_vertex {

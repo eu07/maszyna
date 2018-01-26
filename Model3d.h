@@ -9,14 +9,11 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
-#include "Parser.h"
+#include "classes.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "openglgeometrybank.h"
 #include "material.h"
-
-using namespace Math3D;
 
 // Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
 const int TP_ROTATOR = 256;
@@ -165,9 +162,9 @@ public:
 	TSubModel * ChildGet() { return Child; };
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
-	void SetRotateXYZ(vector3 vNewAngles);
+	void SetRotateXYZ( Math3D::vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
-	void SetTranslate(vector3 vNewTransVector);
+	void SetTranslate( Math3D::vector3 vNewTransVector);
 	void SetTranslate(float3 vNewTransVector);
 	void SetRotateIK1(float3 vNewAngles);
 	TSubModel * GetFromName( std::string const &search, bool i = true );

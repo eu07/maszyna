@@ -9,13 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-//#include <fstream>
-#include "Classes.h"
-#include "dumb3d.h"
-#include "mczapkie/mover.h"
 #include <string>
-using namespace Math3D;
-using namespace Mtable;
+#include "Classes.h"
+#include "mczapkie/mover.h"
+#include "sound.h"
 
 enum TOrders
 { // rozkazy dla AI
@@ -134,7 +131,7 @@ class TSpeedPos
     // zwrotnicy,32-minięty,64=koniec,128=łuk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysłana komenda,0x2000=W5
     // 0x4000=semafor,0x10000=zatkanie
-    vector3 vPos; // współrzędne XYZ do liczenia odległości
+    Math3D::vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {
         TTrack *trTrack{ nullptr }; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
@@ -238,13 +235,10 @@ private:
     TDynamicObject *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
     TMoverParameters *mvControlling = nullptr; // jakim pojazdem steruje (może silnikowym w EZT)
     TMoverParameters *mvOccupied = nullptr; // jakim pojazdem hamuje
-    TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
+    Mtable::TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
-/*
-    TTextSound *tsGuardSignal = nullptr; // komunikat od kierownika
-*/
-    sound_source *tsGuardSignal { nullptr };
+    sound_source tsGuardSignal { sound_placement::internal };
   public:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
@@ -265,7 +259,7 @@ private:
   public:
     double ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
   private:
-    vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
+    Math3D::vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
     // odnosi sie komenda
     TOrders OrderList[maxorders]; // lista rozkazów
     int OrderPos = 0,

@@ -12,8 +12,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "utilities.h"
 #include "Track.h"
+#include "renderer.h"
 
 //---------------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     // poprawienie przechyłki
     fRoll1 = glm::radians(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
     fRoll2 = glm::radians(fNewRoll2);
-    if (Global::bRollFix)
+    if (Global.bRollFix)
     { // Ra: poprawianie przechyłki
         // Przechyłka powinna być na środku wewnętrznej szyny, a standardowo jest w osi
         // toru. Dlatego trzeba podnieść tor oraz odpowiednio podwyższyć podsypkę.

@@ -112,6 +112,8 @@ std::string ToUpper(std::string const &text);
 
 // replaces polish letters with basic ascii
 void win1250_to_ascii( std::string &Input );
+// TODO: unify with win1250_to_ascii()
+std::string Bezogonkow( std::string str, bool _ = false );
 
 inline
 std::string

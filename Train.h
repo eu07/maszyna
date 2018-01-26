@@ -37,8 +37,8 @@ class TCab
     void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2, double Initz2, bool InitEnabled, bool InitOccupied);
 */
     void Load(cParser &Parser);
-    vector3 CabPos1;
-    vector3 CabPos2;
+    Math3D::vector3 CabPos1;
+    Math3D::vector3 CabPos2;
     bool bEnabled;
     bool bOccupied;
     double dimm_r, dimm_g, dimm_b; // McZapkie-120503: tlumienie swiatla
@@ -83,11 +83,11 @@ class TTrain
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
 
-    inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
-    inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    inline Math3D::vector3 GetDirection() { return DynamicObject->VectorFront(); };
+    inline Math3D::vector3 GetUp() { return DynamicObject->VectorUp(); };
     inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
     void UpdateMechPosition(double dt);
-    vector3 GetWorldMechPosition();
+    Math3D::vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
     void MechStop();
     void SetLights();
@@ -421,11 +421,11 @@ public: // reszta może by?publiczna
 /*
     vector3 pPosition;
 */
-    vector3 pMechOffset; // driverNpos
-    vector3 vMechMovement;
-    vector3 pMechPosition;
-    vector3 pMechShake;
-    vector3 vMechVelocity;
+    Math3D::vector3 pMechOffset; // driverNpos
+    Math3D::vector3 vMechMovement;
+    Math3D::vector3 pMechPosition;
+    Math3D::vector3 pMechShake;
+    Math3D::vector3 vMechVelocity;
     // McZapkie: do poruszania sie po kabinie
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     TCab Cabine[maxcab + 1]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
@@ -468,8 +468,8 @@ public: // reszta może by?publiczna
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 
-    vector3 pMechSittingPosition; // ABu 180404
-    vector3 MirrorPosition(bool lewe);
+    Math3D::vector3 pMechSittingPosition; // ABu 180404
+    Math3D::vector3 MirrorPosition(bool lewe);
 
 private:
     double fBlinkTimer;

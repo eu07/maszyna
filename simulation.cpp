@@ -10,9 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulation.h"
 
+#include "world.h"
 #include "globals.h"
 #include "logs.h"
 #include "uilayer.h"
+#include "renderer.h"
 
 namespace simulation {
 
@@ -44,7 +46,7 @@ state_manager::deserialize( std::string const &Scenariofile ) {
         importscratchpad.binary.terrain = Region->deserialize( Scenariofile );
     }
     // NOTE: for the time being import from text format is a given, since we don't have full binary serialization
-    cParser scenarioparser( Scenariofile, cParser::buffer_FILE, Global::asCurrentSceneryPath, Global::bLoadTraction );
+    cParser scenarioparser( Scenariofile, cParser::buffer_FILE, Global.asCurrentSceneryPath, Global.bLoadTraction );
 
     if( false == scenarioparser.ok() ) { return false; }
 
@@ -56,7 +58,7 @@ state_manager::deserialize( std::string const &Scenariofile ) {
         Region->serialize( Scenariofile );
     }
 
-    Global::iPause &= ~0x10; // koniec pauzy wczytywania
+    Global.iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
 
@@ -153,10 +155,10 @@ state_manager::deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad
     // fog range
     Input.getTokens( 2 );
     Input
-        >> Global::fFogStart
-        >> Global::fFogEnd;
+        >> Global.fFogStart
+        >> Global.fFogEnd;
 
-    if( Global::fFogEnd > 0.0 ) {
+    if( Global.fFogEnd > 0.0 ) {
         // fog colour; optional legacy parameter, no longer used
         Input.getTokens( 3 );
     }
@@ -164,7 +166,7 @@ state_manager::deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad
     std::string token { Input.getToken<std::string>() };
     if( token != "endatmo" ) {
         // optional overcast parameter
-        Global::Overcast = clamp( std::stof( token ), 0.f, 2.f );
+        Global.Overcast = clamp( std::stof( token ), 0.f, 2.f );
     }
     while( ( false == token.empty() )
         && ( token != "endatmo" ) ) {
@@ -194,15 +196,15 @@ state_manager::deserialize_camera( cParser &Input, scene::scratch_data &Scratchp
         }
     } while( token.compare( "endcamera" ) != 0 );
     if( into < 0 )
-        into = ++Global::iCameraLast;
+        into = ++Global.iCameraLast;
     if( into < 10 ) { // przepisanie do odpowiedniego miejsca w tabelce
-        Global::FreeCameraInit[ into ] = xyz;
-        Global::FreeCameraInitAngle[ into ] =
+        Global.FreeCameraInit[ into ] = xyz;
+        Global.FreeCameraInitAngle[ into ] =
             Math3D::vector3(
                 glm::radians( abc.x ),
                 glm::radians( abc.y ),
                 glm::radians( abc.z ) );
-        Global::iCameraLast = into; // numer ostatniej
+        Global.iCameraLast = into; // numer ostatniej
     }
 /*
     // cleaned up version of the above.
@@ -231,7 +233,7 @@ void
 state_manager::deserialize_config( cParser &Input, scene::scratch_data &Scratchpad ) {
 
     // config parameters (re)definition
-    Global::ConfigParse( Input );
+    Global.ConfigParse( Input );
 }
 
 void
@@ -511,7 +513,7 @@ state_manager::deserialize_sky( cParser &Input, scene::scratch_data &Scratchpad 
     // sky model
     Input.getTokens( 1 );
     Input
-        >> Global::asSky;
+        >> Global.asSky;
     // anything else left in the section has no defined meaning
     skip_until( Input, "endsky" );
 }
@@ -627,7 +629,7 @@ state_manager::deserialize_path( cParser &Input, scene::scratch_data &Scratchpad
 TTraction *
 state_manager::deserialize_traction( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
 
-    if( false == Global::bLoadTraction ) {
+    if( false == Global.bLoadTraction ) {
         skip_until( Input, "endtraction" );
         return nullptr;
     }
@@ -645,7 +647,7 @@ state_manager::deserialize_traction( cParser &Input, scene::scratch_data &Scratc
 TTractionPowerSource *
 state_manager::deserialize_tractionpowersource( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata ) {
 
-    if( false == Global::bLoadTraction ) {
+    if( false == Global.bLoadTraction ) {
         skip_until( Input, "end" );
         return nullptr;
     }

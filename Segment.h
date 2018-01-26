@@ -9,10 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "openglgeometrybank.h"
+#include "classes.h"
 #include "dumb3d.h"
-#include "Classes.h"
-#include "usefull.h"
+#include "openglgeometrybank.h"
+#include "utilities.h"
 
 class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)

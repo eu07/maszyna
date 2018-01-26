@@ -12,14 +12,13 @@ http://mozilla.org/MPL/2.0/.
 #include <GLFW/glfw3.h>
 #include <string>
 
+#include "classes.h"
 #include "Camera.h"
-#include "scene.h"
 #include "sky.h"
 #include "sun.h"
 #include "moon.h"
 #include "stars.h"
 #include "skydome.h"
-#include "mczapkie/mover.h"
 #include "messaging.h"
 
 // wrapper for simulation time

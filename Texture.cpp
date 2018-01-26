@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include <ddraw.h>
 #include "GL/glew.h"
 
-#include "usefull.h"
+#include "utilities.h"
 #include "globals.h"
 #include "logs.h"
 #include "sn_utils.h"
@@ -250,7 +250,7 @@ opengl_texture::load_DDS() {
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
-    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
         offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
         data_width /= 2;
@@ -485,7 +485,7 @@ opengl_texture::load_TGA() {
     }
 
     downsize( GL_BGRA );
-    if( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
         // before it gets all work done
         data_state = resource_state::failed;
@@ -589,8 +589,8 @@ opengl_texture::create() {
             }
         }
 
-        if( ( true == Global::ResourceMove )
-         || ( false == Global::ResourceSweep ) ) {
+        if( ( true == Global.ResourceMove )
+         || ( false == Global.ResourceSweep ) ) {
             // if garbage collection is disabled we don't expect having to upload the texture more than once
             data = std::vector<char>();
             data_state = resource_state::none;
@@ -607,7 +607,7 @@ opengl_texture::release() {
 
     if( id == -1 ) { return; }
 
-    if( true == Global::ResourceMove ) {
+    if( true == Global.ResourceMove ) {
         // if resource move is enabled we don't keep a cpu side copy after upload
         // so need to re-acquire the data before release
         // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
@@ -653,7 +653,7 @@ opengl_texture::set_filtering() const {
 
     if( GLEW_EXT_texture_filter_anisotropic ) {
         // anisotropic filtering
-        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
     bool sharpen{ false };
@@ -679,7 +679,7 @@ opengl_texture::set_filtering() const {
 void
 opengl_texture::downsize( GLuint const Format ) {
 
-    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // scale down the base texture, if it's larger than allowed maximum
         // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
         // TODO: replace with proper scaling function once we have image middleware in place
@@ -760,7 +760,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank
-    auto lookup = find_in_databank( Filename + Global::szDefaultExt );
+    auto lookup = find_in_databank( Filename + Global.szDefaultExt );
     if( lookup != npos ) {
         // start with the default extension...
         return lookup;
@@ -769,7 +769,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         // ...then try recognized file extensions other than default
         for( auto const &extension : extensions ) {
 
-            if( extension == Global::szDefaultExt ) {
+            if( extension == Global.szDefaultExt ) {
                 // we already tried this one
                 continue;
             }
@@ -781,12 +781,12 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         }
     }
     // if we don't have the texture in the databank, check if it's on disk
-    std::string filename = find_on_disk( Filename + Global::szDefaultExt );
+    std::string filename = find_on_disk( Filename + Global.szDefaultExt );
     if( true == filename.empty() ) {
         // if the default lookup fails, try other known extensions
         for( auto const &extension : extensions ) {
 
-            if( extension == Global::szDefaultExt ) {
+            if( extension == Global.szDefaultExt ) {
                 // we already tried this one
                 continue;
             }

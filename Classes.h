@@ -16,22 +16,25 @@ class TTrack; // odcinek trajektorii
 class TEvent;
 class TTrain; // pojazd sterowany
 class TDynamicObject; // pojazd w scenerii
-class TGroundNode; // statyczny obiekt scenerii
+struct material_data;
 class TAnimModel; // opakowanie egzemplarz modelu
 class TAnimContainer; // fragment opakowania egzemplarza modelu
 class TModel3d; //siatka modelu wspólna dla egzemplarzy
 class TSubModel; // fragment modelu (tu do wyświetlania terenu)
 class TMemCell; // komórka pamięci
 class cParser;
-#ifdef EU07_USE_OLD_SOUNDCODE
-class TRealSound; // dźwięk ze współrzędnymi XYZ
-class TTextSound; // dźwięk ze stenogramem
-#else
 class sound_source;
-#endif
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
+class TCamera;
+class TWorld;
+class simulation_time;
+class TMoverParameters;
+
+namespace scene {
+struct node_data;
+}
 
 namespace Mtable
 {

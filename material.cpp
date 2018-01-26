@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "material.h"
 #include "renderer.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "globals.h"
 
 bool
@@ -51,13 +51,13 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
     if( value == "{" ) {
         // detect and optionally process config blocks
         cParser blockparser( Input.getToken<std::string>( false, "}" ) );
-        if( key == Global::Season ) {
+        if( key == Global.Season ) {
             // seasonal textures override generic textures
             while( true == deserialize_mapping( blockparser, 1, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
-        else if( key == Global::Weather ) {
+        else if( key == Global.Weather ) {
             // weather textures override generic and seasonal textures
             while( true == deserialize_mapping( blockparser, 2, Loadnow ) ) {
                 ; // all work is done in the header

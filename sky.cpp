@@ -17,10 +17,10 @@ http://mozilla.org/MPL/2.0/.
 
 void TSky::Init() {
 
-    if( ( Global::asSky != "1" )
-     && ( Global::asSky != "0" ) ) {
+    if( ( Global.asSky != "1" )
+     && ( Global.asSky != "0" ) ) {
 
-        mdCloud = TModelsManager::GetModel( Global::asSky );
+        mdCloud = TModelsManager::GetModel( Global.asSky );
     }
 };
 

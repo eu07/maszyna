@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "event.h"
 
 #include "simulation.h"
+#include "world.h"
 #include "globals.h"
 #include "timer.h"
 #include "logs.h"
@@ -780,7 +781,7 @@ event_manager::insert( TEvent *Event ) {
         }
 
         auto *duplicate = m_events[ lookup->second ];
-        if( Global::bJoinEvents ) {
+        if( Global.bJoinEvents ) {
             // doczepka (taki wirtualny multiple bez warunków)
             duplicate->Append( Event );
         }
@@ -959,7 +960,7 @@ event_manager::CheckQuery() {
             case tp_GetValues: {
                 if( m_workevent->Activator ) {
                     // TODO: re-enable when messaging module is in place
-                    if( Global::iMultiplayer ) {
+                    if( Global.iMultiplayer ) {
                         // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
                         multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
                     }
@@ -1019,7 +1020,7 @@ event_manager::CheckQuery() {
             }
             case tp_Exit: {
                 MessageBox( 0, m_workevent->asNodeName.c_str(), " THE END ", MB_OK );
-                Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
+                Global.iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
                 return false;
             }
             case tp_Sound: {
@@ -1034,7 +1035,7 @@ event_manager::CheckQuery() {
                     }
                     case 1: {
                         if( m_workevent->Params[ 1 ].asdouble > 0.0 ) {
-                            Global::pWorld->radio_message(
+                            Global.pWorld->radio_message(
                                 m_workevent->Params[ 9 ].tsTextSound,
                                 static_cast<int>( m_workevent->Params[ 1 ].asdouble ) );
                         }
@@ -1098,7 +1099,7 @@ event_manager::CheckQuery() {
                         m_workevent->Params[ 1 ].asdouble,
                         m_workevent->Params[ 2 ].asdouble );
                 }
-                if( Global::iMultiplayer ) {
+                if( Global.iMultiplayer ) {
                     // dajemy znać do serwera o przełożeniu
                     multiplayer::WyslijEvent( m_workevent->asName, "" ); // wysłanie nazwy eventu przełączajacego
                 }
@@ -1141,7 +1142,7 @@ event_manager::CheckQuery() {
                             }
                         }
                     }
-                    if( Global::iMultiplayer ) {
+                    if( Global.iMultiplayer ) {
                         // dajemy znać do serwera o wykonaniu
                         if( ( m_workevent->iFlags & conditional_anyelse ) == 0 ) {
                             // jednoznaczne tylko, gdy nie było else
@@ -1255,7 +1256,7 @@ event_manager::CheckQuery() {
             case tp_Friction: // zmiana tarcia na scenerii
             { // na razie takie chamskie ustawienie napięcia zasilania
                 WriteLog("Type: Friction");
-                Global::fFriction = (m_workevent->Params[0].asdouble);
+                Global.fFriction = (m_workevent->Params[0].asdouble);
             }
             break;
             case tp_Message: // wyświetlenie komunikatu

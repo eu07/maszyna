@@ -16,8 +16,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "MdlMngr.h"
 
+#include "model3d.h"
 #include "Globals.h"
-#include "McZapkie/mctools.h"
+#include "utilities.h"
 
 // wczytanie modelu do kontenerka
 TModel3d *
@@ -78,15 +79,15 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     // - niebo animowane, ścieżka brana ze wpisu, tekstury nieokreślone
     // - wczytanie modelu animowanego - Init() - sprawdzić
 	std::string buf;
-    std::string const buftp = Global::asCurrentTexturePath; // zapamiętanie aktualnej ścieżki do tekstur,
+    std::string const buftp = Global.asCurrentTexturePath; // zapamiętanie aktualnej ścieżki do tekstur,
     if( Name.find('\\') == std::string::npos )
     {
         buf = "models\\" + Name; // Ra: było by lepiej katalog dodać w parserze
         if( Name.find( '/') != std::string::npos)
         {
-            Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
-            Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
-                                                Global::asCurrentTexturePath.length());
+            Global.asCurrentTexturePath = Global.asCurrentTexturePath + Name;
+            Global.asCurrentTexturePath.erase(Global.asCurrentTexturePath.find("/") + 1,
+                                                Global.asCurrentTexturePath.length());
         }
     }
     else
@@ -95,10 +96,10 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
         if( Dynamic ) {
             // na razie tak, bo nie wiadomo, jaki może mieć wpływ na pozostałe modele
             if( Name.find( '/' ) != std::string::npos ) { // pobieranie tekstur z katalogu, w którym jest model
-                Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
-                Global::asCurrentTexturePath.erase(
-                    Global::asCurrentTexturePath.find( "/" ) + 1,
-                    Global::asCurrentTexturePath.length() - 1 );
+                Global.asCurrentTexturePath = Global.asCurrentTexturePath + Name;
+                Global.asCurrentTexturePath.erase(
+                    Global.asCurrentTexturePath.find( "/" ) + 1,
+                    Global.asCurrentTexturePath.length() - 1 );
             }
         }
     }
@@ -106,12 +107,12 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
 
     auto const lookup = m_modelsmap.find( buf );
     if( lookup != m_modelsmap.end() ) {
-        Global::asCurrentTexturePath = buftp;
+        Global.asCurrentTexturePath = buftp;
         return ( m_models[ lookup->second ].Model.get() );
     }
 
     auto model = LoadModel(buf, Dynamic); // model nie znaleziony, to wczytać
-    Global::asCurrentTexturePath = buftp; // odtworzenie ścieżki do tekstur
+    Global.asCurrentTexturePath = buftp; // odtworzenie ścieżki do tekstur
     return model; // NULL jeśli błąd
 };
 
