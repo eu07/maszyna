@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "LPT.h"
+#include "Logs.h"
 
 // LPT na USB:
 // USB\VID_067B&PID_2305&REV_0200
@@ -24,15 +25,21 @@ OutPortType OutPort;
 
 bool TLPT::Connect(int port)
 {
+	WriteLog("lpt: trying to connect lpt, port " + std::to_string(port) + "...");
+
     // ladowanie dll-ki
     hDLL = LoadLibrary("inpout32.dll");
     if (hDLL)
     {
+		WriteLog("lpt: inpout32 loaded");
         InPort = (InPortType)GetProcAddress(hDLL, "Inp32");
-        OutPort = (OutPortType)GetProcAddress(hDLL, "Out32");
+		OutPort = (OutPortType)GetProcAddress(hDLL, "Out32");
     }
-    else
-        return false; // MessageBox(NULL,"ERROR","Błąd przy ładowaniu pliku",MB_OK);
+	else
+	{
+		WriteLog("lpt: failed to load inpout32");
+		return false; // MessageBox(NULL,"ERROR","Błąd przy ładowaniu pliku",MB_OK);
+	}
     address =
         port; //&0xFFFFFC; //ostatnie 2 bity mają być zerowe -> a niech sobie OUT-ują, gdzie chcą
     switch (address) // nie dotyczy 0x3BC
@@ -45,10 +52,14 @@ bool TLPT::Connect(int port)
     case 0xBD00:
         OutPort(address + 0x006, 0); // 0xBC06? czysta improwizacja
     }
+
+	WriteLog("lpt: port opened successfully");
+
     return OutPort != 0;
 };
 
 void TLPT::Out(int x)
 { // wysłanie bajtu do portu
+	WriteLog("lpt: sending data: " + std::to_string(x), logtype::lptdebug);
     OutPort(address, x);
 };
