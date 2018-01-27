@@ -4259,19 +4259,20 @@ double TMoverParameters::TractionForce(double dt)
                     }
 
                     case 2: { // automatic
+                        auto const motorcurrent{ std::min<double>( ImaxHi, std::abs( Im ) ) };
                         if( ( std::abs( Itot ) > RVentMinI )
                          && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
 
                             RventRot +=
                                 ( RVentnmax
-                                    * std::min( 1.0, ( ( Im / NPoweredAxles ) / RVentMinI ) )
-                                    * Im / ImaxLo
+                                    * std::min( 1.0, ( ( motorcurrent / NPoweredAxles ) / RVentMinI ) )
+                                    * motorcurrent / ImaxLo
                                     - RventRot )
                                 * RVentSpeed * dt;
                         }
                         else if( ( DynamicBrakeType == dbrake_automatic )
                               && ( true == DynamicBrakeFlag ) ) {
-                            RventRot += ( RVentnmax * Im / ImaxLo - RventRot ) * RVentSpeed * dt;
+                            RventRot += ( RVentnmax * motorcurrent / ImaxLo - RventRot ) * RVentSpeed * dt;
                         }
                         else {
                             RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );

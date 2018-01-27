@@ -19,5 +19,5 @@ struct basic_light {
     glm::vec4 specular { colors::white };
     glm::vec3 position;
     glm::vec3 direction;
-    bool is_omnidirectional { true };
+    bool is_directional { true };
 };

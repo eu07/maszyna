@@ -1011,7 +1011,7 @@ event_manager::CheckQuery() {
             }
             case tp_Visible: {
                 if( m_workevent->Params[ 9 ].asEditorNode )
-                    m_workevent->Params[ 9 ].asEditorNode->visible( m_workevent->Params[ i ].asInt > 0 );
+                    m_workevent->Params[ 9 ].asEditorNode->visible( m_workevent->Params[ 0 ].asInt > 0 );
                 break;
             }
             case tp_Velocity: {
@@ -1427,8 +1427,10 @@ event_manager::InitEvents() {
             }
             if( node != nullptr )
                 event->Params[ 9 ].asEditorNode = node;
-            else
+            else {
+                event->m_ignored = true;
                 ErrorLog( "Bad event: visibility event \"" + event->asName + "\" cannot find item \"" + event->asNodeName + "\"" );
+            }
             event->asNodeName = "";
             break;
         }

@@ -52,8 +52,10 @@ opengl_light::apply_intensity( float const Factor ) {
 void
 opengl_light::apply_angle() {
 
-    ::glLightfv( id, GL_POSITION, glm::value_ptr( position ) );
-    ::glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr( glm::vec4{ direction, ( is_omnidirectional ? 1.f : 0.f ) } ) );
+    ::glLightfv( id, GL_POSITION, glm::value_ptr( glm::vec4{ position, ( is_directional ? 0.f : 1.f ) } ) );
+    if( false == is_directional ) {
+        ::glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr( direction ) );
+    }
 }
 
 
@@ -156,15 +158,15 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     // setup lighting
     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
     ::glEnable( GL_LIGHTING );
-    ::glEnable( GL_LIGHT0 );
+    ::glEnable( opengl_renderer::sunlight );
 
-    m_sunlight.id = opengl_renderer::sunlight;
-//    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
-    Global.DayLight.is_omnidirectional = true;
     // rgb value for 5780 kelvin
     Global.DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
     Global.DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
     Global.DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
+    Global.DayLight.is_directional = true;
+    m_sunlight.id = opengl_renderer::sunlight;
+    //    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
 
     // create dynamic light pool
     for( int idx = 0; idx < Global.DynamicLightCount; ++idx ) {
@@ -172,7 +174,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         opengl_light light;
         light.id = GL_LIGHT1 + idx;
 
-        light.is_omnidirectional = true;
+        light.is_directional = false;
         ::glLightf( light.id, GL_SPOT_CUTOFF, 7.5f );
         ::glLightf( light.id, GL_SPOT_EXPONENT, 7.5f );
         ::glLightf( light.id, GL_CONSTANT_ATTENUATION, 0.0f );
@@ -392,7 +394,9 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_total.stop();
     Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
     Timer::subsystem.gfx_color.start();
-
+    // fetch simulation data
+    m_sunlight = Global.DayLight;
+    // generate new frame
     m_renderpass.draw_mode = rendermode::none; // force setup anew
     m_debugtimestext.clear();
     m_debugstats = debug_stats();
@@ -831,9 +835,9 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             // ...cap the vertical angle to keep shadows from getting too long...
             auto const lightvector =
                 glm::normalize( glm::vec3{
-                              Global.DayLight.direction.x,
-                    std::min( Global.DayLight.direction.y, -0.2f ),
-                              Global.DayLight.direction.z } );
+                              m_sunlight.direction.x,
+                    std::min( m_sunlight.direction.y, -0.2f ),
+                              m_sunlight.direction.z } );
             // ...place the light source at the calculated centre and setup world space light view matrix...
             camera.position() = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };
             viewmatrix *= glm::lookAt(
@@ -867,7 +871,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                     -Global.shadowtune.width, Global.shadowtune.width,
                     -Global.shadowtune.width, Global.shadowtune.width,
                     -Global.shadowtune.depth, Global.shadowtune.depth );
-            camera.position() = Global.pCameraPosition - glm::dvec3{ Global.DayLight.direction };
+            camera.position() = Global.pCameraPosition - glm::dvec3{ m_sunlight.direction };
             if( camera.position().y - Global.pCameraPosition.y < 0.1 ) {
                 camera.position().y = Global.pCameraPosition.y + 0.1;
             }
@@ -894,9 +898,9 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             // modelview
             auto const lightvector =
                 glm::normalize( glm::vec3{
-                              Global.DayLight.direction.x,
-                    std::min( Global.DayLight.direction.y, -0.2f ),
-                              Global.DayLight.direction.z } );
+                              m_sunlight.direction.x,
+                    std::min( m_sunlight.direction.y, -0.2f ),
+                              m_sunlight.direction.z } );
             camera.position() = Global.pCameraPosition - glm::dvec3 { lightvector };
             viewmatrix *= glm::lookAt(
                 camera.position(),
@@ -1335,28 +1339,26 @@ opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
 void
 opengl_renderer::setup_environment_light( TEnvironmentType const Environment ) {
 
-    if( m_environment == Environment ) { return; }
-
-        switch( Environment ) {
-            case e_flat: {
-                m_sunlight.apply_intensity();
-                m_environment = e_flat;
-                break;
-            }
-            case e_canyon: {
-                m_sunlight.apply_intensity( 0.4f );
-                m_environment = Environment;
-                break;
-            }
-            case e_tunnel: {
-                m_sunlight.apply_intensity( 0.2f );
-                m_environment = Environment;
-                break;
-            }
-            default: {
-                break;
-            }
+    switch( Environment ) {
+        case e_flat: {
+            m_sunlight.apply_intensity();
+//            m_environment = Environment;
+            break;
         }
+        case e_canyon: {
+            m_sunlight.apply_intensity( 0.4f );
+//            m_environment = Environment;
+            break;
+        }
+        case e_tunnel: {
+            m_sunlight.apply_intensity( 0.2f );
+//            m_environment = Environment;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 bool
@@ -1637,7 +1639,6 @@ opengl_renderer::Render( scene::basic_region *Region ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::color: {
 
-            m_sunlight = Global.DayLight;
             Update_Lights( simulation::Lights );
 
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
@@ -1923,7 +1924,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
             // NOTE: ambient component is set by diffuse component
             // NOTE: for the time being non-instanced shapes are rendered without specular component due to wrong/arbitrary values set in legacy scenarios
             // TBD, TODO: find a way to resolve this with the least amount of tears?
-            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( data.lighting.specular * Global.DayLight.specular.a * m_specularopaquescalefactor ) );
+            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( data.lighting.specular * m_sunlight.specular.a * m_specularopaquescalefactor ) );
 */
             break;
         }
@@ -2290,9 +2291,9 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
                         // ...colors...
                         ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
-                        if( ( true == m_renderspecular ) && ( Global.DayLight.specular.a > 0.01f ) ) {
+                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             // specular strength in legacy models is set uniformly to 150, 150, 150 so we scale it down for opaque elements
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global.DayLight.specular.a * m_specularopaquescalefactor ) );
+                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_specularopaquescalefactor ) );
                             ::glEnable( GL_RESCALE_NORMAL );
                         }
                         // ...luminance
@@ -2311,7 +2312,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         m_geometry.draw( Submodel->m_geometry );
 
                         // post-draw reset
-                        if( ( true == m_renderspecular ) && ( Global.DayLight.specular.a > 0.01f ) ) {
+                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
                         if( Global.fLuminance < Submodel->fLight ) {
@@ -2577,10 +2578,15 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
             case rendermode::reflections: {
-                setup_environment_light( track->eEnvironment );
+                if( track->eEnvironment != e_flat ) {
+                    setup_environment_light( track->eEnvironment );
+                }
                 Bind_Material( track->m_material1 );
                 m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
-                setup_environment_light();
+                if( track->eEnvironment != e_flat ) {
+                    // restore default lighting
+                    setup_environment_light();
+                }
                 break;
             }
             case rendermode::shadows: {
@@ -2615,10 +2621,15 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
             case rendermode::reflections: {
-                setup_environment_light( track->eEnvironment );
+                if( track->eEnvironment != e_flat ) {
+                    setup_environment_light( track->eEnvironment );
+                }
                 Bind_Material( track->m_material2 );
                 m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
-                setup_environment_light();
+                if( track->eEnvironment != e_flat ) {
+                    // restore default lighting
+                    setup_environment_light();
+                }
                 break;
             }
             case rendermode::shadows: {
@@ -2915,7 +2926,7 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
     ::glColor4fv(
         glm::value_ptr(
             glm::vec4{
-                glm::vec3{ data.lighting.diffuse * Global.DayLight.ambient }, // w zaleznosci od koloru swiatla
+                glm::vec3{ data.lighting.diffuse * m_sunlight.ambient }, // w zaleznosci od koloru swiatla
                 std::min( 1.f, linealpha ) } ) );
     // render
     m_geometry.draw( data.geometry );
@@ -3100,8 +3111,8 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         }
                         // ...colors...
                         ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
-                        if( ( true == m_renderspecular ) && ( Global.DayLight.specular.a > 0.01f ) ) {
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global.DayLight.specular.a * m_speculartranslucentscalefactor ) );
+                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
+                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_speculartranslucentscalefactor ) );
                         }
                         // ...luminance
                         auto const unitstate = m_unitstate;
@@ -3119,7 +3130,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         m_geometry.draw( Submodel->m_geometry );
 
                         // post-draw reset
-                        if( ( true == m_renderspecular ) && ( Global.DayLight.specular.a > 0.01f ) ) {
+                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
                         if( Global.fLuminance < Submodel->fLight ) {
