@@ -831,7 +831,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep * Command.time_delta );
         }
         else {
-            Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos - Global::fBrakeStep * Command.time_delta );
+            Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global::fBrakeStep * Command.time_delta );
         }
     }
     else if (Command.action == GLFW_RELEASE) {
