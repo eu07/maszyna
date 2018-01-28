@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-	Global::asVersion = "NG";
+	Global::asVersion = "M7 18.01";
 
 	for (int i = 1; i < argc; ++i)
 	{

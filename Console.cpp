@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "LPT.h"
 #include "Logs.h"
 #include "PoKeys55.h"
+#include "usefull.h"
 
 //---------------------------------------------------------------------------
 // Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
