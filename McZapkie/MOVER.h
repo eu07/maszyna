@@ -208,6 +208,7 @@ enum sound {
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
+// TODO: convert to enums, they're used as specific checks anyway
 static int const dt_Default = 0;
 static int const dt_EZT = 1;
 static int const dt_ET41 = 2;
@@ -218,6 +219,7 @@ static int const dt_SN61 = 0x20; //nie używane w warunkach, ale ustawiane z CHK
 static int const dt_EP05 = 0x40;
 static int const dt_ET40 = 0x80;
 static int const dt_181 = 0x100;
+static int const dt_DMU = 0x200;
 
 //stałe dla asynchronów
 static int const eimc_s_dfic = 0;

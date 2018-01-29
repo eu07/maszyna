@@ -3846,6 +3846,9 @@ double TMoverParameters::BrakeForceR(double ratio, double velocity)
 				ratio = ratio + (1.5 - ratio)*std::min(1.0, Vel*0.02);
 			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod%128 != bp_Cosid) && (BrakeMethod % 128 != bp_D1) && (BrakeMethod % 128 != bp_D2) && (Power<1) && (velocity<40))
 				ratio = ratio / 2;
+            if( ( TrainType == dt_DMU ) && ( velocity < 30.0 ) ) {
+                ratio -= 0.3;
+            }
 		}
 
 	}
@@ -4294,7 +4297,7 @@ double TMoverParameters::TractionForce(double dt)
         case DieselElectric: {
             if( true == Mains ) {
                 // TBD, TODO: currently ignores RVentType, fix this?
-                RventRot += clamp( DElist[ MainCtrlPos ].RPM - RventRot, -100.0, 50.0 ) * dt;
+                RventRot += clamp( DElist[ MainCtrlPos ].RPM / 60.0 - RventRot, -100.0, 50.0 ) * dt;
             }
             else {
                 RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
@@ -6978,6 +6981,7 @@ void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
         std::map<std::string, int> types{
             { "pseudodiesel", dt_PseudoDiesel },
             { "ezt", dt_EZT },
+            { "dmu", dt_DMU },
             { "sn61", dt_SN61 },
             { "et22", dt_ET22 },
             { "et40", dt_ET40 },

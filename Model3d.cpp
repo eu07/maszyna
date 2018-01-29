@@ -1169,17 +1169,18 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
         // offset of zero generally means the submodel has optimized identity matrix
         // for such cases we resort to an estimate from submodel geometry
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
-        if( m_geometry != null_handle ) {
-            auto const &vertices { GfxRenderer.Vertices( m_geometry ) };
-            if( false == vertices.empty() ) {
-                // transformation matrix for the submodel can still contain rotation and/or scaling,
-                // so we pass the vertex positions through it rather than just grab them directly
-                offset = glm::vec3();
-                auto const vertexfactor { 1.f / vertices.size() };
-                auto const transformationmatrix { glm::make_mat4( parentmatrix.readArray() ) };
-                for( auto const &vertex : vertices ) {
-                    offset += glm::vec3 { transformationmatrix * glm::vec4 { vertex.position, 1 } } * vertexfactor;
-                }
+        auto const &vertices { (
+            m_geometry != null_handle ?
+                GfxRenderer.Vertices( m_geometry ) :
+                Vertices ) };
+        if( false == vertices.empty() ) {
+            // transformation matrix for the submodel can still contain rotation and/or scaling,
+            // so we pass the vertex positions through it rather than just grab them directly
+            offset = glm::vec3();
+            auto const vertexfactor { 1.f / vertices.size() };
+            auto const transformationmatrix { glm::make_mat4( parentmatrix.readArray() ) };
+            for( auto const &vertex : vertices ) {
+                offset += glm::vec3 { transformationmatrix * glm::vec4 { vertex.position, 1 } } * vertexfactor;
             }
         }
     }

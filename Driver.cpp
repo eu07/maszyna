@@ -1394,7 +1394,18 @@ float
 TController::braking_distance_multiplier( float const Targetvelocity ) const {
 
     if( Targetvelocity > 65.f ) { return 1.f; }
-    if( Targetvelocity < 5.f )  { return 1.f; }
+    if( Targetvelocity < 5.f ) {
+
+        if( ( mvOccupied->TrainType == dt_DMU )
+         && ( mvOccupied->Vel < 40.0 )
+         && ( Targetvelocity == 0.f ) ) {
+            // HACK: engaged automatic transmission means extra/earlier braking effort is needed for the last leg before full stop
+            return interpolate( 2.f, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
+        }
+        else {
+            return 1.f;
+        }
+    }
     // stretch the braking distance up to 3 times; the lower the speed, the greater the stretch
     return interpolate( 3.f, 1.f, ( Targetvelocity - 5.f ) / 60.f );
 }
@@ -1518,8 +1529,11 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         }
 
         // fAccThreshold może podlegać uczeniu się - hamowanie powinno być rejestrowane, a potem analizowane
-        fAccThreshold =
-            ( mvOccupied->TrainType & dt_EZT ) ? -0.6 : -0.2; // próg opóźnienia dla zadziałania hamulca
+        // próg opóźnienia dla zadziałania hamulca
+        fAccThreshold = (
+            mvOccupied->TrainType == dt_EZT ? -0.6 :
+            mvOccupied->TrainType == dt_DMU ? -0.4 :
+            -0.2 );
     }
     // TrainParams=NewTrainParams;
     // if (TrainParams)
@@ -1794,13 +1808,12 @@ void TController::AutoRewident()
 		fBrake_a0[i+1] = 0;
 		fBrake_a1[i+1] = 0;
 	}
-	d = pVehicles[0]; // pojazd na czele składu
-	while (d)
-	{ // 4. Przeliczanie siły hamowania
-		for (int i = 0; i < BrakeAccTableSize; i++)
-		{
-			fBrake_a0[i+1] += d->MoverParameters->BrakeForceR(0.25, velstep*(1 + 2 * i));
-			fBrake_a1[i+1] += d->MoverParameters->BrakeForceR(1.00, velstep*(1 + 2 * i));
+    // 4. Przeliczanie siły hamowania
+    d = pVehicles[0]; // pojazd na czele składu
+	while (d) { 
+        for( int i = 0; i < BrakeAccTableSize; ++i ) {
+            fBrake_a0[ i + 1 ] += d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
+            fBrake_a1[ i + 1 ] += d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
 		}
 		d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 	}
@@ -1811,12 +1824,15 @@ void TController::AutoRewident()
 		fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
 		fBrake_a1[i+1] /= (12*fMass);
 	}
-	if (mvOccupied->TrainType == dt_EZT)
-	{
+    if( mvOccupied->TrainType == dt_EZT ) {
 		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.6);
 		fBrakeReaction = 0.25;
 	}
-	else if (ustaw > 16)
+    else if( mvOccupied->TrainType == dt_DMU ) {
+        fAccThreshold = std::max( -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ], /*-0.7*/ -0.4 );
+        fBrakeReaction = 0.25;
+    }
+    else if (ustaw > 16)
 	{
 		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 4 * fBrake_a1[BrakeAccTableSize];
 		fBrakeReaction = 1.00 + fLength*0.004;
@@ -1993,10 +2009,16 @@ bool TController::CheckVehicles(TOrders user)
                 }
             }
         // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
-        if ((mvOccupied->TrainType == dt_EZT) || (iVehicles == 1))
-            iDrivigFlags |= movePushPull; // zmiana czoła przez zmianę kabiny
-        else
-            iDrivigFlags &= ~movePushPull; // zmiana czoła przez manewry
+        if( ( mvOccupied->TrainType == dt_EZT )
+         || ( mvOccupied->TrainType == dt_DMU )
+         || ( iVehicles == 1 ) ) {
+            // zmiana czoła przez zmianę kabiny
+            iDrivigFlags |= movePushPull;
+        }
+        else {
+            // zmiana czoła przez manewry
+            iDrivigFlags &= ~movePushPull;
+        }
     } // blok wykonywany, gdy aktywnie prowadzi
     return true;
 }
@@ -2419,8 +2441,8 @@ bool TController::IncBrake()
             bool standalone { true };
             if( ( mvOccupied->TrainType == dt_ET41 )
              || ( mvOccupied->TrainType == dt_ET42 ) ) {
-                   // NOTE: we're doing simplified checks full of presuptions here.
-                   // they'll break if someone does strange thing like turning around the second unit
+                // NOTE: we're doing simplified checks full of presuptions here.
+                // they'll break if someone does strange thing like turning around the second unit
                 if( ( mvOccupied->Couplers[ 1 ].CouplingFlag & coupling::permanent )
                  && ( mvOccupied->Couplers[ 1 ].Connected->Couplers[ 1 ].CouplingFlag > 0 ) ) {
                     standalone = false;
@@ -2429,6 +2451,10 @@ bool TController::IncBrake()
                  && ( mvOccupied->Couplers[ 0 ].Connected->Couplers[ 0 ].CouplingFlag > 0 ) ) {
                     standalone = false;
                 }
+            }
+            else if( mvOccupied->TrainType == dt_DMU ) {
+                // enforce use of train brake for DMUs
+                standalone = false;
             }
             else {
 /*
@@ -2488,12 +2514,25 @@ bool TController::IncBrake()
                                 mvOccupied->BrakeDelayFlag > bdelay_G ?
                                     1.0 :
                                     1.25 ) );
+/*
+                            // HACK: stronger braking to overcome SA134 engine behaviour
+                            if( ( mvOccupied->TrainType == dt_DMU )
+                             && ( VelNext == 0.0 ) 
+                             && ( fBrakeDist < 200.0 ) ) {
+                                mvOccupied->BrakeLevelAdd(
+                                    fBrakeDist / ActualProximityDist < 0.8 ?
+                                        1.0 :
+                                        3.0 );
+                            }
+*/
                         }
 						else
 						{
-							OK = mvOccupied->BrakeLevelAdd(0.25);
-							if ((deltaAcc > 5 * fBrake_a1[0]) && (mvOccupied->BrakeCtrlPosR <= 3.0))
-								mvOccupied->BrakeLevelAdd(0.75);
+                            OK = mvOccupied->BrakeLevelAdd( 0.25 );
+                            if( ( deltaAcc > 5 * fBrake_a1[ 0 ] )
+                             && ( mvOccupied->BrakeCtrlPosR <= 3.0 ) ) {
+                                mvOccupied->BrakeLevelAdd( 0.75 );
+                            }
 						}
                     }
                     else
@@ -4956,7 +4995,7 @@ TController::UpdateSituation(double dt) {
                 }
                 // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
                 // zmniejszanie predkosci
-                if( mvOccupied->TrainType & dt_EZT ) {
+                if( mvOccupied->TrainType == dt_EZT ) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT
                     if( ( AccDesired <= fAccThreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
