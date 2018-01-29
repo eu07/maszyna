@@ -109,6 +109,8 @@ void opengl_texture::load_PNG()
 
 	png_image_finish_read(&png, nullptr,
 		(void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
+	// we're storing texture data internally with bottom-left origin
+	// so use negative stride
 
     if (png.warning_or_error)
     {
@@ -161,6 +163,8 @@ opengl_texture::load_BMP() {
 
     data.resize( datasize );
     file.read( &data[0], datasize );
+	// we're storing texture data internally with bottom-left origin
+	// so BMP origin matches, no flipping needed
 
     // fill remaining data info
     if( info.bmiHeader.biBitCount == 32 ) {
@@ -351,6 +355,9 @@ opengl_texture::load_DDS() {
     file.read((char *)&data[0], datasize);
     filesize -= datasize;
 
+	// we're storing texture data internally with bottom-left origin
+	// ...and DDS stores it with top-left origin! bug here, needs flip!
+
     data_components =
         ( ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1 ?
             GL_RGB :
@@ -437,22 +444,36 @@ opengl_texture::load_TGA() {
         return;
     }
 
+	// normally origin is bottom-left
+	// if byte 17 bit 5 is set, it is top-left and needs flip
+	bool flip = (tgaheader[17] & 0x20) != 0;
+
     // allocate the data buffer
     int const datasize = data_width * data_height * 4;
-    data.resize( datasize );
+	data.resize(datasize);
+
+	std::vector<char> bitmap;
+	char *dataptr;
+	if (!flip)
+		dataptr = &data[0];
+	else
+	{
+	    bitmap.resize(datasize);
+		dataptr = &bitmap[0];
+	}
 
     // call the appropriate loader-routine
     if( tgaheader[ 2 ] == 2 ) {
         // uncompressed TGA
         if( bytesperpixel == 4 ) {
             // read the data directly
-            file.read( reinterpret_cast<char*>( &data[ 0 ] ), datasize );
+            file.read( reinterpret_cast<char*>( dataptr ), datasize );
         }
         else {
             // rgb or greyscale image, expand to bgra
             unsigned char buffer[ 4 ] = { 255, 255, 255, 255 }; // alpha channel will be white
 
-            unsigned int *datapointer = (unsigned int*)&data[ 0 ];
+            unsigned int *datapointer = (unsigned int*)dataptr;
             unsigned int *bufferpointer = (unsigned int*)&buffer[ 0 ];
 
             int const pixelcount = data_width * data_height;
@@ -478,7 +499,7 @@ opengl_texture::load_TGA() {
         unsigned char buffer[ 4 ] = { 255, 255, 255, 255 };
         const int pixelcount = data_width * data_height;
 
-        unsigned int *datapointer = (unsigned int *)&data[ 0 ];
+        unsigned int *datapointer = (unsigned int *)dataptr;
         unsigned int *bufferpointer = (unsigned int *)&buffer[ 0 ];
 
         do {
@@ -531,6 +552,18 @@ opengl_texture::load_TGA() {
         data_state = resource_state::failed;
         return;
     }
+
+	if (flip)
+	{
+		int dst = 0;
+		int src = (data_height - 1) * data_width * 4;
+		for (int y = 0; y < data_height; y++)
+		{
+			memcpy(&data[dst], &bitmap[src], data_width * 4);
+			dst += data_width * 4;
+			src -= data_width * 4;
+		}
+	}
 
     downsize( GL_BGRA );
     if( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
