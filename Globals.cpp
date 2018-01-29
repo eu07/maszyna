@@ -178,6 +178,8 @@ Global::soundmode_t Global::soundpitchmode = Global::linear;
 Global::soundmode_t Global::soundgainmode = Global::linear;
 Global::soundstopmode_t Global::soundstopmode = Global::queue;
 
+std::string Global::screenshot_dir = "screenshots";
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -807,6 +809,11 @@ void Global::ConfigParse(cParser &Parser)
 			Parser >> Global::motiontelemetry_conf.fwdposbased;
 			Parser >> Global::motiontelemetry_conf.latposbased;
 			Parser >> Global::motiontelemetry_conf.axlebumpscale;
+		}
+		else if (token == "screenshotsdir")
+		{
+			Parser.getTokens(1);
+			Parser >> Global::screenshot_dir;
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

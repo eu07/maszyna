@@ -321,6 +321,8 @@ public:
 
 	static opengl_light DayLight;
 
+	static std::string screenshot_dir;
+
 	enum soundmode_t
 	{
 		linear,

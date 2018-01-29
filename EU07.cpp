@@ -90,7 +90,7 @@ void screenshot_save_thread( char *img )
 	perf = ts.tv_nsec;
 #endif
 
-	std::string filename = "screenshots/" + std::string(datetime) +
+	std::string filename = Global::screenshot_dir + "/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
 
 	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::iWindowWidth * 3, nullptr) == 1)
@@ -186,7 +186,7 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         switch( key )
         {
-            case GLFW_KEY_F11: {
+            case GLFW_KEY_PRINT_SCREEN: {
                 make_screenshot();
                 break;
             }
