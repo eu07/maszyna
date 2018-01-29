@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-	Global::asVersion = "NG";
+	Global::asVersion = "M7 18.01";
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -438,6 +438,8 @@ int main(int argc, char *argv[])
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	_exit(0); // skip destructors, there are ordering errors which causes segfaults
 
 	return 0;
 }
