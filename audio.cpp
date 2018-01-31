@@ -30,8 +30,11 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 	std::replace(file.begin(), file.end(), '\\', '/');
 
 	SNDFILE *sf = sf_open(file.c_str(), SFM_READ, &si);
+
 	if (sf == nullptr)
 		throw std::runtime_error("sound: sf_open failed");
+
+	sf_command(sf, SFC_SET_SCALE_FLOAT_INT_READ, NULL, SF_TRUE);
 
 	int16_t *fbuf = new int16_t[si.frames * si.channels];
 	if (sf_readf_short(sf, fbuf, si.frames) != si.frames)

@@ -3998,8 +3998,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // Ra: tu wczytywanie modelu ładunku jest w porządku
                     if( false == asLoadName.empty() ) {
                          // try first specialized version of the load model, vehiclename_loadname
-                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d" };
-                        if( true == FileExists( specializedloadfilename ) ) {
+	                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType };
+                        if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
+                         || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
                             mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
                         }
                         if( mdLoad == nullptr ) {
