@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-	Global::asVersion = "M7 29.01.2018";
+	Global::asVersion = "M7 31.01.2018";
 
 	for (int i = 1; i < argc; ++i)
 	{
