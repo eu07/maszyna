@@ -191,7 +191,7 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 #ifdef CAN_I_HAS_LIBPNG
         switch( key )
         {
-            case GLFW_KEY_F11: {
+            case GLFW_KEY_PRINT_SCREEN: {
                 make_screenshot();
                 break;
             }
@@ -426,20 +426,17 @@ int main(int argc, char *argv[])
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         return -1;
     }
-
+#ifdef _WINDOWS
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
-/*
-    if( !joyGetNumDevs() )
-        WriteLog( "No joystick" );
-*/
+#endif
     if( Global.iConvertModels < 0 ) {
         Global.iConvertModels = -Global.iConvertModels;
         World.CreateE3D( "models\\" ); // rekurencyjne przeglądanie katalogów
         World.CreateE3D( "dynamic\\", true );
     } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
-
+#ifdef _WINDOWS
     Console::On(); // włączenie konsoli
-
+#endif
     try {
         while( ( false == glfwWindowShouldClose( window ) )
             && ( true == World.Update() )
@@ -456,10 +453,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
-
 	TPythonInterpreter::killInstance();
-	SafeDelete( pConsole );
+#ifdef _WINDOWS
+    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
+    SafeDelete( pConsole );
+#endif    
     SafeDelete( simulation::Region );
 
 	glfwDestroyWindow(window);

@@ -558,14 +558,14 @@ global_settings::ConfigParse(cParser &Parser) {
             // color of the ui text. NOTE: will be obsolete once the real ui is in place
             Parser.getTokens( 3, false );
             Parser
-                >> UITextColor.x
-                >> UITextColor.y
-                >> UITextColor.z;
-            UITextColor.x = clamp( UITextColor.x, 0.0f, 255.0f );
-            UITextColor.y = clamp( UITextColor.y, 0.0f, 255.0f );
-            UITextColor.z = clamp( UITextColor.z, 0.0f, 255.0f );
+                >> UITextColor.r
+                >> UITextColor.g
+                >> UITextColor.b;
+            UITextColor.r = clamp( UITextColor.r, 0.0f, 255.0f );
+            UITextColor.g = clamp( UITextColor.g, 0.0f, 255.0f );
+            UITextColor.b = clamp( UITextColor.b, 0.0f, 255.0f );
             UITextColor = UITextColor / 255.0f;
-            UITextColor.w = 1.0f;
+            UITextColor.a = 1.0f;
         }
         else if (token == "pyscreenrendererpriority")
         {
@@ -704,7 +704,9 @@ global_settings::ConfigParse(cParser &Parser) {
             // TBD: remove, or launch depending on passed flag?
         if (qp)
     { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+#ifdef _WINDOWS
     Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+#endif
             /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
                         fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
             if (iFpsRadiusMax > 400)

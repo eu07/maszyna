@@ -104,11 +104,11 @@ class float4
         z = c;
         w = d;
     };
-    float inline float4::LengthSquared() const
+    float inline LengthSquared() const
     {
         return x * x + y * y + z * z + w * w;
     };
-    float inline float4::Length() const
+    float inline Length() const
     {
         return sqrt(x * x + y * y + z * z + w * w);
     };

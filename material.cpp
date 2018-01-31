@@ -14,6 +14,14 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "globals.h"
 
+// helper, returns potential path part from provided file name
+std::string path( std::string const &Filename ) {
+    return (
+        Filename.rfind( '\\' ) != std::string::npos ?
+            Filename.substr( 0, Filename.rfind( '\\' ) + 1 ) :
+            "" );
+}
+
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 
@@ -33,51 +41,58 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 // imports member data pair from the config file
 bool
 opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
+    // token can be a key or block end
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
 
-    if( false == Input.getTokens( 2, true, "\n\r\t;, " ) ) {
-        return false;
-    }
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
-    std::string path;
-    if( name.rfind( '\\' ) != std::string::npos ) {
-        path = name.substr( 0, name.rfind( '\\' ) + 1 );
-    }
+    auto const value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
 
-    std::string key, value;
-    Input
-        >> key
-        >> value;
-
-    if( value == "{" ) {
-        // detect and optionally process config blocks
-        cParser blockparser( Input.getToken<std::string>( false, "}" ) );
-        if( key == Global.Season ) {
+    if( Priority != -1 ) {
+        // regular attribute processing mode
+        if( key == Global.Weather ) {
+            // weather textures override generic (pri 0) and seasonal (pri 1) textures
+            // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
+            while( true == deserialize_mapping( Input, Priority + 2, Loadnow ) ) {
+                ; // all work is done in the header
+            }
+        }
+        else if( key == Global.Season ) {
             // seasonal textures override generic textures
-            while( true == deserialize_mapping( blockparser, 1, Loadnow ) ) {
+            while( true == deserialize_mapping( Input, 1, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
-        else if( key == Global.Weather ) {
-            // weather textures override generic and seasonal textures
-            while( true == deserialize_mapping( blockparser, 2, Loadnow ) ) {
+        else if( key == "texture1:" ) {
+            if( ( texture1 == null_handle )
+             || ( Priority > priority1 ) ) {
+                texture1 = GfxRenderer.Fetch_Texture( path( name ) + value, Loadnow );
+                priority1 = Priority;
+            }
+        }
+        else if( key == "texture2:" ) {
+            if( ( texture2 == null_handle )
+             || ( Priority > priority2 ) ) {
+                texture2 = GfxRenderer.Fetch_Texture( path( name ) + value, Loadnow );
+                priority2 = Priority;
+            }
+        }
+        else if( value == "{" ) {
+            // unrecognized or ignored token, but comes with attribute block and potential further nesting
+            // go through it and discard the content
+            while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
     }
-    else if( key == "texture1:" ) {
-        // TODO: full-fledged priority system
-        if( ( texture1 == null_handle )
-         || ( Priority > priority1 ) ) {
-            texture1 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
-            priority1 = Priority;
-        }
-    }
-    else if( key == "texture2:" ) {
-        // TODO: full-fledged priority system
-        if( ( texture2 == null_handle )
-         || ( Priority > priority2 ) ) {
-            texture2 = GfxRenderer.Fetch_Texture( path + value, Loadnow );
-            priority2 = Priority;
+    else {
+        // discard mode; ignores all retrieved tokens
+        if( value == "{" ) {
+            // ignored tokens can come with their own blocks, ignore these recursively
+            // go through it and discard the content
+            while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
+                ; // all work is done in the header
+            }
         }
     }
 

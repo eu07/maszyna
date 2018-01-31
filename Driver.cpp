@@ -2616,19 +2616,14 @@ bool TController::DecBrake()
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
-#ifdef EU07_USE_OLD_SOUNDCODE
-    if (tsGuardSignal) // jeśli jest dźwięk kierownika
-        if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
-            return false;
-#else
     if( true == tsGuardSignal.is_playing() ) {
+        // jeśli gada, to nie jedziemy
         return false;
     }
-#endif
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
-          // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
+        // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
         Doors( false );
     }
     if( fActionTime < 0.0 ) {

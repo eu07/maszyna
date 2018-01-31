@@ -126,18 +126,18 @@ ui_layer::render_progress() {
         size   = glm::vec2{ 320.0f, 16.0f };
     }
 
-    quad( float4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), float4(0.0f, 0.0f, 0.0f, 0.25f) );
+    quad( glm::vec4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), glm::vec4(0.0f, 0.0f, 0.0f, 0.25f) );
     // secondary bar
     if( m_subtaskprogress ) {
         quad(
-            float4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
-            float4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
+            glm::vec4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
+            glm::vec4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
     }
     // primary bar
 	if( m_progress ) {
         quad(
-            float4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
-            float4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
+            glm::vec4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
+            glm::vec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
     }
 
     if( false == m_progresstext.empty() ) {
@@ -224,12 +224,12 @@ ui_layer::render_background() {
             1024.0f : // legacy mode, square texture displayed as 4:3 image
             texture.width() / ( texture.height() / 768.0f ) );
     quad(
-        float4(
+        glm::vec4(
             ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
             (  768.0f * 0.5f ) - ( height * 0.5f ),
             ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
             (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
-        float4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+        colors::white );
 }
 
 void
@@ -276,7 +276,7 @@ ui_layer::print( std::string const &Text )
 }
 
 void
-ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
+ui_layer::quad( glm::vec4 const &Coordinates, glm::vec4 const &Color ) {
 
     float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
     float const width =
@@ -288,12 +288,8 @@ ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
             Global.iWindowHeight / 768.f :
             Global.iWindowHeight / 768.f * screenratio / ( 4.f / 3.f ) );
     float const height = 768.f * heightratio;
-/*
-    float const heightratio = Global.iWindowHeight / 768.0f;
-    float const height = 768.0f * heightratio;
-    float const width = Global.iWindowWidth * heightratio;
-*/
-    glColor4fv(&Color.x);
+
+    glColor4fv(glm::value_ptr(Color));
 
     glBegin( GL_TRIANGLE_STRIP );
 

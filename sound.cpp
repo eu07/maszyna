@@ -36,7 +36,7 @@ sound_source::deserialize( std::string const &Input, sound_type const Legacytype
 }
 
 sound_source &
-sound_source::deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters ) {
+sound_source::deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters, int const Chunkrange ) {
 
     // cache parser config, as it may change during deserialization
     auto const inputautoclear { Input.autoclear() };
@@ -80,7 +80,7 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
                         m_crossfaderange * 0.01f );
 */
             }
-            m_soundchunks.back().second.fadeout = std::max( 100, m_soundchunks.back().second.threshold );
+            m_soundchunks.back().second.fadeout = std::max( Chunkrange, m_soundchunks.back().second.threshold );
 //            m_soundchunks.back().second.fadeout = m_soundchunks.back().second.threshold;
             // test if the chunk table contains any actual samples while at it
             for( auto &soundchunk : m_soundchunks ) {

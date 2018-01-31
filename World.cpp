@@ -1262,7 +1262,7 @@ TWorld::Update_UI() {
                             ( ( owner->iStationStart < table->StationIndex )
                            && ( i < table->StationIndex )
                            && ( ( time.wHour * 60 + time.wMinute ) >= ( tableline->Dh * 60 + tableline->Dm ) ) ?
-                                float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
+                                glm::vec4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
                                 Global.UITextColor ) );
                         // divider/footer
                         UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global.UITextColor );
@@ -1556,7 +1556,7 @@ TWorld::Update_UI() {
                     + ", PM=" + to_string( vehicle->MoverParameters->WheelFlat, 1 )
                     + " mm; enrot=" + to_string( vehicle->MoverParameters->enrot * 60, 0 )
                     + " tmrot=" + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 )
-                    + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot, 1 );
+                    + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot * 60, 1 );
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
@@ -1746,7 +1746,7 @@ TWorld::Update_UI() {
             while( true == parser.getTokens( 1, false, "|" ) ) {
 
                 std::string transcriptline; parser >> transcriptline;
-                transcripts.emplace_back( transcriptline, float4( 1.0f, 1.0f, 0.0f, 1.0f ) );
+                transcripts.emplace_back( transcriptline, glm::vec4( 1.0f, 1.0f, 0.0f, 1.0f ) );
             }
         }
     }

@@ -1439,7 +1439,7 @@ event_manager::InitEvents() {
             auto *track = simulation::Paths.find( event->asNodeName );
             if( track != nullptr ) {
                 // dowiązanie toru
-                if( track->iAction == NULL ) {
+                if( track->iAction == 0 ) {
                     // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
                     track->iAction |= 0x100;
                 }

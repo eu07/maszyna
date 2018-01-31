@@ -73,7 +73,7 @@ struct global_settings {
     double fFogStart{ 1700 };
     double fFogEnd{ 2000 };
     std::string Season; // season of the year, based on simulation date
-    std::string Weather{ "clear" }; // current weather
+    std::string Weather{ "clear:" }; // current weather
     bool FullPhysics{ true }; // full calculations performed for each simulation step
     bool bnewAirCouplers{ true };
     double fMoveLight{ -1 }; // numer dnia w roku albo -1
@@ -89,7 +89,7 @@ struct global_settings {
     // ui
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
     int iScreenMode[ 12 ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // numer ekranu wyświetlacza tekstowego
-    float4 UITextColor{ float4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
+    glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
     int iWindowWidth{ 800 };
@@ -182,7 +182,7 @@ struct global_settings {
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other
     std::string AppName{ "EU07" };
-    std::string asVersion{ "couldn't retrieve version string" }; // z opisem
+    std::string asVersion{ "UNKNOWN" }; // z opisem
 
 // methods
     void LoadIniFile( std::string asFileName );

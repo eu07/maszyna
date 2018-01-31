@@ -4772,7 +4772,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             }
             else if( token == "runningnoise:" ) {
                 // szum podczas jazdy:
-                rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
                 rsRunningNoise.owner( DynamicObject );
 
                 rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );

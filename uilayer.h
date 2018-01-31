@@ -3,7 +3,6 @@
 
 #include <string>
 #include "texture.h"
-#include "float3d.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
@@ -11,10 +10,10 @@ struct ui_panel {
 
     struct text_line {
 
-        float4 color;
+        glm::vec4 color;
         std::string data;
 
-        text_line( std::string const &Data, float4 const &Color):
+        text_line( std::string const &Data, glm::vec4 const &Color):
             data(Data), color(Color)
         {}
     };
@@ -84,7 +83,7 @@ private:
         print( std::string const &Text );
     // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
     void
-        quad( float4 const &Coordinates, float4 const &Color );
+        quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
 
 
 // members:

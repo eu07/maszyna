@@ -13,10 +13,10 @@ http://mozilla.org/MPL/2.0/.
 
 enum logtype : unsigned int {
 
-    generic = 0x1,
-    file = 0x2,
-    model = 0x4,
-    texture = 0x8
+    generic = ( 1 << 0 ),
+    file = ( 1 << 1 ),
+    model = ( 1 << 2 ),
+    texture = ( 1 << 3 )
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

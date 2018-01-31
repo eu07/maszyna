@@ -269,6 +269,7 @@ private:
     };
 
     struct pantograph_sounds {
+        // TODO: split pantograph sound into one for contact of arm with the wire, and electric arc sound
         sound_source sPantUp { sound_placement::external };
         sound_source sPantDown { sound_placement::external };
     };
@@ -455,7 +456,7 @@ private:
     TDynamicObject();
     ~TDynamicObject();
     // zwraca długość pojazdu albo 0, jeśli błąd
-    double TDynamicObject::Init(
+    double Init(
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);

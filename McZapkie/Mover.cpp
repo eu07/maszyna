@@ -6108,51 +6108,54 @@ bool TMoverParameters::ChangeOffsetH(double DeltaOffset)
 // *************************************************************************************************
 std::string TMoverParameters::EngineDescription(int what)
 {
-    std::string outstr;
-
-    outstr = "";
-    switch (what)
-    {
-    case 0:
-    {
-        if (DamageFlag == 255)
+    std::string outstr { "OK" };
+    switch (what) {
+    case 0: {
+        if( DamageFlag == 255 ) {
             outstr = "WRECKED";
-        else
-        {
-            if (TestFlag(DamageFlag, dtrain_thinwheel))
-                if (Power > 0.1)
+        }
+        else {
+            if( TestFlag( DamageFlag, dtrain_thinwheel ) ) {
+                if( Power > 0.1 )
                     outstr = "Thin wheel";
                 else
                     outstr = "Load shifted";
-            if (TestFlag(DamageFlag, dtrain_wheelwear))
+            }
+            if( ( WheelFlat > 5.0 )
+             || ( TestFlag( DamageFlag, dtrain_wheelwear ) ) ) {
                 outstr = "Wheel wear";
-            if (TestFlag(DamageFlag, dtrain_bearing))
+            }
+            if( TestFlag( DamageFlag, dtrain_bearing ) ) {
                 outstr = "Bearing damaged";
-            if (TestFlag(DamageFlag, dtrain_coupling))
+            }
+            if( TestFlag( DamageFlag, dtrain_coupling ) ) {
                 outstr = "Coupler broken";
-            if (TestFlag(DamageFlag, dtrain_loaddamage))
-                if (Power > 0.1)
+            }
+            if( TestFlag( DamageFlag, dtrain_loaddamage ) ) {
+                if( Power > 0.1 )
                     outstr = "Ventilator damaged";
                 else
                     outstr = "Load damaged";
-
-            if (TestFlag(DamageFlag, dtrain_loaddestroyed))
-                if (Power > 0.1)
+            }
+            if( TestFlag( DamageFlag, dtrain_loaddestroyed ) ) {
+                if( Power > 0.1 )
                     outstr = "Engine damaged";
                 else
                     outstr = "LOAD DESTROYED";
-            if (TestFlag(DamageFlag, dtrain_axle))
+            }
+            if( TestFlag( DamageFlag, dtrain_axle ) ) {
                 outstr = "Axle broken";
-            if (TestFlag(DamageFlag, dtrain_out))
+            }
+            if( TestFlag( DamageFlag, dtrain_out ) ) {
                 outstr = "DERAILED";
-            if (outstr == "")
-                outstr = "OK";
+            }
         }
         break;
     }
-    default:
+    default: {
         outstr = "Invalid qualifier";
         break;
+    }
     }
     return outstr;
 }

@@ -56,7 +56,7 @@ public:
 // methods
     // restores state of the class from provided data stream
     sound_source &
-        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0, int const Chunkrange = 100 );
     sound_source &
         deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
     // copies list of sounds from provided source

@@ -3088,7 +3088,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             { // trzeba usunąć to rozróżnienie
             case 0:
                 if( ( Global.bLiveTraction == false )
-                    && ( p->hvPowerWire == nullptr ) ) {
+                 && ( p->hvPowerWire == nullptr ) ) {
                     // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantFrontVolt =
                         ( p->PantWys >= 1.2 ) ?
@@ -3098,19 +3098,20 @@ bool TDynamicObject::Update(double dt, double dt1)
                 else if( ( true == MoverParameters->PantFrontUp )
                       && ( PantDiff < 0.01 ) ) // tolerancja niedolegania
                 {
-                    if( ( MoverParameters->PantFrontVolt == 0.0 )
-                     && ( MoverParameters->PantRearVolt == 0.0 ) ) {
-                        for( auto &pantograph : m_pantographsounds ) {
-                            if( pantograph.sPantUp.offset().z > 0 ) {
-                                // limit to pantographs located in the front half of the vehicle
-                                pantograph.sPantUp.play( sound_flags::exclusive );
+                    if (p->hvPowerWire) {
+                        auto const wirevoltage { p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent ) };
+                        // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
+                        if( ( MoverParameters->PantFrontVolt == 0.0 )
+                         && ( wirevoltage > 0.0 ) ) {
+                            for( auto &pantograph : m_pantographsounds ) {
+                                if( pantograph.sPantUp.offset().z > 0 ) {
+                                    // limit to pantographs located in the front half of the vehicle
+                                    pantograph.sPantUp.play( sound_flags::exclusive );
+                                }
                             }
                         }
-                    }
-                    if (p->hvPowerWire) {
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantFrontVolt =
-                            p->hvPowerWire->VoltageGet(MoverParameters->Voltage, fPantCurrent);
+                        MoverParameters->PantFrontVolt = wirevoltage;
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                     }
                     else
@@ -3131,16 +3132,18 @@ bool TDynamicObject::Update(double dt, double dt1)
                 else if ( ( true == MoverParameters->PantRearUp )
                        && ( PantDiff < 0.01 ) )
                 {
-                    if( ( MoverParameters->PantRearVolt == 0.0 )
-                     && ( MoverParameters->PantFrontVolt == 0.0 ) ) {
-                        for( auto &pantograph : m_pantographsounds ) {
-                            if( pantograph.sPantUp.offset().z < 0 ) {
-                                // limit to pantographs located in the rear half of the vehicle
-                                pantograph.sPantUp.play( sound_flags::exclusive );
+                    if (p->hvPowerWire) {
+                        auto const wirevoltage { p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent ) };
+                        // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
+                        if( ( MoverParameters->PantRearVolt == 0.0 )
+                         && ( wirevoltage > 0.0 ) ) {
+                            for( auto &pantograph : m_pantographsounds ) {
+                                if( pantograph.sPantUp.offset().z < 0 ) {
+                                    // limit to pantographs located in the rear half of the vehicle
+                                    pantograph.sPantUp.play( sound_flags::exclusive );
+                                }
                             }
                         }
-                    }
-                    if (p->hvPowerWire) {
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
                         MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
@@ -3888,7 +3891,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 		parser.getTokens(); parser >> token;
 
 		if( ( token == "models:" )
-         || ( token == "ï»¿models:" ) ) { // crude way to handle utf8 bom potentially appearing before the first token
+         || ( token == "\xef\xbb\xbfmodels:" ) ) { // crude way to handle utf8 bom potentially appearing before the first token
 			// modele i podmodele
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
@@ -4013,8 +4016,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // Ra: tu wczytywanie modelu ładunku jest w porządku
                     if( false == asLoadName.empty() ) {
                          // try first specialized version of the load model, vehiclename_loadname
-                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType + ".t3d" };
-                        if( true == FileExists( specializedloadfilename ) ) {
+                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType };
+                        if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
+                         || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
                             mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
                         }
                         if( mdLoad == nullptr ) {
@@ -4629,8 +4633,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
 				}
 
-				else if( ( token == "transmission:" )
-					  && ( MoverParameters->EngineType == ElectricSeriesMotor ) ) {
+				else if( token == "transmission:" ) {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
                     // NOTE, fixed default parameters, legacy system leftover
                     m_powertrainsounds.transmission.m_amplitudefactor = 0.029;
@@ -4777,7 +4780,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
                 else if( token == "outernoise:" ) {
                     // szum podczas jazdy:
-                    rsOuterNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                    rsOuterNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, MoverParameters->Vmax );
                     rsOuterNoise.owner( this );
 
                     rsOuterNoise.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
@@ -5041,7 +5044,7 @@ void TDynamicObject::RadioStop()
         if( ( MoverParameters->SecuritySystem.RadioStop )
          && ( MoverParameters->Radio ) ) {
             // jeśli pojazd ma RadioStop i jest on aktywny
-            // HAX cast until math types unification
+            // HACK cast until math types unification
             Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &static_cast<glm::dvec3>(vPosition), stopRadio );
             // add onscreen notification for human driver
             // TODO: do it selectively for the 'local' driver once the multiplayer is in
