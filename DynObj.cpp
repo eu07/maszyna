@@ -25,6 +25,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "MdlMngr.h"
 #include "renderer.h"
+#include "mctools.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
@@ -5424,7 +5425,7 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
 
     for( auto const &destination : destinations ) {
 
-        auto material = TextureTest( destination );
+        auto material = TextureTest( ToLower(destination) );
         if( false == material.empty() ) {
             m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( material );
             break;
