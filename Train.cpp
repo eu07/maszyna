@@ -46,42 +46,6 @@ control_mapper::find( TSubModel const *Control ) const {
     }
 }
 
-TCab::TCab()
-{
-    CabPos1.x = -1.0;
-    CabPos1.y = 1.0;
-    CabPos1.z = 1.0;
-    CabPos2.x = 1.0;
-    CabPos2.y = 1.0;
-    CabPos2.z = -1.0;
-    bEnabled = false;
-    bOccupied = true;
-    dimm_r = dimm_g = dimm_b = 1;
-    intlit_r = intlit_g = intlit_b = 0;
-    intlitlow_r = intlitlow_g = intlitlow_b = 0;
-/*
-    iGaugesMax = 100; // 95 - trzeba pobierać to z pliku konfiguracyjnego
-    ggList = new TGauge[iGaugesMax];
-    iGauges = 0; // na razie nie są dodane
-    iButtonsMax = 60; // 55 - trzeba pobierać to z pliku konfiguracyjnego
-    btList = new TButton[iButtonsMax];
-    iButtons = 0;
-*/
-}
-/*
-void TCab::Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
-                double Initz2, bool InitEnabled, bool InitOccupied)
-{
-    CabPos1.x = Initx1;
-    CabPos1.y = Inity1;
-    CabPos1.z = Initz1;
-    CabPos2.x = Initx2;
-    CabPos2.y = Inity2;
-    CabPos2.z = Initz2;
-    bEnabled = InitEnabled;
-    bOccupied = InitOccupied;
-}
-*/
 void TCab::Load(cParser &Parser)
 {
     // NOTE: clearing control tables here is bit of a crutch, imposed by current scheme of loading compartments anew on each cab change
@@ -95,15 +59,15 @@ void TCab::Load(cParser &Parser)
     {
 		Parser.getTokens( 9, false );
 		Parser
-			>> dimm_r
-			>> dimm_g
-			>> dimm_b
-			>> intlit_r
-			>> intlit_g
-			>> intlit_b
-			>> intlitlow_r
-			>> intlitlow_g
-			>> intlitlow_b;
+			>> dimm.r
+			>> dimm.g
+			>> dimm.b
+			>> intlit.r
+			>> intlit.g
+			>> intlit.b
+			>> intlitlow.r
+			>> intlitlow.g
+			>> intlitlow.b;
 		Parser.getTokens(); Parser >> token;
     }
 	CabPos1.x = std::stod( token );
@@ -118,14 +82,6 @@ void TCab::Load(cParser &Parser)
     bEnabled = true;
     bOccupied = true;
 }
-
-TCab::~TCab()
-{
-/*
-    delete[] ggList;
-    delete[] btList;
-*/
-};
 
 TGauge &TCab::Gauge(int n)
 { // pobranie adresu obiektu aniomowanego ruchem
@@ -427,12 +383,13 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 }
 
 PyObject *TTrain::GetTrainState() {
-    PyObject *dict = PyDict_New();
-    if( dict == NULL ) {
-        return NULL;
-    }
 
     auto const &mover = DynamicObject->MoverParameters;
+    auto *dict = PyDict_New();
+    if( ( dict == nullptr )
+     || ( mover == nullptr ) ) {
+        return nullptr;
+    }
 
     PyDict_SetItemString( dict, "cab", PyGetInt( mover->ActiveCab ) );
     // basic systems state data
@@ -3110,7 +3067,8 @@ void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &
 void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( true == Train->mvOccupied->Radio ) {
+        if( ( true == Train->mvOccupied->Radio )
+         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
             simulation::Region->RadioStop( Train->Dynamic()->GetPosition() );
         }
         // visual feedback
@@ -3125,7 +3083,8 @@ void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command
 void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( Train->RadioChannel() == 10 ) {
+        if( ( Train->RadioChannel() == 10 )
+         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
             Train->Dynamic()->RadioStop();
         }
         // visual feedback

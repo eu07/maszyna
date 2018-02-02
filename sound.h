@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "classes.h"
 #include "names.h"
 
+float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };

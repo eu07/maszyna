@@ -5875,16 +5875,14 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         }
     }
 
-    if( Vehicle.TrainType == dt_ET40 ) {
-        if( Vehicle.Vel > 0.1 ) {
-            transmission
-                .pitch( transmission.m_frequencyoffset + transmission.m_frequencyfactor * Vehicle.Vel )
-                .gain( transmission.m_amplitudeoffset + transmission.m_amplitudefactor * Vehicle.Vel )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            transmission.stop();
-        }
+    if( Vehicle.Vel > 0.1 ) {
+        transmission
+            .pitch( transmission.m_frequencyoffset + transmission.m_frequencyfactor * Vehicle.Vel )
+            .gain( transmission.m_amplitudeoffset + transmission.m_amplitudefactor * Vehicle.Vel )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        transmission.stop();
     }
 }
 

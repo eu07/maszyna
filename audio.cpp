@@ -30,16 +30,21 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
     if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
         // .wav file
         auto *file { drwav_open_file( Filename.c_str() ) };
-        rate = file->sampleRate;
-        auto const samplecount { static_cast<std::size_t>( file->totalSampleCount ) };
-        data.resize( samplecount );
-        drwav_read_s16(
-            file,
-            samplecount,
-            &data[ 0 ] );
-        if( file->channels > 1 ) {
-            narrow_to_mono( file->channels );
-            data.resize( samplecount / file->channels );
+        if( file != nullptr ) {
+            rate = file->sampleRate;
+            auto const samplecount{ static_cast<std::size_t>( file->totalSampleCount ) };
+            data.resize( samplecount );
+            drwav_read_s16(
+                file,
+                samplecount,
+                &data[ 0 ] );
+            if( file->channels > 1 ) {
+                narrow_to_mono( file->channels );
+                data.resize( samplecount / file->channels );
+            }
+        }
+        else {
+            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
         }
         // we're done with the disk data
         drwav_close( file );
@@ -47,26 +52,32 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
     else {
         // .flac or .ogg file
         auto *file { drflac_open_file( Filename.c_str() ) };
-        rate = file->sampleRate;
-        auto const samplecount{ static_cast<std::size_t>( file->totalSampleCount ) };
-        data.resize( samplecount );
-        drflac_read_s16(
-            file,
-            samplecount,
-            &data[ 0 ] );
-        if( file->channels > 1 ) {
-            narrow_to_mono( file->channels );
-            data.resize( samplecount / file->channels );
+        if( file != nullptr ) {
+            rate = file->sampleRate;
+            auto const samplecount{ static_cast<std::size_t>( file->totalSampleCount ) };
+            data.resize( samplecount );
+            drflac_read_s16(
+                file,
+                samplecount,
+                &data[ 0 ] );
+            if( file->channels > 1 ) {
+                narrow_to_mono( file->channels );
+                data.resize( samplecount / file->channels );
+            }
+        }
+        else {
+            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
         }
         // we're done with the disk data
         drflac_close( file );
     }
-    // send the data to openal side
-    ::alBufferData( id, AL_FORMAT_MONO16, data.data(), data.size() * sizeof( std::int16_t ), rate );
-    // and get rid of the source, we shouldn't need it anymore
-    // TBD, TODO: delay data fetching and transfers until the buffer is actually used?
-    std::vector<std::int16_t>().swap( data );
-
+    if( false == data.empty() ) {
+        // send the data to openal side
+        ::alBufferData( id, AL_FORMAT_MONO16, data.data(), data.size() * sizeof( std::int16_t ), rate );
+        // and get rid of the source, we shouldn't need it anymore
+        // TBD, TODO: delay data fetching and transfers until the buffer is actually used?
+        std::vector<std::int16_t>().swap( data );
+    }
     fetch_caption();
 }
 
@@ -166,7 +177,7 @@ buffer_manager::create( std::string const &Filename ) {
         return emplace( filelookup );
     }
     // if we still didn't find anything, give up
-    ErrorLog( "Bad file: failed do locate audio file \"" + Filename + "\"" );
+    ErrorLog( "Bad file: failed do locate audio file \"" + Filename + "\"", logtype::file );
     return null_handle;
 }
 

@@ -55,9 +55,10 @@ private:
     void load_TGA();
     void set_filtering() const;
     void downsize( GLuint const Format );
+    void flip_vertical();
 
 // members
-    std::vector<char> data; // texture data
+    std::vector<char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
         data_height{ 0 },

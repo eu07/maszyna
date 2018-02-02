@@ -28,35 +28,27 @@ const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmia
 // const double fBuzzerTime= 5.0f;
 const float fHaslerTime = 1.2f;
 
-class TCab
-{
-  public:
-    TCab();
-    ~TCab();
-/*
-    void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2, double Initz2, bool InitEnabled, bool InitOccupied);
-*/
+class TCab {
+
+public:
+// methods
     void Load(cParser &Parser);
-    Math3D::vector3 CabPos1;
-    Math3D::vector3 CabPos2;
-    bool bEnabled;
-    bool bOccupied;
-    double dimm_r, dimm_g, dimm_b; // McZapkie-120503: tlumienie swiatla
-    double intlit_r, intlit_g, intlit_b; // McZapkie-120503: oswietlenie kabiny
-    double intlitlow_r, intlitlow_g, intlitlow_b; // McZapkie-120503: przyciemnione oswietlenie kabiny
-  private:
-/*
-    TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (gałek) w kabinie
-    int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w użyciu
-    TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
-    int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w użyciu
-*/
-      std::vector<TGauge> ggList;
-      std::vector<TButton> btList;
-  public:
-    TGauge &Gauge(int n = -1); // pobranie adresu obiektu
-    TButton &Button(int n = -1); // pobranie adresu obiektu
     void Update();
+// members
+    Math3D::vector3 CabPos1 { 0, 1, 1 };
+    Math3D::vector3 CabPos2 { 0, 1, -1 };
+    bool bEnabled { false };
+    bool bOccupied { true };
+    glm::vec3 dimm; // McZapkie-120503: tlumienie swiatla
+    glm::vec3 intlit; // McZapkie-120503: oswietlenie kabiny
+    glm::vec3 intlitlow; // McZapkie-120503: przyciemnione oswietlenie kabiny
+    TGauge &Gauge( int n = -1 ); // pobranie adresu obiektu
+    TButton &Button( int n = -1 ); // pobranie adresu obiektu
+
+private:
+// members
+    std::vector<TGauge> ggList;
+    std::vector<TButton> btList;
 };
 
 class control_mapper {
@@ -449,13 +441,13 @@ public: // reszta może by?publiczna
     sound_source rsHissE { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // nagle
     sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
     sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
-    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local
+    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local 
     sound_source rsSBHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local, engage brakes
     float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
     float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source rsRunningNoise{ sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
 
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };

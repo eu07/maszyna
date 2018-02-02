@@ -484,6 +484,12 @@ opengl_texture::load_TGA() {
         return;
     }
 
+    if( ( tgaheader[ 17 ] & 0x20 ) != 0 ) {
+        // normally origin is bottom-left
+        // if byte 17 bit 5 is set, it is top-left and needs flip
+        flip_vertical();
+    }
+
     downsize( GL_BGRA );
     if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
@@ -700,6 +706,21 @@ opengl_texture::downsize( GLuint const Format ) {
         data_height /= 2;
         data.resize( data.size() / 4 ); // not strictly needed, but, eh
     };
+}
+
+void
+opengl_texture::flip_vertical() {
+
+    auto const swapsize { data_width * 4 };
+    auto destination { data.begin() + ( data_height - 1 ) * swapsize };
+    auto sampler { data.begin() };
+
+    for( auto row = 0; row < data_height / 2; ++row ) {
+
+        std::swap_ranges( sampler, sampler + swapsize, destination );
+        sampler += swapsize;
+        destination -= swapsize;
+    }
 }
 
 void

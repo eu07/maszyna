@@ -105,7 +105,7 @@ TButton::model_offset() const {
 
     return (
         submodel != nullptr ?
-            submodel->offset( 2.5f ) :
+            submodel->offset( std::numeric_limits<float>::max() ) :
             glm::vec3() );
 }
 

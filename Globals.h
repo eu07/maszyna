@@ -72,8 +72,8 @@ struct global_settings {
     GLfloat FogColor[ 3 ] = { 0.6f, 0.7f, 0.8f };
     double fFogStart{ 1700 };
     double fFogEnd{ 2000 };
-    std::string Season; // season of the year, based on simulation date
-    std::string Weather{ "clear:" }; // current weather
+    std::string Season{}; // season of the year, based on simulation date
+    std::string Weather{ "cloudy:" }; // current weather
     bool FullPhysics{ true }; // full calculations performed for each simulation step
     bool bnewAirCouplers{ true };
     double fMoveLight{ -1 }; // numer dnia w roku albo -1

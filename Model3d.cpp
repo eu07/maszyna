@@ -1187,7 +1187,8 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
 
     if( true == TestFlag( iFlags, 0x0200 ) ) {
         // flip coordinates for t3d file which wasn't yet initialized
-        if( std::abs( offset.y ) > offset.z ) {
+        if( ( false == Global.pWorld->InitPerformed() )
+         || ( false == Vertices.empty() ) ) {
             // NOTE, HACK: results require flipping if the model wasn't yet initialized, so we're using crude method to detect possible cases
             // TODO: sort out this mess, either unify offset lookups to take place before (or after) initialization,
             // or provide way to determine on submodel level whether the initialization took place
