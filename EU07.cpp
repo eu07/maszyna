@@ -38,7 +38,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "glfw3.lib" )
 #pragma comment( lib, "glew32s.lib" )
 #else
-#ifdef _WINDOWS
+#ifdef _WIN32
 #pragma comment( lib, "glfw3dll.lib" )
 #else
 #pragma comment( lib, "glfw3.lib" )
@@ -47,9 +47,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #endif // build_static
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
-#pragma comment( lib, "dsound.lib" )
 #pragma comment( lib, "openal32.lib")
-#pragma comment( lib, "winmm.lib" )
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
 #pragma comment (lib, "dbghelp.lib")
@@ -218,7 +216,7 @@ void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
     }
 }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern "C"
 {
     GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
@@ -241,14 +239,14 @@ int main(int argc, char *argv[])
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
 #endif
-#ifdef _WINDOWS
+#ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );
 #endif
 
 	if (!glfwInit())
 		return -1;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     DeleteFile( "log.txt" );
     DeleteFile( "errors.txt" );
     _mkdir("logs");
@@ -394,7 +392,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     // setup wrapper for base glfw window proc, to handle copydata messages
     Hwnd = glfwGetWin32Window( window );
     BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
@@ -426,7 +424,7 @@ int main(int argc, char *argv[])
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         return -1;
     }
-#ifdef _WINDOWS
+#ifdef _WIN32
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
 #endif
     if( Global.iConvertModels < 0 ) {
@@ -434,7 +432,7 @@ int main(int argc, char *argv[])
         World.CreateE3D( "models\\" ); // rekurencyjne przeglądanie katalogów
         World.CreateE3D( "dynamic\\", true );
     } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
-#ifdef _WINDOWS
+#ifdef _WIN32
     Console::On(); // włączenie konsoli
 #endif
     try {
@@ -454,7 +452,7 @@ int main(int argc, char *argv[])
     }
 
 	TPythonInterpreter::killInstance();
-#ifdef _WINDOWS
+#ifdef _WIN32
     Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     SafeDelete( pConsole );
 #endif    

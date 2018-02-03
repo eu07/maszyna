@@ -27,8 +27,8 @@ class sound_source;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
-class TCamera;
 class TWorld;
+class TCamera;
 class simulation_time;
 class TMoverParameters;
 

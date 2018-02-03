@@ -21,14 +21,13 @@ extern TWorld World;
 bool
 mouse_input::init() {
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     DWORD systemkeyboardspeed;
     ::SystemParametersInfo( SPI_GETKEYBOARDSPEED, 0, &systemkeyboardspeed, 0 );
     m_updaterate = interpolate( 0.5, 0.04, systemkeyboardspeed / 31.0 );
     DWORD systemkeyboarddelay;
     ::SystemParametersInfo( SPI_GETKEYBOARDDELAY, 0, &systemkeyboarddelay, 0 );
     m_updatedelay = interpolate( 0.25, 1.0, systemkeyboarddelay / 3.0 );
-
 #endif
     return true;
 }

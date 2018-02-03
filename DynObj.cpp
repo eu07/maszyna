@@ -3833,24 +3833,6 @@ void TDynamicObject::RenderSounds() {
 
 // special events
     if( MoverParameters->EventFlag ) {
-        // TODO: dedicated sound, played alongside regular noise
-        if( true == TestFlag( MoverParameters->DamageFlag, dtrain_wheelwear ) ) {
-#ifdef EU07_USE_OLD_SOUNDCODE
-            if( rsOuterNoise.AM != 0 ) {
-                rsOuterNoise.Stop();
-                float am = rsOuterNoise.AM;
-                float fa = rsOuterNoise.FA;
-                float fm = rsOuterNoise.FM;
-                rsOuterNoise.Init( "lomotpodkucia.wav", -1, 0, 0, 0, true ); // MC: zmiana szumu na lomot
-                if( rsOuterNoise.AM == 1 )
-                    rsOuterNoise.AM = am;
-                rsOuterNoise.AA = 0.7;
-                rsOuterNoise.FA = fa;
-                rsOuterNoise.FM = fm;
-            }
-#else
-#endif
-        }
         // McZapkie: w razie wykolejenia
         if( true == TestFlag( MoverParameters->DamageFlag, dtrain_out ) ) {
             if( GetVelocity() > 0 ) {
@@ -5441,7 +5423,7 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
 
     for( auto const &destination : destinations ) {
 
-        auto material = TextureTest( destination );
+        auto material = TextureTest( ToLower( destination ) );
         if( false == material.empty() ) {
             m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( material );
             break;

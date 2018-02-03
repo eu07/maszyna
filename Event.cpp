@@ -50,10 +50,10 @@ TEvent::~TEvent() {
             SafeDeleteArray(Params[10].asText);
         break;
     case tp_Animation: // nic
-        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa jest zamieniana na wskaźnik do
-        // submodelu
+        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa jest zamieniana na wskaźnik do submodelu
         if (Params[0].asInt == 4) // jeśli z pliku VMD
             SafeDeleteArray( Params[8].asPointer ); // zwolnić obszar
+        break;
     case tp_GetValues: // nic
         break;
 	case tp_PutValues: // params[0].astext stores the token

@@ -596,8 +596,7 @@ void TWorld::OnKeyDown(int cKey) {
     { // i potwierdzenie
         if( cKey == GLFW_KEY_Y ) {
             // flaga wyjścia z programu
-            ::PostQuitMessage( 0 );
-//            Global.iTextMode = -1;
+            glfwSetWindowShouldClose( window, 1 );
         }
         return; // nie przekazujemy do pociągu
     }
@@ -1921,7 +1920,7 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
     double at{ 0.0 };
     double shift{ 0.0 };
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 	std::string searchpattern( "*.*" );
 

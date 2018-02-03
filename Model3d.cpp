@@ -1111,7 +1111,6 @@ TModel3d::~TModel3d() {
 	if (iFlags & 0x0200) {
         // wczytany z pliku tekstowego, submodele sprzątają same
         SafeDelete( Root );
-//        Root = nullptr;
 	}
 	else {
         // wczytano z pliku binarnego (jest właścicielem tablic)
@@ -1121,17 +1120,19 @@ TModel3d::~TModel3d() {
 
 TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 {
-	TSubModel *sm = Name ? GetFromName(Name) : NULL;
+	TSubModel *sm = Name ? GetFromName(Name) : nullptr;
+    if( ( sm == nullptr )
+     && ( Name != nullptr ) && ( std::strcmp( Name, "none" ) != 0 ) ) {
+        ErrorLog( "Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located after in the model data", logtype::model );
+    }
 	AddTo(sm, SubModel); // szukanie nadrzędnego
 	return sm; // zwracamy wskaźnik do nadrzędnego submodelu
 };
 
-void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel)
-{ // jedyny poprawny sposób dodawania
-  // submodeli, inaczej mogą zginąć
-  // przy zapisie E3D
-	if (tmp)
-	{ // jeśli znaleziony, podłączamy mu jako potomny
+// jedyny poprawny sposób dodawania submodeli, inaczej mogą zginąć przy zapisie E3D
+void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel) {
+	if (tmp) {
+        // jeśli znaleziony, podłączamy mu jako potomny
 		tmp->ChildAdd(SubModel);
 	}
 	else

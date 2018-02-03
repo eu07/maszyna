@@ -84,7 +84,7 @@ bool ClearFlag( int &Flag, int const Value ) {
     }
 }
 
-inline double Random(double a, double b)
+double Random(double a, double b)
 {
     std::uniform_real_distribution<> dis(a, b);
     return dis(Global.random_engine);

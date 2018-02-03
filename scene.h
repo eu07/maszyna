@@ -105,11 +105,7 @@ public:
         insert( TAnimModel *Instance );
     // adds provided sound instance to the cell
     void
-#ifdef EU07_USE_OLD_SOUNDCODE
-        insert( TTextSound *Sound );
-#else
         insert( sound_source *Sound );
-#endif
     // adds provided event launcher to the cell
     void
         insert( TEventLauncher *Launcher );

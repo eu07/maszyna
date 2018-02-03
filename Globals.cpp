@@ -704,7 +704,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // TBD: remove, or launch depending on passed flag?
         if (qp)
     { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
-#ifdef _WINDOWS
+#ifdef _WIN32
     Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
 #endif
             /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *

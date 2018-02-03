@@ -15,26 +15,30 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "logs.h"
 
+#ifdef _WIN32
 extern "C"
 {
     GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
 }
+#endif
 
 namespace multiplayer {
 
-#ifdef _WINDOWS
 void
 Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam) {
+#ifdef _WIN32
     // wysłanie komunikatu do sterującego
     HWND h = FindWindow(ClassName.c_str(), 0); // można by to zapamiętać
     if (h == 0)
         h = FindWindow(0, ClassName.c_str()); // można by to zapamiętać
     SendMessage(h, Msg, wParam, lParam);
+#endif
 }
 
 void
 WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 2; // 2 - event
@@ -49,12 +53,14 @@ WyslijEvent(const std::string &e, const std::string &d)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
+#endif
 }
 
 void
 WyslijUszkodzenia(const std::string &t, char fl)
 { // wysłanie informacji w postaci pojedynczego tekstu
-	DaneRozkaz r;
+#ifdef _WIN32
+    DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 13; // numer komunikatu
 	size_t i = t.length();
@@ -67,11 +73,13 @@ WyslijUszkodzenia(const std::string &t, char fl)
 	cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 }
 
 void
 WyslijString(const std::string &t, int n)
 { // wysłanie informacji w postaci pojedynczego tekstu
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = n; // numer komunikatu
@@ -84,6 +92,7 @@ WyslijString(const std::string &t, int n)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 }
 
 void
@@ -95,7 +104,8 @@ WyslijWolny(const std::string &t)
 void
 WyslijNamiary(TDynamicObject const *Vehicle)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
-    // WriteLog("Wysylam pojazd");
+#ifdef _WIN32
+  // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 7; // 7 - dane pojazdu
@@ -167,12 +177,14 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + Vehicle->asName + " sent");
+#endif
 }
 
 void
 WyslijObsadzone()
 {   // wysłanie informacji o pojeździe
-	DaneRozkaz2 r;
+#ifdef _WIN32
+    DaneRozkaz2 r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 12;   // kod 12
 	for (int i=0; i<1984; ++i) r.cString[i] = 0;
@@ -213,11 +225,13 @@ WyslijObsadzone()
 	// WriteLog("Ramka gotowa");
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
+#endif
 }
 
 void
 WyslijParam(int nr, int fl)
 { // wysłanie parametrów symulacji w ramce (nr) z flagami (fl)
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = nr; // zwykle 5
@@ -236,8 +250,8 @@ WyslijParam(int nr, int fl)
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global.window ), (LPARAM)&cData );
-}
 #endif
+}
 
 } // multiplayer
 

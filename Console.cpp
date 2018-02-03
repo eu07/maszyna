@@ -84,7 +84,7 @@ TKeyTrans Console::ktTable[4 * 256];
 
 // Ra: bajer do migania LED-ami w klawiaturze
 void SetLedState( unsigned char Code, bool bOn ) {
-#ifdef _WINDOWS
+#ifdef _WIN32
     if( bOn != ( ::GetKeyState( Code ) != 0 ) ) {
         keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | 0, 0 );
         keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0 );

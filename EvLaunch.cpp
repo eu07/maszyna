@@ -32,7 +32,7 @@ http://mozilla.org/MPL/2.0/.
 // and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
 int vk_to_glfw_key( int const Keycode ) {
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     auto const code = VkKeyScan( Keycode );
     char key = code & 0xff;
     char shiftstate = ( code & 0xff00 ) >> 8;
