@@ -132,6 +132,7 @@ void TButton::Update() {
     if( pModelOn  != nullptr ) { pModelOn->iVisible  =   m_state; }
     if( pModelOff != nullptr ) { pModelOff->iVisible = (!m_state); }
 
+#ifdef _WIN32
     if (iFeedbackBit) {
         // jeżeli generuje informację zwrotną
         if (m_state) // zapalenie
@@ -139,6 +140,7 @@ void TButton::Update() {
         else
             Console::BitsClear(iFeedbackBit);
     }
+#endif
 };
 
 void TButton::AssignBool(bool const *bValue) {

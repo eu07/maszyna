@@ -579,102 +579,44 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> InputGamepad;
         }
-        // maciek001: ustawienia MWD
-		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!
-			Parser.getTokens();
-			Parser >> bMWDmasterEnable;
-			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
-		}
-		else if (token == "mwddebugenable") {         // logowanie pracy
-			Parser.getTokens();
-			Parser >> bMWDdebugEnable;
-			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
-		}
-		else if (token == "mwddebugmode") {           // co ma być debugowane?
-			Parser.getTokens(1, false);
-			Parser >> iMWDDebugMode;
-			if (bMWDdebugEnable) WriteLog("Debug Mode = " + to_string(iMWDDebugMode));
-		}
-		else if (token == "mwdcomportname") {         // nazwa portu COM
-			Parser.getTokens();
-			Parser >> sMWDPortId;
-			if (bMWDdebugEnable) WriteLog("PortName " + sMWDPortId);
-		}
-		else if (token == "mwdbaudrate") {            // prędkość transmisji danych
-			Parser.getTokens(1, false);
-			Parser >> iMWDBaudrate;
-			if (bMWDdebugEnable) WriteLog("Baud rate = " + to_string((int)(iMWDBaudrate / 1000)) + (" kbps"));
-		}
-		else if (token == "mwdinputenable") {         // włącz wejścia
-			Parser.getTokens();
-			Parser >> bMWDInputEnable;
-			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
-		}
-		else if (token == "mwdbreakenable") {         // włącz obsługę hamulców
-			Parser.getTokens();
-			Parser >> bMWDBreakEnable;
-			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
-		}
-		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[0][0] >> fMWDAnalogInCalib[0][1];
-			if (bMWDdebugEnable) WriteLog("Main break settings: " + to_string(fMWDAnalogInCalib[0][0]) + (" ") + to_string(fMWDAnalogInCalib[0][1]));
-		}
-		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
-			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + (" ") + to_string(fMWDAnalogInCalib[1][1]));
-		}
-		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + (" ") + to_string(fMWDAnalogInCalib[2][1]));
-		}
-		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
-			Parser.getTokens(2, false);
-			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + (" ") + to_string(fMWDAnalogInCalib[3][1]));
-		}
-		else if (token == "mwdmaintankpress") {        // max ciśnienie w zbiorniku głownym i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDzg[0] >> fMWDzg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + (" ") + to_string(fMWDzg[1]));
-		}
-		else if (token == "mwdmainpipepress") {        // max ciśnienie w przewodzie głownym i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDpg[0] >> fMWDpg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + (" ") + to_string(fMWDpg[1]));
-		}
-		else if (token == "mwdbreakpress") {           // max ciśnienie w hamulcach i rozdzielczość
-			Parser.getTokens(2, false);
-			Parser >> fMWDph[0] >> fMWDph[1];
-			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + (" ") + to_string(fMWDph[1]));
-		}
-		else if (token == "mwdhivoltmeter") {          // max napięcie na woltomierzu WN
-			Parser.getTokens(2, false);
-			Parser >> fMWDvolt[0] >> fMWDvolt[1];
-			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + (" ") + to_string(fMWDvolt[1]));
-		}
-		else if (token == "mwdhiampmeter") {
-			Parser.getTokens(2, false);
-			Parser >> fMWDamp[0] >> fMWDamp[1];
-			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
-		}
-		else if (token == "mwdlowvoltmeter") {
-			Parser.getTokens(2, false);
-			Parser >> fMWDlowVolt[0] >> fMWDlowVolt[1];
-			if (bMWDdebugEnable) WriteLog("Low VoltMeter settings: " + to_string(fMWDlowVolt[0]) + (" ") + to_string(fMWDlowVolt[1]));
-		}
-		else if (token == "mwddivider") {
-			Parser.getTokens(1, false);
-			Parser >> iMWDdivider;
-			if (iMWDdivider == 0)
-			{
-				WriteLog("Dzielnik nie może być równy ZERO! Ustawiam na 1!");
-				iMWDdivider = 1;
-			}
-			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
-		}
+        else if( token == "uart" ) {
+            uart_conf.enable = true;
+            Parser.getTokens( 3, false );
+            Parser
+                >> uart_conf.port
+                >> uart_conf.baud
+                >> uart_conf.updatetime;
+        }
+        else if( token == "uarttune" ) {
+            Parser.getTokens( 14 );
+            Parser
+                >> uart_conf.mainbrakemin
+                >> uart_conf.mainbrakemax
+                >> uart_conf.localbrakemin
+                >> uart_conf.localbrakemax
+                >> uart_conf.tankmax
+                >> uart_conf.tankuart
+                >> uart_conf.pipemax
+                >> uart_conf.pipeuart
+                >> uart_conf.brakemax
+                >> uart_conf.brakeuart
+                >> uart_conf.hvmax
+                >> uart_conf.hvuart
+                >> uart_conf.currentmax
+                >> uart_conf.currentuart;
+        }
+        else if( token == "uartfeature" ) {
+            Parser.getTokens( 4 );
+            Parser
+                >> uart_conf.mainenable
+                >> uart_conf.scndenable
+                >> uart_conf.trainenable
+                >> uart_conf.localenable;
+        }
+        else if( token == "uartdebug" ) {
+            Parser.getTokens( 1 );
+            Parser >> uart_conf.debug;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

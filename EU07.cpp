@@ -32,6 +32,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
+#include "uart.h"
 #include "PyInt.h"
 
 #ifdef EU07_BUILD_STATIC
@@ -50,6 +51,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "openal32.lib")
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
+#pragma comment( lib, "libserialport-0.lib" )
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
 #ifdef CAN_I_HAS_LIBPNG
@@ -68,6 +70,7 @@ keyboard_input Keyboard;
 mouse_input Mouse;
 gamepad_input Gamepad;
 glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
+std::unique_ptr<uart_input> uart;
 
 }
 
@@ -411,6 +414,9 @@ int main(int argc, char *argv[])
     input::Keyboard.init();
     input::Mouse.init();
     input::Gamepad.init();
+    if( true == Global.uart_conf.enable ) {
+        input::uart = std::make_unique<uart_input>();
+    }
 
     Global.pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
     try {
@@ -443,6 +449,7 @@ int main(int argc, char *argv[])
             input::Keyboard.poll();
             if( true == Global.InputMouse )   { input::Mouse.poll(); }
             if( true == Global.InputGamepad ) { input::Gamepad.poll(); }
+            if( input::uart != nullptr )      { input::uart->poll(); }
         }
     }
     catch( std::bad_alloc const &Error ) {

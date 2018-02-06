@@ -158,7 +158,7 @@ keyboard_input::key( int const Key, int const Action ) {
     // NOTE: basic keyboard controls don't have any parameters
     // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
     // TODO: pass correct entity id once the missing systems are in place
-    m_relay.post( lookup->second, 0, 0, Action, 0 );
+    m_relay.post( lookup->second, 0, 0, Action, command_hint::none, 0 );
 
     return true;
 }
@@ -179,6 +179,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_SUBTRACT },
         // mastercontrollerdecreasefast
         { GLFW_KEY_KP_SUBTRACT | keymodifier::shift },
+        // mastercontrollerset
+        { -1 },
         // secondcontrollerincrease
         { GLFW_KEY_KP_DIVIDE },
         // secondcontrollerincreasefast
@@ -187,6 +189,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_MULTIPLY },
         // secondcontrollerdecreasefast
         { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
+        // secondcontrollerset
+        { -1 },
         // mucurrentindicatorothersourceactivate
         { GLFW_KEY_Z | keymodifier::shift },
         // independentbrakeincrease
@@ -197,12 +201,16 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_7 },
         // independentbrakedecreasefast
         { GLFW_KEY_KP_7 | keymodifier::shift },
+        // independentbrakeset
+        { -1 },
         // independentbrakebailoff
         { GLFW_KEY_KP_4 },
         // trainbrakeincrease
         { GLFW_KEY_KP_3 },
         // trainbrakedecrease
         { GLFW_KEY_KP_9 },
+        // trainbrakeset
+        { -1 },
         // trainbrakecharging
         { GLFW_KEY_KP_DECIMAL },
         // trainbrakerelease
@@ -481,6 +489,7 @@ keyboard_input::poll() {
             reinterpret_cast<std::uint64_t const &>( movexparam ),
             reinterpret_cast<std::uint64_t const &>( movezparam ),
             GLFW_PRESS,
+            command_hint::none,
             0 );
     }
 
@@ -503,6 +512,7 @@ keyboard_input::poll() {
             reinterpret_cast<std::uint64_t const &>( moveyparam ),
             0,
             GLFW_PRESS,
+            command_hint::none,
             0 );
     }
 

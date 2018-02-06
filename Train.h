@@ -65,9 +65,34 @@ public:
 
 class TTrain
 {
-    friend class TWorld; // temporary due to use of play_sound TODO: refactor this
-
   public:
+// types
+    struct state_t {
+        std::uint8_t shp;
+        std::uint8_t alerter;
+        std::uint8_t motor_resistors;
+        std::uint8_t line_breaker;
+        std::uint8_t motor_overload;
+        std::uint8_t motor_connectors;
+        std::uint8_t wheelslip;
+        std::uint8_t converter_overload;
+        std::uint8_t converter_off;
+        std::uint8_t compressor_overload;
+        std::uint8_t ventilator_overload;
+        std::uint8_t motor_overload_threshold;
+        std::uint8_t train_heating;
+        std::uint8_t recorder_braking;
+        std::uint8_t recorder_power;
+        std::uint8_t alerter_sound;
+        float velocity;
+        float reservoir_pressure;
+        float pipe_pressure;
+        float brake_pressure;
+        float hv_voltage;
+        std::array<float, 3> hv_current;
+    };
+
+// methods
     bool CabChange(int iDirection);
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
@@ -86,6 +111,7 @@ class TTrain
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
     PyObject *GetTrainState();
+    state_t get_state() const;
 
   private:
 // types
@@ -119,19 +145,23 @@ class TTrain
     static void OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data const &Command );
+    static void OnCommand_mastercontrollerset( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data const &Command );
+    static void OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command );
     static void OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakedecreasefast( TTrain *Train, command_data const &Command );
+    static void OnCommand_independentbrakeset( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_trainbrakeset( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakecharging( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakerelease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakefirstservice( TTrain *Train, command_data const &Command );

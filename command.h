@@ -20,18 +20,22 @@ enum class user_command {
     mastercontrollerincreasefast,
     mastercontrollerdecrease,
     mastercontrollerdecreasefast,
+    mastercontrollerset,
     secondcontrollerincrease,
     secondcontrollerincreasefast,
     secondcontrollerdecrease,
     secondcontrollerdecreasefast,
+    secondcontrollerset,
     mucurrentindicatorothersourceactivate,
     independentbrakeincrease,
     independentbrakeincreasefast,
     independentbrakedecrease,
     independentbrakedecreasefast,
+    independentbrakeset,
     independentbrakebailoff,
     trainbrakeincrease,
     trainbrakedecrease,
+    trainbrakeset,
     trainbrakecharging,
     trainbrakerelease,
     trainbrakefirstservice,
@@ -135,6 +139,12 @@ enum class user_command {
     none = -1
 };
 
+enum class command_hint {
+    off,
+    on,
+    none = -1
+};
+
 enum class command_target {
 
     userinterface,
@@ -163,6 +173,7 @@ struct command_data {
     int action; // press, repeat or release
     std::uint64_t param1;
     std::uint64_t param2;
+    command_hint hint;
     double time_delta;
 };
 
@@ -212,7 +223,8 @@ public:
     // posts specified command for the specified recipient
     // TODO: replace uint16_t with recipient handle, based on item id
     void
-        post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2, int const Action, std::uint16_t const Recipient ) const;
+        post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
+            int const Action, command_hint const Hint, std::uint16_t const Recipient ) const;
 private:
 // types
 // members

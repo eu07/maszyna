@@ -201,6 +201,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
             reinterpret_cast<std::uint64_t const &>( turnx ),
             reinterpret_cast<std::uint64_t const &>( turny ),
             GLFW_PRESS,
+            command_hint::none,
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
             0 );
@@ -218,6 +219,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
                 reinterpret_cast<std::uint64_t const &>( movex ),
                 reinterpret_cast<std::uint64_t const &>( movez ),
                 GLFW_PRESS,
+                command_hint::none,
                 0 );
         }
     }
@@ -247,6 +249,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                 lookup.second,
                 0, 0,
                 GLFW_RELEASE,
+                command_hint::none,
                 Recipient );
             m_modeaccumulator = 0.0f;
         }
@@ -260,6 +263,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                     lookup.first,
                     0, 0,
                     GLFW_PRESS,
+                    command_hint::none,
                     Recipient );
                 m_modeaccumulator -= 1.0f;
             }
@@ -271,6 +275,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                 lookup.first,
                 0, 0,
                 GLFW_RELEASE,
+                command_hint::none,
                 Recipient );
             m_modeaccumulator = 0.0f;
         }
@@ -284,6 +289,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                 lookup.first,
                 0, 0,
                 GLFW_RELEASE,
+                command_hint::none,
                 Recipient );
             m_modeaccumulator = 0.0f;
         }
@@ -297,6 +303,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                     lookup.second,
                     0, 0,
                     GLFW_PRESS,
+                    command_hint::none,
                     Recipient );
                 m_modeaccumulator += 1.0f;
             }
@@ -308,6 +315,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                 lookup.second,
                 0, 0,
                 GLFW_RELEASE,
+                command_hint::none,
                 Recipient );
             m_modeaccumulator = 0.0f;
         }

@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "float3d.h"
 #include "light.h"
+#include "uart.h"
 #include "utilities.h"
 
 struct global_settings {
@@ -60,8 +61,6 @@ struct global_settings {
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };
     unsigned int DisabledLogTypes{ 0 };
-    bool bMWDdebugEnable{ false }; // włącz dodawanie do logu
-    int iMWDDebugMode{ 0 }; // co ma wyświetlać w logu
     // simulation
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
     bool bFreeFly{ false };
@@ -159,25 +158,7 @@ struct global_settings {
         0, 0, 0, 0, 0, 0, 0 };
     int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
-    // maciek001: konfiguracja wstępna portu COM
-    bool bMWDmasterEnable { false };// główne włączenie portu!
-    std::string sMWDPortId { "COM1" }; // nazwa portu z którego korzystamy
-    unsigned long int iMWDBaudrate{ 9600 }; // prędkość transmisji danych
-    bool bMWDInputEnable { false }; // włącz wejścia
-    bool bMWDBreakEnable { false }; // włącz wejścia analogowe
-    // wartość max potencjometru, wartość min potencjometru, rozdzielczość (max. wartość jaka może być)
-    double fMWDAnalogInCalib[ 4 ][ 2 ] = {
-        { 0, 1023 },
-        { 0, 1023 },
-        { 0, 1023 },
-        { 0, 1023 } };
-    double fMWDzg[ 2 ] = { 0.9, 1023 };
-    double fMWDpg[ 2 ] = { 0.8, 1023 };
-    double fMWDph[ 2 ] = { 0.6, 1023 };
-    double fMWDvolt[ 2 ] = { 4000, 1023 };
-    double fMWDamp[ 2 ] = { 800, 1023 };
-    double fMWDlowVolt[ 2 ] = { 150, 1023 };
-    int iMWDdivider { 5 };
+    uart_input::conf_t uart_conf;
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other
