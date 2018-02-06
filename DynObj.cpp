@@ -3047,10 +3047,11 @@ bool TDynamicObject::Update(double dt, double dt1)
         double k; // tymczasowy kąt
         double PantDiff;
         TAnimPant *p; // wskaźnik do obiektu danych pantografu
-        double fCurrent = (MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ?
-                               0 :
-                               MoverParameters->Itot) +
-                          MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez
+        double fCurrent = (
+            ( MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ) ?
+                0 :
+                MoverParameters->Itot )
+            + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez
         // sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
         // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez
@@ -3099,10 +3100,13 @@ bool TDynamicObject::Update(double dt, double dt1)
                       && ( PantDiff < 0.01 ) ) // tolerancja niedolegania
                 {
                     if (p->hvPowerWire) {
-                        auto const wirevoltage { p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent ) };
+                        auto const lastvoltage { MoverParameters->PantFrontVolt };
+                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
+                        MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
+                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
-                        if( ( MoverParameters->PantFrontVolt == 0.0 )
-                         && ( wirevoltage > 0.0 ) ) {
+                        if( ( lastvoltage == 0.0 )
+                         && ( MoverParameters->PantFrontVolt > 0.0 ) ) {
                             for( auto &pantograph : m_pantographsounds ) {
                                 if( pantograph.sPantUp.offset().z > 0 ) {
                                     // limit to pantographs located in the front half of the vehicle
@@ -3110,9 +3114,6 @@ bool TDynamicObject::Update(double dt, double dt1)
                                 }
                             }
                         }
-                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantFrontVolt = wirevoltage;
-                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                     }
                     else
                         MoverParameters->PantFrontVolt = 0.0;
@@ -3133,10 +3134,13 @@ bool TDynamicObject::Update(double dt, double dt1)
                        && ( PantDiff < 0.01 ) )
                 {
                     if (p->hvPowerWire) {
-                        auto const wirevoltage { p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent ) };
+                        auto const lastvoltage { MoverParameters->PantRearVolt };
+                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
+                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
+                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
-                        if( ( MoverParameters->PantRearVolt == 0.0 )
-                         && ( wirevoltage > 0.0 ) ) {
+                        if( ( lastvoltage == 0.0 )
+                         && ( MoverParameters->PantRearVolt > 0.0 ) ) {
                             for( auto &pantograph : m_pantographsounds ) {
                                 if( pantograph.sPantUp.offset().z < 0 ) {
                                     // limit to pantographs located in the rear half of the vehicle
@@ -3144,9 +3148,6 @@ bool TDynamicObject::Update(double dt, double dt1)
                                 }
                             }
                         }
-                        // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
-                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                     }
                     else
                         MoverParameters->PantRearVolt = 0.0;
@@ -3180,26 +3181,21 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantFrontUp ) )// jeśli ma być podniesiony
             {
                 if (PantDiff > 0.001) // jeśli nie dolega do drutu
-                { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt
-                    // dolnego
+                { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt dolnego
                     // ramienia zgodnie z ciśnieniem
                     if (pantspeedfactor >
                         0.55 * PantDiff) // 0.55 to około pochodna kąta po wysokości
                         k += 0.55 * PantDiff; // ograniczenie "skoku" w danej klatce
                     else
                         k += pantspeedfactor; // dolne ramię
-                    // jeśli przekroczono kąt graniczny, zablokować pantograf (wymaga
-                    // interwencji
-                    // pociągu sieciowego)
+                    // jeśli przekroczono kąt graniczny, zablokować pantograf
+                    // (wymaga interwencji pociągu sieciowego)
                 }
-                else if (PantDiff < -0.001)
-                { // drut się obniżył albo pantograf
-                    // podniesiony za wysoko
+                else if (PantDiff < -0.001) {
+                    // drut się obniżył albo pantograf podniesiony za wysoko
                     // jeśli wysokość jest zbyt duża, wyznaczyć zmniejszenie kąta
-                    // jeśli zmniejszenie kąta jest zbyt duże, przejść do trybu łamania
-                    // pantografu
-                    // if (PantFrontDiff<-0.05) //skok w dół o 5cm daje złąmanie
-                    // pantografu
+                    // jeśli zmniejszenie kąta jest zbyt duże, przejść do trybu łamania pantografu
+                    // if (PantFrontDiff<-0.05) //skok w dół o 5cm daje złąmanie pantografu
                     k += 0.4 * PantDiff; // mniej niż pochodna kąta po wysokości
                 } // jeśli wysokość jest dobra, nic więcej nie liczyć
             }

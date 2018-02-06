@@ -1532,7 +1532,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         // próg opóźnienia dla zadziałania hamulca
         fAccThreshold = (
             mvOccupied->TrainType == dt_EZT ? -0.6 :
-            mvOccupied->TrainType == dt_DMU ? -0.4 :
+            mvOccupied->TrainType == dt_DMU ? -0.45 :
             -0.2 );
     }
     // TrainParams=NewTrainParams;
@@ -1552,8 +1552,12 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     TableClear();
 
     if( WriteLogFlag ) {
-        _mkdir( "physicslog\\" );
-        LogFile.open( std::string( "physicslog\\" + VehicleName + ".dat" ),
+#ifdef _WIN32
+        _mkdir( "physicslog" );
+#elif __linux__
+        mkdir( "physicslog", 0644 );
+#endif
+        LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
         LogFile << std::string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
@@ -1829,7 +1833,7 @@ void TController::AutoRewident()
 		fBrakeReaction = 0.25;
 	}
     else if( mvOccupied->TrainType == dt_DMU ) {
-        fAccThreshold = std::max( -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ], /*-0.7*/ -0.4 );
+        fAccThreshold = std::max( -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ], -0.45 );
         fBrakeReaction = 0.25;
     }
     else if (ustaw > 16)
@@ -4565,7 +4569,7 @@ TController::UpdateSituation(double dt) {
 				TDynamicObject *d = pVehicles[0]; // pojazd na czele składu
 				while (d)
 				{
-					AbsAccS += d->MoverParameters->TotalMass * d->MoverParameters->AccS * iDirection;
+					AbsAccS += d->MoverParameters->TotalMass * d->MoverParameters->AccS * d->DirectionGet() * iDirection;
 					d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 				}
 				AbsAccS /= fMass;

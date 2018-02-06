@@ -362,6 +362,7 @@ void TWorld::OnKeyDown(int cKey) {
                 case GLFW_KEY_F10: { keyinfo += "F10"; break; }
                 case GLFW_KEY_F11: { keyinfo += "F11"; break; }
                 case GLFW_KEY_F12: { keyinfo += "F12"; break; }
+                case GLFW_KEY_PAUSE: { keyinfo += "Pause"; break; }
             }
         }
         if( keyinfo.empty() == false ) {

@@ -517,7 +517,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                         }
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
                         if( glm::length2( vertexnormal ) == 0.0f ) {
-                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"", logtype::model );
+                            WriteLog( "Bad model: zero length normal vector generated for sub-model \"" + pName + "\"", logtype::model );
                         }
                         Vertices[ vertexidx ].normal = (
                             glm::length2( vertexnormal ) > 0.0f ?
