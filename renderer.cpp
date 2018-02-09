@@ -175,10 +175,12 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         light.id = GL_LIGHT1 + idx;
 
         light.is_directional = false;
+        ::glEnable( light.id ); // experimental intel chipset fix
         ::glLightf( light.id, GL_SPOT_CUTOFF, 7.5f );
         ::glLightf( light.id, GL_SPOT_EXPONENT, 7.5f );
         ::glLightf( light.id, GL_CONSTANT_ATTENUATION, 0.0f );
         ::glLightf( light.id, GL_LINEAR_ATTENUATION, 0.035f );
+        ::glDisable( light.id ); // experimental intel chipset fix
 
         m_lights.emplace_back( light );
     }
@@ -412,12 +414,27 @@ opengl_renderer::Render() {
         += "frame: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) "
         += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec "
         += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec total)";
+
     m_debugstatstext =
         "drawcalls: " + to_string( m_debugstats.drawcalls )
         + "; dyn: " + to_string( m_debugstats.dynamics ) + " mod: " + to_string( m_debugstats.models ) + " sub: " + to_string( m_debugstats.submodels )
         + "; trk: " + to_string( m_debugstats.paths ) + " shp: " + to_string( m_debugstats.shapes )
         + " trc: " + to_string( m_debugstats.traction ) + " lin: " + to_string( m_debugstats.lines );
-
+/*
+    float lightcutoff{},
+        lightexponent{},
+        lightconstant{},
+        lightlinear{};
+    ::glGetLightfv( GL_LIGHT1, GL_SPOT_CUTOFF, &lightcutoff );
+    ::glGetLightfv( GL_LIGHT1, GL_SPOT_EXPONENT, &lightexponent );
+    ::glGetLightfv( GL_LIGHT1, GL_CONSTANT_ATTENUATION, &lightconstant );
+    ::glGetLightfv( GL_LIGHT1, GL_LINEAR_ATTENUATION, &lightlinear );
+    m_debugstatstext =
+        "light1 cutoff: " + to_string( lightcutoff, 2 )
+        + " exponent: " + to_string( lightexponent, 2 )
+        + " constant attn: " + to_string( lightconstant, 2 )
+        + " linear attn: " + to_string( lightlinear, 3 );
+*/
     ++m_framestamp;
 
     return true; // for now always succeed
@@ -889,7 +906,11 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             // ...transform coordinate change back to homogenous light space...
             shadowmapadjustment /= m_shadowbuffersize * 0.5f;
             // ... and bake the adjustment into the projection matrix
-            camera.projection() = glm::translate( glm::mat4{ 1.f }, glm::vec3{ shadowmapadjustment, 0.f } ) * camera.projection();
+            camera.projection() =
+                glm::translate(
+                    glm::mat4{ 1.f },
+                    glm::vec3{ shadowmapadjustment, 0.f } )
+                * camera.projection();
 
             break;
         }
@@ -913,13 +934,14 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                     -maphalfsize, maphalfsize,
                     -maphalfsize, maphalfsize,
                     -Config.draw_range, Config.draw_range );
+/*
             // adjust the projection to sample complete shadow map texels
             auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
             shadowmaptexel *= ( m_shadowbuffersize / 2 ) * 0.5f;
             auto shadowmapadjustment = glm::round( shadowmaptexel ) - shadowmaptexel;
             shadowmapadjustment /= ( m_shadowbuffersize / 2 ) * 0.5f;
             camera.projection() = glm::translate( glm::mat4{ 1.f }, glm::vec3{ shadowmapadjustment, 0.f } ) * camera.projection();
-
+*/
             break;
         }
         case rendermode::reflections: {
