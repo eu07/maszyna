@@ -2163,7 +2163,7 @@ world_environment::update() {
     else {
         // regular situation with sun as the key light
         Global.SunAngle = m_sun.getAngle();
-        Global.DayLight.position = m_sun.getPosition();
+        Global.DayLight.position = m_sun.getDirection();
         Global.DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
         // include 'golden hour' effect in twilight lighting

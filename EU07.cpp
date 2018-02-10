@@ -416,6 +416,7 @@ int main(int argc, char *argv[])
     input::Gamepad.init();
     if( true == Global.uart_conf.enable ) {
         input::uart = std::make_unique<uart_input>();
+        input::uart->init();
     }
 
     Global.pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów

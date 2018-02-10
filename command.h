@@ -55,17 +55,28 @@ enum class user_command {
     reverserincrease,
     reverserdecrease,
     linebreakertoggle,
+    linebreakeropen,
+    linebreakerclose,
     convertertoggle,
+    converterenable,
+    converterdisable,
     convertertogglelocal,
     converteroverloadrelayreset,
     compressortoggle,
+    compressorenable,
+    compressordisable,
     compressortogglelocal,
     motoroverloadrelaythresholdtoggle,
+    motoroverloadrelaythresholdsetlow,
+    motoroverloadrelaythresholdsethigh,
     motoroverloadrelayreset,
     notchingrelaytoggle,
     epbrakecontroltoggle,
     brakeactingspeedincrease,
     brakeactingspeeddecrease,
+    brakeactingspeedsetcargo,
+    brakeactingspeedsetpassenger,
+    brakeactingspeedsetrapid,
     brakeloadcompensationincrease,
     brakeloadcompensationdecrease,
     mubrakingindicatortoggle,
@@ -102,13 +113,25 @@ enum class user_command {
     pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,
+    pantographraisefront,
+    pantographraiserear,
+    pantographlowerfront,
+    pantographlowerrear,
     pantographlowerall,
     heatingtoggle,
+    heatingenable,
+    heatingdisable,
     lightspresetactivatenext,
     lightspresetactivateprevious,
     headlighttoggleleft,
+    headlightenableleft,
+    headlightdisableleft,
     headlighttoggleright,
+    headlightenableright,
+    headlightdisableright,
     headlighttoggleupper,
+    headlightenableupper,
+    headlightdisableupper,
     redmarkertoggleleft,
     redmarkertoggleright,
     headlighttogglerearleft,
@@ -119,11 +142,20 @@ enum class user_command {
     redmarkerstoggle,
     endsignalstoggle,
     headlightsdimtoggle,
+    headlightsdimenable,
+    headlightsdimdisable,
     motorconnectorsopen,
+    motorconnectorsclose,
     motordisconnect,
     interiorlighttoggle,
+    interiorlightenable,
+    interiorlightdisable,
     interiorlightdimtoggle,
+    interiorlightdimenable,
+    interiorlightdimdisable,
     instrumentlighttoggle,
+    instrumentlightenable,
+    instrumentlightdisable,
     generictoggle0,
     generictoggle1,
     generictoggle2,
@@ -135,13 +167,9 @@ enum class user_command {
     generictoggle8,
     generictoggle9,
     batterytoggle,
+    batteryenable,
+    batterydisable,
 
-    none = -1
-};
-
-enum class command_hint {
-    off,
-    on,
     none = -1
 };
 
@@ -173,7 +201,6 @@ struct command_data {
     int action; // press, repeat or release
     std::uint64_t param1;
     std::uint64_t param2;
-    command_hint hint;
     double time_delta;
 };
 
@@ -224,7 +251,7 @@ public:
     // TODO: replace uint16_t with recipient handle, based on item id
     void
         post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
-            int const Action, command_hint const Hint, std::uint16_t const Recipient ) const;
+            int const Action, std::uint16_t const Recipient ) const;
 private:
 // types
 // members

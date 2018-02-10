@@ -133,6 +133,10 @@ class TTrain
     TDynamicObject *find_nearest_consist_vehicle() const;
     // moves train brake lever to specified position, potentially emits switch sound if conditions are met
     void set_train_brake( double const Position );
+    // sets specified brake acting speed for specified vehicle, potentially updating state of cab controls to match
+    void set_train_brake_speed( TDynamicObject *Vehicle, int const Speed );
+    // sets the motor connector button in paired unit to specified state
+    void set_paired_open_motor_connectors_button( bool const State );
     // update function subroutines
     void update_sounds( double const Deltatime );
 
@@ -181,6 +185,9 @@ class TTrain
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeactingspeedsetcargo( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeactingspeedsetpassenger( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeactingspeedsetrapid( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeloadcompensationincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeloadcompensationdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data const &Command );
@@ -188,27 +195,50 @@ class TTrain
     static void OnCommand_reverserdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command );
     static void OnCommand_batterytoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_batteryenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_batterydisable( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressoractivate( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographraisefront( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographraiserear( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographlowerfront( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographlowerrear( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_linebreakeropen( TTrain *Train, command_data const &Command );
+    static void OnCommand_linebreakerclose( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_converterenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_converterdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertogglelocal( TTrain *Train, command_data const &Command );
     static void OnCommand_converteroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_compressorenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_compressordisable( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command );
     static void OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command );
+    static void OnCommand_motorconnectorsclose( TTrain *Train, command_data const &Command );
     static void OnCommand_motordisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_motoroverloadrelaythresholdsetlow( TTrain *Train, command_data const &Command );
+    static void OnCommand_motoroverloadrelaythresholdsethigh( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_heatingenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_heatingdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_lightspresetactivatenext( TTrain *Train, command_data const &Command );
     static void OnCommand_lightspresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightenableleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightdisableleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightenableright( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightdisableright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightenableupper( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightdisableupper( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearleft( TTrain *Train, command_data const &Command );
@@ -219,9 +249,17 @@ class TTrain
     static void OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_endsignalstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightsdimenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_headlightsdimdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlighttoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlightenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlightdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlightdimenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlightdimdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_instrumentlightenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_instrumentlightdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );

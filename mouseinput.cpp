@@ -42,12 +42,12 @@ mouse_input::move( double Mousex, double Mousey ) {
             reinterpret_cast<std::uint64_t const &>( Mousex ),
             reinterpret_cast<std::uint64_t const &>( Mousey ),
             GLFW_PRESS,
-            command_hint::none,
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
             0 );
     }
     else {
+        // control picking mode
         if( false == m_pickmodepanning ) {
             // even if the view panning isn't active we capture the cursor position in case it does get activated
             m_cursorposition.x = Mousex;
@@ -61,7 +61,6 @@ mouse_input::move( double Mousex, double Mousey ) {
             reinterpret_cast<std::uint64_t const &>( viewoffset.x ),
             reinterpret_cast<std::uint64_t const &>( viewoffset.y ),
             GLFW_PRESS,
-            command_hint::none,
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
             0 );
@@ -104,7 +103,7 @@ mouse_input::button( int const Button, int const Action ) {
                 // NOTE: basic keyboard controls don't have any parameters
                 // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                 // TODO: pass correct entity id once the missing systems are in place
-                m_relay.post( mousecommand, 0, 0, Action, command_hint::none, 0 );
+                m_relay.post( mousecommand, 0, 0, Action, 0 );
                 mousecommand = user_command::none;
             }
             else {
@@ -143,7 +142,7 @@ mouse_input::button( int const Button, int const Action ) {
                         // NOTE: basic keyboard controls don't have any parameters
                         // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                         // TODO: pass correct entity id once the missing systems are in place
-                        m_relay.post( mousecommand, 0, 0, Action, command_hint::none, 0 );
+                        m_relay.post( mousecommand, 0, 0, Action, 0 );
                         m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
 
                         switch( mousecommand ) {
@@ -194,13 +193,13 @@ mouse_input::poll() {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, command_hint::none, 0 );
+            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
         }
         if( m_mousecommandright != user_command::none ) {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, command_hint::none, 0 );
+            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
         }
         m_updateaccumulator -= updaterate;
     }
@@ -244,11 +243,11 @@ mouse_input::default_bindings() {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },
         { "main_off_bt:", {
-            user_command::linebreakertoggle,
+            user_command::linebreakeropen,
             user_command::none } },
         { "main_on_bt:",{
-            user_command::linebreakertoggle,
-            user_command::none } }, // TODO: dedicated on and off line breaker commands
+            user_command::linebreakerclose,
+            user_command::none } },
         { "security_reset_bt:", {
             user_command::alerteracknowledge,
             user_command::none } },

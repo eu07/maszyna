@@ -1669,9 +1669,8 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 						// all work is done in the loop header
 						;
 					}
-					// OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to
-					// poprawiæ i po co?
-					if( ActiveDir == -1 ) {
+					// OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
+					if( ActiveDir < 0 ) {
 						while( ( RList[ MainCtrlPos ].Bn > 1 )
 							&& IncMainCtrl( 1 ) ) {
 							--MainCtrlPos;
@@ -1702,7 +1701,7 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
                             }
 						}
 					}
-					if( ActiveDir == -1 ) {
+					if( ActiveDir < 0 ) {
 						if( ( TrainType != dt_PseudoDiesel )
 						 && ( RList[ MainCtrlPos ].Bn > 1 )	) {
                             // blokada wejścia na równoległą podczas jazdy do tyłu
@@ -5206,9 +5205,12 @@ bool TMoverParameters::AutoRelayCheck(void)
 
     // Ra 2014-06: dla SN61 nie działa prawidłowo
     // rozlaczanie stycznikow liniowych
-    if ((!Mains) || (FuseFlag) || (MainCtrlPos == 0) ||
-        ((BrakePress > 2.1) && (TrainType != dt_EZT)) ||
-        (ActiveDir == 0)) // hunter-111211: wylacznik cisnieniowy
+    if( ( false == Mains )
+     || ( true == FuseFlag )
+     || ( true == StLinSwitchOff )
+     || ( MainCtrlPos == 0 )
+     || ( ( TrainType != dt_EZT ) && ( BrakePress > 2.1 ) )
+     || ( ActiveDir == 0 ) ) // hunter-111211: wylacznik cisnieniowy
     {
         StLinFlag = false; // yBARC - rozlaczenie stycznikow liniowych
         OK = false;

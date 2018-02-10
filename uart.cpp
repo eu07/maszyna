@@ -4,6 +4,7 @@
 #include "Globals.h"
 #include "World.h"
 #include "Train.h"
+#include "parser.h"
 #include "Logs.h"
 
 uart_input::uart_input()
@@ -38,12 +39,86 @@ uart_input::uart_input()
 
 uart_input::~uart_input()
 {
-	std::array<uint8_t, 31> buffer = { 0 };
+	std::array<std::uint8_t, 31> buffer = { 0 };
 	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	sp_drain(port);
 
     sp_close(port);
     sp_free_port(port);
+}
+
+bool
+uart_input::recall_bindings() {
+
+    m_inputbindings.clear();
+
+    cParser bindingparser( "eu07_input-uart.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
+    // build helper translation tables
+    std::unordered_map<std::string, user_command> nametocommandmap;
+    std::size_t commandid = 0;
+    for( auto const &description : simulation::Commands_descriptions ) {
+        nametocommandmap.emplace(
+            description.name,
+            static_cast<user_command>( commandid ) );
+        ++commandid;
+    }
+    std::unordered_map<std::string, input_type_t> nametotypemap {
+        { "impulse", input_type_t::impulse },
+        { "toggle", input_type_t::toggle },
+        { "value", input_type_t::value } };
+
+    // NOTE: to simplify things we expect one entry per line, and whole entry in one line
+    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+
+        std::string bindingentry;
+        bindingparser >> bindingentry;
+        cParser entryparser( bindingentry );
+
+        if( true == entryparser.getTokens( 2, true, "\n\r\t " ) ) {
+
+            std::size_t bindingpin {};
+            std::string bindingtypename {};
+            entryparser
+                >> bindingpin
+                >> bindingtypename;
+
+            auto const typelookup = nametotypemap.find( bindingtypename );
+            if( typelookup == nametotypemap.end() ) {
+
+                WriteLog( "Uart binding for input pin " + std::to_string( bindingpin ) + " specified unknown control type, \"" + bindingtypename + "\"" );
+            }
+            else {
+
+                auto const bindingtype { typelookup->second };
+                std::array<user_command, 2> bindingcommands { user_command::none, user_command::none };
+                auto const commandcount { ( bindingtype == toggle ? 2 : 1 ) };
+                for( int commandidx = 0; commandidx < commandcount; ++commandidx ) {
+                    // grab command(s) associated with the input pin
+                    auto const bindingcommandname { entryparser.getToken<std::string>() };
+                    if( true == bindingcommandname.empty() ) {
+                        // no tokens left, may as well complain then call it a day
+                        WriteLog( "Uart binding for input pin " + std::to_string( bindingpin ) + " didn't specify associated command(s)" );
+                        break;
+                    }
+                    auto const commandlookup = nametocommandmap.find( bindingcommandname );
+                    if( commandlookup == nametocommandmap.end() ) {
+                        WriteLog( "Uart binding for input pin " + std::to_string( bindingpin ) + " specified unknown command, \"" + bindingcommandname + "\"" );
+                    }
+                    else {
+                        bindingcommands[ commandidx ] = commandlookup->second;
+                    }
+                }
+                // push the binding on the list
+                m_inputbindings.emplace_back( bindingpin, bindingtype, bindingcommands[ 0 ], bindingcommands[ 1 ] );
+            }
+        }
+    }
+
+    return true;
 }
 
 #define SPLIT_INT16(x) (uint8_t)x, (uint8_t)(x >> 8)
@@ -63,7 +138,7 @@ void uart_input::poll()
 
     if ((ret = sp_input_waiting(port)) >= 16)
     {
-        std::array<uint8_t, 16> buffer;
+        std::array<uint8_t, 16> buffer; // TBD, TODO: replace with vector of configurable size?
         ret = sp_blocking_read(port, (void*)buffer.data(), buffer.size(), 0);
 		if (ret < 0)
             throw std::runtime_error("uart: failed to read from port");
@@ -79,49 +154,33 @@ void uart_input::poll()
 
 		data_pending = false;
 
-        for (auto entry : input_bits)
-        {
-            input_type_t type = std::get<2>(entry);
+        for (auto const &entry : m_inputbindings) {
 
-            size_t byte = std::get<0>(entry) / 8;
-            size_t bit = std::get<0>(entry) % 8;
+            auto const byte { std::get<std::size_t>( entry ) / 8 };
+            auto const bit { std::get<std::size_t>( entry ) % 8 };
 
-            bool state = ( (buffer[byte] & (1 << bit)) != 0 );
+            bool const state { ( ( buffer[ byte ] & ( 1 << bit ) ) != 0 ) };
+            bool const changed { ( ( old_packet[ byte ] & ( 1 << bit ) ) != state ) };
 
-			bool repeat = (type == impulse_r || 
-			               type == impulse_r_off ||
-			               type == impulse_r_on);
+            if( false == changed ) { continue; }
 
-            bool changed = ( (buffer[ byte ] & (1 << bit)) != (old_packet[ byte ] & (1 << bit)) );
+            auto const type { std::get<input_type_t>( entry ) };
+            auto const action { (
+                type != impulse ?
+                    GLFW_PRESS :
+                    ( true == state ?
+                        GLFW_PRESS :
+                        GLFW_RELEASE ) ) };
 
-            if (!changed && !(repeat && state))
-                continue;
+            auto const command { (
+                type != toggle ?
+                    std::get<2>( entry ) :
+                    ( action == GLFW_PRESS ?
+                        std::get<2>( entry ) :
+                        std::get<3>( entry ) ) ) };
 
-            int action;
-            command_hint desired_state;
-
-            if (type == toggle)
-            {
-                action = GLFW_PRESS;
-                desired_state = ( state ? command_hint::on : command_hint::off );
-            }
-            else if (type == impulse_r_on)
-            {
-                action = ( state ? (changed ? GLFW_PRESS : GLFW_REPEAT) : GLFW_RELEASE );
-                desired_state = command_hint::on;
-            }
-            else if (type == impulse_r_off)
-            {
-                action = ( state ? (changed ? GLFW_PRESS : GLFW_REPEAT) : GLFW_RELEASE );
-                desired_state = command_hint::off;
-            }
-            else if (type == impulse || type == impulse_r)
-            {
-                action = ( state ? (changed ? GLFW_PRESS : GLFW_REPEAT) : GLFW_RELEASE );
-                desired_state = command_hint::none;
-            }
-
-            relay.post( std::get<1>(entry), 0, 0, action, desired_state, 0 );
+            // TODO: pass correct entity id once the missing systems are in place
+            relay.post( command, 0, 0, action, 0 );
         }
 
         if( true == conf.mainenable ) {
@@ -131,7 +190,6 @@ void uart_input::poll()
                 buffer[ 6 ],
                 0,
                 GLFW_PRESS,
-                command_hint::none,
                 // TODO: pass correct entity id once the missing systems are in place
                 0 );
         }
@@ -142,7 +200,6 @@ void uart_input::poll()
                 buffer[ 7 ],
                 0,
                 GLFW_PRESS,
-                command_hint::none,
                 // TODO: pass correct entity id once the missing systems are in place
                 0 );
         }
@@ -154,7 +211,6 @@ void uart_input::poll()
                 reinterpret_cast<std::uint64_t const &>( position ),
                 0,
                 GLFW_PRESS,
-                command_hint::none,
                 // TODO: pass correct entity id once the missing systems are in place
                 0 );
         }
@@ -166,7 +222,6 @@ void uart_input::poll()
                 reinterpret_cast<std::uint64_t const &>( position ),
                 0,
                 GLFW_PRESS,
-                command_hint::none,
                 // TODO: pass correct entity id once the missing systems are in place
                 0 );
         }

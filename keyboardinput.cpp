@@ -19,6 +19,11 @@ extern TWorld World;
 bool
 keyboard_input::recall_bindings() {
 
+    cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
     // build helper translation tables
     std::unordered_map<std::string, user_command> nametocommandmap;
     std::size_t commandid = 0;
@@ -51,11 +56,7 @@ keyboard_input::recall_bindings() {
         { "num_0", GLFW_KEY_KP_0 }, { "num_.", GLFW_KEY_KP_DECIMAL }
     };
 
-    cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
-    if( false == bindingparser.ok() ) {
-        return false;
-    }
-
+    // NOTE: to simplify things we expect one entry per line, and whole entry in one line
     while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
 
         std::string bindingentry;
@@ -80,6 +81,7 @@ keyboard_input::recall_bindings() {
 
                          if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
                     else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
+                    else if( bindingkeyname == "none" )  { binding = -1; }
                     else {
                         // regular key, convert it to glfw key code
                         auto const keylookup = nametokeymap.find( bindingkeyname );
@@ -158,7 +160,7 @@ keyboard_input::key( int const Key, int const Action ) {
     // NOTE: basic keyboard controls don't have any parameters
     // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
     // TODO: pass correct entity id once the missing systems are in place
-    m_relay.post( lookup->second, 0, 0, Action, command_hint::none, 0 );
+    m_relay.post( lookup->second, 0, 0, Action, 0 );
 
     return true;
 }
@@ -249,18 +251,34 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_R },
         // linebreakertoggle
         { GLFW_KEY_M },
+        // linebreakeropen
+        { -1 },
+        // linebreakerclose
+        { -1 },
         // convertertoggle
         { GLFW_KEY_X },
+        // converterenable,
+        { -1 },
+        // converterdisable,
+        { -1 },
         // convertertogglelocal
         { GLFW_KEY_X | keymodifier::shift },
         // converteroverloadrelayreset
         { GLFW_KEY_N | keymodifier::control },
         // compressortoggle
         { GLFW_KEY_C },
+        // compressorenable
+        { -1 },
+        // compressordisable
+        { -1 },
         // compressortoggleloal
         { GLFW_KEY_C | keymodifier::shift },
         // motoroverloadrelaythresholdtoggle
         { GLFW_KEY_F },
+        // motoroverloadrelaythresholdsetlow
+        { -1 },
+        // motoroverloadrelaythresholdsethigh
+        { -1 },
         // motoroverloadrelayreset
         { GLFW_KEY_N },
         // notchingrelaytoggle
@@ -271,6 +289,12 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
+        // brakeactingspeedsetcargo
+        { -1 },
+        // brakeactingspeedsetpassenger
+        { -1 },
+        // brakeactingspeedsetrapid
+        { -1 },
         // brakeloadcompensationincrease
         { GLFW_KEY_H | keymodifier::shift | keymodifier::control },
         // brakeloadcompensationdecrease
@@ -323,11 +347,6 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_INSERT },
         // carcouplingdisconnect
         { GLFW_KEY_DELETE },
-/*
-const int k_ProgramQuit = 46;
-// const int k_ProgramPause= 47;
-const int k_ProgramHelp = 48;
-*/
         // doortoggleleft
         { GLFW_KEY_COMMA },
         // doortoggleright
@@ -344,23 +363,44 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_P },
         // pantographtogglerear
         { GLFW_KEY_O },
+        // pantographraisefront
+        { -1 },
+        // pantographraiserear
+        { -1 },
+        // pantographlowerfront
+        { -1 },
+        // pantographlowerrear
+        { -1 },
         // pantographlowerall
         { GLFW_KEY_P | keymodifier::control },
         // heatingtoggle
         { GLFW_KEY_H },
-/*
-// const int k_FreeFlyMode= 59;
-*/
+        // heatingenable
+        { -1 },
+        // heatingdisable
+        { -1 },
         // lightspresetactivatenext
         { GLFW_KEY_T | keymodifier::shift },
         // lightspresetactivateprevious
         { GLFW_KEY_T },
         // headlighttoggleleft
         { GLFW_KEY_Y },
+        // headlightenableleft
+        { -1 },
+        // headlightdisableleft
+        { -1 },
         // headlighttoggleright
         { GLFW_KEY_I },
+        // headlightenableright
+        { -1 },
+        // headlightdisableright
+        { -1 },
         // headlighttoggleupper
         { GLFW_KEY_U },
+        // headlightenableupper
+        { -1 },
+        // headlightdisableupper
+        { -1 },
         // redmarkertoggleleft
         { GLFW_KEY_Y | keymodifier::shift },
         // redmarkertoggleright
@@ -381,19 +421,34 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_E },
         // headlightsdimtoggle
         { GLFW_KEY_L | keymodifier::control },
+        // headlightsdimenable
+        { -1 },
+        // headlightsdimdisable
+        { -1 },
         // motorconnectorsopen
         { GLFW_KEY_L },
+        // motorconnectorsclose
+        { -1 },
         // motordisconnect
         { GLFW_KEY_E | keymodifier::control },
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
+        // interiorlightenable
+        { -1 },
+        // interiorlightdisable
+        { -1 },
         // interiorlightdimtoggle
         { GLFW_KEY_APOSTROPHE | keymodifier::control },
+        // interiorlightdimenable
+        { -1 },
+        // interiorlightdimdisable
+        { -1 },
         // instrumentlighttoggle
         { GLFW_KEY_SEMICOLON },
-/*
-const int k_Active = 71;
-*/
+        // instrumentlightenable
+        { -1 },
+        // instrumentlightdisable,
+        { -1 },
         // "generictoggle0"
         { GLFW_KEY_0 },
         // "generictoggle1"
@@ -415,10 +470,11 @@ const int k_Active = 71;
         // "generictoggle9"
         { GLFW_KEY_9 },
         // "batterytoggle"
-        { GLFW_KEY_J }
-/*
-const int k_WalkMode = 73;
-*/
+        { GLFW_KEY_J },
+        // batteryenable
+        { -1 },
+        // batterydisable
+        { -1 },
     };
 
     bind();
@@ -489,7 +545,6 @@ keyboard_input::poll() {
             reinterpret_cast<std::uint64_t const &>( movexparam ),
             reinterpret_cast<std::uint64_t const &>( movezparam ),
             GLFW_PRESS,
-            command_hint::none,
             0 );
     }
 
@@ -512,7 +567,6 @@ keyboard_input::poll() {
             reinterpret_cast<std::uint64_t const &>( moveyparam ),
             0,
             GLFW_PRESS,
-            command_hint::none,
             0 );
     }
 

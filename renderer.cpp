@@ -435,6 +435,9 @@ opengl_renderer::Render() {
         + " constant attn: " + to_string( lightconstant, 2 )
         + " linear attn: " + to_string( lightlinear, 3 );
 */
+/*
+    m_debugstatstext = "sun hour angle: " + to_string( -World.Environment.m_sun.getHourAngle(), 6 );
+*/
     ++m_framestamp;
 
     return true; // for now always succeed

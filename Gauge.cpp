@@ -235,6 +235,11 @@ double TGauge::GetValue() const {
     return ( fValue - fOffset ) / fScale;
 }
 
+double TGauge::GetDesiredValue() const {
+    // we feed value in range 0-1 so we should be getting it reported in the same range
+    return ( fDesiredValue - fOffset ) / fScale;
+}
+
 void TGauge::Update() {
 
     if( fValue != fDesiredValue ) {
