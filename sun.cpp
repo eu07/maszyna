@@ -50,7 +50,7 @@ void
 cSun::update() {
 
     move();
-    glm::vec3 position( 0.f, 0.f, -2000.f * Global.fDistanceFactor );
+    glm::vec3 position( 0.f, 0.f, -1.f );
     position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
     position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );
 
@@ -72,11 +72,17 @@ cSun::render() {
 	::gluSphere( sunsphere, m_body.distance * 9.359157, 12, 12 );
 	::glPopMatrix();
 }
-
+/*
+glm::vec3
+cSun::getPosition() {
+    
+    return m_position * 1000.f * Global.fDistanceFactor;
+}
+*/
 glm::vec3
 cSun::getDirection() {
 
-	return glm::normalize( m_position );
+	return m_position;
 }
 
 float
@@ -84,7 +90,14 @@ cSun::getAngle() {
     
     return (float)m_body.elevref;
 }
-	
+
+// return current hour angle
+double
+cSun::getHourAngle() const {
+
+    return m_body.hrang;
+}
+
 float cSun::getIntensity() {
 
 	irradiance();
@@ -128,10 +141,11 @@ void cSun::move() {
     if( m_observer.second >= 0 ) { localtime.wSecond = m_observer.second; }
 
     double ut = localtime.wHour
-        + localtime.wMinute / 60.0 // too low resolution, noticeable skips
-        + localtime.wSecond / 3600.0; // good enough in normal circumstances
+        + localtime.wMinute / 60.0; // too low resolution, noticeable skips
+    // NOTE: finer resolution disabled to reduce shadow crawl in current implementation
     /*
-    + localtime.wMilliseconds / 3600000.0; // for really smooth movement
+        + localtime.wSecond / 3600.0 // good enough in normal circumstances
+        + localtime.wMilliseconds / 3600000.0; // for really smooth movement
     */
     double daynumber = 367 * localtime.wYear
         - 7 * ( localtime.wYear + ( localtime.wMonth + 9 ) / 12 ) / 4
