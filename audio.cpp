@@ -29,6 +29,8 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 	std::string file = Filename;
 	std::replace(file.begin(), file.end(), '\\', '/');
 
+	WriteLog("sound: loading file: " + file);
+
 	SNDFILE *sf = sf_open(file.c_str(), SFM_READ, &si);
 
 	if (sf == nullptr)
