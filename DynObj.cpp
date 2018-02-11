@@ -4574,7 +4574,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.engine.owner( this );
 
                     auto const amplitudedivisor = static_cast<float>( (
-                        MoverParameters->EngineType == DieselEngine ? MoverParameters->nmax * 60 + MoverParameters->Power :
+                        MoverParameters->EngineType == DieselEngine ? 1 :
                         MoverParameters->EngineType == DieselElectric ? MoverParameters->Power * 3 :
                         MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) );
                     m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
