@@ -167,6 +167,9 @@ state_manager::deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad
     if( token != "endatmo" ) {
         // optional overcast parameter
         Global.Overcast = clamp( std::stof( token ), 0.f, 2.f );
+        // overcast drives weather so do a calculation here
+        // NOTE: ugly, clean it up when we're done with world refactoring
+        Global.pWorld->compute_weather();
     }
     while( ( false == token.empty() )
         && ( token != "endatmo" ) ) {

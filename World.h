@@ -110,6 +110,8 @@ TWorld();
     void ToggleDaylight();
     // calculates current season of the year based on set simulation date
     void compute_season( int const Yearday ) const;
+    // calculates current weather
+    void compute_weather() const;
 
 // members
 

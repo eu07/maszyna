@@ -403,8 +403,16 @@ keyboard_input::default_bindings() {
         { -1 },
         // redmarkertoggleleft
         { GLFW_KEY_Y | keymodifier::shift },
+        // redmarkerenableleft
+        { -1 },
+        // redmarkerdisableleft
+        { -1 },
         // redmarkertoggleright
         { GLFW_KEY_I | keymodifier::shift },
+        // redmarkerenableright
+        { -1 },
+        // redmarkerdisableright
+        { -1 },
         // headlighttogglerearleft
         { GLFW_KEY_Y | keymodifier::control },
         // headlighttogglerearright

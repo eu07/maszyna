@@ -250,7 +250,11 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::headlightenableupper, &TTrain::OnCommand_headlightenableupper },
     { user_command::headlightdisableupper, &TTrain::OnCommand_headlightdisableupper },
     { user_command::redmarkertoggleleft, &TTrain::OnCommand_redmarkertoggleleft },
+    { user_command::redmarkerenableleft, &TTrain::OnCommand_redmarkerenableleft },
+    { user_command::redmarkerdisableleft, &TTrain::OnCommand_redmarkerdisableleft },
     { user_command::redmarkertoggleright, &TTrain::OnCommand_redmarkertoggleright },
+    { user_command::redmarkerenableright, &TTrain::OnCommand_redmarkerenableright },
+    { user_command::redmarkerdisableright, &TTrain::OnCommand_redmarkerdisableright },
     { user_command::headlighttogglerearleft, &TTrain::OnCommand_headlighttogglerearleft },
     { user_command::headlighttogglerearright, &TTrain::OnCommand_headlighttogglerearright },
     { user_command::headlighttogglerearupper, &TTrain::OnCommand_headlighttogglerearupper },
@@ -1791,7 +1795,7 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
 
 void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
         // press or hold...
         if( Train->m_linebreakerstate == 0 ) {
             // ...to close the circuit
@@ -1803,24 +1807,28 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             OnCommand_linebreakeropen( Train, Command );
         }
     }
-    else {
+    else if( Command.action == GLFW_RELEASE ) {
         // release...
-        if( Train->m_linebreakerstate <= 0 ) {
-            // ...after opening circuit, or holding for too short time to close it
-            OnCommand_linebreakeropen( Train, Command );
-        }
-        else {
-            // ...after closing the circuit
-            // NOTE: bit of a dirty shortcut here
-            OnCommand_linebreakerclose( Train, Command );
+        if( ( Train->ggMainOnButton.SubModel != nullptr )
+         || ( Train->mvControlled->TrainType == dt_EZT ) ) {
+            // only impulse switches react to release events; since we don't have switch type definition for the line breaker,
+            // we detect it from presence of relevant button, or presume such switch arrangement for EMUs
+            if( Train->m_linebreakerstate == 0 ) {
+                // ...after opening circuit, or holding for too short time to close it
+                OnCommand_linebreakeropen( Train, Command );
+            }
+            else {
+                // ...after closing the circuit
+                // NOTE: bit of a dirty shortcut here
+                OnCommand_linebreakerclose( Train, Command );
+            }
         }
     }
 }
 
 void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
-        // press or hold...
+    if( Command.action == GLFW_PRESS ) {
         // visual feedback
         if( Train->ggMainOffButton.SubModel != nullptr ) {
             // two separate switches to close and break the circuit
@@ -1838,6 +1846,10 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
                 Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
             }
         }
+        else {
+            // fallback for cabs with no submodel
+            Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
         // play sound immediately when the switch is hit, not after release
         Train->fMainRelayTimer = 0.0f;
 
@@ -1851,11 +1863,11 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
         }
 
         if( true == Train->mvControlled->MainSwitch( false ) ) {
-            Train->m_linebreakerstate = -1;
+            Train->m_linebreakerstate = 0;
         }
     }
-    else {
-        // release...
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
         // we don't exactly know which of the two buttons was used, so reset both
         // for setup with two separate swiches
         if( Train->ggMainOnButton.SubModel != nullptr ) {
@@ -1866,22 +1878,14 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
         }
         // and the two-state switch too, for good measure
         if( Train->ggMainButton.SubModel != nullptr ) {
-            // visual feedback
             Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
-        if( Train->m_linebreakerstate < 0 ) {
-            // finalize state change of the line breaker
-            Train->m_linebreakerstate = 0;
-        }
-        // on button release reset the closing timer
-        Train->fMainRelayTimer = 0.0f;
     }
 }
 
 void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        // press...
         // visual feedback
         if( Train->ggMainOnButton.SubModel != nullptr ) {
             // two separate switches to close and break the circuit
@@ -1891,10 +1895,14 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
             // single two-state switch
             Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
+        else {
+            // fallback for cabs with no submodel
+            Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+
         // the actual closing of the line breaker is handled in the train update routine
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // release...
         // visual feedback
         if( Train->ggMainOnButton.SubModel != nullptr ) {
             // setup with two separate switches
@@ -1905,7 +1913,6 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
         // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
         if( Train->mvControlled->TrainType == dt_EZT ) {
             if( Train->ggMainButton.SubModel != nullptr ) {
-                // visual feedback
                 Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
             }
         }
@@ -1913,17 +1920,17 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
         if( Train->m_linebreakerstate == 1 ) { return; } // already in the desired state
 
         if( Train->m_linebreakerstate > 1 ) {
-            // we don't need to start the diesel twice, but the other types still need to be launched
+            // we don't need to start the diesel twice, but the other types (with impulse switch setup) still need to be launched
             if( ( Train->mvControlled->EngineType != DieselEngine )
              && ( Train->mvControlled->EngineType != DieselElectric ) ) {
                 if( Train->mvControlled->MainSwitch( true ) ) {
                     // side-effects
                     Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
                     Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
+                    // finalize state change of the line breaker
+                    Train->m_linebreakerstate = 1;
                 }
             }
-            // finalize state change of the line breaker
-            Train->m_linebreakerstate = 1;
         }
         // on button release reset the closing timer
         Train->fMainRelayTimer = 0.0f;
@@ -2606,90 +2613,160 @@ void TTrain::OnCommand_headlightdisableupper( TTrain *Train, command_data const 
 
 void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) {
+            // turn on
+            OnCommand_redmarkerenableleft( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_redmarkerdisableleft( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerenableleft( TTrain *Train, command_data const &Command ) {
+
     if( Train->mvOccupied->LightsPosNo > 0 ) {
         // lights are controlled by preset selector
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            side::front :
-            side::rear );
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) != 0 ) { return; } // already enabled
+
+        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+        // visual feedback
+        if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+            Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+            // this is crude, but for now will do
+            Train->ggLeftLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable the headlight
+            Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_left;
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerdisableleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) {
-            // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
-            // visual feedback
-            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
-                Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
-            else {
-                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
-                // this is crude, but for now will do
-                Train->ggLeftLightButton.UpdateValue( -1.0, Train->dsbSwitch );
-                // if the light is controlled by 3-way switch, disable the headlight
-                Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_left;
-            }
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) { return; } // already disabled
+
+        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+        // visual feedback
+        if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+            Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
         else {
-            //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
-            // visual feedback
-            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
-                Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
-            else {
-                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
-                // this is crude, but for now will do
-                Train->ggLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
+            // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+            // this is crude, but for now will do
+            Train->ggLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
 
 void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) {
+            // turn on
+            OnCommand_redmarkerenableright( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_redmarkerdisableright( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerenableright( TTrain *Train, command_data const &Command ) {
+
     if( Train->mvOccupied->LightsPosNo > 0 ) {
         // lights are controlled by preset selector
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            side::front :
-            side::rear );
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) != 0 ) { return; } // already enabled
+
+        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+        // visual feedback
+        if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+            Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+            // this is crude, but for now will do
+            Train->ggRightLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable the headlight
+            Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_right;
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerdisableright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) {
-            // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
-            // visual feedback
-            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
-                Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
-            else {
-                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
-                // this is crude, but for now will do
-                Train->ggRightLightButton.UpdateValue( -1.0, Train->dsbSwitch );
-                // if the light is controlled by 3-way switch, disable the headlight
-                Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_right;
-            }
+        int const vehicleside =
+            ( Train->mvOccupied->ActiveCab == 1 ?
+                side::front :
+                side::rear );
+
+        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) { return; } // already disabled
+
+        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+        // visual feedback
+        if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+            Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
         else {
-            //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
-            // visual feedback
-            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
-                Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
-            else {
-                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
-                // this is crude, but for now will do
-                Train->ggRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
+            // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+            // this is crude, but for now will do
+            Train->ggRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
@@ -3697,6 +3774,7 @@ bool TTrain::Update( double const Deltatime )
             m_linebreakerstate = 0;
         }
     }
+
     if( ( ggMainButton.GetDesiredValue() > 0.95 )
      || ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) {
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
@@ -3708,23 +3786,6 @@ bool TTrain::Update( double const Deltatime )
             // TODO: consider whether it makes sense for diesel engines and such
             fMainRelayTimer += Deltatime;
         }
-        if( m_linebreakerstate < 1 ) {
-
-            if( fMainRelayTimer > mvControlled->InitialCtrlDelay ) {
-                // wlaczanie WSa z opoznieniem
-                m_linebreakerstate = 2;
-                // for diesels, we complete the engine start here
-                // TODO: consider arranging a better way to start the diesel engines
-                if( ( mvControlled->EngineType == DieselEngine )
-                 || ( mvControlled->EngineType == DieselElectric ) ) {
-                    if( mvControlled->MainSwitch( true ) ) {
-                        // side-effects
-                        mvControlled->ConverterSwitch( ( ggConverterButton.GetDesiredValue() > 0.95 ) || ( mvControlled->ConverterStart == start::automatic ) );
-                        mvControlled->CompressorSwitch( ggCompressorButton.GetDesiredValue() > 0.95 );
-                    }
-                }
-            }
-        }
     }
     else {
         // button isn't down, reset the timer
@@ -3733,6 +3794,28 @@ bool TTrain::Update( double const Deltatime )
     if( ggMainOffButton.GetDesiredValue() > 0.95 ) {
         // if the button disconnecting the line breaker is down prevent the timer from accumulating
         fMainRelayTimer = 0.0f;
+    }
+    if( m_linebreakerstate == 0 ) {
+        if( fMainRelayTimer > mvControlled->InitialCtrlDelay ) {
+            // wlaczanie WSa z opoznieniem
+            // mark the line breaker as ready to close; for electric vehicles with impulse switch the setup is completed on button release
+            m_linebreakerstate = 2;
+        }
+    }
+    if( m_linebreakerstate == 2 ) {
+        // for diesels and/or vehicles with toggle switch setup we complete the engine start here
+        // TBD, TODO: arrange a better way to start the diesel engines
+        if( ( ggMainOffButton.SubModel == nullptr )
+         || ( ( mvControlled->EngineType == DieselEngine )
+           || ( mvControlled->EngineType == DieselElectric ) ) ) {
+            if( mvControlled->MainSwitch( true ) ) {
+                // side-effects
+                mvControlled->ConverterSwitch( ( ggConverterButton.GetDesiredValue() > 0.95 ) || ( mvControlled->ConverterStart == start::automatic ) );
+                mvControlled->CompressorSwitch( ggCompressorButton.GetDesiredValue() > 0.95 );
+                // finalize state change of the line breaker
+                m_linebreakerstate = 1;
+            }
+        }
     }
 
     // check for received user commands

@@ -1317,6 +1317,11 @@ TWorld::Update_UI() {
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
                 uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorPower > 1 ) ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->CompressorGovernorLock ? "!" : "." );
+
+                auto const train { Global.pWorld->train() };
+                if( ( train != nullptr ) && ( train->Dynamic() == vehicle ) ) {
+                    uitextline2 += " R: " + std::to_string( train->RadioChannel() );
+                }
 /*
                 uitextline2 +=
                     " AnlgB: " + to_string( tmp->MoverParameters->AnPos, 1 )
@@ -2124,9 +2129,21 @@ TWorld::compute_season( int const Yearday ) const {
                 return Left.first < Right; } );
     
     Global.Season = lookup->second + ":";
+    // season can affect the weather so if it changes, re-calculate weather as well
+    compute_weather();
 }
 
+// calculates current weather
+void
+TWorld::compute_weather() const {
 
+    Global.Weather = (
+        Global.Overcast < 0.25 ? "clear:" :
+        Global.Overcast < 1.0 ? "cloudy:" :
+        ( Global.Season != "winter:" ?
+            "rain:" :
+            "snow:" ) );
+}
 
 void
 world_environment::init() {

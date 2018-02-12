@@ -240,7 +240,11 @@ class TTrain
     static void OnCommand_headlightenableupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightdisableupper( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenableleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisableleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenableright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisableright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
@@ -284,7 +288,7 @@ class TTrain
     TMoverParameters *mvSecond; // drugi człon (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird; // trzeci człon (SN61)
     // helper variable, to prevent immediate switch between closing and opening line breaker circuit
-    int m_linebreakerstate { 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
+    int m_linebreakerstate { 0 }; // 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
     static const commandhandler_map m_commandhandlers;
     control_mapper m_controlmapper;
 
@@ -577,7 +581,7 @@ private:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
-    int RadioChannel() { return iRadioChannel; };
+    int RadioChannel() const { return iRadioChannel; };
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );
     inline TDynamicObject *Dynamic() { return DynamicObject; };

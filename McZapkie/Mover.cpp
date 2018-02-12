@@ -5282,34 +5282,46 @@ bool TMoverParameters::AutoRelayCheck(void)
                      && ( MainCtrlPos > 0 )
                      && ( MainCtrlPos != MainCtrlPosNo )
                      && ( FastSerialCircuit == 1 ) ) {
-
+                        // szybkie wchodzenie na bezoporowa (303E)
+                        // MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         ++MainCtrlActualPos;
-                        //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
-                        //                 szybkie wchodzenie na bezoporowa (303E)
-                        OK = true;
-                        SetFlag(SoundFlag, sound::parallel | sound::loud);
+                        if( MainCtrlPos - MainCtrlActualPos == 1 ) {
+                            // HACK: ensure we play only single sound of basic relays for entire trasition; return false
+                            // for all but last step despite configuration change, to prevent playback of the basic relay sound
+                            // TBD, TODO: move the basic sound event here and enable it with call parameter
+                            OK = true;
+                        }
+                        if( RList[ MainCtrlActualPos ].R == 0 ) {
+                            SetFlag( SoundFlag, sound::parallel | sound::loud );
+                            OK = true;
+                        }
                     }
                     else if ((LastRelayTime > CtrlDelay) && (ARFASI))
                     {
                         // WriteLog("LRT = " + FloatToStr(LastRelayTime) + ", " +
                         // FloatToStr(CtrlDelay));
-                        if ((TrainType == dt_ET22) && (MainCtrlPos > 1) &&
-                            ((RList[MainCtrlActualPos].Bn < RList[MainCtrlActualPos + 1].Bn) ||
-                             (DelayCtrlFlag))) // et22 z walem grupowym
-                            if (!DelayCtrlFlag) // najpierw przejscie
+                        if( ( TrainType == dt_ET22 )
+                         && ( MainCtrlPos > 1 )
+                         && ( ( RList[ MainCtrlActualPos ].Bn < RList[ MainCtrlActualPos + 1 ].Bn )
+                           || ( DelayCtrlFlag ) ) ) {
+                           // et22 z walem grupowym
+                            if( !DelayCtrlFlag ) // najpierw przejscie
                             {
                                 ++MainCtrlActualPos;
                                 DelayCtrlFlag = true; // tryb przejscia
                                 OK = true;
                             }
-                            else if (LastRelayTime > 4 * CtrlDelay) // przejscie
+                            else if( LastRelayTime > 4 * CtrlDelay ) // przejscie
                             {
 
                                 DelayCtrlFlag = false;
                                 OK = true;
                             }
+/*
                             else
                                 ;
+*/
+                        }
                         else // nie ET22 z wałem grupowym
                         {
                             ++MainCtrlActualPos;
@@ -5317,30 +5329,33 @@ bool TMoverParameters::AutoRelayCheck(void)
                         }
                         //---------
                         // hunter-111211: poprawki
-                        if (MainCtrlActualPos > 0)
-                            if ((RList[MainCtrlActualPos].R == 0) &&
-                                (!(MainCtrlActualPos == MainCtrlPosNo))) // wejscie na bezoporowa
-                            {
-                                SetFlag(SoundFlag, sound::parallel | sound::loud);
+                        if( MainCtrlActualPos > 0 ) {
+                            if( ( RList[ MainCtrlActualPos ].R == 0 )
+                             && ( MainCtrlActualPos != MainCtrlPosNo ) ) {
+                                // wejscie na bezoporowa
+                                SetFlag( SoundFlag, sound::parallel | sound::loud );
                             }
-                            else if ((RList[MainCtrlActualPos].R > 0) &&
-                                     (RList[MainCtrlActualPos - 1].R ==
-                                      0)) // wejscie na drugi uklad
-                            {
-                                SetFlag(SoundFlag, sound::parallel);
+                            else if( ( RList[ MainCtrlActualPos ].R > 0 )
+                                  && ( RList[ MainCtrlActualPos - 1 ].R == 0 ) ) {
+                                // wejscie na drugi uklad
+                                SetFlag( SoundFlag, sound::parallel );
                             }
+                        }
                     }
                 }
                 else if (RList[MainCtrlActualPos].Relay > MainCtrlPos)
                 {
-                    if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
-                        (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
-                    {
+                    if( ( RList[ MainCtrlPos ].R == 0 )
+                     && ( MainCtrlPos > 0 )
+                     && ( !( MainCtrlPos == MainCtrlPosNo ) )
+                     && ( FastSerialCircuit == 1 ) ) {
+                        // szybkie wchodzenie na bezoporowa (303E)
+                        // MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         --MainCtrlActualPos;
-                        //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
-                        //                 szybkie wchodzenie na bezoporowa (303E)
                         OK = true;
-                        SetFlag(SoundFlag, sound::parallel);
+                        if( RList[ MainCtrlActualPos ].R == 0 ) {
+                            SetFlag( SoundFlag, sound::parallel );
+                        }
                     }
                     else if (LastRelayTime > CtrlDownDelay)
                     {
