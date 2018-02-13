@@ -16,8 +16,6 @@ public:
     void init();
     void update();
 	void render();
-    // returns location of the sun in the 3d scene
-    glm::vec3 getPosition() { return m_position; }
 	// returns vector pointing at the sun
 	glm::vec3 getDirection();
 	// returns current elevation above horizon

@@ -3805,7 +3805,7 @@ bool TTrain::Update( double const Deltatime )
     if( m_linebreakerstate == 2 ) {
         // for diesels and/or vehicles with toggle switch setup we complete the engine start here
         // TBD, TODO: arrange a better way to start the diesel engines
-        if( ( ggMainOffButton.SubModel == nullptr )
+        if( ( ggMainOnButton.SubModel == nullptr )
          || ( ( mvControlled->EngineType == DieselEngine )
            || ( mvControlled->EngineType == DieselElectric ) ) ) {
             if( mvControlled->MainSwitch( true ) ) {
@@ -4277,13 +4277,13 @@ bool TTrain::Update( double const Deltatime )
             }
 
             btLampkaWylSzybki.Turn(
-                ( ( (m_linebreakerstate > 0)
+                ( ( (m_linebreakerstate == 2)
                  || (true == mvControlled->Mains) ) ?
                     true :
                     false ) );
             // NOTE: 'off' variant uses the same test, but opposite resulting states
             btLampkaWylSzybkiOff.Turn(
-                ( ( ( m_linebreakerstate > 0 )
+                ( ( ( m_linebreakerstate == 2 )
                  || ( true == mvControlled->Mains ) ) ?
                     false :
                     true ) );

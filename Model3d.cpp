@@ -1223,7 +1223,7 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 	{
 		if (FileExists(name + ".t3d"))
 		{
-			LoadFromTextFile(FileName, dynamic); // wczytanie tekstowego
+			LoadFromTextFile(name + ".t3d", dynamic); // wczytanie tekstowego
             if( !dynamic ) {
                 // pojazdy dopiero po ustawieniu animacji
                 Init(); // generowanie siatek i zapis E3D

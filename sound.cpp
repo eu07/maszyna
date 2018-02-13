@@ -324,7 +324,13 @@ sound_source::play( int const Flags ) {
     if( m_pitchvariation == 0.f ) {
         m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
-
+/*
+    if( ( ( m_flags & sound_flags::exclusive ) != 0 )
+     && ( sound( sound_id::end ).playing > 0 ) ) {
+        // request termination of the optional ending bookend for single instance sounds
+        m_stopend = true;
+    }
+*/
     if( sound( sound_id::main ).buffer != null_handle ) {
         // basic variant: single main sound, with optional bookends
         play_basic();
@@ -352,8 +358,8 @@ sound_source::play_basic() {
     }
     else {
         // for single part non-looping samples we allow spawning multiple instances, if not prevented by set flags
-        if( ( sound( sound_id::begin ).buffer == null_handle )
-         && ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) == 0 ) ) {
+        if( ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) == 0 )
+         && ( sound( sound_id::begin ).buffer == null_handle ) ) {
             insert( sound_id::main );
         }
     }
@@ -448,7 +454,7 @@ sound_source::stop( bool const Skipend ) {
     if( ( false == Skipend )
      && ( sound( sound_id::end ).buffer != null_handle )
      && ( sound( sound_id::end ).buffer != sound( sound_id::main ).buffer ) // end == main can happen in malformed legacy cases
-     && ( sound( sound_id::end ).playing == 0 ) ) {
+/*   && ( sound( sound_id::end ).playing == 0 ) */ ) {
         // spawn potentially defined sound end sample, if the emitter is currently active
         insert( sound_id::end );
     }
@@ -485,7 +491,18 @@ sound_source::update_basic( audio::openal_source &Source ) {
             }
             return;
         }
-
+/*
+        if( ( true == m_stopend )
+         && ( Source.sounds[ Source.sound_index ] == sound_id::end ) ) {
+            // kill the sound if it's the bookend sample and stopping it was requested
+            Source.stop();
+            update_counter( sound_id::end, -1 );
+            if( sound( sound_id::end ).playing == 0 ) {
+                m_stopend = false;
+            }
+            return;
+        }
+*/
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main
@@ -562,7 +579,18 @@ sound_source::update_combined( audio::openal_source &Source ) {
             }
             return;
         }
-
+/*
+        if( ( true == m_stopend )
+         && ( Source.sounds[ Source.sound_index ] == sound_id::end ) ) {
+            // kill the sound if it's the bookend sample and stopping it was requested
+            Source.stop();
+            update_counter( sound_id::end, -1 );
+            if( sound( sound_id::end ).playing == 0 ) {
+                m_stopend = false;
+            }
+            return;
+        }
+*/
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main

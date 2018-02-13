@@ -1106,9 +1106,10 @@ void TDynamicObject::ABuCheckMyTrack()
     // do jednej tablicy. Wykonuje sie tylko raz - po to 'ABuChecked'
     TTrack *OldTrack = MyTrack;
     TTrack *NewTrack = Axle0.GetTrack();
-    if ((NewTrack != OldTrack) && OldTrack)
-    {
-        OldTrack->RemoveDynamicObject(this);
+    if( NewTrack != OldTrack ) {
+        if( OldTrack ) {
+            OldTrack->RemoveDynamicObject( this );
+        }
         NewTrack->AddDynamicObject(this);
     }
     iAxleFirst = 0; // pojazd powiązany z przednią osią - Axle0

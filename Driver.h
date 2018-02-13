@@ -291,6 +291,7 @@ private:
     double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
     double WaitingTime = 0.0; // zliczany czas oczekiwania do samoistnego ruszenia
     double WaitingExpireTime = 31.0; // tyle ma czekać, zanim się ruszy // maksymlany czas oczekiwania do samoistnego ruszenia
+    double IdleTime {}; // keeps track of time spent at a stop
 
   private: //---//---//---//---// koniec zmiennych, poniżej metody //---//---//---//---//
     void SetDriverPsyche();

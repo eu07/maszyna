@@ -305,7 +305,7 @@ void CSkyDome::RebuildColors() {
         auto const sunbasedphase = clamp( (1.0f / 15.0f) * ( degreesabovehorizon - 10.0f ), 0.0f, 1.0f );
         // correction is applied in linear manner from the bottom, becomes fully in effect for vertices with y = 0.50
         auto const heightbasedphase = clamp( vertex.y * 2.0f, 0.0f, 1.0f );
-        // this height-based factor is reduced the farther the sky is up in the sky
+        // this height-based factor is reduced the farther the sun is up in the sky
         float const shiftfactor = clamp( interpolate(heightbasedphase, sunbasedphase, sunbasedphase), 0.0f, 1.0f );
         // h = 210 makes for 'typical' sky tone
         shiftedcolor = glm::vec3( 210.0f, colorconverter.y, colorconverter.z );

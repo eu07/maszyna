@@ -2974,10 +2974,7 @@ bool TMoverParameters::BrakeDelaySwitch(int BDS)
     }
     else
         rBDS = false;
-    if( true == rBDS ) {
-        // if setting was changed emit the sound of pneumatic relay
-        SetFlag( SoundFlag, sound::pneumatic );
-    }
+
     return rBDS;
 }
 
@@ -8128,7 +8125,10 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     {
         WriteLog( "Ready to depart" );
         CompressedVolume = VeselVolume * MinCompressor * ( 9.8 ) / 10.0;
-        ScndPipePress = CompressedVolume / VeselVolume;
+        ScndPipePress = (
+            VeselVolume > 0.0 ?
+                CompressedVolume / VeselVolume :
+                0.0 );
         PipePress = CntrlPipePress;
         BrakePress = 0.0;
         LocalBrakePos = 0;
@@ -8633,8 +8633,6 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         if( true == Hamulec->SetBDF( brakesetting ) ) {
             BrakeDelayFlag = brakesetting;
             OK = true;
-            // if setting was changed emit the sound of pneumatic relay
-            SetFlag( SoundFlag, sound::pneumatic );
         }
         else {
             OK = false;

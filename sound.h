@@ -203,6 +203,9 @@ private:
     sound_properties m_properties; // current properties of the emitted sounds
     float m_pitchvariation {}; // emitter-specific shift in base pitch
     bool m_stop { false }; // indicates active sample instances should be terminated
+/*
+    bool m_stopend { false }; // indicates active instances of optional ending sound should be terminated
+*/
     bool m_playbeginning { true }; // indicates started sounds should be preceeded by opening bookend if there's one
     std::array<sound_data, 3> m_sounds { {} }; // basic sounds emitted by the source, main and optional bookends
     std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range

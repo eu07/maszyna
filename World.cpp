@@ -2170,7 +2170,7 @@ world_environment::update() {
     if( moonlightlevel > sunlightlevel ) {
         // rare situations when the moon is brighter than the sun, typically at night
         Global.SunAngle = m_moon.getAngle();
-        Global.DayLight.position = m_moon.getPosition();
+        Global.DayLight.position = m_moon.getDirection();
         Global.DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
         // if the moon is up, it overrides the twilight

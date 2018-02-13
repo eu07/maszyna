@@ -820,6 +820,11 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
         }
     }
     else {
+        if( vehicle->MyTrack != nullptr ) {
+            // rare failure case where vehicle with length of 0 is added to the track,
+            // treated as error code and consequently deleted, but still remains on the track
+            vehicle->MyTrack->RemoveDynamicObject( vehicle );
+        }
         delete vehicle;
         skip_until( Input, "enddynamic" );
         return nullptr;

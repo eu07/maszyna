@@ -1212,8 +1212,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else
                 { // zawalidrogi nie ma (albo pojazd jest samochodem), sprawdzić sygnał
-                    if (sSpeedTable[i].iFlags & spShuntSemaphor) // jeśli Tm - w zasadzie to sprawdzić
-                    // komendę!
+                    if (sSpeedTable[i].iFlags & spShuntSemaphor) // jeśli Tm - w zasadzie to sprawdzić komendę!
                     { // jeśli podana prędkość manewrowa
                         if ((OrderCurrentGet() & Obey_train) ? v == 0.0 : false)
                         { // jeśli tryb pociągowy a tarcze ma ShuntVelocity 0 0
@@ -3340,8 +3339,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 iDirectionOrder = -iDirection; // jak się podczepi, to jazda w przeciwną stronę
                 OrderNext(Change_direction);
             }
-            WaitingTime =
-                0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
+            WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
         else // if (NewValue2==0.0) //zerowy sprzęg
             if (NewValue1 >= 0.0) // jeśli ilość wagonów inna niż wszystkie
@@ -3358,8 +3356,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             else if (mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 1 : 0].CouplingFlag >
                      0) // z tyłu coś
                 OrderNext(Disconnect); // jak ciągnie, to tylko odczep (NewValue1) wagonów
-            WaitingTime =
-                0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
+            WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
         if (NewValue1 == -1.0)
         {
@@ -3495,6 +3492,13 @@ TController::UpdateSituation(double dt) {
     fActionTime += dt; // czas używany przy regulacji prędkości i zamykaniu drzwi
     LastReactionTime += dt;
     LastUpdatedTime += dt;
+    if( ( mvOccupied->Vel < 0.05 )
+     && ( ( OrderCurrentGet() & ( Obey_train | Shunt ) ) != 0 ) ) {
+        IdleTime += dt;
+    }
+    else {
+        IdleTime = 0.0;
+    }
 
     // log vehicle data
     if( ( WriteLogFlag )
@@ -3628,14 +3632,12 @@ TController::UpdateSituation(double dt) {
             }
         }
 
-        if (mvOccupied->Vel > 0.0) {
+        if( mvOccupied->Vel > 1.0 ) {
             // jeżeli jedzie
             if( iDrivigFlags & moveDoorOpened ) {
                 // jeśli drzwi otwarte
-                if( mvOccupied->Vel > 1.0 ) {
-                    // nie zamykać drzwi przy drganiach, bo zatrzymanie na W4 akceptuje niewielkie prędkości
-                    Doors( false );
-                }
+                // nie zamykać drzwi przy drganiach, bo zatrzymanie na W4 akceptuje niewielkie prędkości
+                Doors( false );
             }
 /*
             // NOTE: this section moved all cars to the edge of their respective roads
@@ -3650,40 +3652,60 @@ TController::UpdateSituation(double dt) {
                     mvOccupied->ChangeOffsetH(0.01 * mvOccupied->Vel *
                                               dt); // Ra: co to miało być, to nie wiem
 */
-            if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
-            {
-                if ((fOverhead2 >= 0.0) || iOverheadZero)
-                { // jeśli jazda bezprądowa albo z opuszczonym pantografem
+        }
+
+        if (mvControlling->EnginePowerSource.SourceType == CurrentCollector) {
+
+            if( mvOccupied->Vel > 0.05 ) {
+                // is moving
+                if( ( fOverhead2 >= 0.0 ) || iOverheadZero ) {
+                    // jeśli jazda bezprądowa albo z opuszczonym pantografem
                     while( DecSpeed( true ) ) { ; } // zerowanie napędu
                 }
-                if ((fOverhead2 > 0.0) || iOverheadDown)
-                { // jazda z opuszczonymi pantografami
-                    mvControlling->PantFront(false);
-                    mvControlling->PantRear(false);
+                if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
+                    // jazda z opuszczonymi pantografami
+                    mvControlling->PantFront( false );
+                    mvControlling->PantRear( false );
                 }
-                else
-                { // jeśli nie trzeba opuszczać pantografów
-                    if (iDirection >= 0) // jak jedzie w kierunku sprzęgu 0
-                        mvControlling->PantRear(true); // jazda na tylnym
-                    else
-                        mvControlling->PantFront(true);
+                else {
+                    // jeśli nie trzeba opuszczać pantografów
+                    // jazda na tylnym
+                    if( iDirection >= 0 ) {
+                        // jak jedzie w kierunku sprzęgu 0
+                        mvControlling->PantRear( true );
+                    }
+                    else {
+                        mvControlling->PantFront( true );
+                    }
                 }
-                if (mvOccupied->Vel > 10) // opuszczenie przedniego po rozpędzeniu się
-                {
-                    if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo >
-                        1) // o ile jest więcej niż jeden
-                        if (iDirection >= 0) // jak jedzie w kierunku sprzęgu 0
+                if( mvOccupied->Vel > 10 ) {
+                    // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
+                    if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                        if( iDirection >= 0 ) // jak jedzie w kierunku sprzęgu 0
                         { // poczekać na podniesienie tylnego
-                            if (mvControlling->PantRearVolt !=
-                                0.0) // czy jest napięcie zasilające na tylnym?
-                                mvControlling->PantFront(false); // opuszcza od sprzęgu 0
+                            if( mvControlling->PantRearVolt != 0.0 ) {
+                                // czy jest napięcie zasilające na tylnym?
+                                mvControlling->PantFront( false ); // opuszcza od sprzęgu 0
+                            }
                         }
-                        else
-                        { // poczekać na podniesienie przedniego
-                            if (mvControlling->PantFrontVolt !=
-                                0.0) // czy jest napięcie zasilające na przednim?
-                                mvControlling->PantRear(false); // opuszcza od sprzęgu 1
+                        else { // poczekać na podniesienie przedniego
+                            if( mvControlling->PantFrontVolt != 0.0 ) {
+                                // czy jest napięcie zasilające na przednim?
+                                mvControlling->PantRear( false ); // opuszcza od sprzęgu 1
+                            }
                         }
+                    }
+                }
+            }
+            else {
+                if( ( IdleTime > 45.0 )
+                    // NOTE: abs(stoptime) covers either at least 15 sec remaining for a scheduled stop, or 15+ secs spent at a basic stop
+                 && ( std::abs( fStopTime ) > 15.0 ) ) {
+                    // spending a longer at a stop, raise also front pantograph
+                    if( iDirection >= 0 ) // jak jedzie w kierunku sprzęgu 0
+                        mvControlling->PantFront( true );
+                    else
+                        mvControlling->PantRear( true );
                 }
             }
         }
@@ -4200,29 +4222,19 @@ TController::UpdateSituation(double dt) {
         }
         else
             SetDriverPsyche(); // Ra: było w PrepareEngine(), potrzebne tu?
-        // no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
-        // if
-        // ((VelSignal==0.0)&&(WaitingTime>WaitingExpireTime)&&(mvOccupied->RunningTrack.Velmax!=0.0))
-        if (OrderList[OrderPos] &
-            (Shunt | Obey_train | Connect)) // odjechać sam może tylko jeśli jest w trybie jazdy
-        { // automatyczne ruszanie po odstaniu albo spod SBL
-            if ((VelSignal == 0.0) && (WaitingTime > 0.0) &&
-                (mvOccupied->RunningTrack.Velmax != 0.0))
-            { // jeśli stoi, a upłynął czas oczekiwania i tor ma niezerową prędkość
-                /*
-                        if (WriteLogFlag)
-                        {
-                        append(AIlogFile);
-                        writeln(AILogFile,ElapsedTime:5:2,": ",Name," V=0 waiting time expired!
-                    (",WaitingTime:4:1,")");
-                        close(AILogFile);
-                        }
-                */
-                if ((OrderList[OrderPos] & (Obey_train | Shunt)) ?
-                        (iDrivigFlags & moveStopHere) :
-                        false)
-                    WaitingTime = -WaitingExpireTime; // zakaz ruszania z miejsca bez otrzymania
-                // wolnej drogi
+
+        if (OrderList[OrderPos] & (Shunt | Obey_train | Connect)) {
+            // odjechać sam może tylko jeśli jest w trybie jazdy
+            // automatyczne ruszanie po odstaniu albo spod SBL
+            if( ( VelSignal == 0.0 )
+             && ( WaitingTime > 0.0 )
+             && ( mvOccupied->RunningTrack.Velmax != 0.0 ) ) {
+                // jeśli stoi, a upłynął czas oczekiwania i tor ma niezerową prędkość
+                if( ( OrderList[ OrderPos ] & ( Obey_train | Shunt ) )
+                 && ( iDrivigFlags & moveStopHere ) ) {
+                    // zakaz ruszania z miejsca bez otrzymania wolnej drogi
+                    WaitingTime = -WaitingExpireTime;
+                }
                 else if (mvOccupied->CategoryFlag & 1)
                 { // jeśli pociąg
                     if (AIControllFlag)

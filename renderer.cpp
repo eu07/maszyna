@@ -397,7 +397,12 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
     Timer::subsystem.gfx_color.start();
     // fetch simulation data
-    m_sunlight = Global.DayLight;
+    if( World.InitPerformed() ) {
+        m_sunlight = Global.DayLight;
+        // quantize sun angle to reduce shadow crawl
+        auto const quantizationstep { 0.004f };
+        m_sunlight.direction = glm::normalize( quantizationstep * glm::roundEven( m_sunlight.direction * ( 1.f / quantizationstep ) ) );
+    }
     // generate new frame
     m_renderpass.draw_mode = rendermode::none; // force setup anew
     m_debugtimestext.clear();
@@ -420,24 +425,7 @@ opengl_renderer::Render() {
         + "; dyn: " + to_string( m_debugstats.dynamics ) + " mod: " + to_string( m_debugstats.models ) + " sub: " + to_string( m_debugstats.submodels )
         + "; trk: " + to_string( m_debugstats.paths ) + " shp: " + to_string( m_debugstats.shapes )
         + " trc: " + to_string( m_debugstats.traction ) + " lin: " + to_string( m_debugstats.lines );
-/*
-    float lightcutoff{},
-        lightexponent{},
-        lightconstant{},
-        lightlinear{};
-    ::glGetLightfv( GL_LIGHT1, GL_SPOT_CUTOFF, &lightcutoff );
-    ::glGetLightfv( GL_LIGHT1, GL_SPOT_EXPONENT, &lightexponent );
-    ::glGetLightfv( GL_LIGHT1, GL_CONSTANT_ATTENUATION, &lightconstant );
-    ::glGetLightfv( GL_LIGHT1, GL_LINEAR_ATTENUATION, &lightlinear );
-    m_debugstatstext =
-        "light1 cutoff: " + to_string( lightcutoff, 2 )
-        + " exponent: " + to_string( lightexponent, 2 )
-        + " constant attn: " + to_string( lightconstant, 2 )
-        + " linear attn: " + to_string( lightlinear, 3 );
-*/
-/*
-    m_debugstatstext = "sun hour angle: " + to_string( -World.Environment.m_sun.getHourAngle(), 6 );
-*/
+
     ++m_framestamp;
 
     return true; // for now always succeed
@@ -1481,7 +1469,14 @@ opengl_renderer::Render( world_environment *Environment ) {
     {
         Bind_Texture( m_moontexture );
         glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
-        ::glColor4f( mooncolor.x, mooncolor.y, mooncolor.z, static_cast<GLfloat>( 1.0 - Global.fLuminance * 0.5 ) );
+        // fade the moon if it's near the sun in the sky, especially during the day
+        ::glColor4f(
+            mooncolor.r, mooncolor.g, mooncolor.b,
+            std::max<float>(
+                0.f,
+                1.0
+                - 0.5 * Global.fLuminance
+                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) ) );
 
         auto const moonposition = modelview * glm::vec4( Environment->m_moon.getDirection(), 1.0f );
         ::glPushMatrix();
