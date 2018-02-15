@@ -53,7 +53,6 @@ const int update_only = 0x00000FF; // wartość graniczna
 const int conditional_memstring = 0x0000100; // porównanie tekstu
 const int conditional_memval1 = 0x0000200; // porównanie pierwszej wartości liczbowej
 const int conditional_memval2 = 0x0000400; // porównanie drugiej wartości
-const int conditional_else = 0x0010000; // flaga odwrócenia warunku (przesuwana bitowo)
 const int conditional_anyelse = 0x0FF0000; // do sprawdzania, czy są odwrócone warunki
 const int conditional_trackoccupied = 0x1000000; // jeśli tor zajęty
 const int conditional_trackfree = 0x2000000; // jeśli tor wolny
@@ -97,6 +96,11 @@ class TEvent // zmienne: ev*
     double fDelay = 0.0;
     TDynamicObject *Activator = nullptr;
     TParam Params[13]; // McZapkie-070502 //Ra: zamienić to na union/struct
+
+	// this is already mess, so one more hack won't make it much worse...
+	// stores TParam union and magic flag (eg. else flag)
+	std::vector<std::pair<TParam, int>> ext_params;
+
     unsigned int iFlags = 0; // zamiast Params[8] z flagami warunku
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
     TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378

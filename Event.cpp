@@ -548,18 +548,12 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             if( token != "else" ) {
                 if( token.substr( 0, 5 ) != "none_" ) {
                     // eventy rozpoczynające się od "none_" są ignorowane
-                    if( paramidx < 8 ) {
-                        Params[ paramidx ].asText = new char[ token.size() + 1 ];
-                        strcpy( Params[ paramidx ].asText, token.c_str() );
-                        if( ti ) {
-                            // oflagowanie dla eventów "else"
-                            iFlags |= conditional_else << paramidx;
-                        }
-                        ++paramidx;
-                    }
-                    else {
-                        ErrorLog( "Bad event: multi-event \"" + asName + "\" with more than 8 events; discarding link to event \"" + token + "\"" );
-                    }
+					ext_params.push_back(std::make_pair(TParam(), 0));
+                    ext_params[ paramidx ].first.asText = new char[ token.size() + 1 ];
+                    strcpy( ext_params[ paramidx ].first.asText, token.c_str() );
+                    // oflagowanie dla eventów "else"
+					ext_params[paramidx].second = (int)ti;
+                    ++paramidx;
                 }
                 else {
                     WriteLog( "Multi-event \"" + asName + "\" ignored link to event \"" + token + "\"" );
@@ -1123,12 +1117,12 @@ event_manager::CheckQuery() {
                  || ( m_workevent->iFlags & conditional_anyelse ) ) {
                     // warunek spelniony albo było użyte else
                     WriteLog("Type: Multi-event");
-                    for (i = 0; i < 8; ++i) {
+                    for (i = 0; i < m_workevent->ext_params.size(); ++i) {
                         // dodawane do kolejki w kolejności zapisania
-                        if( m_workevent->Params[ i ].asEvent ) {
-                            if( bCondition != ( ( ( m_workevent->iFlags & ( conditional_else << i ) ) != 0 ) ) ) {
-                                if( m_workevent->Params[ i ].asEvent != m_workevent )
-                                    AddToQuery( m_workevent->Params[ i ].asEvent, m_workevent->Activator ); // normalnie dodać
+                        if( m_workevent->ext_params[ i ].first.asEvent ) {
+                            if( bCondition != (bool)m_workevent->ext_params[i].second  ) {
+                                if( m_workevent->ext_params[ i ].first.asEvent != m_workevent )
+                                    AddToQuery( m_workevent->ext_params[ i ].first.asEvent, m_workevent->Activator ); // normalnie dodać
                                 else {
                                     // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
                                     if( m_workevent->fDelay >= 5.0 ) {
@@ -1520,12 +1514,12 @@ event_manager::InitEvents() {
                     event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
                 }
             }
-            for( int i = 0; i < 8; ++i ) {
-                if( event->Params[ i ].asText != nullptr ) {
-                    cellastext = event->Params[ i ].asText;
-                    SafeDeleteArray( event->Params[ i ].asText );
-                    event->Params[ i ].asEvent = FindEvent( cellastext );
-                    if( event->Params[ i ].asEvent == nullptr ) {
+            for( int i = 0; i < event->ext_params.size(); ++i ) {
+                if( event->ext_params[ i ].first.asText != nullptr ) {
+                    cellastext = event->ext_params[ i ].first.asText;
+                    SafeDeleteArray( event->ext_params[ i ].first.asText );
+                    event->ext_params[ i ].first.asEvent = FindEvent( cellastext );
+                    if( event->ext_params[ i ].first.asEvent == nullptr ) {
                         // Ra: tylko w logu informacja o braku
                         ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find event \"" + cellastext + "\"" );
                     }
