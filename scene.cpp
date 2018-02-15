@@ -649,6 +649,12 @@ void
 basic_section::insert( shape_node Shape ) {
 
     auto const &shapedata = Shape.data();
+
+    // re-calculate section radius, in case shape geometry extends outside the section's boundaries
+    m_area.radius = std::max<float>(
+        m_area.radius,
+        static_cast<float>( glm::length( m_area.center - shapedata.area.center ) + shapedata.area.radius ) );
+
     if( ( true == shapedata.translucent )
      || ( shapedata.rangesquared_max <= 90000.0 )
      || ( shapedata.rangesquared_min > 0.0 ) ) {
@@ -657,11 +663,6 @@ basic_section::insert( shape_node Shape ) {
     }
     else {
         // large, opaque shapes are placed on section level
-        // re-calculate section radius, in case shape geometry extends outside the section's boundaries
-        m_area.radius = std::max<float>(
-            m_area.radius,
-            static_cast<float>( glm::length( m_area.center - Shape.data().area.center ) + Shape.data().area.radius ) );
-
         for( auto &shape : m_shapes ) {
             // check first if the shape can't be merged with one of the shapes already present in the section
             if( true == shape.merge( Shape ) ) {
@@ -1038,13 +1039,12 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool con
             while( true == RaTriangleDivider( shapes[ index ], shapes ) ) {
                 ; // all work is done during expression check
             }
-            // with the trimming done we can calculate shape's bounding radius
-            shape.compute_radius();
         }
     }
     // move the data into appropriate section(s)
     for( auto &shape : shapes ) {
-
+        // with the potential splitting done we can calculate each chunk's bounding radius
+        shape.compute_radius();
         if( point_inside( shape.m_data.area.center ) ) {
             // NOTE: nodes placed outside of region boundaries are discarded
             section( shape.m_data.area.center ).insert( shape );

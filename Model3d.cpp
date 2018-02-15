@@ -997,13 +997,13 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
 
     if( m_geometry != NULL ) {
         // calculate bounding radius while we're at it
-        // NOTE: doesn't take into account transformation hierarchy TODO: implement it
-        float squaredradius { 0.f };
+        float squaredradius {};
         // if this happens to be root node it may already have non-squared radius of the largest child
         // since we're comparing squared radii, we need to square it back for correct results
         m_boundingradius *= m_boundingradius;
+        auto const submodeloffset { offset( std::numeric_limits<float>::max() ) };
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
-            squaredradius = static_cast<float>( glm::length2( vertex.position ) );
+            squaredradius = glm::length2( submodeloffset + vertex.position );
             if( squaredradius > m_boundingradius ) {
                 m_boundingradius = squaredradius;
             }

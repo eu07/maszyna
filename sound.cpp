@@ -835,8 +835,8 @@ sound_source::location() const {
 void
 sound_source::update_counter( sound_handle const Sound, int const Value ) {
 
-    sound( Sound ).playing += Value;
-    assert( sound( Sound ).playing >= 0 );
+    sound( Sound ).playing = std::max( 0, sound( Sound ).playing + Value );
+//    assert( sound( Sound ).playing >= 0 );
 }
 
 void

@@ -3488,6 +3488,10 @@ TController::UpdateSituation(double dt) {
     ElapsedTime += dt;
     WaitingTime += dt;
     fBrakeTime -= dt; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_FS ) ) {
+        // brake charging timeout starts after charging ends
+        BrakeChargingCooldown += dt;
+    }
     fStopTime += dt; // zliczanie czasu postoju, nie ruszy dopóki ujemne
     fActionTime += dt; // czas używany przy regulacji prędkości i zamykaniu drzwi
     LastReactionTime += dt;
@@ -4581,9 +4585,10 @@ TController::UpdateSituation(double dt) {
 				TDynamicObject *d = pVehicles[0]; // pojazd na czele składu
 				while (d)
 				{
-					AbsAccS += d->MoverParameters->TotalMass * d->MoverParameters->AccS * d->DirectionGet() * iDirection;
+					AbsAccS += d->MoverParameters->TotalMass * d->MoverParameters->AccS * ( d->DirectionGet() == iDirection ? 1 : -1 );
 					d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 				}
+                AbsAccS *= iDirection;
 				AbsAccS /= fMass;
 			}
 			AbsAccS_pub = AbsAccS;
@@ -4890,16 +4895,22 @@ TController::UpdateSituation(double dt) {
                          && ( AccDesired > -0.03 ) ) {
                             mvOccupied->BrakeReleaser( 1 );
                         }
+
                         if( ( mvOccupied->BrakeCtrlPos == 0 )
-                         && ( AbsAccS < 0.0 )
-                         && ( AccDesired > -0.03 ) ) {
+                         && ( AbsAccS < 0.03 )
+                         && ( AccDesired > -0.03 )
+                         && ( VelDesired - mvOccupied->Vel > 2.0 ) ) {
 
                             if( ( mvOccupied->EqvtPipePress < 4.95 )
-                             && ( fReady > 0.35 ) )  { // a reszta składu jest na to gotowa
+                             && ( fReady > 0.35 )
+                             && ( BrakeChargingCooldown >= 0.0 ) )  {
 
-                                if( iDrivigFlags & moveOerlikons ) {
+                                if( ( iDrivigFlags & moveOerlikons )
+                                 || ( mvOccupied->BrakeDelayFlag & bdelay_G ) ) {
                                     // napełnianie w Oerlikonie
-                                    mvOccupied->BrakeLevelSet( -1 );
+                                    mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) );
+                                    // don't charge the brakes too often, or we risk overcharging
+                                    BrakeChargingCooldown = -120.0;
                                 }
                             }
                             else if( Need_BrakeRelease ) {

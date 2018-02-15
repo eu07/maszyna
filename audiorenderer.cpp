@@ -55,9 +55,12 @@ openal_source::stop() {
 
 // updates state of the source
 void
-openal_source::update( double const Deltatime ) {
+openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity ) {
 
     update_deltatime = Deltatime; // cached for time-based processing of data from the controller
+    if( sound_range < 0.0 ) {
+        sound_velocity = Listenervelocity; // cached for doppler shift calculation
+    }
 
     if( id != audio::null_resource ) {
 
@@ -89,11 +92,15 @@ openal_source::sync_with( sound_properties const &State ) {
         sync = sync_state::bad_resource;
         return;
     }
-/*
     // velocity
-    // not used yet
-    glm::vec3 const velocity { ( State.location - properties.location ) / update_deltatime };
-*/
+    if( ( update_deltatime > 0.0 )
+     && ( sound_range >= 0 )
+     && ( properties.location != glm::dvec3() ) ) {
+        // after sound position was initialized we can start velocity calculations
+        sound_velocity = ( State.location - properties.location ) / update_deltatime;
+    }
+    // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
+    ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
     properties.location = State.location;
     sound_distance = properties.location - glm::dvec3 { Global.pCameraPosition };
@@ -289,6 +296,7 @@ void
 openal_renderer::update( double const Deltatime ) {
 
     // update listener
+    // orientation
     glm::dmat4 cameramatrix;
     Global.pCamera->SetMatrix( cameramatrix );
     auto rotationmatrix { glm::mat3{ cameramatrix } };
@@ -296,18 +304,23 @@ openal_renderer::update( double const Deltatime ) {
         glm::vec3{ 0, 0,-1 } * rotationmatrix ,
         glm::vec3{ 0, 1, 0 } * rotationmatrix };
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
-/*
-    glm::dvec3 const listenerposition { Global.pCameraPosition };
-    // not used yet
-    glm::vec3 const velocity { ( listenerposition - m_listenerposition ) / Deltatime };
-    m_listenerposition = listenerposition;
-*/
+    // velocity
+    if( Deltatime > 0 ) {
+        glm::dvec3 const listenerposition { Global.pCameraPosition };
+        glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
+        m_listenerposition = listenerposition;
+        m_listenervelocity = (
+            glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
+                listenermovement / Deltatime :
+                glm::vec3() );
+        ::alListenerfv( AL_VELOCITY, reinterpret_cast<ALfloat const *>( glm::value_ptr( m_listenervelocity ) ) );
+    }
 
     // update active emitters
     auto source { std::begin( m_sources ) };
     while( source != std::end( m_sources ) ) {
         // update each source
-        source->update( Deltatime );
+        source->update( Deltatime, m_listenervelocity );
         // if after the update the source isn't playing, put it away on the spare stack, it's done
         if( false == source->is_playing ) {
             source->clear();
@@ -367,7 +380,8 @@ openal_renderer::fetch_source() {
          && ( leastimportantweight < 1.f ) ) {
             // only accept the candidate if it's outside of its nominal hearing range
             leastimportantsource->stop();
-            leastimportantsource->update( 0 ); // HACK: a roundabout way to notify the controller its emitter has stopped
+            // HACK: dt of 0 is a roundabout way to notify the controller its emitter has stopped
+            leastimportantsource->update( 0, m_listenervelocity );
             leastimportantsource->clear();
             // we should be now free to grab the id and get rid of the remains
             newsource.id = leastimportantsource->id;

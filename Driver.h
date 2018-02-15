@@ -212,6 +212,7 @@ public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    double BrakeChargingCooldown {}; // prevents the ai from trying to charge the train brake too frequently
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
 private:
