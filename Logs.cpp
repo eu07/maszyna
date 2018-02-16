@@ -13,6 +13,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "winheaders.h"
 #include "utilities.h"
+#include "uilayer.h"
+
+std::shared_ptr<ui_panel> ui_log = std::make_shared<ui_panel>( 20, 140 );
 
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
@@ -82,6 +85,10 @@ void WriteLog( const char *str, logtype const Type ) {
         output.flush();
     }
 
+	ui_log->text_lines.emplace_back(std::string(str), Global.UITextColor);
+	if (ui_log->text_lines.size() > 20)
+		ui_log->text_lines.pop_front();
+
 #ifdef _WIN32
     if( Global.iWriteLogEnabled & 2 ) {
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
@@ -90,6 +97,8 @@ void WriteLog( const char *str, logtype const Type ) {
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
     }
+#else
+	printf("%s\n", str);
 #endif
 }
 

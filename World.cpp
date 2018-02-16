@@ -245,6 +245,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
     WriteLog( "\nStarting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
     WriteLog( "For online documentation and additional files refer to: http://eu07.pl");
 
+	if (Global.loading_log)
+	    UILayer.push_back( ui_log );
     UILayer.set_background( "logo" );
     glfwSetWindowTitle( window, ( Global.AppName + " (" + Global.SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
@@ -342,6 +344,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
     UILayer.push_back( UIHeader );
     UILayer.push_back( UITable );
     UILayer.push_back( UITranscripts );
+    UILayer.push_back( ui_log );
+	ui_log->enabled = false;
 
     return true;
 };
@@ -596,6 +600,10 @@ void TWorld::OnKeyDown(int cKey) {
                 }
                 break;
             }
+			case GLFW_KEY_F11: {
+				ui_log->enabled = !ui_log->enabled;
+				break;
+			}
             case GLFW_KEY_F12: {
                 // coś tam jeszcze
                 if( Global.ctrlState

@@ -166,6 +166,7 @@ struct global_settings {
     std::string asVersion{ "UNKNOWN" }; // z opisem
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
+	bool loading_log = true;
 
 // methods
     void LoadIniFile( std::string asFileName );

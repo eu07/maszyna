@@ -193,6 +193,8 @@ ui_layer::render_panels() {
     float const height = Global.iWindowHeight / 768.f;
 
     for( auto const &panel : m_panels ) {
+		if (!panel->enabled)
+			continue;
 
         int lineidx = 0;
         for( auto const &line : panel->text_lines ) {

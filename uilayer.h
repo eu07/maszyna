@@ -21,7 +21,8 @@ struct ui_panel {
         origin_x(X), origin_y(Y)
     {}
 
-    std::vector<text_line> text_lines;
+	bool enabled = true;
+    std::deque<text_line> text_lines;
     int origin_x;
     int origin_y;
 };

@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include <string>
+#include "uilayer.h"
 
 enum logtype : unsigned int {
 
@@ -26,3 +26,5 @@ void ErrorLog( const std::string &str, logtype const Type = logtype::generic );
 void WriteLog( const std::string &str, logtype const Type = logtype::generic );
 void CommLog( const char *str );
 void CommLog( const std::string &str );
+
+extern std::shared_ptr<ui_panel> ui_log;
