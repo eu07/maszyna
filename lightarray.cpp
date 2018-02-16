@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "lightarray.h"
 #include "DynObj.h"
-#include "Driver.h"
 
 void
 light_array::insert( TDynamicObject const *Owner ) {

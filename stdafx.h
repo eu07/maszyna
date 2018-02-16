@@ -21,7 +21,7 @@
 #endif  // _DEBUG
 #endif
 // operating system
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include "targetver.h"
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -71,12 +71,12 @@
 #ifdef EU07_BUILD_STATIC
 #define GLEW_STATIC
 #else
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
 #include "GL/glew.h"
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU

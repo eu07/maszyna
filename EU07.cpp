@@ -32,10 +32,11 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
+#include "uart.h"
 #include "PyInt.h"
 #include "World.h"
 #include "MOVER.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "Timer.h"
 #include "resource.h"
 #include "uilayer.h"
@@ -70,8 +71,8 @@ void screenshot_save_thread( char *img )
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
-	png.width = Global::iWindowWidth;
-	png.height = Global::iWindowHeight;
+	png.width = Global.iWindowWidth;
+	png.height = Global.iWindowHeight;
 	png.format = PNG_FORMAT_RGB;
 
 	char datetime[64];
@@ -90,10 +91,10 @@ void screenshot_save_thread( char *img )
 	perf = ts.tv_nsec;
 #endif
 
-	std::string filename = Global::screenshot_dir + "/" + std::string(datetime) +
+	std::string filename = Global.screenshot_dir + "/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
 
-	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::iWindowWidth * 3, nullptr) == 1)
+	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global.iWindowWidth * 3, nullptr) == 1)
 		WriteLog("saved " + filename + ".");
 	else
 		WriteLog("failed to save screenshot.");
@@ -103,8 +104,8 @@ void screenshot_save_thread( char *img )
 
 void make_screenshot()
 {
-	char *img = new char[Global::iWindowWidth * Global::iWindowHeight * 3];
-	glReadPixels(0, 0, Global::iWindowWidth, Global::iWindowHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+	char *img = new char[Global.iWindowWidth * Global.iWindowHeight * 3];
+	glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 
 	std::thread t(screenshot_save_thread, img);
 	t.detach();
@@ -114,9 +115,9 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 {
     // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
     // TBD, TODO: merge them?
-	Global::iWindowWidth = w;
-	Global::iWindowHeight = h;
-    Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
+	Global.iWindowWidth = w;
+	Global.iWindowHeight = h;
+    Global.fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }
 
@@ -127,7 +128,7 @@ void cursor_pos_callback(GLFWwindow *window, double x, double y)
 
     input::Mouse.move( x, y );
 
-    if( !Global::ControlPicking ) {
+    if( !Global.ControlPicking ) {
         glfwSetCursorPos( window, 0, 0 );
     }
 }
@@ -145,16 +146,16 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
     input::Keyboard.key( key, action );
 
-    Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
-    Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
+    Global.shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
+    Global.ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
 
-    if( ( true == Global::InputMouse )
+    if( ( true == Global.InputMouse )
      && ( ( key == GLFW_KEY_LEFT_ALT )
        || ( key == GLFW_KEY_RIGHT_ALT ) ) ) {
         // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
         if( action == GLFW_RELEASE ) {
 
-            if( Global::ControlPicking ) {
+            if( Global.ControlPicking ) {
                 // switch off
                 glfwGetCursorPos( window, &input::mouse_pickmodepos.x, &input::mouse_pickmodepos.y );
                 glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
@@ -166,7 +167,7 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
                 glfwSetCursorPos( window, input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
             }
             // actually toggle the mode
-            Global::ControlPicking = !Global::ControlPicking;
+            Global.ControlPicking = !Global.ControlPicking;
         }
     }
 
@@ -197,22 +198,22 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
 void focus_callback( GLFWwindow *window, int focus )
 {
-    if( Global::bInactivePause ) // jeśli ma być pauzowanie okna w tle
+    if( Global.bInactivePause ) // jeśli ma być pauzowanie okna w tle
         if( focus )
-            Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
+            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
         else
-            Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
+            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
 }
 
 void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
 
-    if( Global::ctrlState ) {
+    if( Global.ctrlState ) {
         // ctrl + scroll wheel adjusts fov in debug mode
-        Global::FieldOfView = clamp( static_cast<float>(Global::FieldOfView - yoffset * 20.0 / Global::fFpsAverage), 15.0f, 75.0f );
+        Global.FieldOfView = clamp( static_cast<float>(Global.FieldOfView - yoffset * 20.0 / Global.fFpsAverage), 15.0f, 75.0f );
     }
 }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern "C"
 {
     GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
@@ -226,49 +227,57 @@ extern WNDPROC BaseWindowProc;
 
 int main(int argc, char *argv[])
 {
-#ifdef _WINDOWS
-	::SetUnhandledExceptionFilter(unhandled_handler);
+#if defined(_MSC_VER) && defined (_DEBUG)
+    // memory leaks
+    _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+    // floating point operation errors
+    auto state = _clearfp();
+    state = _control87( 0, 0 );
+    // this will turn on FPE for #IND and zerodiv
+    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+#endif
+#ifdef _WIN32
+    ::SetUnhandledExceptionFilter( unhandled_handler );
 #endif
 
 	if (!glfwInit())
 		return -1;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     DeleteFile( "log.txt" );
     DeleteFile( "errors.txt" );
     CreateDirectory("logs", NULL);
 #endif
-    Global::LoadIniFile("eu07.ini");
-    Global::InitKeys();
+    Global.LoadIniFile("eu07.ini");
 
 #ifdef _WIN32
     // hunter-271211: ukrywanie konsoli
-    if( Global::iWriteLogEnabled & 2 )
+    if( Global.iWriteLogEnabled & 2 )
 	{
         AllocConsole();
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
 #endif
 
-	Global::asVersion = "M7 31.01.2018";
+	Global.asVersion = "M7 16.02.2018 (based on tmj 180215)";
 
 	for (int i = 1; i < argc; ++i)
 	{
 		std::string token(argv[i]);
 
 		if (token == "-e3d") {
-			if (Global::iConvertModels > 0)
-				Global::iConvertModels = -Global::iConvertModels;
+			if (Global.iConvertModels > 0)
+				Global.iConvertModels = -Global.iConvertModels;
 			else
-				Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
+				Global.iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
 		}
 		else if (i + 1 < argc && token == "-s")
-			Global::SceneryFile = std::string(argv[++i]);
+			Global.SceneryFile = std::string(argv[++i]);
 		else if (i + 1 < argc && token == "-v")
 		{
 			std::string v(argv[++i]);
 			std::transform(v.begin(), v.end(), v.begin(), ::tolower);
-			Global::asHumanCtrlVehicle = v;
+			Global.asHumanCtrlVehicle = v;
 		}
 		else
 		{
@@ -293,22 +302,26 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    if( Global::iMultisampling > 0 ) {
-        glfwWindowHint( GLFW_SAMPLES, 1 << Global::iMultisampling );
+    if( Global.iMultisampling > 0 ) {
+        glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
-    if (Global::bFullScreen)
+    if (Global.bFullScreen)
 	{
         // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
-        Global::iWindowWidth = vmode->width;
-        Global::iWindowHeight = vmode->height;
+        Global.iWindowWidth = vmode->width;
+        Global.iWindowHeight = vmode->height;
     }
 
     GLFWwindow *window =
-        glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
-			Global::AppName.c_str(), Global::bFullScreen ? monitor : nullptr, nullptr );
+        glfwCreateWindow(
+            Global.iWindowWidth,
+            Global.iWindowHeight,
+            Global.AppName.c_str(),
+            ( Global.bFullScreen ?
+                monitor :
+                nullptr),
+            nullptr );
 
     if (!window)
 	{
@@ -316,7 +329,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(Global::VSync ? 1 : 0); //vsync
+    glfwSwapInterval(Global.VSync ? 1 : 0); //vsync
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
     glfwSetCursorPos(window, 0.0, 0.0);
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
@@ -337,7 +350,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     // setup wrapper for base glfw window proc, to handle copydata messages
     Hwnd = glfwGetWin32Window( window );
     BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
@@ -350,18 +363,18 @@ int main(int argc, char *argv[])
 			|| (false == UILayer.init(window)))
 			return -1;
 
-		Global::pWorld = &World;
+		Global.pWorld = &World;
 
 		audio::renderer.init();
 		input::Keyboard.init();
 		input::Mouse.init();
 		input::Gamepad.init();
-        if (Global::uart_conf.enable)
+        if (Global.uart_conf.enable)
             input::uart = std::make_unique<uart_input>();
-		if (Global::motiontelemetry_conf.enable)
+		if (Global.motiontelemetry_conf.enable)
 			input::motiontelemetry = std::make_unique<motiontelemetry>();
 
-		Global::pWorld = &World;
+		Global.pWorld = &World;
 		if( false == World.Init( window ) ) {
             ErrorLog( "Simulation setup failed" );
             return -1;
@@ -388,8 +401,8 @@ int main(int argc, char *argv[])
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
 */
-    if( Global::iConvertModels < 0 ) {
-        Global::iConvertModels = -Global::iConvertModels;
+    if( Global.iConvertModels < 0 ) {
+        Global.iConvertModels = -Global.iConvertModels;
         World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
         World.CreateE3D( "dynamic/", true );
     } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
@@ -406,11 +419,10 @@ int main(int argc, char *argv[])
 				input::motiontelemetry->update();
             glfwPollEvents();
             input::Keyboard.poll();
-            if (input::uart)
-                input::uart->poll();
 			simulation::Commands.update();
-            if( true == Global::InputMouse )   { input::Mouse.poll(); }
-            if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
+            if( true == Global.InputMouse )   { input::Mouse.poll(); }
+            if( true == Global.InputGamepad ) { input::Gamepad.poll(); }
+            if( input::uart != nullptr )      { input::uart->poll(); }
         }
 	}
 	catch (std::runtime_error e)
@@ -426,14 +438,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-
 	TPythonInterpreter::killInstance();
-
 #ifdef _WIN32
     Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
-	SafeDelete( pConsole );
-#endif
-
+    SafeDelete( pConsole );
+#endif    
     SafeDelete( simulation::Region );
 
 	glfwDestroyWindow(window);

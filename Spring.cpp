@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 TSpring::TSpring()
 {
-    vForce1 = vForce2 = vector3(0, 0, 0);
+    vForce1 = vForce2 = Math3D::vector3(0, 0, 0);
     Ks = 0;
     Kd = 0;
     restLen = 0;
@@ -29,15 +29,15 @@ void TSpring::Init(double nrestLen, double nKs, double nKd)
     restLen = nrestLen;
 }
 
-Math3D::vector3 TSpring::ComputateForces(vector3 const &pPosition1, vector3 const &pPosition2)
+Math3D::vector3 TSpring::ComputateForces( Math3D::vector3 const &pPosition1, Math3D::vector3 const &pPosition2)
 {
 
     double dist, Hterm, Dterm;
-    vector3 springForce, deltaV, deltaP;
+    Math3D::vector3 springForce, deltaV;
     //		p1 = &system[spring->p1];
     //		p2 = &system[spring->p2];
     //		VectorDifference(&p1->pos,&p2->pos,&deltaP);	// Vector distance
-    deltaP = pPosition1 - pPosition2;
+    auto deltaP = pPosition1 - pPosition2;
     //		dist = VectorLength(&deltaP);					// Magnitude of
     // deltaP
     dist = deltaP.Length();

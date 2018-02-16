@@ -9,19 +9,19 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "openglgeometrybank.h"
-#include "dumb3d.h"
 #include "Classes.h"
-#include "usefull.h"
+#include "dumb3d.h"
+#include "openglgeometrybank.h"
+#include "utilities.h"
 
 class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
   private:
     Math3D::vector3 Point1, CPointOut, CPointIn, Point2;
     float
-        fRoll1{ 0.f },
-        fRoll2{ 0.f }; // przechyłka na końcach
-    double fLength = 0.0; // długość policzona
+        fRoll1 { 0.f },
+        fRoll2 { 0.f }; // przechyłka na końcach
+    double fLength { -1.0 }; // długość policzona
     double *fTsBuffer = nullptr; // wartości parametru krzywej dla równych odcinków
     double fStep = 0.0;
     int iSegCount = 0; // ilość odcinków do rysowania krzywej

@@ -17,13 +17,17 @@ public:
     void init();
     void update();
 	void render();
+/*
     // returns location of the sun in the 3d scene
-    glm::vec3 getPosition() { return m_position; }
+    glm::vec3 getPosition();
+*/
 	// returns vector pointing at the sun
 	glm::vec3 getDirection();
 	// returns current elevation above horizon
 	float getAngle();
-	// returns current intensity of the sun
+    // return current hour angle
+    double getHourAngle() const;
+    // returns current intensity of the sun
 	float getIntensity();
     // sets current time, overriding one acquired from the system clock
     void setTime( int const Hour, int const Minute, int const Second );

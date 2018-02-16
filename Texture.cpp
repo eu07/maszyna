@@ -18,11 +18,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include "GL/glew.h"
 
-#include "usefull.h"
+#include "utilities.h"
 #include "Globals.h"
 #include "Logs.h"
 #include "sn_utils.h"
-#include "mctools.h"
+#include "utilities.h"
 
 #include <png.h>
 
@@ -302,7 +302,7 @@ opengl_texture::load_DDS() {
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
-    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
         offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
         data_width /= 2;
@@ -444,36 +444,22 @@ opengl_texture::load_TGA() {
         return;
     }
 
-	// normally origin is bottom-left
-	// if byte 17 bit 5 is set, it is top-left and needs flip
-	bool flip = (tgaheader[17] & 0x20) != 0;
-
     // allocate the data buffer
     int const datasize = data_width * data_height * 4;
 	data.resize(datasize);
-
-	std::vector<char> bitmap;
-	char *dataptr;
-	if (!flip)
-		dataptr = &data[0];
-	else
-	{
-	    bitmap.resize(datasize);
-		dataptr = &bitmap[0];
-	}
 
     // call the appropriate loader-routine
     if( tgaheader[ 2 ] == 2 ) {
         // uncompressed TGA
         if( bytesperpixel == 4 ) {
             // read the data directly
-            file.read( reinterpret_cast<char*>( dataptr ), datasize );
+            file.read( reinterpret_cast<char*>( &data[0] ), datasize );
         }
         else {
             // rgb or greyscale image, expand to bgra
             unsigned char buffer[ 4 ] = { 255, 255, 255, 255 }; // alpha channel will be white
 
-            unsigned int *datapointer = (unsigned int*)dataptr;
+            unsigned int *datapointer = (unsigned int*)&data[0];
             unsigned int *bufferpointer = (unsigned int*)&buffer[ 0 ];
 
             int const pixelcount = data_width * data_height;
@@ -499,7 +485,7 @@ opengl_texture::load_TGA() {
         unsigned char buffer[ 4 ] = { 255, 255, 255, 255 };
         const int pixelcount = data_width * data_height;
 
-        unsigned int *datapointer = (unsigned int *)dataptr;
+        unsigned int *datapointer = (unsigned int *)&data[0];
         unsigned int *bufferpointer = (unsigned int *)&buffer[ 0 ];
 
         do {
@@ -553,20 +539,14 @@ opengl_texture::load_TGA() {
         return;
     }
 
-	if (flip)
-	{
-		int dst = 0;
-		int src = (data_height - 1) * data_width * 4;
-		for (int y = 0; y < data_height; y++)
-		{
-			memcpy(&data[dst], &bitmap[src], data_width * 4);
-			dst += data_width * 4;
-			src -= data_width * 4;
-		}
-	}
+    if( ( tgaheader[ 17 ] & 0x20 ) != 0 ) {
+        // normally origin is bottom-left
+        // if byte 17 bit 5 is set, it is top-left and needs flip
+        flip_vertical();
+    }
 
     downsize( GL_BGRA );
-    if( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
         // before it gets all work done
         data_state = resource_state::failed;
@@ -670,8 +650,8 @@ opengl_texture::create() {
             }
         }
 
-        if( ( true == Global::ResourceMove )
-         || ( false == Global::ResourceSweep ) ) {
+        if( ( true == Global.ResourceMove )
+         || ( false == Global.ResourceSweep ) ) {
             // if garbage collection is disabled we don't expect having to upload the texture more than once
             data = std::vector<char>();
             data_state = resource_state::none;
@@ -688,7 +668,7 @@ opengl_texture::release() {
 
     if( id == -1 ) { return; }
 
-    if( true == Global::ResourceMove ) {
+    if( true == Global.ResourceMove ) {
         // if resource move is enabled we don't keep a cpu side copy after upload
         // so need to re-acquire the data before release
         // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
@@ -734,7 +714,7 @@ opengl_texture::set_filtering() const {
 
     if( GLEW_EXT_texture_filter_anisotropic ) {
         // anisotropic filtering
-        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
     bool sharpen{ false };
@@ -760,7 +740,7 @@ opengl_texture::set_filtering() const {
 void
 opengl_texture::downsize( GLuint const Format ) {
 
-    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
         // scale down the base texture, if it's larger than allowed maximum
         // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
         // TODO: replace with proper scaling function once we have image middleware in place
@@ -781,6 +761,21 @@ opengl_texture::downsize( GLuint const Format ) {
         data_height /= 2;
         data.resize( data.size() / 4 ); // not strictly needed, but, eh
     };
+}
+
+void
+opengl_texture::flip_vertical() {
+
+    auto const swapsize { data_width * 4 };
+    auto destination { data.begin() + ( data_height - 1 ) * swapsize };
+    auto sampler { data.begin() };
+
+    for( auto row = 0; row < data_height / 2; ++row ) {
+
+        std::swap_ranges( sampler, sampler + swapsize, destination );
+        sampler += swapsize;
+        destination -= swapsize;
+    }
 }
 
 void
@@ -828,7 +823,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".png" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank
-    auto lookup = find_in_databank( Filename + Global::szDefaultExt );
+    auto lookup = find_in_databank( Filename + Global.szDefaultExt );
     if( lookup != npos ) {
         // start with the default extension...
         return lookup;
@@ -837,7 +832,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         // ...then try recognized file extensions other than default
         for( auto const &extension : extensions ) {
 
-            if( extension == Global::szDefaultExt ) {
+            if( extension == Global.szDefaultExt ) {
                 // we already tried this one
                 continue;
             }
@@ -849,12 +844,12 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         }
     }
     // if we don't have the texture in the databank, check if it's on disk
-    std::string filename = find_on_disk( Filename + Global::szDefaultExt );
+    std::string filename = find_on_disk( Filename + Global.szDefaultExt );
     if( true == filename.empty() ) {
         // if the default lookup fails, try other known extensions
         for( auto const &extension : extensions ) {
 
-            if( extension == Global::szDefaultExt ) {
+            if( extension == Global.szDefaultExt ) {
                 // we already tried this one
                 continue;
             }

@@ -108,7 +108,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         { // jeśli po zmianie nie ma żadnej osi na odcinku izolowanym
             if (evFree)
                 simulation::Events.AddToQuery(evFree, o); // dodanie zwolnienia do kolejki
-            if (Global::iMultiplayer) // jeśli multiplayer
+            if (Global.iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
@@ -122,7 +122,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         {
             if (evBusy)
                 simulation::Events.AddToQuery(evBusy, o); // dodanie zajętości do kolejki
-            if (Global::iMultiplayer) // jeśli multiplayer
+            if (Global.iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, update_memval2 ); // zmieniamy ostatnią wartość na nieparzystą
@@ -178,7 +178,7 @@ TTrack * TTrack::Create400m(int what, double dx)
     trk->m_visible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
     trk->Init(); // utworzenie segmentu
-    trk->Segment->Init( vector3( -dx, 0, 0 ), vector3( -dx, 0, 400 ), 10.0, 0, 0 ); // prosty
+    trk->Segment->Init( Math3D::vector3( -dx, 0, 0 ), Math3D::vector3( -dx, 0, 400 ), 10.0, 0, 0 ); // prosty
     trk->location( glm::dvec3{ -dx, 0, 200 } ); //środek, aby się mogło wyświetlić
     simulation::Paths.insert( trk );
     simulation::Region->insert_path( trk, scene::scratch_data() );
@@ -197,7 +197,7 @@ TTrack * TTrack::NullCreate(int dir)
     trk->iCategoryFlag = (iCategoryFlag & 15) | 0x80; // taki sam typ plus informacja, że dodatkowy
     float r1, r2;
     Segment->GetRolls(r1, r2); // pobranie przechyłek na początku toru
-    vector3 p1, cv1, cv2, p2; // będziem tworzyć trajektorię lotu
+    Math3D::vector3 p1, cv1, cv2, p2; // będziem tworzyć trajektorię lotu
     if (iCategoryFlag & 1)
     { // tylko dla kolei
         trk->iDamageFlag = 128; // wykolejenie
@@ -251,10 +251,10 @@ TTrack * TTrack::NullCreate(int dir)
             cv1 = -20.0 * Normalize(Segment->GetDirection1()); // pierwszy wektor kontrolny
             p2 = p1 + cv1 + cv1; // 40m
             // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, -RadToDeg(r1), 0.0);
+            trk->Segment->Init(p1, p1 + cv1, p2 + Math3D::vector3(-cv1.z, cv1.y, cv1.x), p2, 2, -RadToDeg(r1), 0.0);
             ConnectPrevPrev(trk, 0);
             // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, -RadToDeg(r1), 0.0);
+            trk2->Segment->Init(p1, p1 + cv1, p2 + Math3D::vector3(cv1.z, cv1.y, -cv1.x), p2, 2, -RadToDeg(r1), 0.0);
             trk2->iPrevDirection = 0; // zwrotnie do tego samego odcinka
             break;
         case 1:
@@ -262,10 +262,10 @@ TTrack * TTrack::NullCreate(int dir)
             cv1 = -20.0 * Normalize(Segment->GetDirection2()); // pierwszy wektor kontrolny
             p2 = p1 + cv1 + cv1;
             // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, RadToDeg(r2), 0.0);
+            trk->Segment->Init(p1, p1 + cv1, p2 + Math3D::vector3(-cv1.z, cv1.y, cv1.x), p2, 2, RadToDeg(r2), 0.0);
             ConnectNextPrev(trk, 0);
             // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, RadToDeg(r2), 0.0);
+            trk2->Segment->Init(p1, p1 + cv1, p2 + Math3D::vector3(cv1.z, cv1.y, -cv1.x), p2, 2, RadToDeg(r2), 0.0);
             trk2->iPrevDirection = 1; // zwrotnie do tego samego odcinka
             break;
         }
@@ -345,17 +345,17 @@ void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-vector3 LoadPoint(cParser *parser)
+Math3D::vector3 LoadPoint(cParser *parser)
 { // pobranie współrzędnych punktu
-    vector3 p;
+    Math3D::vector3 p;
     parser->getTokens(3);
     *parser >> p.x >> p.y >> p.z;
     return p;
 }
 
-void TTrack::Load(cParser *parser, vector3 pOrigin)
+void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
 { // pobranie obiektu trajektorii ruchu
-    vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
+    Math3D::vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
 	double a1, a2, r1, r2, r3, r4;
     std::string str;
     size_t i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
@@ -406,10 +406,15 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
     }
     else
         eType = tt_Unknown;
-    if (Global::iWriteLogEnabled & 4)
+    if (Global.iWriteLogEnabled & 4)
         WriteLog(str);
     parser->getTokens(4);
-    *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
+    float discard {};
+    *parser
+        >> discard
+        >> fTrackWidth
+        >> fFriction
+        >> fSoundDistance;
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
     *parser >> iQualityFlag >> iDamageFlag;
@@ -464,7 +469,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
         if (iCategoryFlag & 4)
             fTexHeight1 = -fTexHeight1; // rzeki mają wysokość odwrotnie niż drogi
     }
-    else if (Global::iWriteLogEnabled & 4)
+    else if (Global.iWriteLogEnabled & 4)
         WriteLog("unvis");
     Init(); // ustawia SwitchExtension
     double segsize = 5.0; // długość odcinka segmentowania
@@ -488,30 +493,40 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             p2.y += 0.18;
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
-        if( fRadius != 0 ) // gdy podany promień
-            segsize = clamp( std::fabs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+
+        if( ( ( ( p1 + p1 + p2 ) / 3.0 - p1 - cp1 ).Length() < 0.02 )
+         || ( ( ( p1 + p2 + p2 ) / 3.0 - p2 + cp1 ).Length() < 0.02 ) ) {
+            // "prostowanie" prostych z kontrolnymi, dokładność 2cm
+            cp1 = cp2 = Math3D::vector3( 0, 0, 0 );
+        }
+
+        if( fRadius != 0 ) {
+            // gdy podany promień
+            segsize = clamp( std::abs( fRadius ) * ( 0.02 / Global.SplineFidelity ), 2.0 / Global.SplineFidelity, 10.0 );
+        }
         else {
             // HACK: crude check whether claimed straight is an actual straight piece
-            // NOTE: won't detect cases where control points are placed on the straight line formed by the ends, but, eh
             if( ( cp1 == Math3D::vector3() )
-             && ( cp1 == Math3D::vector3() ) ) {
+             && ( cp2 == Math3D::vector3() ) ) {
                 segsize = 10.0; // for straights, 10m per segment works good enough
             }
             else {
                 // HACK: divide roughly in 10 segments. 
-                segsize = clamp( fTrackLength * ( 0.1 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
+                segsize = clamp( ( p1 - p2 ).Length() * ( 0.1 / Global.SplineFidelity ), 2.0 / Global.SplineFidelity, 10.0 );
             }
         }
 
-        if ((((p1 + p1 + p2) / 3.0 - p1 - cp1).Length() < 0.02) ||
-            (((p1 + p2 + p2) / 3.0 - p2 + cp1).Length() < 0.02))
-            cp1 = cp2 = vector3(0, 0, 0); //"prostowanie" prostych z kontrolnymi, dokładność 2cm
+        if( ( cp1 == Math3D::vector3( 0, 0, 0 ) )
+         && ( cp2 == Math3D::vector3( 0, 0, 0 ) ) ) {
+            // Ra: hm, czasem dla prostego są podane...
+            // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
+            Segment->Init( p1, p2, segsize, r1, r2 );
+        }
+        else {
+            // gdy łuk (ustawia bCurve=true)
+            Segment->Init( p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2 );
+        }
 
-        if ((cp1 == vector3(0, 0, 0)) &&
-            (cp2 == vector3(0, 0, 0))) // Ra: hm, czasem dla prostego są podane...
-            Segment->Init(p1, p2, segsize, r1, r2); // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
-        else
-            Segment->Init(p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2); // gdy łuk (ustawia bCurve=true)
         if ((r1 != 0) || (r2 != 0))
             iTrapezoid = 1; // są przechyłki do uwzględniania w rysowaniu
         if (eType == tt_Table) // obrotnica ma doklejkę
@@ -570,7 +585,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             segsize = 5.0;
         } // ułomny prosty
 
-        if (!(cp1 == vector3(0, 0, 0)) && !(cp2 == vector3(0, 0, 0)))
+        if (!(cp1 == Math3D::vector3(0, 0, 0)) && !(cp2 == Math3D::vector3(0, 0, 0)))
             SwitchExtension->Segments[0]->Init(p1, p1 + cp1, p2 + cp2, p2, segsize, r1, r2);
         else
             SwitchExtension->Segments[0]->Init(p1, p2, segsize, r1, r2);
@@ -601,7 +616,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
             segsize = 5.0;
         } // ułomny prosty
 
-        if (!(cp3 == vector3(0, 0, 0)) && !(cp4 == vector3(0, 0, 0)))
+        if (!(cp3 == Math3D::vector3(0, 0, 0)) && !(cp4 == Math3D::vector3(0, 0, 0)))
         { // dla skrzyżowania dróg dać odwrotnie końce, żeby brzegi generować lewym
             if (eType != tt_Cross)
                 SwitchExtension->Segments[1]->Init(p3, p3 + cp3, p4 + cp4, p4, segsize, r3, r4);
@@ -629,7 +644,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin)
         if( eType == tt_Switch )
         // Ra: zamienić później na iloczyn wektorowy
         {
-            vector3 v1, v2;
+            Math3D::vector3 v1, v2;
             double a1, a2;
             v1 = SwitchExtension->Segments[0]->FastGetPoint_1() -
                  SwitchExtension->Segments[0]->FastGetPoint_0();
@@ -928,7 +943,7 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         Dynamic->MyTrack = NULL; // trzeba by to uzależnić od kierunku ruchu...
         return true;
     }
-    if( Global::iMultiplayer ) {
+    if( Global.iMultiplayer ) {
         // jeśli multiplayer
         if( true == Dynamics.empty() ) {
             // pierwszy zajmujący
@@ -1020,7 +1035,7 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
             }
         }
     }
-    if( Global::iMultiplayer ) {
+    if( Global.iMultiplayer ) {
         // jeśli multiplayer
         if( true == Dynamics.empty() ) {
             // jeśli już nie ma żadnego
@@ -1695,14 +1710,14 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
         case tt_Cross: // skrzyżowanie dróg rysujemy inaczej
         { // ustalenie współrzędnych środka - przecięcie Point1-Point2 z CV4-Point4
             double a[4]; // kąty osi ulic wchodzących
-            vector3 p[4]; // punkty się przydadzą do obliczeń
+            Math3D::vector3 p[4]; // punkty się przydadzą do obliczeń
             // na razie połowa odległości pomiędzy Point1 i Point2, potem się dopracuje
             a[0] = a[1] = 0.5; // parametr do poszukiwania przecięcia łuków
             // modyfikować a[0] i a[1] tak, aby trafić na przecięcie odcinka 34
             p[0] = SwitchExtension->Segments[0]->FastGetPoint(a[0]); // współrzędne środka pierwszego odcinka
             p[1] = SwitchExtension->Segments[1]->FastGetPoint(a[1]); //-//- drugiego
             // p[2]=p[1]-p[0]; //jeśli różne od zera, przeliczyć a[0] i a[1] i wyznaczyć nowe punkty
-            vector3 oxz = p[0]; // punkt mapowania środka tekstury skrzyżowania
+            Math3D::vector3 oxz = p[0]; // punkt mapowania środka tekstury skrzyżowania
             p[0] = SwitchExtension->Segments[0]->GetDirection1(); // Point1 - pobranie wektorów kontrolnych
             p[1] = SwitchExtension->Segments[1]->GetDirection2(); // Point3 (bo zamienione)
             p[2] = SwitchExtension->Segments[0]->GetDirection2(); // Point2
@@ -2154,37 +2169,6 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
     return;
 };
 
-void TTrack::EnvironmentSet()
-{ // ustawienie zmienionego światła
-    switch( eEnvironment ) {
-        case e_canyon: {
-            Global::DayLight.apply_intensity(0.4f);
-            break;
-        }
-        case e_tunnel: {
-			Global::DayLight.apply_intensity(0.2f);
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-};
-
-void TTrack::EnvironmentReset()
-{ // przywrócenie domyślnego światła
-    switch( eEnvironment ) {
-        case e_canyon:
-        case e_tunnel: {
-			Global::DayLight.apply_intensity();
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-};
-
 void TTrack::RenderDynSounds()
 { // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
     for( auto dynamic : Dynamics ) {
@@ -2523,11 +2507,11 @@ TTrack * TTrack::RaAnimate()
                     double sina = -hlen * std::sin(glm::radians(SwitchExtension->fOffset)),
                            cosa = -hlen * std::cos(glm::radians(SwitchExtension->fOffset));
                     SwitchExtension->vTrans = ac->TransGet();
-                    vector3 middle =
+                    auto middle =
                         location() +
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
-                    Segment->Init(middle + vector3(sina, 0.0, cosa),
-                                  middle - vector3(sina, 0.0, cosa), 10.0); // nowy odcinek
+                    Segment->Init(middle + Math3D::vector3(sina, 0.0, cosa),
+                                  middle - Math3D::vector3(sina, 0.0, cosa), 10.0); // nowy odcinek
                     for( auto dynamic : Dynamics ) {
                         // minimalny ruch, aby przeliczyć pozycję
                         dynamic->Move( 0.000001 );
@@ -2567,7 +2551,7 @@ bool TTrack::IsGroupable()
     return true;
 };
 
-bool Equal(vector3 v1, vector3 *v2)
+bool Equal( Math3D::vector3 v1, Math3D::vector3 *v2)
 { // sprawdzenie odległości punktów
     // Ra: powinno być do 100cm wzdłuż toru i ze 2cm w poprzek (na prostej może nie być długiego
     // kawałka)
@@ -2582,7 +2566,7 @@ bool Equal(vector3 v1, vector3 *v2)
     // return (SquareMagnitude(v1-*v2)<0.00012); //0.011^2=0.00012
 };
 
-int TTrack::TestPoint(vector3 *Point)
+int TTrack::TestPoint( Math3D::vector3 *Point)
 { // sprawdzanie, czy tory można połączyć
     switch (eType)
     {
@@ -2810,7 +2794,7 @@ path_table::InitTracks() {
 
         auto const trackname { track->name() };
 
-        if( ( Global::iHiddenEvents & 1 )
+        if( ( Global.iHiddenEvents & 1 )
          && ( false == trackname.empty() ) ) {
             // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
             track->AssignEvents(

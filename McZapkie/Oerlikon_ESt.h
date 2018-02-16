@@ -20,7 +20,6 @@ http://mozilla.org/MPL/2.0/.
 #include <memory>
 #include "hamulce.h" // Pascal unit
 #include "friction.h" // Pascal unit
-#include "mctools.h" // Pascal unit
 
 /*
 (C) youBy

@@ -19,7 +19,7 @@
 
 motiontelemetry::motiontelemetry()
 {
-	conf = Global::motiontelemetry_conf;
+	conf = Global.motiontelemetry_conf;
 
 #ifdef _WIN32
 	WSADATA wsd;
@@ -62,10 +62,10 @@ void motiontelemetry::update()
 		return;
 	last_update = now;
 
-	if (Global::iPause)
+	if (Global.iPause)
 		return;
 
-	TTrain *t = Global::pWorld->train();
+	TTrain *t = Global.pWorld->train();
 	if (!t)
 		return;
 

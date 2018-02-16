@@ -11,24 +11,24 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 
 #include "Globals.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "Console.h"
 #include "Timer.h"
 #include "MOVER.h"
 
 //---------------------------------------------------------------------------
 
-void TCamera::Init(vector3 NPos, vector3 NAngle)
+void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle)
 {
 
-    vUp = vector3(0, 1, 0);
-    Velocity = vector3(0, 0, 0);
+    vUp = Math3D::vector3(0, 1, 0);
+    Velocity = Math3D::vector3(0, 0, 0);
     Pitch = NAngle.x;
     Yaw = NAngle.y;
     Roll = NAngle.z;
     Pos = NPos;
 
-    Type = (Global::bFreeFly ? tp_Free : tp_Follow);
+    Type = (Global.bFreeFly ? tp_Free : tp_Follow);
 };
 
 void TCamera::OnCursorMove(double x, double y) {
@@ -59,8 +59,8 @@ TCamera::OnCommand( command_data const &Command ) {
         case user_command::viewturn: {
 
             OnCursorMove(
-                reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global::fMouseXScale / Global::ZoomFactor,
-                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global::fMouseYScale / Global::ZoomFactor );
+                reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global.fMouseXScale / Global.ZoomFactor,
+                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global.fMouseYScale / Global.ZoomFactor );
             break;
         }
 
@@ -154,7 +154,7 @@ void TCamera::Update()
     auto const deltatime = Timer::GetDeltaRenderTime(); // czas bez pauzy
 
     if( ( Type == tp_Free )
-     || ( false == Global::ctrlState )
+     || ( false == Global.ctrlState )
      || ( true == DebugCameraFlag ) ) {
         // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
@@ -166,16 +166,16 @@ void TCamera::Update()
     if( ( Type == tp_Free )
      || ( true == DebugCameraFlag ) ) {
         // free movement position update is handled here, movement while in vehicle is handled by train update
-        vector3 Vec = Velocity;
+        Math3D::vector3 Vec = Velocity;
         Vec.RotateY( Yaw );
         Pos += Vec * 5.0 * deltatime;
     }
 }
 
-vector3 TCamera::GetDirection() {
+Math3D::vector3 TCamera::GetDirection() {
 
     glm::vec3 v = glm::normalize( glm::rotateY<float>( glm::vec3{ 0.f, 0.f, 1.f }, Yaw ) );
-	return vector3(v.x, v.y, v.z);
+	return Math3D::vector3(v.x, v.y, v.z);
 }
 
 bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
@@ -200,10 +200,10 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
 
 void TCamera::RaLook()
 { // zmiana kierunku patrzenia - przelicza Yaw
-    vector3 where = LookAt - Pos + vector3(0, 3, 0); // trochę w górę od szyn
+    Math3D::vector3 where = LookAt - Pos + Math3D::vector3(0, 3, 0); // trochę w górę od szyn
     if ((where.x != 0.0) || (where.z != 0.0))
         Yaw = atan2(-where.x, -where.z); // kąt horyzontalny
-    double l = Length3(where);
+    double l = Math3D::Length3(where);
     if (l > 0.0)
         Pitch = asin(where.y / l); // kąt w pionie
 };
@@ -211,5 +211,5 @@ void TCamera::RaLook()
 void TCamera::Stop()
 { // wyłącznie bezwładnego ruchu po powrocie do kabiny
     Type = tp_Follow;
-    Velocity = vector3(0, 0, 0);
+    Velocity = Math3D::vector3(0, 0, 0);
 };

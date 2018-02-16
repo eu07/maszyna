@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "Names.h"
 
+float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
@@ -56,7 +57,7 @@ public:
 // methods
     // restores state of the class from provided data stream
     sound_source &
-        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+        deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0, int const Chunkrange = 100 );
     sound_source &
         deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
     // copies list of sounds from provided source
@@ -202,6 +203,9 @@ private:
     sound_properties m_properties; // current properties of the emitted sounds
     float m_pitchvariation {}; // emitter-specific shift in base pitch
     bool m_stop { false }; // indicates active sample instances should be terminated
+/*
+    bool m_stopend { false }; // indicates active instances of optional ending sound should be terminated
+*/
     bool m_playbeginning { true }; // indicates started sounds should be preceeded by opening bookend if there's one
     std::array<sound_data, 3> m_sounds { {} }; // basic sounds emitted by the source, main and optional bookends
     std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range

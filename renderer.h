@@ -18,12 +18,27 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 #include "MemCell.h"
 #include "scene.h"
-#include "opengllight.h"
+#include "light.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
 //#define EU07_USE_DEBUG_CABSHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
+
+struct opengl_light : public basic_light {
+
+    GLuint id { (GLuint)-1 };
+
+    void
+        apply_intensity( float const Factor = 1.0f );
+    void
+        apply_angle();
+
+    opengl_light &
+        operator=( basic_light const &Right ) {
+            basic_light::operator=( Right );
+            return *this; }
+};
 
 // encapsulates basic rendering setup.
 // for modern opengl this translates to a specific collection of glsl shaders,
@@ -232,6 +247,8 @@ private:
     void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
+        setup_environment_light( TEnvironmentType const Environment = e_flat );
+    void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
     // helper, texture manager method; activates specified texture unit
     void
@@ -300,6 +317,7 @@ private:
     gfx::geometrybank_manager m_geometry;
     material_manager m_materials;
     texture_manager m_textures;
+    opengl_light m_sunlight;
     opengllight_array m_lights;
 
     gfx::geometry_handle m_billboardgeometry { 0, 0 };
@@ -355,6 +373,7 @@ private:
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };
+//    TEnvironmentType m_environment { e_flat };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };
     bool m_renderspecular{ false }; // controls whether to include specular component in the calculations

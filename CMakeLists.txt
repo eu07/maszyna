@@ -35,7 +35,6 @@ set(SOURCES
 "Logs.cpp"
 "McZapkie/friction.cpp"
 "McZapkie/hamulce.cpp"
-"McZapkie/mctools.cpp"
 "McZapkie/Mover.cpp"
 "McZapkie/Oerlikon_ESt.cpp"
 "MdlMngr.cpp"
@@ -78,6 +77,9 @@ set(SOURCES
 "audio.cpp"
 "audiorenderer.cpp"
 "motiontelemetry.cpp"
+"utilities.cpp"
+"light.cpp"
+"uitranscripts.cpp"
 )
 
 set (PREFIX "")

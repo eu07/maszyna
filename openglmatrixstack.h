@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "GL/glew.h"
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include "GL/wglew.h"
 #endif
 

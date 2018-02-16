@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#include <vector>
-#include "dumb3d.h"
-#include "Float3d.h"
 #include "Classes.h"
 
 // collection of virtual light sources present in the scene

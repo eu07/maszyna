@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
+#include "renderer.h"
 #include "MdlMngr.h"
 #include "simulation.h"
 #include "Globals.h"
@@ -72,11 +73,11 @@ int TAnimAdvanced::SortByBone()
 TAnimContainer::TAnimContainer()
 {
     pNext = NULL;
-    vRotateAngles = vector3(0.0f, 0.0f, 0.0f); // aktualne kąty obrotu
-    vDesiredAngles = vector3(0.0f, 0.0f, 0.0f); // docelowe kąty obrotu
+    vRotateAngles = Math3D::vector3(0.0f, 0.0f, 0.0f); // aktualne kąty obrotu
+    vDesiredAngles = Math3D::vector3(0.0f, 0.0f, 0.0f); // docelowe kąty obrotu
     fRotateSpeed = 0.0;
-    vTranslation = vector3(0.0f, 0.0f, 0.0f); // aktualne przesunięcie
-    vTranslateTo = vector3(0.0f, 0.0f, 0.0f); // docelowe przesunięcie
+    vTranslation = Math3D::vector3(0.0f, 0.0f, 0.0f); // aktualne przesunięcie
+    vTranslateTo = Math3D::vector3(0.0f, 0.0f, 0.0f); // docelowe przesunięcie
     fTranslateSpeed = 0.0;
     fAngleSpeed = 0.0;
     pSubModel = NULL;
@@ -100,7 +101,7 @@ bool TAnimContainer::Init(TSubModel *pNewSubModel)
     return (pSubModel != NULL);
 }
 
-void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
+void TAnimContainer::SetRotateAnim( Math3D::vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
     if (!this)
         return; // wywoływane z eventu, gdy brak modelu
@@ -123,7 +124,7 @@ void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSp
     }
 }
 
-void TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
+void TAnimContainer::SetTranslateAnim( Math3D::vector3 vNewTranslate, double fNewSpeed)
 {
     if (!this)
         return; // wywoływane z eventu, gdy brak modelu
@@ -154,8 +155,11 @@ void TAnimContainer::AnimSetVMD(double fNewSpeed)
     // X-w lewo, Y-w górę, Z-do tyłu
     // minimalna wysokość to -7.66, a nadal musi być ponad podłogą
     // if (pMovementData->iFrame>0) return; //tylko pierwsza ramka
-    vTranslateTo = vector3(0.1 * pMovementData->f3Vector.x, 0.1 * pMovementData->f3Vector.z,
-                           0.1 * pMovementData->f3Vector.y);
+    vTranslateTo =
+        Math3D::vector3(
+            0.1 * pMovementData->f3Vector.x,
+            0.1 * pMovementData->f3Vector.z,
+            0.1 * pMovementData->f3Vector.y);
     if (LengthSquared3(vTranslateTo) > 0.0 ? true : LengthSquared3(vTranslation) > 0.0)
     { // jeśli ma być przesunięte albo jest przesunięcie
         iAnim |= 2; // wyłączy się samo
@@ -210,11 +214,11 @@ void TAnimContainer::UpdateModel() {
     {
         if (fTranslateSpeed != 0.0)
         {
-            vector3 dif = vTranslateTo - vTranslation; // wektor w kierunku docelowym
+            auto dif = vTranslateTo - vTranslation; // wektor w kierunku docelowym
             double l = LengthSquared3(dif); // długość wektora potrzebnego przemieszczenia
             if (l >= 0.0001)
             { // jeśli do przemieszczenia jest ponad 1cm
-                vector3 s = SafeNormalize(dif); // jednostkowy wektor kierunku
+                auto s = Math3D::SafeNormalize(dif); // jednostkowy wektor kierunku
                 s = s *
                     (fTranslateSpeed *
                      Timer::GetDeltaTime()); // przemieszczenie w podanym czasie z daną prędkością
@@ -253,7 +257,7 @@ void TAnimContainer::UpdateModel() {
             */
 
             bool anim = false;
-            vector3 dif = vDesiredAngles - vRotateAngles;
+            auto dif = vDesiredAngles - vRotateAngles;
             double s;
             s = fRotateSpeed * sign(dif.x) * Timer::GetDeltaTime();
             if (fabs(s) >= fabs(dif.x))
@@ -463,7 +467,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 					name[ name.length() - 3 ] = 'e';
 				}
 #ifdef EU07_USE_OLD_TERRAINCODE
-                Global::asTerrainModel = name;
+                Global.asTerrainModel = name;
                 WriteLog("Terrain model \"" + name + "\" will be created.");
 #endif
             }
@@ -581,7 +585,7 @@ void TAnimModel::RaPrepare()
             state = ( fBlinkTimer < fOnTime );
             break;
         case ls_Dark: // zapalone, gdy ciemno
-            state = ( Global::fLuminance <= ( lsLights[i] - 3.0 ) );
+            state = ( Global.fLuminance <= ( lsLights[i] - 3.0 ) );
             break;
         default: // zapalony albo zgaszony
             state = (lightmode == ls_On);

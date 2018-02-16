@@ -1,13 +1,8 @@
-
 #include "stdafx.h"
 #include "moon.h"
 #include "Globals.h"
 #include "mtable.h"
-#include "usefull.h"
 #include "World.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
 
 cMoon::cMoon() {
 
@@ -44,11 +39,11 @@ void
 cMoon::update() {
 
     move();
-    glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
+    glm::vec3 position( 0.f, 0.f, -1.f );
     position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
     position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );
 
-    m_position = position;
+    m_position = glm::normalize( position );
 }
 
 void
@@ -56,20 +51,21 @@ cMoon::render() {
 
     ::glColor4f( 225.f / 255.f, 225.f / 255.f, 255.f / 255.f, 1.f );
 	// debug line to locate the moon easier
+    auto const position { m_position * 2000.f };
     ::glBegin( GL_LINES );
-    ::glVertex3fv( glm::value_ptr( m_position ) );
-    ::glVertex3f( m_position.x, 0.f, m_position.z );
+    ::glVertex3fv( glm::value_ptr( position ) );
+    ::glVertex3f( position.x, 0.f, position.z );
     ::glEnd();
     ::glPushMatrix();
-    ::glTranslatef( m_position.x, m_position.y, m_position.z );
-    ::gluSphere( moonsphere, /* (float)( Global::iWindowHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
+    ::glTranslatef( position.x, position.y, position.z );
+    ::gluSphere( moonsphere, /* (float)( Global.iWindowHeight / Global.FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
 	::glPopMatrix();
 }
 
 glm::vec3
 cMoon::getDirection() {
 
-	return glm::normalize( m_position );
+    return m_position;
 }
 
 float
@@ -125,13 +121,15 @@ void cMoon::move() {
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
     if( m_observer.second >= 0 ) { localtime.wSecond = m_observer.second; }
 
-    double ut = localtime.wHour
+    double ut =
+        localtime.wHour
         + localtime.wMinute / 60.0 // too low resolution, noticeable skips
         + localtime.wSecond / 3600.0; // good enough in normal circumstances
-    /*
-    + localtime.wMilliseconds / 3600000.0; // for really smooth movement
-    */
-    double daynumber = 367 * localtime.wYear
+/*
+        + localtime.wMilliseconds / 3600000.0; // for really smooth movement
+*/
+    double daynumber
+        = 367 * localtime.wYear
         - 7 * ( localtime.wYear + ( localtime.wMonth + 9 ) / 12 ) / 4
         + 275 * localtime.wMonth / 9
         + localtime.wDay

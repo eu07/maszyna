@@ -21,18 +21,22 @@ enum class user_command {
     mastercontrollerincreasefast,
     mastercontrollerdecrease,
     mastercontrollerdecreasefast,
+    mastercontrollerset,
     secondcontrollerincrease,
     secondcontrollerincreasefast,
     secondcontrollerdecrease,
     secondcontrollerdecreasefast,
+    secondcontrollerset,
     mucurrentindicatorothersourceactivate,
     independentbrakeincrease,
     independentbrakeincreasefast,
     independentbrakedecrease,
     independentbrakedecreasefast,
+    independentbrakeset,
     independentbrakebailoff,
     trainbrakeincrease,
     trainbrakedecrease,
+    trainbrakeset,
     trainbrakecharging,
     trainbrakerelease,
     trainbrakefirstservice,
@@ -52,17 +56,28 @@ enum class user_command {
     reverserincrease,
     reverserdecrease,
     linebreakertoggle,
+    linebreakeropen,
+    linebreakerclose,
     convertertoggle,
+    converterenable,
+    converterdisable,
     convertertogglelocal,
     converteroverloadrelayreset,
     compressortoggle,
+    compressorenable,
+    compressordisable,
     compressortogglelocal,
     motoroverloadrelaythresholdtoggle,
+    motoroverloadrelaythresholdsetlow,
+    motoroverloadrelaythresholdsethigh,
     motoroverloadrelayreset,
     notchingrelaytoggle,
     epbrakecontroltoggle,
     brakeactingspeedincrease,
     brakeactingspeeddecrease,
+    brakeactingspeedsetcargo,
+    brakeactingspeedsetpassenger,
+    brakeactingspeedsetrapid,
     brakeloadcompensationincrease,
     brakeloadcompensationdecrease,
     mubrakingindicatortoggle,
@@ -72,6 +87,7 @@ enum class user_command {
     radiotoggle,
     radiochannelincrease,
     radiochanneldecrease,
+    radiostopsend,
     radiostoptest,
     cabchangeforward,
     cabchangebackward,
@@ -98,15 +114,31 @@ enum class user_command {
     pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,
+    pantographraisefront,
+    pantographraiserear,
+    pantographlowerfront,
+    pantographlowerrear,
     pantographlowerall,
     heatingtoggle,
+    heatingenable,
+    heatingdisable,
     lightspresetactivatenext,
     lightspresetactivateprevious,
     headlighttoggleleft,
+    headlightenableleft,
+    headlightdisableleft,
     headlighttoggleright,
+    headlightenableright,
+    headlightdisableright,
     headlighttoggleupper,
+    headlightenableupper,
+    headlightdisableupper,
     redmarkertoggleleft,
+    redmarkerenableleft,
+    redmarkerdisableleft,
     redmarkertoggleright,
+    redmarkerenableright,
+    redmarkerdisableright,
     headlighttogglerearleft,
     headlighttogglerearright,
     headlighttogglerearupper,
@@ -115,11 +147,20 @@ enum class user_command {
     redmarkerstoggle,
     endsignalstoggle,
     headlightsdimtoggle,
+    headlightsdimenable,
+    headlightsdimdisable,
     motorconnectorsopen,
+    motorconnectorsclose,
     motordisconnect,
     interiorlighttoggle,
+    interiorlightenable,
+    interiorlightdisable,
     interiorlightdimtoggle,
+    interiorlightdimenable,
+    interiorlightdimdisable,
     instrumentlighttoggle,
+    instrumentlightenable,
+    instrumentlightdisable,
     generictoggle0,
     generictoggle1,
     generictoggle2,
@@ -131,6 +172,8 @@ enum class user_command {
     generictoggle8,
     generictoggle9,
     batterytoggle,
+    batteryenable,
+    batterydisable,
 
     none = -1
 };
@@ -168,13 +211,6 @@ struct command_data {
     int action; // press, repeat or release
     std::uint64_t param1;
     std::uint64_t param2;
-    enum desired_state_t
-    {
-        TOGGLE,
-        OFF,
-        ON
-    };
-    desired_state_t desired_state;
     double time_delta;
 };
 
@@ -229,8 +265,7 @@ public:
     // TODO: replace uint16_t with recipient handle, based on item id
     void
         post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
-              int const Action, std::uint16_t const Recipient,
-              command_data::desired_state_t state = command_data::TOGGLE ) const;
+            int const Action, std::uint16_t const Recipient ) const;
 private:
 // types
 // members

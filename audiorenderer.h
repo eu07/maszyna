@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "audio.h"
 #include "ResourceManager.h"
-#include "Globals.h"
+#include "uitranscripts.h"
 
 class sound_source;
 
@@ -63,7 +63,7 @@ struct openal_source {
         play();
     // updates state of the source
     void
-        update( double const Deltatime );
+        update( double const Deltatime, glm::vec3 const &Listenervelocity );
     // configures state of the source to match the provided set of properties
     void
         sync_with( sound_properties const &State );
@@ -90,6 +90,7 @@ private:
     float pitch_variation { 1.f }; // emitter-specific variation of the base pitch
     float sound_range { 50.f }; // cached audible range of the emitted samples
     glm::vec3 sound_distance; // cached distance between sound and the listener
+    glm::vec3 sound_velocity; // sound movement vector
     bool is_in_range { false }; // helper, indicates the source was recently within audible range
     bool is_multipart { false }; // multi-part sounds are kept alive at longer ranges
 };
@@ -142,6 +143,7 @@ private:
     ALCcontext * m_context { nullptr };
     bool m_ready { false }; // renderer is initialized and functional
     glm::dvec3 m_listenerposition;
+    glm::vec3 m_listenervelocity;
 
     buffer_manager m_buffers;
     // TBD: list of sources as vector, sorted by distance, for openal implementations with limited number of active sources?
@@ -170,8 +172,7 @@ openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_
             auto const &buffer { audio::renderer.buffer( bufferhandle ) };
             buffers.emplace_back( buffer.id );
             if( false == buffer.caption.empty() ) {
-                Global::tranTexts.Add( buffer.caption );
-			} } );
+                ui::Transcripts.Add( buffer.caption ); } } );
 
     if( id != audio::null_resource ) {
         ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );

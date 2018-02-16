@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "EvLaunch.h"
+
 #include "Globals.h"
 #include "Logs.h"
 #include "Event.h"
@@ -23,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Console.h"
 #include "World.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 
@@ -30,7 +32,7 @@ http://mozilla.org/MPL/2.0/.
 // and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
 int vk_to_glfw_key( int const Keycode ) {
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     auto const code = VkKeyScan( Keycode );
 #else
 	auto const code = (short int)Keycode;
@@ -128,16 +130,14 @@ bool TEventLauncher::Load(cParser *parser)
 
 bool TEventLauncher::check_conditions()
 { //"renderowanie" wyzwalacza
-    bool bCond = false;
-    if (iKey != 0)
-    {
-	    // tylko jeśli okno jest aktywne
+    auto bCond { false };
+    if (iKey != 0) {
         if( iKey > 255 ) {
             // key and modifier
             auto const modifier = ( iKey & 0xff00 ) >> 8;
             bCond = ( Console::Pressed( iKey & 0xff ) )
-                && ( ( modifier & 1 ) ? Global::shiftState : true )
-                && ( ( modifier & 2 ) ? Global::ctrlState : true );
+                 && ( ( modifier & 1 ) ? Global.shiftState : true )
+                 && ( ( modifier & 2 ) ? Global.ctrlState : true );
         }
         else {
             // just key

@@ -8,15 +8,15 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #pragma once
+
 #include <string>
 
 enum logtype : unsigned int {
 
-    generic = (1 << 0),
-    file = (1 << 1),
-    model = (1 << 2),
-    texture = (1 << 3),
-	lptdebug = (1 << 4)
+    generic = ( 1 << 0 ),
+    file = ( 1 << 1 ),
+    model = ( 1 << 2 ),
+    texture = ( 1 << 3 )
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

@@ -11,8 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 
 #include "Globals.h"
-#include "mctools.h"
 #include "winheaders.h"
+#include "utilities.h"
 
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
@@ -55,25 +55,25 @@ std::string filename_date() {
 
 std::string filename_scenery() {
 
-    auto extension = Global::SceneryFile.rfind( '.' );
+    auto extension = Global.SceneryFile.rfind( '.' );
     if( extension != std::string::npos ) {
-        return Global::SceneryFile.substr( 0, extension );
+        return Global.SceneryFile.substr( 0, extension );
     }
     else {
-        return Global::SceneryFile;
+        return Global.SceneryFile;
     }
 }
 
 void WriteLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
-    if( true == TestFlag( Global::DisabledLogTypes, Type ) ) { return; }
+    if( true == TestFlag( Global.DisabledLogTypes, Type ) ) { return; }
 
-    if (Global::iWriteLogEnabled & 1) {
+    if (Global.iWriteLogEnabled & 1) {
         if( !output.is_open() ) {
 
             std::string const filename =
-                ( Global::MultipleLogs ?
+                ( Global.MultipleLogs ?
                     "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" :
                     "log.txt" );
             output.open( filename, std::ios::trunc );
@@ -83,7 +83,7 @@ void WriteLog( const char *str, logtype const Type ) {
     }
 
 #ifdef _WIN32
-    if( Global::iWriteLogEnabled & 2 ) {
+    if( Global.iWriteLogEnabled & 2 ) {
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN | FOREGROUND_INTENSITY );
         DWORD wr = 0;
@@ -97,16 +97,16 @@ void WriteLog( const char *str, logtype const Type ) {
 void ErrorLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
-    if( true == TestFlag( Global::DisabledLogTypes, Type ) ) { return; }
+    if( true == TestFlag( Global.DisabledLogTypes, Type ) ) { return; }
 
     if (!errors.is_open()) {
 
         std::string const filename =
-            ( Global::MultipleLogs ?
+            ( Global.MultipleLogs ?
                 "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
                 "errors.txt" );
         errors.open( filename, std::ios::trunc );
-        errors << "EU07.EXE " + Global::asVersion << "\n";
+        errors << "EU07.EXE " + Global.asVersion << "\n";
     }
 
     errors << str << "\n";
@@ -116,14 +116,14 @@ void ErrorLog( const char *str, logtype const Type ) {
 void Error(const std::string &asMessage, bool box)
 {
     // if (box)
-    //	MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
+    //	MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global.asRelease).c_str(), MB_OK);
     ErrorLog(asMessage.c_str());
 }
 
 void Error(const char *&asMessage, bool box)
 {
     // if (box)
-    //	MessageBox(NULL, asMessage, string("EU07 " + Global::asRelease).c_str(), MB_OK);
+    //	MessageBox(NULL, asMessage, string("EU07 " + Global.asRelease).c_str(), MB_OK);
     ErrorLog(asMessage);
     WriteLog(asMessage);
 }
@@ -142,12 +142,12 @@ void WriteLog(const std::string &str, logtype const Type )
 void CommLog(const char *str)
 { // Ra: warunkowa rejestracja komunikatów
     WriteLog(str);
-    /*    if (Global::iWriteLogEnabled & 4)
+    /*    if (Global.iWriteLogEnabled & 4)
     {
     if (!comms.is_open())
     {
     comms.open("comms.txt", std::ios::trunc);
-    comms << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
+    comms << AnsiString("EU07.EXE " + Global.asRelease).c_str() << "\n";
     }
     if (str)
     comms << str;

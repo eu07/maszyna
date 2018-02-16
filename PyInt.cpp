@@ -1,11 +1,11 @@
 #include "stdafx.h"
 #include "PyInt.h"
+
+#include "parser.h"
 #include "renderer.h"
+#include "Model3d.h"
 #include "Train.h"
 #include "Logs.h"
-//#include <process.h>
-//#include <windows.h>
-//#include <stdlib.h>
 
 TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 

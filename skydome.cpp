@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "skydome.h"
 #include "color.h"
-#include "usefull.h"
+#include "utilities.h"
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
@@ -282,9 +282,9 @@ void CSkyDome::RebuildColors() {
 		float const Z = ((1.0f - x - y) / y) * Y;
 		
 		colorconverter = glm::vec3( X, Y, Z );
-		color = XYZtoRGB( colorconverter );
+		color = colors::XYZtoRGB( colorconverter );
 
-		colorconverter = RGBtoHSV(color);
+		colorconverter = colors::RGBtoHSV(color);
 		if ( m_linearexpcontrol ) {
             // linear scale
 			colorconverter.z *= m_expfactor;
@@ -304,13 +304,13 @@ void CSkyDome::RebuildColors() {
         auto const sunbasedphase = clamp( (1.0f / 15.0f) * ( degreesabovehorizon - 10.0f ), 0.0f, 1.0f );
         // correction is applied in linear manner from the bottom, becomes fully in effect for vertices with y = 0.50
         auto const heightbasedphase = clamp( vertex.y * 2.0f, 0.0f, 1.0f );
-        // this height-based factor is reduced the farther the sky is up in the sky
+        // this height-based factor is reduced the farther the sun is up in the sky
         float const shiftfactor = clamp( interpolate(heightbasedphase, sunbasedphase, sunbasedphase), 0.0f, 1.0f );
         // h = 210 makes for 'typical' sky tone
         shiftedcolor = glm::vec3( 210.0f, colorconverter.y, colorconverter.z );
-        shiftedcolor = HSVtoRGB( shiftedcolor );
+        shiftedcolor = colors::HSVtoRGB( shiftedcolor );
 
-		color = HSVtoRGB(colorconverter);
+		color = colors::HSVtoRGB(colorconverter);
 
         color = interpolate( color, shiftedcolor, shiftfactor );
 /*

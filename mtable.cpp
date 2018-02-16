@@ -9,7 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mtable.h"
-#include "McZapkie/mctools.h"
+#include "World.h"
+#include "utilities.h"
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca różnicę czasu

@@ -14,9 +14,12 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "Classes.h"
+#include "dumb3d.h"
+#include "Float3d.h"
 #include "Model3d.h"
-#include "material.h"
 #include "DynObj.h"
+#include "scenenode.h"
 
 const int iMaxNumLights = 8;
 float const DefaultDarkThresholdLevel { 0.325f };
@@ -47,11 +50,11 @@ class TAnimContainer
     friend class TAnimModel;
 
   private:
-    vector3 vRotateAngles; // dla obrotów Eulera
-    vector3 vDesiredAngles;
+    Math3D::vector3 vRotateAngles; // dla obrotów Eulera
+    Math3D::vector3 vDesiredAngles;
     double fRotateSpeed;
-    vector3 vTranslation;
-    vector3 vTranslateTo;
+    Math3D::vector3 vTranslation;
+    Math3D::vector3 vTranslateTo;
     double fTranslateSpeed; // może tu dać wektor?
     float4 qCurrent; // aktualny interpolowany
     float4 qStart; // pozycja początkowa (0 dla interpolacji)
@@ -81,8 +84,8 @@ class TAnimContainer
     inline
     std::string NameGet() {
         return (pSubModel ? pSubModel->pName : ""); };
-    void SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
-    void SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
+    void SetRotateAnim( Math3D::vector3 vNewRotateAngles, double fNewRotateSpeed);
+    void SetTranslateAnim( Math3D::vector3 vNewTranslate, double fNewSpeed);
     void AnimSetVMD(double fNewSpeed);
     void PrepareModel();
     void UpdateModel();
@@ -92,8 +95,8 @@ class TAnimContainer
     double AngleGet() {
         return vRotateAngles.z; }; // jednak ostatnia, T3D ma inny układ
     inline
-    vector3 TransGet() {
-        return vector3(-vTranslation.x, vTranslation.z, vTranslation.y); }; // zmiana, bo T3D ma inny układ
+    Math3D::vector3 TransGet() {
+        return Math3D::vector3(-vTranslation.x, vTranslation.z, vTranslation.y); }; // zmiana, bo T3D ma inny układ
     inline
     void WillBeAnimated() {
         if (pSubModel)
@@ -173,7 +176,7 @@ private:
     int iNumLights { 0 };
     TSubModel *LightsOn[ iMaxNumLights ]; // Ra: te wskaźniki powinny być w ramach TModel3d
     TSubModel *LightsOff[ iMaxNumLights ];
-    vector3 vAngle; // bazowe obroty egzemplarza względem osi
+    Math3D::vector3 vAngle; // bazowe obroty egzemplarza względem osi
     material_data m_materialdata;
 
     std::string asText; // tekst dla wyświetlacza znakowego

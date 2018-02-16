@@ -9,11 +9,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mouseinput.h"
-#include "usefull.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "World.h"
 #include "Train.h"
+#include "utilities.h"
 #include "renderer.h"
 
 extern TWorld World;
@@ -21,10 +21,13 @@ extern TWorld World;
 bool
 mouse_input::init() {
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     DWORD systemkeyboardspeed;
     ::SystemParametersInfo( SPI_GETKEYBOARDSPEED, 0, &systemkeyboardspeed, 0 );
     m_updaterate = interpolate( 0.5, 0.04, systemkeyboardspeed / 31.0 );
+    DWORD systemkeyboarddelay;
+    ::SystemParametersInfo( SPI_GETKEYBOARDDELAY, 0, &systemkeyboarddelay, 0 );
+    m_updatedelay = interpolate( 0.25, 1.0, systemkeyboarddelay / 3.0 );
 #endif
     return true;
 }
@@ -32,7 +35,7 @@ mouse_input::init() {
 void
 mouse_input::move( double Mousex, double Mousey ) {
 
-    if( false == Global::ControlPicking ) {
+    if( false == Global.ControlPicking ) {
         // default control mode
         m_relay.post(
             user_command::viewturn,
@@ -44,6 +47,7 @@ mouse_input::move( double Mousex, double Mousey ) {
             0 );
     }
     else {
+        // control picking mode
         if( false == m_pickmodepanning ) {
             // even if the view panning isn't active we capture the cursor position in case it does get activated
             m_cursorposition.x = Mousex;
@@ -67,7 +71,7 @@ mouse_input::move( double Mousex, double Mousey ) {
 void
 mouse_input::button( int const Button, int const Action ) {
 
-    if( false == Global::ControlPicking ) { return; }
+    if( false == Global.ControlPicking ) { return; }
 
     if( true == FreeFlyModeFlag ) {
         // world editor controls
@@ -124,7 +128,7 @@ mouse_input::button( int const Button, int const Action ) {
                         );
                     if( mousecommand != user_command::none ) {
                         // check manually for commands which have 'fast' variants launched with shift modifier
-                        if( Global::shiftState ) {
+                        if( Global.shiftState ) {
                             switch( mousecommand ) {
                                 case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
                                 case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
@@ -139,7 +143,7 @@ mouse_input::button( int const Button, int const Action ) {
                         // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                         // TODO: pass correct entity id once the missing systems are in place
                         m_relay.post( mousecommand, 0, 0, Action, 0 );
-                        m_updateaccumulator = 0.0; // prevent potential command repeat right after issuing one
+                        m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
 
                         switch( mousecommand ) {
                             case user_command::mastercontrollerincrease:
@@ -180,26 +184,24 @@ mouse_input::poll() {
 
     auto updaterate { m_updaterate };
     if( m_varyingpollrate ) {
-        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::iWindowHeight ) );
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global.iWindowHeight ) );
     }
 
-    if( m_updateaccumulator < updaterate ) {
-        // too early for any work
-        return;
-    }
-    m_updateaccumulator -= updaterate;
+    while( m_updateaccumulator > updaterate ) {
 
-    if( m_mousecommandleft != user_command::none ) {
-        // NOTE: basic keyboard controls don't have any parameters
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-        // TODO: pass correct entity id once the missing systems are in place
-        m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
-    }
-    if( m_mousecommandright != user_command::none ) {
-        // NOTE: basic keyboard controls don't have any parameters
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-        // TODO: pass correct entity id once the missing systems are in place
-        m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+        if( m_mousecommandleft != user_command::none ) {
+            // NOTE: basic keyboard controls don't have any parameters
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+        }
+        if( m_mousecommandright != user_command::none ) {
+            // NOTE: basic keyboard controls don't have any parameters
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+        }
+        m_updateaccumulator -= updaterate;
     }
 }
 
@@ -241,11 +243,11 @@ mouse_input::default_bindings() {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },
         { "main_off_bt:", {
-            user_command::linebreakertoggle,
+            user_command::linebreakeropen,
             user_command::none } },
         { "main_on_bt:",{
-            user_command::linebreakertoggle,
-            user_command::none } }, // TODO: dedicated on and off line breaker commands
+            user_command::linebreakerclose,
+            user_command::none } },
         { "security_reset_bt:", {
             user_command::alerteracknowledge,
             user_command::none } },
@@ -350,6 +352,12 @@ mouse_input::default_bindings() {
             user_command::none } },
         { "radiochannelnext_sw:", {
             user_command::radiochannelincrease,
+            user_command::none } },
+        { "radiostop_sw:", {
+            user_command::radiostopsend,
+            user_command::none } },
+        { "radiotest_sw:", {
+            user_command::radiostoptest,
             user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,

@@ -131,7 +131,7 @@ class matrix4x4
   public:
     matrix4x4(void)
     {
-		memset(e, 0, sizeof(e));
+        memset( e, 0, sizeof( e ) );
     }
 
     // When defining matrices in C arrays, it is easiest to define them with

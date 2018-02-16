@@ -19,9 +19,13 @@ public:
 // methods
     TButton() = default;
     void Clear(int const i = -1);
-    inline void FeedbackBitSet( int const i ) {
+    inline
+    void FeedbackBitSet( int const i ) {
         iFeedbackBit = 1 << i; };
     void Turn( bool const State );
+    inline
+    bool GetValue() const {
+        return ( m_state ? 1 : 0 ); }
     inline
     bool Active() {
         return ( ( pModelOn != nullptr )

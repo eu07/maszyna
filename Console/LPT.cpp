@@ -60,6 +60,5 @@ bool TLPT::Connect(int port)
 
 void TLPT::Out(int x)
 { // wysłanie bajtu do portu
-	WriteLog("lpt: sending data: " + std::to_string(x), logtype::lptdebug);
     OutPort(address, x);
 };

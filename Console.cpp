@@ -10,11 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
-#include "McZapkie/mctools.h"
 #include "LPT.h"
 #include "Logs.h"
 #include "PoKeys55.h"
-#include "usefull.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 // Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
@@ -54,37 +53,12 @@ Działanie jest następujące:
 
 /*******************************/
 
-/* //kod do przetrawienia:
-//aby się nie włączacz wygaszacz ekranu, co jakiś czas naciska się wirtualnie ScrollLock
-
-[DllImport("user32.dll")]
-static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-
-private static void PressScrollLock()
-{//przyciska i zwalnia ScrollLock
- const byte vkScroll = 0x91;
- const byte keyeventfKeyup = 0x2;
- keybd_event(vkScroll, 0x45, 0, (UIntPtr)0);
- keybd_event(vkScroll, 0x45, keyeventfKeyup, (UIntPtr)0);
-};
-
-[DllImport("user32.dll")]
-private static extern bool SystemParametersInfo(int uAction,int uParam,int &lpvParam,int flags);
-
-public static Int32 GetScreenSaverTimeout()
-{
- Int32 value=0;
- SystemParametersInfo(14,0,&value,0);
- return value;
-};
-*/
-
 // static class member storage allocation
 TKeyTrans Console::ktTable[4 * 256];
 
 // Ra: bajer do migania LED-ami w klawiaturze
 void SetLedState( unsigned char Code, bool bOn ) {
-#ifdef _WINDOWS
+#ifdef _WIN32
     if( bOn != ( ::GetKeyState( Code ) != 0 ) ) {
         keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | 0, 0 );
         keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0 );
@@ -99,7 +73,6 @@ int Console::iMode = 0;
 int Console::iConfig = 0;
 TPoKeys55 *Console::PoKeys55[2] = {NULL, NULL};
 TLPT *Console::LPT = NULL;
-TMWDComm *Console::MWDComm = NULL; // maciek001: obiekt dla MWD
 int Console::iSwitch[8]; // bistabilne w kabinie, załączane z [Shift], wyłączane bez
 int Console::iButton[8]; // monostabilne w kabinie, załączane podczas trzymania klawisza
 
@@ -111,7 +84,6 @@ Console::Console()
         iSwitch[i] = 0; // bity 0..127 - bez [Ctrl], 128..255 - z [Ctrl]
         iButton[i] = 0; // bity 0..127 - bez [Shift], 128..255 - z [Shift]
     }
-	MWDComm = NULL;
 };
 
 Console::~Console()
@@ -177,12 +149,9 @@ void Console::Off()
             SetLedState(VK_SCROLL, true); // przyciśnięty
             SetLedState(VK_SCROLL, false); // zwolniony
         }
-    delete PoKeys55[0];
-    PoKeys55[0] = NULL;
-    delete PoKeys55[1];
-    PoKeys55[1] = NULL;
-    delete LPT;
-    LPT = NULL;
+    SafeDelete( PoKeys55[0] );
+    SafeDelete( PoKeys55[1] );
+    SafeDelete( LPT );
 };
 
 void Console::BitsSet(int mask, int entry)
@@ -278,49 +247,54 @@ void Console::BitsUpdate(int mask)
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartości (y) na kanale analogowym (x)
-    if (iMode == 4)
-        if (PoKeys55[0])
-        {
-            x = Global::iPoKeysPWM[x];
-            if (Global::iCalibrateOutDebugInfo == x)
-                WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y));
-            if (Global::fCalibrateOutMax[x] > 0)
-            {
-                y = clamp( y, 0.0, Global::fCalibrateOutMax[x]);
-                if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" cutted=" + std::to_string(y));
-                y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
-                                                     // maksymalna wartość
-                if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" fraction=" + std::to_string(y));
-            }
-            double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
-                             Global::fCalibrateOut[x][3]) *
-                                y +
-                            Global::fCalibrateOut[x][2]) *
-                               y +
-                           Global::fCalibrateOut[x][1]) *
-                              y +
-                          Global::fCalibrateOut[x][0]; // zakres <0;1>
-            if (Global::iCalibrateOutDebugInfo == x)
-                WriteLog(" calibrated=" + std::to_string(temp));
-            PoKeys55[0]->PWM(x, temp);
+    if( iMode != 4 )  { return; }
+
+    if (PoKeys55[0])
+    {
+        x = Global.iPoKeysPWM[x];
+        if( Global.iCalibrateOutDebugInfo == x ) {
+            WriteLog( "CalibrateOutDebugInfo: oryginal=" + std::to_string( y ) );
         }
+        if (Global.fCalibrateOutMax[x] > 0)
+        {
+            y = clamp( y, 0.0, Global.fCalibrateOutMax[x]);
+            if( Global.iCalibrateOutDebugInfo == x ) {
+                WriteLog( " cutted=" + std::to_string( y ) );
+            }
+            // sprowadzenie do <0,1> jeśli podana maksymalna wartość
+            y = y / Global.fCalibrateOutMax[x];
+            if( Global.iCalibrateOutDebugInfo == x ) {
+                WriteLog( " fraction=" + std::to_string( y ) );
+            }
+        }
+        double temp = (((((Global.fCalibrateOut[x][5] * y) + Global.fCalibrateOut[x][4]) * y +
+                            Global.fCalibrateOut[x][3]) *
+                            y +
+                        Global.fCalibrateOut[x][2]) *
+                            y +
+                        Global.fCalibrateOut[x][1]) *
+                            y +
+                        Global.fCalibrateOut[x][0]; // zakres <0;1>
+        if( Global.iCalibrateOutDebugInfo == x ) {
+            WriteLog( " calibrated=" + std::to_string( temp ) );
+        }
+        PoKeys55[0]->PWM(x, temp);
+    }
 };
 
 void Console::Update()
 { // funkcja powinna być wywoływana regularnie, np. raz w każdej ramce ekranowej
     if (iMode == 4)
         if (PoKeys55[0])
-            if (PoKeys55[0]->Update((Global::iPause & 8) > 0))
+            if (PoKeys55[0]->Update((Global.iPause & 8) > 0))
             { // wykrycie przestawionych przełączników?
-                Global::iPause &= ~8;
+                Global.iPause &= ~8;
             }
             else
             { // błąd komunikacji - zapauzować symulację?
-                if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global::iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
-                Global::iPause |= 8; // tak???
+                if (!(Global.iPause & 8)) // jeśli jeszcze nie oflagowana
+                    Global.iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
+                Global.iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }
 };
@@ -338,11 +312,11 @@ float Console::AnalogCalibrateGet(int x)
     if (iMode == 4 && PoKeys55[0])
     {
 		float b = PoKeys55[0]->fAnalog[x];
-		b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
-			Global::fCalibrateIn[x][3]) * b +
-			Global::fCalibrateIn[x][2]) * b +
-			Global::fCalibrateIn[x][1]) * b +
-			Global::fCalibrateIn[x][0];
+		b = (((((Global.fCalibrateIn[x][5] * b) + Global.fCalibrateIn[x][4]) * b +
+			Global.fCalibrateIn[x][3]) * b +
+			Global.fCalibrateIn[x][2]) * b +
+			Global.fCalibrateIn[x][1]) * b +
+			Global.fCalibrateIn[x][0];
 		if (x == 0) return (b + 2) / 8;
 		if (x == 1) return b/10;
 		else return b;
@@ -381,6 +355,7 @@ void Console::OnKeyDown(int k)
         }
     }
 };
+
 void Console::OnKeyUp(int k)
 { // puszczenie klawisza w zasadzie nie ma znaczenia dla iSwitch, ale zeruje iButton
     if ((k & 0x20000) == 0) // monostabilne tylko bez [Ctrl]
@@ -389,10 +364,12 @@ void Console::OnKeyUp(int k)
         else
             iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wyłącz monostabilny podstawowy
 };
+
 int Console::KeyDownConvert(int k)
 {
     return int(ktTable[k & 0x3FF].iDown);
 };
+
 int Console::KeyUpConvert(int k)
 {
     return int(ktTable[k & 0x3FF].iUp);

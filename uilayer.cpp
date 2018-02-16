@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "uilayer.h"
 #include "Globals.h"
-#include "usefull.h"
+#include "utilities.h"
 #include "renderer.h"
 #include "Logs.h"
 
@@ -29,17 +29,17 @@ ui_layer::init( GLFWwindow *Window ) {
     m_window = Window;
 
 #ifndef _WIN32
-	Global::bGlutFont = true;
+	Global.bGlutFont = true;
 #endif
 
-	if (Global::bGlutFont)
+	if (Global.bGlutFont)
 	{
 		int zi = 0;
 		char zc = 0;
 		char *zcp = &zc;
 		glutInit(&zi, &zcp);
 		WriteLog("Used font from GLUT.");
-		Global::DLFont = true;
+		Global.DLFont = true;
 		return true;
 	}
 
@@ -66,12 +66,12 @@ ui_layer::init( GLFWwindow *Window ) {
         // builds 96 characters starting at character 32
         WriteLog( "Display Lists font used" ); //+AnsiString(glGetError())
         WriteLog( "Font init OK" ); //+AnsiString(glGetError())
-        Global::DLFont = true;
+        Global.DLFont = true;
         return true;
     }
     else {
         ErrorLog( "Font init failed" );
-        Global::DLFont = false;
+        Global.DLFont = false;
         return true;
     }
 #endif
@@ -81,7 +81,7 @@ void
 ui_layer::render() {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho( 0, std::max( 1, Global::iWindowWidth ), std::max( 1, Global::iWindowHeight ), 0, -1, 1 );
+	glOrtho( 0, std::max( 1, Global.iWindowWidth ), std::max( 1, Global.iWindowHeight ), 0, -1, 1 );
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -142,30 +142,30 @@ ui_layer::render_progress() {
         size   = glm::vec2{ 320.0f, 16.0f };
     }
 
-    quad( float4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), float4(0.0f, 0.0f, 0.0f, 0.25f) );
+    quad( glm::vec4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), glm::vec4(0.0f, 0.0f, 0.0f, 0.25f) );
     // secondary bar
     if( m_subtaskprogress ) {
         quad(
-            float4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
-            float4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
+            glm::vec4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
+            glm::vec4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
     }
     // primary bar
 	if( m_progress ) {
         quad(
-            float4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
-            float4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
+            glm::vec4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
+            glm::vec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
     }
 
     if( false == m_progresstext.empty() ) {
-        float const screenratio = static_cast<float>( Global::iWindowWidth ) / Global::iWindowHeight;
+        float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
         float const width =
             ( screenratio >= (4.0f/3.0f) ?
-                ( 4.0f / 3.0f ) * Global::iWindowHeight :
-                Global::iWindowWidth );
+                ( 4.0f / 3.0f ) * Global.iWindowHeight :
+                Global.iWindowWidth );
         float const heightratio =
             ( screenratio >= ( 4.0f / 3.0f ) ?
-                Global::iWindowHeight / 768.f :
-                Global::iWindowHeight / 768.f * screenratio / ( 4.0f / 3.0f ) );
+                Global.iWindowHeight / 768.f :
+                Global.iWindowHeight / 768.f * screenratio / ( 4.0f / 3.0f ) );
         float const height = 768.0f * heightratio;
 
         ::glColor4f( 216.0f / 255.0f, 216.0f / 255.0f, 216.0f / 255.0f, 1.0f );
@@ -173,8 +173,8 @@ ui_layer::render_progress() {
         auto const textwidth = m_progresstext.size() * charsize;
         auto const textheight = 12.0f;
         ::glRasterPos2f(
-            ( 0.5f * ( Global::iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
-            ( 0.5f * ( Global::iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
+            ( 0.5f * ( Global.iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
+            ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
         print( m_progresstext );
     }
 
@@ -189,8 +189,8 @@ ui_layer::render_panels() {
     glPushAttrib( GL_ENABLE_BIT );
     glDisable( GL_TEXTURE_2D );
 
-    float const width = std::min( 4.f / 3.f, static_cast<float>(Global::iWindowWidth) / std::max( 1, Global::iWindowHeight ) ) * Global::iWindowHeight;
-    float const height = Global::iWindowHeight / 768.f;
+    float const width = std::min( 4.f / 3.f, static_cast<float>(Global.iWindowWidth) / std::max( 1, Global.iWindowHeight ) ) * Global.iWindowHeight;
+    float const height = Global.iWindowHeight / 768.f;
 
     for( auto const &panel : m_panels ) {
 
@@ -199,7 +199,7 @@ ui_layer::render_panels() {
 
             ::glColor4fv( &line.color.x );
             ::glRasterPos2f(
-                0.5f * ( Global::iWindowWidth - width ) + panel->origin_x * height,
+                0.5f * ( Global.iWindowWidth - width ) + panel->origin_x * height,
                 panel->origin_y * height + 20.f * lineidx );
             print( line.data );
             ++lineidx;
@@ -240,12 +240,12 @@ ui_layer::render_background() {
             1024.0f : // legacy mode, square texture displayed as 4:3 image
             texture.width() / ( texture.height() / 768.0f ) );
     quad(
-        float4(
+        glm::vec4(
             ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
             (  768.0f * 0.5f ) - ( height * 0.5f ),
             ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
             (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
-        float4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+        colors::white );
 }
 
 void
@@ -263,10 +263,10 @@ ui_layer::render_texture() {
 
         glBegin( GL_TRIANGLE_STRIP );
 
-        glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( offset, Global::iWindowHeight - offset - size );
-        glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( offset, Global::iWindowHeight - offset );
-        glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( offset + size, Global::iWindowHeight - offset - size );
-        glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( offset + size, Global::iWindowHeight - offset );
+        glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( offset, Global.iWindowHeight - offset - size );
+        glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( offset, Global.iWindowHeight - offset );
+        glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( offset + size, Global.iWindowHeight - offset - size );
+        glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( offset + size, Global.iWindowHeight - offset );
 
         glEnd();
 
@@ -279,11 +279,11 @@ ui_layer::render_texture() {
 void
 ui_layer::print( std::string const &Text )
 {
-    if( (false == Global::DLFont)
+    if( (false == Global.DLFont)
      || (true == Text.empty()) )
         return;
     
-	if (Global::bGlutFont)
+	if (Global.bGlutFont)
 	{
 		for (size_t i = 0; i < Text.size(); i++)
 			glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Text[i]);
@@ -300,31 +300,27 @@ ui_layer::print( std::string const &Text )
 }
 
 void
-ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
+ui_layer::quad( glm::vec4 const &Coordinates, glm::vec4 const &Color ) {
 
-    float const screenratio = static_cast<float>( Global::iWindowWidth ) / Global::iWindowHeight;
+    float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
     float const width =
         ( screenratio >= ( 4.f / 3.f ) ?
-            ( 4.f / 3.f ) * Global::iWindowHeight :
-            Global::iWindowWidth );
+            ( 4.f / 3.f ) * Global.iWindowHeight :
+            Global.iWindowWidth );
     float const heightratio =
         ( screenratio >= ( 4.f / 3.f ) ?
-            Global::iWindowHeight / 768.f :
-            Global::iWindowHeight / 768.f * screenratio / ( 4.f / 3.f ) );
+            Global.iWindowHeight / 768.f :
+            Global.iWindowHeight / 768.f * screenratio / ( 4.f / 3.f ) );
     float const height = 768.f * heightratio;
-/*
-    float const heightratio = Global::iWindowHeight / 768.0f;
-    float const height = 768.0f * heightratio;
-    float const width = Global::iWindowWidth * heightratio;
-*/
-    glColor4fv(&Color.x);
+
+    glColor4fv(glm::value_ptr(Color));
 
     glBegin( GL_TRIANGLE_STRIP );
 
-    glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
-    glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
-    glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
-    glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
+    glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.y * heightratio );
+    glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.w * heightratio );
+    glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.y * heightratio );
+    glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.w * heightratio );
 
     glEnd();
 }

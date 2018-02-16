@@ -84,8 +84,6 @@ extern int ConversionError;
 const double Steel2Steel_friction = 0.15;      //tarcie statyczne
 const double g = 9.81;                     //przyspieszenie ziemskie
 const double SandSpeed = 0.1;              //ile kg/s}
-const double RVentSpeed = 3.5;             //rozpedzanie sie wentylatora obr/s^2}
-const double RVentMinI = 50.0;             //przy jakim pradzie sie wylaczaja}
 const double Pirazy2 = 6.2831853071794f;
 #define PI 3.1415926535897f
 
@@ -210,6 +208,7 @@ enum sound {
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
+// TODO: convert to enums, they're used as specific checks anyway
 static int const dt_Default = 0;
 static int const dt_EZT = 1;
 static int const dt_ET41 = 2;
@@ -220,6 +219,7 @@ static int const dt_SN61 = 0x20; //nie używane w warunkach, ale ustawiane z CHK
 static int const dt_EP05 = 0x40;
 static int const dt_ET40 = 0x80;
 static int const dt_181 = 0x100;
+static int const dt_DMU = 0x200;
 
 //stałe dla asynchronów
 static int const eimc_s_dfic = 0;
@@ -739,7 +739,8 @@ public:
 	double u = 0.0; //wspolczynnik tarcia yB wywalic!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	double CircuitRes = 0.0;      /*rezystancje silnika i obwodu*/
 	int IminLo = 0; int IminHi = 0; /*prady przelacznika automatycznego rozruchu, uzywane tez przez ai_driver*/
-	int ImaxLo = 0; int ImaxHi = 0; /*maksymalny prad niskiego i wysokiego rozruchu*/
+	int ImaxLo = 0; // maksymalny prad niskiego rozruchu
+    int ImaxHi = 0; // maksymalny prad wysokiego rozruchu
 	double nmax = 0.0;             /*maksymalna dop. ilosc obrotow /s*/
 	double InitialCtrlDelay = 0.0; double CtrlDelay = 0.0;        /* -//-  -//- miedzy kolejnymi poz.*/
 	double CtrlDownDelay = 0.0;    /* -//-  -//- przy schodzeniu z poz.*/ /*hunter-101012*/
@@ -752,6 +753,8 @@ public:
 	int RVentType = 0;        /*0 - brak, 1 - jest, 2 - automatycznie wlaczany*/
 	double RVentnmax = 1.0;      /*maks. obroty wentylatorow oporow rozruchowych*/
 	double RVentCutOff = 0.0;      /*rezystancja wylaczania wentylatorow dla RVentType=2*/
+    double RVentSpeed { 0.5 }; //rozpedzanie sie wentylatora obr/s^2}
+    double RVentMinI { 50.0 }; //przy jakim pradzie sie wylaczaja}
 	int CompressorPower = 1; /*0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 5: z silnikowego*/
 	int SmallCompressorPower = 0; /*Winger ZROBIC*/
 	bool Trafo = false;      /*pojazd wyposażony w transformator*/

@@ -38,6 +38,7 @@ public:
     void UpdateValue( double fNewDesired, sound_source &Fallbacksound );
     void PutValue(double fNewDesired);
     double GetValue() const;
+    double GetDesiredValue() const;
     void Update();
     void AssignFloat(float *fValue);
     void AssignDouble(double *dValue);

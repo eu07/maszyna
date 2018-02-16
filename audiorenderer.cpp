@@ -8,13 +8,13 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-
 #include "audiorenderer.h"
+
 #include "sound.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "usefull.h"
 #include "Camera.h"
+#include "utilities.h"
 
 namespace audio {
 
@@ -51,9 +51,12 @@ openal_source::stop() {
 
 // updates state of the source
 void
-openal_source::update( double const Deltatime ) {
+openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity ) {
 
     update_deltatime = Deltatime; // cached for time-based processing of data from the controller
+    if( sound_range < 0.0 ) {
+        sound_velocity = Listenervelocity; // cached for doppler shift calculation
+    }
 
     if( id != audio::null_resource ) {
 
@@ -85,14 +88,18 @@ openal_source::sync_with( sound_properties const &State ) {
         sync = sync_state::bad_resource;
         return;
     }
-/*
     // velocity
-    // not used yet
-    glm::vec3 const velocity { ( State.location - properties.location ) / update_deltatime };
-*/
+    if( ( update_deltatime > 0.0 )
+     && ( sound_range >= 0 )
+     && ( properties.location != glm::dvec3() ) ) {
+        // after sound position was initialized we can start velocity calculations
+        sound_velocity = ( State.location - properties.location ) / update_deltatime;
+    }
+    // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
+    ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
     properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global::pCameraPosition };
+    sound_distance = properties.location - glm::dvec3 { Global.pCameraPosition };
     if( sound_range > 0 ) {
         // range cutoff check
         auto const cutoffrange = (
@@ -120,7 +127,7 @@ openal_source::sync_with( sound_properties const &State ) {
         properties.soundproofing = State.soundproofing;
         properties.soundproofing_stamp = State.soundproofing_stamp;
 
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global::AudioVolume );
+        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global.AudioVolume );
     }
     if( sound_range > 0 ) {
         auto const rangesquared { sound_range * sound_range };
@@ -136,7 +143,7 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global::AudioVolume );
+            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global.AudioVolume );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
@@ -252,7 +259,7 @@ openal_renderer::init() {
     //
 //    ::alDistanceModel( AL_LINEAR_DISTANCE );
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
-    ::alListenerf( AL_GAIN, clamp( Global::AudioVolume, 1.f, 4.f ) );
+    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 1.f, 4.f ) );
     // all done
     m_ready = true;
     return true;
@@ -315,25 +322,31 @@ openal_renderer::update( double const Deltatime ) {
 		alcDeviceResumeSOFT(m_device);
 
     // update listener
+    // orientation
     glm::dmat4 cameramatrix;
-    Global::pCamera->SetMatrix( cameramatrix );
+    Global.pCamera->SetMatrix( cameramatrix );
     auto rotationmatrix { glm::mat3{ cameramatrix } };
     glm::vec3 const orientation[] = {
         glm::vec3{ 0, 0,-1 } * rotationmatrix ,
         glm::vec3{ 0, 1, 0 } * rotationmatrix };
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
-/*
-    glm::dvec3 const listenerposition { Global::pCameraPosition };
-    // not used yet
-    glm::vec3 const velocity { ( listenerposition - m_listenerposition ) / Deltatime };
-    m_listenerposition = listenerposition;
-*/
+    // velocity
+    if( Deltatime > 0 ) {
+        glm::dvec3 const listenerposition { Global.pCameraPosition };
+        glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
+        m_listenerposition = listenerposition;
+        m_listenervelocity = (
+            glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
+                listenermovement / Deltatime :
+                glm::dvec3() );
+        ::alListenerfv( AL_VELOCITY, reinterpret_cast<ALfloat const *>( glm::value_ptr( m_listenervelocity ) ) );
+    }
 
     // update active emitters
     auto source { std::begin( m_sources ) };
     while( source != std::end( m_sources ) ) {
         // update each source
-        source->update( Deltatime );
+        source->update( Deltatime, m_listenervelocity );
         // if after the update the source isn't playing, put it away on the spare stack, it's done
         if( false == source->is_playing ) {
             source->clear();
@@ -399,7 +412,8 @@ openal_renderer::fetch_source() {
          && ( leastimportantweight < 1.f ) ) {
             // only accept the candidate if it's outside of its nominal hearing range
             leastimportantsource->stop();
-            leastimportantsource->update( 0 ); // HACK: a roundabout way to notify the controller its emitter has stopped
+            // HACK: dt of 0 is a roundabout way to notify the controller its emitter has stopped
+            leastimportantsource->update( 0, m_listenervelocity );
             leastimportantsource->clear();
             // we should be now free to grab the id and get rid of the remains
             newsource.id = leastimportantsource->id;
@@ -414,7 +428,7 @@ bool
 openal_renderer::init_caps() {
 
     // NOTE: default value of audio renderer variable is empty string, meaning argument of NULL i.e. 'preferred' device
-    m_device = ::alcOpenDevice( Global::AudioRenderer.c_str() );
+    m_device = ::alcOpenDevice( Global.AudioRenderer.c_str() );
     if( m_device == nullptr ) {
         ErrorLog( "Failed to obtain audio device" );
         return false;

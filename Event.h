@@ -9,11 +9,9 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include <string>
-#include "dumb3d.h"
 #include "Classes.h"
+#include "dumb3d.h"
 #include "Names.h"
-#include "scenenode.h"
 #include "EvLaunch.h"
 
 enum TEventType {

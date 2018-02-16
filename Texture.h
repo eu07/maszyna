@@ -56,6 +56,7 @@ private:
     void load_TGA();
     void set_filtering() const;
     void downsize( GLuint const Format );
+    void flip_vertical();
 
 // members
     std::vector<char> data; // texture data (stored GL-style, bottom-left origin)

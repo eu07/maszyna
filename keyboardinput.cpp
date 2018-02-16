@@ -19,6 +19,11 @@ extern TWorld World;
 bool
 keyboard_input::recall_bindings() {
 
+    cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
     // build helper translation tables
     std::unordered_map<std::string, user_command> nametocommandmap;
     std::size_t commandid = 0;
@@ -42,7 +47,7 @@ keyboard_input::recall_bindings() {
         { ";", GLFW_KEY_SEMICOLON }, { "'", GLFW_KEY_APOSTROPHE }, { "enter", GLFW_KEY_ENTER },
         { ",", GLFW_KEY_COMMA }, { ".", GLFW_KEY_PERIOD }, { "/", GLFW_KEY_SLASH },
         { "space", GLFW_KEY_SPACE },
-        { "insert", GLFW_KEY_INSERT },{ "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
+        { "pause", GLFW_KEY_PAUSE }, { "insert", GLFW_KEY_INSERT }, { "delete", GLFW_KEY_DELETE }, { "home", GLFW_KEY_HOME }, { "end", GLFW_KEY_END },
         // numpad block
         { "num_/", GLFW_KEY_KP_DIVIDE }, { "num_*", GLFW_KEY_KP_MULTIPLY }, { "num_-", GLFW_KEY_KP_SUBTRACT },
         { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
@@ -51,11 +56,7 @@ keyboard_input::recall_bindings() {
         { "num_0", GLFW_KEY_KP_0 }, { "num_.", GLFW_KEY_KP_DECIMAL }
     };
 
-    cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
-    if( false == bindingparser.ok() ) {
-        return false;
-    }
-
+    // NOTE: to simplify things we expect one entry per line, and whole entry in one line
     while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
 
         std::string bindingentry;
@@ -80,6 +81,7 @@ keyboard_input::recall_bindings() {
 
                          if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
                     else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
+                    else if( bindingkeyname == "none" )  { binding = -1; }
                     else {
                         // regular key, convert it to glfw key code
                         auto const keylookup = nametokeymap.find( bindingkeyname );
@@ -179,6 +181,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_SUBTRACT },
         // mastercontrollerdecreasefast
         { GLFW_KEY_KP_SUBTRACT | keymodifier::shift },
+        // mastercontrollerset
+        { -1 },
         // secondcontrollerincrease
         { GLFW_KEY_KP_DIVIDE },
         // secondcontrollerincreasefast
@@ -187,6 +191,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_MULTIPLY },
         // secondcontrollerdecreasefast
         { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
+        // secondcontrollerset
+        { -1 },
         // mucurrentindicatorothersourceactivate
         { GLFW_KEY_Z | keymodifier::shift },
         // independentbrakeincrease
@@ -197,12 +203,16 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_7 },
         // independentbrakedecreasefast
         { GLFW_KEY_KP_7 | keymodifier::shift },
+        // independentbrakeset
+        { -1 },
         // independentbrakebailoff
         { GLFW_KEY_KP_4 },
         // trainbrakeincrease
         { GLFW_KEY_KP_3 },
         // trainbrakedecrease
         { GLFW_KEY_KP_9 },
+        // trainbrakeset
+        { -1 },
         // trainbrakecharging
         { GLFW_KEY_KP_DECIMAL },
         // trainbrakerelease
@@ -241,18 +251,34 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_R },
         // linebreakertoggle
         { GLFW_KEY_M },
+        // linebreakeropen
+        { -1 },
+        // linebreakerclose
+        { -1 },
         // convertertoggle
         { GLFW_KEY_X },
+        // converterenable,
+        { -1 },
+        // converterdisable,
+        { -1 },
         // convertertogglelocal
         { GLFW_KEY_X | keymodifier::shift },
         // converteroverloadrelayreset
         { GLFW_KEY_N | keymodifier::control },
         // compressortoggle
         { GLFW_KEY_C },
+        // compressorenable
+        { -1 },
+        // compressordisable
+        { -1 },
         // compressortoggleloal
         { GLFW_KEY_C | keymodifier::shift },
         // motoroverloadrelaythresholdtoggle
         { GLFW_KEY_F },
+        // motoroverloadrelaythresholdsetlow
+        { -1 },
+        // motoroverloadrelaythresholdsethigh
+        { -1 },
         // motoroverloadrelayreset
         { GLFW_KEY_N },
         // notchingrelaytoggle
@@ -263,6 +289,12 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
+        // brakeactingspeedsetcargo
+        { -1 },
+        // brakeactingspeedsetpassenger
+        { -1 },
+        // brakeactingspeedsetrapid
+        { -1 },
         // brakeloadcompensationincrease
         { GLFW_KEY_H | keymodifier::shift | keymodifier::control },
         // brakeloadcompensationdecrease
@@ -281,6 +313,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_R | keymodifier::shift },
         // radiochanneldecrease
         { GLFW_KEY_R },
+        // radiostopsend
+        { GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
         // radiostoptest
         { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         // cabchangeforward
@@ -313,11 +347,6 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_INSERT },
         // carcouplingdisconnect
         { GLFW_KEY_DELETE },
-/*
-const int k_ProgramQuit = 46;
-// const int k_ProgramPause= 47;
-const int k_ProgramHelp = 48;
-*/
         // doortoggleleft
         { GLFW_KEY_COMMA },
         // doortoggleright
@@ -334,27 +363,56 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_P },
         // pantographtogglerear
         { GLFW_KEY_O },
+        // pantographraisefront
+        { -1 },
+        // pantographraiserear
+        { -1 },
+        // pantographlowerfront
+        { -1 },
+        // pantographlowerrear
+        { -1 },
         // pantographlowerall
         { GLFW_KEY_P | keymodifier::control },
         // heatingtoggle
         { GLFW_KEY_H },
-/*
-// const int k_FreeFlyMode= 59;
-*/
+        // heatingenable
+        { -1 },
+        // heatingdisable
+        { -1 },
         // lightspresetactivatenext
         { GLFW_KEY_T | keymodifier::shift },
         // lightspresetactivateprevious
         { GLFW_KEY_T },
         // headlighttoggleleft
         { GLFW_KEY_Y },
+        // headlightenableleft
+        { -1 },
+        // headlightdisableleft
+        { -1 },
         // headlighttoggleright
         { GLFW_KEY_I },
+        // headlightenableright
+        { -1 },
+        // headlightdisableright
+        { -1 },
         // headlighttoggleupper
         { GLFW_KEY_U },
+        // headlightenableupper
+        { -1 },
+        // headlightdisableupper
+        { -1 },
         // redmarkertoggleleft
         { GLFW_KEY_Y | keymodifier::shift },
+        // redmarkerenableleft
+        { -1 },
+        // redmarkerdisableleft
+        { -1 },
         // redmarkertoggleright
         { GLFW_KEY_I | keymodifier::shift },
+        // redmarkerenableright
+        { -1 },
+        // redmarkerdisableright
+        { -1 },
         // headlighttogglerearleft
         { GLFW_KEY_Y | keymodifier::control },
         // headlighttogglerearright
@@ -371,19 +429,34 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_E },
         // headlightsdimtoggle
         { GLFW_KEY_L | keymodifier::control },
+        // headlightsdimenable
+        { -1 },
+        // headlightsdimdisable
+        { -1 },
         // motorconnectorsopen
         { GLFW_KEY_L },
+        // motorconnectorsclose
+        { -1 },
         // motordisconnect
         { GLFW_KEY_E | keymodifier::control },
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
+        // interiorlightenable
+        { -1 },
+        // interiorlightdisable
+        { -1 },
         // interiorlightdimtoggle
         { GLFW_KEY_APOSTROPHE | keymodifier::control },
+        // interiorlightdimenable
+        { -1 },
+        // interiorlightdimdisable
+        { -1 },
         // instrumentlighttoggle
         { GLFW_KEY_SEMICOLON },
-/*
-const int k_Active = 71;
-*/
+        // instrumentlightenable
+        { -1 },
+        // instrumentlightdisable,
+        { -1 },
         // "generictoggle0"
         { GLFW_KEY_0 },
         // "generictoggle1"
@@ -405,10 +478,11 @@ const int k_Active = 71;
         // "generictoggle9"
         { GLFW_KEY_9 },
         // "batterytoggle"
-        { GLFW_KEY_J }
-/*
-const int k_WalkMode = 73;
-*/
+        { GLFW_KEY_J },
+        // batteryenable
+        { -1 },
+        // batterydisable
+        { -1 },
     };
 
     bind();
@@ -458,12 +532,12 @@ keyboard_input::poll() {
 
     glm::vec2 const movementhorizontal {
         // x-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
           m_keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
           0.f ),
         // z-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
           m_keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
           0.f ) };
@@ -473,7 +547,7 @@ keyboard_input::poll() {
         double const movexparam = static_cast<double>( movementhorizontal.x );
         double const movezparam = static_cast<double>( movementhorizontal.y );
         m_relay.post(
-            ( true == Global::ctrlState ?
+            ( true == Global.ctrlState ?
                 user_command::movehorizontalfast :
                 user_command::movehorizontal ),
             reinterpret_cast<std::uint64_t const &>( movexparam ),
@@ -486,7 +560,7 @@ keyboard_input::poll() {
 
     float const movementvertical {
         // y-axis
-        ( Global::shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : 0.5f ) *
         ( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
           m_keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
           0.f ) };
@@ -495,7 +569,7 @@ keyboard_input::poll() {
      || ( m_movementvertical != 0.f ) ) {
         double const moveyparam = static_cast<double>( movementvertical );
         m_relay.post(
-            ( true == Global::ctrlState ?
+            ( true == Global.ctrlState ?
                 user_command::moveverticalfast :
                 user_command::movevertical ),
             reinterpret_cast<std::uint64_t const &>( moveyparam ),

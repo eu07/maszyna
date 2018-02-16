@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "Timer.h"
-#include "mctools.h"
+#include "utilities.h"
 
 namespace simulation {
 
@@ -26,18 +26,22 @@ commanddescription_sequence Commands_descriptions = {
     { "mastercontrollerincreasefast", command_target::vehicle },
     { "mastercontrollerdecrease", command_target::vehicle },
     { "mastercontrollerdecreasefast", command_target::vehicle },
+    { "mastercontrollerset", command_target::vehicle },
     { "secondcontrollerincrease", command_target::vehicle },
     { "secondcontrollerincreasefast", command_target::vehicle },
     { "secondcontrollerdecrease", command_target::vehicle },
     { "secondcontrollerdecreasefast", command_target::vehicle },
+    { "secondcontrollerset", command_target::vehicle },
     { "mucurrentindicatorothersourceactivate", command_target::vehicle },
     { "independentbrakeincrease", command_target::vehicle },
     { "independentbrakeincreasefast", command_target::vehicle },
     { "independentbrakedecrease", command_target::vehicle },
     { "independentbrakedecreasefast", command_target::vehicle },
+    { "independentbrakeset", command_target::vehicle },
     { "independentbrakebailoff", command_target::vehicle },
     { "trainbrakeincrease", command_target::vehicle, command_mode::continuous },
     { "trainbrakedecrease", command_target::vehicle, command_mode::continuous },
+    { "trainbrakeset", command_target::vehicle },
     { "trainbrakecharging", command_target::vehicle },
     { "trainbrakerelease", command_target::vehicle },
     { "trainbrakefirstservice", command_target::vehicle },
@@ -57,17 +61,28 @@ commanddescription_sequence Commands_descriptions = {
     { "reverserincrease", command_target::vehicle },
     { "reverserdecrease", command_target::vehicle },
     { "linebreakertoggle", command_target::vehicle },
+    { "linebreakeropen", command_target::vehicle },
+    { "linebreakerclose", command_target::vehicle },
     { "convertertoggle", command_target::vehicle },
+    { "converterenable", command_target::vehicle },
+    { "converterdisable", command_target::vehicle },
     { "convertertogglelocal", command_target::vehicle },
     { "converteroverloadrelayreset", command_target::vehicle },
     { "compressortoggle", command_target::vehicle },
+    { "compressorenable", command_target::vehicle },
+    { "compressordisable", command_target::vehicle },
     { "compressortogglelocal", command_target::vehicle },
     { "motoroverloadrelaythresholdtoggle", command_target::vehicle },
+    { "motoroverloadrelaythresholdsetlow", command_target::vehicle },
+    { "motoroverloadrelaythresholdsethigh", command_target::vehicle },
     { "motoroverloadrelayreset", command_target::vehicle },
     { "notchingrelaytoggle", command_target::vehicle },
     { "epbrakecontroltoggle", command_target::vehicle },
     { "brakeactingspeedincrease", command_target::vehicle },
     { "brakeactingspeeddecrease", command_target::vehicle },
+    { "brakeactingspeedsetcargo", command_target::vehicle },
+    { "brakeactingspeedsetpassenger", command_target::vehicle },
+    { "brakeactingspeedsetrapid", command_target::vehicle },
     { "brakeloadcompensationincrease", command_target::vehicle },
     { "brakeloadcompensationdecrease", command_target::vehicle },
     { "mubrakingindicatortoggle", command_target::vehicle },
@@ -77,6 +92,7 @@ commanddescription_sequence Commands_descriptions = {
     { "radiotoggle", command_target::vehicle },
     { "radiochannelincrease", command_target::vehicle },
     { "radiochanneldecrease", command_target::vehicle },
+    { "radiostopsend", command_target::vehicle },
     { "radiostoptest", command_target::vehicle },
     // TBD, TODO: make cab change controls entity-centric
     { "cabchangeforward", command_target::vehicle },
@@ -104,15 +120,31 @@ commanddescription_sequence Commands_descriptions = {
     { "pantographcompressoractivate", command_target::vehicle },
     { "pantographtogglefront", command_target::vehicle },
     { "pantographtogglerear", command_target::vehicle },
+    { "pantographraisefront", command_target::vehicle },
+    { "pantographraiserear", command_target::vehicle },
+    { "pantographlowerfront", command_target::vehicle },
+    { "pantographlowerrear", command_target::vehicle },
     { "pantographlowerall", command_target::vehicle },
     { "heatingtoggle", command_target::vehicle },
+    { "heatingenable", command_target::vehicle },
+    { "heatingdisable", command_target::vehicle },
     { "lightspresetactivatenext", command_target::vehicle },
     { "lightspresetactivateprevious", command_target::vehicle },
     { "headlighttoggleleft", command_target::vehicle },
+    { "headlightenableleft", command_target::vehicle },
+    { "headlightdisableleft", command_target::vehicle },
     { "headlighttoggleright", command_target::vehicle },
+    { "headlightenableright", command_target::vehicle },
+    { "headlightdisableright", command_target::vehicle },
     { "headlighttoggleupper", command_target::vehicle },
+    { "headlightenableupper", command_target::vehicle },
+    { "headlightdisableupper", command_target::vehicle },
     { "redmarkertoggleleft", command_target::vehicle },
+    { "redmarkerenableleft", command_target::vehicle },
+    { "redmarkerdisableleft", command_target::vehicle },
     { "redmarkertoggleright", command_target::vehicle },
+    { "redmarkerenableright", command_target::vehicle },
+    { "redmarkerdisableright", command_target::vehicle },
     { "headlighttogglerearleft", command_target::vehicle },
     { "headlighttogglerearright", command_target::vehicle },
     { "headlighttogglerearupper", command_target::vehicle },
@@ -121,11 +153,20 @@ commanddescription_sequence Commands_descriptions = {
     { "redmarkerstoggle", command_target::vehicle },
     { "endsignalstoggle", command_target::vehicle },
     { "headlightsdimtoggle", command_target::vehicle },
+    { "headlightsdimenable", command_target::vehicle },
+    { "headlightsdimdisable", command_target::vehicle },
     { "motorconnectorsopen", command_target::vehicle },
+    { "motorconnectorsclose", command_target::vehicle },
     { "motordisconnect", command_target::vehicle },
     { "interiorlighttoggle", command_target::vehicle },
+    { "interiorlightenable", command_target::vehicle },
+    { "interiorlightdisable", command_target::vehicle },
     { "interiorlightdimtoggle", command_target::vehicle },
+    { "interiorlightdimenable", command_target::vehicle },
+    { "interiorlightdimdisable", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
+    { "instrumentlightenable", command_target::vehicle },
+    { "instrumentlightdisable", command_target::vehicle },
     { "generictoggle0", command_target::vehicle },
     { "generictoggle1", command_target::vehicle },
     { "generictoggle2", command_target::vehicle },
@@ -136,7 +177,9 @@ commanddescription_sequence Commands_descriptions = {
     { "generictoggle7", command_target::vehicle },
     { "generictoggle8", command_target::vehicle },
     { "generictoggle9", command_target::vehicle },
-    { "batterytoggle", command_target::vehicle }
+    { "batterytoggle", command_target::vehicle },
+    { "batteryenable", command_target::vehicle },
+    { "batterydisable", command_target::vehicle }
 };
 
 }
@@ -147,7 +190,7 @@ void command_queue::update()
 	for (user_command c : m_active_continuous)
 	{
 	    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( c ) ];
-		command_data data { c, GLFW_REPEAT, 0, 0, command_data::desired_state_t::TOGGLE, delta };
+		command_data data { c, GLFW_REPEAT, 0, 0, delta };
 	    auto lookup = m_commands.emplace((size_t)desc.target, commanddata_sequence() );
 	    lookup.first->second.emplace( data );
 	}
@@ -163,6 +206,7 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 			m_active_continuous.emplace(Command.command);
 		else if (Command.action == GLFW_RELEASE)
 			m_active_continuous.erase(Command.command);
+		return;
 	}
 
     auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
@@ -193,14 +237,13 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
 
 void
 command_relay::post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
-                     int const Action, std::uint16_t const Recipient,
-                     command_data::desired_state_t state) const {
+                     int const Action, std::uint16_t const Recipient) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];
     if( ( command.target == command_target::vehicle )
      && ( true == FreeFlyModeFlag )
      && ( ( false == DebugModeFlag )
-       && ( true == Global::RealisticControlMode ) ) ) {
+       && ( true == Global.RealisticControlMode ) ) ) {
         // in realistic control mode don't pass vehicle commands if the user isn't in one, unless we're in debug mode
         return;
     }
@@ -211,7 +254,7 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
             Action,
             Param1,
             Param2,
-            state, Timer::GetDeltaTime()},
+            Timer::GetDeltaTime()},
         static_cast<std::size_t>( command.target ) | Recipient );
 /*
 #ifdef _DEBUG
