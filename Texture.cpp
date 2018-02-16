@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "sn_utils.h"
 #include "utilities.h"
-
+#include "flip-s3tc.h"
 #include <png.h>
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
@@ -319,26 +319,7 @@ opengl_texture::load_DDS() {
     }
 
     size_t datasize = filesize - offset;
-/*
-    // this approach loads only the first mipmap and relies on graphics card to fill the rest
-    data_mapcount = 1;
-    int datasize = ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
-*/
-/*
-    // calculate size of accepted data
-    // NOTE: this is a fallback, as we should be able to just move the file caret by calculated offset and read the rest
-    int datasize = 0;
-    int mapcount = data_mapcount,
-        width = data_width,
-        height = data_height;
-    while( mapcount ) {
 
-        datasize += ( ( width + 3 ) / 4 ) * ( ( height + 3 ) / 4 ) * blockSize;
-        width = std::max( width / 2, 4 );
-        height = std::max( height / 2, 4 );
-        --mapcount;
-    }
-*/
     if( datasize == 0 ) {
         // catch malformed .dds files
         WriteLog( "Bad texture: file \"" + name + "\" is malformed and holds no texture data.", logtype::texture );
@@ -347,6 +328,7 @@ opengl_texture::load_DDS() {
     }
     // reserve space and load texture data
     data.resize( datasize );
+
     if( offset != 0 ) {
         // skip data for mipmaps we don't need
         file.seekg( offset, std::ios_base::cur );
@@ -355,8 +337,29 @@ opengl_texture::load_DDS() {
     file.read((char *)&data[0], datasize);
     filesize -= datasize;
 
-	// we're storing texture data internally with bottom-left origin
-	// ...and DDS stores it with top-left origin! bug here, needs flip!
+	// we're storing texture data internally with bottom-left origin,
+	// while DDS stores it with top-left origin. we need to flip it.
+	if (Global.dds_upper_origin)
+	{
+		char *mipmap = (char*)&data[0];
+	    int mapcount = data_mapcount,
+	        width = data_width,
+	        height = data_height;
+	    while (mapcount)
+		{
+			if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
+				flip_s3tc::flip_dxt1_image(mipmap, width, height);
+			else if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT3)
+				flip_s3tc::flip_dxt23_image(mipmap, width, height);
+			else if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT5)
+				flip_s3tc::flip_dxt45_image(mipmap, width, height);
+
+	        mipmap += ( ( width + 3 ) / 4 ) * ( ( height + 3 ) / 4 ) * blockSize;
+	        width = std::max( width / 2, 4 );
+	        height = std::max( height / 2, 4 );
+	        --mapcount;
+	    }
+	}
 
     data_components =
         ( ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1 ?

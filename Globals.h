@@ -167,6 +167,7 @@ struct global_settings {
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
 	bool loading_log = true;
+	bool dds_upper_origin = false;
 
 // methods
     void LoadIniFile( std::string asFileName );

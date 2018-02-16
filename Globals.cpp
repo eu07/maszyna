@@ -626,6 +626,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> loading_log;
 		}
+		else if (token == "ddsupperorigin") {
+            Parser.getTokens( 1 );
+            Parser >> dds_upper_origin;			
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
