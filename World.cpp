@@ -45,6 +45,7 @@ namespace simulation {
 
 simulation_time Time;
 
+basic_station Station;
 }
 
 extern "C"
@@ -1338,7 +1339,7 @@ TWorld::Update_UI() {
                 if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 );
+                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 ) + " (" + to_string( vehicle->MoverParameters->Load, 0 ) + ")";
 
                 uitextline2 +=
                     "; Pant: "

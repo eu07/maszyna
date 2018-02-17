@@ -892,8 +892,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                                 mvOccupied->DoorLeft(true);
                                             if (p2 & prawe)
                                                 mvOccupied->DoorRight(true);
-                                            // if (p2&3) //żeby jeszcze poczekał chwilę, zanim zamknie
-                                            // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
                                         }
                                 }
                                 else
@@ -917,50 +915,62 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         // pojazd podłączony z tyłu (patrząc od czoła)
                                         p = p->Next();
                                     }
-                                    // if (p7&3) //żeby jeszcze poczekał chwilę, zanim zamknie
-                                    // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
                                 }
-
-                                if( fStopTime > -5 ) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
-                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
-                                // niezależne od sposobu obsługi drzwi, bo opóźnia również kierownika
                             }
-                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) )
-                            { // to się wykona tylko raz po zatrzymaniu na W4
-                                if (TrainParams->CheckTrainLatency() < 0.0)
-                                    iDrivigFlags |= moveLate; // odnotowano spóźnienie
-                                else
-                                    iDrivigFlags &= ~moveLate; // przyjazd o czasie
-                                if (TrainParams->DirectionChange()) // jeśli "@" w rozkładzie, to
-                                // wykonanie dalszych komend
-                                { // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
-                                    if (iDrivigFlags & movePushPull) // SN61 ma się też nie ruszać,
-                                    // chyba że ma wagony
-                                    {
+                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
+                                // to się wykona tylko raz po zatrzymaniu na W4
+
+                                // perform loading/unloading
+                                auto const exchangetime { simulation::Station.update_load( pVehicles[ 0 ], *TrainParams ) };
+                                // TBD: adjust time to load exchange size
+                                if( fStopTime > -55 ) {
+                                    // na końcu rozkładu się ustawia 60s i tu by było skrócenie
+//                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
+                                    // with door open on both sides calculated loading time is halved
+                                    // p7=platform side (1:left, 2:right, 3:both)
+                                    auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
+                                    WaitingSet(
+                                        platformside == 3 ?
+                                            exchangetime * 0.5 :
+                                            exchangetime );
+                                }
+                                if( TrainParams->CheckTrainLatency() < 0.0 ) {
+                                    // odnotowano spóźnienie
+                                    iDrivigFlags |= moveLate;
+                                }
+                                else {
+                                    // przyjazd o czasie
+                                    iDrivigFlags &= ~moveLate;
+                                }
+                                if (TrainParams->DirectionChange()) {
+                                    // jeśli "@" w rozkładzie, to wykonanie dalszych komend
+                                    // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
+                                    if (iDrivigFlags & movePushPull) {
+                                        // SN61 ma się też nie ruszać, chyba że ma wagony
                                         iDrivigFlags |= moveStopHere; // EZT ma stać przy peronie
-                                        if (OrderNextGet() != Change_direction)
-                                        {
+                                        if (OrderNextGet() != Change_direction) {
                                             OrderPush(Change_direction); // zmiana kierunku
-                                            OrderPush(TrainParams->StationIndex <
-                                                              TrainParams->StationCount ?
-                                                          Obey_train :
-                                                          Shunt); // to dalej wg rozkładu
+                                            OrderPush(
+                                                TrainParams->StationIndex < TrainParams->StationCount ?
+                                                    Obey_train :
+                                                    Shunt); // to dalej wg rozkładu
                                         }
                                     }
-                                    else // a dla lokomotyw...
-                                        iDrivigFlags &=
-                                            ~(moveStopPoint | moveStopHere); // pozwolenie na
-                                    // przejechanie za W4
-                                    // przed czasem i nie
-                                    // ma stać
-                                    JumpToNextOrder(); // przejście do kolejnego rozkazu (zmiana
-                                    // kierunku, odczepianie)
-                                    iDrivigFlags &= ~moveStopCloser; // ma nie podjeżdżać pod W4 po
-                                    // przeciwnej stronie
-                                    sSpeedTable[i].iFlags = 0; // ten W4 nie liczy się już zupełnie
-                                    // (nie wyśle SetVelocity)
-                                    sSpeedTable[i].fVelNext = -1; // jechać
-                                    continue; // nie analizować prędkości
+                                    else {
+                                        // a dla lokomotyw...
+                                        // pozwolenie na przejechanie za W4 przed czasem i nie ma stać
+                                        iDrivigFlags &= ~( moveStopPoint | moveStopHere );
+                                    }
+                                    // przejście do kolejnego rozkazu (zmiana kierunku, odczepianie)
+                                    JumpToNextOrder();
+                                    // ma nie podjeżdżać pod W4 po przeciwnej stronie
+                                    iDrivigFlags &= ~moveStopCloser;
+                                    // ten W4 nie liczy się już zupełnie (nie wyśle SetVelocity)
+                                    sSpeedTable[i].iFlags = 0;
+                                    // jechać
+                                    sSpeedTable[i].fVelNext = -1;
+                                    // nie analizować prędkości
+                                    continue;
                                 }
                             }
                             if (OrderCurrentGet() == Shunt)

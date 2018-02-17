@@ -237,6 +237,9 @@
     <ClCompile Include="uart.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
+    <ClCompile Include="station.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -460,6 +463,9 @@
     </ClInclude>
     <ClInclude Include="uart.h">
       <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="station.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

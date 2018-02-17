@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "messaging.h"
+#include "station.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -58,6 +59,8 @@ private:
 namespace simulation {
 
 extern simulation_time Time;
+
+extern basic_station Station; // temporary object, for station functionality tests
 
 }
 
