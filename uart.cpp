@@ -175,7 +175,7 @@ void uart_input::poll()
             auto const command { (
                 type != toggle ?
                     std::get<2>( entry ) :
-                    ( action == GLFW_PRESS ?
+                    ( true == state ?
                         std::get<2>( entry ) :
                         std::get<3>( entry ) ) ) };
 

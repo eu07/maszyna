@@ -179,15 +179,15 @@ private:
     template <class Iterator_>
     void
         insert( Iterator_ First, Iterator_ Last ) {
-            uint32_sequence sounds;
+            update_counter( *First, 1 );
             std::vector<audio::buffer_handle> buffers;
+            uint32_sequence sounds;
             std::for_each(
                 First, Last,
                 [&]( sound_handle const &soundhandle ) {
-                    sounds.emplace_back( soundhandle );
-                    buffers.emplace_back( sound( soundhandle ).buffer ); } );
-            audio::renderer.insert( std::begin( buffers ), std::end( buffers ), this, sounds );
-            update_counter( *First, 1 ); }
+                    buffers.emplace_back( sound( soundhandle ).buffer );
+                    sounds.emplace_back( soundhandle ); } );
+            audio::renderer.insert( std::begin( buffers ), std::end( buffers ), this, sounds ); }
     sound_data &
         sound( sound_handle const Sound );
     sound_data const &
