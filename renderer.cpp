@@ -1027,7 +1027,7 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
             // setup fog
             if( Global.fFogEnd > 0 ) {
                 // fog setup
-                ::glFogfv( GL_FOG_COLOR, Global.FogColor );
+                ::glFogfv( GL_FOG_COLOR, glm::value_ptr( Global.FogColor ) );
                 ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / Global.fFogEnd ) );
                 ::glEnable( GL_FOG );
             }
@@ -1808,6 +1808,37 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                         Render( memcell );
                     }
                 }
+#endif
+#ifdef EU07_USE_DEBUG_CULLING
+                // debug
+                ::glLineWidth( 2.f );
+                float const width = cell->m_area.radius;
+                float const height = cell->m_area.radius * 0.2f;
+                glDisable( GL_LIGHTING );
+                glDisable( GL_TEXTURE_2D );
+                glColor3ub( 255, 128, 128 );
+                glBegin( GL_LINE_LOOP );
+                glVertex3f( -width, height, width );
+                glVertex3f( -width, height, -width );
+                glVertex3f( width, height, -width );
+                glVertex3f( width, height, width );
+                glEnd();
+                glBegin( GL_LINE_LOOP );
+                glVertex3f( -width, 0, width );
+                glVertex3f( -width, 0, -width );
+                glVertex3f( width, 0, -width );
+                glVertex3f( width, 0, width );
+                glEnd();
+                glBegin( GL_LINES );
+                glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
+                glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
+                glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
+                glVertex3f( width, height, width ); glVertex3f( width, 0, width );
+                glEnd();
+                glColor3ub( 255, 255, 255 );
+                glEnable( GL_TEXTURE_2D );
+                glEnable( GL_LIGHTING );
+                glLineWidth( 1.f );
 #endif
                 // post-render cleanup
                 ::glPopMatrix();

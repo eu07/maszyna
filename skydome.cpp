@@ -243,7 +243,7 @@ void CSkyDome::RebuildColors() {
 	zenithluminance = PerezFunctionO1( perezluminance, m_thetasun, zenithluminance );
 
     // start with fresh average for the new pass
-    glm::vec3 averagecolor { 0.0f, 0.0f, 0.0f };
+    glm::vec3 averagecolor, averagehorizoncolor;
 
 	// trough all vertices
 	glm::vec3 vertex;
@@ -333,14 +333,16 @@ void CSkyDome::RebuildColors() {
         }
 		// save
         m_colours[ i ] = color;
-        averagecolor += color * 8.0f; // save for edge cases each vertex goes in 8 triangles
+        averagecolor += color;
+        if( ( m_vertices.size() - i ) <= ( m_tesselation * 2 ) ) {
+            // calculate horizon colour from the bottom band of tris
+            averagehorizoncolor += color;
+        }
 	}
     // NOTE: average reduced to 25% makes nice tint value for clouds lit from behind
     // down the road we could interpolate between it and full strength average, to improve accuracy of cloud appearance
-    m_averagecolour = averagecolor / static_cast<float>( m_indices.size() );
-    m_averagecolour.r = std::max( m_averagecolour.r, 0.0f );
-    m_averagecolour.g = std::max( m_averagecolour.g, 0.0f );
-    m_averagecolour.b = std::max( m_averagecolour.b, 0.0f );
+    m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
+    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 2 ) );
 
     if( m_coloursbuffer != -1 ) {
         // the colour buffer was already initialized, so on this run we update its content
