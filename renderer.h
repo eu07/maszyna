@@ -390,6 +390,8 @@ private:
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif
+	GLuint m_gltimequery = 0;
+	GLuint64 m_gllasttime = 0;
 };
 
 extern opengl_renderer GfxRenderer;

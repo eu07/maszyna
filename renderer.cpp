@@ -392,6 +392,26 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_total.stop();
     Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
     Timer::subsystem.gfx_color.start();
+
+	GLuint gl_time_ready = 0;
+    if (GL_ARB_timer_query)
+    {
+        if (m_gltimequery)
+        {
+            glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
+            if (gl_time_ready)
+                glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
+        }
+        else
+        {
+            glGenQueries(1, &m_gltimequery);
+            gl_time_ready = 1;
+        }
+    }
+
+    if (gl_time_ready)
+		glBeginQuery(GL_TIME_ELAPSED, m_gltimequery);
+
     // fetch simulation data
     if( World.InitPerformed() ) {
         m_sunlight = Global.DayLight;
@@ -410,11 +430,17 @@ opengl_renderer::Render() {
     glfwSwapBuffers( m_window );
     Timer::subsystem.gfx_swap.stop();
 
+    if (gl_time_ready)
+        glEndQuery(GL_TIME_ELAPSED);
+
     m_drawcount = m_cellqueue.size();
     m_debugtimestext
-        += "frame: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) "
-        += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec "
-        += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec total)";
+        += "cpu: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors) "
+        += "cpu swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms "
+        += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms frame total) ";
+
+	if (m_gllasttime)
+		m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
 
     m_debugstatstext =
         "drawcalls: " + to_string( m_debugstats.drawcalls )
