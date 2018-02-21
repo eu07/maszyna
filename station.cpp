@@ -46,6 +46,12 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
         if( parameters.LoadType == "passengers" ) {
             // NOTE: for the time being we're doing simple, random load change calculation
             // TODO: exchange driven by station parameters and time of the day
+            auto unloadcount = static_cast<int>(
+                firststop ? 0 :
+                laststop ? parameters.Load :
+                std::min(
+                    parameters.Load,
+                    Random( parameters.MaxLoad * 0.10 * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
                 laststop ?
                     0 :
@@ -54,16 +60,11 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
                 // slightly larger group at the initial station
                 loadcount *= 2;
             }
-            auto unloadcount = static_cast<int>(
-                firststop ? 0 :
-                laststop ? parameters.Load :
-                Random( parameters.MaxLoad * 0.10 * stationsizemodifier ) );
-
-            parameters.Load = clamp<int>( parameters.Load + loadcount - unloadcount, 0, parameters.MaxLoad );
+            parameters.Load = std::min( parameters.MaxLoad, parameters.Load - unloadcount + loadcount );
             vehicle->LoadUpdate();
             vehicle->update_load_visibility();
 
-            exchangetime = std::max( exchangetime, loadcount / parameters.LoadSpeed + unloadcount / parameters.UnLoadSpeed );
+            exchangetime = std::max( exchangetime, unloadcount / parameters.UnLoadSpeed + loadcount / parameters.LoadSpeed);
         }
         vehicle = vehicle->Next();
     }

@@ -201,6 +201,7 @@ public:
     struct section_visibility {
         TSubModel *submodel;
         bool visible;
+        int visible_chunks;
     };
     std::vector<section_visibility> SectionLoadVisibility; // visibility of specific sections of the load 3d model
 
@@ -468,6 +469,7 @@ private:
     void LoadUpdate();
     void update_load_sections();
     void update_load_visibility();
+    void shuffle_load_sections();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);
     void Move(double fDistance);

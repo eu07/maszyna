@@ -554,14 +554,14 @@ TDynamicObject::toggle_lights() {
         for( auto &sectionlight : SectionLightLevels ) {
 
             std::string const &compartmentname = sectionlight.compartment->pName;
-            if( ( compartmentname.find( "corridor" ) != std::string::npos )
-             || ( compartmentname.find( "korytarz" ) != std::string::npos ) ) {
+            if( ( compartmentname.find( "corridor" ) == 0 )
+             || ( compartmentname.find( "korytarz" ) == 0 ) ) {
                 // corridors are lit 100% of time
                 sectionlight.level = 0.75f;
             }
             else if(
-                ( compartmentname.find( "compartment" ) != std::string::npos )
-             || ( compartmentname.find( "przedzial" )   != std::string::npos ) ) {
+                ( compartmentname.find( "compartment" ) == 0 )
+             || ( compartmentname.find( "przedzial" )   == 0 ) ) {
                 // compartments are lit with 75% probability
                 sectionlight.level = ( Random() < 0.75 ? 0.75f : 0.15f );
             }
@@ -979,6 +979,18 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     // load chunks visibility
     for( auto const &section : SectionLoadVisibility ) {
         section.submodel->iVisible = section.visible;
+        if( false == section.visible ) {
+            // if the section root isn't visible we can skip meddling with its children
+            continue;
+        }
+        // if the section root is visible set the state of section chunks
+        auto *sectionchunk { section.submodel->ChildGet() };
+        auto visiblechunkcount { section.visible_chunks };
+        while( sectionchunk != nullptr ) {
+            sectionchunk->iVisible = ( visiblechunkcount > 0 );
+            --visiblechunkcount;
+            sectionchunk = sectionchunk->NextGet();
+        }
     }
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
@@ -2450,6 +2462,11 @@ void TDynamicObject::LoadUpdate() {
                 // if this fails, try generic load model
                 mdLoad = TModelsManager::GetModel( asBaseDir + MoverParameters->LoadType, true );
             }
+            if( mdLoad != nullptr ) {
+                // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
+                // and actual vehicles which get their initialization after their animations are set up
+                mdLoad->Init();
+            }
             // update bindings between lowpoly sections and potential load chunks placed inside them
             update_load_sections();
 
@@ -2478,18 +2495,19 @@ TDynamicObject::update_load_sections() {
                 mdLoad->GetFromName( section.compartment->pName ) :
                 nullptr );
 
-        if( section.load != nullptr ) {
+        if( ( section.load != nullptr )
+         && ( section.load->count_children() > 0 ) ) {
             SectionLoadVisibility.push_back( { section.load, false } );
         }
     }
-    std::shuffle( std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ), Global.random_engine );
+    shuffle_load_sections();
 }
 
 void
 TDynamicObject::update_load_visibility() {
 
     if( Random() < 0.25 ) {
-        std::shuffle( std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ), Global.random_engine );
+        shuffle_load_sections();
     }
 
     auto loadpercentage { (
@@ -2505,7 +2523,33 @@ TDynamicObject::update_load_visibility() {
         std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
         [&]( section_visibility &section ) {
             section.visible = ( loadpercentage > 0.0 );
-            loadpercentage -= sectionloadpercentage; } );
+            section.visible_chunks = 0;
+            auto const sectionchunkcount { section.submodel->count_children() };
+            auto const sectionchunkloadpercentage{ (
+                sectionchunkcount == 0 ?
+                    0.0 :
+                    sectionloadpercentage / sectionchunkcount ) };
+            auto *sectionchunk { section.submodel->ChildGet() };
+            while( sectionchunk != nullptr ) {
+                if( loadpercentage > 0.0 ) {
+                    ++section.visible_chunks;
+                    loadpercentage -= sectionchunkloadpercentage;
+                }
+                sectionchunk = sectionchunk->NextGet();
+            } } );
+}
+
+void 
+TDynamicObject::shuffle_load_sections() {
+
+    std::shuffle( std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ), Global.random_engine );
+    // shift chunks assigned to corridors to the end of the list, so they show up last
+    std::stable_partition(
+        std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
+        []( section_visibility const &section ) {
+            return (
+                ( section.submodel->pName.find( "compartment" ) == 0 )
+             || ( section.submodel->pName.find( "przedzial" )   == 0 ) ); } );
 }
 
 /*
@@ -3907,7 +3951,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     std::string asFileName = BaseDir + TypeName + ".mmd";
     std::string asLoadName;
     if( false == MoverParameters->LoadType.empty() ) {
-        asLoadName = BaseDir + MoverParameters->LoadType + ".t3d";
+        asLoadName = BaseDir + MoverParameters->LoadType;
     }
 
     std::string asAnimName;

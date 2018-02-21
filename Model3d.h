@@ -160,6 +160,8 @@ public:
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
+    int count_siblings();
+    int count_children();
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ( Math3D::vector3 vNewAngles);
