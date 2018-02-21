@@ -3654,31 +3654,51 @@ void TTrain::UpdateMechPosition(double dt)
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
     double const iVel = std::min( DynamicObject->GetVelocity(), 150.0 );
 
-    if( !Global.iSlowMotion // musi być pełna prędkość
-        && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
+    if( ( false == Global.iSlowMotion ) // musi być pełna prędkość
+     && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
+        Math3D::vector3 shakevector;
+        if( ( mvOccupied->EngineType == DieselElectric )
+            || ( mvOccupied->EngineType == DieselEngine ) ) {
+            if( std::abs( mvOccupied->enrot ) > 0.0 ) {
+                // engine vibration
+                shakevector.x +=
+                    ( std::cos( mvOccupied->eAngle * 4.0 ) * dt * 2.0 )
+                    // fade in with rpm < 300
+                    * clamp(
+                        ( mvOccupied->enrot - 1.0 ) * 0.25,
+                        0.0, 1.0 )
+                    // fade out with rpm > 600
+                    * interpolate(
+                        1.0, 0.0,
+                        clamp(
+                            mvOccupied->enrot - 10.0,
+                            0.0, 1.0 ) );
+            }
+        }
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
-            shake += 1.25 * MechSpring.ComputateForces(
-                Math3D::vector3(
-                -mvControlled->AccN * dt * 5.0, // highlight side sway
-                -mvControlled->AccVert * dt,
-                -mvControlled->AccSVBased * dt * 1.25 ), // accent acceleration/deceleration
-                pMechShake );
-
-            if( Random( iVel ) > 25.0 ) {
-                // extra shake at increased velocity
-                shake += MechSpring.ComputateForces(
-                    Math3D::vector3(
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
-                    * 1.25,
-                    pMechShake );
-                //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
-            }
-//            shake *= 0.85;
+            shakevector += Math3D::vector3(
+                -mvOccupied->AccN * dt * 5.0, // highlight side sway
+                -mvOccupied->AccVert * dt,
+                -mvOccupied->AccSVBased * dt * 1.25 ); // accent acceleration/deceleration
         }
+
+        shake += 1.25 * MechSpring.ComputateForces( shakevector, pMechShake );
+
+        if( Random( iVel ) > 25.0 ) {
+            // extra shake at increased velocity
+            shake += MechSpring.ComputateForces(
+                Math3D::vector3(
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
+                * 1.25,
+                pMechShake );
+            //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
+        }
+        shake *= 0.85;
+
         vMechVelocity -= ( shake + vMechVelocity * 100 ) * ( fMechSpringX + fMechSpringY + fMechSpringZ ) / ( 200 );
         //        shake *= 0.95 * dt; // shake damping
 
@@ -4829,17 +4849,20 @@ bool TTrain::Update( double const Deltatime )
 
     // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( ( mvControlled->Battery )
-     || ( mvControlled->ConverterFlag ) ) {
-        if( ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
-            // the 'lower all' button overrides state of switches, while active itself
-            if( ( false == mvControlled->PantFrontUp )
-             && ( ggPantFrontButton.GetDesiredValue() >= 0.95 ) ) {
-                mvControlled->PantFront( true );
-            }
-            if( ( false == mvControlled->PantRearUp )
-             && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
-                mvControlled->PantRear( true );
+    if( false == DynamicObject->Mechanik->AIControllFlag ) {
+        // don't mess with the ai driving, at least not while switches don't follow ai-set vehicle state
+        if( ( mvControlled->Battery )
+         || ( mvControlled->ConverterFlag ) ) {
+            if( ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
+                // the 'lower all' button overrides state of switches, while active itself
+                if( ( false == mvControlled->PantFrontUp )
+                 && ( ggPantFrontButton.GetDesiredValue() >= 0.95 ) ) {
+                    mvControlled->PantFront( true );
+                }
+                if( ( false == mvControlled->PantRearUp )
+                 && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
+                    mvControlled->PantRear( true );
+                }
             }
         }
     }
@@ -4869,7 +4892,7 @@ bool TTrain::Update( double const Deltatime )
         m_radiomessages.erase(
             std::remove_if(
                 std::begin( m_radiomessages ), std::end( m_radiomessages ),
-                []( sound_source &source ) {
+                []( sound_source const &source ) {
                     return ( false == source.is_playing() ); } ),
             std::end( m_radiomessages ) );
     }

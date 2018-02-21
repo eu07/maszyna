@@ -41,7 +41,7 @@ Math3D::vector3 TSpring::ComputateForces( Math3D::vector3 const &pPosition1, Mat
     //		dist = VectorLength(&deltaP);					// Magnitude of
     // deltaP
     dist = deltaP.Length();
-    if (dist != 0.0 ) {
+    if( dist > 0.00001 ) {
 
         //		Hterm = (dist - spring->restLen) * spring->Ks;	// Ks * (dist - rest)
         Hterm = ( dist - restLen ) * Ks; // Ks * (dist - rest)

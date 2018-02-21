@@ -1021,7 +1021,7 @@ public:
 	int PulseForceCount = 0;
 
 	/*dla drezyny, silnika spalinowego i parowego*/
-	double eAngle = 1.5;
+	double eAngle = M_PI * 0.5;
 
 	/*-dla wagonow*/
     double Load = 0.0;      /*masa w T lub ilosc w sztukach - zaladowane*/
