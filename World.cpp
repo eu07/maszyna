@@ -1064,10 +1064,13 @@ TWorld::Update_Camera( double const Deltatime ) {
         else {
             // patrzenie standardowe
             Camera.Pos = Train->GetWorldMechPosition(); // Train.GetPosition1();
-            if( !Global.iPause ) { // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
-                Camera.Roll = atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
-                Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl //Ra: tu
-                // jest uciekanie kamery w górę!!!
+            if( !Global.iPause ) {
+                // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
+                // hustanie kamery na boki
+                Camera.Roll = atan( Train->vMechVelocity.x * Train->fMechRoll );
+                // hustanie kamery przod tyl
+                // Ra: tu jest uciekanie kamery w górę!!!
+                Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch );
             }
             // ABu011104: rzucanie pudlem
 /*

@@ -375,7 +375,7 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
            }
          }
     */
-    MechSpring.Init(0.015, 250);
+    MechSpring.Init(250);
     vMechVelocity = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3( 0, 0, 0 );
     fMechSpringX = 1;
@@ -3299,9 +3299,10 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorRight( true ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3313,9 +3314,10 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorRight( false ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3340,9 +3342,10 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorLeft( true ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3354,9 +3357,10 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorLeft( false ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3659,20 +3663,20 @@ void TTrain::UpdateMechPosition(double dt)
     {
         Math3D::vector3 shakevector;
         if( ( mvOccupied->EngineType == DieselElectric )
-            || ( mvOccupied->EngineType == DieselEngine ) ) {
+         || ( mvOccupied->EngineType == DieselEngine ) ) {
             if( std::abs( mvOccupied->enrot ) > 0.0 ) {
                 // engine vibration
                 shakevector.x +=
-                    ( std::cos( mvOccupied->eAngle * 4.0 ) * dt * 2.0 )
-                    // fade in with rpm < 300
+                    ( std::cos( mvOccupied->eAngle * 4.0 ) * dt * EngineShake.scale )
+                    // fade in with rpm above threshold
                     * clamp(
-                        ( mvOccupied->enrot - 1.0 ) * 0.25,
+                        ( mvOccupied->enrot - EngineShake.fadein_offset ) * EngineShake.fadein_factor,
                         0.0, 1.0 )
-                    // fade out with rpm > 600
+                    // fade out with rpm above threshold
                     * interpolate(
                         1.0, 0.0,
                         clamp(
-                            mvOccupied->enrot - 10.0,
+                            ( mvOccupied->enrot - EngineShake.fadeout_offset ) * EngineShake.fadeout_factor,
                             0.0, 1.0 ) );
             }
         }
@@ -3704,20 +3708,22 @@ void TTrain::UpdateMechPosition(double dt)
 
         // McZapkie:
         pMechShake += vMechVelocity * dt;
+        if( ( pMechShake.y >  fMechMaxSpring )
+         || ( pMechShake.y < -fMechMaxSpring ) ) {
+            vMechVelocity.y = -vMechVelocity.y;
+        }
         // Ra 2015-01: dotychczasowe rzucanie
         pMechOffset += vMechMovement * dt;
-        if( ( pMechShake.y > fMechMaxSpring ) || ( pMechShake.y < -fMechMaxSpring ) )
-            vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pMechPosition = pMechOffset + Math3D::vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
-//        vMechMovement = 0.5 * vMechMovement;
+
+//        pMechShake = interpolate( pMechShake, Math3D::vector3(), clamp( dt, 0.0, 1.0 ) );
     }
     else { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
         pMechPosition = pMechOffset + Math3D::vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
-//        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
     if( DynamicObject->Mechanik ) // może nie być?
@@ -5328,7 +5334,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 parser
                     >> ks
                     >> kd;
-                MechSpring.Init(MechSpring.restLen, ks, kd);
+                MechSpring.Init(ks, kd);
                 parser.getTokens(6, false);
                 parser
                     >> fMechSpringX
@@ -5337,6 +5343,15 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                     >> fMechMaxSpring
                     >> fMechRoll
                     >> fMechPitch;
+            }
+            else if( token == "enginespring:" ) {
+                parser.getTokens( 5, false );
+                parser
+                    >> EngineShake.scale
+                    >> EngineShake.fadein_offset
+                    >> EngineShake.fadein_factor
+                    >> EngineShake.fadeout_offset
+                    >> EngineShake.fadeout_factor;
             }
 
         } while (token != "");
