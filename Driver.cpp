@@ -919,7 +919,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
                                 // to się wykona tylko raz po zatrzymaniu na W4
-
+                                if( TrainParams->StationIndex < TrainParams->StationCount ) {
+                                    // jeśli są dalsze stacje, bez trąbienia przed odjazdem
+                                    // also ignore any horn cue that may be potentially set below 1 km/h and before the actual full stop
+                                    iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
+                                }
                                 // perform loading/unloading
                                 auto const exchangetime { simulation::Station.update_load( pVehicles[ 0 ], *TrainParams ) };
                                 // TBD: adjust time to load exchange size
@@ -947,6 +951,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // przyjazd o czasie
                                     iDrivigFlags &= ~moveLate;
                                 }
+
                                 if (TrainParams->DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
                                     // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
@@ -985,7 +990,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->StationIndex < TrainParams->StationCount)
                             { // jeśli są dalsze stacje, czekamy do godziny odjazdu
-
                                 if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute))
                                 { // z dalszą akcją czekamy do godziny odjazdu
 									/* potencjalny problem z ruszaniem z w4
@@ -1008,16 +1012,16 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
-                                    if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
-										iDrivigFlags |= moveStopHere; // nie podjeżdżać do semafora,
-									// jeśli droga nie jest wolna
-                                    else
-										iDrivigFlags &= ~moveStopHere; //po czasie jedź dalej
-                                    iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać
-                                    // blisko (z dociąganiem)
-                                    iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed odjazdem
-                                    sSpeedTable[i].iFlags =
-                                        0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
+                                    if( int( floor( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) & 1 ) {
+                                        // nie podjeżdżać do semafora, jeśli droga nie jest wolna
+                                        iDrivigFlags |= moveStopHere;
+                                    }
+                                    else {
+                                        //po czasie jedź dalej
+                                        iDrivigFlags &= ~moveStopHere;
+                                    }
+                                    iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać blisko (z dociąganiem)
+                                    sSpeedTable[i].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                                     sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                     if (go == cm_Unknown) // jeśli nie było komendy wcześniej
                                         go = cm_Ready; // gotów do odjazdu z W4 (semafor może
