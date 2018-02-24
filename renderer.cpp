@@ -394,7 +394,7 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_color.start();
 
 	GLuint gl_time_ready = 0;
-    if (GL_ARB_timer_query)
+    if (GLEW_ARB_timer_query)
     {
         if (m_gltimequery)
         {
