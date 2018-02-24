@@ -1811,8 +1811,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     {
         size_t dlugosc = MoreParams.length();
         ActPar = ToUpper(MoreParams.substr(0, kropka)); // pierwszy parametr;
-        MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej
-        // obrobki
+        MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej obrobki
         kropka = MoreParams.find(".");
 
         if (ActPar.substr(0, 1) == "B") // jesli hamulce
@@ -1924,6 +1923,41 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
             }
         } // koniec hamulce
+        else if( ( ActPar.size() >= 3 )
+              && ( ActPar.substr( 0, 2 ) == "WF" ) ) {
+            // wheel flat
+            // TODO: convert this whole mess to something more elegant one day
+            ActPar.erase( 0, 2 );
+            auto fixedflatsize { 0 };
+            {
+                // fixed size flat
+                auto const indexend { ActPar.find_first_not_of( "1234567890", 0 ) };
+                fixedflatsize = std::atoi( ActPar.substr( 0, indexend ).c_str() );
+                ActPar.erase( 0, indexend );
+            }
+            // optional parameters
+            auto randomflatsize { 0 };
+            auto randomflatchance { 100 };
+            while( false == ActPar.empty() ) {
+                if( ActPar[ 0 ] == 'R' ) {
+                    // random flat size
+                    auto const indexstart { 1 };
+                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                    randomflatsize = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                    ActPar.erase( 0, indexend );
+                }
+                else if( ActPar[ 0 ] == 'P' ) {
+                    // random flat probability
+                    auto const indexstart { 1 };
+                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                    randomflatchance = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                    ActPar.erase( 0, indexend );
+                }
+            }
+            if( Random(0, 100) <= randomflatchance ) {
+                MoverParameters->WheelFlat += fixedflatsize + Random( 0, randomflatsize );
+            }
+        }
 /*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
