@@ -891,8 +891,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                                 mvOccupied->DoorLeft(true);
                                             if (p2 & prawe)
                                                 mvOccupied->DoorRight(true);
-                                            // if (p2&3) //żeby jeszcze poczekał chwilę, zanim zamknie
-                                            // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
                                         }
                                 }
                                 else
@@ -916,50 +914,72 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         // pojazd podłączony z tyłu (patrząc od czoła)
                                         p = p->Next();
                                     }
-                                    // if (p7&3) //żeby jeszcze poczekał chwilę, zanim zamknie
-                                    // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
+                                }
+                            }
+                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
+                                // to się wykona tylko raz po zatrzymaniu na W4
+                                if( TrainParams->StationIndex < TrainParams->StationCount ) {
+                                    // jeśli są dalsze stacje, bez trąbienia przed odjazdem
+                                    // also ignore any horn cue that may be potentially set below 1 km/h and before the actual full stop
+                                    iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
+                                }
+                                // perform loading/unloading
+                                auto const exchangetime { simulation::Station.update_load( pVehicles[ 0 ], *TrainParams ) };
+                                // TBD: adjust time to load exchange size
+                                if( fStopTime > -55 ) {
+                                    // na końcu rozkładu się ustawia 60s i tu by było skrócenie
+//                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
+                                    // with door open on both sides calculated loading time is halved
+                                    // p7=platform side (1:left, 2:right, 3:both)
+                                    auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
+                                    WaitingSet(
+                                        platformside == 3 ?
+                                            exchangetime * 0.5 :
+                                            exchangetime );
+                                }
+                                // update brake settings and ai braking tables
+                                // NOTE: this calculation is run after completing loading/unloading
+                                // remember to move it to a more fitting spot, when loading/unloading taks some actual time
+                                AutoRewident(); // nastawianie hamulca do jazdy pociągowej
+
+                                if( TrainParams->CheckTrainLatency() < 0.0 ) {
+                                    // odnotowano spóźnienie
+                                    iDrivigFlags |= moveLate;
+                                }
+                                else {
+                                    // przyjazd o czasie
+                                    iDrivigFlags &= ~moveLate;
                                 }
 
-                                if( fStopTime > -5 ) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
-                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
-                                // niezależne od sposobu obsługi drzwi, bo opóźnia również kierownika
-                            }
-                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) )
-                            { // to się wykona tylko raz po zatrzymaniu na W4
-                                if (TrainParams->CheckTrainLatency() < 0.0)
-                                    iDrivigFlags |= moveLate; // odnotowano spóźnienie
-                                else
-                                    iDrivigFlags &= ~moveLate; // przyjazd o czasie
-                                if (TrainParams->DirectionChange()) // jeśli "@" w rozkładzie, to
-                                // wykonanie dalszych komend
-                                { // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
-                                    if (iDrivigFlags & movePushPull) // SN61 ma się też nie ruszać,
-                                    // chyba że ma wagony
-                                    {
+                                if (TrainParams->DirectionChange()) {
+                                    // jeśli "@" w rozkładzie, to wykonanie dalszych komend
+                                    // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
+                                    if (iDrivigFlags & movePushPull) {
+                                        // SN61 ma się też nie ruszać, chyba że ma wagony
                                         iDrivigFlags |= moveStopHere; // EZT ma stać przy peronie
-                                        if (OrderNextGet() != Change_direction)
-                                        {
+                                        if (OrderNextGet() != Change_direction) {
                                             OrderPush(Change_direction); // zmiana kierunku
-                                            OrderPush(TrainParams->StationIndex <
-                                                              TrainParams->StationCount ?
-                                                          Obey_train :
-                                                          Shunt); // to dalej wg rozkładu
+                                            OrderPush(
+                                                TrainParams->StationIndex < TrainParams->StationCount ?
+                                                    Obey_train :
+                                                    Shunt); // to dalej wg rozkładu
                                         }
                                     }
-                                    else // a dla lokomotyw...
-                                        iDrivigFlags &=
-                                            ~(moveStopPoint | moveStopHere); // pozwolenie na
-                                    // przejechanie za W4
-                                    // przed czasem i nie
-                                    // ma stać
-                                    JumpToNextOrder(); // przejście do kolejnego rozkazu (zmiana
-                                    // kierunku, odczepianie)
-                                    iDrivigFlags &= ~moveStopCloser; // ma nie podjeżdżać pod W4 po
-                                    // przeciwnej stronie
-                                    sSpeedTable[i].iFlags = 0; // ten W4 nie liczy się już zupełnie
-                                    // (nie wyśle SetVelocity)
-                                    sSpeedTable[i].fVelNext = -1; // jechać
-                                    continue; // nie analizować prędkości
+                                    else {
+                                        // a dla lokomotyw...
+                                        // pozwolenie na przejechanie za W4 przed czasem i nie ma stać
+                                        iDrivigFlags &= ~( moveStopPoint | moveStopHere );
+                                    }
+                                    // przejście do kolejnego rozkazu (zmiana kierunku, odczepianie)
+                                    JumpToNextOrder();
+                                    // ma nie podjeżdżać pod W4 po przeciwnej stronie
+                                    iDrivigFlags &= ~moveStopCloser;
+                                    // ten W4 nie liczy się już zupełnie (nie wyśle SetVelocity)
+                                    sSpeedTable[i].iFlags = 0;
+                                    // jechać
+                                    sSpeedTable[i].fVelNext = -1;
+                                    // nie analizować prędkości
+                                    continue;
                                 }
                             }
                             if (OrderCurrentGet() == Shunt)
@@ -969,7 +989,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->StationIndex < TrainParams->StationCount)
                             { // jeśli są dalsze stacje, czekamy do godziny odjazdu
-
                                 if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute))
                                 { // z dalszą akcją czekamy do godziny odjazdu
 									/* potencjalny problem z ruszaniem z w4
@@ -992,16 +1011,16 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
-                                    if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
-										iDrivigFlags |= moveStopHere; // nie podjeżdżać do semafora,
-									// jeśli droga nie jest wolna
-                                    else
-										iDrivigFlags &= ~moveStopHere; //po czasie jedź dalej
-                                    iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać
-                                    // blisko (z dociąganiem)
-                                    iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed odjazdem
-                                    sSpeedTable[i].iFlags =
-                                        0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
+                                    if( int( floor( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) & 1 ) {
+                                        // nie podjeżdżać do semafora, jeśli droga nie jest wolna
+                                        iDrivigFlags |= moveStopHere;
+                                    }
+                                    else {
+                                        //po czasie jedź dalej
+                                        iDrivigFlags &= ~moveStopHere;
+                                    }
+                                    iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać blisko (z dociąganiem)
+                                    sSpeedTable[i].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                                     sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                     if (go == cm_Unknown) // jeśli nie było komendy wcześniej
                                         go = cm_Ready; // gotów do odjazdu z W4 (semafor może
@@ -1772,34 +1791,55 @@ void TController::AutoRewident()
     p = 0; // będziemy tu liczyć wagony od lokomotywy dla nastawy GP
     while (d)
     { // 3. Nastawianie
-        switch (ustaw)
-        {
-        case bdelay_P: // towarowy P - lokomotywa na G, reszta na P.
-            d->MoverParameters->BrakeDelaySwitch(d->MoverParameters->Power > 1 ? bdelay_G :
-                                                                                 bdelay_P);
-            break;
-        case bdelay_G: // towarowy G - wszystko na G, jeśli nie ma to P (powinno się wyłączyć
-            // hamulec)
-            d->MoverParameters->BrakeDelaySwitch(
-                TestFlag(d->MoverParameters->BrakeDelays, bdelay_G) ? bdelay_G : bdelay_P);
-            break;
-        case bdelay_R: // towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta
-            // na P
-            if (d->MoverParameters->Power > 1)
-            {
-                d->MoverParameters->BrakeDelaySwitch(bdelay_G);
-                p = 0; // a jak będzie druga w środku?
+        if( ( true == AIControllFlag )
+         || ( d != pVehicle ) ) {
+            // don't touch human-controlled vehicle, but others are free game
+            switch( ustaw ) {
+
+                case bdelay_P: {
+                    // towarowy P - lokomotywa na G, reszta na P.
+                    d->MoverParameters->BrakeDelaySwitch(
+                        d->MoverParameters->Power > 1 ?
+                            bdelay_G :
+                            bdelay_P );
+                    break;
+                }
+                case bdelay_G: {
+                    // towarowy G - wszystko na G, jeśli nie ma to P (powinno się wyłączyć hamulec)
+                    d->MoverParameters->BrakeDelaySwitch(
+                        TestFlag( d->MoverParameters->BrakeDelays, bdelay_G ) ?
+                            bdelay_G :
+                            bdelay_P );
+                    break;
+                }
+                case bdelay_R: {
+                    // towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
+                    if( d->MoverParameters->Power > 1 ) {
+                        d->MoverParameters->BrakeDelaySwitch( bdelay_G );
+                        p = 0; // a jak będzie druga w środku?
+                    }
+                    else {
+                        d->MoverParameters->BrakeDelaySwitch(
+                            ++p <= 5 ?
+                                bdelay_G :
+                                bdelay_P );
+                    }
+                    break;
+                }
+                case 16 + bdelay_R: {
+                    // pasażerski R - na R, jeśli nie ma to P
+                    d->MoverParameters->BrakeDelaySwitch(
+                        TestFlag( d->MoverParameters->BrakeDelays, bdelay_R ) ?
+                            bdelay_R :
+                            bdelay_P );
+                    break;
+                }
+                case 16 + bdelay_P: {
+                    // pasażerski P - wszystko na P
+                    d->MoverParameters->BrakeDelaySwitch( bdelay_P );
+                    break;
+                }
             }
-            else
-                d->MoverParameters->BrakeDelaySwitch(++p <= 5 ? bdelay_G : bdelay_P);
-            break;
-        case 16 + bdelay_R: // pasażerski R - na R, jeśli nie ma to P
-            d->MoverParameters->BrakeDelaySwitch(
-                TestFlag(d->MoverParameters->BrakeDelays, bdelay_R) ? bdelay_R : bdelay_P);
-            break;
-        case 16 + bdelay_P: // pasażerski P - wszystko na P
-            d->MoverParameters->BrakeDelaySwitch(bdelay_P);
-            break;
         }
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
@@ -2094,22 +2134,16 @@ void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
         if (OrderList[OrderPos] ?
                 OrderList[OrderPos] & (Obey_train | Shunt | Connect | Prepare_engine) :
                 true) // jeśli jedzie w dowolnym trybie
-            if ((mvOccupied->Vel <
-                 1.0)) // jesli stoi (na razie, bo chyba powinien też, gdy hamuje przed semaforem)
+            if ((mvOccupied->Vel < 1.0)) // jesli stoi (na razie, bo chyba powinien też, gdy hamuje przed semaforem)
                 if (iDrivigFlags & moveStartHorn) // jezeli trąbienie włączone
-                    if (!(iDrivigFlags & (moveStartHornDone | moveConnect))) // jeśli nie zatrąbione
-                        // i nie jest to moment
-                        // podłączania składu
-                        if (mvOccupied->CategoryFlag & 1) // tylko pociągi trąbią (unimogi tylko na
-                            // torach, więc trzeba raczej sprawdzać
-                            // tor)
-                            if ((NewVel >= 1.0) || (NewVel < 0.0)) // o ile prędkość jest znacząca
-                            { // fWarningDuration=0.3; //czas trąbienia
-                                // if (AIControllFlag) //jak siedzi krasnoludek, to włączy trąbienie
-                                // mvOccupied->WarningSignal=pVehicle->iHornWarning; //wysokość tonu
-                                // (2=wysoki)
-                                // iDrivigFlags|=moveStartHornDone; //nie trąbić aż do ruszenia
-                                iDrivigFlags |= moveStartHornNow; // zatrąb po odhamowaniu
+                    if (!(iDrivigFlags & (moveStartHornDone | moveConnect)))
+                        // jeśli nie zatrąbione i nie jest to moment podłączania składu
+                        if (mvOccupied->CategoryFlag & 1)
+                            // tylko pociągi trąbią (unimogi tylko na torach, więc trzeba raczej sprawdzać tor)
+                            if ((NewVel >= 1.0) || (NewVel < 0.0)) {
+                                // o ile prędkość jest znacząca
+                                // zatrąb po odhamowaniu
+                                iDrivigFlags |= moveStartHornNow;
                             }
     }
     VelSignal = NewVel; // prędkość zezwolona na aktualnym odcinku
@@ -3648,12 +3682,9 @@ TController::UpdateSituation(double dt) {
             // but when enabled all the time it produces silly effect
             // przy prowadzeniu samochodu trzeba każdą oś odsuwać oddzielnie, inaczej kicha wychodzi
             if (mvOccupied->CategoryFlag & 2) // jeśli samochód
-                // if (fabs(mvOccupied->OffsetTrackH)<mvOccupied->Dim.W) //Ra: szerokość drogi tu
-                // powinna być?
-                if (!mvOccupied->ChangeOffsetH(-0.01 * mvOccupied->Vel * dt)) // ruch w poprzek
-                    // drogi
-                    mvOccupied->ChangeOffsetH(0.01 * mvOccupied->Vel *
-                                              dt); // Ra: co to miało być, to nie wiem
+                // if (fabs(mvOccupied->OffsetTrackH)<mvOccupied->Dim.W) //Ra: szerokość drogi tu powinna być?
+                if (!mvOccupied->ChangeOffsetH(-0.01 * mvOccupied->Vel * dt)) // ruch w poprzek drogi
+                    mvOccupied->ChangeOffsetH(0.01 * mvOccupied->Vel * dt); // Ra: co to miało być, to nie wiem
 */
         }
 
@@ -3720,7 +3751,7 @@ TController::UpdateSituation(double dt) {
             if( fWarningDuration < 0.05 )
                 mvOccupied->WarningSignal = 0; // a tu się kończy
         }
-        if( mvOccupied->Vel >= 3.0 ) {
+        if( mvOccupied->Vel >= 5.0 ) {
             // jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
             iDrivigFlags &= ~moveStartHornDone; // zatrąbi dopiero jak następnym razem stanie
             iDrivigFlags |= moveStartHorn; // i trąbić przed następnym ruszeniem
@@ -3729,7 +3760,7 @@ TController::UpdateSituation(double dt) {
         if( ( true == TestFlag( iDrivigFlags, moveStartHornNow ) )
          && ( true == Ready )
          && ( iEngineActive != 0 )
-         && ( fStopTime >= 0 ) ) {
+         && ( mvControlling->MainCtrlPos > 0 ) ) {
             // uruchomienie trąbienia przed ruszeniem
             fWarningDuration = 0.3; // czas trąbienia
             mvOccupied->WarningSignal = pVehicle->iHornWarning; // wysokość tonu (2=wysoki)

@@ -503,6 +503,13 @@ public: // reszta może by?publiczna
     double fMechMaxSpring;
     double fMechRoll;
     double fMechPitch;
+    struct engineshake_config {
+        float scale { 2.f };
+        float fadein_offset { 1.5f };
+        float fadein_factor { 0.3f };
+        float fadeout_offset { 10.f };
+        float fadeout_factor { 0.5f };
+    } EngineShake;
 
     sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
     sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };

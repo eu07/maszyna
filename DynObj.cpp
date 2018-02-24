@@ -556,14 +556,14 @@ TDynamicObject::toggle_lights() {
         for( auto &sectionlight : SectionLightLevels ) {
 
             std::string const &compartmentname = sectionlight.compartment->pName;
-            if( ( compartmentname.find( "corridor" ) != std::string::npos )
-             || ( compartmentname.find( "korytarz" ) != std::string::npos ) ) {
+            if( ( compartmentname.find( "corridor" ) == 0 )
+             || ( compartmentname.find( "korytarz" ) == 0 ) ) {
                 // corridors are lit 100% of time
                 sectionlight.level = 0.75f;
             }
             else if(
-                ( compartmentname.find( "compartment" ) != std::string::npos )
-             || ( compartmentname.find( "przedzial" )   != std::string::npos ) ) {
+                ( compartmentname.find( "compartment" ) == 0 )
+             || ( compartmentname.find( "przedzial" )   == 0 ) ) {
                 // compartments are lit with 75% probability
                 sectionlight.level = ( Random() < 0.75 ? 0.75f : 0.15f );
             }
@@ -976,6 +976,22 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         section.compartment->SetLightLevel( section.level, true );
         if( section.load != nullptr ) {
             section.load->SetLightLevel( section.level, true );
+        }
+    }
+    // load chunks visibility
+    for( auto const &section : SectionLoadVisibility ) {
+        section.submodel->iVisible = section.visible;
+        if( false == section.visible ) {
+            // if the section root isn't visible we can skip meddling with its children
+            continue;
+        }
+        // if the section root is visible set the state of section chunks
+        auto *sectionchunk { section.submodel->ChildGet() };
+        auto visiblechunkcount { section.visible_chunks };
+        while( sectionchunk != nullptr ) {
+            sectionchunk->iVisible = ( visiblechunkcount > 0 );
+            --visiblechunkcount;
+            sectionchunk = sectionchunk->NextGet();
         }
     }
 }
@@ -1797,8 +1813,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     {
         size_t dlugosc = MoreParams.length();
         ActPar = ToUpper(MoreParams.substr(0, kropka)); // pierwszy parametr;
-        MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej
-        // obrobki
+        MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej obrobki
         kropka = MoreParams.find(".");
 
         if (ActPar.substr(0, 1) == "B") // jesli hamulce
@@ -1910,6 +1925,41 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
             }
         } // koniec hamulce
+        else if( ( ActPar.size() >= 3 )
+              && ( ActPar.substr( 0, 2 ) == "WF" ) ) {
+            // wheel flat
+            // TODO: convert this whole mess to something more elegant one day
+            ActPar.erase( 0, 2 );
+            auto fixedflatsize { 0 };
+            {
+                // fixed size flat
+                auto const indexend { ActPar.find_first_not_of( "1234567890", 0 ) };
+                fixedflatsize = std::atoi( ActPar.substr( 0, indexend ).c_str() );
+                ActPar.erase( 0, indexend );
+            }
+            // optional parameters
+            auto randomflatsize { 0 };
+            auto randomflatchance { 100 };
+            while( false == ActPar.empty() ) {
+                if( ActPar[ 0 ] == 'R' ) {
+                    // random flat size
+                    auto const indexstart { 1 };
+                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                    randomflatsize = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                    ActPar.erase( 0, indexend );
+                }
+                else if( ActPar[ 0 ] == 'P' ) {
+                    // random flat probability
+                    auto const indexstart { 1 };
+                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                    randomflatchance = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                    ActPar.erase( 0, indexend );
+                }
+            }
+            if( Random(0, 100) <= randomflatchance ) {
+                MoverParameters->WheelFlat += fixedflatsize + Random( 0, randomflatsize );
+            }
+        }
 /*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
@@ -2012,9 +2062,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         // check the low poly interior for potential compartments of interest, ie ones which can be individually lit
         // TODO: definition of relevant compartments in the .mmd file
         TSubModel *submodel { nullptr };
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) { SectionLightLevels.push_back( { submodel, nullptr, 0.0f } ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) { SectionLightLevels.push_back( { submodel, nullptr, 0.0f } ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) { SectionLightLevels.push_back( { submodel, nullptr, 0.0f } ); }
         // passenger car compartments
         std::vector<std::string> nameprefixes = { "corridor", "korytarz", "compartment", "przedzial" };
         int compartmentindex;
@@ -2029,19 +2079,17 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                               std::to_string( compartmentindex ) );
                 submodel = mdLowPolyInt->GetFromName( compartmentname );
                 if( submodel != nullptr ) {
-                    // if specified compartment was found we check also for potential matching section in the currently assigned load
-                    // NOTE: if the load gets changed this will invalidate stored pointers. TODO: rebuild the table on load change
-                    SectionLightLevels.emplace_back(
+                    SectionLightLevels.push_back( {
                         submodel,
-                        ( mdLoad != nullptr ?
-                            mdLoad->GetFromName( compartmentname ):
-                            nullptr ),
-                        0.0f );
+                        nullptr, // pointers to load sections are generated afterwards
+                        0.0f } );
                 }
                 ++compartmentindex;
             } while( ( submodel != nullptr )
                   || ( compartmentindex < 2 ) ); // chain can start from prefix00 or prefix01
         }
+        update_load_sections();
+        update_load_visibility();
     }
     // wyszukiwanie zderzakow
     if( mdModel ) {
@@ -2430,31 +2478,115 @@ bool TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
     return true;
 }
 
-void TDynamicObject::LoadUpdate()
-{ // przeładowanie modelu ładunku
+void TDynamicObject::LoadUpdate() {
+    // przeładowanie modelu ładunku
     // Ra: nie próbujemy wczytywać modeli miliony razy podczas renderowania!!!
-    if ((mdLoad == NULL) && (MoverParameters->Load > 0))
-    {
-        std::string asLoadName =
-            asBaseDir + MoverParameters->LoadType + ".t3d"; // zapamiętany katalog pojazdu
-        // asLoadName=MoverParameters->LoadType;
-        // if (MoverParameters->LoadType!=AnsiString("passengers"))
-        Global.asCurrentTexturePath = asBaseDir; // bieżąca ścieżka do tekstur to dynamic/...
-        mdLoad = TModelsManager::GetModel(asLoadName.c_str()); // nowy ładunek
-        Global.asCurrentTexturePath =
-            std::string(szTexturePath); // z powrotem defaultowa sciezka do tekstur
-        // Ra: w MMD można by zapisać położenie modelu ładunku (np. węgiel) w
-        // zależności od
-        // załadowania
+    if( ( mdLoad == nullptr )
+     && ( MoverParameters->Load > 0 ) ) {
+
+        if( false == MoverParameters->LoadType.empty() ) {
+
+            Global.asCurrentTexturePath = asBaseDir; // bieżąca ścieżka do tekstur to dynamic/...
+
+            // try first specialized version of the load model, vehiclename_loadname
+            auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + MoverParameters->LoadType };
+            if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
+             || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
+                mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
+            }
+            if( mdLoad == nullptr ) {
+                // if this fails, try generic load model
+                mdLoad = TModelsManager::GetModel( asBaseDir + MoverParameters->LoadType, true );
+            }
+            if( mdLoad != nullptr ) {
+                // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
+                // and actual vehicles which get their initialization after their animations are set up
+                mdLoad->Init();
+            }
+            // update bindings between lowpoly sections and potential load chunks placed inside them
+            update_load_sections();
+
+            Global.asCurrentTexturePath = std::string( szTexturePath ); // z powrotem defaultowa sciezka do tekstur
+        }
+        // Ra: w MMD można by zapisać położenie modelu ładunku (np. węgiel) w zależności od załadowania
     }
-    else if (MoverParameters->Load == 0)
-        mdLoad = NULL; // nie ma ładunku
-    // if ((mdLoad==NULL)&&(MoverParameters->Load>0))
-    // {
-    //  mdLoad=NULL; //Ra: to jest tu bez sensu - co autor miał na myśli?
-    // }
+    else if( MoverParameters->Load == 0 ) {
+        // nie ma ładunku
+        mdLoad = nullptr;
+        // erase bindings between lowpoly sections and potential load chunks placed inside them
+        update_load_sections();
+    }
     MoverParameters->LoadStatus &= 3; // po zakończeniu będzie równe zero
-};
+}
+
+void
+TDynamicObject::update_load_sections() {
+
+    SectionLoadVisibility.clear();
+
+    for( auto &section : SectionLightLevels ) {
+
+        section.load = (
+            mdLoad != nullptr ?
+                mdLoad->GetFromName( section.compartment->pName ) :
+                nullptr );
+
+        if( ( section.load != nullptr )
+         && ( section.load->count_children() > 0 ) ) {
+            SectionLoadVisibility.push_back( { section.load, false } );
+        }
+    }
+    shuffle_load_sections();
+}
+
+void
+TDynamicObject::update_load_visibility() {
+
+    if( Random() < 0.25 ) {
+        shuffle_load_sections();
+    }
+
+    auto loadpercentage { (
+        MoverParameters->MaxLoad == 0.0 ?
+            0.0 :
+            100.0 * MoverParameters->Load / MoverParameters->MaxLoad ) };
+    auto const sectionloadpercentage { (
+        SectionLoadVisibility.empty() ?
+            0.0 :
+            100.0 / SectionLoadVisibility.size() ) };
+    // set as many sections as we can, given overall load percentage and how much of full percentage is covered by each chunk
+    std::for_each(
+        std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
+        [&]( section_visibility &section ) {
+            section.visible = ( loadpercentage > 0.0 );
+            section.visible_chunks = 0;
+            auto const sectionchunkcount { section.submodel->count_children() };
+            auto const sectionchunkloadpercentage{ (
+                sectionchunkcount == 0 ?
+                    0.0 :
+                    sectionloadpercentage / sectionchunkcount ) };
+            auto *sectionchunk { section.submodel->ChildGet() };
+            while( sectionchunk != nullptr ) {
+                if( loadpercentage > 0.0 ) {
+                    ++section.visible_chunks;
+                    loadpercentage -= sectionchunkloadpercentage;
+                }
+                sectionchunk = sectionchunk->NextGet();
+            } } );
+}
+
+void 
+TDynamicObject::shuffle_load_sections() {
+
+    std::shuffle( std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ), Global.random_engine );
+    // shift chunks assigned to corridors to the end of the list, so they show up last
+    std::stable_partition(
+        std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
+        []( section_visibility const &section ) {
+            return (
+                ( section.submodel->pName.find( "compartment" ) == 0 )
+             || ( section.submodel->pName.find( "przedzial" )   == 0 ) ); } );
+}
 
 /*
 Ra:
@@ -3639,7 +3771,7 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if( ( true == MoverParameters->DoorLeftOpened )
-        && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
+     && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x > 0.f ) {
@@ -3650,7 +3782,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( false == MoverParameters->DoorLeftOpened )
-        && ( dDoorMoveL > 0.01 ) ) {
+     && ( dDoorMoveL > 0.01 ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x > 0.f ) {
@@ -3661,7 +3793,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( true == MoverParameters->DoorRightOpened )
-        && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
+     && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x < 0.f ) {
@@ -3672,7 +3804,7 @@ void TDynamicObject::RenderSounds() {
         }
     }
     if( ( false == MoverParameters->DoorRightOpened )
-        && ( dDoorMoveR > 0.01 ) ) {
+     && ( dDoorMoveR > 0.01 ) ) {
 
         for( auto &door : m_doorsounds ) {
             if( door.rsDoorClose.offset().x < 0.f ) {
@@ -3855,7 +3987,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     std::string asFileName = BaseDir + TypeName + ".mmd";
     std::string asLoadName;
     if( false == MoverParameters->LoadType.empty() ) {
-        asLoadName = BaseDir + MoverParameters->LoadType + ".t3d";
+        asLoadName = BaseDir + MoverParameters->LoadType;
     }
 
     std::string asAnimName;

@@ -454,8 +454,8 @@ sound_source::stop( bool const Skipend ) {
 
     if( ( false == Skipend )
      && ( sound( sound_id::end ).buffer != null_handle )
-     && ( sound( sound_id::end ).buffer != sound( sound_id::main ).buffer ) // end == main can happen in malformed legacy cases
-/*   && ( sound( sound_id::end ).playing == 0 ) */ ) {
+/*     && ( sound( sound_id::end ).buffer != sound( sound_id::main ).buffer ) */ // end == main can happen in malformed legacy cases
+/*     && ( sound( sound_id::end ).playing == 0 ) */ ) {
         // spawn potentially defined sound end sample, if the emitter is currently active
         insert( sound_id::end );
     }
@@ -482,19 +482,31 @@ sound_source::update_basic( audio::openal_source &Source ) {
 
     if( true == Source.is_playing ) {
 
-        if( ( true == m_stop )
-         && ( Source.sounds[ Source.sound_index ] != sound_id::end ) ) {
-            // kill the sound if stop was requested, unless it's sound bookend sample
-            Source.stop();
-            update_counter( Source.sounds[ Source.sound_index ], -1 );
-            if( false == is_playing() ) {
-                m_stop = false;
+        auto const soundhandle { Source.sounds[ Source.sound_index ] };
+
+        if( sound( sound_id::begin ).buffer != null_handle ) {
+            // potentially a multipart sound
+            // detect the moment when the sound moves from startup sample to the main
+            if( ( false == Source.is_looping )
+             && ( soundhandle == sound_id::main ) ) {
+                // when it happens update active sample counters, and activate the looping
+                update_counter( sound_id::begin, -1 );
+                update_counter( soundhandle, 1 );
+                Source.loop( TestFlag( m_flags, sound_flags::looping ) );
             }
+        }
+
+        if( ( true == m_stop )
+         && ( soundhandle != sound_id::end ) ) {
+            // kill the sound if stop was requested, unless it's sound bookend sample
+            update_counter( soundhandle, -1 );
+            Source.stop();
+            m_stop = is_playing(); // end the stop mode when all active sounds are dead
             return;
         }
 /*
         if( ( true == m_stopend )
-         && ( Source.sounds[ Source.sound_index ] == sound_id::end ) ) {
+         && ( soundhandle == sound_id::end ) ) {
             // kill the sound if it's the bookend sample and stopping it was requested
             Source.stop();
             update_counter( sound_id::end, -1 );
@@ -504,25 +516,13 @@ sound_source::update_basic( audio::openal_source &Source ) {
             return;
         }
 */
-        if( sound( sound_id::begin ).buffer != null_handle ) {
-            // potentially a multipart sound
-            // detect the moment when the sound moves from startup sample to the main
-            auto const soundhandle { Source.sounds[ Source.sound_index ] };
-            if( ( false == Source.is_looping )
-             && ( soundhandle == sound_id::main ) ) {
-                // when it happens update active sample counters, and activate the looping
-                update_counter( sound_id::begin, -1 );
-                update_counter( soundhandle, 1 );
-                Source.loop( true );
-            }
-        }
         // check and update if needed current sound properties
         update_location();
         update_soundproofing();
         Source.sync_with( m_properties );
         if( Source.sync != sync_state::good ) {
             // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
-            update_counter( Source.sounds[ Source.sound_index ], -1 );
+            update_counter( soundhandle, -1 );
         }
 
     }
@@ -533,10 +533,9 @@ sound_source::update_basic( audio::openal_source &Source ) {
             // the emitter wasn't yet started
             auto const soundhandle { Source.sounds[ Source.sound_index ] };
             // emitter initialization
-            if( ( soundhandle == sound_id::main )
-             && ( true == TestFlag( m_flags, sound_flags::looping ) ) ) {
+            if( soundhandle == sound_id::main ) {
                 // main sample can be optionally set to loop
-                Source.loop( true );
+                Source.loop( TestFlag( m_flags, sound_flags::looping ) );
             }
             Source.range( m_range );
             Source.pitch( m_pitchvariation );
@@ -570,6 +569,18 @@ sound_source::update_combined( audio::openal_source &Source ) {
 
         auto const soundhandle { Source.sounds[ Source.sound_index ] };
 
+        if( sound( sound_id::begin ).buffer != null_handle ) {
+            // potentially a multipart sound
+            // detect the moment when the sound moves from startup sample to the main
+            if( ( false == Source.is_looping )
+             && ( soundhandle == ( sound_id::chunk | 0 ) ) ) {
+                // when it happens update active sample counters, and activate the looping
+                update_counter( sound_id::begin, -1 );
+                update_counter( soundhandle, 1 );
+                Source.loop( true );
+            }
+        }
+
         if( ( true == m_stop )
          && ( soundhandle != sound_id::end ) ) {
             // kill the sound if stop was requested, unless it's sound bookend sample
@@ -582,7 +593,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
         }
 /*
         if( ( true == m_stopend )
-         && ( Source.sounds[ Source.sound_index ] == sound_id::end ) ) {
+         && ( soundhandle == sound_id::end ) ) {
             // kill the sound if it's the bookend sample and stopping it was requested
             Source.stop();
             update_counter( sound_id::end, -1 );
@@ -592,19 +603,6 @@ sound_source::update_combined( audio::openal_source &Source ) {
             return;
         }
 */
-        if( sound( sound_id::begin ).buffer != null_handle ) {
-            // potentially a multipart sound
-            // detect the moment when the sound moves from startup sample to the main
-            auto const soundhandle { Source.sounds[ Source.sound_index ] };
-            if( ( false == Source.is_looping )
-             && ( soundhandle == ( sound_id::chunk | 0 ) ) ) {
-                // when it happens update active sample counters, and activate the looping
-                update_counter( sound_id::begin, -1 );
-                update_counter( soundhandle, 1 );
-                Source.loop( true );
-            }
-        }
-
         if( ( soundhandle & sound_id::chunk ) != 0 ) {
             // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
             auto const soundpoint { compute_combined_point() };
@@ -629,7 +627,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
         Source.sync_with( m_properties );
         if( Source.sync != sync_state::good ) {
             // if the sync went wrong we let the renderer kill its part of the emitter, and update our playcounter(s) to match
-            update_counter( Source.sounds[ Source.sound_index ], -1 );
+            update_counter( soundhandle, -1 );
         }
         // ...and restore base properties
         m_properties = baseproperties;
@@ -796,7 +794,7 @@ sound_source::empty() const {
 bool
 sound_source::is_playing( bool const Includesoundends ) const {
 
-    auto isplaying { ( sound( sound_id::begin ).playing + sound( sound_id::main ).playing ) > 0 };
+    auto isplaying { ( sound( sound_id::begin ).playing > 0 ) || ( sound( sound_id::main ).playing > 0 ) };
     if( ( false == isplaying )
      && ( false == m_soundchunks.empty() ) ) {
         // for emitters with sample tables check also if any of the chunks is active
@@ -836,8 +834,9 @@ sound_source::location() const {
 void
 sound_source::update_counter( sound_handle const Sound, int const Value ) {
 
-    sound( Sound ).playing = std::max( 0, sound( Sound ).playing + Value );
-//    assert( sound( Sound ).playing >= 0 );
+//    sound( Sound ).playing = std::max( 0, sound( Sound ).playing + Value );
+    sound( Sound ).playing += Value;
+    assert( sound( Sound ).playing >= 0 );
 }
 
 void

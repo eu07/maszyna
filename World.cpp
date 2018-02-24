@@ -46,6 +46,7 @@ namespace simulation {
 
 simulation_time Time;
 
+basic_station Station;
 }
 
 #ifdef _WIN32
@@ -1093,10 +1094,13 @@ TWorld::Update_Camera( double const Deltatime ) {
         else {
             // patrzenie standardowe
             Camera.Pos = Train->GetWorldMechPosition(); // Train.GetPosition1();
-            if( !Global.iPause ) { // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
-                Camera.Roll = atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
-                Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl //Ra: tu
-                // jest uciekanie kamery w górę!!!
+            if( !Global.iPause ) {
+                // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
+                // hustanie kamery na boki
+                Camera.Roll = atan( Train->vMechVelocity.x * Train->fMechRoll );
+                // hustanie kamery przod tyl
+                // Ra: tu jest uciekanie kamery w górę!!!
+                Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch );
             }
             // ABu011104: rzucanie pudlem
 /*
@@ -1368,7 +1372,7 @@ TWorld::Update_UI() {
                 if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 );
+                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 ) + " (" + to_string( vehicle->MoverParameters->Load, 0 ) + ")";
 
                 uitextline2 +=
                     "; Pant: "
@@ -1614,7 +1618,8 @@ TWorld::Update_UI() {
                     Acc = ( vehicle->MoverParameters->Vel - VelPrev ) / 3.6;
                     VelPrev = vehicle->MoverParameters->Vel;
                 }
-                uitextline2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
+                uitextline2 += "; As=" + to_string( Acc, 2 ); // przyspieszenie wzdłużne
+                uitextline2 += " eAngle=" + to_string( std::cos( vehicle->MoverParameters->eAngle ), 2 );
 
                 uitextline3 =
                     "cyl.ham. " + to_string( vehicle->MoverParameters->BrakePress, 2 )
@@ -2241,17 +2246,16 @@ world_environment::update() {
     // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
     // (this is pure conjecture, aimed more to 'look right' than be accurate)
     float const ambienttone = clamp( 1.0f - ( Global.SunAngle / 90.0f ), 0.0f, 1.0f );
-    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.x, ambienttone );
-    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.y, ambienttone );
-    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.z, ambienttone );
+    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.r, ambienttone );
+    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.g, ambienttone );
+    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.b, ambienttone );
 
     Global.fLuminance = intensity;
 
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
-    Global.FogColor[ 0 ] = skydomecolour.x;
-    Global.FogColor[ 1 ] = skydomecolour.y;
-    Global.FogColor[ 2 ] = skydomecolour.z;
+    // NOTE: base brightness calculation provides scaled up value, so we bring it back to 'real' one here
+    Global.FogColor = m_skydome.GetAverageHorizonColor();
 }
 
 void

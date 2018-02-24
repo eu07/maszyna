@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-	Global.asVersion = "M7 16.02.2018 (based on tmj 180215)";
+	Global.asVersion = "M7 24.02.2018 (based on tmj 7440b1d)";
 
 	for (int i = 1; i < argc; ++i)
 	{

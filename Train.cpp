@@ -380,7 +380,7 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
            }
          }
     */
-    MechSpring.Init(0.015, 250);
+    MechSpring.Init(250);
     vMechVelocity = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3( 0, 0, 0 );
     fMechSpringX = 1;
@@ -3312,9 +3312,10 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorRight( true ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3326,9 +3327,10 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorRight( false ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3353,9 +3355,10 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorLeft( true ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3367,9 +3370,10 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 }
             }
             else {
-                // in the rear cab sides are reversed
+                // in the rear cab sides are reversed...
                 if( Train->mvOccupied->DoorLeft( false ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
+                    // ...but so are the switches
+                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
                 }
             }
         }
@@ -3667,50 +3671,72 @@ void TTrain::UpdateMechPosition(double dt)
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
     double const iVel = std::min( DynamicObject->GetVelocity(), 150.0 );
 
-    if( !Global.iSlowMotion // musi być pełna prędkość
-        && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
+    if( ( false == Global.iSlowMotion ) // musi być pełna prędkość
+     && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
+        Math3D::vector3 shakevector;
+        if( ( mvOccupied->EngineType == DieselElectric )
+         || ( mvOccupied->EngineType == DieselEngine ) ) {
+            if( std::abs( mvOccupied->enrot ) > 0.0 ) {
+                // engine vibration
+                shakevector.x +=
+                    ( std::cos( mvOccupied->eAngle * 4.0 ) * dt * EngineShake.scale )
+                    // fade in with rpm above threshold
+                    * clamp(
+                        ( mvOccupied->enrot - EngineShake.fadein_offset ) * EngineShake.fadein_factor,
+                        0.0, 1.0 )
+                    // fade out with rpm above threshold
+                    * interpolate(
+                        1.0, 0.0,
+                        clamp(
+                            ( mvOccupied->enrot - EngineShake.fadeout_offset ) * EngineShake.fadeout_factor,
+                            0.0, 1.0 ) );
+            }
+        }
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
-            shake += 1.25 * MechSpring.ComputateForces(
-                Math3D::vector3(
-                -mvControlled->AccN * dt * 5.0, // highlight side sway
-                -mvControlled->AccVert * dt,
-                -mvControlled->AccSVBased * dt * 1.25 ), // accent acceleration/deceleration
-                pMechShake );
-
-            if( Random( iVel ) > 25.0 ) {
-                // extra shake at increased velocity
-                shake += MechSpring.ComputateForces(
-                    Math3D::vector3(
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
-                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
-                    * 1.25,
-                    pMechShake );
-                //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
-            }
-//            shake *= 0.85;
+            shakevector += Math3D::vector3(
+                -mvOccupied->AccN * dt * 5.0, // highlight side sway
+                -mvOccupied->AccVert * dt,
+                -mvOccupied->AccSVBased * dt * 1.25 ); // accent acceleration/deceleration
         }
+
+        shake += 1.25 * MechSpring.ComputateForces( shakevector, pMechShake );
+
+        if( Random( iVel ) > 25.0 ) {
+            // extra shake at increased velocity
+            shake += MechSpring.ComputateForces(
+                Math3D::vector3(
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
+                * 1.25,
+                pMechShake );
+            //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
+        }
+        shake *= 0.85;
+
         vMechVelocity -= ( shake + vMechVelocity * 100 ) * ( fMechSpringX + fMechSpringY + fMechSpringZ ) / ( 200 );
         //        shake *= 0.95 * dt; // shake damping
 
         // McZapkie:
         pMechShake += vMechVelocity * dt;
+        if( ( pMechShake.y >  fMechMaxSpring )
+         || ( pMechShake.y < -fMechMaxSpring ) ) {
+            vMechVelocity.y = -vMechVelocity.y;
+        }
         // Ra 2015-01: dotychczasowe rzucanie
         pMechOffset += vMechMovement * dt;
-        if( ( pMechShake.y > fMechMaxSpring ) || ( pMechShake.y < -fMechMaxSpring ) )
-            vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pMechPosition = pMechOffset + Math3D::vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
-//        vMechMovement = 0.5 * vMechMovement;
+
+//        pMechShake = interpolate( pMechShake, Math3D::vector3(), clamp( dt, 0.0, 1.0 ) );
     }
     else { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
         pMechPosition = pMechOffset + Math3D::vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
-//        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
     if( DynamicObject->Mechanik ) // może nie być?
@@ -4838,17 +4864,20 @@ bool TTrain::Update( double const Deltatime )
 
     // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( ( mvControlled->Battery )
-     || ( mvControlled->ConverterFlag ) ) {
-        if( ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
-            // the 'lower all' button overrides state of switches, while active itself
-            if( ( false == mvControlled->PantFrontUp )
-             && ( ggPantFrontButton.GetDesiredValue() >= 0.95 ) ) {
-                mvControlled->PantFront( true );
-            }
-            if( ( false == mvControlled->PantRearUp )
-             && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
-                mvControlled->PantRear( true );
+    if( false == DynamicObject->Mechanik->AIControllFlag ) {
+        // don't mess with the ai driving, at least not while switches don't follow ai-set vehicle state
+        if( ( mvControlled->Battery )
+         || ( mvControlled->ConverterFlag ) ) {
+            if( ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
+                // the 'lower all' button overrides state of switches, while active itself
+                if( ( false == mvControlled->PantFrontUp )
+                 && ( ggPantFrontButton.GetDesiredValue() >= 0.95 ) ) {
+                    mvControlled->PantFront( true );
+                }
+                if( ( false == mvControlled->PantRearUp )
+                 && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
+                    mvControlled->PantRear( true );
+                }
             }
         }
     }
@@ -4878,7 +4907,7 @@ bool TTrain::Update( double const Deltatime )
         m_radiomessages.erase(
             std::remove_if(
                 std::begin( m_radiomessages ), std::end( m_radiomessages ),
-                []( sound_source &source ) {
+                []( sound_source const &source ) {
                     return ( false == source.is_playing() ); } ),
             std::end( m_radiomessages ) );
     }
@@ -5320,7 +5349,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 parser
                     >> ks
                     >> kd;
-                MechSpring.Init(MechSpring.restLen, ks, kd);
+                MechSpring.Init(ks, kd);
                 parser.getTokens(6, false);
                 parser
                     >> fMechSpringX
@@ -5329,6 +5358,15 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                     >> fMechMaxSpring
                     >> fMechRoll
                     >> fMechPitch;
+            }
+            else if( token == "enginespring:" ) {
+                parser.getTokens( 5, false );
+                parser
+                    >> EngineShake.scale
+                    >> EngineShake.fadein_offset
+                    >> EngineShake.fadein_factor
+                    >> EngineShake.fadeout_offset
+                    >> EngineShake.fadeout_factor;
             }
 
         } while (token != "");

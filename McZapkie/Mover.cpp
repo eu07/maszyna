@@ -8516,7 +8516,8 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	else if (Command == "PantFront") /*Winger 160204*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
 	  // Czemu EZT ma być traktowane inaczej? Ukrotnienie ma, a człon może być odwrócony
-		if ((TrainType == dt_EZT))
+		if ((TrainType == dt_EZT)
+         || (TrainType == dt_ET41))
 		{ //'ezt'
 			if ((CValue1 == 1))
 			{
@@ -8560,7 +8561,8 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "PantRear") /*Winger 160204, ABu 310105 i 030305*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-		if ((TrainType == dt_EZT))
+		if ((TrainType == dt_EZT)
+          ||(TrainType == dt_ET41))
 		{ //'ezt'
 			if ((CValue1 == 1))
 			{

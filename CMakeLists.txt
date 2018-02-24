@@ -80,6 +80,7 @@ set(SOURCES
 "utilities.cpp"
 "light.cpp"
 "uitranscripts.cpp"
+"station.cpp"
 )
 
 set (PREFIX "")

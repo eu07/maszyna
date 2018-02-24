@@ -90,12 +90,22 @@ ui_layer::render() {
 	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_ALPHA_TEST );
-	glEnable( GL_BLEND );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_BLEND );
+
+    ::glColor4fv( glm::value_ptr( colors::white ) );
 
     // render code here
     render_background();
     render_texture();
+
+    glDisable( GL_TEXTURE_2D );
+    glDisable( GL_TEXTURE_CUBE_MAP );
+
     render_progress();
+
+    glDisable( GL_BLEND );
+
     render_panels();
     render_tooltip();
 
@@ -128,9 +138,6 @@ void
 ui_layer::render_progress() {
 
 	if( (m_progress == 0.0f) && (m_subtaskprogress == 0.0f) ) return;
-
-	glPushAttrib( GL_ENABLE_BIT );
-    glDisable( GL_TEXTURE_2D );
 
     glm::vec2 origin, size;
     if( m_progressbottom == true ) {
@@ -177,17 +184,12 @@ ui_layer::render_progress() {
             ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
         print( m_progresstext );
     }
-
-    glPopAttrib();
 }
 
 void
 ui_layer::render_panels() {
 
     if( m_panels.empty() ) { return; }
-
-    glPushAttrib( GL_ENABLE_BIT );
-    glDisable( GL_TEXTURE_2D );
 
     float const width = std::min( 4.f / 3.f, static_cast<float>(Global.iWindowWidth) / std::max( 1, Global.iWindowHeight ) ) * Global.iWindowHeight;
     float const height = Global.iWindowHeight / 768.f;
@@ -199,7 +201,7 @@ ui_layer::render_panels() {
         int lineidx = 0;
         for( auto const &line : panel->text_lines ) {
 
-            ::glColor4fv( &line.color.x );
+            ::glColor4fv( glm::value_ptr( line.color ) );
             ::glRasterPos2f(
                 0.5f * ( Global.iWindowWidth - width ) + panel->origin_x * height,
                 panel->origin_y * height + 20.f * lineidx );
@@ -207,8 +209,6 @@ ui_layer::render_panels() {
             ++lineidx;
         }
     }
-
-    glPopAttrib();
 }
 
 void
@@ -219,13 +219,9 @@ ui_layer::render_tooltip() {
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
 
-    glPushAttrib( GL_ENABLE_BIT );
-    glDisable( GL_TEXTURE_2D );
-    ::glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+    ::glColor4fv( glm::value_ptr( colors::white ) );
     ::glRasterPos2f( mousepos.x + 20.0f, mousepos.y + 25.0f );
     print( m_tooltip );
-
-    glPopAttrib();
 }
 
 void
@@ -254,8 +250,7 @@ void
 ui_layer::render_texture() {
 
     if( m_texture != 0 ) {
-        ::glColor4f( 1.f, 1.f, 1.f, 1.f );
-        ::glDisable( GL_BLEND );
+        ::glColor4fv( glm::value_ptr( colors::white ) );
 
         GfxRenderer.Bind_Texture( null_handle );
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
@@ -273,8 +268,6 @@ ui_layer::render_texture() {
         glEnd();
 
         ::glBindTexture( GL_TEXTURE_2D, 0 );
-
-        ::glEnable( GL_BLEND );
     }
 }
 

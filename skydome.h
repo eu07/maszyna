@@ -23,7 +23,8 @@ public:
 	void Render();
 
     // retrieves average colour of the sky dome
-    glm::vec3 GetAverageColor() { return m_averagecolour; }
+    glm::vec3 GetAverageColor() { return m_averagecolour * 8.f / 6.f; }
+    glm::vec3 GetAverageHorizonColor() { return m_averagehorizoncolour; }
 
 private:
 	// shading parametrs
@@ -35,6 +36,7 @@ private:
     float m_overcast;
     float m_gammacorrection;
     glm::vec3 m_averagecolour;
+    glm::vec3 m_averagehorizoncolour;
 
 	// data
     int const m_tesselation;

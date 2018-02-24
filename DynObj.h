@@ -195,13 +195,16 @@ public:
         TSubModel *compartment;
         TSubModel *load;
         float level;
-        section_light( TSubModel *Compartment, TSubModel *Load, float const Level ) :
-                      compartment(Compartment),      load(Load),      level(Level)
-        {}
     };
     std::vector<section_light> SectionLightLevels; // table of light levels for specific compartments of associated 3d model
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
+    struct section_visibility {
+        TSubModel *submodel;
+        bool visible;
+        int visible_chunks;
+    };
+    std::vector<section_visibility> SectionLoadVisibility; // visibility of specific sections of the load 3d model
 
 private:
     // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
@@ -465,6 +468,9 @@ private:
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
     void LoadUpdate();
+    void update_load_sections();
+    void update_load_visibility();
+    void shuffle_load_sections();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);
     void Move(double fDistance);

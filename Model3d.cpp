@@ -729,6 +729,25 @@ void TSubModel::NextAdd(TSubModel *SubModel)
 		Next = SubModel;
 };
 
+int TSubModel::count_siblings() {
+
+    auto siblingcount { 0 };
+    auto *sibling { Next };
+    while( sibling != nullptr ) {
+        ++siblingcount;
+        sibling = sibling->Next;
+    }
+    return siblingcount;
+}
+
+int TSubModel::count_children() {
+
+    return (
+        Child == nullptr ?
+            0 :
+            1 + Child->count_siblings() );
+}
+
 int TSubModel::FlagsCheck()
 { // analiza koniecznych zmian pomiędzy submodelami
   // samo pomijanie glBindTexture() nie poprawi wydajności
