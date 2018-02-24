@@ -748,12 +748,12 @@ int TSubModel::count_children() {
             1 + Child->count_siblings() );
 }
 
-int TSubModel::FlagsCheck()
+uint32_t TSubModel::FlagsCheck()
 { // analiza koniecznych zmian pomiędzy submodelami
   // samo pomijanie glBindTexture() nie poprawi wydajności
   // ale można sprawdzić, czy można w ogóle pominąć kod do tekstur (sprawdzanie
   // replaceskin)
-	int i = 0;
+	uint32_t i = 0;
 	if (Child)
 	{ // Child jest renderowany po danym submodelu
 		if (Child->m_material) // o ile ma teksturę
@@ -1318,7 +1318,7 @@ void TSubModel::serialize(std::ostream &s,
 		sn_utils::ls_int32(s, (int32_t)get_container_pos(names, pName));
 	sn_utils::ls_int32(s, (int)b_Anim);
 
-	sn_utils::ls_int32(s, iFlags);
+	sn_utils::ls_uint32(s, iFlags);
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
 
 	sn_utils::ls_int32(s, iNumVerts);
@@ -1446,7 +1446,7 @@ void TSubModel::deserialize(std::istream &s)
 
 	b_Anim = (TAnimType)sn_utils::ld_int32(s);
 
-	iFlags = sn_utils::ld_int32(s);
+	iFlags = sn_utils::ld_uint32(s);
 	iMatrix = sn_utils::ld_int32(s);
 
 	iNumVerts = sn_utils::ld_int32(s);

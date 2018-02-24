@@ -76,7 +76,7 @@ public: // chwilowo
     TAnimType b_Anim{ at_None };
 
 private:
-    int iFlags{ 0x0200 }; // bit 9=1: submodel został utworzony a nie ustawiony na wczytany plik
+    uint32_t iFlags{ 0x0200 }; // bit 9=1: submodel został utworzony a nie ustawiony na wczytany plik
                 // flagi informacyjne:
 				// bit  0: =1 faza rysowania zależy od wymiennej tekstury 0
 				// bit  1: =1 faza rysowania zależy od wymiennej tekstury 1
@@ -178,7 +178,7 @@ public:
     inline void Hide() { iVisible = 0; };
 
     void create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank );
-	int FlagsCheck();
+	uint32_t FlagsCheck();
 	void WillBeAnimated()
 	{
 		if (this)
@@ -192,7 +192,7 @@ public:
 	void Name_Material( std::string const &Name );
 	void Name( std::string const &Name );
 	// Ra: funkcje do budowania terenu z E3D
-	int Flags() const { return iFlags; };
+	uint32_t Flags() const { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
     // sets light level (alpha component of illumination color) to specified value
@@ -222,7 +222,7 @@ class TModel3d
 
 private:
 	TSubModel *Root; // drzewo submodeli
-	int iFlags; // Ra: czy submodele mają przezroczyste tekstury
+	uint32_t iFlags; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
     int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
     gfx::geometrybank_handle m_geometrybank;
@@ -251,7 +251,7 @@ public:
 	void LoadFromBinFile(std::string const &FileName, bool dynamic);
 	bool LoadFromFile(std::string const &FileName, bool dynamic);
 	void SaveToBinFile(std::string const &FileName);
-	int Flags() const { return iFlags; };
+	uint32_t Flags() const { return iFlags; };
 	void Init();
 	std::string NameGet() const { return m_filename; };
 	int TerrainCount() const;
