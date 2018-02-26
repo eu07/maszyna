@@ -168,6 +168,7 @@ struct global_settings {
 	std::string screenshot_dir;
 	bool loading_log = true;
 	bool dds_upper_origin = false;
+	bool compress_tex = true;
 
 // methods
     void LoadIniFile( std::string asFileName );

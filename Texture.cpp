@@ -647,7 +647,7 @@ opengl_texture::create() {
             else {
                 // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
+                    GL_TEXTURE_2D, 0, Global.compress_tex ? GL_COMPRESSED_RGBA : GL_RGBA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
