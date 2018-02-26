@@ -617,6 +617,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> uart_conf.debug;
         }
+        else if( token == "compresstex" ) {
+            Parser.getTokens( 1 );
+            Parser >> compress_tex;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
