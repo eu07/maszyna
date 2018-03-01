@@ -264,6 +264,13 @@ private:
 
 private:
 // types
+    struct exchange_data {
+        float unload_count { 0.f }; // amount to unload
+        float load_count { 0.f }; // amount to load
+        float speed_factor { 1.f }; // operation speed modifier
+        float time { 0.f }; // time spent on the operation
+    };
+
     struct coupler_sounds {
         sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
         sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
@@ -280,6 +287,11 @@ private:
     struct door_sounds {
         sound_source rsDoorOpen { sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
         sound_source rsDoorClose { sound_placement::general, 25.f };
+    };
+
+    struct exchange_sounds {
+        sound_source loading { sound_placement::general };
+        sound_source unloading { sound_placement::general };
     };
 
     struct axle_sounds {
@@ -318,6 +330,8 @@ private:
     void ABuBogies();
     void ABuModelRoll();
     void TurnOff();
+    // update state of load exchange operation
+    void update_exchange( double const Deltatime );
 
 // members
     TButton btCoupler1; // sprzegi
@@ -384,6 +398,9 @@ private:
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
     sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202
+
+    exchange_data m_exchange; // state of active load exchange procedure, if any
+    exchange_sounds m_exchangesounds; // sounds associated with the load exchange
 
     Math3D::vector3 modelShake;
 
@@ -466,6 +483,8 @@ private:
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
+    // initiates load change by specified amounts, with a platform on specified side
+    void LoadExchange( int const Disembark, int const Embark, int const Platform );
     void LoadUpdate();
     void update_load_sections();
     void update_load_visibility();
@@ -553,6 +572,7 @@ private:
     void DestinationSet(std::string to, std::string numer);
     std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);
+
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
 };

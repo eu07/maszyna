@@ -303,7 +303,7 @@ private:
     bool IncSpeed();
     bool DecSpeed(bool force = false);
     void SpeedSet();
-    void Doors(bool what);
+    void Doors(bool const Open, int const Side = 0);
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania

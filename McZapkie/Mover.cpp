@@ -6006,65 +6006,80 @@ bool TMoverParameters::DoorBlockedFlag(void)
 // Q: 20160713
 // Otwiera / zamyka lewe drzwi
 // *************************************************************************************************
-bool TMoverParameters::DoorLeft(bool State)
-{
-    bool DL = false;
-    if ((DoorLeftOpened != State) && (DoorBlockedFlag() == false) && (Battery == true))
-    {
-        DL = true;
-        DoorLeftOpened = State;
-        if (State == true)
-        {
-            if (CabNo > 0)
-                SendCtrlToNext("DoorOpen", 1, CabNo); // 1=lewe, 2=prawe
-            else
-                SendCtrlToNext("DoorOpen", 2, CabNo); // zamiana
-            CompressedVolume -= 0.003;
-        }
-        else
-        {
-            if (CabNo > 0)
-                SendCtrlToNext("DoorClose", 1, CabNo);
-            else
-                SendCtrlToNext("DoorClose", 2, CabNo);
-        }
+// NOTE: door methods work regardless of vehicle door control type,
+// but commands issued through the command system work only for vehicles which accept remote door control
+bool TMoverParameters::DoorLeft(bool State, int const Notify ) {
+
+    if( DoorLeftOpened == State ) {
+        // TBD: should the command be passed to other vehicles regardless of whether it affected the primary target?
+        // (for the time being no, methods are often invoked blindly which would lead to commands spam)
+        return false;
     }
-    else
-        DL = false;
-    return DL;
+
+    bool result { false };
+
+    if( ( Battery == true )
+     && ( DoorBlockedFlag() == false ) ) {
+
+        DoorLeftOpened = State;
+        result = true;
+    }
+    if( Notify != range::local ) {
+
+        SendCtrlToNext(
+            ( State == true ?
+                "DoorOpen" :
+                "DoorClose" ),
+            ( CabNo > 0 ? // 1=lewe, 2=prawe (swap if reversed)
+                1 :
+                2 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return result;
 }
 
 // *************************************************************************************************
 // Q: 20160713
 // Otwiera / zamyka prawe drzwi
 // *************************************************************************************************
-bool TMoverParameters::DoorRight(bool State)
-{
-    bool DR = false;
-    if ((DoorRightOpened != State) && (DoorBlockedFlag() == false) && (Battery == true))
-    {
-        DR = true;
-        DoorRightOpened = State;
-        if (State == true)
-        {
-            if (CabNo > 0)
-                SendCtrlToNext("DoorOpen", 2, CabNo); // 1=lewe, 2=prawe
-            else
-                SendCtrlToNext("DoorOpen", 1, CabNo); // zamiana
-            CompressedVolume -= 0.003;
-        }
-        else
-        {
-            if (CabNo > 0)
-                SendCtrlToNext("DoorClose", 2, CabNo);
-            else
-                SendCtrlToNext("DoorClose", 1, CabNo);
-        }
-    }
-    else
-        DR = false;
+// NOTE: door methods work regardless of vehicle door control type,
+// but commands issued through the command system work only for vehicles which accept remote door control
+bool TMoverParameters::DoorRight(bool State, int const Notify ) {
 
-    return DR;
+    if( DoorRightOpened == State ) {
+        // TBD: should the command be passed to other vehicles regardless of whether it affected the primary target?
+        // (for the time being no, methods are often invoked blindly which would lead to commands spam)
+        return false;
+    }
+
+    bool result { false };
+
+    if( ( Battery == true )
+     && ( DoorBlockedFlag() == false ) ) {
+
+        DoorRightOpened = State;
+        result = true;
+    }
+    if( Notify != range::local ) {
+
+        SendCtrlToNext(
+            ( State == true ?
+                "DoorOpen" :
+                "DoorClose" ),
+            ( CabNo > 0 ? // 1=lewe, 2=prawe (swap if reversed)
+                2 :
+                1 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return result;
 }
 
 // toggles departure warning
@@ -6086,8 +6101,8 @@ TMoverParameters::signal_departure( bool const State, int const Notify ) {
                 0 ),
             CabNo,
             ( Notify == range::unit ?
-                ctrain_controll | ctrain_depot :
-                ctrain_controll ) );
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
 
     return true;
@@ -7184,8 +7199,8 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
         auto lookup = compressorpowers.find( extract_value( "CompressorPower", line ) );
         CompressorPower =
             lookup != compressorpowers.end() ?
-            lookup->second :
-            1;
+                lookup->second :
+                1;
     }
 
     if( true == extract_value( AirLeakRate, "AirLeakRate", line, "" ) ) {
@@ -7196,16 +7211,31 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 
-    DoorOpenCtrl = 0;
-    std::string openctrl; extract_value( openctrl, "OpenCtrl", line, "" );
-    if( openctrl == "DriverCtrl" ) { DoorOpenCtrl = 1; }
-
-    DoorCloseCtrl = 0;
-    std::string closectrl; extract_value( closectrl, "CloseCtrl", line, "" );
-    if( closectrl == "DriverCtrl" ) { DoorCloseCtrl = 1; }
-    else if( closectrl == "AutomaticCtrl" ) { DoorCloseCtrl = 2; }
-
-    if( DoorCloseCtrl == 2 ) { extract_value( DoorStayOpen, "DoorStayOpen", line, "" ); }
+    std::map<std::string, int> doorcontrols {
+        { "Passenger", control::passenger },
+        { "AutomaticCtrl", control::autonomous },
+        { "DriverCtrl", control::driver },
+        { "Conductor", control::conductor },
+        { "Mixed", control::mixed }
+    };
+    // opening method
+    {
+        auto lookup = doorcontrols.find( extract_value( "OpenCtrl", line ) );
+        DoorOpenCtrl =
+            lookup != doorcontrols.end() ?
+                lookup->second :
+                control::passenger;
+    }
+    // closing method
+    {
+        auto lookup = doorcontrols.find( extract_value( "CloseCtrl", line ) );
+        DoorCloseCtrl =
+            lookup != doorcontrols.end() ?
+                lookup->second :
+                control::passenger;
+    }
+    // automatic closing timer
+    if( DoorCloseCtrl == control::autonomous ) { extract_value( DoorStayOpen, "DoorStayOpen", line, "" ); }
 
     extract_value( DoorOpenSpeed, "OpenSpeed", line, "" );
     extract_value( DoorCloseSpeed, "CloseSpeed", line, "" );
@@ -8315,6 +8345,7 @@ bool TMoverParameters::SendCtrlToNext( std::string const CtrlCommand, double con
         // musi być wybrana niezerowa kabina
         if( ( Couplers[ d ].Connected != nullptr )
          && ( TestFlag( Couplers[ d ].CouplingFlag, Couplertype ) ) ) {
+
             if( Couplers[ d ].ConnectedNr != d ) {
                 // jeśli ten nastpęny jest zgodny z aktualnym
                 if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, dir, Couplertype ) )
@@ -8473,38 +8504,48 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "DoorOpen") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-		if ((CValue2 > 0))
-		{ // normalne ustawienie pojazdu
-			if ((CValue1 == 1) || (CValue1 == 3))
-				DoorLeftOpened = true;
-			if ((CValue1 == 2) || (CValue1 == 3))
-				DoorRightOpened = true;
-		}
-		else
-		{ // odwrotne ustawienie pojazdu
-			if ((CValue1 == 2) || (CValue1 == 3))
-				DoorLeftOpened = true;
-			if ((CValue1 == 1) || (CValue1 == 3))
-				DoorRightOpened = true;
-		}
+        if( ( DoorCloseCtrl == control::conductor )
+         || ( DoorCloseCtrl == control::driver ) 
+         || ( DoorCloseCtrl == control::mixed ) ) {
+            // ignore remote command if the door is only operated locally
+            if( CValue2 > 0 ) {
+                // normalne ustawienie pojazdu
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
+                    DoorLeftOpened = true;
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
+                    DoorRightOpened = true;
+            }
+            else {
+                // odwrotne ustawienie pojazdu
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
+                    DoorLeftOpened = true;
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
+                    DoorRightOpened = true;
+            }
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "DoorClose") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-		if ((CValue2 > 0))
-		{ // normalne ustawienie pojazdu
-			if ((CValue1 == 1) || (CValue1 == 3))
-				DoorLeftOpened = false;
-			if ((CValue1 == 2) || (CValue1 == 3))
-				DoorRightOpened = false;
-		}
-		else
-		{ // odwrotne ustawienie pojazdu
-			if ((CValue1 == 2) || (CValue1 == 3))
-				DoorLeftOpened = false;
-			if ((CValue1 == 1) || (CValue1 == 3))
-				DoorRightOpened = false;
-		}
+        if( ( DoorCloseCtrl == control::conductor )
+         || ( DoorCloseCtrl == control::driver ) 
+         || ( DoorCloseCtrl == control::mixed ) ) {
+            // ignore remote command if the door is only operated locally
+            if( CValue2 > 0 ) {
+                // normalne ustawienie pojazdu
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
+                    DoorLeftOpened = false;
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
+                    DoorRightOpened = false;
+            }
+            else {
+                // odwrotne ustawienie pojazdu
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
+                    DoorLeftOpened = false;
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
+                    DoorRightOpened = false;
+            }
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
     else if( Command == "DepartureSignal" ) {

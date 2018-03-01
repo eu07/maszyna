@@ -375,12 +375,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
            }
          }
     */
-    MechSpring.Init(250);
+    MechSpring.Init(125.0);
     vMechVelocity = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3( 0, 0, 0 );
-    fMechSpringX = 1;
-    fMechSpringY = 0.5;
-    fMechSpringZ = 0.5;
+    fMechSpringX = 0.2;
+    fMechSpringY = 0.2;
+    fMechSpringZ = 0.1;
     fMechMaxSpring = 0.15;
     fMechRoll = 0.05;
     fMechPitch = 0.1;
@@ -3283,9 +3283,6 @@ void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvOccupied->DoorOpenCtrl != 1 ) {
-        return;
-    }
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
@@ -3293,76 +3290,74 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 Train->mvOccupied->DoorLeftOpened :
                 Train->mvOccupied->DoorRightOpened ) ) {
             // open
+            if( Train->mvOccupied->DoorOpenCtrl != control::driver ) {
+                return;
+            }
             if( Train->mvOccupied->ActiveCab == 1 ) {
-                if( Train->mvOccupied->DoorLeft( true ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorLeft( true );
             }
             else {
                 // in the rear cab sides are reversed...
-                if( Train->mvOccupied->DoorRight( true ) ) {
-                    // ...but so are the switches
-                    Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorRight( true );
             }
+            // visual feedback
+            Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             // close
+            if( Train->mvOccupied->DoorCloseCtrl != control::driver ) {
+                return;
+            }
+            // TODO: move door opening/closing to the update, so the switch animation doesn't hinge on door working
             if( Train->mvOccupied->ActiveCab == 1 ) {
-                if( Train->mvOccupied->DoorLeft( false ) ) {
-                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorLeft( false );
             }
             else {
                 // in the rear cab sides are reversed...
-                if( Train->mvOccupied->DoorRight( false ) ) {
-                    // ...but so are the switches
-                    Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorRight( false );
             }
+            // visual feedback
+            Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
 
 void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvOccupied->DoorOpenCtrl != 1 ) {
-        return;
-    }
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
             Train->mvOccupied->ActiveCab == 1 ?
-            Train->mvOccupied->DoorRightOpened :
-            Train->mvOccupied->DoorLeftOpened ) ) {
+                Train->mvOccupied->DoorRightOpened :
+                Train->mvOccupied->DoorLeftOpened ) ) {
             // open
+            if( Train->mvOccupied->DoorOpenCtrl != control::driver ) {
+                return;
+            }
             if( Train->mvOccupied->ActiveCab == 1 ) {
-                if( Train->mvOccupied->DoorRight( true ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorRight( true );
             }
             else {
                 // in the rear cab sides are reversed...
-                if( Train->mvOccupied->DoorLeft( true ) ) {
-                    // ...but so are the switches
-                    Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorLeft( true );
             }
+            // visual feedback
+            Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             // close
+            if( Train->mvOccupied->DoorCloseCtrl != control::driver ) {
+                return;
+            }
             if( Train->mvOccupied->ActiveCab == 1 ) {
-                if( Train->mvOccupied->DoorRight( false ) ) {
-                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorRight( false );
             }
             else {
                 // in the rear cab sides are reversed...
-                if( Train->mvOccupied->DoorLeft( false ) ) {
-                    // ...but so are the switches
-                    Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
-                }
+                Train->mvOccupied->DoorLeft( false );
             }
+            // visual feedback
+            Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }

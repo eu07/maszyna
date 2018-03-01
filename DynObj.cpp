@@ -1924,37 +1924,49 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
         } // koniec hamulce
         else if( ( ActPar.size() >= 3 )
-              && ( ActPar.substr( 0, 2 ) == "WF" ) ) {
-            // wheel flat
-            // TODO: convert this whole mess to something more elegant one day
-            ActPar.erase( 0, 2 );
+              && ( ActPar[ 0 ] == 'W' ) ) {
+            // wheel
+            ActPar.erase( 0, 1 );
+
             auto fixedflatsize { 0 };
-            {
-                // fixed size flat
-                auto const indexend { ActPar.find_first_not_of( "1234567890", 0 ) };
-                fixedflatsize = std::atoi( ActPar.substr( 0, indexend ).c_str() );
-                ActPar.erase( 0, indexend );
-            }
-            // optional parameters
             auto randomflatsize { 0 };
-            auto randomflatchance { 100 };
+            auto flatchance { 100 };
+
             while( false == ActPar.empty() ) {
-                if( ActPar[ 0 ] == 'R' ) {
-                    // random flat size
-                    auto const indexstart { 1 };
-                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
-                    randomflatsize = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
-                    ActPar.erase( 0, indexend );
-                }
-                else if( ActPar[ 0 ] == 'P' ) {
-                    // random flat probability
-                    auto const indexstart { 1 };
-                    auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
-                    randomflatchance = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
-                    ActPar.erase( 0, indexend );
+                // TODO: convert this whole copy and paste mess to something more elegant one day
+                switch( ActPar[ 0 ] ) {
+                    case 'F': {
+                        // fixed flat size
+                        auto const indexstart { 1 };
+                        auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                        fixedflatsize = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                        ActPar.erase( 0, indexend );
+                        break;
+                    }
+                    case 'R': {
+                        // random flat size
+                        auto const indexstart { 1 };
+                        auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                        randomflatsize = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                        ActPar.erase( 0, indexend );
+                        break;
+                    }
+                    case 'P': {
+                        // random flat probability
+                        auto const indexstart { 1 };
+                        auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                        flatchance = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                        ActPar.erase( 0, indexend );
+                        break;
+                    }
+                    default: {
+                        // unrecognized key
+                        ActPar.erase( 0, 1 );
+                        break;
+                    }
                 }
             }
-            if( Random(0, 100) <= randomflatchance ) {
+            if( Random( 0, 100 ) <= flatchance ) {
                 MoverParameters->WheelFlat += fixedflatsize + Random( 0, randomflatsize );
             }
         }
@@ -2476,6 +2488,87 @@ bool TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
     return true;
 }
 
+// initiates load change by specified amounts, with a platform on specified side
+void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int const Platform ) {
+
+    if( ( MoverParameters->DoorOpenCtrl == control::passenger )
+     || ( MoverParameters->DoorOpenCtrl == control::mixed ) ) {
+        // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
+        auto const lewe = ( DirectionGet() > 0 ) ? 1 : 2;
+        auto const prawe = 3 - lewe;
+        if( Platform & lewe ) {
+            MoverParameters->DoorLeft( true, range::local );
+        }
+        if( Platform & prawe ) {
+            MoverParameters->DoorRight( true, range::local );
+        }
+    }
+    m_exchange.unload_count += Disembark;
+    m_exchange.load_count += Embark;
+    m_exchange.speed_factor = (
+        Platform == 3 ?
+            2.0 :
+            1.0 );
+    m_exchange.time = 0.0;
+}
+
+// update state of load exchange operation
+void TDynamicObject::update_exchange( double const Deltatime ) {
+
+    if( ( m_exchange.unload_count < 0.01 ) && ( m_exchange.load_count < 0.01 ) ) { return; }
+
+    if( ( MoverParameters->Vel < 2.0 )
+     && ( ( true == MoverParameters->DoorLeftOpened )
+       || ( true == MoverParameters->DoorRightOpened ) ) ) {
+
+        m_exchange.time += Deltatime;
+        while( ( m_exchange.unload_count > 0.01 )
+            && ( m_exchange.time >= 1.0 ) ) {
+            
+            m_exchange.time -= 1.0;
+            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * m_exchange.speed_factor );
+            m_exchange.unload_count -= exchangesize;
+            MoverParameters->LoadStatus = 1;
+            MoverParameters->Load = std::max( 0.f, MoverParameters->Load - exchangesize );
+            update_load_visibility();
+        }
+        if( m_exchange.unload_count < 0.01 ) {
+            // finish any potential unloading operation before adding new load
+            // don't load more than can fit
+            m_exchange.load_count = std::min( m_exchange.load_count, MoverParameters->MaxLoad - MoverParameters->Load );
+            while( ( m_exchange.load_count > 0.01 )
+                && ( m_exchange.time >= 1.0 ) ) {
+
+                m_exchange.time -= 1.0;
+                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * m_exchange.speed_factor );
+                m_exchange.load_count -= exchangesize;
+                MoverParameters->LoadStatus = 2;
+                MoverParameters->Load = std::min( MoverParameters->MaxLoad, MoverParameters->Load + exchangesize ); // std::max not strictly needed but, eh
+                update_load_visibility();
+            }
+        }
+    }
+
+    if( MoverParameters->Vel > 2.0 ) {
+        // if the vehicle moves too fast cancel the exchange
+        m_exchange.unload_count = 0;
+        m_exchange.load_count = 0;
+    }
+
+    if( ( m_exchange.unload_count < 0.01 )
+     && ( m_exchange.load_count < 0.01 ) ) {
+
+        MoverParameters->LoadStatus = 0;
+        // if the exchange is completed (or canceled) close the door, if applicable
+        if( ( MoverParameters->DoorCloseCtrl == control::passenger )
+         || ( MoverParameters->DoorCloseCtrl == control::mixed ) ) {
+
+            MoverParameters->DoorLeft( false, range::local );
+            MoverParameters->DoorRight( false, range::local );
+        }
+    }
+}
+
 void TDynamicObject::LoadUpdate() {
     // przeładowanie modelu ładunku
     // Ra: nie próbujemy wczytywać modeli miliony razy podczas renderowania!!!
@@ -2494,7 +2587,11 @@ void TDynamicObject::LoadUpdate() {
             }
             if( mdLoad == nullptr ) {
                 // if this fails, try generic load model
-                mdLoad = TModelsManager::GetModel( asBaseDir + MoverParameters->LoadType, true );
+                auto const genericloadfilename { asBaseDir + MoverParameters->LoadType };
+                if( ( true == FileExists( genericloadfilename + ".e3d" ) )
+                 || ( true == FileExists( genericloadfilename + ".t3d" ) ) ) {
+                    mdLoad = TModelsManager::GetModel( genericloadfilename, true );
+                }
             }
             if( mdLoad != nullptr ) {
                 // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
@@ -2539,11 +2636,11 @@ TDynamicObject::update_load_sections() {
 
 void
 TDynamicObject::update_load_visibility() {
-
+/*
     if( Random() < 0.25 ) {
         shuffle_load_sections();
     }
-
+*/
     auto loadpercentage { (
         MoverParameters->MaxLoad == 0.0 ?
             0.0 :
@@ -3521,6 +3618,8 @@ bool TDynamicObject::Update(double dt, double dt1)
         }
         MoverParameters->DerailReason = 0; //żeby tylko raz
     }
+
+    update_exchange( dt );
     if (MoverParameters->LoadStatus)
         LoadUpdate(); // zmiana modelu ładunku
 	
@@ -3561,6 +3660,7 @@ bool TDynamicObject::FastUpdate(double dt)
     // ResetdMoveLen();
     FastMove(dDOMoveLen);
 
+    update_exchange( dt );
     if (MoverParameters->LoadStatus)
         LoadUpdate(); // zmiana modelu ładunku
     return true; // Ra: chyba tak?
@@ -3757,6 +3857,19 @@ void TDynamicObject::RenderSounds() {
     }
 
     // other sounds
+    // load exchange
+    if( MoverParameters->LoadStatus & 1 ) {
+        m_exchangesounds.unloading.play( sound_flags::exclusive );
+    }
+    else {
+        m_exchangesounds.unloading.stop();
+    }
+    if( MoverParameters->LoadStatus & 2 ) {
+        m_exchangesounds.loading.play( sound_flags::exclusive );
+    }
+    else {
+        m_exchangesounds.loading.stop();
+    }
     // NBMX sygnal odjazdu
     if( MoverParameters->DoorClosureWarning ) {
         if( MoverParameters->DepartureSignal ) {
@@ -4876,6 +4989,16 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     for( auto &door : m_doorsounds ) {
                         door.rsDoorClose = doorclose;
                     }
+                }
+
+                else if( token == "unloading:" ) {
+                    m_exchangesounds.unloading.deserialize( parser, sound_type::single );
+                    m_exchangesounds.unloading.owner( this );
+                }
+
+                else if( token == "loading:" ) {
+                    m_exchangesounds.loading.deserialize( parser, sound_type::single );
+                    m_exchangesounds.loading.owner( this );
                 }
 
 				else if( token == "sand:" ) {

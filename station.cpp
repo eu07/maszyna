@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 // exchanges load with consist attached to specified vehicle, operating on specified schedule
 double
-basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule ) {
+basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule, int const Platform ) {
 
     auto const firststop { Schedule.StationIndex == 1 };
     auto const laststop { Schedule.StationIndex == Schedule.StationCount };
@@ -30,7 +30,13 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
     auto const stationsizemodifier { ( trainstop ? 1.0 : 2.0 ) };
     // go through all vehicles and update their load
     // NOTE: for the time being we limit ourselves to passenger-carrying cars only
-    auto exchangetime { 0.0 };
+    auto exchangetime { 0.f };
+    // platform (1:left, 2:right, 3:both)
+    // with exchange performed on both sides waiting times are halved
+    auto const exchangetimemodifier { (
+        Platform == 3 ?
+            0.5f :
+            1.0f ) };
 
     auto *vehicle { First };
     while( vehicle != nullptr ) {
@@ -47,24 +53,29 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
             // NOTE: for the time being we're doing simple, random load change calculation
             // TODO: exchange driven by station parameters and time of the day
             auto unloadcount = static_cast<int>(
-                firststop ? 0 :
                 laststop ? parameters.Load :
-                std::min(
+                firststop ? 0 :
+                std::min<float>(
                     parameters.Load,
                     Random( parameters.MaxLoad * 0.10 * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
                 laststop ?
                     0 :
-                    Random( parameters.MaxLoad * 0.15 * stationsizemodifier ) );
+                    Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) );
             if( true == firststop ) {
                 // slightly larger group at the initial station
                 loadcount *= 2;
             }
-            parameters.Load = std::min( parameters.MaxLoad, parameters.Load - unloadcount + loadcount );
-            vehicle->LoadUpdate();
-            vehicle->update_load_visibility();
 
-            exchangetime = std::max( exchangetime, unloadcount / parameters.UnLoadSpeed + loadcount / parameters.LoadSpeed);
+            if( ( unloadcount > 0 ) || ( loadcount > 0 ) ) {
+
+                vehicle->LoadExchange( unloadcount, loadcount, Platform );
+/*
+                vehicle->LoadUpdate();
+                vehicle->update_load_visibility();
+*/
+                exchangetime = std::max( exchangetime, exchangetimemodifier * ( unloadcount / parameters.UnLoadSpeed + loadcount / parameters.LoadSpeed ) );
+            }
         }
         vehicle = vehicle->Next();
     }
