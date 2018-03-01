@@ -567,13 +567,6 @@ global_settings::ConfigParse(cParser &Parser) {
             UITextColor = UITextColor / 255.0f;
             UITextColor.a = 1.0f;
         }
-        else if (token == "pyscreenrendererpriority")
-        {
-            // priority of python screen renderer
-            Parser.getTokens();
-            Parser >> token;
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(token.c_str());
-        }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();

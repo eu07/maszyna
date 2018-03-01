@@ -3,7 +3,7 @@
 
 #include "parser.h"
 #include "renderer.h"
-#include "model3d.h"
+#include "Model3d.h"
 #include "Train.h"
 #include "Logs.h"
 
@@ -11,20 +11,30 @@ TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 
 //#define _PY_INT_MORE_LOG
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
+
 TPythonInterpreter::TPythonInterpreter()
 {
     WriteLog("Loading Python ...");
+#ifdef _WIN32
 	if (sizeof(void*) == 8)
 		Py_SetPythonHome("python64");
 	else
 		Py_SetPythonHome("python");
+#elif __linux__
+	if (sizeof(void*) == 8)
+		Py_SetPythonHome("linuxpython64");
+	else
+		Py_SetPythonHome("linuxpython");
+#endif
     Py_Initialize();
     _main = PyImport_ImportModule("__main__");
     if (_main == NULL)
     {
         WriteLog("Cannot import Python module __main__");
     }
-    _screenRendererPriority = THREAD_PRIORITY_NORMAL; // domyslny priorytet normalny
     PyObject *cStringModule = PyImport_ImportModule("cStringIO");
     _stdErr = NULL;
     if (cStringModule == NULL)
@@ -111,7 +121,7 @@ FILE *TPythonInterpreter::_getFile( std::string const &lookupPath, std::string c
 #endif // _PY_INT_MORE_LOG
 		if( nullptr != file ) { return file; }
 	}
-	std::string  sourcefilepath = "python\\local\\" + className + ".py";
+	std::string  sourcefilepath = "python/local/" + className + ".py";
 	FILE *file = fopen( sourcefilepath.c_str(), "r" );
 #ifdef _PY_INT_MORE_LOG
 	WriteLog( sourceFilePath );
@@ -136,7 +146,7 @@ FILE *TPythonInterpreter::_getFile( std::string const &lookupPath, std::string c
             return file;
         }
     }
-    char *basePath = "python\\local\\";
+    char *basePath = "python/local/";
     sourceFilePath = (char *)calloc(strlen(basePath) + strlen(className) + 4, sizeof(char));
     strcat(sourceFilePath, basePath);
     strcat(sourceFilePath, className);
@@ -231,38 +241,6 @@ PyObject *TPythonInterpreter::newClass(std::string const &className, PyObject *a
         return NULL;
     }
     return object;
-}
-
-void TPythonInterpreter::setScreenRendererPriority(const char *priority)
-{
-    if (strncmp(priority, "normal", 6) == 0)
-    {
-        _screenRendererPriority = THREAD_PRIORITY_NORMAL;
-//#ifdef _PY_INT_MORE_LOG
-        WriteLog("Python screen renderer priority: Normal");
-//#endif // _PY_INT_MORE_LOG
-    }
-    else if (strncmp(priority, "lower", 5) == 0)
-    {
-        _screenRendererPriority = THREAD_PRIORITY_BELOW_NORMAL;
-//#ifdef _PY_INT_MORE_LOG
-        WriteLog("Python screen renderer priority: Lower");
-//#endif // _PY_INT_MORE_LOG
-    }
-    else if (strncmp(priority, "lowest", 6) == 0)
-    {
-        _screenRendererPriority = THREAD_PRIORITY_LOWEST;
-//#ifdef _PY_INT_MORE_LOG
-        WriteLog("Python screen renderer priority: Lowest");
-//#endif // _PY_INT_MORE_LOG
-    }
-    else if (strncmp(priority, "idle", 4) == 0)
-    {
-        _screenRendererPriority = THREAD_PRIORITY_IDLE;
-//#ifdef _PY_INT_MORE_LOG
-        WriteLog("Python screen renderer priority: Idle");
-//#endif // _PY_INT_MORE_LOG
-    }
 }
 
 TPythonScreenRenderer::TPythonScreenRenderer(int textureId, PyObject *renderer)
@@ -379,6 +357,10 @@ void TPythonScreenRenderer::render(PyObject *trainState)
     }
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 TPythonScreenRenderer::~TPythonScreenRenderer()
 {
 #ifdef _PY_INT_MORE_LOG
@@ -419,8 +401,9 @@ void TPythonScreens::reset(void *train)
     if (_thread != NULL)
     {
 //        WriteLog("Awaiting python thread to end");
-        WaitForSingleObject(_thread, INFINITE);
-        _thread = NULL;
+		_thread->join();
+		delete _thread;
+        _thread = nullptr;
     }
     _terminationFlag = false;
     _cleanupReadyFlag = false;
@@ -496,6 +479,7 @@ void TPythonScreens::update()
 void TPythonScreens::setLookupPath(std::string const &path)
 {
 	_lookupPath = path;
+	std::replace(_lookupPath.begin(), _lookupPath.end(), '\\', '/');
 }
 
 TPythonScreens::TPythonScreens()
@@ -553,7 +537,11 @@ void TPythonScreens::run()
         _renderReadyFlag = true;
         while (!_cleanupReadyFlag && !_terminationFlag)
         {
+#ifdef _WIN32
             Sleep(100);
+#elif __linux__
+			usleep(100*1000);
+#endif
         }
         if (_terminationFlag)
         {
@@ -568,33 +556,20 @@ void TPythonScreens::finish()
     _thread = NULL;
 }
 
-DWORD WINAPI ScreenRendererThread(LPVOID lpParam)
+void ScreenRendererThread(TPythonScreens* renderer)
 {
-    TPythonScreens *renderer = (TPythonScreens *)lpParam;
     renderer->run();
     renderer->finish();
 #ifdef _PY_INT_MORE_LOG
     WriteLog("Python Screen Renderer Thread Ends");
 #endif // _PY_INT_MORE_LOG
-    return true;
 }
 
 void TPythonScreens::start()
 {
     if (_screens.size() > 0)
     {
-        _thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ScreenRendererThread, this,
-                               CREATE_SUSPENDED, reinterpret_cast<LPDWORD>(&_threadId));
-        if (_thread != NULL)
-        {
-            SetThreadPriority(_thread,
-                              TPythonInterpreter::getInstance()->getScreenRendererPriotity());
-            if (ResumeThread(_thread) != (DWORD)-1)
-            {
-                return;
-            }
-        }
-        WriteLog("Python Screen Renderer Thread Did Not Start");
+		_thread = new std::thread(ScreenRendererThread, this);
     }
 }
 
