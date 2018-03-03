@@ -66,14 +66,14 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if( key == "texture1:" ) {
             if( ( texture1 == null_handle )
              || ( Priority > priority1 ) ) {
-                texture1 = GfxRenderer.Fetch_Texture( path( name ) + value, Loadnow );
+                texture1 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority1 = Priority;
             }
         }
         else if( key == "texture2:" ) {
             if( ( texture2 == null_handle )
              || ( Priority > priority2 ) ) {
-                texture2 = GfxRenderer.Fetch_Texture( path( name ) + value, Loadnow );
+                texture2 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority2 = Priority;
             }
         }
@@ -117,14 +117,10 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
     filename += ".mat";
 
-    // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
+    // change slashes to llinux-compatible
     std::replace(
         std::begin( filename ), std::end( filename ),
-        '/', '\\' );
-    if( filename.find( '\\' ) == std::string::npos ) {
-        // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-        filename = szTexturePath + filename;
-    }
+        '\\', '/' );
 
     // try to locate requested material in the databank
     auto const databanklookup = find_in_databank( filename );

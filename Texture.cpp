@@ -766,22 +766,12 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         Filename.erase( Filename.rfind( '.' ) );
     }
 
-    for( char &c : Filename ) {
-        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
-        c = ( c == '/' ? '\\' : c );
-    }
-/*
-    std::transform(
-        Filename.begin(), Filename.end(),
-        Filename.begin(),
-        []( char Char ){ return Char == '/' ? '\\' : Char; } );
-*/
-    if( Filename.find( '\\' ) == std::string::npos ) {
-        // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-        Filename = szTexturePath + Filename;
-    }
+    // change slashes to cross-platform
+    std::replace(
+        std::begin( Filename ), std::end( Filename ),
+        '\\', '/' );
 
-    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
+    std::vector<std::string> extensions { { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank
     auto lookup = find_in_databank( Filename + Global.szDefaultExt );
@@ -956,17 +946,19 @@ texture_manager::info() const {
 texture_handle
 texture_manager::find_in_databank( std::string const &Texturename ) const {
 
-    auto lookup = m_texturemappings.find( Texturename );
-    if( lookup != m_texturemappings.end() ) {
-        return lookup->second;
-    }
-    // jeszcze próba z dodatkową ścieżką
-    lookup = m_texturemappings.find( szTexturePath + Texturename );
+    std::vector<std::string> filenames {
+        Global.asCurrentTexturePath + Texturename,
+        Texturename,
+        szTexturePath + Texturename };
 
-    return (
-        lookup != m_texturemappings.end() ?
-            lookup->second :
-            npos );
+    for( auto const &filename : filenames ) {
+        auto const lookup { m_texturemappings.find( filename ) };
+        if( lookup != m_texturemappings.end() ) {
+            return lookup->second;
+        }
+    }
+
+    return npos;
 }
 
 // checks whether specified file exists.
@@ -974,6 +966,7 @@ std::string
 texture_manager::find_on_disk( std::string const &Texturename ) const {
 
     return(
+        FileExists( Global.asCurrentTexturePath + Texturename ) ? Global.asCurrentTexturePath + Texturename :
         FileExists( Texturename ) ? Texturename :
         FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
         "" );

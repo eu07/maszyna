@@ -20,6 +20,11 @@ private:
 
 // klasa statyczna, nie ma obiektu
 class TModelsManager {
+public:
+    // McZapkie: dodalem sciezke, notabene Path!=Patch :)
+    static TModel3d *GetModel( std::string const &Name, bool dynamic = false );
+
+private:
 // types:
     typedef std::deque<TMdlContainer> modelcontainer_sequence;
     typedef std::unordered_map<std::string, modelcontainer_sequence::size_type> stringmodelcontainerindex_map;
@@ -28,9 +33,10 @@ class TModelsManager {
     static stringmodelcontainerindex_map m_modelsmap;
 // methods:
     static TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
-public:
-    // McZapkie: dodalem sciezke, notabene Path!=Patch :)
-    static TModel3d *GetModel( std::string const &Name, bool dynamic = false );
+    static TModel3d *find_in_databank( std::string const &Name );
+    // checks whether specified file exists. returns name of the located file, or empty string.
+    static std::string find_on_disk( std::string const &Name );
+
 };
 
 //---------------------------------------------------------------------------

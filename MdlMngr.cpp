@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "model3d.h"
 #include "Globals.h"
+#include "logs.h"
 #include "utilities.h"
 
 // wczytanie modelu do kontenerka
@@ -78,42 +79,76 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     // - wczytanie uproszczonego wnętrza, ścieżka dokładna, tekstury z katalogu modelu
     // - niebo animowane, ścieżka brana ze wpisu, tekstury nieokreślone
     // - wczytanie modelu animowanego - Init() - sprawdzić
-	std::string buf;
-    std::string const buftp = Global.asCurrentTexturePath; // zapamiętanie aktualnej ścieżki do tekstur,
-    if( Name.find('\\') == std::string::npos )
-    {
-        buf = "models\\" + Name; // Ra: było by lepiej katalog dodać w parserze
-        if( Name.find( '/') != std::string::npos)
-        {
-            Global.asCurrentTexturePath = Global.asCurrentTexturePath + Name;
-            Global.asCurrentTexturePath.erase(Global.asCurrentTexturePath.find("/") + 1,
-                                                Global.asCurrentTexturePath.length());
-        }
+    std::string const buftp { Global.asCurrentTexturePath }; // zapamiętanie aktualnej ścieżki do tekstur,
+    std::string filename { Name };
+    if( Name.find( '/' ) != std::string::npos ) {
+        // pobieranie tekstur z katalogu, w którym jest model
+        Global.asCurrentTexturePath += Name;
+        Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( "/" ) + 1 );
     }
-    else
-    {
-		buf = Name;
-        if( Dynamic ) {
-            // na razie tak, bo nie wiadomo, jaki może mieć wpływ na pozostałe modele
-            if( Name.find( '/' ) != std::string::npos ) { // pobieranie tekstur z katalogu, w którym jest model
-                Global.asCurrentTexturePath = Global.asCurrentTexturePath + Name;
-                Global.asCurrentTexturePath.erase(
-                    Global.asCurrentTexturePath.find( "/" ) + 1,
-                    Global.asCurrentTexturePath.length() - 1 );
-            }
-        }
-    }
-	buf = ToLower( buf );
 
-    auto const lookup = m_modelsmap.find( buf );
-    if( lookup != m_modelsmap.end() ) {
+    filename = ToLower( filename );
+    if( ( filename.rfind( '.' ) != std::string::npos )
+     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
+        // trim extension if there's one, but don't mistake folder traverse for extension
+        filename.erase( filename.rfind( '.' ) );
+    }
+
+    // see if we have it in the databank
+    auto *model { find_in_databank( filename ) };
+    if( model != nullptr ) {
         Global.asCurrentTexturePath = buftp;
-        return ( m_models[ lookup->second ].Model.get() );
+        return model;
     }
 
-    auto model = LoadModel(buf, Dynamic); // model nie znaleziony, to wczytać
+    // not yet loaded, check if it's on disk
+    std::string lookup { find_on_disk( filename ) };
+
+    if( false == lookup.empty() ) {
+        model = LoadModel( lookup, Dynamic ); // model nie znaleziony, to wczytać
+    }
+    else {
+        // there's nothing matching in the databank nor on the disk, report failure
+        ErrorLog( "Bad file: failed do locate 3d model file \"" + filename + "\"", logtype::file );
+    }
     Global.asCurrentTexturePath = buftp; // odtworzenie ścieżki do tekstur
     return model; // NULL jeśli błąd
 };
+
+TModel3d *
+TModelsManager::find_in_databank( std::string const &Name ) {
+
+    std::vector<std::string> filenames {
+        Name,
+        szModelPath + Name };
+
+    for( auto const &filename : filenames ) {
+        auto const lookup { m_modelsmap.find( filename ) };
+        if( lookup != m_modelsmap.end() ) {
+            return ( m_models[ lookup->second ].Model.get() );
+        }
+    }
+
+    return nullptr;
+}
+
+// checks whether specified file exists. returns name of the located file, or empty string.
+std::string
+TModelsManager::find_on_disk( std::string const &Name ) {
+
+    std::vector<std::string> extensions { { ".e3d" }, { ".t3d" } };
+    for( auto const &extension : extensions ) {
+
+        auto lookup = (
+            FileExists( Name + extension ) ? Name :
+            FileExists( szModelPath + Name + extension ) ? szModelPath + Name :
+            "" );
+        if( false == lookup.empty() ) {
+            return lookup;
+        }
+    }
+
+    return {};
+}
 
 //---------------------------------------------------------------------------
