@@ -18,5 +18,5 @@ public:
 // methods
     // exchanges load with consist attached to specified vehicle, operating on specified schedule; returns: time needed for exchange, in seconds
     double
-        update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule );
+        update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule, int const Platform );
 };

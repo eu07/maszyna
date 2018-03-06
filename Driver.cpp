@@ -868,53 +868,15 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         // jeśli długość peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
                         // przyjąć odległość fMinProximityDist
                         { // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
-                            if (!AIControllFlag) // AI tylko sobie otwiera drzwi
-                                iDrivigFlags &= ~moveStopCloser; // w razie przełączenia na AI ma
-                            // nie podciągać do W4, gdy
-                            // użytkownik zatrzymał za daleko
-                            if ((iDrivigFlags & moveDoorOpened) == 0)
-                            { // drzwi otwierać jednorazowo
+                            if( !AIControllFlag ) {
+                                // w razie przełączenia na AI ma nie podciągać do W4, gdy użytkownik zatrzymał za daleko
+                                iDrivigFlags &= ~moveStopCloser;
+                            }
+                            
+                            if( ( iDrivigFlags & moveDoorOpened ) == 0 ) {
+                                // drzwi otwierać jednorazowo
                                 iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                                if (mvOccupied->DoorOpenCtrl == 1) //(mvOccupied->TrainType==dt_EZT)
-                                { // otwieranie drzwi w EZT
-                                    if (AIControllFlag) // tylko AI otwiera drzwi EZT, użytkownik
-                                        // musi samodzielnie
-                                        if (!mvOccupied->DoorLeftOpened &&
-                                            !mvOccupied->DoorRightOpened)
-                                        { // otwieranie drzwi
-                                            int p2 =
-                                                int(floor(sSpeedTable[i].evEvent->ValueGet(2))) %
-                                                10; // p7=platform side (1:left, 2:right, 3:both)
-                                            int lewe = (iDirection > 0) ? 1 : 2; // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
-                                            int prawe = (iDirection > 0) ? 2 : 1;
-                                            if (p2 & lewe)
-                                                mvOccupied->DoorLeft(true);
-                                            if (p2 & prawe)
-                                                mvOccupied->DoorRight(true);
-                                        }
-                                }
-                                else
-                                { // otwieranie drzwi w składach wagonowych - docelowo wysyłać komendę zezwolenia na otwarcie drzwi
-                                    int p7, lewe, prawe; // p7=platform side (1:left, 2:right, 3:both)
-                                    // tu będzie jeszcze długość peronu zaokrąglona do 10m
-                                    // (20m bezpieczniej, bo nie modyfikuje bitu 1)
-                                    p7 = int(std::floor(sSpeedTable[i].evEvent->ValueGet(2))) % 10;
-                                    TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
-                                    while (p)
-                                    { // otwieranie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                                        // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
-                                        lewe = (p->DirectionGet() > 0) ? 1 : 2;
-                                        prawe = 3 - lewe;
-                                        // wagony muszą mieć baterię załączoną do otwarcia drzwi...
-                                        p->MoverParameters->BatterySwitch(true);
-                                        if (p7 & lewe)
-                                            p->MoverParameters->DoorLeft(true);
-                                        if (p7 & prawe)
-                                            p->MoverParameters->DoorRight(true);
-                                        // pojazd podłączony z tyłu (patrząc od czoła)
-                                        p = p->Next();
-                                    }
-                                }
+                                Doors( true, static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10 );
                             }
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
                                 // to się wykona tylko raz po zatrzymaniu na W4
@@ -924,23 +886,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
                                 }
                                 // perform loading/unloading
-                                auto const exchangetime { simulation::Station.update_load( pVehicles[ 0 ], *TrainParams ) };
-                                // TBD: adjust time to load exchange size
-                                if( fStopTime > -55 ) {
-                                    // na końcu rozkładu się ustawia 60s i tu by było skrócenie
-//                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
-                                    // with door open on both sides calculated loading time is halved
-                                    // p7=platform side (1:left, 2:right, 3:both)
-                                    auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
-                                    WaitingSet(
-                                        platformside == 3 ?
-                                            exchangetime * 0.5 :
-                                            exchangetime );
-                                }
-                                // update brake settings and ai braking tables
-                                // NOTE: this calculation is run after completing loading/unloading
-                                // remember to move it to a more fitting spot, when loading/unloading taks some actual time
-                                AutoRewident(); // nastawianie hamulca do jazdy pociągowej
+                                auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
+                                auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
+                                WaitingSet( std::max( -fStopTime, exchangetime ) ); // na końcu rozkładu się ustawia 60s i tu by było skrócenie
 
                                 if( TrainParams->CheckTrainLatency() < 0.0 ) {
                                     // odnotowano spóźnienie
@@ -1011,6 +959,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
+                                    // update brake settings and ai braking tables
+                                    // NOTE: this calculation is expected to run after completing loading/unloading
+                                    AutoRewident(); // nastawianie hamulca do jazdy pociągowej
+
                                     if( int( floor( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) & 1 ) {
                                         // nie podjeżdżać do semafora, jeśli droga nie jest wolna
                                         iDrivigFlags |= moveStopHere;
@@ -2400,7 +2352,7 @@ bool TController::ReleaseEngine()
     ReactionTime = PrepareTime;
     if (AIControllFlag)
     { // jeśli steruje komputer
-        if (mvOccupied->DoorOpenCtrl == 1)
+        if (mvOccupied->DoorCloseCtrl == control::driver)
         { // zamykanie drzwi
             if (mvOccupied->DoorLeftOpened)
                 mvOccupied->DoorLeft(false);
@@ -3050,50 +3002,66 @@ void TController::SpeedSet()
     }
 };
 
-void TController::Doors(bool what)
-{ // otwieranie/zamykanie drzwi w składzie albo (tylko AI) EZT
-    if (what)
-    { // otwarcie
-    }
-    else
-    { // zamykanie
-        if (mvOccupied->DoorOpenCtrl == 1)
-        { // jeśli drzwi sterowane z kabiny
-            if( AIControllFlag ) {
-                if( mvOccupied->DoorLeftOpened || mvOccupied->DoorRightOpened ) {
-                    // AI zamyka drzwi przed odjazdem
-                    if( ( true == mvOccupied->DoorClosureWarning )
-                     && ( false == mvOccupied->DepartureSignal )
-                     && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
-                        mvOccupied->signal_departure( true ); // załącenie bzyczka
-                        fActionTime = -3.0 - 0.1 * Random( 10 ); // 3-4 second wait
-                    }
-                    if( fActionTime > -0.5 ) {
-                    // Ra: trzeba by ustawić jakiś czas oczekiwania na zamknięcie się drzwi
-                        mvOccupied->DoorLeft( false ); // zamykanie drzwi
-                        mvOccupied->DoorRight( false );
-                        iDrivigFlags &= ~moveDoorOpened;
-                        // 1.5-2.5 sec wait, +potentially 0.5 remaining
-                        fActionTime = -1.5 - 0.1 * Random( 10 );
-                    }
+// otwieranie/zamykanie drzwi w składzie albo (tylko AI) EZT
+void TController::Doors( bool const Open, int const Side ) {
+
+    if( true == Open ) {
+        // otwieranie drzwi
+        // otwieranie drzwi w składach wagonowych - docelowo wysyłać komendę zezwolenia na otwarcie drzwi
+        // tu będzie jeszcze długość peronu zaokrąglona do 10m (20m bezpieczniej, bo nie modyfikuje bitu 1)
+        // p7=platform side (1:left, 2:right, 3:both)
+        auto *vehicle = pVehicles[0]; // pojazd na czole składu
+        while( vehicle != nullptr ) {
+            // wagony muszą mieć baterię załączoną do otwarcia drzwi...
+            vehicle->MoverParameters->BatterySwitch( true );
+            // otwieranie drzwi w pojazdach - flaga zezwolenia była by lepsza
+            if( vehicle->MoverParameters->DoorOpenCtrl != control::passenger ) {
+                // if the door are controlled by the driver, we let the user operate them...
+                if( true == AIControllFlag ) {
+                    // ...unless this user is an ai
+                    // p7=platform side (1:left, 2:right, 3:both)
+                    // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
+                    auto const lewe = ( vehicle->DirectionGet() > 0 ) ? 1 : 2;
+                    auto const prawe = 3 - lewe;
+                    if( Side & lewe )
+                        vehicle->MoverParameters->DoorLeft( true, range::local );
+                    if( Side & prawe )
+                        vehicle->MoverParameters->DoorRight( true, range::local );
                 }
             }
+            // pojazd podłączony z tyłu (patrząc od czoła)
+            vehicle = vehicle->Next();
         }
-        else
-        { // jeśli nie, to zamykanie w składzie wagonowym
-            TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
-            while (p)
-            { // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                p->MoverParameters->DoorLeft(false); // w lokomotywie można by nie zamykać...
-                p->MoverParameters->DoorRight(false);
-                p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
+    }
+    else {
+        // zamykanie
+        if( AIControllFlag ) {
+            if( ( true == mvOccupied->DoorClosureWarning )
+             && ( false == mvOccupied->DepartureSignal )
+             && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
+                mvOccupied->signal_departure( true ); // załącenie bzyczka
+                fActionTime = -3.0 - 0.1 * Random( 10 ); // 3-4 second wait
             }
-            // WaitingSet(5); //10 sekund tu to za długo, opóźnia odjazd o pół minuty
-            fActionTime = -3.0 - 0.1 * Random(10); // czekanie sekundę, może trochę dłużej
+        }
+
+        if( ( true == TestFlag( iDrivigFlags, moveDoorOpened ) )
+         && ( ( fActionTime > -0.5 )
+           || ( false == AIControllFlag ) ) ) {
+            // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
+            auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
+            while( vehicle != nullptr ) {
+                // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
+                if( vehicle->MoverParameters->DoorCloseCtrl != control::passenger ) {
+                    vehicle->MoverParameters->DoorLeft( false, range::local ); // w lokomotywie można by nie zamykać...
+                    vehicle->MoverParameters->DoorRight( false, range::local );
+                }
+                vehicle = vehicle->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
+            }
+            fActionTime = -2.5 - 0.1 * Random( 10 ); // 2.5-3.5 sec wait, +potentially 0.5 remaining
             iDrivigFlags &= ~moveDoorOpened; // zostały zamknięte - nie wykonywać drugi raz
         }
     }
-};
+}
 
 void TController::RecognizeCommand()
 { // odczytuje i wykonuje komendę przekazaną lokomotywie
@@ -3631,7 +3599,7 @@ TController::UpdateSituation(double dt) {
     // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->DoorOpenCtrl != 1 )
+     && ( mvOccupied->DoorCloseCtrl != control::driver )
      && ( mvControlling->MainCtrlPos > 0 ) ) {
         Doors( false );
     }
@@ -4097,7 +4065,10 @@ TController::UpdateSituation(double dt) {
                         iDrivigFlags |= movePress; // następnie będzie dociskanie
                         DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
                         CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
+/*
+                        // NOTE: disabled to prevent closing the door before passengers can disembark
                         fStopTime = 0.0; // nie ma na co czekać z odczepianiem
+*/
                     }
                 }
                 else {
@@ -4246,8 +4217,8 @@ TController::UpdateSituation(double dt) {
              && ( false == TestFlag( iDrivigFlags, movePress ) )
              && ( iCoupler == 0 )
 //             && ( mvOccupied->Vel > 0.0 )
-             && ( pVehicle->PrevConnected == nullptr )
-             && ( pVehicle->NextConnected == nullptr ) ) {
+             && ( pVehicle->MoverParameters->Couplers[ side::front ].CouplingFlag == coupling::faux )
+             && ( pVehicle->MoverParameters->Couplers[ side::rear ].CouplingFlag == coupling::faux ) ) {
                 SetVelocity(0, 0, stopJoin); // 1. faza odczepiania: zatrzymanie
                 // WriteLog("Zatrzymanie w celu odczepienia");
                 AccPreferred = std::min( 0.0, AccPreferred );
@@ -5039,7 +5010,7 @@ TController::UpdateSituation(double dt) {
                                 fMinProximityDist : // cars are allowed to move within min proximity distance
                                 fMaxProximityDist ) ? // other vehicle types keep wider margin
                                     true :
-                                    vel < VelNext ) ) {
+                                    ( vel + 1.0 ) < VelNext ) ) {
                             // to można przyspieszyć
                             IncSpeed();
                         }

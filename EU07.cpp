@@ -438,7 +438,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	TPythonInterpreter::killInstance();
 #ifdef _WIN32
     Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     SafeDelete( pConsole );
@@ -448,7 +447,8 @@ int main(int argc, char *argv[])
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
-	_exit(0); // skip destructors, there are ordering errors which causes segfaults
+    TPythonInterpreter::killInstance();
 
+	_exit(0); // skip destructors, there are ordering errors which causes segfaults
 	return 0;
 }

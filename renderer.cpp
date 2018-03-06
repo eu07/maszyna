@@ -182,11 +182,11 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     }
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
-    m_glaretexture = Fetch_Texture( "fx\\lightglare" );
-    m_suntexture = Fetch_Texture( "fx\\sun" );
-    m_moontexture = Fetch_Texture( "fx\\moon" );
+    m_glaretexture = Fetch_Texture( "fx/lightglare" );
+    m_suntexture = Fetch_Texture( "fx/sun" );
+    m_moontexture = Fetch_Texture( "fx/moon" );
     if( m_helpertextureunit >= 0 ) {
-        m_reflectiontexture = Fetch_Texture( "fx\\reflections" );
+        m_reflectiontexture = Fetch_Texture( "fx/reflections" );
     }
     WriteLog( "...gfx data pre-loading done" );
 

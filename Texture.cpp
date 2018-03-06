@@ -647,7 +647,8 @@ opengl_texture::create() {
             else {
                 // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, Global.compress_tex ? GL_COMPRESSED_RGBA : GL_RGBA,
+                    GL_TEXTURE_2D, 0,
+					Global.compress_tex ? GL_COMPRESSED_RGBA : GL_RGBA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
@@ -821,7 +822,10 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         Filename.erase( Filename.rfind( '.' ) );
     }
 
-	std::replace(Filename.begin(), Filename.end(), '\\', '/'); // fix slashes
+    // change slashes to cross-platform
+    std::replace(
+        std::begin( Filename ), std::end( Filename ),
+        '\\', '/' );
 
     std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".png" }, { ".bmp" }, { ".ext" } };
 
@@ -998,17 +1002,19 @@ texture_manager::info() const {
 texture_handle
 texture_manager::find_in_databank( std::string const &Texturename ) const {
 
-    auto lookup = m_texturemappings.find( Texturename );
-    if( lookup != m_texturemappings.end() ) {
-        return (int)lookup->second;
-    }
-    // jeszcze próba z dodatkową ścieżką
-    lookup = m_texturemappings.find( global_texture_path + Texturename );
+    std::vector<std::string> filenames {
+        Global.asCurrentTexturePath + Texturename,
+        Texturename,
+        szTexturePath + Texturename };
 
-    return (
-        lookup != m_texturemappings.end() ?
-            (int)lookup->second :
-            npos );
+    for( auto const &filename : filenames ) {
+        auto const lookup { m_texturemappings.find( filename ) };
+        if( lookup != m_texturemappings.end() ) {
+            return lookup->second;
+        }
+    }
+
+    return npos;
 }
 
 // checks whether specified file exists.
@@ -1016,8 +1022,9 @@ std::string
 texture_manager::find_on_disk( std::string const &Texturename ) const {
 
     return(
+        FileExists( Global.asCurrentTexturePath + Texturename ) ? Global.asCurrentTexturePath + Texturename :
         FileExists( Texturename ) ? Texturename :
-        FileExists( global_texture_path + Texturename ) ? global_texture_path + Texturename :
+        FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
         "" );
 }
 

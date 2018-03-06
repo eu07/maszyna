@@ -118,6 +118,7 @@ struct global_settings {
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry
     bool ResourceSweep{ true }; // gfx resource garbage collection
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
+    bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
     bool bGlutFont{ false }; // czy tekst generowany przez GLUT32.DLL
     double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
@@ -168,7 +169,6 @@ struct global_settings {
 	std::string screenshot_dir;
 	bool loading_log = true;
 	bool dds_upper_origin = false;
-	bool compress_tex = true;
 
 // methods
     void LoadIniFile( std::string asFileName );

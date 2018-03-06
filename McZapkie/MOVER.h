@@ -153,7 +153,8 @@ enum coupling {
     gangway = 0x10,
     mainhose = 0x20,
     heating = 0x40,
-    permanent = 0x80
+    permanent = 0x80,
+    uic = 0x100
 };
 // possible effect ranges for control commands; exclusive
 enum range {
@@ -175,6 +176,15 @@ enum light {
     headlight_right = 0x10,
     redmarker_right = 0x20,
     rearendsignals = 0x40
+};
+
+// door operation methods; exclusive
+enum control {
+    passenger, // local, opened/closed for duration of loading
+    driver, // remote, operated by the driver
+    autonomous, // local, closed when vehicle moves and/or after timeout
+    conductor, // remote, operated by the conductor
+    mixed // primary manual but answers also to remote control
 };
 											/*typ hamulca elektrodynamicznego*/
 static int const dbrake_none = 0;
@@ -307,7 +317,7 @@ struct TCommand
 	std::string Command; /*komenda*/
 	double Value1 = 0.0; /*argumenty komendy*/
 	double Value2 = 0.0;
-    int Coupling{ ctrain_controll }; // coupler flag used to determine command propagation
+    int Coupling { coupling::control }; // coupler flag used to determine command propagation
     TLocation Location;
 };
 
@@ -821,10 +831,10 @@ public:
     static std::vector<std::string> const eimc_labels;
     double InverterFrequency { 0.0 }; // current frequency of power inverters
 	/*-dla wagonow*/
-    double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
+    float MaxLoad = 0.f;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
 	double OverLoadFactor = 0.0;       /*ile razy moze byc przekroczona ladownosc*/
-	double LoadSpeed = 0.0; double UnLoadSpeed = 0.0;/*szybkosc na- i rozladunku jednostki/s*/
+	float LoadSpeed = 0.f; float UnLoadSpeed = 0.f;/*szybkosc na- i rozladunku jednostki/s*/
 	int DoorOpenCtrl = 0; int DoorCloseCtrl = 0; /*0: przez pasazera, 1: przez maszyniste, 2: samoczynne (zamykanie)*/
 	double DoorStayOpen = 0.0;               /*jak dlugo otwarte w przypadku DoorCloseCtrl=2*/
 	bool DoorClosureWarning = false;      /*czy jest ostrzeganie przed zamknieciem*/
@@ -887,7 +897,7 @@ public:
     bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
     // TODO converter parameters, for when we start cleaning up mover parameters
-    start ConverterStart{ manual }; // whether converter is started manually, or by other means
+    start ConverterStart{ start::manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
     double ConverterStartDelayTimer{ 0.0 }; // helper, for tracking whether converter start delay passed
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
@@ -1024,7 +1034,7 @@ public:
 	double eAngle = M_PI * 0.5;
 
 	/*-dla wagonow*/
-    double Load = 0.0;      /*masa w T lub ilosc w sztukach - zaladowane*/
+    float Load = 0.f;      /*masa w T lub ilosc w sztukach - zaladowane*/
 	std::string LoadType;   /*co jest zaladowane*/
 	int LoadStatus = 0; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakończono,0=zaktualizowany model
 	double LastLoadChangeTime = 0.0; //raz (roz)ładowania
@@ -1220,8 +1230,8 @@ public:
 
 	/* funckje dla wagonow*/
 	bool LoadingDone(double LSpeed, std::string LoadInit);
-	bool DoorLeft(bool State); //obsluga drzwi lewych
-	bool DoorRight(bool State); //obsluga drzwi prawych
+	bool DoorLeft(bool State, int const Notify = range::consist ); //obsluga drzwi lewych
+	bool DoorRight(bool State, int const Notify = range::consist ); //obsluga drzwi prawych
 	bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
     bool signal_departure( bool const State, int const Notify = range::consist ); // toggles departure warning
 
