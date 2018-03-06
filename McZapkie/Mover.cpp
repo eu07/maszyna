@@ -305,9 +305,6 @@ Name( NameInit )
     WriteLog("init default physic values for " + NameInit + ", [" + TypeNameInit + "], [" +
              LoadTypeInitial + "]");
     Dim = TDimension();
-    DimHalf.x = 0.5 * Dim.W; // połowa szerokości, OX jest w bok?
-    DimHalf.y = 0.5 * Dim.L; // połowa długości, OY jest do przodu?
-    DimHalf.z = 0.5 * Dim.H; // połowa wysokości, OZ jest w górę?
 
     // BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odcięcie (CHK jest jeszcze nie wczytane!)
     iLights[ 0 ] = 0;
@@ -6240,17 +6237,12 @@ bool TMoverParameters::Physic_ReActivation(void) // DO PRZETLUMACZENIA NA KONCU
 // *************************************************************************************************
 // FUNKCJE PARSERA WCZYTYWANIA PLIKU FIZYKI POJAZDU
 // *************************************************************************************************
-std::string p0, p1, p2, p3, p4, p5, p6, p7;
-std::string vS;
-int vI;
-double vD;
 bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 int LISTLINE;
-std::vector<std::string> x;
 
 // *************************************************************************************************
 // Q: 20160717
@@ -7059,6 +7051,11 @@ void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
     extract_value( Dim.L, "L", line, "" );
     extract_value( Dim.H, "H", line, "" );
     extract_value( Dim.W, "W", line, "" );
+
+    DimHalf.x = 0.5 * Dim.W; // połowa szerokości, OX jest w bok?
+    DimHalf.y = 0.5 * Dim.L; // połowa długości, OY jest do przodu?
+    DimHalf.z = 0.5 * Dim.H; // połowa wysokości, OZ jest w górę?
+
     extract_value( Cx, "Cx", line, "0.3" );
     if( Dim.H <= 2.0 ) {
         //gdyby nie było parametru, lepsze to niż zero

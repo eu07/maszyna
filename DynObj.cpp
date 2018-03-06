@@ -1008,19 +1008,19 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
 
         if( CouplNr == -2 ) {
             // wektor [kamera-obiekt] - poszukiwanie obiektu
-            if( LengthSquared3( Global.pCameraPosition - dynamic->vPosition ) < 100.0 ) {
+            if( Math3D::LengthSquared3( Global.pCameraPosition - dynamic->vPosition ) < 100.0 ) {
                 // 10 metrów
                 return dynamic;
             }
         }
         else {
             // jeśli (CouplNr) inne niz -2, szukamy sprzęgu
-            if( LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
+            if( Math3D::LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 0;
                 return dynamic;
             }
-            if( LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
+            if( Math3D::LengthSquared3( Global.pCameraPosition - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 1;
                 return dynamic;
@@ -4576,8 +4576,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 							asAnimName = token + std::to_string( i + 1 );
 							pants[ i ].smElement[ 4 ] = mdModel->GetFromName( asAnimName );
 							pants[ i ].smElement[ 4 ]->WillBeAnimated();
-/*							pants[ i ].yUpdate = UpdatePant;
-*/							pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
+							pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
 							pants[ i ].fMaxDist = 300 * 300; // nie podnosić w większej odległości
 							pants[ i ].iNumber = i;
 						}
@@ -4775,8 +4774,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
                             // Ra: te współczynniki są bez sensu, bo modyfikują wektor przesunięcia
                         }
-                        // create sound emitters for the door
-                        m_doorsounds.emplace_back();
                     }
                 }
 
@@ -4835,11 +4832,28 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 else if( ( token == "tractionmotor:" )
                       && ( MoverParameters->Power > 0 ) ) {
                     // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
-                    m_powertrainsounds.motor.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
-                    m_powertrainsounds.motor.owner( this );
+                    sound_source motortemplate { sound_placement::external };
+                    motortemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    motortemplate.owner( this );
 
                     auto const amplitudedivisor = static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 );
-                    m_powertrainsounds.motor.m_amplitudefactor /= amplitudedivisor;
+                    motortemplate.m_amplitudefactor /= amplitudedivisor;
+
+                    if( true == m_powertrainsounds.motors.empty() ) {
+                        // fallback for cases without specified motor locations, convert sound template to a single sound source
+                        m_powertrainsounds.motors.emplace_back( motortemplate );
+                    }
+                    else {
+                        // 
+                        for( auto &motor : m_powertrainsounds.motors ) {
+                            // apply configuration to all defined motors
+                            // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
+                            auto motoroffset { motortemplate.offset() };
+                            motoroffset.z = motor.offset().z;
+                            motor = motortemplate;
+                            motor.offset( motoroffset );
+                        }
+                    }
                 }
 
 				else if( token == "inverter:" ) {
@@ -4974,20 +4988,26 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
 				else if( token == "dooropen:" ) {
-                    sound_source dooropen { sound_placement::general };
-                    dooropen.deserialize( parser, sound_type::single );
-                    dooropen.owner( this );
+                    sound_source doortemplate { sound_placement::general };
+                    doortemplate.deserialize( parser, sound_type::single );
+                    doortemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
-                        door.rsDoorOpen = dooropen;
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.rsDoorOpen.offset() };
+                        door.rsDoorOpen = doortemplate;
+                        door.rsDoorOpen.offset( dooroffset );
                     }
                 }
 
 				else if( token == "doorclose:" ) {
-                    sound_source doorclose { sound_placement::general };
-                    doorclose.deserialize( parser, sound_type::single );
-                    doorclose.owner( this );
+                    sound_source doortemplate { sound_placement::general };
+                    doortemplate.deserialize( parser, sound_type::single );
+                    doortemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
-                        door.rsDoorClose = doorclose;
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.rsDoorClose.offset() };
+                        door.rsDoorClose = doortemplate;
+                        door.rsDoorClose.offset( dooroffset );
                     }
                 }
 
@@ -5031,6 +5051,61 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 				  && ( token != "endsounds" ) );
 
         } // sounds:
+
+        else if( token == "locations:" ) {
+            do {
+                token = "";
+                parser.getTokens(); parser >> token;
+
+                if( token == "doors:" ) {
+                    // a list of pairs: offset along vehicle's z-axis and sides on which the door is present; followed with "end"
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "end" ) ) {
+                        // vehicle faces +Z in 'its' space, for door locations negative value means ahead of centre
+                        auto const offset { std::atof( token.c_str() ) * -1.f };
+                        // recognized side specifications are "right", "left" and "both"
+                        auto const sides { parser.getToken<std::string>() };
+                        // NOTE: we skip setting owner of the sounds, it'll be done during individual sound deserialization
+                        door_sounds door;
+                        // add entries to the list:
+                        if( ( sides == "both" )
+                         || ( sides == "left" ) ) {
+                            // left...
+                            auto const location { glm::vec3 { MoverParameters->DimHalf.x, MoverParameters->DimHalf.y, offset } };
+                            door.rsDoorClose.offset( location );
+                            door.rsDoorOpen.offset( location );
+                            m_doorsounds.emplace_back( door );
+                        }
+                        if( ( sides == "both" )
+                         || ( sides == "right" ) ) {
+                            // ...and right
+                            auto const location { glm::vec3 { -MoverParameters->DimHalf.x, MoverParameters->DimHalf.y, offset } };
+                            door.rsDoorClose.offset( location );
+                            door.rsDoorOpen.offset( location );
+                            m_doorsounds.emplace_back( door );
+                        }
+                    }
+                }
+
+                else if( token == "tractionmotors:" ) {
+                    // a list of offsets along vehicle's z-axis; followed with "end"
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "end" ) ) {
+                        // vehicle faces +Z in 'its' space, for motor locations negative value means ahead of centre
+                        auto const offset { std::atof( token.c_str() ) * -1.f };
+                        // NOTE: we skip setting owner of the sounds, it'll be done during individual sound deserialization
+                        sound_source motor { sound_placement::external }; // generally traction motor
+                        // add entry to the list
+                        auto const location { glm::vec3 { 0.f, 0.f, offset } };
+                        motor.offset( location );
+                        m_powertrainsounds.motors.emplace_back( motor );
+                    }
+                }
+
+            } while( ( token != "" )
+                  && ( token != "endlocations" ) );
+
+        } // locations:
 
         else if( token == "internaldata:" ) {
             // dalej nie czytaj
@@ -5245,25 +5320,13 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
         // zliczanie wcześniejszych animacji
         dooranimationfirstindex += iAnimType[ i ];
     }
-    std::size_t doorindex { 0 };
-    for( auto &doorsounds : m_doorsounds ) {
-
-        auto submodel { pAnimations[ dooranimationfirstindex + doorindex ].smAnimated };
-        if( submodel == nullptr ) { continue; }
-
-        auto const dooroffset { pAnimations[ dooranimationfirstindex + doorindex ].smAnimated->offset( std::numeric_limits<float>::max() ) };
-
-        doorsounds.rsDoorClose.offset( dooroffset );
-        doorsounds.rsDoorOpen.offset( dooroffset );
-        ++doorindex;
-    }
     // couplers
-    auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * 0.5f } };
+    auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->DimHalf.z } };
     m_couplersounds[ side::front ].dsbCouplerAttach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerDetach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerStretch.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbBufferClamp.offset( frontcoupleroffset );
-    auto const rearcoupleroffset{ glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
+    auto const rearcoupleroffset{ glm::vec3{ 0.f, 1.f, MoverParameters->DimHalf.z * -1.f } };
     m_couplersounds[ side::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
@@ -5958,10 +6021,12 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // motor sounds
     volume = 0.0;
     if( ( true == Vehicle.Mains )
-     && ( false == Vehicle.dizel_enginestart ) ) {
+     && ( false == Vehicle.dizel_enginestart )
+     && ( false == motors.empty() ) ) {
 
         if( std::fabs( Vehicle.enrot ) > 0.01 ) {
 
+            auto const &motor { motors.front() };
             // frequency calculation
             auto normalizer { 1.f };
             if( true == motor.is_combined() ) {
@@ -6023,19 +6088,28 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             volume *= std::max( 0.25f, motor_momentum );
 
             if( motor_volume >= 0.05 ) {
-                motor
-                    .pitch( frequency )
-                    .gain( motor_volume )
-                    .play( sound_flags::exclusive | sound_flags::looping );
+                // apply calculated parameters to all motor instances
+                for( auto &motor : motors ) {
+                    motor
+                        .pitch( frequency )
+                        .gain( motor_volume )
+                        .play( sound_flags::exclusive | sound_flags::looping );
+                }
             }
         }
         else {
-            motor.stop();
+            // stop all motor instances
+            for( auto &motor : motors ) {
+                motor.stop();
+            }
         }
     }
     motor_volume = interpolate( motor_volume, volume, 0.25 );
     if( motor_volume < 0.05 ) {
-        motor.stop();
+        // stop all motor instances
+        for( auto &motor : motors ) {
+            motor.stop();
+        }
     }
     // inverter sounds
     if( Vehicle.EngineType == ElectricInductionMotor ) {
