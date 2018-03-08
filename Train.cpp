@@ -5755,8 +5755,8 @@ void TTrain::clear_cab_controls()
     btLampkaOgrzewanieSkladu.Clear(11);
     btHaslerBrakes.Clear(12); // ciśnienie w cylindrach do odbijania na haslerze
     btHaslerCurrent.Clear(13); // prąd na silnikach do odbijania na haslerze
-    // Jeśli ustawiamy nową wartość dla PoKeys wolna jest 15
     // Numer 14 jest używany dla buczka SHP w update_sounds()
+    // Jeśli ustawiamy nową wartość dla PoKeys wolna jest 15
 
     // other cab controls
     // TODO: arrange in more readable manner, and eventually refactor

@@ -394,7 +394,7 @@ private:
     sound_source sDepartureSignal { sound_placement::general };
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rsOuterNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    std::vector<sound_source> m_bogiesounds; // TBD, TODO: wrapper for all bogie-related sounds (noise, brakes, squeal etc)
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
     sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202

@@ -3940,7 +3940,7 @@ void TDynamicObject::RenderSounds() {
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
-     && ( false == rsOuterNoise.empty() )
+     && ( false == m_bogiesounds.empty() )
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
             FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
             // Global.pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
@@ -3949,19 +3949,20 @@ void TDynamicObject::RenderSounds() {
             Global.CabWindowOpen ? true : // sticking head out we get to hear outer noise
             false ) ) {
 
-            // frequency calculation
-        auto const normalizer{ (
-            true == rsOuterNoise.is_combined() ?
+        auto const &bogiesound { m_bogiesounds.front() };
+        // frequency calculation
+        auto const normalizer { (
+            true == bogiesound.is_combined() ?
                 MoverParameters->Vmax * 0.01f :
                 1.f ) };
         frequency =
-            rsOuterNoise.m_frequencyoffset
-            + rsOuterNoise.m_frequencyfactor * MoverParameters->Vel * normalizer;
+            bogiesound.m_frequencyoffset
+            + bogiesound.m_frequencyfactor * MoverParameters->Vel * normalizer;
 
         // volume calculation
         volume =
-            rsOuterNoise.m_amplitudeoffset +
-            rsOuterNoise.m_amplitudefactor * MoverParameters->Vel;
+            bogiesound.m_amplitudeoffset +
+            bogiesound.m_amplitudefactor * MoverParameters->Vel;
         if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
             volume *= 1 + 0.125 * brakeforceratio;
@@ -3978,18 +3979,26 @@ void TDynamicObject::RenderSounds() {
                     0.0, 1.0 ) );
 
         if( volume > 0.05 ) {
-            rsOuterNoise
-                .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
+            // apply calculated parameters to all motor instances
+            for( auto &bogiesound : m_bogiesounds ) {
+                bogiesound
+                    .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
+                    .gain( volume )
+                    .play( sound_flags::exclusive | sound_flags::looping );
+            }
         }
         else {
-            rsOuterNoise.stop();
+            // stop all noise instances
+            for( auto &bogiesound : m_bogiesounds ) {
+                bogiesound.stop();
+            }
         }
     }
     else {
         // don't play the optional ending sound if the listener switches views
-        rsOuterNoise.stop( false == FreeFlyModeFlag );
+        for( auto &bogiesound : m_bogiesounds ) {
+            bogiesound.stop( false == FreeFlyModeFlag );
+        }
     }
     // flat spot sound
     if( MoverParameters->CategoryFlag == 1 ) {
@@ -4844,9 +4853,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         m_powertrainsounds.motors.emplace_back( motortemplate );
                     }
                     else {
-                        // 
+                        // apply configuration to all defined motors
                         for( auto &motor : m_powertrainsounds.motors ) {
-                            // apply configuration to all defined motors
                             // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
                             auto motoroffset { motortemplate.offset() };
                             motoroffset.z = motor.offset().z;
@@ -5034,11 +5042,27 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
                 else if( token == "outernoise:" ) {
                     // szum podczas jazdy:
-                    rsOuterNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, MoverParameters->Vmax );
-                    rsOuterNoise.owner( this );
+                    sound_source noisetemplate { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+                    noisetemplate.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, MoverParameters->Vmax );
+                    noisetemplate.owner( this );
 
-                    rsOuterNoise.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
-                    rsOuterNoise.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
+                    noisetemplate.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
+                    noisetemplate.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
+
+                    if( true == m_bogiesounds.empty() ) {
+                        // fallback for cases without specified noise locations, convert sound template to a single sound source
+                        m_bogiesounds.emplace_back( noisetemplate );
+                    }
+                    else {
+                        // apply configuration to all defined bogies
+                        for( auto &bogie : m_bogiesounds ) {
+                            // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
+                            auto bogieoffset { noisetemplate.offset() };
+                            bogieoffset.z = bogie.offset().z;
+                            bogie = noisetemplate;
+                            bogie.offset( bogieoffset );
+                        }
+                    }
                 }
 
                 else if( token == "wheelflat:" ) {
@@ -5099,6 +5123,21 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         auto const location { glm::vec3 { 0.f, 0.f, offset } };
                         motor.offset( location );
                         m_powertrainsounds.motors.emplace_back( motor );
+                    }
+                }
+
+                else if( token == "bogies:" ) {
+                    // a list of offsets along vehicle's z-axis; followed with "end"
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "end" ) ) {
+                        // vehicle faces +Z in 'its' space, for bogie locations negative value means ahead of centre
+                        auto const offset { std::atof( token.c_str() ) * -1.f };
+                        // NOTE: we skip setting owner of the sounds, it'll be done during individual sound deserialization
+                        sound_source bogienoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+                        // add entry to the list
+                        auto const location { glm::vec3 { 0.f, 0.f, offset } };
+                        bogienoise.offset( location );
+                        m_bogiesounds.emplace_back( bogienoise );
                     }
                 }
 

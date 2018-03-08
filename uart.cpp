@@ -239,9 +239,9 @@ void uart_input::poll()
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, trainstate.brake_pressure * 0.1f / conf.brakemax * conf.brakeuart);
 	    uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, trainstate.hv_voltage / conf.hvmax * conf.hvuart);
-	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0]) / conf.currentmax * conf.currentuart;
-	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1]) / conf.currentmax * conf.currentuart;
-	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2]) / conf.currentmax * conf.currentuart;
+	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
+	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
+	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
 
 	    std::array<uint8_t, 31> buffer {
             //byte 0
@@ -269,15 +269,26 @@ void uart_input::poll()
               | trainstate.line_breaker << 5
               | trainstate.compressor_overload << 6),
             //byte 6
-			(uint8_t)( trainstate.alerter_sound << 7),
-	        SPLIT_INT16(brake_press), //byte 7-8
-	        SPLIT_INT16(pipe_press), //byte 9-10
-	        SPLIT_INT16(tank_press), //byte 11-12
-	        SPLIT_INT16(hv_voltage), //byte 13-14
-	        SPLIT_INT16(current1), //byte 15-16
-	        SPLIT_INT16(current2), //byte 17-18
-	        SPLIT_INT16(current3), //byte 19-20
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0 //byte 21-30
+			(uint8_t)(
+                trainstate.recorder_braking << 3
+              | trainstate.recorder_power << 4
+              | trainstate.alerter_sound << 7),
+            //byte 7-8
+	        SPLIT_INT16(brake_press),
+            //byte 9-10
+	        SPLIT_INT16(pipe_press),
+            //byte 11-12
+	        SPLIT_INT16(tank_press),
+            //byte 13-14
+	        SPLIT_INT16(hv_voltage),
+            //byte 15-16
+	        SPLIT_INT16(current1),
+            //byte 17-18
+	        SPLIT_INT16(current2),
+            //byte 19-20
+	        SPLIT_INT16(current3),
+            //byte 21-30
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)
