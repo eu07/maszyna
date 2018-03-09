@@ -7052,10 +7052,6 @@ void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
     extract_value( Dim.H, "H", line, "" );
     extract_value( Dim.W, "W", line, "" );
 
-    DimHalf.x = 0.5 * Dim.W; // połowa szerokości, OX jest w bok?
-    DimHalf.y = 0.5 * Dim.L; // połowa długości, OY jest do przodu?
-    DimHalf.z = 0.5 * Dim.H; // połowa wysokości, OZ jest w górę?
-
     extract_value( Cx, "Cx", line, "0.3" );
     if( Dim.H <= 2.0 ) {
         //gdyby nie było parametru, lepsze to niż zero

@@ -249,6 +249,12 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_D },
         // reverserdecrease
         { GLFW_KEY_R },
+        // reverserforward
+        { -1 },
+        // reverserneutral
+        { -1 },
+        // reverserbackward
+        { -1 },
         // linebreakertoggle
         { GLFW_KEY_M },
         // linebreakeropen

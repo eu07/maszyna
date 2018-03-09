@@ -250,7 +250,7 @@ void uart_input::poll()
 	        0,
             //byte 2
 			(uint8_t)(
-                trainstate.motor_resistors << 1
+                trainstate.ventilator_overload << 1
               | trainstate.motor_overload_threshold << 2),
             //byte 3
 			0,

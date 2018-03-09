@@ -1379,18 +1379,18 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     // calculate shadow tone, based on positions of celestial bodies
     m_shadowcolor = interpolate(
-        glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f },
+        glm::vec4{ colors::shadow },
         glm::vec4{ colors::white },
         clamp( -Environment->m_sun.getAngle(), 0.f, 6.f ) / 6.f );
     if( ( Environment->m_sun.getAngle() < -18.f )
      && ( Environment->m_moon.getAngle() > 0.f ) ) {
         // turn on moon shadows after nautical twilight, if the moon is actually up
-        m_shadowcolor = glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f };
+        m_shadowcolor = colors::shadow;
     }
     // soften shadows depending on sky overcast factor
     m_shadowcolor = glm::min(
         colors::white,
-        m_shadowcolor + glm::vec4{ glm::vec3{ 0.5f * Global.Overcast }, 1.f } );
+        m_shadowcolor + ( ( colors::white - colors::shadow ) * Global.Overcast ) );
 
     if( Global.bWireFrame ) {
         // bez nieba w trybie rysowania linii

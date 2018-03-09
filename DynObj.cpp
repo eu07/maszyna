@@ -5095,7 +5095,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         if( ( sides == "both" )
                          || ( sides == "left" ) ) {
                             // left...
-                            auto const location { glm::vec3 { MoverParameters->DimHalf.x, MoverParameters->DimHalf.y, offset } };
+                            auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             m_doorsounds.emplace_back( door );
@@ -5103,7 +5103,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         if( ( sides == "both" )
                          || ( sides == "right" ) ) {
                             // ...and right
-                            auto const location { glm::vec3 { -MoverParameters->DimHalf.x, MoverParameters->DimHalf.y, offset } };
+                            auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             m_doorsounds.emplace_back( door );
@@ -5360,12 +5360,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
         dooranimationfirstindex += iAnimType[ i ];
     }
     // couplers
-    auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->DimHalf.z } };
+    auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * 0.5f } };
     m_couplersounds[ side::front ].dsbCouplerAttach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerDetach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerStretch.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbBufferClamp.offset( frontcoupleroffset );
-    auto const rearcoupleroffset{ glm::vec3{ 0.f, 1.f, MoverParameters->DimHalf.z * -1.f } };
+    auto const rearcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
     m_couplersounds[ side::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
