@@ -1216,9 +1216,15 @@ TWorld::Update_UI() {
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
 
-                    auto const trackblockdistance{ std::abs( Controlled->Mechanik->TrackBlock() ) };
-                    if( trackblockdistance <= 75.0 ) {
-                        uitextline4 += " Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
+                    auto const stoptime { static_cast<int>( -1.0 * Controlled->Mechanik->fStopTime ) };
+                    if( stoptime > 0 ) {
+                        uitextline4 += " Loading/unloading in progress (" + to_string( stoptime ) + ( stoptime > 1 ? " seconds" : " second" ) + " left)";
+                    }
+                    else {
+                        auto const trackblockdistance{ std::abs( Controlled->Mechanik->TrackBlock() ) };
+                        if( trackblockdistance <= 75.0 ) {
+                            uitextline4 += " Another vehicle ahead (distance: " + to_string( trackblockdistance, 1 ) + " m)";
+                        }
                     }
                 }
             }
@@ -1372,7 +1378,7 @@ TWorld::Update_UI() {
                 if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->LoadFlag, 0 ) + " (" + to_string( vehicle->MoverParameters->Load, 0 ) + ")";
+                uitextline2 += ", Load: " + to_string( vehicle->MoverParameters->Load, 0 ) + " (" + to_string( vehicle->MoverParameters->LoadFlag, 0 ) + ")";
 
                 uitextline2 +=
                     "; Pant: "

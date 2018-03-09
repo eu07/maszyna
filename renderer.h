@@ -372,7 +372,7 @@ private:
     std::string m_debugstatstext;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
-    glm::vec4 m_shadowcolor { 0.65f, 0.65f, 0.65f, 1.f };
+    glm::vec4 m_shadowcolor { colors::shadow };
 //    TEnvironmentType m_environment { e_flat };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };

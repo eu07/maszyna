@@ -1067,8 +1067,6 @@ public:
 	double TotalMassxg = 0.0; /*TotalMass*g*/
 
 	Math3D::vector3 vCoulpler[2]; // powtórzenie współrzędnych sprzęgów z DynObj :/
-	Math3D::vector3 DimHalf; // połowy rozmiarów do obliczeń geometrycznych
-					 // int WarningSignal; //0: nie trabi, 1,2: trabi syreną o podanym numerze
 	int WarningSignal = 0; // tymczasowo 8bit, ze względu na funkcje w MTools
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym

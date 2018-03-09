@@ -303,7 +303,7 @@ private:
 
     struct powertrain_sounds {
         sound_source inverter { sound_placement::engine };
-        sound_source motor { sound_placement::external }; // generally traction motor
+        std::vector<sound_source> motors; // generally traction motor(s)
         double motor_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         float motor_momentum { 0.f }; // recent change in motor revolutions
         sound_source motor_relay { sound_placement::engine };
@@ -395,7 +395,7 @@ private:
     sound_source sDepartureSignal { sound_placement::general };
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rsOuterNoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    std::vector<sound_source> m_bogiesounds; // TBD, TODO: wrapper for all bogie-related sounds (noise, brakes, squeal etc)
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
     sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202

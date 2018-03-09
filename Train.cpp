@@ -204,6 +204,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::mubrakingindicatortoggle, &TTrain::OnCommand_mubrakingindicatortoggle },
     { user_command::reverserincrease, &TTrain::OnCommand_reverserincrease },
     { user_command::reverserdecrease, &TTrain::OnCommand_reverserdecrease },
+    { user_command::reverserforward, &TTrain::OnCommand_reverserforward },
+    { user_command::reverserneutral, &TTrain::OnCommand_reverserneutral },
+    { user_command::reverserbackward, &TTrain::OnCommand_reverserbackward },
     { user_command::alerteracknowledge, &TTrain::OnCommand_alerteracknowledge },
     { user_command::batterytoggle, &TTrain::OnCommand_batterytoggle },
     { user_command::batteryenable, &TTrain::OnCommand_batteryenable },
@@ -1390,6 +1393,61 @@ void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Comm
         if( Train->mvOccupied->DirectionBackward() ) {
             // aktualizacja skrajnych pojazdów w składzie
             if( ( Train->mvOccupied->ActiveDir )
+             && ( Train->DynamicObject->Mechanik ) ) {
+
+                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( Train->mvOccupied->ActiveDir < 1 ) {
+
+            while( ( Train->mvOccupied->ActiveDir < 1 )
+                && ( true == Train->mvOccupied->DirectionForward() ) ) {
+                // all work is done in the header
+            }
+            // aktualizacja skrajnych pojazdów w składzie
+            if( ( Train->mvOccupied->ActiveDir == 1 )
+             && ( Train->DynamicObject->Mechanik ) ) {
+
+                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        while( ( Train->mvOccupied->ActiveDir < 0 )
+            && ( true == Train->mvOccupied->DirectionForward() ) ) {
+            // all work is done in the header
+        }
+        while( ( Train->mvOccupied->ActiveDir > 0 )
+            && ( true == Train->mvOccupied->DirectionBackward() ) ) {
+            // all work is done in the header
+        }
+    }
+}
+
+void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( Train->mvOccupied->ActiveDir > -1 ) {
+
+            while( ( Train->mvOccupied->ActiveDir > -1 )
+                && ( true == Train->mvOccupied->DirectionBackward() ) ) {
+                // all work is done in the header
+            }
+            // aktualizacja skrajnych pojazdów w składzie
+            if( ( Train->mvOccupied->ActiveDir == -1 )
              && ( Train->DynamicObject->Mechanik ) ) {
 
                 Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
@@ -5770,8 +5828,8 @@ void TTrain::clear_cab_controls()
     btLampkaOgrzewanieSkladu.Clear(11);
     btHaslerBrakes.Clear(12); // ciśnienie w cylindrach do odbijania na haslerze
     btHaslerCurrent.Clear(13); // prąd na silnikach do odbijania na haslerze
-    // Jeśli ustawiamy nową wartość dla PoKeys wolna jest 15
     // Numer 14 jest używany dla buczka SHP w update_sounds()
+    // Jeśli ustawiamy nową wartość dla PoKeys wolna jest 15
 
     // other cab controls
     // TODO: arrange in more readable manner, and eventually refactor
