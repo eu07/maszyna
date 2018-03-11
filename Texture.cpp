@@ -816,12 +816,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         Filename.erase( traitpos );
     }
 
-    if( ( Filename.rfind( '.' ) != std::string::npos )
-     && ( Filename.rfind( '.' ) != Filename.rfind( ".." ) + 1 ) ) {
-        // trim extension if there's one, but don't mistake folder traverse for extension
-        Filename.erase( Filename.rfind( '.' ) );
-    }
-
+    erase_extension( Filename );
     // change slashes to cross-platform
     std::replace(
         std::begin( Filename ), std::end( Filename ),

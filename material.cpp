@@ -113,11 +113,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     if( filename.find( '|' ) != std::string::npos )
         filename.erase( filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
 
-    if( ( filename.rfind( '.' ) != std::string::npos )
-     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
-        // we can get extension for .mat or, in legacy files, some image format. just trim it and set it to material file extension
-        filename.erase( filename.rfind( '.' ) );
-    }
+    erase_extension( filename );
     filename += ".mat";
 
     // change slashes to llinux-compatible

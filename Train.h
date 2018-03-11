@@ -71,6 +71,7 @@ class TTrain
     struct state_t {
         std::uint8_t shp;
         std::uint8_t alerter;
+        std::uint8_t radio_stop;
         std::uint8_t motor_resistors;
         std::uint8_t line_breaker;
         std::uint8_t motor_overload;

@@ -272,6 +272,7 @@ void uart_input::poll()
 			(uint8_t)(
                 trainstate.recorder_braking << 3
               | trainstate.recorder_power << 4
+              | trainstate.radio_stop <<5
               | trainstate.alerter_sound << 7),
             //byte 7-8
 	        SPLIT_INT16(brake_press),

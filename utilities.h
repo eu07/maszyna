@@ -179,6 +179,10 @@ bool FileExists( std::string const &Filename );
 // returns time of last modification for specified file
 std::time_t last_modified( std::string const &Filename );
 
+// potentially erases file extension from provided file name. returns: true if extension was removed, false otherwise
+bool
+erase_extension( std::string &Filename );
+
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
     delete Pointer;

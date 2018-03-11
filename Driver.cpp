@@ -885,6 +885,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // also ignore any horn cue that may be potentially set below 1 km/h and before the actual full stop
                                     iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
                                 }
+
                                 // perform loading/unloading
                                 auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
                                 auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
@@ -3009,7 +3010,6 @@ void TController::Doors( bool const Open, int const Side ) {
         // otwieranie drzwi
         // otwieranie drzwi w składach wagonowych - docelowo wysyłać komendę zezwolenia na otwarcie drzwi
         // tu będzie jeszcze długość peronu zaokrąglona do 10m (20m bezpieczniej, bo nie modyfikuje bitu 1)
-        // p7=platform side (1:left, 2:right, 3:both)
         auto *vehicle = pVehicles[0]; // pojazd na czole składu
         while( vehicle != nullptr ) {
             // wagony muszą mieć baterię załączoną do otwarcia drzwi...
@@ -3019,7 +3019,7 @@ void TController::Doors( bool const Open, int const Side ) {
                 // if the door are controlled by the driver, we let the user operate them...
                 if( true == AIControllFlag ) {
                     // ...unless this user is an ai
-                    // p7=platform side (1:left, 2:right, 3:both)
+                    // Side=platform side (1:left, 2:right, 3:both)
                     // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
                     auto const lewe = ( vehicle->DirectionGet() > 0 ) ? 1 : 2;
                     auto const prawe = 3 - lewe;
@@ -3051,7 +3051,7 @@ void TController::Doors( bool const Open, int const Side ) {
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
             while( vehicle != nullptr ) {
                 // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                if( vehicle->MoverParameters->DoorCloseCtrl != control::passenger ) {
+                if( vehicle->MoverParameters->DoorCloseCtrl != control::autonomous ) {
                     vehicle->MoverParameters->DoorLeft( false, range::local ); // w lokomotywie można by nie zamykać...
                     vehicle->MoverParameters->DoorRight( false, range::local );
                 }

@@ -39,9 +39,9 @@ public:
             m_stack.emplace( m_stack.top() ); }
     void
         pop_matrix() {
-            m_stack.pop();
-            if( m_stack.empty() ) { m_stack.emplace( 1.f ); }
-            upload(); }
+            if( m_stack.size() > 1 ) {
+                m_stack.pop();
+                upload(); } }
     void
         load_identity() {
             m_stack.top() = glm::mat4( 1.f );
@@ -85,7 +85,7 @@ private:
 
 // methods:
     void
-        upload() { ::glLoadMatrixf( &m_stack.top()[0][0] ); }
+        upload() { ::glLoadMatrixf( glm::value_ptr( m_stack.top() ) ); }
 
 // members:
     mat4_stack m_stack;

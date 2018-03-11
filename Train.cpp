@@ -552,6 +552,7 @@ TTrain::get_state() const {
     return {
         btLampkaSHP.GetValue(),
         btLampkaCzuwaka.GetValue(),
+        btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
         btLampkaNadmSil.GetValue(),
