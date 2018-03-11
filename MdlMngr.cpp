@@ -37,7 +37,7 @@ TMdlContainer::LoadModel(std::string const &Name, bool const Dynamic) {
     }
 };
 
-TModelsManager::modelcontainer_sequence TModelsManager::m_models;
+TModelsManager::modelcontainer_sequence TModelsManager::m_models { 1, {} };
 TModelsManager::stringmodelcontainerindex_map TModelsManager::m_modelsmap;
 
 // wczytanie modelu do tablicy
@@ -48,12 +48,12 @@ TModelsManager::LoadModel(std::string const &Name, bool dynamic) {
     auto model = m_models.back().LoadModel( Name, dynamic );
     if( model != nullptr ) {
         m_modelsmap.emplace( Name, m_models.size() - 1 );
-        return model;
     }
     else {
         m_models.pop_back();
-        return nullptr;
+        m_modelsmap.emplace( Name, null_handle );
     }
+    return model;
 }
 
 TModel3d *
@@ -87,35 +87,34 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
         Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( "/" ) + 1 );
     }
 
+    erase_extension( filename );
     filename = ToLower( filename );
-    if( ( filename.rfind( '.' ) != std::string::npos )
-     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
-        // trim extension if there's one, but don't mistake folder traverse for extension
-        filename.erase( filename.rfind( '.' ) );
-    }
 
     // see if we have it in the databank
-    auto *model { find_in_databank( filename ) };
-    if( model != nullptr ) {
+    auto banklookup { find_in_databank( filename ) };
+    TModel3d *model { banklookup.second };
+    if( true == banklookup.first ) {
         Global.asCurrentTexturePath = buftp;
         return model;
     }
 
-    // not yet loaded, check if it's on disk
-    std::string lookup { find_on_disk( filename ) };
+    // first load attempt, check if it's on disk
+    std::string disklookup { find_on_disk( filename ) };
 
-    if( false == lookup.empty() ) {
-        model = LoadModel( lookup, Dynamic ); // model nie znaleziony, to wczytać
+    if( false == disklookup.empty() ) {
+        model = LoadModel( disklookup, Dynamic ); // model nie znaleziony, to wczytać
     }
     else {
-        // there's nothing matching in the databank nor on the disk, report failure
+        // there's nothing matching in the databank nor on the disk, report failure...
         ErrorLog( "Bad file: failed do locate 3d model file \"" + filename + "\"", logtype::file );
+        // ...and link it with the error model slot
+        m_modelsmap.emplace( filename, null_handle );
     }
     Global.asCurrentTexturePath = buftp; // odtworzenie ścieżki do tekstur
     return model; // NULL jeśli błąd
 };
 
-TModel3d *
+std::pair<bool, TModel3d *>
 TModelsManager::find_in_databank( std::string const &Name ) {
 
     std::vector<std::string> filenames {
@@ -125,11 +124,11 @@ TModelsManager::find_in_databank( std::string const &Name ) {
     for( auto const &filename : filenames ) {
         auto const lookup { m_modelsmap.find( filename ) };
         if( lookup != m_modelsmap.end() ) {
-            return ( m_models[ lookup->second ].Model.get() );
+            return { true, m_models[ lookup->second ].Model.get() };
         }
     }
 
-    return nullptr;
+    return { false, nullptr };
 }
 
 // checks whether specified file exists. returns name of the located file, or empty string.

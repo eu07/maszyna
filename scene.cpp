@@ -874,12 +874,8 @@ basic_region::serialize( std::string const &Scenariofile ) const {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
+    erase_extension( filename );
     filename = Global.asCurrentSceneryPath + filename;
-    if( ( filename.rfind( '.' ) != std::string::npos )
-     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
-        // trim extension, it's typically going to be for different file type
-        filename.erase( filename.rfind( '.' ) );
-    }
     filename += EU07_FILEEXTENSION_REGION;
 
     std::ofstream output { filename, std::ios::binary };
@@ -917,12 +913,8 @@ basic_region::deserialize( std::string const &Scenariofile ) {
         // trim leading $ char rainsted utility may add to the base name for modified .scn files
         filename.erase( 0, 1 );
     }
+    erase_extension( filename );
     filename = Global.asCurrentSceneryPath + filename;
-    if( ( filename.rfind( '.' ) != std::string::npos )
-     && ( filename.rfind( '.' ) != filename.rfind( ".." ) + 1 ) ) {
-        // trim extension, it's typically going to be for different file type
-        filename.erase( filename.rfind( '.' ) );
-    }
     filename += EU07_FILEEXTENSION_REGION;
 
     if( false == FileExists( filename ) ) {

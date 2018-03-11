@@ -318,3 +318,19 @@ last_modified( std::string const &Filename ) {
     if( ::stat( Filename.c_str(), &filestat ) == 0 ) { return filestat.st_mtime; }
     else                                             { return 0; }
 }
+
+// potentially erases file extension from provided file name. returns: true if extension was removed, false otherwise
+bool
+erase_extension( std::string &Filename ) {
+
+    auto const extensionpos { Filename.rfind( '.' ) };
+
+    if( extensionpos == std::string::npos ) { return false; }
+
+    if( extensionpos != Filename.rfind( ".." ) + 1 ) {
+        // we can get extension for .mat or, in legacy files, some image format. just trim it and set it to material file extension
+        Filename.erase( extensionpos );
+        return true;
+    }
+    return false;
+}

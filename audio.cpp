@@ -132,12 +132,7 @@ buffer_manager::create( std::string const &Filename ) {
 
     auto filename { ToLower( Filename ) };
 
-    auto const dotpos { filename.rfind( '.' ) };
-    if( ( dotpos != std::string::npos )
-     && ( dotpos != filename.rfind( ".." ) + 1 ) ) {
-        // trim extension if there's one, but don't mistake folder traverse for extension
-        filename.erase( dotpos );
-    }
+    erase_extension( filename );
     // convert slashes
     std::replace(
         std::begin( filename ), std::end( filename ),

@@ -33,7 +33,7 @@ private:
     static stringmodelcontainerindex_map m_modelsmap;
 // methods:
     static TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
-    static TModel3d *find_in_databank( std::string const &Name );
+    static std::pair<bool, TModel3d *> find_in_databank( std::string const &Name );
     // checks whether specified file exists. returns name of the located file, or empty string.
     static std::string find_on_disk( std::string const &Name );
 

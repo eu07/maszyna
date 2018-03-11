@@ -2581,17 +2581,11 @@ void TDynamicObject::LoadUpdate() {
 
             // try first specialized version of the load model, vehiclename_loadname
             auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + MoverParameters->LoadType };
-            if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
-             || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
-                mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
-            }
+            mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
             if( mdLoad == nullptr ) {
                 // if this fails, try generic load model
                 auto const genericloadfilename { asBaseDir + MoverParameters->LoadType };
-                if( ( true == FileExists( genericloadfilename + ".e3d" ) )
-                 || ( true == FileExists( genericloadfilename + ".t3d" ) ) ) {
-                    mdLoad = TModelsManager::GetModel( genericloadfilename, true );
-                }
+                mdLoad = TModelsManager::GetModel( genericloadfilename, true );
             }
             if( mdLoad != nullptr ) {
                 // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
@@ -4162,6 +4156,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         int skinindex = 0;
                         std::string texturename; nameparser >> texturename;
                         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
+                            erase_extension( texturename );
                             m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + texturename );
                             ++skinindex;
                             texturename = ""; nameparser >> texturename;
@@ -4170,6 +4165,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     }
                     else {
                         // otherwise try the basic approach
+                        erase_extension( ReplacableSkin );
                         int skinindex = 0;
                         do {
                             material_handle material = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
