@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 
-#include "event.h"
+#include "Event.h"
 #include "simulation.h"
 #include "World.h"
 #include "Globals.h"

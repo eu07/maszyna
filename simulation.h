@@ -11,7 +11,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "parser.h"
 #include "scene.h"
-#include "event.h"
 #include "MemCell.h"
 #include "EvLaunch.h"
 #include "Track.h"
