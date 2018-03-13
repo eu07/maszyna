@@ -233,12 +233,13 @@ mouse_input::default_bindings() {
         { "brakeprofile_sw:", {
             user_command::brakeactingspeedincrease,
             user_command::brakeactingspeeddecrease } },
+        // TODO: dedicated methods for braking speed switches
         { "brakeprofileg_sw:", {
-            user_command::brakeactingspeeddecrease,
-            user_command::none } },
+            user_command::brakeactingspeedsetcargo,
+            user_command::brakeactingspeedsetpassenger } },
         { "brakeprofiler_sw:", {
-            user_command::brakeactingspeedincrease,
-            user_command::none } },
+            user_command::brakeactingspeedsetrapid,
+            user_command::brakeactingspeedsetpassenger } },
         { "maxcurrent_sw:", {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },

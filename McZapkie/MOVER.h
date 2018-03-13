@@ -869,6 +869,7 @@ public:
 	double AccVert = 0.0; // vertical acceleration
 	double nrot = 0.0;
 	double WheelFlat = 0.0;
+    bool TruckHunting { true }; // enable/disable truck hunting calculation
 	/*! rotacja kol [obr/s]*/
 	double EnginePower = 0.0;                  /*! chwilowa moc silnikow*/
 	double dL = 0.0; double Fb = 0.0; double Ff = 0.0;                  /*przesuniecie, sila hamowania i tarcia*/
@@ -1041,8 +1042,10 @@ public:
 
 	bool DoorBlocked = false;    //Czy jest blokada drzwi
 	bool DoorLeftOpened = false;  //stan drzwi
+    double DoorLeftOpenTimer { -1.0 }; // left door closing timer for automatic door type
 	bool DoorRightOpened = false;
-	bool PantFrontUp = false;  //stan patykow 'Winger 160204
+    double DoorRightOpenTimer{ -1.0 }; // right door closing timer for automatic door type
+    bool PantFrontUp = false;  //stan patykow 'Winger 160204
 	bool PantRearUp = false;
 	bool PantFrontSP = true;  //dzwiek patykow 'Winger 010304
     bool PantRearSP = true;
@@ -1232,8 +1235,9 @@ public:
 	bool DoorRight(bool State, int const Notify = range::consist ); //obsluga drzwi prawych
 	bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
     bool signal_departure( bool const State, int const Notify = range::consist ); // toggles departure warning
+    void update_autonomous_doors( double const Deltatime ); // automatic door controller update
 
-								/* funkcje dla samochodow*/
+    /* funkcje dla samochodow*/
 	bool ChangeOffsetH(double DeltaOffset);
 
 	/*funkcje ladujace pliki opisujace pojazd*/

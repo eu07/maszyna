@@ -1954,19 +1954,26 @@ bool TController::CheckVehicles(TOrders user)
             }
             else if (OrderCurrentGet() & (Shunt | Connect))
             {
-                Lights(16, (pVehicles[1]->MoverParameters->CabNo) ?
-                           1 :
-                               0); //światła manewrowe (Tb1) na pojeździe z napędem
+                Lights(
+                    light::headlight_right,
+                    ( pVehicles[ 1 ]->MoverParameters->CabNo ) ?
+                        1 :
+                        0 ); //światła manewrowe (Tb1) na pojeździe z napędem
                 if (OrderCurrentGet() & Connect) // jeśli łączenie, skanować dalej
                     pVehicles[0]->fScanDist = 5000.0; // odległość skanowania w poszukiwaniu innych pojazdów
             }
-            else if (OrderCurrentGet() == Disconnect)
-                if (mvOccupied->ActiveDir > 0) // jak ma kierunek do przodu
-                    Lights(16, 0); //światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić
-                // odczepionego ze światłem
-                else // jak dociska
-                    Lights(0, 16); //światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić
-            // odczepionego ze światłem
+            else if( OrderCurrentGet() == Disconnect ) {
+                if( mvOccupied->ActiveDir > 0 ) {
+                    // jak ma kierunek do przodu
+                    // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
+                    Lights( light::headlight_right, 0 );
+                }
+                else {
+                    // jak dociska
+                    // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
+                    Lights( 0, light::headlight_right );
+                }
+            }
         }
         else // Ra 2014-02: lepiej tu niż w pętli obsługującej komendy, bo tam się zmieni informacja
             // o składzie
@@ -3036,6 +3043,11 @@ void TController::Doors( bool const Open, int const Side ) {
     }
     else {
         // zamykanie
+        if( false == doors_open() ) {
+            // the doors are already closed, we can skip all hard work
+            iDrivigFlags &= ~moveDoorOpened;
+        }
+
         if( AIControllFlag ) {
             if( ( true == mvOccupied->DoorClosureWarning )
              && ( false == mvOccupied->DepartureSignal )
@@ -3062,6 +3074,23 @@ void TController::Doors( bool const Open, int const Side ) {
             iDrivigFlags &= ~moveDoorOpened; // zostały zamknięte - nie wykonywać drugi raz
         }
     }
+}
+
+// returns true if any vehicle in the consist has open doors
+bool
+TController::doors_open() const {
+
+    auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
+    while( vehicle != nullptr ) {
+        if( ( vehicle->MoverParameters->DoorRightOpened == true )
+         || ( vehicle->MoverParameters->DoorLeftOpened == true ) ) {
+            // any open door is enough
+            return true;
+        }
+        vehicle = vehicle->Next();
+    }
+    // if we're still here there's nothing open
+    return false;
 }
 
 void TController::RecognizeCommand()
@@ -3128,6 +3157,9 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             }
             else
             { // inicjacja pierwszego przystanku i pobranie jego nazwy
+                // HACK: clear the potentially set door state flag to ensure door get opened if applicable
+                iDrivigFlags &= ~( moveDoorOpened );
+
                 TrainParams->UpdateMTable( simulation::Time, TrainParams->NextStationName );
                 TrainParams->StationIndexInc(); // przejście do następnej
                 iStationStart = TrainParams->StationIndex;
@@ -3903,8 +3935,7 @@ TController::UpdateSituation(double dt) {
             // jeśli stanął już blisko, unikając zderzenia i można próbować podłączyć
             fMinProximityDist = -0.5;
             fMaxProximityDist =  0.0; //[m] dojechać maksymalnie
-            fVelPlus = 0.5; // dopuszczalne przekroczenie prędkości na ograniczeniu bez
-            // hamowania
+            fVelPlus = 0.5; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 0.5; // margines prędkości powodujący załączenie napędu
             if (AIControllFlag)
             { // to robi tylko AI, wersję dla człowieka trzeba dopiero zrobić
@@ -3952,11 +3983,7 @@ TController::UpdateSituation(double dt) {
                     CheckVehicles(); // sprawdzić światła nowego składu
                     JumpToNextOrder(); // wykonanie następnej komendy
                 }
-/*
-                // NOTE: disabled as speed limit is decided in another place based on distance to potential target
-                else
-                    SetVelocity(2.0, 0.0); // jazda w ustawionym kierunku z prędkością 2 (18s)
-*/
+
             } // if (AIControllFlag) //koniec zblokowania, bo była zmienna lokalna
         }
         else {
@@ -5167,8 +5194,13 @@ void TController::JumpToFirstOrder()
 
 void TController::OrderCheck()
 { // reakcja na zmianę rozkazu
-    if (OrderList[OrderPos] & (Shunt | Connect | Obey_train))
+    if( OrderList[ OrderPos ] & ( Shunt | Connect | Obey_train ) ) {
         CheckVehicles(); // sprawdzić światła
+    }
+    if( OrderList[ OrderPos ] & ( Shunt | Connect ) ) {
+        // HACK: ensure consist doors will be closed on departure
+        iDrivigFlags |= moveDoorOpened;
+    }
     if (OrderList[OrderPos] & Change_direction) // może być nałożona na inną i wtedy ma priorytet
         iDirectionOrder = -iDirection; // trzeba zmienić jawnie, bo się nie domyśli
     else if (OrderList[OrderPos] == Obey_train)

@@ -1959,6 +1959,15 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                         ActPar.erase( 0, indexend );
                         break;
                     }
+                    case 'H': {
+                        // truck hunting
+                        auto const indexstart { 1 };
+                        auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                        auto const huntingchance { std::atoi( ActPar.substr( indexstart, indexend ).c_str() ) };
+                        MoverParameters->TruckHunting = ( Random( 0, 100 ) <= huntingchance );
+                        ActPar.erase( 0, indexend );
+                        break;
+                    }
                     default: {
                         // unrecognized key
                         ActPar.erase( 0, 1 );
@@ -2563,8 +2572,16 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
         if( ( MoverParameters->DoorCloseCtrl == control::passenger )
          || ( MoverParameters->DoorCloseCtrl == control::mixed ) ) {
 
-            MoverParameters->DoorLeft( false, range::local );
-            MoverParameters->DoorRight( false, range::local );
+            if( ( MoverParameters->Vel > 2.0 )
+             || ( Random() < (
+                    // remotely controlled door are more likely to be left open
+                    MoverParameters->DoorCloseCtrl == control::passenger ?
+                        0.75 :
+                        0.50 ) ) ) {
+
+                MoverParameters->DoorLeft( false, range::local );
+                MoverParameters->DoorRight( false, range::local );
+            }
         }
     }
 }

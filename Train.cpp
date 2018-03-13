@@ -3721,7 +3721,7 @@ void TTrain::UpdateMechPosition(double dt)
             if( std::abs( mvOccupied->enrot ) > 0.0 ) {
                 // engine vibration
                 shakevector.x +=
-                    ( std::cos( mvOccupied->eAngle * 4.0 ) * dt * EngineShake.scale )
+                    ( std::sin( mvOccupied->eAngle * 4.0 ) * dt * EngineShake.scale )
                     // fade in with rpm above threshold
                     * clamp(
                         ( mvOccupied->enrot - EngineShake.fadein_offset ) * EngineShake.fadein_factor,
@@ -3734,6 +3734,20 @@ void TTrain::UpdateMechPosition(double dt)
                             0.0, 1.0 ) );
             }
         }
+
+        if( ( HuntingShake.fadein_begin > 0.f )
+         && ( true == mvOccupied->TruckHunting ) ) {
+            // hunting oscillation
+            HuntingAngle = clamp_circular( HuntingAngle + 4.0 * HuntingShake.frequency * dt * mvOccupied->Vel, 360.0 );
+            shakevector.x +=
+                ( std::sin( glm::radians( HuntingAngle ) ) * dt * HuntingShake.scale )
+                * interpolate(
+                    0.0, 1.0,
+                    clamp(
+                        ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
+                        0.0, 1.0 ) );
+        }
+
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
             shakevector += Math3D::vector3(
@@ -5406,6 +5420,17 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                     >> EngineShake.fadein_factor
                     >> EngineShake.fadeout_offset
                     >> EngineShake.fadeout_factor;
+                // offsets values are provided as rpm for convenience
+                EngineShake.fadein_offset /= 60.f;
+                EngineShake.fadeout_offset /= 60.f;
+            }
+            else if( token == "huntingspring:" ) {
+                parser.getTokens( 4, false );
+                parser
+                    >> HuntingShake.scale
+                    >> HuntingShake.frequency
+                    >> HuntingShake.fadein_begin
+                    >> HuntingShake.fadein_end;
             }
 
         } while (token != "");
