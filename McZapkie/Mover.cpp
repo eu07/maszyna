@@ -1407,23 +1407,10 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     // hamulec antypoślizgowy - wyłączanie
     if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
         Hamulec->ASB(0);
-    // SetFlag(BrakeStatus,-b_antislip);
     BrakeSlippingTimer += dt;
-    // sypanie piasku - wyłączone i piasek się nie kończy - błędy AI
-    // if AIControllFlag then
-    // if SandDose then
-    //  if Sand>0 then
-    //   begin
-    //     Sand:=Sand-NPoweredAxles*SandSpeed*dt;
-    //     if Random<dt then SandDose:=false;
-    //   end
-    //  else
-    //   begin
-    //     SandDose:=false;
-    //     Sand:=0;
-    //   end;
-    // czuwak/SHP
-    // if (Vel>10) and (not DebugmodeFlag) then
+    // automatic doors
+    update_autonomous_doors( dt );
+    // security system
     if (!DebugModeFlag)
         SecuritySystemCheck(dt1);
 
@@ -1531,6 +1518,8 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
         Hamulec->ASB(0);
     BrakeSlippingTimer += dt;
+    // automatic doors
+    update_autonomous_doors( dt );
 
     return d;
 };
@@ -6014,10 +6003,20 @@ bool TMoverParameters::DoorLeft(bool State, int const Notify ) {
     bool result { false };
 
     if( ( Battery == true )
-     && ( DoorBlockedFlag() == false ) ) {
+     && ( ( State == false ) // closing door works always, but if the lock is engaged they can't be opened
+       || ( DoorBlockedFlag() == false ) ) ) {
 
         DoorLeftOpened = State;
         result = true;
+
+        if( DoorCloseCtrl == control::autonomous ) {
+            // activate or disable the door timer depending on whether door were open or closed
+            // NOTE: this it a local-only operation but shouldn't be an issue as automatic door are operated locally anyway
+            DoorLeftOpenTimer = (
+                State == true ?
+                    DoorStayOpen :
+                    -1.0 );
+        }
     }
     if( Notify != range::local ) {
 
@@ -6054,10 +6053,20 @@ bool TMoverParameters::DoorRight(bool State, int const Notify ) {
     bool result { false };
 
     if( ( Battery == true )
-     && ( DoorBlockedFlag() == false ) ) {
+     && ( ( State == false )
+       || ( DoorBlockedFlag() == false ) ) ) {
 
         DoorRightOpened = State;
         result = true;
+
+        if( DoorCloseCtrl == control::autonomous ) {
+            // activate or disable the door timer depending on whether door were open or closed
+            // NOTE: this it a local-only operation but shouldn't be an issue as automatic door are operated locally anyway
+            DoorRightOpenTimer = (
+                State == true ?
+                    DoorStayOpen :
+                    -1.0 );
+        }
     }
     if( Notify != range::local ) {
 
@@ -6101,6 +6110,45 @@ TMoverParameters::signal_departure( bool const State, int const Notify ) {
     }
 
     return true;
+}
+
+// automatic door controller update
+void
+TMoverParameters::update_autonomous_doors( double const Deltatime ) {
+
+    if( ( DoorCloseCtrl != control::autonomous )
+     || ( ( false == DoorLeftOpened )
+       && ( false == DoorRightOpened ) ) ) {
+        // nothing to do
+        return;
+    }
+
+    if( DoorStayOpen > 0.0 ) {
+        // update door timers if the door close after defined time
+        if( DoorLeftOpenTimer  >= 0.0 ) { DoorLeftOpenTimer  -= Deltatime; }
+        if( DoorRightOpenTimer >= 0.0 ) { DoorRightOpenTimer -= Deltatime; }
+    }
+    if( ( LoadStatus & ( 2 | 1 ) ) != 0 ) {
+        // if there's load exchange in progress, reset the timer(s) for already open doors
+        if( true == DoorLeftOpened )  { DoorLeftOpenTimer  = DoorStayOpen; }
+        if( true == DoorRightOpened ) { DoorRightOpenTimer = DoorStayOpen; }
+    }
+    // the door are closed if their timer goes below 0, or if the vehicle is moving at > 5 km/h
+    // NOTE: timer value of 0 is 'special' as it means the door will stay open until vehicle is moving
+    if( true == DoorLeftOpened ) {
+        if( ( DoorLeftOpenTimer < 0.0 )
+         || ( Vel > 5.0 ) ) {
+            // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
+            DoorLeft( false, range::local );
+        }
+    }
+    if( true == DoorRightOpened ) {
+        if( ( DoorRightOpenTimer < 0.0 )
+         || ( Vel > 5.0 ) ) {
+            // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
+            DoorRight( false, range::local );
+        }
+    }
 }
 
 // *************************************************************************************************
@@ -8502,17 +8550,33 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             // ignore remote command if the door is only operated locally
             if( CValue2 > 0 ) {
                 // normalne ustawienie pojazdu
-                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
-                    DoorLeftOpened = true;
-                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
-                    DoorRightOpened = true;
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) ) {
+                    DoorLeftOpened = (
+                        ( ( true == Battery ) && ( false == DoorBlockedFlag() ) ) ?
+                            true :
+                            DoorLeftOpened );
+                }
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) ) {
+                    DoorRightOpened = (
+                        ( ( true == Battery ) && ( false == DoorBlockedFlag() ) ) ?
+                            true :
+                            DoorRightOpened );
+                }
             }
             else {
                 // odwrotne ustawienie pojazdu
-                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
-                    DoorLeftOpened = true;
-                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
-                    DoorRightOpened = true;
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) ) {
+                    DoorLeftOpened = (
+                        ( ( true == Battery ) && ( false == DoorBlockedFlag() ) ) ?
+                            true :
+                            DoorLeftOpened );
+                }
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) ) {
+                    DoorRightOpened = (
+                        ( ( true == Battery ) && ( false == DoorBlockedFlag() ) ) ?
+                            true :
+                            DoorRightOpened );
+                }
             }
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
@@ -8525,17 +8589,33 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             // ignore remote command if the door is only operated locally
             if( CValue2 > 0 ) {
                 // normalne ustawienie pojazdu
-                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
-                    DoorLeftOpened = false;
-                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
-                    DoorRightOpened = false;
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) ) {
+                    DoorLeftOpened = (
+                        true == Battery ?
+                            false :
+                            DoorLeftOpened );
+                }
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) ) {
+                    DoorRightOpened = (
+                        true == Battery ?
+                            false :
+                            DoorRightOpened );
+                }
             }
             else {
                 // odwrotne ustawienie pojazdu
-                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) )
-                    DoorLeftOpened = false;
-                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) )
-                    DoorRightOpened = false;
+                if( ( CValue1 == 2 ) || ( CValue1 == 3 ) ) {
+                    DoorLeftOpened = (
+                        true == Battery ?
+                            false :
+                            DoorLeftOpened );
+                }
+                if( ( CValue1 == 1 ) || ( CValue1 == 3 ) ) {
+                    DoorRightOpened = (
+                        true == Battery ?
+                            false :
+                            DoorRightOpened );
+                }
             }
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

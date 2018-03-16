@@ -561,6 +561,7 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             else {
                 // zmiana flagi dla słowa "else"
                 ti = !ti;
+				iFlags |= conditional_anyelse;
             }
             parser->getTokens();
             *parser >> token;

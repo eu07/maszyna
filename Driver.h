@@ -305,6 +305,8 @@ private:
     bool DecSpeed(bool force = false);
     void SpeedSet();
     void Doors(bool const Open, int const Side = 0);
+    // returns true if any vehicle in the consist has an open door
+    bool doors_open() const;
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania
