@@ -4842,7 +4842,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
                     auto const amplitudedivisor = static_cast<float>( (
                         MoverParameters->EngineType == DieselEngine ? 1 :
-                        MoverParameters->EngineType == DieselElectric ? MoverParameters->Power * 3 :
+                        MoverParameters->EngineType == DieselElectric ? 1 :
                         MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) );
                     m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
 				}
@@ -5915,10 +5915,12 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             switch( Vehicle.EngineType ) {
                 // TODO: check calculated values
                 case DieselElectric: {
+
                     volume =
                         engine.m_amplitudeoffset
-                        + engine.m_amplitudefactor * ( Vehicle.EnginePower / 1000 / Vehicle.Power )
-                        + 0.2 * ( Vehicle.enrot * 60 ) / ( Vehicle.DElist[ Vehicle.MainCtrlPosNo ].RPM );
+                        + engine.m_amplitudefactor * (
+                            0.25 * ( Vehicle.EnginePower / Vehicle.Power )
+                          + 0.75 * ( Vehicle.enrot * 60 ) / ( Vehicle.DElist[ Vehicle.MainCtrlPosNo ].RPM ) );
                     break;
                 }
                 case DieselEngine: {
@@ -5926,7 +5928,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                         volume = (
                             Vehicle.EnginePower > 0 ?
                                 engine.m_amplitudeoffset + engine.m_amplitudefactor * Vehicle.dizel_fill :
-                                engine.m_amplitudeoffset * 0.9f + engine.m_amplitudefactor * std::fabs( Vehicle.enrot / Vehicle.dizel_nmax ) );
+                                engine.m_amplitudeoffset + engine.m_amplitudefactor * std::fabs( Vehicle.enrot / Vehicle.dizel_nmax ) );
                     }
                     break;
                 }
@@ -6046,7 +6048,10 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
      || ( Vehicle.EngineType == DieselElectric ) ) {
 
         if( true == Vehicle.dizel_enginestart ) {
-            engine_ignition.play( sound_flags::exclusive );
+            engine_ignition
+                .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
+                .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
+                .play( sound_flags::exclusive );
         }
     }
 
