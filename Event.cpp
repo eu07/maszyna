@@ -825,7 +825,7 @@ event_manager::FindEvent( std::string const &Name ) {
 bool
 event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
 
-    if( ( false == Event->m_ignored ) && ( true == Event->bEnabled ) ) {
+    if( true == Event->bEnabled ) {
         // jeśli może być dodany do kolejki (nie używany w skanowaniu)
         if( !Event->iQueued ) // jeśli nie dodany jeszcze do kolejki
         { // kolejka eventów jest posortowana względem (fStartTime)
@@ -835,10 +835,13 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                 // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
                 // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
                 // wykonującą eventy i ją wywołać
-                if( EventConditon( Event ) ) { // teraz mogą być warunki do tych eventów
+                if( ( false == Event->m_ignored )
+                 && ( true == EventConditon( Event ) ) ) { // teraz mogą być warunki do tych eventów
+
                     Event->Params[ 5 ].asMemCell->UpdateValues(
                         Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
                         Event->Params[ 2 ].asdouble, Event->iFlags );
+
                     if( Event->Params[ 6 ].asTrack ) { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
                         for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
@@ -869,7 +872,8 @@ event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
                     && ( ( false == Event->bEnabled )
                       || ( Event->iQueued > 0 ) ) );
             }
-            if( Event != nullptr ) {
+            if( ( Event != nullptr )
+             && ( false == Event->m_ignored ) ) {
                 // standardowe dodanie do kolejki
                 ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
                 WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
