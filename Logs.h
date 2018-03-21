@@ -11,12 +11,13 @@ http://mozilla.org/MPL/2.0/.
 
 #include "uilayer.h"
 
-enum logtype : unsigned int {
+enum class logtype : unsigned int {
 
     generic = ( 1 << 0 ),
     file = ( 1 << 1 ),
     model = ( 1 << 2 ),
-    texture = ( 1 << 3 )
+    texture = ( 1 << 3 ),
+	lua = ( 1 << 4 )
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

@@ -158,7 +158,12 @@ extern "C"
 
     EXPORT void scriptapi_writelog(const char* txt)
     {
-        WriteLog("lua: log: " + std::string(txt));
+        WriteLog("lua: log: " + std::string(txt), logtype::lua);
+    }
+
+    EXPORT void scriptapi_writeerrorlog(const char* txt)
+    {
+        ErrorLog("lua: log: " + std::string(txt), logtype::lua);
     }
 
     struct memcell_values { const char *str; double num1; double num2; };

@@ -70,7 +70,7 @@ std::string filename_scenery() {
 void WriteLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, Type ) ) { return; }
+    if( true == TestFlag( Global.DisabledLogTypes, (int)Type ) ) { return; }
 
     if (Global.iWriteLogEnabled & 1) {
         if( !output.is_open() ) {
@@ -106,7 +106,7 @@ void WriteLog( const char *str, logtype const Type ) {
 void ErrorLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, Type ) ) { return; }
+    if( true == TestFlag( Global.DisabledLogTypes, (int)Type ) ) { return; }
 
     if (!errors.is_open()) {
 
