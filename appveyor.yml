@@ -2,7 +2,9 @@ version: '{build}'
 image: Visual Studio 2017
 clone_depth: 1
 build_script:
-- cmd: >-
+- ps: >-
+    Write-Output "#define VERSION_INFO `"$(git log -1 --date="format:%F %R" --format="%cd, %h")`"" > version.h
+    
     mkdir builds
     
     cd builds
