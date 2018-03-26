@@ -5586,6 +5586,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // model kabiny
                 parser->getTokens();
                 *parser >> token;
+				std::replace(token.begin(), token.end(), '\\', '/');
                 if (token != "none")
                 {
                     // bieżąca sciezka do tekstur to dynamic/...

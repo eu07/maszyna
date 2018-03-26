@@ -688,7 +688,7 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
           if (0) //jeśli włączone sortowanie plików VMD (trochę się przeciąga)
            if (pAdvanced->SortByBone()) //próba posortowania
            {//zapisać posortowany plik, jeśli dokonano zmian
-            TFileStream *fs=new TFileStream("models\\1.vmd",fmCreate);
+            TFileStream *fs=new TFileStream("models/1.vmd",fmCreate);
             fs->Write(pData,2198342); //2948728);
             delete fs;
            }

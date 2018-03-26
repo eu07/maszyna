@@ -1735,7 +1735,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      )
 { // Ustawienie początkowe pojazdu
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeśli ma być wstawiony jako obrócony tyłem
-    asBaseDir = "dynamic\\" + BaseDir + "\\"; // McZapkie-310302
+    asBaseDir = "dynamic/" + BaseDir + "/"; // McZapkie-310302
     asName = Name;
     std::string asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
     // Ra: zmieniamy znaczenie obsady na jednoliterowe, żeby dosadzić kierownika
@@ -1770,9 +1770,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
         if (ConversionError == 666)
-            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "\\" + Type_Name + ".fiz" + "\"" );
+            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
         else {
-            ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "\\" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
+            ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "/" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
         }
         return 0.0; // zerowa długość to brak pojazdu
     }
@@ -1782,7 +1782,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             (fVel > 0 ? 1 : -1) * Cab *
                 (iDirection ? 1 : -1))) // jak jedzie lub obsadzony to gotowy do drogi
     {
-        Error("Parameters mismatch: dynamic object " + asName + " from\n" + BaseDir + "\\" +
+        Error("Parameters mismatch: dynamic object " + asName + " from\n" + BaseDir + "/" +
               Type_Name);
         return 0.0; // zerowa długość to brak pojazdu
     }
@@ -4142,6 +4142,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
+			std::replace(asModel.begin(), asModel.end(), '\\', '/');
             if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 m_materialdata.multi_textures = 1;
@@ -4176,6 +4177,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         std::string texturename; nameparser >> texturename;
                         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
                             erase_extension( texturename );
+							std::replace(texturename.begin(), texturename.end(), '\\', '/');
                             m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + texturename );
                             ++skinindex;
                             texturename = ""; nameparser >> texturename;
@@ -4355,6 +4357,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// ABu: wnetrze lowpoly
 					parser.getTokens();
 					parser >> asModel;
+					std::replace(asModel.begin(), asModel.end(), '\\', '/');
                     asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);

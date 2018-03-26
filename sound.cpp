@@ -143,6 +143,7 @@ std::string
 sound_source::deserialize_filename( cParser &Input ) {
 
     auto token { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+	std::replace(token.begin(), token.end(), '\\', '/');
     if( token != "[" ) {
         // simple case, single file
         return token;

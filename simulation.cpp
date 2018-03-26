@@ -734,9 +734,14 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
     }
     auto const inputline { Input.Line() }; // cache in case of errors
     // basic attributes
-    auto const datafolder { Input.getToken<std::string>() };
-    auto const skinfile { Input.getToken<std::string>() };
-    auto const mmdfile { Input.getToken<std::string>() };
+    auto datafolder { Input.getToken<std::string>() };
+    auto skinfile { Input.getToken<std::string>() };
+    auto mmdfile { Input.getToken<std::string>() };
+
+	std::replace(datafolder.begin(), datafolder.end(), '\\', '/');
+	std::replace(skinfile.begin(), skinfile.end(), '\\', '/');
+	std::replace(mmdfile.begin(), mmdfile.end(), '\\', '/');
+
     auto const pathname = (
         Scratchpad.trainset.is_open ?
             Scratchpad.trainset.track :

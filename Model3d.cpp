@@ -300,6 +300,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
         std::string material = parser.getToken<std::string>();
+		std::replace(material.begin(), material.end(), '\\', '/');
         if (material == "none")
         { // rysowanie podanym kolorem
             m_material = null_handle;
@@ -333,7 +334,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
             Name_Material(material);
-            if( material.find_first_of( "/\\" ) == material.npos ) {
+            if( material.find_first_of( "/" ) == material.npos ) {
                 material.insert( 0, Global.asCurrentTexturePath );
             }
             m_material = GfxRenderer.Fetch_Material( material );
@@ -1233,7 +1234,6 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {
     // wczytanie modelu z pliku
     std::string name = ToLower(FileName);
-	std::replace(name.begin(), name.end(), '\\', '/');
     // trim extension if needed
     if( name.rfind( '.' ) != std::string::npos )
     {
@@ -1597,7 +1597,11 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 			if (Textures.size())
 				throw std::runtime_error("e3d: duplicated TEX chunk");
 			while (s.tellg() < end)
-				Textures.push_back(sn_utils::d_str(s));
+			{
+				std::string str = sn_utils::d_str(s);
+				std::replace(str.begin(), str.end(), '\\', '/');
+				Textures.push_back(str);
+			}
 		}
 		else if (type == MAKE_ID4('N', 'A', 'M', '0'))
 		{
@@ -1664,7 +1668,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         auto const materialindex = static_cast<std::size_t>( iTexture );
         if( materialindex < t->size() ) {
             m_materialname = t->at( materialindex );
-            if( m_materialname.find_last_of( "/\\" ) == std::string::npos ) {
+            if( m_materialname.find_last_of( "/" ) == std::string::npos ) {
                 m_materialname = Global.asCurrentTexturePath + m_materialname;
             }
             m_material = GfxRenderer.Fetch_Material( m_materialname );
@@ -1749,7 +1753,7 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego
     WriteLog( "Loading text format 3d model data from \"" + FileName + "\"...", logtype::model );
 	iFlags |= 0x0200; // wczytano z pliku tekstowego (właścicielami tablic są submodle)
-	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models\\"...
+	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models/"...
 	TSubModel *SubModel;
 	std::string token = parser.getToken<std::string>();
 	iNumVerts = 0; // w konstruktorze to jest

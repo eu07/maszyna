@@ -37,7 +37,6 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
     switch (Type) {
         case buffer_FILE: {
             Path.append( Stream );
-			std::replace(Path.begin(), Path.end(), '\\', '/');
             mStream = std::make_shared<std::ifstream>( Path );
             break;
         }
@@ -216,6 +215,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         // launch child parser if include directive found.
         // NOTE: parameter collecting uses default set of token separators.
         std::string includefile = readToken(ToLower); // nazwa pliku
+		std::replace(includefile.begin(), includefile.end(), '\\', '/');
         if( ( true == LoadTraction )
          || ( ( includefile.find( "tr/" ) == std::string::npos )
            && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {

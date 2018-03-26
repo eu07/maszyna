@@ -18,7 +18,6 @@ http://mozilla.org/MPL/2.0/.
 std::string path( std::string const &Filename )
 {
 	std::string fn = Filename;
-	std::replace(fn.begin(), fn.end(), '\\', '/');
     return (
         fn.rfind( '/' ) != std::string::npos ?
             fn.substr( 0, fn.rfind( '/' ) + 1 ) :
@@ -49,7 +48,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
-    auto const value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+    auto value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
 
     if( Priority != -1 ) {
         // regular attribute processing mode
@@ -69,6 +68,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if( key == "texture1:" ) {
             if( ( texture1 == null_handle )
              || ( Priority > priority1 ) ) {
+				std::replace(value.begin(), value.end(), '\\', '/');
                 texture1 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority1 = Priority;
             }
@@ -76,6 +76,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if( key == "texture2:" ) {
             if( ( texture2 == null_handle )
              || ( Priority > priority2 ) ) {
+				std::replace(value.begin(), value.end(), '\\', '/');
                 texture2 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority2 = Priority;
             }
@@ -115,11 +116,6 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
     erase_extension( filename );
     filename += ".mat";
-
-    // change slashes to llinux-compatible
-    std::replace(
-        std::begin( filename ), std::end( filename ),
-        '\\', '/' );
 
     // try to locate requested material in the databank
     auto const databanklookup = find_in_databank( filename );

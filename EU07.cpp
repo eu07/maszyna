@@ -270,7 +270,10 @@ int main(int argc, char *argv[])
 				Global.iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
 		}
 		else if (i + 1 < argc && token == "-s")
+		{
 			Global.SceneryFile = std::string(argv[++i]);
+			std::replace(Global.SceneryFile.begin(), Global.SceneryFile.end(), '\\', '/');
+		}
 		else if (i + 1 < argc && token == "-v")
 		{
 			std::string v(argv[++i]);

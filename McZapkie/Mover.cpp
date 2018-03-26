@@ -6707,7 +6707,6 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     WriteLog("LOAD FIZ FROM " + file);
 
-	std::replace(file.begin(), file.end(), '\\', '/');
     std::ifstream in(file);
 	if (!in.is_open())
 	{
