@@ -1323,6 +1323,7 @@ TWorld::Update_UI() {
                 uitextline2 += ( vehicle->MoverParameters->PantRearUp ? ( vehicle->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
                 uitextline2 += ( vehicle->MoverParameters->PantFrontUp ? ( vehicle->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
                 uitextline2 += ( vehicle->MoverParameters->PantPressLockActive ? "!" : ( vehicle->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
+                uitextline2 += ( vehicle->MoverParameters->FuelPump.is_enabled ? ( vehicle->MoverParameters->FuelPump.is_active ? "F" : "f" ) : "." );;
                 uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
                 uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorPower > 1 ) ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
