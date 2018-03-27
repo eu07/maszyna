@@ -54,7 +54,6 @@
 #include <tuple>
 #include <cctype>
 #include <locale>
-#include <codecvt>
 #include <iterator>
 #include <random>
 #include <algorithm>
@@ -75,13 +74,22 @@
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
+#ifndef __ANDROID__
 #include "GL/glew.h"
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
 #ifdef _WIN32
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU
 
+#ifndef __ANDROID__
 #include <GLFW/glfw3.h>
+#endif
+
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
