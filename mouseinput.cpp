@@ -243,6 +243,9 @@ mouse_input::default_bindings() {
         { "maxcurrent_sw:", {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },
+        { "fuelpump_sw:", {
+            user_command::fuelpumptoggle,
+            user_command::none } },
         { "main_off_bt:", {
             user_command::linebreakeropen,
             user_command::none } },

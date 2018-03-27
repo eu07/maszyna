@@ -211,6 +211,8 @@ class TBrake {
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
         void SetASBP( double const Press ); //ustalenie cisnienia pp
     virtual void ForceEmptiness();
+    // removes specified amount of air from the reservoirs
+    virtual void ForceLeak( double const Amount );
     int GetSoundFlag();
     int GetBrakeStatus() const { return BrakeStatus; }
     void SetBrakeStatus( int const Status ) { BrakeStatus = Status; }

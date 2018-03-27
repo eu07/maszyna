@@ -85,7 +85,6 @@ const double Steel2Steel_friction = 0.15;      //tarcie statyczne
 const double g = 9.81;                     //przyspieszenie ziemskie
 const double SandSpeed = 0.1;              //ile kg/s}
 const double Pirazy2 = 6.2831853071794f;
-#define PI 3.1415926535897f
 
 //-- var, const, procedure ---------------------------------------------------
 static bool const Go = true;
@@ -618,6 +617,15 @@ struct TCoupling {
     int sounds { 0 }; // sounds emitted by the coupling devices
 };
 
+// basic approximation of a fuel pump
+// TODO: fuel consumption, optional automatic engine start after activation
+struct fuel_pump {
+
+    bool is_enabled { false }; // device is allowed/requested to operate
+    bool is_active { false }; // device is working
+    start start_type { start::manual };
+};
+
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 public:
@@ -904,6 +912,7 @@ public:
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
     bool ConverterAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
+    fuel_pump FuelPump;
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1190,12 +1199,14 @@ public:
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
+    bool FuelPumpSwitch( bool State, int const Notify = range::consist ); // fuel pump state toggle
     bool MainSwitch( bool const State, int const Notify = range::consist );/*! wylacznik glowny*/
     bool ConverterSwitch( bool State, int const Notify = range::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, int const Notify = range::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck( double const Timestep ); // przetwornica
+    void FuelPumpCheck( double const Timestep );
 	bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego

@@ -3192,8 +3192,13 @@ bool TDynamicObject::Update(double dt, double dt1)
         }
         if( dRailLength != -1 ) {
             if( MoverParameters->Vel > 0 ) {
-
-                double volume = ( 20.0 + MyTrack->iDamageFlag ) / 21;
+                // TODO: track quality and/or environment factors as separate subroutine
+                auto volume =
+                    interpolate(
+                        0.8, 1.2,
+                        clamp(
+                            MyTrack->iQualityFlag / 20.0,
+                            0.0, 1.0 ) );
                 switch( MyTrack->eEnvironment ) {
                     case e_tunnel: {
                         volume *= 1.1;
@@ -3214,7 +3219,15 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if( axle.distance < 0 ) {
                         axle.distance += dRailLength;
                         if( MoverParameters->Vel > 2.5 ) {
-                            axle.clatter.gain( volume ).play();
+                            // NOTE: for combined clatter sound we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                            auto const frequency = (
+                                true == axle.clatter.is_combined() ?
+                                    MoverParameters->Vel * 0.01 :
+                                    1.0 );
+                            axle.clatter
+                                .pitch( frequency )
+                                .gain( volume )
+                                .play();
                             // crude bump simulation, drop down on even axles, move back up on the odd ones
                             MoverParameters->AccVert +=
                                 interpolate(
@@ -3252,23 +3265,6 @@ bool TDynamicObject::Update(double dt, double dt1)
 
                       }
          }   */
-    if ((MoverParameters->TrainType == dt_ET40) || (MoverParameters->TrainType == dt_EP05))
-    { // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak
-        // nie będzie to działać dobrze...
-        /* if
-           ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
-           {
-            MoverParameters->DecMainCtrl(1);
-           } */
-        if( ( glfwGetKey( Global.window, GLFW_KEY_KP_ADD ) != GLFW_TRUE )
-         && ( MoverParameters->MainCtrlPos > MoverParameters->MainCtrlActualPos ) ) {
-            MoverParameters->DecMainCtrl( 1 );
-        }
-        if( ( glfwGetKey( Global.window, GLFW_KEY_KP_SUBTRACT ) != GLFW_TRUE )
-         && ( MoverParameters->MainCtrlPos < MoverParameters->MainCtrlActualPos ) ) {
-            MoverParameters->IncMainCtrl( 1 ); // Ra 15-01: a to nie miało być tylko cofanie?
-        }
-    }
 
     if (MoverParameters->Vel != 0)
     { // McZapkie-050402: krecenie kolami:
@@ -3974,22 +3970,29 @@ void TDynamicObject::RenderSounds() {
 
         // volume calculation
         volume =
-            bogiesound.m_amplitudeoffset +
-            bogiesound.m_amplitudefactor * MoverParameters->Vel;
+            bogiesound.m_amplitudeoffset
+            + bogiesound.m_amplitudefactor * MoverParameters->Vel;
         if( brakeforceratio > 0.0 ) {
             // hamulce wzmagaja halas
             volume *= 1 + 0.125 * brakeforceratio;
         }
         // scale volume by track quality
-        volume *= ( 20.0 + MyTrack->iDamageFlag ) / 21;
-        // scale volume with vehicle speed
-        // TBD, TODO: disable the scaling for sounds combined from speed-based samples?
+        // TODO: track quality and/or environment factors as separate subroutine
         volume *=
             interpolate(
-                0.0, 1.0,
+                0.8, 1.2,
                 clamp(
-                    MoverParameters->Vel / 40.0,
+                    MyTrack->iQualityFlag / 20.0,
                     0.0, 1.0 ) );
+        // for single sample sounds muffle the playback at low speeds
+        if( false == bogiesound.is_combined() ) {
+            volume *=
+                interpolate(
+                    0.0, 1.0,
+                    clamp(
+                        MoverParameters->Vel / 40.0,
+                        0.0, 1.0 ) );
+        }
 
         if( volume > 0.05 ) {
             // apply calculated parameters to all motor instances
@@ -4071,21 +4074,51 @@ void TDynamicObject::RenderSounds() {
 
         if( true == TestFlag( coupler.sounds, sound::bufferclash ) ) {
             // zderzaki uderzaja o siebie
-            couplersounds.dsbBufferClamp
-                .gain(
-                    true == TestFlag( coupler.sounds, sound::loud ) ?
-                        1.f :
-                        0.65f )
-                .play( sound_flags::exclusive );
+            if( true == TestFlag( coupler.sounds, sound::loud ) ) {
+                // loud clash
+                if( false == couplersounds.dsbBufferClamp_loud.empty() ) {
+                    // dedicated sound for loud clash
+                    couplersounds.dsbBufferClamp_loud
+                        .gain( 1.f )
+                        .play( sound_flags::exclusive );
+                }
+                else {
+                    // fallback on the standard sound
+                    couplersounds.dsbBufferClamp
+                        .gain( 1.f )
+                        .play( sound_flags::exclusive );
+                }
+            }
+            else {
+                // basic clash
+                couplersounds.dsbBufferClamp
+                    .gain( 0.65f )
+                    .play( sound_flags::exclusive );
+            }
         }
         if( true == TestFlag( coupler.sounds, sound::couplerstretch ) ) {
             // sprzegi sie rozciagaja
-            couplersounds.dsbCouplerStretch
-                .gain(
-                    true == TestFlag( coupler.sounds, sound::loud ) ?
-                        1.f :
-                        0.65f )
-                .play( sound_flags::exclusive );
+            if( true == TestFlag( coupler.sounds, sound::loud ) ) {
+                // loud stretch
+                if( false == couplersounds.dsbCouplerStretch_loud.empty() ) {
+                    // dedicated sound for loud stretch
+                    couplersounds.dsbCouplerStretch_loud
+                        .gain( 1.f )
+                        .play( sound_flags::exclusive );
+                }
+                else {
+                    // fallback on the standard sound
+                    couplersounds.dsbCouplerStretch
+                        .gain( 1.f )
+                        .play( sound_flags::exclusive );
+                }
+            }
+            else {
+                // basic clash
+                couplersounds.dsbCouplerStretch
+                    .gain( 0.65f )
+                    .play( sound_flags::exclusive );
+            }
         }
 
         coupler.sounds = 0;
@@ -5262,6 +5295,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         couplersounds.dsbCouplerStretch = couplerstretch;
                     }
                 }
+                else if( token == "couplerstretch_loud:" ) {
+                    // coupler stretching
+                    sound_source couplerstretch { sound_placement::external };
+                    couplerstretch.deserialize( parser, sound_type::single );
+                    couplerstretch.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.dsbCouplerStretch_loud = couplerstretch;
+                    }
+                }
                 else if( token == "bufferclamp:" ) {
                     // buffers hitting one another
                     sound_source bufferclash { sound_placement::external };
@@ -5269,6 +5311,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     bufferclash.owner( this );
                     for( auto &couplersounds : m_couplersounds ) {
                         couplersounds.dsbBufferClamp = bufferclash;
+                    }
+                }
+                else if( token == "bufferclamp_loud:" ) {
+                    // buffers hitting one another
+                    sound_source bufferclash { sound_placement::external };
+                    bufferclash.deserialize( parser, sound_type::single );
+                    bufferclash.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.dsbBufferClamp_loud = bufferclash;
                     }
                 }
 
@@ -5382,12 +5433,16 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     m_couplersounds[ side::front ].dsbCouplerAttach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerDetach.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbCouplerStretch.offset( frontcoupleroffset );
+    m_couplersounds[ side::front ].dsbCouplerStretch_loud.offset( frontcoupleroffset );
     m_couplersounds[ side::front ].dsbBufferClamp.offset( frontcoupleroffset );
+    m_couplersounds[ side::front ].dsbBufferClamp_loud.offset( frontcoupleroffset );
     auto const rearcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
     m_couplersounds[ side::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
+    m_couplersounds[ side::rear ].dsbCouplerStretch_loud.offset( rearcoupleroffset );
     m_couplersounds[ side::rear ].dsbBufferClamp.offset( rearcoupleroffset );
+    m_couplersounds[ side::rear ].dsbBufferClamp_loud.offset( rearcoupleroffset );
 }
 
 //---------------------------------------------------------------------------

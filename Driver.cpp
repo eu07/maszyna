@@ -2225,6 +2225,7 @@ bool TController::PrepareEngine()
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch(true);
+        mvOccupied->FuelPumpSwitch( true );
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
             mvControlling->PantFront( true );
@@ -3052,7 +3053,7 @@ void TController::Doors( bool const Open, int const Side ) {
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                 mvOccupied->signal_departure( true ); // załącenie bzyczka
-                fActionTime = -3.0 - 0.1 * Random( 10 ); // 3-4 second wait
+                fActionTime = -1.5 - 0.1 * Random( 10 ); // 1.5-2.5 second wait
             }
         }
 
@@ -3069,8 +3070,15 @@ void TController::Doors( bool const Open, int const Side ) {
                 }
                 vehicle = vehicle->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
             }
-            fActionTime = -2.5 - 0.1 * Random( 10 ); // 2.5-3.5 sec wait, +potentially 0.5 remaining
+            fActionTime = -2.0 - 0.1 * Random( 15 ); // 2.0-3.5 sec wait, +potentially 0.5 remaining
             iDrivigFlags &= ~moveDoorOpened; // zostały zamknięte - nie wykonywać drugi raz
+
+            if( Random( 100 ) < Random( 100 ) ) {
+                // potentially turn off the warning before actual departure
+                // TBD, TODO: dedicated buzzer duration counter
+                mvOccupied->signal_departure( false );
+            }
+
         }
     }
 }

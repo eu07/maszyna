@@ -412,6 +412,17 @@ void TBrake::ForceEmptiness()
     BrakeRes->Act();
 }
 
+// removes specified amount of air from the reservoirs
+// NOTE: experimental feature, for now limited only to brake reservoir
+void TBrake::ForceLeak( double const Amount ) {
+
+    BrakeRes->Flow( -Amount * BrakeRes->P() );
+    ValveRes->Flow( -Amount * ValveRes->P() * 0.01 ); // this reservoir has hard coded, tiny capacity compared to other parts
+
+    BrakeRes->Act();
+    ValveRes->Act();
+}
+
 //---WESTINGHOUSE---
 
 void TWest::Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )

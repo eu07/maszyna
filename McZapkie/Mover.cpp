@@ -1570,6 +1570,14 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     }
 };
 
+// fuel pump status update
+void TMoverParameters::FuelPumpCheck( double const Timestep ) {
+
+    FuelPump.is_active = (
+        ( true == FuelPump.is_enabled )
+     && ( true == Battery ) );
+}
+
 double TMoverParameters::ShowCurrent(int AmpN)
 { // Odczyt poboru prądu na podanym amperomierzu
     switch (EngineType)
@@ -2337,13 +2345,38 @@ bool TMoverParameters::AntiSlippingButton(void)
     return (AntiSlippingBrake() /*|| Sandbox(true)*/);
 }
 
+// fuel pump state toggle
+bool TMoverParameters::FuelPumpSwitch( bool State, int const Notify ) {
+
+    if( FuelPump.start_type == start::automatic ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { FuelPump.is_enabled };
+
+    FuelPump.is_enabled = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "FuelPumpSwitch",
+            ( FuelPump.is_enabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( FuelPump.is_enabled != initialstate );
+}
+
 // *************************************************************************************************
 // Q: 20160713
 // włączenie / wyłączenie obwodu głownego
 // *************************************************************************************************
 bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 {
-    bool MS = false; // Ra: przeniesione z końca
+    bool const initialstate { Mains };
 
     if( ( Mains != State )
      && ( MainCtrlPosNo > 0 ) ) {
@@ -2355,46 +2388,59 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
            && ( false == TestFlag( DamageFlag, dtrain_out ) )
            && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
 
-            if( true == Mains ) {
-                // jeśli był załączony
-                if( Notify != range::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "MainSwitch", int( State ), CabNo,
-                        ( Notify == range::unit ?
-                            coupling::control | coupling::permanent :
-                            coupling::control ) );
+            if( true == State ) {
+                // switch on
+                if( ( EngineType == DieselEngine )
+                 || ( EngineType == DieselElectric ) ) {
+
+                    if( true == FuelPump.start_type == start::automatic ) {
+                        // potentially force start of the fuel pump
+                        // TODO: the whole diesel start sequence is a special kind of a mess, clean it up when refactoring
+                        FuelPump.is_enabled = true;
+                        FuelPumpCheck( 0.0 );
+                    }
+                    if( true == FuelPump.is_active ) {
+                        Mains = true;
+                        dizel_enginestart = true;
+                    }
+                }
+                else {
+                    Mains = true;
                 }
             }
-            Mains = State;
-            MS = true; // wartość zwrotna
-            LastSwitchingTime = 0;
-
-            if( true == Mains ) {
-                // jeśli został załączony
-                if( Notify != range::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "MainSwitch", int( State ), CabNo,
-                        ( Notify == range::unit ?
-                            coupling::control | coupling::permanent :
-                            coupling::control ) );
+            else {
+                Mains = false;
+                if( true == FuelPump.start_type == start::automatic ) {
+                    // if the engine is off, switch off automatic fuel pump
+                    FuelPump.is_enabled = false;
                 }
             }
-            if( ( EngineType == DieselEngine )
-             || ( EngineType == DieselElectric ) ) {
 
-                dizel_enginestart = State;
-            }
             if( ( TrainType == dt_EZT )
              && ( false == State ) ) {
 
                 ConvOvldFlag = true;
             }
+
+            if( Mains != initialstate ) {
+                LastSwitchingTime = 0;
+            }
+
+            if( Notify != range::local ) {
+                // pass the command to other vehicles
+                SendCtrlToNext(
+                    "MainSwitch",
+                    ( State ? 1 : 0 ),
+                    CabNo,
+                    ( Notify == range::unit ?
+                        coupling::control | coupling::permanent :
+                        coupling::control ) );
+            }
+
         }
     }
     // else MainSwitch:=false;
-    return MS;
+    return ( Mains != initialstate );
 }
 
 // *************************************************************************************************
@@ -3021,6 +3067,8 @@ void TMoverParameters::UpdateBrakePressure(double dt)
     dpLocalValve = 0;
     dpBrake = 0;
 
+    Hamulec->ForceLeak( dt * AirLeakRate * 0.25 ); // fake air leaks from brake system reservoirs
+
     BrakePress = Hamulec->GetBCP();
     //  BrakePress:=(Hamulec as TEst4).ImplsRes.pa;
     Volume = Hamulec->GetBRP();
@@ -3064,8 +3112,9 @@ void TMoverParameters::CompressorCheck(double dt)
         }
         else
         {
-            if( ( EngineType == DieselEngine )
-             && ( CompressorPower == 0 ) ) {
+            if( ( CompressorPower == 0 )
+             && ( ( EngineType == DieselEngine )
+               || ( EngineType == DieselElectric ) ) ) {
                 // experimental: make sure compressor coupled with diesel engine is always ready for work
                 CompressorAllow = true;
             }
@@ -4063,7 +4112,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
         // 090503: dzwieki pracy sprzegu
         SetFlag(
             Couplers[ CouplerN ].sounds,
-            ( absdV > 0.1 ?
+            ( absdV > 0.035 ?
                 ( sound::couplerstretch | sound::loud ) :
                   sound::couplerstretch ) );
     }
@@ -4166,8 +4215,9 @@ double TMoverParameters::TractionForce(double dt)
     // youBy
     switch( EngineType ) {
         case DieselElectric: {
-            if( true == ConverterFlag ) {
-                // NOTE: converter is currently a stand-in for a fuel pump
+            if( ( true == Mains )
+             && ( true == FuelPump.is_active ) ) {
+
                 tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
                 if( ( true == Heating )
@@ -4434,7 +4484,8 @@ double TMoverParameters::TractionForce(double dt)
 
                 PosRatio = currentgenpower / DElist[MainCtrlPosNo].GenPower;
                 // stosunek mocy teraz do mocy max
-                if( ( MainCtrlPos > 0 ) && ( ConverterFlag ) ) {
+                // NOTE: Mains in this context is working diesel engine
+                if( ( true == Mains ) && ( MainCtrlPos > 0 ) ) {
 
                     if( tmpV < ( Vhyp * power / DElist[ MainCtrlPosNo ].GenPower ) ) {
                         // czy na czesci prostej, czy na hiperboli
@@ -5688,10 +5739,15 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 // *************************************************************************************************
 bool TMoverParameters::dizel_Update(double dt)
 {
-    double const fillspeed { 2 };
-    bool DU { false };
+    FuelPumpCheck( dt );
+    // potentially automatic engine start after fuel pump was activated
+    if( ( true == Mains )
+     && ( false == FuelPump.is_active ) ) {
+        // knock out the engine if the fuel pump isn't feeding it
+        // TBD, TODO: grace period before the engine is starved for fuel and knocked out
+        MainSwitch( false );
+    }
 
-    // dizel_Update:=false;
     if( ( true == dizel_enginestart )
      && ( LastSwitchingTime >= InitialCtrlDelay ) ) {
         dizel_enginestart = false;
@@ -5705,9 +5761,12 @@ bool TMoverParameters::dizel_Update(double dt)
                     DElist[ 0 ].RPM / 60.0 ) );
     }
 
+    bool DU { false };
+
     if( EngineType == DieselEngine ) {
         dizel_EngageChange( dt );
         DU = dizel_AutoGearCheck();
+        double const fillspeed { 2 };
         dizel_fill = dizel_fill + fillspeed * dt * ( dizel_fillcheck( MainCtrlPos ) - dizel_fill );
     }
 
@@ -5720,19 +5779,24 @@ bool TMoverParameters::dizel_Update(double dt)
 // *************************************************************************************************
 double TMoverParameters::dizel_fillcheck(int mcp)
 { 
-    double realfill, nreg;
+    auto realfill { 0.0 };
 
-    realfill = 0;
-    nreg = 0;
-    if (Mains && (MainCtrlPosNo > 0))
-    {
-		if (dizel_enginestart &&
-			(LastSwitchingTime >= 0.9 * InitialCtrlDelay)) // wzbogacenie przy rozruchu
-			realfill = 1;
-        else
-            realfill = RList[mcp].R; // napelnienie zalezne od MainCtrlPos
+    if( ( true == Mains )
+     && ( MainCtrlPosNo > 0 )
+     && ( true == FuelPump.is_active ) ) {
+
+        if( ( true == dizel_enginestart )
+         && ( LastSwitchingTime >= 0.9 * InitialCtrlDelay ) ) {
+            // wzbogacenie przy rozruchu
+            realfill = 1;
+        }
+        else {
+            // napelnienie zalezne od MainCtrlPos
+            realfill = RList[ mcp ].R;
+        }
         if (dizel_nmax_cutoff > 0)
         {
+            auto nreg { 0.0 };
             switch (RList[MainCtrlPos].Mn)
             {
             case 0:
@@ -5747,13 +5811,8 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				break;
             default:
                 realfill = 0; // sluczaj
+                break;
             }
-            /*if (enrot > nreg)
-                realfill = realfill * (3.9 - 3.0 * abs(enrot) / nreg);
-            if (enrot > dizel_nmax_cutoff)
-                realfill = realfill * (9.8 - 9.0 * abs(enrot) / dizel_nmax_cutoff);
-            if (enrot < dizel_nmin)
-                realfill = realfill * (1.0 + (dizel_nmin - abs(enrot)) / dizel_nmin);*/	
 			if (enrot > nreg) //nad predkoscia regulatora zeruj dawke
 				realfill = 0; 
 			if (enrot < nreg) //pod predkoscia regulatora dawka zadana
@@ -5762,11 +5821,8 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				realfill = 1;
         }
     }
-    if (realfill < 0)
-        realfill = 0;
-    if (realfill > 1)
-        realfill = 1;
-    return realfill;
+
+    return clamp( realfill, 0.0, 1.0 );
 }
 
 // *************************************************************************************************
@@ -5792,7 +5848,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
         Moment = -dizel_Mstand;
     }
     if( ( enrot < dizel_nmin / 10.0 )
-     && ( eAngle < PI / 2.0 ) ) {
+     && ( eAngle < M_PI_2 ) ) {
         // wstrzymywanie przy malych obrotach
         Moment -= dizel_Mstand;
     }
@@ -7551,7 +7607,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     // converter
     {
-        std::map<std::string, start> starts{
+        std::map<std::string, start> starts {
             { "Manual", start::manual },
             { "Automatic", start::automatic }
         };
@@ -7562,6 +7618,20 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 start::manual;
     }
     extract_value( ConverterStartDelay, "ConverterStartDelay", line, "" );
+
+    // fuel pump
+    {
+        std::map<std::string, start> starts {
+            { "Manual", start::manual },
+            { "Automatic", start::automatic }
+        };
+        auto lookup = starts.find( extract_value( "FuelStart", line ) );
+        FuelPump.start_type =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
+
 }
 
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
@@ -8449,16 +8519,41 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		OK = BrakeReleaser(Round(CValue1)); // samo się przesyła dalej
 											// OK:=SendCtrlToNext(command,CValue1,CValue2); //to robiło kaskadę 2^n
 	}
+    else if (Command == "FuelPumpSwitch") {
+        if( FuelPump.start_type == start::manual ) {
+            // automatic fuel pump ignores 'manual' state commands
+            FuelPump.is_enabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+	}
 	else if (Command == "MainSwitch")
 	{
-		if (CValue1 == 1)
-		{
-			Mains = true;
-			if ((EngineType == DieselEngine) && Mains)
-				dizel_enginestart = true;
+		if (CValue1 == 1) {
+
+            if( ( EngineType == DieselEngine )
+             || ( EngineType == DieselElectric ) ) {
+                if( true == FuelPump.start_type == start::automatic ) {
+                    // potentially force start of the fuel pump
+                    // TODO: the whole diesel start sequence is a special kind of mess, clean it up when refactoring
+                    FuelPump.is_enabled = true;
+                    FuelPumpCheck( 0.0 );
+                }
+                if( true == FuelPump.is_active ) {
+                    Mains = true;
+                    dizel_enginestart = true;
+                }
+            }
+            else {
+                Mains = true;
+            }
 		}
-		else
-			Mains = false;
+        else {
+            Mains = false;
+            if( true == FuelPump.start_type == start::automatic ) {
+                // if the engine is off, switch off automatic fuel pump
+                FuelPump.is_enabled = false;
+            }
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Direction")

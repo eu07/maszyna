@@ -276,7 +276,9 @@ private:
         sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
         sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
         sound_source dsbCouplerStretch { sound_placement::external }; // moved from cab
+        sound_source dsbCouplerStretch_loud { sound_placement::external };
         sound_source dsbBufferClamp { sound_placement::external }; // moved from cab
+        sound_source dsbBufferClamp_loud { sound_placement::external };
     };
 
     struct pantograph_sounds {
