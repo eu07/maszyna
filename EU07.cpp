@@ -331,7 +331,6 @@ int main(int argc, char *argv[])
     }
     glfwMakeContextCurrent(window);
     glfwSwapInterval(Global.VSync ? 1 : 0); //vsync
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
     glfwSetCursorPos(window, 0.0, 0.0);
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
@@ -360,6 +359,8 @@ int main(int argc, char *argv[])
 #endif
 
 	try {
+		Global.ControlPicking = true;
+
 		if ((false == GfxRenderer.Init(window))
 			|| (false == UILayer.init(window)))
 			return -1;
@@ -411,6 +412,9 @@ int main(int argc, char *argv[])
 #ifdef _WIN32
     Console::On(); // włączenie konsoli
 #endif
+
+	Global.ControlPicking = false;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
 
     try {
         while( ( false == glfwWindowShouldClose( window ) )

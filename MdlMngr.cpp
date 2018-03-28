@@ -81,11 +81,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     // - wczytanie modelu animowanego - Init() - sprawdzić
     std::string const buftp { Global.asCurrentTexturePath }; // zapamiętanie aktualnej ścieżki do tekstur,
     std::string filename { Name };
-	if (Name.find('\\') != std::string::npos)
-	{
-		ErrorLog("internal error: backslash in GetModel: " + Name);
-	}
-    if( Name.find( '/' ) != std::string::npos ) {
+    if( Name.find( '/' ) != std::string::npos && !Dynamic ) {
         // pobieranie tekstur z katalogu, w którym jest model
         Global.asCurrentTexturePath += Name;
         Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( "/" ) + 1 );
