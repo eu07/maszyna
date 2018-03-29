@@ -222,6 +222,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::linebreakeropen, &TTrain::OnCommand_linebreakeropen },
     { user_command::linebreakerclose, &TTrain::OnCommand_linebreakerclose },
+    { user_command::fuelpumptoggle, &TTrain::OnCommand_fuelpumptoggle },
+    { user_command::fuelpumpenable, &TTrain::OnCommand_fuelpumpenable },
+    { user_command::fuelpumpdisable, &TTrain::OnCommand_fuelpumpdisable },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
     { user_command::converterenable, &TTrain::OnCommand_converterenable },
     { user_command::converterdisable, &TTrain::OnCommand_converterdisable },
@@ -1993,6 +1996,45 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
         }
         // on button release reset the closing timer
         Train->fMainRelayTimer = 0.0f;
+    }
+}
+
+void TTrain::OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->FuelPump.is_enabled ) {
+            // turn on
+            OnCommand_fuelpumpenable( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_fuelpumpdisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_fuelpumpenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->FuelPump.is_enabled ) { return; } // already enabled
+
+        Train->mvControlled->FuelPumpSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_fuelpumpdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->FuelPump.is_enabled ) { return; } // already disabled
+
+        Train->mvControlled->FuelPumpSwitch( false );
     }
 }
 
@@ -3856,12 +3898,6 @@ bool TTrain::Update( double const Deltatime )
         }
     }
     if( m_linebreakerstate == 1 ) {
-        if( ( mvControlled->EngineType == DieselElectric )
-         && ( false == mvControlled->ConverterFlag ) ) {
-            // converter acts as a make-believe fuel pump so if it's off, kill the engine
-            // TODO: implement actual fuel system and move this check to the mover update
-            mvControlled->MainSwitch( false );
-        }
         if( false == mvControlled->Mains ) {
             // crude way to catch cases where the main was knocked out and the user is trying to restart it
             // because the state of the line breaker isn't changed to match, we need to do it here manually
@@ -3909,6 +3945,9 @@ bool TTrain::Update( double const Deltatime )
                 // finalize state change of the line breaker
                 m_linebreakerstate = 1;
             }
+            else {
+                m_linebreakerstate = 0;
+            }
         }
     }
 
@@ -3946,6 +3985,23 @@ bool TTrain::Update( double const Deltatime )
 
     if (DynamicObject->mdKabina)
     { // Ra: TODO: odczyty klawiatury/pulpitu nie powinny być uzależnione od istnienia modelu kabiny
+
+        if( ( DynamicObject->Mechanik != nullptr )
+         && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
+         && ( ( mvOccupied->TrainType == dt_ET40 )
+           || ( mvOccupied->TrainType == dt_EP05 ) ) ) {
+            // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie będzie to działać dobrze...
+            // TODO: remove direct keyboard check, use deltatime to stabilize speed
+            if( ( glfwGetKey( Global.window, GLFW_KEY_KP_ADD ) != GLFW_TRUE )
+             && ( mvOccupied->MainCtrlPos > mvOccupied->MainCtrlActualPos ) ) {
+                mvOccupied->DecMainCtrl( 1 );
+            }
+            if( ( glfwGetKey( Global.window, GLFW_KEY_KP_SUBTRACT ) != GLFW_TRUE )
+             && ( mvOccupied->MainCtrlPos < mvOccupied->MainCtrlActualPos ) ) {
+                mvOccupied->IncMainCtrl( 1 ); // Ra 15-01: a to nie miało być tylko cofanie?
+            }
+        }
+
         tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
         float maxtacho = 3;
@@ -4430,6 +4486,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaNapNastHam.Turn(mvControlled->ActiveDir != 0); // napiecie na nastawniku hamulcowym
             btLampkaSprezarka.Turn(mvControlled->CompressorFlag); // mutopsitka dziala
             btLampkaSprezarkaOff.Turn( false == mvControlled->CompressorFlag );
+            btLampkaFuelPumpOff.Turn( false == mvControlled->FuelPump.is_active );
             // boczniki
             unsigned char scp; // Ra: dopisałem "unsigned"
             // Ra: w SU45 boczniki wchodzą na MainCtrlPos, a nie na MainCtrlActualPos
@@ -4469,6 +4526,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaNadmPrzetw.Turn( false );
             btLampkaSprezarka.Turn( false );
             btLampkaSprezarkaOff.Turn( false );
+            btLampkaFuelPumpOff.Turn( false );
             btLampkaBezoporowa.Turn( false );
         }
         if (mvControlled->Signalling == true) {
@@ -4874,6 +4932,8 @@ bool TTrain::Update( double const Deltatime )
         ggCabLightButton.Update();
         ggCabLightDimButton.Update();
         ggBatteryButton.Update();
+
+        ggFuelPumpButton.Update();
         //------
         pyScreens.update();
     }
@@ -5157,15 +5217,22 @@ TTrain::update_sounds( double const Deltatime ) {
             volume *= 1 + 0.125 * brakeforceratio;
         }
         // scale volume by track quality
-        volume *= ( 20.0 + DynamicObject->MyTrack->iDamageFlag ) / 21;
-        // scale volume with vehicle speed
-        // TBD, TODO: disable the scaling for sounds combined from speed-based samples?
+        // TODO: track quality and/or environment factors as separate subroutine
         volume *=
             interpolate(
-                0.0, 1.0,
+                0.8, 1.2,
                 clamp(
-                    mvOccupied->Vel / 40.0,
+                    DynamicObject->MyTrack->iQualityFlag / 20.0,
                     0.0, 1.0 ) );
+        // for single sample sounds muffle the playback at low speeds
+        if( false == rsRunningNoise.is_combined() ) {
+            volume *=
+                interpolate(
+                    0.0, 1.0,
+                    clamp(
+                        mvOccupied->Vel / 40.0,
+                        0.0, 1.0 ) );
+        }
 
         if( volume > 0.05 ) {
             rsRunningNoise
@@ -5911,6 +5978,8 @@ void TTrain::clear_cab_controls()
     ggMainGearStatus.Clear();
     ggIgnitionKey.Clear();
 
+    ggFuelPumpButton.Clear();
+
     btLampkaPrzetw.Clear();
     btLampkaPrzetwB.Clear();
     btLampkaPrzetwBOff.Clear();
@@ -5950,6 +6019,7 @@ void TTrain::clear_cab_controls()
     btLampkaSprezarkaB.Clear();
     btLampkaSprezarkaOff.Clear();
     btLampkaSprezarkaBOff.Clear();
+    btLampkaFuelPumpOff.Clear();
     btLampkaNapNastHam.Clear();
     btLampkaStycznB.Clear();
     btLampkaHamowanie1zes.Clear();
@@ -6072,9 +6142,14 @@ void TTrain::set_cab_controls() {
             1.0 :
             0.0 );
     // motor overload relay threshold / shunt mode
-    if( mvControlled->Imax == mvControlled->ImaxHi ) {
-        ggMaxCurrentCtrl.PutValue( 1.0 );
-    }
+    ggMaxCurrentCtrl.PutValue(
+        ( true == mvControlled->ShuntModeAllow ?
+            ( true == mvControlled->ShuntMode ?
+                1.0 :
+                0.0 ) :
+            ( mvControlled->Imax == mvControlled->ImaxHi ?
+                1.0 :
+                0.0 ) ) );
     // lights
     ggLightsButton.PutValue( mvOccupied->LightsPos - 1 );
 
@@ -6169,6 +6244,11 @@ void TTrain::set_cab_controls() {
         ShowNextCurrent ?
             1.0 :
             0.0 );
+    // fuel pump
+    ggFuelPumpButton.PutValue(
+        mvOccupied->FuelPump.is_enabled ?
+            1.0 :
+            0.0 );
     
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
@@ -6232,6 +6312,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-compressorb:", btLampkaSprezarkaB },
         { "i-compressoroff:", btLampkaSprezarkaOff },
         { "i-compressorboff:", btLampkaSprezarkaBOff },
+        { "i-fuelpumpoff:", btLampkaFuelPumpOff },
         { "i-voltbrake:", btLampkaNapNastHam },
         { "i-resistorsb:", btLampkaOporyB },
         { "i-contactorsb:", btLampkaStycznB },
@@ -6332,6 +6413,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "converterlocal_sw:", ggConverterLocalButton },
         { "converteroff_sw:", ggConverterOffButton },
         { "main_sw:", ggMainButton },
+        { "fuelpump_sw:", ggFuelPumpButton },
         { "radio_sw:", ggRadioButton },
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },

@@ -79,6 +79,7 @@ struct global_settings {
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
+    float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
     bool bInactivePause{ true }; // automatyczna pauza, gdy okno nieaktywne
     int iSlowMotionMask{ -1 }; // maska wyłączanych właściwości
     bool bHideConsole{ false }; // hunter-271211: ukrywanie konsoli
