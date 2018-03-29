@@ -405,8 +405,8 @@ int main(int argc, char *argv[])
 */
     if( Global.iConvertModels < 0 ) {
         Global.iConvertModels = -Global.iConvertModels;
-        World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
-        World.CreateE3D( "dynamic/", true );
+        World.CreateE3D( szModelPath ); // rekurencyjne przeglądanie katalogów
+        World.CreateE3D( szDynamicPath, true );
     } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
 #ifdef _WIN32

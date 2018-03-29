@@ -454,6 +454,7 @@ public: // reszta może by?publiczna
     TButton btLampkaSprezarkaB;
     TButton btLampkaSprezarkaOff;
     TButton btLampkaSprezarkaBOff;
+    TButton btLampkaFuelPumpOff;
     TButton btLampkaBocznik1;
     TButton btLampkaBocznik2;
     TButton btLampkaBocznik3;

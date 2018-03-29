@@ -28,6 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #define szSceneryPath "scenery/"
 #define szTexturePath "textures/"
 #define szModelPath "models/"
+#define szDynamicPath "dynamic/"
 #define szSoundPath "sounds/"
 
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
@@ -182,6 +183,10 @@ std::time_t last_modified( std::string const &Filename );
 // potentially erases file extension from provided file name. returns: true if extension was removed, false otherwise
 bool
 erase_extension( std::string &Filename );
+
+// potentially replaces backward slashes in provided file path with unix-compatible forward slashes
+void
+replace_slashes( std::string &Filename );
 
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {

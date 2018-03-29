@@ -83,10 +83,10 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     std::string filename { Name };
     if( Name.find( '/' ) != std::string::npos && !Dynamic ) {
         // pobieranie tekstur z katalogu, w którym jest model
+        // when loading vehicles the path is set by the calling routine, so we can skip it here
         Global.asCurrentTexturePath += Name;
-        Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( "/" ) + 1 );
+        Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( '/' ) + 1 );
     }
-
     erase_extension( filename );
     filename = ToLower( filename );
 

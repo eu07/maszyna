@@ -473,9 +473,8 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
         }
         else if (token.substr(token.length() - 4, 4) == ".vmd") // na razie tu, może będzie inaczej
         { // animacja z pliku VMD
-//			TFileStream *fs = new TFileStream( "models/" + AnsiString( token.c_str() ), fmOpenRead );
 			{
-				std::ifstream file( "models/" + token, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+				std::ifstream file( szModelPath + token, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
 				auto size = file.tellg();   // ios::ate already positioned us at the end of the file
 				file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
 				Params[ 7 ].asInt = size;

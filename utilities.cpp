@@ -334,3 +334,12 @@ erase_extension( std::string &Filename ) {
     }
     return false;
 }
+
+// potentially replaces backward slashes in provided file path with unix-compatible forward slashes
+void
+replace_slashes( std::string &Filename ) {
+
+    std::replace(
+        std::begin( Filename ), std::end( Filename ),
+        '\\', '/' );
+}

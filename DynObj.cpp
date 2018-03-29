@@ -1735,7 +1735,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      )
 { // Ustawienie początkowe pojazdu
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeśli ma być wstawiony jako obrócony tyłem
-    asBaseDir = "dynamic/" + BaseDir + "/"; // McZapkie-310302
+    asBaseDir = szDynamicPath + BaseDir + "/"; // McZapkie-310302
     asName = Name;
     std::string asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
     // Ra: zmieniamy znaczenie obsady na jednoliterowe, żeby dosadzić kierownika
@@ -1782,8 +1782,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             (fVel > 0 ? 1 : -1) * Cab *
                 (iDirection ? 1 : -1))) // jak jedzie lub obsadzony to gotowy do drogi
     {
-        Error("Parameters mismatch: dynamic object " + asName + " from\n" + BaseDir + "/" +
-              Type_Name);
+        Error("Parameters mismatch: dynamic object " + asName + " from \"" + BaseDir + "/" + Type_Name + "\"" );
         return 0.0; // zerowa długość to brak pojazdu
     }
     // ustawienie pozycji hamulca
@@ -4175,11 +4174,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
-			std::replace(asModel.begin(), asModel.end(), '\\', '/');
+            replace_slashes( asModel );
             if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 m_materialdata.multi_textures = 1;
                 asModel.erase( asModel.length() - 1 );
+            }
+            // name can contain leading slash, erase it to avoid creation of double slashes when the name is combined with current directory
+            if( asModel[ 0 ] == '/' ) {
+                asModel.erase( 0, 1 );
             }
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )

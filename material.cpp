@@ -17,10 +17,9 @@ http://mozilla.org/MPL/2.0/.
 // helper, returns potential path part from provided file name
 std::string path( std::string const &Filename )
 {
-	std::string fn = Filename;
     return (
-        fn.rfind( '/' ) != std::string::npos ?
-            fn.substr( 0, fn.rfind( '/' ) + 1 ) :
+        Filename.rfind( '/' ) != std::string::npos ?
+            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
             "" );
 }
 
@@ -115,6 +114,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         filename.erase( filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
 
     erase_extension( filename );
+
     filename += ".mat";
 
     // try to locate requested material in the databank

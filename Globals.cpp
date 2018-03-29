@@ -302,6 +302,11 @@ global_settings::ConfigParse(cParser &Parser) {
             // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
             DynamicLightCount = clamp( DynamicLightCount, 1, 7 ); 
         }
+        else if( token == "scenario.time.offset" ) {
+            // shift (in hours) applied to train timetables
+            Parser.getTokens( 1, false );
+            Parser >> ScenarioTimeOffset;
+        }
         else if( token == "scalespeculars" ) {
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();

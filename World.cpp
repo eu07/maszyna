@@ -64,9 +64,11 @@ simulation_time::init() {
         { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 } };
     ::memcpy( m_monthdaycounts, monthdaycounts, sizeof( monthdaycounts ) );
 
+    // potentially adjust scenario clock
+    auto const requestedtime { clamp_circular<int>( m_time.wHour * 60 + m_time.wMinute + Global.ScenarioTimeOffset * 60, 1440 ) };
+    auto const requestedhour { ( requestedtime / 60 ) % 60 };
+    auto const requestedminute { requestedtime % 60 };
     // cache requested elements, if any
-    WORD const requestedhour = m_time.wHour;
-    WORD const requestedminute = m_time.wMinute;
 
 #ifdef __linux__
 	timespec ts;
@@ -89,10 +91,11 @@ simulation_time::init() {
         daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global.fMoveLight ) );
     }
 
-    if( requestedhour != (WORD)-1 )   { m_time.wHour   = clamp( requestedhour,   static_cast<WORD>( 0 ), static_cast<WORD>( 23 ) ); }
-    if( requestedminute != (WORD)-1 ) { m_time.wMinute = clamp( requestedminute, static_cast<WORD>( 0 ), static_cast<WORD>( 59 ) ); }
+    if( requestedhour != -1 ) { m_time.wHour = static_cast<WORD>( clamp( requestedhour, 0, 23 ) ); }
+    if( requestedminute != -1 ) { m_time.wMinute = static_cast<WORD>( clamp( requestedminute, 0, 59 ) ); }
     // if the time is taken from the local clock leave the seconds intact, otherwise set them to zero
-    if( ( requestedhour != (WORD)-1 ) || ( requestedminute != (WORD)-1 ) ) {
+    if( ( requestedhour != -1 )
+     || ( requestedminute != 1 ) ) {
         m_time.wSecond = 0;
     }
 

@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "mtable.h"
 #include "World.h"
+#include "Globals.h"
 #include "utilities.h"
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
@@ -520,20 +521,21 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         // NextStationName:=TimeTable[1].StationName;
         /*  TTVmax:=TimeTable[1].vmax;  */
     }
-    if ((iPlus != 0)) // jeżeli jest przesunięcie rozkładu
+    auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) + iPlus };
+    if( timeoffset != 0.0 ) // jeżeli jest przesunięcie rozkładu
     {
         long i_end = StationCount + 1;
         for (i = 1; i < i_end; ++i) // bez with, bo ciężko się przenosi na C++
         {
             if ((TimeTable[i].Ah >= 0))
             {
-                time = iPlus + TimeTable[i].Ah * 60 + TimeTable[i].Am; // nowe minuty
+                time = clamp_circular( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 1440 ); // nowe minuty
                 TimeTable[i].Am = time % 60;
                 TimeTable[i].Ah = (time /*div*/ / 60) % 60;
             }
             if ((TimeTable[i].Dh >= 0))
             {
-                time = iPlus + TimeTable[i].Dh * 60 + TimeTable[i].Dm; // nowe minuty
+                time = clamp_circular( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 1440 ); // nowe minuty
                 TimeTable[i].Dm = time % 60;
                 TimeTable[i].Dh = (time /*div*/ / 60) % 60;
             }
