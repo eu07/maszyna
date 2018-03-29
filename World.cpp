@@ -1955,7 +1955,7 @@ void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
 			// launch recursive search for sub-directories...
 			if( filename == "." ) { continue; }
 			if( filename == ".." ) { continue; }
-			CreateE3D( Path + filename + "\\", Dynamic );
+			CreateE3D( Path + filename + "/", Dynamic );
 		}
 		else {
             // process the file

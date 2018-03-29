@@ -10,5 +10,5 @@
 void
 cStars::init() {
 
-    m_stars = TModelsManager::GetModel( "models\\skydome_stars.t3d", false );
+    m_stars = TModelsManager::GetModel( "skydome_stars.t3d", false );
 }

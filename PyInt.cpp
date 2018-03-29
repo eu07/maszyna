@@ -479,7 +479,7 @@ void TPythonScreens::update()
 void TPythonScreens::setLookupPath(std::string const &path)
 {
 	_lookupPath = path;
-	std::replace(_lookupPath.begin(), _lookupPath.end(), '\\', '/');
+    replace_slashes( _lookupPath );
 }
 
 TPythonScreens::TPythonScreens()

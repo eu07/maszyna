@@ -133,10 +133,7 @@ buffer_manager::create( std::string const &Filename ) {
     auto filename { ToLower( Filename ) };
 
     erase_extension( filename );
-    // convert slashes
-    std::replace(
-        std::begin( filename ), std::end( filename ),
-        '\\', '/' );
+    replace_slashes( filename );
 
     audio::buffer_handle lookup { null_handle };
     std::string filelookup;

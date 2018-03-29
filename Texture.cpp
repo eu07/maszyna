@@ -761,10 +761,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     }
 
     erase_extension( Filename );
-    // change slashes to cross-platform
-    std::replace(
-        std::begin( Filename ), std::end( Filename ),
-        '\\', '/' );
+    replace_slashes( Filename );
 
     std::vector<std::string> extensions { { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
 

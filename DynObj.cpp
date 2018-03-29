@@ -1733,7 +1733,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      )
 { // Ustawienie początkowe pojazdu
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeśli ma być wstawiony jako obrócony tyłem
-    asBaseDir = "dynamic\\" + BaseDir + "\\"; // McZapkie-310302
+    asBaseDir = szDynamicPath + BaseDir + "/"; // McZapkie-310302
+    replace_slashes( asBaseDir );
     asName = Name;
     std::string asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
     // Ra: zmieniamy znaczenie obsady na jednoliterowe, żeby dosadzić kierownika
@@ -1768,9 +1769,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
         if (ConversionError == 666)
-            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "\\" + Type_Name + ".fiz" + "\"" );
+            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
         else {
-            ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "\\" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
+            ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "/" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
         }
         return 0.0; // zerowa długość to brak pojazdu
     }
@@ -1780,8 +1781,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             (fVel > 0 ? 1 : -1) * Cab *
                 (iDirection ? 1 : -1))) // jak jedzie lub obsadzony to gotowy do drogi
     {
-        Error("Parameters mismatch: dynamic object " + asName + " from\n" + BaseDir + "\\" +
-              Type_Name);
+        Error("Parameters mismatch: dynamic object " + asName + " from \"" + BaseDir + "/" + Type_Name + "\"" );
         return 0.0; // zerowa długość to brak pojazdu
     }
     // ustawienie pozycji hamulca
@@ -4173,10 +4173,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
+            replace_slashes( asModel );
             if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 m_materialdata.multi_textures = 1;
                 asModel.erase( asModel.length() - 1 );
+            }
+            // name can contain leading slash, erase it to avoid creation of double slashes when the name is combined with current directory
+            if( asModel[ 0 ] == '/' ) {
+                asModel.erase( 0, 1 );
             }
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )

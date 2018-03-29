@@ -81,12 +81,13 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     // - wczytanie modelu animowanego - Init() - sprawdzić
     std::string const buftp { Global.asCurrentTexturePath }; // zapamiętanie aktualnej ścieżki do tekstur,
     std::string filename { Name };
-    if( Name.find( '/' ) != std::string::npos ) {
+    if( ( false == Dynamic )
+     && ( Name.find( '/' ) != std::string::npos ) ) {
         // pobieranie tekstur z katalogu, w którym jest model
+        // when loading vehicles the path is set by the calling routine, so we can skip it here
         Global.asCurrentTexturePath += Name;
-        Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( "/" ) + 1 );
+        Global.asCurrentTexturePath.erase( Global.asCurrentTexturePath.rfind( '/' ) + 1 );
     }
-
     erase_extension( filename );
     filename = ToLower( filename );
 
