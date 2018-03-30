@@ -62,7 +62,7 @@ simulation_time::init() {
     ::memcpy( m_monthdaycounts, monthdaycounts, sizeof( monthdaycounts ) );
 
     // potentially adjust scenario clock
-    auto const requestedtime { clamp_circular<int>( m_time.wHour * 60 + m_time.wMinute + Global.ScenarioTimeOffset * 60, 1440 ) };
+    auto const requestedtime { clamp_circular<int>( m_time.wHour * 60 + m_time.wMinute + Global.ScenarioTimeOffset * 60, 24 * 60 ) };
     auto const requestedhour { ( requestedtime / 60 ) % 60 };
     auto const requestedminute { requestedtime % 60 };
     // cache requested elements, if any
