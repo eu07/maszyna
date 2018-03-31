@@ -229,8 +229,6 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
     std::ifstream fin;
     bool EndTable;
     double vActual;
-    int i;
-    int time; // do zwiększania czasu
 
     int ConversionError = 0;
     EndTable = false;
@@ -522,22 +520,23 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         /*  TTVmax:=TimeTable[1].vmax;  */
     }
     auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) + iPlus };
-    if( timeoffset != 0.0 ) // jeżeli jest przesunięcie rozkładu
+    if( timeoffset != 0 ) // jeżeli jest przesunięcie rozkładu
     {
         long i_end = StationCount + 1;
-        for (i = 1; i < i_end; ++i) // bez with, bo ciężko się przenosi na C++
+        int adjustedtime; // do zwiększania czasu
+        for (auto i = 1; i < i_end; ++i) // bez with, bo ciężko się przenosi na C++
         {
             if ((TimeTable[i].Ah >= 0))
             {
-                time = clamp_circular( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 1440 ); // nowe minuty
-                TimeTable[i].Am = time % 60;
-                TimeTable[i].Ah = (time /*div*/ / 60) % 60;
+                adjustedtime = clamp_circular( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Am = adjustedtime % 60;
+                TimeTable[i].Ah = (adjustedtime /*div*/ / 60) % 60;
             }
             if ((TimeTable[i].Dh >= 0))
             {
-                time = clamp_circular( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 1440 ); // nowe minuty
-                TimeTable[i].Dm = time % 60;
-                TimeTable[i].Dh = (time /*div*/ / 60) % 60;
+                adjustedtime = clamp_circular( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Dm = adjustedtime % 60;
+                TimeTable[i].Dh = (adjustedtime /*div*/ / 60) % 60;
             }
         }
     }

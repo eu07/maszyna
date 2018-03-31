@@ -74,8 +74,17 @@ bool TEventLauncher::Load(cParser *parser)
         iMinute = int(DeltaTime) % 100; // minuty są najmłodszymi cyframi dziesietnymi
         iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
         DeltaTime = 0; // bez powtórzeń
-        WriteLog("EventLauncher at " + std::to_string(iHour) + ":" +
-                 std::to_string(iMinute)); // wyświetlenie czasu
+        // potentially shift the provided time by requested offset
+        auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
+        if( timeoffset != 0 ) {
+            auto const adjustedtime { clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
+            iHour = ( adjustedtime / 60 ) % 60;
+            iMinute = adjustedtime % 60;
+        }
+        WriteLog(
+            "EventLauncher at "
+            + std::to_string( iHour ) + ":"
+            + ( iMinute < 10 ? "0" : "" ) + to_string( iMinute ) ); // wyświetlenie czasu
     }
     parser->getTokens();
     *parser >> token;
