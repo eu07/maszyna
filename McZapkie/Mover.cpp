@@ -3167,8 +3167,10 @@ void TMoverParameters::CompressorCheck(double dt)
             if( Compressor > MaxCompressor ) {
                 // wyłącznik ciśnieniowy jest niezależny od sposobu zasilania
                 // TBD, TODO: don't operate the lock without battery power?
-                if( ( CompressorPower == 0 )
-                 || ( CompressorPower == 3 ) ) {
+                if( ( ( CompressorPower == 0 )
+                   || ( CompressorPower == 3 ) )
+                 && ( ( EngineType == DieselEngine )
+                   || ( EngineType == DieselElectric ) ) ) {
                     // if the compressor is powered directly by the engine the lock can't turn it off and instead just changes the output
                     if( false == CompressorGovernorLock ) {
                         // emit relay sound when the lock engages (the state change itself is below) and presumably changes where the air goes

@@ -415,7 +415,9 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         >> fSoundDistance;
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
-    *parser >> iQualityFlag >> iDamageFlag;
+    *parser
+        >> iQualityFlag
+        >> iDamageFlag;
     if (iDamageFlag & 128)
         iAction |= 0x80; // flaga wykolejania z powodu uszkodzenia
     parser->getTokens();
