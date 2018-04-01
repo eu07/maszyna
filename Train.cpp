@@ -4992,7 +4992,7 @@ bool TTrain::Update( double const Deltatime )
 
     // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( false == DynamicObject->Mechanik->AIControllFlag ) {
+    if( DynamicObject->Mechanik != nullptr && !DynamicObject->Mechanik->AIControllFlag ) {
         // don't mess with the ai driving, at least not while switches don't follow ai-set vehicle state
         if( ( mvControlled->Battery )
          || ( mvControlled->ConverterFlag ) ) {
