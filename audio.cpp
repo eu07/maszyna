@@ -34,28 +34,32 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 	if (sf == nullptr)
 		throw std::runtime_error("sound: sf_open failed");
 
-	int16_t *fbuf = new int16_t[si.frames * si.channels];
-	if (sf_readf_short(sf, fbuf, si.frames) != si.frames)
+	sf_command(sf, SFC_SET_NORM_FLOAT, NULL, SF_TRUE);
+
+	float *fbuf = new float[si.frames * si.channels];
+	if (sf_readf_float(sf, fbuf, si.frames) != si.frames)
 		throw std::runtime_error("sound: incomplete file");
 
 	sf_close(sf);
 
 	rate = si.samplerate;
 
-	int16_t *buf = nullptr;
-	if (si.channels == 1)
-		buf = fbuf;
-	else
-	{
+	if (si.channels != 1)
 		WriteLog("sound: warning: mixing multichannel file to mono");
-		buf = new int16_t[si.frames];
-		for (size_t i = 0; i < si.frames; i++)
-		{
-			int32_t accum = 0;
-			for (size_t j = 0; j < si.channels; j++)
-				accum += fbuf[i * si.channels + j];
-			buf[i] = accum / si.channels;
-		}
+
+	int16_t *buf = new int16_t[si.frames];
+	for (size_t i = 0; i < si.frames; i++)
+	{
+		float accum = 0;
+		for (size_t j = 0; j < si.channels; j++)
+			accum += fbuf[i * si.channels + j];
+
+		long val = lrintf(accum / si.channels * 32767.0f);
+		if (val > 32767)
+			val = 32767;
+		if (val < -32767)
+			val = -32767;
+		buf[i] = val;
 	}
 
 	id = 0;
@@ -65,8 +69,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 
 	alBufferData(id, AL_FORMAT_MONO16, buf, si.frames * 2, rate);
 
-	if (si.channels != 1)
-		delete[] buf;
+	delete[] buf;
 	delete[] fbuf;
 
 	fetch_caption();
