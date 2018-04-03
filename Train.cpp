@@ -933,29 +933,19 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
 }
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
-    if( Command.action == GLFW_REPEAT ) {
-
-        if( Train->mvOccupied->BrakeHandle == FV4a ) {
-            Train->mvOccupied->BrakeLevelAdd( Global.fBrakeStep * Command.time_delta );
-        }
-        else {
-            Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos + Global.fBrakeStep * Command.time_delta );
-        }
-    }
+	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == FV4a)
+		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta );
+	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != FV4a)
+		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos + Global.fBrakeStep );
 }
 
 void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
+	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == FV4a)
+		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta );
+	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != FV4a)
+		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep );
 
-    if( Command.action == GLFW_REPEAT ) {
-        // press or hold
-        if( Train->mvOccupied->BrakeHandle == FV4a ) {
-            Train->mvOccupied->BrakeLevelAdd( -Global.fBrakeStep * Command.time_delta );
-        }
-        else {
-            Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep * Command.time_delta );
-        }
-    }
-    else if (Command.action == GLFW_RELEASE) {
+    if (Command.action == GLFW_RELEASE) {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == FVel6 )

@@ -524,9 +524,13 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "brakestep")
         {
-            // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
             Parser.getTokens(1, false);
             Parser >> fBrakeStep;
+        }
+        else if (token == "brakespeed")
+        {
+            Parser.getTokens(1, false);
+            Parser >> brake_speed;
         }
         else if (token == "joinduplicatedevents")
         {

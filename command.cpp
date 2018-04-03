@@ -212,7 +212,6 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 			m_active_continuous.emplace(Command.command);
 		else if (Command.action == GLFW_RELEASE)
 			m_active_continuous.erase(Command.command);
-		return;
 	}
 
     auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
