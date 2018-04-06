@@ -65,7 +65,7 @@ void motiontelemetry::update()
 	if (Global.iPause)
 		return;
 
-	TTrain *t = Global.pWorld->train();
+	const TTrain *t = Global.pWorld->train();
 	if (!t)
 		return;
 

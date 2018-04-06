@@ -307,6 +307,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1, false );
             Parser >> ScenarioTimeOffset;
         }
+        else if( token == "scenario.time.current" ) {
+            // sync simulation time with local clock
+            Parser.getTokens( 1, false );
+            Parser >> ScenarioTimeCurrent;
+        }
         else if( token == "scalespeculars" ) {
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();

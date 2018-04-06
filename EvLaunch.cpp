@@ -78,7 +78,7 @@ bool TEventLauncher::Load(cParser *parser)
         auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
         if( timeoffset != 0 ) {
             auto const adjustedtime { clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
-            iHour = ( adjustedtime / 60 ) % 60;
+            iHour = ( adjustedtime / 60 ) % 24;
             iMinute = adjustedtime % 60;
         }
         WriteLog(

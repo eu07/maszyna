@@ -549,6 +549,17 @@ state_manager::deserialize_time( cParser &Input, scene::scratch_data &Scratchpad
         >> time.wHour
         >> time.wMinute;
 
+    if( true == Global.ScenarioTimeCurrent ) {
+        // calculate time shift required to match scenario time with local clock
+        auto timenow = std::time( 0 );
+        auto *localtime = std::localtime( &timenow );
+        Global.ScenarioTimeOffset =
+            clamp_circular(
+                ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ),
+                24 * 60 )
+            / 60.f;
+    }
+
     // remaining sunrise and sunset parameters are no longer used, as they're now calculated dynamically
     // anything else left in the section has no defined meaning
     skip_until( Input, "endtime" );
