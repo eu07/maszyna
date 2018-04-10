@@ -225,6 +225,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::fuelpumptoggle, &TTrain::OnCommand_fuelpumptoggle },
     { user_command::fuelpumpenable, &TTrain::OnCommand_fuelpumpenable },
     { user_command::fuelpumpdisable, &TTrain::OnCommand_fuelpumpdisable },
+    { user_command::oilpumptoggle, &TTrain::OnCommand_oilpumptoggle },
+    { user_command::oilpumpenable, &TTrain::OnCommand_oilpumpenable },
+    { user_command::oilpumpdisable, &TTrain::OnCommand_oilpumpdisable },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
     { user_command::converterenable, &TTrain::OnCommand_converterenable },
     { user_command::converterdisable, &TTrain::OnCommand_converterdisable },
@@ -1981,17 +1984,15 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
 
         if( Train->m_linebreakerstate == 1 ) { return; } // already in the desired state
 
-        if( Train->m_linebreakerstate > 1 ) {
+        if( Train->m_linebreakerstate == 2 ) {
             // we don't need to start the diesel twice, but the other types (with impulse switch setup) still need to be launched
             if( ( Train->mvControlled->EngineType != DieselEngine )
              && ( Train->mvControlled->EngineType != DieselElectric ) ) {
-                if( Train->mvControlled->MainSwitch( true ) ) {
-                    // side-effects
-                    Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
-                    Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
-                    // finalize state change of the line breaker
-                    Train->m_linebreakerstate = 1;
-                }
+                // try to finalize state change of the line breaker, set the state based on the outcome
+                Train->m_linebreakerstate = (
+                    Train->mvControlled->MainSwitch( true ) ?
+                        1 :
+                        0 );
             }
         }
         // on button release reset the closing timer
@@ -2035,6 +2036,45 @@ void TTrain::OnCommand_fuelpumpdisable( TTrain *Train, command_data const &Comma
         if( false == Train->mvControlled->FuelPump.is_enabled ) { return; } // already disabled
 
         Train->mvControlled->FuelPumpSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->OilPump.is_enabled ) {
+            // turn on
+            OnCommand_oilpumpenable( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_oilpumpdisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_oilpumpenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->OilPump.is_enabled ) { return; } // already enabled
+
+        Train->mvControlled->OilPumpSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_oilpumpdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->OilPump.is_enabled ) { return; } // already disabled
+
+        Train->mvControlled->OilPumpSwitch( false );
     }
 }
 
@@ -3934,20 +3974,14 @@ bool TTrain::Update( double const Deltatime )
     }
     if( m_linebreakerstate == 2 ) {
         // for diesels and/or vehicles with toggle switch setup we complete the engine start here
-        // TBD, TODO: arrange a better way to start the diesel engines
         if( ( ggMainOnButton.SubModel == nullptr )
          || ( ( mvControlled->EngineType == DieselEngine )
            || ( mvControlled->EngineType == DieselElectric ) ) ) {
-            if( mvControlled->MainSwitch( true ) ) {
-                // side-effects
-                mvControlled->ConverterSwitch( ( ggConverterButton.GetDesiredValue() > 0.95 ) || ( mvControlled->ConverterStart == start::automatic ) );
-                mvControlled->CompressorSwitch( ggCompressorButton.GetDesiredValue() > 0.95 );
-                // finalize state change of the line breaker
-                m_linebreakerstate = 1;
-            }
-            else {
-                m_linebreakerstate = 0;
-            }
+            // try to finalize state change of the line breaker, set the state based on the outcome
+            m_linebreakerstate = (
+                mvControlled->MainSwitch( true ) ?
+                    1 :
+                    0 );
         }
     }
 
@@ -4364,7 +4398,7 @@ bool TTrain::Update( double const Deltatime )
             }
             if (ggIgnitionKey.SubModel)
             {
-                ggIgnitionKey.UpdateValue(mvControlled->dizel_enginestart);
+                ggIgnitionKey.UpdateValue(mvControlled->dizel_startup);
                 ggIgnitionKey.Update();
             }
         }
@@ -4934,6 +4968,7 @@ bool TTrain::Update( double const Deltatime )
         ggBatteryButton.Update();
 
         ggFuelPumpButton.Update();
+        ggOilPumpButton.Update();
         //------
         pyScreens.update();
     }
@@ -5979,6 +6014,7 @@ void TTrain::clear_cab_controls()
     ggIgnitionKey.Clear();
 
     ggFuelPumpButton.Clear();
+    ggOilPumpButton.Clear();
 
     btLampkaPrzetw.Clear();
     btLampkaPrzetwB.Clear();
@@ -6249,6 +6285,11 @@ void TTrain::set_cab_controls() {
         mvOccupied->FuelPump.is_enabled ?
             1.0 :
             0.0 );
+    // oil pump
+    ggOilPumpButton.PutValue(
+        mvOccupied->OilPump.is_enabled ?
+            1.0 :
+            0.0 );
     
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
@@ -6414,6 +6455,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "converteroff_sw:", ggConverterOffButton },
         { "main_sw:", ggMainButton },
         { "fuelpump_sw:", ggFuelPumpButton },
+        { "oilpump_sw:", ggOilPumpButton },
         { "radio_sw:", ggRadioButton },
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },
@@ -6572,6 +6614,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina, nullptr, 0.1);
         gauge.AssignDouble(&mvOccupied->Compressor);
+    }
+    else if( Label == "oilpress:" ) {
+        // oil pressure
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, DynamicObject->mdKabina, nullptr );
+        gauge.AssignFloat( &mvOccupied->OilPump.pressure_present );
     }
     // yB - dla drugiej sekcji
     else if (Label == "hvbcurrent1:")

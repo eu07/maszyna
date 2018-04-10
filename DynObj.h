@@ -314,12 +314,14 @@ private:
         sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
         sound_source engine { sound_placement::engine }; // generally diesel engine
         sound_source engine_ignition { sound_placement::engine }; // moved from cab
+        bool engine_state_last { false }; // helper, cached previous state of the engine
         double engine_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         sound_source engine_revving { sound_placement::engine }; // youBy
         float engine_revs_last { -1.f }; // helper, cached rpm of the engine
         float engine_revs_change { 0.f }; // recent change in engine revolutions
         sound_source engine_turbo { sound_placement::engine };
         double engine_turbo_pitch { 1.0 };
+        sound_source oil_pump { sound_placement::engine };
         sound_source transmission { sound_placement::engine };
         sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
 

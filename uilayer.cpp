@@ -420,10 +420,11 @@ ui_layer::update() {
                 // equipment flags
                 uitextline2  = ( vehicle->MoverParameters->Battery ? "B" : "." );
                 uitextline2 += ( vehicle->MoverParameters->Mains ? "M" : "." );
-                uitextline2 += ( vehicle->MoverParameters->PantRearUp ? ( vehicle->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
-                uitextline2 += ( vehicle->MoverParameters->PantFrontUp ? ( vehicle->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline2 += ( vehicle->MoverParameters->PantRearUp ? ( vehicle->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );
+                uitextline2 += ( vehicle->MoverParameters->PantFrontUp ? ( vehicle->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );
                 uitextline2 += ( vehicle->MoverParameters->PantPressLockActive ? "!" : ( vehicle->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline2 += ( vehicle->MoverParameters->FuelPump.is_enabled ? ( vehicle->MoverParameters->FuelPump.is_active ? "F" : "f" ) : "." );;
+                uitextline2 += ( vehicle->MoverParameters->FuelPump.is_enabled ? ( vehicle->MoverParameters->FuelPump.is_active ? "F" : "f" ) : "." );
+                uitextline2 += ( vehicle->MoverParameters->OilPump.is_active ? "O" : ( vehicle->MoverParameters->OilPump.is_enabled ? "o" : "." ) );
                 uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
                 uitextline2 += ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorPower > 1 ) ? ( vehicle->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
@@ -698,7 +699,10 @@ ui_layer::update() {
                     VelPrev = vehicle->MoverParameters->Vel;
                 }
                 uitextline2 += "; As=" + to_string( Acc, 2 ); // przyspieszenie wzdłużne
+/*
                 uitextline2 += " eAngle=" + to_string( std::cos( vehicle->MoverParameters->eAngle ), 2 );
+*/
+                uitextline2 += " oilP=" + to_string( vehicle->MoverParameters->OilPump.pressure_present, 3 );
 
                 uitextline3 =
                     "cyl.ham. " + to_string( vehicle->MoverParameters->BrakePress, 2 )

@@ -2225,8 +2225,12 @@ bool TController::PrepareEngine()
     }
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
-        mvOccupied->BatterySwitch(true);
-        mvOccupied->FuelPumpSwitch( true );
+        mvOccupied->BatterySwitch( true );
+        if( ( mvOccupied->EngineType == DieselElectric )
+         || ( mvOccupied->EngineType == DieselEngine ) ) {
+            mvOccupied->FuelPumpSwitch( true );
+            mvOccupied->OilPumpSwitch( true );
+        }
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
             mvControlling->PantFront( true );
@@ -2294,7 +2298,7 @@ bool TController::PrepareEngine()
             else if (false == mvControlling->Mains) {
                 while (DecSpeed(true))
                     ; // zerowanie napędu
-
+/*
                 if( ( mvOccupied->EngineType == DieselEngine )
                  || ( mvOccupied->EngineType == DieselElectric ) ) {
                     // start helper devices before spinning up the engine
@@ -2302,6 +2306,7 @@ bool TController::PrepareEngine()
                     mvOccupied->ConverterSwitch( true );
                     mvOccupied->CompressorSwitch( true );
                 }
+*/
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
                     if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {

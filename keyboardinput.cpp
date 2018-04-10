@@ -261,6 +261,12 @@ keyboard_input::default_bindings() {
         { -1 },
         // fuelpumpdisable,
         { -1 },
+        // oilpumptoggle
+        { GLFW_KEY_F | keymodifier::shift },
+        // oilpumpenable,
+        { -1 },
+        // oilpumpdisable,
+        { -1 },
         // linebreakertoggle
         { GLFW_KEY_M },
         // linebreakeropen

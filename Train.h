@@ -216,6 +216,9 @@ class TTrain
     static void OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_fuelpumpenable( TTrain *Train, command_data const &Command );
     static void OnCommand_fuelpumpdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_oilpumpenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_oilpumpdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_converterenable( TTrain *Train, command_data const &Command );
     static void OnCommand_converterdisable( TTrain *Train, command_data const &Command );
@@ -406,6 +409,7 @@ public: // reszta może by?publiczna
     TGauge ggDoorSignallingButton;
 
     TGauge ggFuelPumpButton; // fuel pump switch
+    TGauge ggOilPumpButton; // fuel pump switch
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;

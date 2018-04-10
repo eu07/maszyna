@@ -246,6 +246,9 @@ mouse_input::default_bindings() {
         { "fuelpump_sw:", {
             user_command::fuelpumptoggle,
             user_command::none } },
+        { "oilpump_sw:", {
+            user_command::oilpumptoggle,
+            user_command::none } },
         { "main_off_bt:", {
             user_command::linebreakeropen,
             user_command::none } },

@@ -1554,6 +1554,10 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 // sprawdzanie przetwornicy
 void TMoverParameters::ConverterCheck( double const Timestep ) {
     // TODO: move other converter checks here, to have it all in one place for potential device object
+    if( ConverterStart == start::automatic ) {
+        ConverterAllow = Mains;
+    }
+
     if( ( ConverterAllow )
      && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
@@ -1575,10 +1579,55 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
 // fuel pump status update
 void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 
+    if( FuelPump.start_type == start::automatic ) {
+        FuelPump.is_enabled = ( dizel_startup || Mains );
+    }
     FuelPump.is_active = (
         ( true == FuelPump.is_enabled )
      && ( true == Battery ) );
 }
+
+// oil pump status update
+void TMoverParameters::OilPumpCheck( double const Timestep ) {
+
+    OilPump.is_active =
+        ( ( true == Battery )
+       && ( OilPump.start_type == start::manual ? ( OilPump.is_enabled ) :
+            OilPump.start_type == start::automatic ? ( dizel_startup || Mains ) :
+            OilPump.start_type == start::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup || Mains ) :
+            false ) ); // shouldn't ever get this far but, eh
+
+    auto const maxrevolutions {
+        EngineType == DieselEngine ?
+            dizel_nmax :
+            DElist[ MainCtrlPosNo ].RPM / 60.0 };
+    auto const minpressure {
+        OilPump.pressure_minimum > 0.f ?
+            OilPump.pressure_minimum :
+            0.1f }; // arbitrary fallback value
+    auto const maxpressure { 0.65f }; // arbitrary value
+
+    OilPump.pressure_target = (
+        false == OilPump.is_active ? 0.f :
+        enrot > 0.1 ? std::max<float>( minpressure, maxpressure * clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) * OilPump.resource_amount :
+        minpressure );
+
+    if( OilPump.pressure_present < OilPump.pressure_target ) {
+        // TODO: scale change rate from 0.01-0.05 with oil/engine temperature/idle time
+        OilPump.pressure_present =
+            std::min<float>(
+                OilPump.pressure_target,
+                OilPump.pressure_present + ( enrot > 5.0 ? 0.05 : 0.035 ) * Timestep );
+    }
+    if( OilPump.pressure_present > OilPump.pressure_target ) {
+        OilPump.pressure_present =
+            std::max<float>(
+                OilPump.pressure_target,
+                OilPump.pressure_present - 0.01 * Timestep );
+    }
+    OilPump.pressure_present = clamp( OilPump.pressure_present, 0.f, 1.5f );
+}
+
 
 double TMoverParameters::ShowCurrent(int AmpN)
 { // Odczyt poboru prądu na podanym amperomierzu
@@ -2372,13 +2421,38 @@ bool TMoverParameters::FuelPumpSwitch( bool State, int const Notify ) {
     return ( FuelPump.is_enabled != initialstate );
 }
 
+// oil pump state toggle
+bool TMoverParameters::OilPumpSwitch( bool State, int const Notify ) {
+
+    if( OilPump.start_type == start::automatic ) {
+        // automatic pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { OilPump.is_enabled };
+
+    OilPump.is_enabled = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "OilPumpSwitch",
+            ( OilPump.is_enabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( OilPump.is_enabled != initialstate );
+}
+
 // *************************************************************************************************
 // Q: 20160713
 // włączenie / wyłączenie obwodu głownego
 // *************************************************************************************************
 bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 {
-    bool const initialstate { Mains };
+    bool const initialstate { Mains || dizel_startup };
 
     if( ( Mains != State )
      && ( MainCtrlPosNo > 0 ) ) {
@@ -2394,17 +2468,8 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
                 // switch on
                 if( ( EngineType == DieselEngine )
                  || ( EngineType == DieselElectric ) ) {
-
-                    if( true == FuelPump.start_type == start::automatic ) {
-                        // potentially force start of the fuel pump
-                        // TODO: the whole diesel start sequence is a special kind of a mess, clean it up when refactoring
-                        FuelPump.is_enabled = true;
-                        FuelPumpCheck( 0.0 );
-                    }
-                    if( true == FuelPump.is_active ) {
-                        Mains = true;
-                        dizel_enginestart = true;
-                    }
+                    // launch diesel engine startup procedure
+                    dizel_startup = true;
                 }
                 else {
                     Mains = true;
@@ -2412,10 +2477,6 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
             }
             else {
                 Mains = false;
-                if( true == FuelPump.start_type == start::automatic ) {
-                    // if the engine is off, switch off automatic fuel pump
-                    FuelPump.is_enabled = false;
-                }
             }
 
             if( ( TrainType == dt_EZT )
@@ -2438,11 +2499,10 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
                         coupling::control | coupling::permanent :
                         coupling::control ) );
             }
-
         }
     }
-    // else MainSwitch:=false;
-    return ( Mains != initialstate );
+
+    return ( ( Mains || dizel_startup ) != initialstate );
 }
 
 // *************************************************************************************************
@@ -2457,8 +2517,6 @@ bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
     {
         ConverterAllow = State;
         CS = true;
-        if (CompressorPower == 2)
-            CompressorAllow = ConverterAllow;
     }
     if( ConverterAllow == true ) {
         if( Notify != range::local ) {
@@ -2488,11 +2546,13 @@ bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
 // *************************************************************************************************
 bool TMoverParameters::CompressorSwitch( bool State, int const Notify )
 {
+    if( CompressorPower > 1 ) {
+        // only pay attention if the compressor can be controlled manually
+        return false;
+    }
+
     bool CS = false; // Ra: normalnie chyba tak?
-    // if State=true then
-    //  if ((CompressorPower=2) and (not ConverterAllow)) then
-    //   State:=false; //yB: to juz niepotrzebne
-    if ((CompressorAllow != State) && (CompressorPower < 2))
+    if ( CompressorAllow != State )
     {
         CompressorAllow = State;
         CS = true;
@@ -3094,6 +3154,10 @@ void TMoverParameters::CompressorCheck(double dt)
         CompressorGovernorLock = false;
     }
 
+    if( CompressorPower == 2 ) {
+        CompressorAllow = ConverterAllow;
+    }
+
     if (MaxCompressor - MinCompressor < 0.0001) {
         // TODO: investigate purpose of this branch and whether it can be removed as it duplicates later code
         if( ( true == CompressorAllow )
@@ -3124,10 +3188,7 @@ void TMoverParameters::CompressorCheck(double dt)
         }
     }
     else {
-        if( ( ( CompressorPower == 0 )
-           || ( CompressorPower == 3 ) )
-         && ( ( EngineType == DieselEngine )
-           || ( EngineType == DieselElectric ) ) ) {
+        if( CompressorPower == 3 ) {
             // experimental: make sure compressor coupled with diesel engine is always ready for work
             CompressorAllow = true;
         }
@@ -3167,10 +3228,7 @@ void TMoverParameters::CompressorCheck(double dt)
             if( Compressor > MaxCompressor ) {
                 // wyłącznik ciśnieniowy jest niezależny od sposobu zasilania
                 // TBD, TODO: don't operate the lock without battery power?
-                if( ( ( CompressorPower == 0 )
-                   || ( CompressorPower == 3 ) )
-                 && ( ( EngineType == DieselEngine )
-                   || ( EngineType == DieselElectric ) ) ) {
+                if( CompressorPower == 3 ) {
                     // if the compressor is powered directly by the engine the lock can't turn it off and instead just changes the output
                     if( false == CompressorGovernorLock ) {
                         // emit relay sound when the lock engages (the state change itself is below) and presumably changes where the air goes
@@ -3270,42 +3328,29 @@ void TMoverParameters::CompressorCheck(double dt)
         }
 
         if( CompressorFlag ) {
-            if( ( EngineType == DieselElectric )
-             && ( ( CompressorPower == 0 )
-               || ( CompressorPower == 3 ) ) ) {
+            // working compressor adds air to the air reservoir
+            if( CompressorPower == 3 ) {
+                // the compressor is coupled with the diesel engine, engine revolutions affect the output
                 if( false == CompressorGovernorLock ) {
+                    auto const enginefactor { (
+                        EngineType == DieselElectric ? ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM ) :
+                        EngineType == DieselEngine ? ( std::abs( enrot ) / nmax ) :
+                        1.0 ) }; // shouldn't ever get here but, eh
                     CompressedVolume +=
                         CompressorSpeed
                         * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
-                        * ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM )
+                        * enginefactor
                         * dt;
                 }
 /*
                 else {
-                    // the lock is active, air is being vented out
-                    CompressedVolume -= 0.1 * dt;
-                }
-*/
-            }
-            else if( ( EngineType == DieselEngine )
-                  && ( ( CompressorPower == 0 )
-                    || ( CompressorPower == 3 ) ) ) {
-                if( false == CompressorGovernorLock ) {
-                    // experimental: compressor coupled with diesel engine, output scaled by current engine rotational speed
-                    CompressedVolume +=
-                        CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
-                        * ( std::abs( enrot ) / nmax )
-                        * dt;
-                }
-/*
-                else {
-                    // the lock is active, air is being vented out
-                    CompressedVolume -= 0.1 * dt;
+                      // the lock is active, air is being vented out at arbitrary rate
+                    CompressedVolume -= 0.01 * dt;
                 }
 */
             }
             else {
+                // the compressor is a stand-alone device, working at steady pace
                 CompressedVolume +=
                     CompressorSpeed
                     * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
@@ -5780,32 +5825,67 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
     return OK;
 }
 
+// performs diesel engine startup procedure; potentially clears startup switch; returns: true if the engine can be started, false otherwise
+bool TMoverParameters::dizel_StartupCheck() {
+
+    auto engineisready { true }; // make inital optimistic presumption, then watch the reality crush it
+
+    // test the fuel pump
+    if( false == FuelPump.is_active ) {
+        engineisready = false;
+        if( FuelPump.start_type == start::manual ) {
+            // with manual pump control startup procedure is done only once per starter switch press
+            dizel_startup = false;
+        }
+    }
+    // test the oil pump
+    if( ( false == OilPump.is_active )
+     || ( OilPump.pressure_present < OilPump.pressure_minimum ) ) {
+        engineisready = false;
+        if( OilPump.start_type == start::manual ) {
+            // with manual pump control startup procedure is done only once per starter switch press
+            dizel_startup = false;
+        }
+    }
+
+    return engineisready;
+}
+
 // *************************************************************************************************
 // Q: 20160715
 // Aktualizacja stanu silnika
 // *************************************************************************************************
-bool TMoverParameters::dizel_Update(double dt)
-{
+bool TMoverParameters::dizel_Update(double dt) {
+
+    OilPumpCheck( dt );
     FuelPumpCheck( dt );
-    // potentially automatic engine start after fuel pump was activated
-    if( ( true == Mains )
-     && ( false == FuelPump.is_active ) ) {
-        // knock out the engine if the fuel pump isn't feeding it
-        // TBD, TODO: grace period before the engine is starved for fuel and knocked out
-        MainSwitch( false );
+    if( ( true == dizel_startup )
+     && ( true == dizel_StartupCheck() ) ) {
+        dizel_ignition = true;
     }
 
-    if( ( true == dizel_enginestart )
+    if( ( true == dizel_ignition )
      && ( LastSwitchingTime >= InitialCtrlDelay ) ) {
-        dizel_enginestart = false;
-        LastSwitchingTime = 0;
 
+        dizel_startup = false;
+        dizel_ignition = false;
+        // TODO: split engine and main circuit state indicator in two separate flags
+        Mains = true;
+        LastSwitchingTime = 0;
         enrot = std::max(
             enrot,
             0.35 * ( // TODO: dac zaleznie od temperatury i baterii
                 EngineType == DieselEngine ?
                     dizel_nmin :
                     DElist[ 0 ].RPM / 60.0 ) );
+
+    }
+
+    if( ( true == Mains )
+     && ( false == FuelPump.is_active ) ) {
+        // knock out the engine if the fuel pump isn't feeding it
+        // TBD, TODO: grace period before the engine is starved for fuel and knocked out
+        MainSwitch( false );
     }
 
     bool DU { false };
@@ -5832,9 +5912,11 @@ double TMoverParameters::dizel_fillcheck(int mcp)
      && ( MainCtrlPosNo > 0 )
      && ( true == FuelPump.is_active ) ) {
 
-        if( ( true == dizel_enginestart )
+        if( ( true == dizel_ignition )
          && ( LastSwitchingTime >= 0.9 * InitialCtrlDelay ) ) {
             // wzbogacenie przy rozruchu
+            // NOTE: ignition flag is reset before this code is executed
+            // TODO: sort this out
             realfill = 1;
         }
         else {
@@ -5899,7 +5981,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
         // wstrzymywanie przy malych obrotach
         Moment -= dizel_Mstand;
     }
-	if (true == dizel_enginestart)
+	if (true == dizel_ignition)
 		Moment += dizel_Mstand / (0.3 + std::max(0.0, enrot/dizel_nmin)); //rozrusznik
 
 	dizel_Torque = Moment;
@@ -6010,7 +6092,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	}
 
 
-	if ((enrot <= 0) && (!dizel_enginestart))
+	if ((enrot <= 0) && (!dizel_ignition))
 	{
 		Mains = false;
 		enrot = 0;
@@ -7680,6 +7762,19 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 start::manual;
     }
 
+    // oil pump
+    {
+        std::map<std::string, start> starts {
+            { "Manual", start::manual },
+            { "Automatic", start::automatic },
+            { "Mixed", start::manualwithautofallback }
+        };
+        auto lookup = starts.find( extract_value( "OilStart", line ) );
+        OilPump.start_type =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
 }
 
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
@@ -7833,6 +7928,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 					extract_value(hydro_R_MinVel, "R_MinVel", Input, "");
 				}
 			}
+            extract_value( OilPump.pressure_minimum, "MinOilPressure", Input, "" );
             break;
         }
         case DieselElectric: { //youBy
@@ -7853,6 +7949,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 ImaxHi = 2;
                 ImaxLo = 1;
             }
+            extract_value( OilPump.pressure_minimum, "OilMinPressure", Input, "" );
             break;
         }
         case ElectricInductionMotor: {
@@ -8131,6 +8228,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	AutoRelayFlag = (AutoRelayType == 1);
 
 	Sand = SandCapacity;
+
+    // NOTE: for diesel-powered vehicles we automatically convert legacy "main" power source to more accurate "engine"
+    if( ( CompressorPower == 0 )
+     && ( ( EngineType == DieselEngine )
+       || ( EngineType == DieselElectric ) ) ) {
+        CompressorPower = 3;
+    }
 
 	// WriteLog("aa = " + AxleArangement + " " + std::string( Pos("o", AxleArangement)) );
 
@@ -8574,22 +8678,20 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
+    else if (Command == "OilPumpSwitch") {
+        if( OilPump.start_type == start::manual ) {
+            // automatic pump ignores 'manual' state commands
+            OilPump.is_enabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+	}
 	else if (Command == "MainSwitch")
 	{
 		if (CValue1 == 1) {
 
             if( ( EngineType == DieselEngine )
              || ( EngineType == DieselElectric ) ) {
-                if( true == FuelPump.start_type == start::automatic ) {
-                    // potentially force start of the fuel pump
-                    // TODO: the whole diesel start sequence is a special kind of mess, clean it up when refactoring
-                    FuelPump.is_enabled = true;
-                    FuelPumpCheck( 0.0 );
-                }
-                if( true == FuelPump.is_active ) {
-                    Mains = true;
-                    dizel_enginestart = true;
-                }
+                dizel_startup = true;
             }
             else {
                 Mains = true;
@@ -8597,10 +8699,6 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		}
         else {
             Mains = false;
-            if( true == FuelPump.start_type == start::automatic ) {
-                // if the engine is off, switch off automatic fuel pump
-                FuelPump.is_enabled = false;
-            }
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
