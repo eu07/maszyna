@@ -30,6 +30,7 @@ static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "brakeprofiler_sw:", "brake acting speed: rapid" },
     { "maxcurrent_sw:", "motor overload relay threshold" },
     { "fuelpump_sw:", "fuel pump" },
+    { "oilpump_sw:", "oil pump" },
     { "main_off_bt:", "line breaker" },
     { "main_on_bt:", "line breaker" },
     { "security_reset_bt:", "alerter" },

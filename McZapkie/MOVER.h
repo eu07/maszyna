@@ -164,7 +164,8 @@ enum range {
 // start method for devices; exclusive
 enum start {
     manual,
-    automatic
+    automatic,
+    manualwithautofallback
 };
 // recognized vehicle light locations and types; can be combined
 enum light {
@@ -626,6 +627,19 @@ struct fuel_pump {
     start start_type { start::manual };
 };
 
+// basic approximation of a fuel pump
+// TODO: fuel consumption, optional automatic engine start after activation
+struct oil_pump {
+
+    bool is_enabled { false }; // device is allowed/requested to operate
+    bool is_active { false }; // device is working
+    start start_type { start::manual };
+    float resource_amount { 1.f };
+    float pressure_minimum { 0.f }; // lowest acceptable working pressure
+    float pressure_target { 0.f };
+    float pressure_present { 0.f };
+};
+
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 public:
@@ -913,6 +927,7 @@ public:
     bool ConverterAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
     fuel_pump FuelPump;
+    oil_pump OilPump;
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1010,7 +1025,8 @@ public:
 	double dizel_engagestate = 0.0; /*sprzeglo skrzyni biegow: 0 - luz, 1 - wlaczone, 0.5 - wlaczone 50% (z poslizgiem)*/
 	double dizel_engage = 0.0; /*sprzeglo skrzyni biegow: aktualny docisk*/
 	double dizel_automaticgearstatus = 0.0; /*0 - bez zmiany, -1 zmiana na nizszy +1 zmiana na wyzszy*/
-	bool dizel_enginestart = false;      /*czy trwa rozruch silnika*/
+    bool dizel_startup { false }; // engine startup procedure request indicator
+	bool dizel_ignition = false; // engine ignition request indicator
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
 	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
 	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
@@ -1200,6 +1216,7 @@ public:
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
     bool FuelPumpSwitch( bool State, int const Notify = range::consist ); // fuel pump state toggle
+    bool OilPumpSwitch( bool State, int const Notify = range::consist ); // oil pump state toggle
     bool MainSwitch( bool const State, int const Notify = range::consist );/*! wylacznik glowny*/
     bool ConverterSwitch( bool State, int const Notify = range::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, int const Notify = range::consist );/*! wl/wyl sprezarki*/
@@ -1207,7 +1224,8 @@ public:
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck( double const Timestep ); // przetwornica
     void FuelPumpCheck( double const Timestep );
-	bool FuseOn(void); //bezpiecznik nadamiary
+    void OilPumpCheck( double const Timestep );
+    bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
     double ShowCurrent( int AmpN ); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
@@ -1238,7 +1256,8 @@ public:
 	bool dizel_AutoGearCheck(void);
 	double dizel_fillcheck(int mcp);
 	double dizel_Momentum(double dizel_fill, double n, double dt);
-	bool dizel_Update(double dt);
+    bool dizel_StartupCheck();
+    bool dizel_Update(double dt);
 
 	/* funckje dla wagonow*/
 	bool LoadingDone(double LSpeed, std::string LoadInit);

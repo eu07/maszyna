@@ -4892,6 +4892,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.engine_revving.owner( this );
                 }
 
+                else if( token == "oilpump:" ) {
+                    // plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
+                    m_powertrainsounds.oil_pump.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.oil_pump.owner( this );
+                }
+
                 else if( ( token == "tractionmotor:" )
                       && ( MoverParameters->Power > 0 ) ) {
                     // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
@@ -5948,9 +5954,37 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     double frequency { 1.0 };
     double volume { 0.0 };
 
+    // oil pump
+    if( true == Vehicle.OilPump.is_active ) {
+        oil_pump
+            .pitch( oil_pump.m_frequencyoffset + oil_pump.m_frequencyfactor * 1.f )
+            .gain( oil_pump.m_amplitudeoffset + oil_pump.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        oil_pump.stop();
+    }
+
     // engine sounds
-    if( ( true == Vehicle.Mains )
-     && ( false == Vehicle.dizel_enginestart ) ) {
+    // ignition
+    if( engine_state_last != Vehicle.Mains ) {
+
+        if( true == Vehicle.Mains ) {
+           // main circuit/engine activation
+           // TODO: separate engine and main circuit
+            engine_ignition
+                .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
+                .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
+                .play( sound_flags::exclusive );
+        }
+        else {
+            // main circuit/engine deactivation
+            engine_ignition.stop();
+        }
+        engine_state_last = Vehicle.Mains;
+    }
+    // main engine sound
+    if( true == Vehicle.Mains ) {
 
         if( ( std::fabs( Vehicle.enrot ) > 0.01 )
             // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
@@ -6062,7 +6096,6 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         engine.stop();
     }
 
-
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
@@ -6104,19 +6137,6 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         }
     }
 
-    // diesel startup
-    if( ( Vehicle.EngineType == DieselEngine )
-     || ( Vehicle.EngineType == DieselElectric ) ) {
-
-        if( true == Vehicle.dizel_enginestart ) {
-            engine_ignition
-                .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
-                .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
-                .play( sound_flags::exclusive );
-        }
-    }
-
-
     if( Vehicle.dizel_engage > 0.1 ) {
         if( std::abs( Vehicle.dizel_engagedeltaomega ) > 0.2 ) {
             frequency = rsEngageSlippery.m_frequencyoffset + rsEngageSlippery.m_frequencyfactor * std::fabs( Vehicle.dizel_engagedeltaomega );
@@ -6142,7 +6162,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // motor sounds
     volume = 0.0;
     if( ( true == Vehicle.Mains )
-     && ( false == Vehicle.dizel_enginestart )
+     && ( false == Vehicle.dizel_ignition )
      && ( false == motors.empty() ) ) {
 
         if( std::fabs( Vehicle.enrot ) > 0.01 ) {
