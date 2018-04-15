@@ -2728,13 +2728,14 @@ bool TController::IncSpeed()
             {
                 OK = mvControlling->IncMainCtrl(std::max(1,mvOccupied->MainCtrlPosNo/10));
 				//tutaj jeszcze powinien być tempomat
-				mvControlling->IncScndCtrl(1);
+
 				double SpeedCntrl = VelDesired;
 				if (fProximityDist < 50)
 				{
 					SpeedCntrl = std::min(SpeedCntrl, VelNext);
 				}
-				mvControlling->RunCommand("SpeedCntrl", VelDesired, mvControlling->CabNo);
+				this->SpeedCntrl(SpeedCntrl);
+
             }
         break;
     case WheelsDriven:
@@ -3009,6 +3010,21 @@ void TController::SpeedSet()
             }
         break;
     }
+};
+
+void TController::SpeedCntrl(double DesiredSpeed)
+{
+	if (mvControlling->ScndCtrlPosNo == 1)
+	{
+		mvControlling->IncScndCtrl(1);
+		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
+	}
+	else if (mvControlling->ScndCtrlPosNo > 1)
+	{
+		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
+		while (mvControlling->ScndCtrlPos > DesiredPos) mvControlling->DecScndCtrl(1);
+		while (mvControlling->ScndCtrlPos < DesiredPos) mvControlling->IncScndCtrl(1);
+	}
 };
 
 // otwieranie/zamykanie drzwi w składzie albo (tylko AI) EZT

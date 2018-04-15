@@ -304,6 +304,7 @@ private:
     bool IncSpeed();
     bool DecSpeed(bool force = false);
     void SpeedSet();
+	void SpeedCntrl(double DesiredSpeed);
     void Doors(bool const Open, int const Side = 0);
     // returns true if any vehicle in the consist has an open door
     bool doors_open() const;

@@ -2002,7 +2002,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == ElectricInductionMotor))
+	if ((OK) && (EngineType == ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
@@ -2060,7 +2060,7 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDownDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == ElectricInductionMotor))
+	if ((OK) && (EngineType == ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
 		ScndCtrlActualPos = 0;
 		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
@@ -4992,6 +4992,32 @@ double TMoverParameters::TractionForce(double dt)
             }
             if( true == Mains ) {
 
+				//tempomat
+
+				if (ScndCtrlPosNo > 1)
+				{
+					if (ScndCtrlPos != NewSpeed)
+					{
+
+						SpeedCtrlTimer = 0;
+						NewSpeed = ScndCtrlPos;
+					}
+					else
+					{
+						SpeedCtrlTimer += dt;
+						if (SpeedCtrlTimer > SpeedCtrlDelay)
+						{
+							int NewSCAP = (Vmax < 250 ? 1 : 0.5) * (float)ScndCtrlPos / (float)ScndCtrlPosNo * Vmax;
+							if (NewSCAP != ScndCtrlActualPos)
+							{
+								ScndCtrlActualPos = NewSCAP;
+								SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+							}
+						}
+					}
+				}
+
+
                 dtrans = Hamulec->GetEDBCP();
                 if (((DoorLeftOpened) || (DoorRightOpened)))
                     DynamicBrakeFlag = true;
@@ -5031,7 +5057,7 @@ double TMoverParameters::TractionForce(double dt)
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
-                    if (ScndCtrlActualPos > 0)
+                    if (ScndCtrlActualPos > 0) //speed control
                         if (Vmax < 250)
                             PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos - Vel)));
                         else
@@ -8092,6 +8118,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         0;
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
+
+    // speed control
+    extract_value( SpeedCtrlDelay, "SpeedCtrlDelay", line, "" );
 
     // converter
     {

@@ -940,6 +940,7 @@ public:
 	double PlatformMaxShift = 0.5; /*wysuniecie stopnia*/
 	int PlatformOpenMethod = 1; /*sposob animacji stopnia*/
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
+	double SpeedCtrlDelay = 2; /*opoznienie dzialania tempomatu z wybieralna predkoscia*/
     /*--sekcja zmiennych*/
     /*--opis konkretnego egzemplarza taboru*/
 	TLocation Loc; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
@@ -1127,6 +1128,8 @@ public:
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimv[21];
     static std::vector<std::string> const eimv_labels;
+	double SpeedCtrlTimer = 0; /*zegar dzialania tempomatu z wybieralna predkoscia*/
+	double NewSpeed = 0; /*nowa predkosc do zadania*/
 
 	/*-zmienne dla drezyny*/
 	double PulseForce = 0.0;        /*przylozona sila*/
