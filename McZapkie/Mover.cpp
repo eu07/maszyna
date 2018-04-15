@@ -6148,7 +6148,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
     double Moment = 0, enMoment = 0, gearMoment = 0, eps = 0, newn = 0, friction = 0, neps = 0;
 	double TorqueH = 0, TorqueL = 0, TorqueC = 0;
 	n = n * CabNo;
-	if (MotorParam[ScndCtrlActualPos].mIsat < 0.001)
+	if ((MotorParam[ScndCtrlActualPos].mIsat < 0.001)||(ActiveDir == 0))
 		n = enrot;
     friction = dizel_engagefriction;
 	hydro_TC_nIn = enrot; //wal wejsciowy przetwornika momentu
@@ -6260,7 +6260,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		}
 		eps = enMoment / dizel_AIM;
 		newn = enrot + eps * dt;
-		if ((newn - n)*(enrot - dizel_n_old) < 0) //przejscie przez zero - slizgalo sie i przestało
+		if (((newn - n)*(enrot - dizel_n_old) < 0)&&(TorqueC>0.1)) //przejscie przez zero - slizgalo sie i przestało
 			newn = n;
 		if ((newn * enrot <= 0) && (eps * enrot < 0)) //przejscie przez zero obrotow
 			newn = 0;
