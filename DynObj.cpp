@@ -1978,7 +1978,34 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             if( Random( 0, 100 ) <= flatchance ) {
                 MoverParameters->WheelFlat += fixedflatsize + Random( 0, randomflatsize );
             }
-        }
+        } // wheel
+        else if( ( ActPar.size() >= 2 )
+              && ( ActPar[ 0 ] == 'T' ) ) {
+            // temperature
+            ActPar.erase( 0, 1 );
+
+            auto setambient { false };
+
+            while( false == ActPar.empty() ) {
+                switch( ActPar[ 0 ] ) {
+                    case 'A': {
+                        // cold start, set all temperatures to ambient level
+                        setambient = true;
+                        ActPar.erase( 0, 1 );
+                        break;
+                    }
+                    default: {
+                        // unrecognized key
+                        ActPar.erase( 0, 1 );
+                        break;
+                    }
+                }
+            }
+            if( true == setambient ) {
+                // TODO: pull ambient temperature from environment data
+                MoverParameters->dizel_HeatSet( 15.f );
+            }
+        } // temperature
 /*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
@@ -2707,7 +2734,7 @@ histerezę czasową, aby te tryby pracy nie przełączały się zbyt szybko.
 
 bool TDynamicObject::Update(double dt, double dt1)
 {
-    if (dt == 0)
+    if (dt1 == 0)
         return true; // Ra: pauza
     if (!MoverParameters->PhysicActivation &&
         !MechInside) // to drugie, bo będąc w maszynowym blokuje się fizyka
@@ -2867,7 +2894,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 tmpTraction.TractionVoltage = v;
             }
             else {
-                NoVoltTime += dt;
+                NoVoltTime += dt1;
                 if( NoVoltTime > 0.2 ) {
                     // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
                     // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem

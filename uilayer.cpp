@@ -423,7 +423,9 @@ ui_layer::update() {
                 uitextline2 += ( vehicle->MoverParameters->PantRearUp ? ( vehicle->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );
                 uitextline2 += ( vehicle->MoverParameters->PantFrontUp ? ( vehicle->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );
                 uitextline2 += ( vehicle->MoverParameters->PantPressLockActive ? "!" : ( vehicle->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline2 += ( vehicle->MoverParameters->FuelPump.is_enabled ? ( vehicle->MoverParameters->FuelPump.is_active ? "F" : "f" ) : "." );
+                uitextline2 += ( vehicle->MoverParameters->WaterPump.is_active ? "W" : ( false == vehicle->MoverParameters->WaterPump.breaker ? "-" : ( vehicle->MoverParameters->WaterPump.is_enabled ? "w" : "." ) ) );
+                uitextline2 += ( true == vehicle->MoverParameters->WaterHeater.is_damaged ? "!" : ( vehicle->MoverParameters->WaterHeater.is_active ? "H" : ( false == vehicle->MoverParameters->WaterHeater.breaker ? "-" : ( vehicle->MoverParameters->WaterHeater.is_enabled ? "h" : "." ) ) ) );
+                uitextline2 += ( vehicle->MoverParameters->FuelPump.is_active ? "F" : ( vehicle->MoverParameters->FuelPump.is_enabled ? "f" : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->OilPump.is_active ? "O" : ( vehicle->MoverParameters->OilPump.is_enabled ? "o" : "." ) );
                 uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
@@ -673,7 +675,8 @@ ui_layer::update() {
                     + ", PM=" + to_string( vehicle->MoverParameters->WheelFlat, 1 )
                     + " mm; enrot=" + to_string( vehicle->MoverParameters->enrot * 60, 0 )
                     + " tmrot=" + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 )
-                    + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot * 60, 1 );
+                    + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot * 60, 1 )
+                    + "; fanrot=" + to_string( vehicle->MoverParameters->dizel_heat.rpmw, 1 ) + ", " + to_string( vehicle->MoverParameters->dizel_heat.rpmw2, 1 );
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
@@ -702,7 +705,12 @@ ui_layer::update() {
 /*
                 uitextline2 += " eAngle=" + to_string( std::cos( vehicle->MoverParameters->eAngle ), 2 );
 */
-                uitextline2 += " oilP=" + to_string( vehicle->MoverParameters->OilPump.pressure_present, 3 );
+                uitextline2 += "; oilP=" + to_string( vehicle->MoverParameters->OilPump.pressure_present, 3 );
+                uitextline2 += " oilT=" + to_string( vehicle->MoverParameters->dizel_heat.To, 2 );
+                uitextline2 += "; waterT=" + to_string( vehicle->MoverParameters->dizel_heat.temperatura1, 2 );
+                uitextline2 += ( vehicle->MoverParameters->WaterCircuitsLink ? "-" : "|" );
+                uitextline2 += to_string( vehicle->MoverParameters->dizel_heat.temperatura2, 2 );
+                uitextline2 += "; engineT=" + to_string( vehicle->MoverParameters->dizel_heat.Ts, 2 );
 
                 uitextline3 =
                     "cyl.ham. " + to_string( vehicle->MoverParameters->BrakePress, 2 )

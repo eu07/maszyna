@@ -165,7 +165,8 @@ enum range {
 enum start {
     manual,
     automatic,
-    manualwithautofallback
+    manualwithautofallback,
+    battery
 };
 // recognized vehicle light locations and types; can be combined
 enum light {
@@ -640,6 +641,78 @@ struct oil_pump {
     float pressure_present { 0.f };
 };
 
+struct water_pump {
+
+    bool breaker { true }; // device is allowed to operate
+    bool is_enabled { false }; // device is requested to operate
+    bool is_active { false }; // device is working
+    start start_type { start::manual };
+};
+
+struct water_heater {
+
+    bool breaker { true }; // device is allowed to operate
+    bool is_enabled { false }; // device is requested to operate
+    bool is_active { false }; // device is working
+    bool is_damaged { false }; // device is damaged
+
+    struct heater_config_t {
+        float temp_min { -1 }; // lowest accepted temperature
+        float temp_max { -1 }; // highest accepted temperature
+    } config;
+};
+
+struct heat_data {
+    // input, state of relevant devices
+    bool cooling { false }; // TODO: user controlled device, implement
+//    bool okienko { true }; // window in the engine compartment
+    // system configuration
+    bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
+    // heat exchange factors
+    double kw { 0.35 };
+    double kv { 0.6 };
+    double kfe { 1.0 };
+    double kfs { 80.0 };
+    double kfo { 25.0 };
+    double kfo2 { 25.0 };
+    // system parts
+    struct fluid_circuit_t {
+
+        struct circuit_config_t {
+            float temp_min { -1 }; // lowest accepted temperature
+            float temp_max { -1 }; // highest accepted temperature
+            float temp_cooling { -1 }; // active cooling activation point
+            float temp_flow { -1 }; // fluid flow activation point
+            bool shutters { false }; // the radiator has shutters to assist the cooling
+        } config;
+        bool is_cold { false }; // fluid is too cold
+        bool is_warm { false }; // fluid is too hot
+        bool is_hot { false }; // fluid temperature crossed cooling threshold
+        bool is_flowing { false }; // fluid is being pushed through the circuit
+    }   water,
+        water_aux,
+        oil;
+    // output, state of affected devices
+    bool PA { false }; // malfunction flag
+    float rpmw { 0.0 }; // current main circuit fan revolutions
+    float rpmwz { 0.0 }; // desired main circuit fan revolutions
+    bool zaluzje1 { false };
+    float rpmw2 { 0.0 }; // current auxiliary circuit fan revolutions
+    float rpmwz2 { 0.0 }; // desired auxiliary circuit fan revolutions
+    bool zaluzje2 { false };
+    // output, temperatures
+    float Te { 15.0 }; // ambient temperature TODO: get it from environment data
+    // NOTE: by default the engine is initialized in warm, startup-ready state
+    float Ts { 50.0 }; // engine temperature
+    float To { 45.0 }; // oil temperature
+    float Tsr { 50.0 }; // main circuit radiator temperature (?)
+    float Twy { 50.0 }; // main circuit water temperature
+    float Tsr2 { 40.0 }; // secondary circuit radiator temperature (?)
+    float Twy2 { 40.0 }; // secondary circuit water temperature
+    float temperatura1 { 50.0 };
+    float temperatura2 { 40.0 };
+};
+
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 public:
@@ -928,6 +1001,10 @@ public:
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
     fuel_pump FuelPump;
     oil_pump OilPump;
+    water_pump WaterPump;
+    water_heater WaterHeater;
+    bool WaterCircuitsLink { false }; // optional connection between water circuits
+    heat_data dizel_heat;
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1123,6 +1200,7 @@ public:
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
+    void compute_movement_( double const Deltatime );
 	double ShowEngineRotation(int VehN);
 
 	// Q *******************************************************************************************
@@ -1215,6 +1293,11 @@ public:
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
+    bool WaterPumpBreakerSwitch( bool State, int const Notify = range::consist ); // water pump breaker state toggle
+    bool WaterPumpSwitch( bool State, int const Notify = range::consist ); // water pump state toggle
+    bool WaterHeaterBreakerSwitch( bool State, int const Notify = range::consist ); // water heater breaker state toggle
+    bool WaterHeaterSwitch( bool State, int const Notify = range::consist ); // water heater state toggle
+    bool WaterCircuitsLinkSwitch( bool State, int const Notify = range::consist ); // water circuits link state toggle
     bool FuelPumpSwitch( bool State, int const Notify = range::consist ); // fuel pump state toggle
     bool OilPumpSwitch( bool State, int const Notify = range::consist ); // oil pump state toggle
     bool MainSwitch( bool const State, int const Notify = range::consist );/*! wylacznik glowny*/
@@ -1223,6 +1306,8 @@ public:
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck( double const Timestep ); // przetwornica
+    void WaterPumpCheck( double const Timestep );
+    void WaterHeaterCheck( double const Timestep );
     void FuelPumpCheck( double const Timestep );
     void OilPumpCheck( double const Timestep );
     bool FuseOn(void); //bezpiecznik nadamiary
@@ -1256,6 +1341,8 @@ public:
 	bool dizel_AutoGearCheck(void);
 	double dizel_fillcheck(int mcp);
 	double dizel_Momentum(double dizel_fill, double n, double dt);
+    void dizel_HeatSet( float const Value );
+    void dizel_Heat( double const dt );
     bool dizel_StartupCheck();
     bool dizel_Update(double dt);
 

@@ -2226,10 +2226,12 @@ bool TController::PrepareEngine()
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch( true );
-        if( ( mvOccupied->EngineType == DieselElectric )
-         || ( mvOccupied->EngineType == DieselEngine ) ) {
-            mvOccupied->FuelPumpSwitch( true );
-            mvOccupied->OilPumpSwitch( true );
+        if( ( mvControlling->EngineType == DieselElectric )
+         || ( mvControlling->EngineType == DieselEngine ) ) {
+            mvControlling->OilPumpSwitch( true );
+            if( true == UpdateHeating() ) {
+                mvControlling->FuelPumpSwitch( true );
+            }
         }
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
@@ -2298,22 +2300,13 @@ bool TController::PrepareEngine()
             else if (false == mvControlling->Mains) {
                 while (DecSpeed(true))
                     ; // zerowanie napędu
-/*
-                if( ( mvOccupied->EngineType == DieselEngine )
-                 || ( mvOccupied->EngineType == DieselElectric ) ) {
-                    // start helper devices before spinning up the engine
-                    // TODO: replace with dedicated diesel engine subsystems
-                    mvOccupied->ConverterSwitch( true );
-                    mvOccupied->CompressorSwitch( true );
-                }
-*/
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
                     if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
                         mvControlling->IncMainCtrl( 1 );
                     }
                 }
-                OK = mvControlling->MainSwitch(true);
+                mvControlling->MainSwitch(true);
 /*
                 if (mvControlling->EngineType == DieselEngine) {
                     // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
@@ -2345,6 +2338,7 @@ bool TController::PrepareEngine()
     }
     else
         OK = false;
+
     OK = OK && (mvOccupied->ActiveDir != 0) && (mvControlling->CompressorAllow);
     if (OK)
     {
@@ -5166,6 +5160,59 @@ TController::UpdateSituation(double dt) {
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])
+}
+
+// configures vehicle heating given current situation; returns: true if vehicle can be operated normally, false otherwise
+bool
+TController::UpdateHeating() {
+
+    switch( mvControlling->EngineType ) {
+
+        case DieselElectric:
+        case DieselEngine: {
+
+            auto const &heat { mvControlling->dizel_heat };
+
+            // determine whether there's need to enable the water heater
+            // if the heater has configured maximum temperature, it'll disable itself automatically, so we can leave it always running
+            // otherwise enable the heater only to maintain minimum required temperature
+            auto const lowtemperature { (
+                ( ( heat.water.config.temp_min > 0 ) && ( heat.temperatura1 < heat.water.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) )
+             || ( ( heat.water_aux.config.temp_min > 0 ) && ( heat.temperatura2 < heat.water_aux.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) )
+             || ( ( heat.oil.config.temp_min > 0 ) && ( heat.To < heat.oil.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) ) ) };
+            auto const heateron { (
+                ( mvControlling->WaterHeater.config.temp_max > 0 )
+             || ( true == lowtemperature ) ) };
+            if( true == heateron ) {
+                // make sure the water pump is running before enabling the heater
+                if( false == mvControlling->WaterPump.is_active ) {
+                    mvControlling->WaterPumpBreakerSwitch( true );
+                    mvControlling->WaterPumpSwitch( true );
+                }
+                if( true == mvControlling->WaterPump.is_active ) {
+                    mvControlling->WaterHeaterBreakerSwitch( true );
+                    mvControlling->WaterHeaterSwitch( true );
+                    mvControlling->WaterCircuitsLinkSwitch( true );
+                }
+            }
+            else {
+                // no need to heat anything up, switch the heater off
+                mvControlling->WaterCircuitsLinkSwitch( false );
+                mvControlling->WaterHeaterSwitch( false );
+                mvControlling->WaterHeaterBreakerSwitch( false );
+                // optionally turn off the water pump as well
+                if( mvControlling->WaterPump.start_type != start::battery ) {
+                    mvControlling->WaterPumpSwitch( false );
+                    mvControlling->WaterPumpBreakerSwitch( false );
+                }
+            }
+
+            return ( false == lowtemperature );
+        }
+        default: {
+            return true;
+        }
+    }
 }
 
 void TController::JumpToNextOrder()

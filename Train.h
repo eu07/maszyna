@@ -219,6 +219,21 @@ class TTrain
     static void OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_oilpumpenable( TTrain *Train, command_data const &Command );
     static void OnCommand_oilpumpdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheaterbreakertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheaterbreakerclose( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheaterbreakeropen( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheatertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheaterenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterheaterdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumpbreakertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumpbreakerclose( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumpbreakeropen( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumptoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumpenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_waterpumpdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_watercircuitslinktoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_watercircuitslinkenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_watercircuitslinkdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_converterenable( TTrain *Train, command_data const &Command );
     static void OnCommand_converterdisable( TTrain *Train, command_data const &Command );
@@ -408,6 +423,11 @@ public: // reszta może by?publiczna
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
 
+    TGauge ggWaterPumpBreakerButton; // water pump breaker switch
+    TGauge ggWaterPumpButton; // water pump switch
+    TGauge ggWaterHeaterBreakerButton; // water heater breaker switch
+    TGauge ggWaterHeaterButton; // water heater switch
+    TGauge ggWaterCircuitsLinkButton;
     TGauge ggFuelPumpButton; // fuel pump switch
     TGauge ggOilPumpButton; // fuel pump switch
 
@@ -468,7 +488,6 @@ public: // reszta może by?publiczna
     TButton btLampkaBrakeProfileG; // cargo train brake acting speed
     TButton btLampkaBrakeProfileP; // passenger train brake acting speed
     TButton btLampkaBrakeProfileR; // rapid brake acting speed
-
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -491,6 +510,9 @@ public: // reszta może by?publiczna
     TButton btLampkaRearRightLight;
     TButton btLampkaRearLeftEndLight;
     TButton btLampkaRearRightEndLight;
+    // other
+    TButton btLampkaMalfunction;
+    TButton btLampkaMotorBlowers;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys

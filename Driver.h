@@ -318,6 +318,7 @@ private:
     void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason = stopComm );
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
+    bool UpdateHeating();
     // procedury dotyczace rozkazow dla maszynisty
     // uaktualnia informacje o prędkości
     void SetVelocity(double NewVel, double NewVelNext, TStopReason r = stopNone);
