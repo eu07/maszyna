@@ -193,6 +193,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::wheelspinbrakeactivate, &TTrain::OnCommand_wheelspinbrakeactivate },
     { user_command::sandboxactivate, &TTrain::OnCommand_sandboxactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
+	{ user_command::brakeoperationmodeincrease, &TTrain::OnCommand_brakeoperationmodeincrease },
+	{ user_command::brakeoperationmodedecrease, &TTrain::OnCommand_brakeoperationmodedecrease },
     { user_command::brakeactingspeedincrease, &TTrain::OnCommand_brakeactingspeedincrease },
     { user_command::brakeactingspeeddecrease, &TTrain::OnCommand_brakeactingspeeddecrease },
     { user_command::brakeactingspeedsetcargo, &TTrain::OnCommand_brakeactingspeedsetcargo },
@@ -1263,6 +1265,40 @@ void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &
         }
     }
 }
+
+void TTrain::OnCommand_brakeoperationmodeincrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (0 < (Train->mvOccupied->BrakeOpModeFlag * 2) & Train->mvOccupied->BrakeOpModes) {
+			// next mode
+			Train->mvOccupied->BrakeOpModeFlag *= 2;
+			// audio feedback
+			Train->dsbPneumaticSwitch.play();
+			// visual feedback
+			// NOTE: there's no button for brake operation mode switch
+			// TBD, TODO: add brake operation mode switch?
+		}
+	}
+}
+
+void TTrain::OnCommand_brakeoperationmodedecrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (0 < (Train->mvOccupied->BrakeOpModeFlag / 2) & Train->mvOccupied->BrakeOpModes) {
+			// previous mode
+			Train->mvOccupied->BrakeOpModeFlag /= 2;
+			// audio feedback
+			Train->dsbPneumaticSwitch.play();
+			// visual feedback
+			// NOTE: there's no button for brake operation mode switch
+			// TBD, TODO: add brake operation mode switch?
+		}
+	}
+}
+
+
 
 void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command ) {
 

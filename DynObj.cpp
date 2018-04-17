@@ -3025,7 +3025,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
 
             auto FzadED { 0.0 };
-            if( ( MoverParameters->EpFuse )
+            if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != MHZ_EN57))
              || ( ( MoverParameters->BrakeHandle == MHZ_EN57 )
                && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
                 FzadED = std::min( Fzad, FmaxED );

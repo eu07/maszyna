@@ -96,6 +96,8 @@ enum class user_command {
     motoroverloadrelayreset,
     notchingrelaytoggle,
     epbrakecontroltoggle,
+	brakeoperationmodeincrease,
+	brakeoperationmodedecrease,
     brakeactingspeedincrease,
     brakeactingspeeddecrease,
     brakeactingspeedsetcargo,
