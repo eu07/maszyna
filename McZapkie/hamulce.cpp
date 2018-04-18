@@ -22,7 +22,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 static double const DPL = 0.25;
 double const TFV4aM::pos_table[11] = {-2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0};
-double const TMHZ_EN57::pos_table[11] = {-2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0};
+double const TMHZ_EN57::pos_table[11] = {-1, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0};
 double const TM394::pos_table[11] = {-1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0};
 double const TH14K1::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
 double const TH14K1::pos_table[11] = {-1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0};
