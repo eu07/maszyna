@@ -757,7 +757,7 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos + ( Command.time_delta * 1.0f ),
+                Train->mvControlled->AnPos + ( Command.time_delta * 2.0 ),
                 0.0, 1.0 );
         }
         else {
@@ -818,7 +818,7 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos - ( Command.time_delta * 1.0f ),
+                Train->mvControlled->AnPos - ( Command.time_delta * 2.0 ),
                 0.0, 1.0 );
         }
         Train->mvControlled->DecScndCtrl( 1 );
@@ -4867,6 +4867,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaNadmPrzetwB.Turn( tmp->MoverParameters->ConvOvldFlag ); // nadmiarowy przetwornicy?
                     btLampkaPrzetwB.Turn( tmp->MoverParameters->ConverterFlag ); // zalaczenie przetwornicy
                     btLampkaPrzetwBOff.Turn( false == tmp->MoverParameters->ConverterFlag );
+                    btLampkaMalfunctionB.Turn( tmp->MoverParameters->dizel_heat.PA );
                 }
                 else // wylaczone
                 {
@@ -4881,6 +4882,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaNadmPrzetwB.Turn( false );
                     btLampkaPrzetwB.Turn( false );
                     btLampkaPrzetwBOff.Turn( false );
+                    btLampkaMalfunctionB.Turn( false );
                 }
         }
 
@@ -6306,6 +6308,7 @@ void TTrain::clear_cab_controls()
     btCabLight.Clear(); // hunter-171012
     // others
     btLampkaMalfunction.Clear();
+    btLampkaMalfunctionB.Clear();
     btLampkaMotorBlowers.Clear();
 
     ggLeftLightButton.Clear();
@@ -6615,6 +6618,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-contactorsb:", btLampkaStycznB },
         { "i-conv_ovldb:", btLampkaNadmPrzetwB },
         { "i-malfunction:", btLampkaMalfunction },
+        { "i-malfunctionb:", btLampkaMalfunctionB },
         { "i-forward:", btLampkaForward },
         { "i-backward:", btLampkaBackward },
         { "i-upperlight:", btLampkaUpperLight },
@@ -6937,9 +6941,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0, 0, 0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0, 0, 0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0, 0, 0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0);
         }
     }
     else if (Label == "evoltage:")
@@ -7001,6 +7005,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina);
         gauge.AssignDouble(&mvControlled->DistCounter);
+    }
+    else if( Label == "shuntmodepower:" ) {
+        // shunt mode power slider
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina);
+        gauge.AssignDouble(&mvControlled->AnPos);
     }
     else
     {

@@ -512,6 +512,7 @@ public: // reszta może by?publiczna
     TButton btLampkaRearRightEndLight;
     // other
     TButton btLampkaMalfunction;
+    TButton btLampkaMalfunctionB;
     TButton btLampkaMotorBlowers;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine

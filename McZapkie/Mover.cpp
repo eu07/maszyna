@@ -1572,7 +1572,7 @@ void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
      && ( true == Battery )
      && ( true == WaterHeater.is_enabled )
      && ( true == WaterHeater.breaker )
-     && ( ( WaterHeater.config.temp_min < 0 ) || ( dizel_heat.temperatura1 < WaterHeater.config.temp_min ) ) );
+     && ( ( WaterHeater.is_active ) || ( WaterHeater.config.temp_min < 0 ) || ( dizel_heat.temperatura1 < WaterHeater.config.temp_min ) ) );
     
     if( ( WaterHeater.config.temp_max > 0 )
      && ( dizel_heat.temperatura1 > WaterHeater.config.temp_max ) ) {
@@ -4555,7 +4555,7 @@ double TMoverParameters::TractionForce(double dt)
                 // TBD, TODO: currently ignores RVentType, fix this?
                 RventRot += clamp( enrot - RventRot, -100.0, 50.0 ) * dt;
                 dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
-                dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
+                dizel_heat.rpmw2 += clamp( dizel_heat.rpmwz2 - dizel_heat.rpmw2, -100.f, 50.f ) * dt;
             }
             else {
                 RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
@@ -4569,7 +4569,7 @@ double TMoverParameters::TractionForce(double dt)
             // NOTE: we update only radiator fans, as vehicles with diesel engine don't have other ventilators
             if( true == Mains ) {
                 dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
-                dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
+                dizel_heat.rpmw2 += clamp( dizel_heat.rpmwz2 - dizel_heat.rpmw2, -100.f, 50.f ) * dt;
             }
             else {
                 dizel_heat.rpmw *= std::max( 0.0, 1.0 - dizel_heat.rpmw * dt );
@@ -4703,11 +4703,18 @@ double TMoverParameters::TractionForce(double dt)
             //       tmpV:=V*CabNo*ActiveDir;
             auto const tmpV { nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute }; //*CabNo*ActiveDir;
             // jazda manewrowa
-            if (ShuntMode)
-            {
-                Voltage = (SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1.0 - AnPos));
-                tmp = (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1.0 - AnPos));
-                Ft = tmp * 1000.0 / (abs(tmpV) + 1.6);
+            if( true == ShuntMode ) {
+                if( ( true == Mains ) && ( MainCtrlPos > 0 ) ) {
+                    Voltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
+                    // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
+                    auto const rpmratio { 60.0 * enrot / DElist[ MainCtrlPos ].RPM };
+                    tmp = rpmratio * ( SST[ MainCtrlPos ].Pmax * AnPos ) + ( SST[ MainCtrlPos ].Pmin * ( 1.0 - AnPos ) );
+                    Ft = tmp * 1000.0 / ( abs( tmpV ) + 1.6 );
+                }
+                else {
+                    Voltage = 0;
+                    Ft = 0;
+                }
                 PosRatio = 1;
             }
             else // jazda ciapongowa

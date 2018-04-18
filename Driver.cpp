@@ -2223,13 +2223,15 @@ bool TController::PrepareEngine()
             voltfront = true;
         }
     }
+    auto workingtemperature { true };
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch( true );
         if( ( mvControlling->EngineType == DieselElectric )
          || ( mvControlling->EngineType == DieselEngine ) ) {
             mvControlling->OilPumpSwitch( true );
-            if( true == UpdateHeating() ) {
+            workingtemperature = UpdateHeating();
+            if( true == workingtemperature ) {
                 mvControlling->FuelPumpSwitch( true );
             }
         }
@@ -2339,7 +2341,7 @@ bool TController::PrepareEngine()
     else
         OK = false;
 
-    OK = OK && (mvOccupied->ActiveDir != 0) && (mvControlling->CompressorAllow);
+    OK = OK && (mvOccupied->ActiveDir != 0) && (mvControlling->CompressorAllow) && (workingtemperature);
     if (OK)
     {
         if (eStopReason == stopSleep) // jeśli dotychczas spał
@@ -2378,6 +2380,7 @@ bool TController::ReleaseEngine()
                     mvControlling->PantFront(false);
                     mvControlling->PantRear(false);
                 }
+                // line breaker
                 OK = mvControlling->MainSwitch(false);
             }
             else
@@ -2410,7 +2413,20 @@ bool TController::ReleaseEngine()
         eAction = actSleep; //śpi (wygaszony)
         if (AIControllFlag)
         {
-            Lights(0, 0); // gasimy światła
+            if( ( mvControlling->EngineType == DieselElectric )
+             || ( mvControlling->EngineType == DieselEngine ) ) {
+                // heating/cooling subsystem
+                mvControlling->WaterHeaterSwitch( false );
+                // optionally turn off the water pump as well
+                if( mvControlling->WaterPump.start_type != start::battery ) {
+                    mvControlling->WaterPumpSwitch( false );
+                }
+                // fuel and oil subsystems
+                mvControlling->FuelPumpSwitch( false );
+                mvControlling->OilPumpSwitch( false );
+            }
+            // gasimy światła
+            Lights(0, 0);
             mvOccupied->BatterySwitch(false);
         }
         OrderNext(Wait_for_orders); //żeby nie próbował coś robić dalej

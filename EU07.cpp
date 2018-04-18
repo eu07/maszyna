@@ -412,7 +412,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    audio::renderer.init();
+    if( Global.bSoundEnabled ) {
+        Global.bSoundEnabled &= audio::renderer.init();
+    }
 
     input::Keyboard.init();
     input::Mouse.init();
