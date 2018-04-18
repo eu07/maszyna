@@ -2237,8 +2237,8 @@ bool TController::PrepareEngine()
         }
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
-            mvControlling->PantFront( true );
-            mvControlling->PantRear( true );
+            mvOccupied->PantFront( true );
+            mvOccupied->PantRear( true );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
                 if( mvControlling->TrainType != dt_EZT ) {
@@ -2266,11 +2266,11 @@ bool TController::PrepareEngine()
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
                     if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
-                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == ctrain_virtual ) {
+                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == coupling::faux ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
                         }
-                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == ctrain_virtual ) {
+                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == coupling::faux ) {
                             // jeśli z przodu nie ma nic
                             iDirection = 1; // jazda w kierunku sprzęgu 0
                         }
@@ -2332,7 +2332,7 @@ bool TController::PrepareEngine()
                 OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
                 mvOccupied->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvControlling->CompressorSwitch( true );
+                mvOccupied->CompressorSwitch( true );
             }
         }
         else
@@ -2341,7 +2341,7 @@ bool TController::PrepareEngine()
     else
         OK = false;
 
-    OK = OK && (mvOccupied->ActiveDir != 0) && (mvControlling->CompressorAllow) && (workingtemperature);
+    OK = OK && ( mvOccupied->ActiveDir != 0 ) && ( mvControlling->ScndPipePress > 4.5 ) && ( workingtemperature );
     if (OK)
     {
         if (eStopReason == stopSleep) // jeśli dotychczas spał

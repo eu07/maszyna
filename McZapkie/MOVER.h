@@ -860,7 +860,7 @@ public:
 	double RVentCutOff = 0.0;      /*rezystancja wylaczania wentylatorow dla RVentType=2*/
     double RVentSpeed { 0.5 }; //rozpedzanie sie wentylatora obr/s^2}
     double RVentMinI { 50.0 }; //przy jakim pradzie sie wylaczaja}
-	int CompressorPower = 1; /*0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 5: z silnikowego*/
+	int CompressorPower = 1; // 0: main circuit, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 3: diesel engine, 4: converter of unit in front, 5: converter of unit behind
 	int SmallCompressorPower = 0; /*Winger ZROBIC*/
 	bool Trafo = false;      /*pojazd wyposażony w transformator*/
 
@@ -993,6 +993,7 @@ public:
 	bool CompressorAllow = false;            /*! zezwolenie na uruchomienie sprezarki  NBMX*/
     bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
+    start CompressorStart{ start::manual }; // whether the compressor is started manually, or another way
     // TODO converter parameters, for when we start cleaning up mover parameters
     start ConverterStart{ start::manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
@@ -1269,7 +1270,7 @@ public:
 	bool IncBrakePress(double &brake, double PressLimit, double dp);
 	bool DecBrakePress(double &brake, double PressLimit, double dp);
 	bool BrakeDelaySwitch(int BDS);/*! przelaczanie nastawy opoznienia*/
-	bool IncBrakeMult(void);/*przelaczanie prozny/ladowny*/
+    bool IncBrakeMult(void);/*przelaczanie prozny/ladowny*/
 	bool DecBrakeMult(void);
 	/*pomocnicze funkcje dla ukladow pneumatycznych*/
 	void UpdateBrakePressure(double dt);

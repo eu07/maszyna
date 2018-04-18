@@ -2679,7 +2679,7 @@ bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
 // *************************************************************************************************
 bool TMoverParameters::CompressorSwitch( bool State, int const Notify )
 {
-    if( CompressorPower > 1 ) {
+    if( CompressorStart != start::manual ) {
         // only pay attention if the compressor can be controlled manually
         return false;
     }
@@ -3323,35 +3323,38 @@ void TMoverParameters::CompressorCheck(double dt)
     else {
         if( CompressorPower == 3 ) {
             // experimental: make sure compressor coupled with diesel engine is always ready for work
-            CompressorAllow = true;
+            CompressorStart = start::automatic;
         }
         if (CompressorFlag) // jeśli sprężarka załączona
         { // sprawdzić możliwe warunki wyłączenia sprężarki
             if (CompressorPower == 5) // jeśli zasilanie z sąsiedniego członu
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                if (Couplers[1].Connected != NULL)
-                    CompressorFlag =
-                        ( Couplers[ 1 ].Connected->CompressorAllow
-                       && Couplers[ 1 ].Connected->CompressorAllowLocal
-                       && Couplers[ 1 ].Connected->Mains
-                       && Couplers[ 1 ].Connected->ConverterFlag );
-                else
-                    CompressorFlag = false; // bez tamtego członu nie zadziała
+                if( Couplers[ side::rear ].Connected != NULL ) {
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
+                }
+                else {
+                    // bez tamtego członu nie zadziała
+                    CompressorFlag = false;
+                }
             }
             else if (CompressorPower == 4) // jeśli zasilanie z poprzedniego członu
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                if (Couplers[0].Connected != NULL)
-                    CompressorFlag =
-                        ( Couplers[ 0 ].Connected->CompressorAllow
-                       && Couplers[ 0 ].Connected->CompressorAllowLocal
-                       && Couplers[ 0 ].Connected->Mains
-                       && Couplers[ 0 ].Connected->ConverterFlag );
-                else
+                if( Couplers[ side::front ].Connected != NULL ) {
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Couplers[ side::front ].Connected->ConverterFlag ) );
+                }
+                else {
                     CompressorFlag = false; // bez tamtego członu nie zadziała
+                }
             }
             else
-                CompressorFlag =
-                    ( ( CompressorAllow ) 
+                CompressorFlag = (
+                      ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
                    && ( CompressorAllowLocal )
                    && ( Mains )
                    && ( ( ConverterFlag )
@@ -3402,38 +3405,37 @@ void TMoverParameters::CompressorCheck(double dt)
                     // or if the switch is on and the pressure isn't maxed
                 if( CompressorPower == 5 ) // jeśli zasilanie z następnego członu
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                    if( Couplers[ 1 ].Connected != nullptr ) {
-                        CompressorFlag =
-                            ( Couplers[ 1 ].Connected->CompressorAllow
-                           && Couplers[ 1 ].Connected->CompressorAllowLocal
-                           && Couplers[ 1 ].Connected->Mains
-                           && Couplers[ 1 ].Connected->ConverterFlag );
-                        }
+                    if( Couplers[ side::rear ].Connected != NULL ) {
+                        CompressorFlag = (
+                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                         && ( CompressorAllowLocal )
+                         && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
+                    }
                     else {
-                        CompressorFlag = false; // bez tamtego członu nie zadziała
+                        // bez tamtego członu nie zadziała
+                        CompressorFlag = false;
                     }
                 }
                 else if( CompressorPower == 4 ) // jeśli zasilanie z poprzedniego członu
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                    if( Couplers[ 0 ].Connected != nullptr ) {
-                        CompressorFlag =
-                            ( Couplers[ 0 ].Connected->CompressorAllow
-                           && Couplers[ 0 ].Connected->CompressorAllowLocal
-                           && Couplers[ 0 ].Connected->Mains
-                           && Couplers[ 0 ].Connected->ConverterFlag );
+                    if( Couplers[ side::front ].Connected != NULL ) {
+                        CompressorFlag = (
+                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                         && ( CompressorAllowLocal )
+                         && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                     }
                     else {
                         CompressorFlag = false; // bez tamtego członu nie zadziała
                     }
                 }
                 else {
-                    CompressorFlag =
-                        ( ( CompressorAllow )
-                       && ( CompressorAllowLocal )
-                       && ( Mains )
-                       && ( ( ConverterFlag )
-                         || ( CompressorPower == 0 )
-                         || ( CompressorPower == 3 ) ) );
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Mains )
+                     && ( ( ConverterFlag )
+                       || ( CompressorPower == 0 )
+                       || ( CompressorPower == 3 ) ) );
                 }
 
                 // NOTE: crude way to enforce simultaneous activation of compressors in multi-unit setups
@@ -8143,6 +8145,19 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     }
     extract_value( ConverterStartDelay, "ConverterStartDelay", line, "" );
 
+    // compressor
+    {
+        std::map<std::string, start> starts {
+            { "Manual", start::manual },
+            { "Automatic", start::automatic }
+        };
+        auto lookup = starts.find( extract_value( "CompressorStart", line ) );
+        CompressorStart =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
+
     // fuel pump
     {
         std::map<std::string, start> starts {
@@ -9256,7 +9271,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         //   end
     else if (Command == "CompressorSwitch") /*NBMX*/
 	{
-        if( CompressorPower < 2 ) {
+        if( CompressorStart == start::manual ) {
             CompressorAllow = ( CValue1 == 1 );
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

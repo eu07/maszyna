@@ -333,10 +333,10 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_G },
         // epbrakecontroltoggle
         { GLFW_KEY_Z | keymodifier::control },
-		// brakeoperationmodeincrease
-		{ GLFW_KEY_L | keymodifier::shift },
-		// brakeoperationmodedecrease
-		{ GLFW_KEY_L},
+		// trainbrakeoperationmodeincrease
+        { GLFW_KEY_KP_3 | keymodifier::shift | keymodifier::control },
+		// trainbrakeoperationmodedecrease
+        { GLFW_KEY_KP_9 | keymodifier::shift | keymodifier::control },
         // brakeactingspeedincrease
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease

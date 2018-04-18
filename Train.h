@@ -184,8 +184,8 @@ class TTrain
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
-	static void OnCommand_brakeoperationmodeincrease(TTrain *Train, command_data const &Command);
-	static void OnCommand_brakeoperationmodedecrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_brakeactingspeedsetcargo( TTrain *Train, command_data const &Command );
