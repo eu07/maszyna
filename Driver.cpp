@@ -2750,12 +2750,12 @@ bool TController::IncSpeed()
                 OK = mvControlling->IncMainCtrl(std::max(1,mvOccupied->MainCtrlPosNo/10));
 				//tutaj jeszcze powinien być tempomat
 
-				double SpeedCntrl = VelDesired;
+				double SpeedCntrlVel = VelDesired;
 				if (fProximityDist < 50)
 				{
-					SpeedCntrl = std::min(SpeedCntrl, VelNext);
+					SpeedCntrlVel = std::min(SpeedCntrlVel, VelNext);
 				}
-				this->SpeedCntrl(SpeedCntrl);
+				SpeedCntrl(SpeedCntrlVel);
 
             }
         break;
@@ -2817,15 +2817,6 @@ bool TController::DecSpeed(bool force)
         break;
 	case ElectricInductionMotor:
 		OK = mvControlling->DecMainCtrl(1);
-		if ((mvControlling->ScndCtrlPosNo > 0)&&(mvControlling->Mains)) //jeżeli tempomat
-		{
-			mvControlling->IncScndCtrl(1);
-			mvControlling->RunCommand("SpeedCntrl", VelDesired, mvControlling->CabNo);
-		}
-		else
-		{
-			mvControlling->DecScndCtrl(2);
-		}
 		break;
     case WheelsDriven:
         if (!mvControlling->CabNo)
