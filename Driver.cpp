@@ -2340,16 +2340,19 @@ bool TController::PrepareEngine()
     else
         OK = false;
 
-    OK = OK && ( mvOccupied->ActiveDir != 0 ) && ( mvControlling->ScndPipePress > 4.5 ) && ( workingtemperature );
-    if (OK)
-    {
-        if (eStopReason == stopSleep) // jeśli dotychczas spał
-            eStopReason = stopNone; // teraz nie ma powodu do stania
+    if( ( true == OK )
+     && ( mvOccupied->ActiveDir != 0 )
+     && ( true == workingtemperature )
+     && ( ( mvControlling->ScndPipePress > 4.5 ) || ( mvControlling->VeselVolume == 0.0 ) ) ) {
+
+        if( eStopReason == stopSleep ) {
+            // jeśli dotychczas spał teraz nie ma powodu do stania
+            eStopReason = stopNone;
+        }
         iEngineActive = 1;
         return true;
     }
-    else
-    {
+    else {
         iEngineActive = 0;
         return false;
     }

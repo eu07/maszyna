@@ -586,18 +586,15 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         if (vFloor.z > 0.0)
             mdLoad->GetSMRoot()->SetTranslate(modelShake + vFloor);
 
-    if (ObjSqrDist < 160000) // gdy bliżej niż 400m
+    if (ObjSqrDist < ( 400 * 400 ) ) // gdy bliżej niż 400m
     {
         for (int i = 0; i < iAnimations; ++i) // wykonanie kolejnych animacji
-            if (ObjSqrDist < pAnimations[i].fMaxDist)
-                if (pAnimations[i].yUpdate) // jeśli zdefiniowana funkcja
-                    pAnimations[ i ].yUpdate( &pAnimations[i] ); // aktualizacja animacji (położenia submodeli
-/*
-                    pAnimations[i].yUpdate(pAnimations +
-                                           i); // aktualizacja animacji (położenia submodeli
-*/
+            if (ObjSqrDist < pAnimations[ i ].fMaxDist)
+                if (pAnimations[ i ].yUpdate) // jeśli zdefiniowana funkcja
+                    pAnimations[ i ].yUpdate( &pAnimations[ i ] ); // aktualizacja animacji (położenia submodeli
+
         if( ( mdModel != nullptr )
-         && ( ObjSqrDist < 2500 ) ) {
+         && ( ObjSqrDist < ( 50 * 50 ) ) ) {
             // gdy bliżej niż 50m
             // ABu290105: rzucanie pudlem
             // te animacje wymagają bananów w modelach!
@@ -660,11 +657,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     }
                     btnOn = true;
                 }
-                // else
-                //{
-                // btCPneumatic1.TurnOff();
-                // btCPneumatic1r.TurnOff();
-                //}
 
                 if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_pneumatic))
                 {
@@ -685,11 +677,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     }
                     btnOn = true;
                 }
-                // else
-                //{
-                // btCPneumatic2.TurnOff();
-                // btCPneumatic2r.TurnOff();
-                //}
 
                 // przewody zasilajace, j.w. (yB)
                 if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_scndpneumatic))
@@ -711,11 +698,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     }
                     btnOn = true;
                 }
-                // else
-                //{
-                // btPneumatic1.TurnOff();
-                // btPneumatic1r.TurnOff();
-                //}
 
                 if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_scndpneumatic))
                 {
@@ -736,11 +718,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     }
                     btnOn = true;
                 }
-                // else
-                //{
-                // btPneumatic2.TurnOff();
-                // btPneumatic2r.TurnOff();
-                //}
             }
             //*********************************************************************************/
             else // po staremu ABu'oewmu
@@ -755,11 +732,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                         btCPneumatic1r.TurnOn();
                     btnOn = true;
                 }
-                // else
-                //{
-                // btCPneumatic1.TurnOff();
-                // btCPneumatic1r.TurnOff();
-                //}
 
                 if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_pneumatic))
                 {
@@ -769,11 +741,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                         btCPneumatic2r.TurnOn();
                     btnOn = true;
                 }
-                // else
-                //{
-                // btCPneumatic2.TurnOff();
-                // btCPneumatic2r.TurnOff();
-                //}
 
                 // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
                 // 'render'
@@ -786,11 +753,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                         btPneumatic1r.TurnOn();
                     btnOn = true;
                 }
-                // else
-                //{
-                // btPneumatic1.TurnOff();
-                // btPneumatic1r.TurnOff();
-                //}
 
                 if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_scndpneumatic))
                 {
@@ -800,11 +762,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                         btPneumatic2r.TurnOn();
                     btnOn = true;
                 }
-                // else
-                //{
-                // btPneumatic2.TurnOff();
-                // btPneumatic2r.TurnOff();
-                //}
             }
             //*************************************************************/// koniec
             // wezykow
@@ -819,7 +776,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     if (dist < 0)
                         smBuforPrawy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
             }
-        }
+        } // vehicle within 50m
 
         // Winger 160204 - podnoszenie pantografow
 
@@ -919,6 +876,19 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 if (smWahacze[i])
                     smWahacze[i]->SetRotate(float3(1, 0, 0),
                                             fWahaczeAmp * cos(MoverParameters->eAngle));
+
+        // cooling shutters
+        // NOTE: shutters display _on state when they're closed, _off otherwise
+        if( ( true == MoverParameters->dizel_heat.water.config.shutters )
+         && ( false == MoverParameters->dizel_heat.zaluzje1 ) ) {
+            btShutters1.Turn( true );
+            btnOn = true;
+        }
+        if( ( true == MoverParameters->dizel_heat.water_aux.config.shutters )
+         && ( false == MoverParameters->dizel_heat.zaluzje2 ) ) {
+            btShutters2.Turn( true );
+            btnOn = true;
+        }
         
 		if( ( Mechanik != nullptr )
          && ( Mechanik->GetAction() != actSleep ) ) {
@@ -929,7 +899,9 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 btnOn = true;
             }
         }
-    }
+
+    } // vehicle within 400m
+
     if( MoverParameters->Battery || MoverParameters->ConverterFlag )
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
@@ -994,6 +966,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             sectionchunk = sectionchunk->NextGet();
         }
     }
+
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
 
@@ -2103,6 +2076,12 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ side::rear ] |= btHeadSignals23.Active() ? light::headlight_right : 0;
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
+    if( MoverParameters->dizel_heat.water.config.shutters ) {
+        btShutters1.Init( "shutters1", mdModel, false );
+    }
+    if( MoverParameters->dizel_heat.water_aux.config.shutters ) {
+        btShutters1.Init( "shutters2", mdModel, false );
+    }
     TurnOff(); // resetowanie zmiennych submodeli
 
     if( mdLowPolyInt != nullptr ) {
@@ -3741,6 +3720,8 @@ void TDynamicObject::TurnOff()
     btHeadSignals23.Turn( false );
 	btMechanik1.Turn( false );
 	btMechanik2.Turn( false );
+    btShutters1.Turn( false );
+    btShutters2.Turn( false );
 };
 
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
@@ -3769,7 +3750,7 @@ void TDynamicObject::RenderSounds() {
         sConverter.stop();
     }
 
-    if( MoverParameters->VeselVolume > 0 ) {
+    if( MoverParameters->CompressorSpeed > 0.0 ) {
         // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
         if( MoverParameters->CompressorFlag ) {
             sCompressor.play( sound_flags::exclusive | sound_flags::looping );
@@ -4966,6 +4947,18 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.rsWentylator.m_frequencyfactor /= MoverParameters->RVentnmax;
 				}
 
+                else if( token == "radiatorfan1:" ) {
+                    // primary circuit radiator fan
+                    m_powertrainsounds.radiator_fan.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.radiator_fan.owner( this );
+                }
+
+                else if( token == "radiatorfan2" ) {
+                    // auxiliary circuit radiator fan
+                    m_powertrainsounds.radiator_fan.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.radiator_fan.owner( this );
+                }
+
 				else if( token == "transmission:" ) {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
                     // NOTE, fixed default parameters, legacy system leftover
@@ -5962,8 +5955,9 @@ TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
 
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &rsWentylator,
-        &engine, &engine_ignition, &engine_revving, &engine_turbo,
+        &inverter,
+        &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &motor_shuntfield, &rsWentylator,
+        &engine, &engine_ignition, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
         &transmission, &rsEngageSlippery
     };
     for( auto sound : enginesounds ) {
@@ -6189,7 +6183,6 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // motor sounds
     volume = 0.0;
     if( ( true == Vehicle.Mains )
-     && ( false == Vehicle.dizel_ignition )
      && ( false == motors.empty() ) ) {
 
         if( std::fabs( Vehicle.enrot ) > 0.01 ) {
@@ -6283,7 +6276,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( Vehicle.EngineType == ElectricInductionMotor ) {
         if( Vehicle.InverterFrequency > 0.1 ) {
 
-            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::fabs( Vehicle.dizel_fill ) );
+            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::abs( Vehicle.dizel_fill ) );
 
             inverter
                 .pitch( inverter.m_frequencyoffset + inverter.m_frequencyfactor * Vehicle.InverterFrequency )
@@ -6306,6 +6299,35 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         // ...otherwise shut down the sound
         rsWentylator.stop();
     }
+    // radiator fan sounds
+    if( ( Vehicle.EngineType == DieselEngine )
+     || ( Vehicle.EngineType == DieselElectric ) ) {
+
+        if( Vehicle.dizel_heat.rpmw > 0.1 ) {
+            // NOTE: fan speed tends to max out at ~100 rpm; by default we try to get pitch range of 0.5-1.5 and volume range of 0.5-1.0
+            radiator_fan
+                .pitch( 0.5 + radiator_fan.m_frequencyoffset + radiator_fan.m_frequencyfactor * Vehicle.dizel_heat.rpmw * 0.01 )
+                .gain( 0.5 + radiator_fan.m_amplitudeoffset + 0.5 * radiator_fan.m_amplitudefactor * Vehicle.dizel_heat.rpmw * 0.01 )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            // ...otherwise shut down the sound
+            radiator_fan.stop();
+        }
+
+        if( Vehicle.dizel_heat.rpmw2 > 0.1 ) {
+            // NOTE: fan speed tends to max out at ~100 rpm; by default we try to get pitch range of 0.5-1.5 and volume range of 0.5-1.0
+            radiator_fan_aux
+                .pitch( 0.5 + radiator_fan_aux.m_frequencyoffset + radiator_fan_aux.m_frequencyfactor * Vehicle.dizel_heat.rpmw2 * 0.01 )
+                .gain( 0.5 + radiator_fan_aux.m_amplitudeoffset + 0.5 * radiator_fan_aux.m_amplitudefactor * Vehicle.dizel_heat.rpmw2 * 0.01 )
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            // ...otherwise shut down the sound
+            radiator_fan_aux.stop();
+        }
+    }
+
     // relay sounds
     auto const soundflags { Vehicle.SoundFlag };
     if( TestFlag( soundflags, sound::relay ) ) {

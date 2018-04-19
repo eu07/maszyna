@@ -764,7 +764,7 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos + ( Command.time_delta * 2.0 ),
+                Train->mvControlled->AnPos + 0.025,
                 0.0, 1.0 );
         }
         else {
@@ -825,7 +825,7 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos - ( Command.time_delta * 2.0 ),
+                Train->mvControlled->AnPos - 0.025,
                 0.0, 1.0 );
         }
         Train->mvControlled->DecScndCtrl( 1 );
@@ -7051,6 +7051,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina);
         gauge.AssignDouble(&mvControlled->AnPos);
+        m_controlmapper.insert( gauge, "shuntmodepower:" );
     }
     else
     {

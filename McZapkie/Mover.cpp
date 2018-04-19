@@ -7798,8 +7798,9 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     DeltaPipePress = HighPipePress - LowPipePress;
 
     extract_value( VeselVolume, "Vv", line, "" );
+/*
     if( VeselVolume == 0.0 ) { VeselVolume = 0.01; }
-
+*/
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
