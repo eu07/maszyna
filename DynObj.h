@@ -322,6 +322,8 @@ private:
         sound_source engine_turbo { sound_placement::engine };
         double engine_turbo_pitch { 1.0 };
         sound_source oil_pump { sound_placement::engine };
+        sound_source radiator_fan { sound_placement::engine };
+        sound_source radiator_fan_aux { sound_placement::engine };
         sound_source transmission { sound_placement::engine };
         sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
 
@@ -371,6 +373,8 @@ private:
     TButton btHeadSignals23;
 	TButton btMechanik1;
 	TButton btMechanik2;
+    TButton btShutters1; // cooling shutters for primary water circuit
+    TButton btShutters2; // cooling shutters for auxiliary water circuit
 
     double dRailLength { 0.0 };
     std::vector<axle_sounds> m_axlesounds;

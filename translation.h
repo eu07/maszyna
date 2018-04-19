@@ -20,6 +20,7 @@ std::string
 static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "mainctrl:", "master controller" },
     { "scndctrl:", "second controller" },
+    { "shuntmodepower:", "shunt mode power" },
     { "dirkey:" , "reverser" },
     { "brakectrl:", "train brake" },
     { "localbrake:", "independent brake" },

@@ -215,6 +215,9 @@ mouse_input::default_bindings() {
         { "scndctrl:", {
             user_command::secondcontrollerincrease,
             user_command::secondcontrollerdecrease } },
+        { "shuntmodepower:", {
+            user_command::secondcontrollerincrease,
+            user_command::secondcontrollerdecrease } },
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
