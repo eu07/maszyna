@@ -131,6 +131,7 @@ struct global_settings {
     // audio
     bool bSoundEnabled{ true };
     float AudioVolume{ 1.25f };
+	int audio_max_sources = 30;
     std::string AudioRenderer;
     // input
     float fMouseXScale{ 1.5f };

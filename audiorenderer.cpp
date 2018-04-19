@@ -384,6 +384,7 @@ openal_renderer::fetch_source() {
         ::alGenSources( 1, &( newsource.id ) );
     }
     if( newsource.id == audio::null_resource ) {
+		alGetError();
         // if we still don't have a working source, see if we can sacrifice an already active one
         // under presumption it's more important to play new sounds than keep the old ones going
         // TBD, TODO: for better results we could use range and/or position for the new sound
@@ -445,7 +446,7 @@ openal_renderer::init_caps() {
 
     WriteLog( "Supported extensions: " + std::string{ (char *)::alcGetString( m_device, ALC_EXTENSIONS ) } );
 
-	ALCint attr[3] = { ALC_MONO_SOURCES, 50, 0 }; // request more sounds
+	ALCint attr[3] = { ALC_MONO_SOURCES, Global.audio_max_sources, 0 }; // request more sounds
 
     m_context = ::alcCreateContext( m_device, attr );
     if( m_context == nullptr ) {

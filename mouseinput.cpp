@@ -243,6 +243,18 @@ mouse_input::default_bindings() {
         { "maxcurrent_sw:", {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },
+        { "waterpumpbreaker_sw:", {
+            user_command::waterpumpbreakertoggle,
+            user_command::none } },
+        { "waterpump_sw:", {
+            user_command::waterpumptoggle,
+            user_command::none } },
+        { "waterheaterbreaker_sw:", {
+            user_command::waterheaterbreakertoggle,
+            user_command::none } },
+        { "waterheater_sw:", {
+            user_command::waterheatertoggle,
+            user_command::none } },
         { "fuelpump_sw:", {
             user_command::fuelpumptoggle,
             user_command::none } },

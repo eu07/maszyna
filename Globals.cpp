@@ -130,6 +130,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> AudioVolume;
             AudioVolume = clamp( AudioVolume, 1.f, 4.f );
         }
+		else if (token == "sound.maxsources") {
+			Parser.getTokens();
+			Parser >> audio_max_sources;
+		}
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (token == "physicslog")

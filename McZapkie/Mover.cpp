@@ -1370,46 +1370,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     dL = 0;
 
     // koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
-
-    // sprawdzanie i ewentualnie wykonywanie->kasowanie poleceń
-    if (LoadStatus > 0) // czas doliczamy tylko jeśli trwa (roz)ładowanie
-        LastLoadChangeTime += dt; // czas (roz)ładunku
-
-    RunInternalCommand();
-
-    // automatyczny rozruch
-    if (EngineType == ElectricSeriesMotor)
-
-        if (AutoRelayCheck())
-            SetFlag(SoundFlag, sound::relay);
-
-    if( ( EngineType == DieselEngine )
-     || ( EngineType == DieselElectric ) ) {
-        if( dizel_Update( dt ) ) {
-            SetFlag( SoundFlag, sound::relay );
-        }
-    }
-    // uklady hamulcowe:
-    if (VeselVolume > 0)
-        Compressor = CompressedVolume / VeselVolume;
-    else
-    {
-        Compressor = 0;
-        CompressorFlag = false;
-    };
-    ConverterCheck(dt);
-    if (CompressorSpeed > 0.0) // sprężarka musi mieć jakąś niezerową wydajność
-        CompressorCheck(dt); //żeby rozważać jej załączenie i pracę
-    UpdateBrakePressure(dt);
-    UpdatePipePressure(dt);
-    UpdateBatteryVoltage(dt);
-    UpdateScndPipePressure(dt); // druga rurka, youBy
-    // hamulec antypoślizgowy - wyłączanie
-    if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
-        Hamulec->ASB(0);
-    BrakeSlippingTimer += dt;
-    // automatic doors
-    update_autonomous_doors( dt );
+    compute_movement_( dt );
     // security system
     if (!DebugModeFlag)
         SecuritySystemCheck(dt1);
@@ -1489,16 +1450,32 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     dL = 0;
 
     // koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
+    compute_movement_( dt );
+
+    return d;
+};
+
+// updates shared between 'fast' and regular movement computation methods
+void TMoverParameters::compute_movement_( double const Deltatime ) {
 
     // sprawdzanie i ewentualnie wykonywanie->kasowanie poleceń
     if (LoadStatus > 0) // czas doliczamy tylko jeśli trwa (roz)ładowanie
-        LastLoadChangeTime += dt; // czas (roz)ładunku
+        LastLoadChangeTime += Deltatime; // czas (roz)ładunku
 
     RunInternalCommand();
 
-    if (EngineType == DieselEngine)
-        if (dizel_Update(dt))
+    // automatyczny rozruch
+    if (EngineType == ElectricSeriesMotor)
+
+        if (AutoRelayCheck())
             SetFlag(SoundFlag, sound::relay);
+
+    if( ( EngineType == DieselEngine )
+     || ( EngineType == DieselElectric ) ) {
+        if( dizel_Update( Deltatime ) ) {
+            SetFlag( SoundFlag, sound::relay );
+        }
+    }
     // uklady hamulcowe:
     if (VeselVolume > 0)
         Compressor = CompressedVolume / VeselVolume;
@@ -1507,22 +1484,24 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         Compressor = 0;
         CompressorFlag = false;
     };
-    ConverterCheck(dt);
-    if (CompressorSpeed > 0.0) // sprężarka musi mieć jakąś niezerową wydajność
-        CompressorCheck(dt); //żeby rozważać jej załączenie i pracę
-    UpdateBrakePressure(dt);
-    UpdatePipePressure(dt);
-    UpdateScndPipePressure(dt); // druga rurka, youBy
-    UpdateBatteryVoltage(dt);
-    // hamulec antyposlizgowy - wyłączanie
-    if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
-        Hamulec->ASB(0);
-    BrakeSlippingTimer += dt;
+    ConverterCheck(Deltatime);
+    if( CompressorSpeed > 0.0 ) {
+        // sprężarka musi mieć jakąś niezerową wydajność żeby rozważać jej załączenie i pracę
+        CompressorCheck( Deltatime );
+    }
+    UpdateBrakePressure(Deltatime);
+    UpdatePipePressure(Deltatime);
+    UpdateBatteryVoltage(Deltatime);
+    UpdateScndPipePressure(Deltatime); // druga rurka, youBy
+    
+    if( ( BrakeSlippingTimer > 0.8 ) && ( ASBType != 128 ) ) { // ASBSpeed=0.8
+        // hamulec antypoślizgowy - wyłączanie
+        Hamulec->ASB( 0 );
+    }
+    BrakeSlippingTimer += Deltatime;
     // automatic doors
-    update_autonomous_doors( dt );
-
-    return d;
-};
+    update_autonomous_doors( Deltatime );
+}
 
 double TMoverParameters::ShowEngineRotation(int VehN)
 { // Zwraca wartość prędkości obrotowej silnika wybranego pojazdu. Do 3 pojazdów (3×SN61).
@@ -1574,6 +1553,35 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     }
 };
 
+// water pump status check
+void TMoverParameters::WaterPumpCheck( double const Timestep ) {
+    // NOTE: breaker override with start type is sm42 specific hack, replace with ability to define the presence of the breaker
+    WaterPump.is_active = (
+        ( true == Battery )
+     && ( true == WaterPump.breaker )
+     && ( ( true == WaterPump.is_enabled ) || ( WaterPump.start_type == start::battery ) ) ); 
+}
+
+// water heater status check
+void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
+
+    WaterHeater.is_active = (
+        ( false == WaterHeater.is_damaged )
+     && ( true == Battery )
+     && ( true == WaterHeater.is_enabled )
+     && ( true == WaterHeater.breaker )
+     && ( ( WaterHeater.is_active ) || ( WaterHeater.config.temp_min < 0 ) || ( dizel_heat.temperatura1 < WaterHeater.config.temp_min ) ) );
+    
+    if( ( WaterHeater.config.temp_max > 0 )
+     && ( dizel_heat.temperatura1 > WaterHeater.config.temp_max ) ) {
+        WaterHeater.is_active = false;
+    }
+
+    WaterHeater.is_damaged |= (
+        ( true == WaterHeater.is_active )
+     && ( false == WaterPump.is_active ) );
+}
+
 // fuel pump status update
 void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 
@@ -1588,12 +1596,12 @@ void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 // oil pump status update
 void TMoverParameters::OilPumpCheck( double const Timestep ) {
 
-    OilPump.is_active =
-        ( ( true == Battery )
-       && ( OilPump.start_type == start::manual ? ( OilPump.is_enabled ) :
-            OilPump.start_type == start::automatic ? ( dizel_startup || Mains ) :
-            OilPump.start_type == start::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup || Mains ) :
-            false ) ); // shouldn't ever get this far but, eh
+    OilPump.is_active = (
+        ( true == Battery )
+     && ( OilPump.start_type == start::manual ? ( OilPump.is_enabled ) :
+          OilPump.start_type == start::automatic ? ( dizel_startup || Mains ) :
+          OilPump.start_type == start::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup || Mains ) :
+          false ) ); // shouldn't ever get this far but, eh
 
     auto const maxrevolutions {
         EngineType == DieselEngine ?
@@ -1602,13 +1610,13 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
     auto const minpressure {
         OilPump.pressure_minimum > 0.f ?
             OilPump.pressure_minimum :
-            0.1f }; // arbitrary fallback value
+            0.15f }; // arbitrary fallback value
     auto const maxpressure { 0.65f }; // arbitrary value
 
     OilPump.pressure_target = (
-        false == OilPump.is_active ? 0.f :
-        enrot > 0.1 ? std::max<float>( minpressure, maxpressure * clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) * OilPump.resource_amount :
-        minpressure );
+        enrot > 0.1 ? interpolate( minpressure, maxpressure, static_cast<float>( clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) ) * OilPump.resource_amount :
+        true == OilPump.is_active ? minpressure :
+        0.f );
 
     if( OilPump.pressure_present < OilPump.pressure_target ) {
         // TODO: scale change rate from 0.01-0.05 with oil/engine temperature/idle time
@@ -1992,7 +2000,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == ElectricInductionMotor))
+	if ((OK) && (EngineType == ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
@@ -2050,7 +2058,7 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDownDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == ElectricInductionMotor))
+	if ((OK) && (EngineType == ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
 		ScndCtrlActualPos = 0;
 		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
@@ -2394,6 +2402,131 @@ bool TMoverParameters::AntiSlippingButton(void)
     return (AntiSlippingBrake() /*|| Sandbox(true)*/);
 }
 
+// water pump breaker state toggle
+bool TMoverParameters::WaterPumpBreakerSwitch( bool State, int const Notify ) {
+/*
+    if( FuelPump.start_type == start::automatic ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+*/
+    bool const initialstate { WaterPump.breaker };
+
+    WaterPump.breaker = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "WaterPumpBreakerSwitch",
+            ( WaterPump.breaker ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterPump.breaker != initialstate );
+}
+
+// water pump state toggle
+bool TMoverParameters::WaterPumpSwitch( bool State, int const Notify ) {
+
+    if( WaterPump.start_type == start::battery ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { WaterPump.is_enabled };
+
+    WaterPump.is_enabled = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "WaterPumpSwitch",
+            ( WaterPump.is_enabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterPump.is_enabled != initialstate );
+}
+
+// water heater breaker state toggle
+bool TMoverParameters::WaterHeaterBreakerSwitch( bool State, int const Notify ) {
+/*
+    if( FuelPump.start_type == start::automatic ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+*/
+    bool const initialstate { WaterHeater.breaker };
+
+    WaterHeater.breaker = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "WaterHeaterBreakerSwitch",
+            ( WaterHeater.breaker ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterHeater.breaker != initialstate );
+}
+
+// water heater state toggle
+bool TMoverParameters::WaterHeaterSwitch( bool State, int const Notify ) {
+/*
+    if( FuelPump.start_type == start::automatic ) {
+    // automatic fuel pump ignores 'manual' state commands
+    return false;
+    }
+*/
+    bool const initialstate { WaterHeater.is_enabled };
+
+    WaterHeater.is_enabled = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "WaterHeaterSwitch",
+            ( WaterHeater.is_enabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterHeater.is_enabled != initialstate );
+}
+
+// water circuits link state toggle
+bool TMoverParameters::WaterCircuitsLinkSwitch( bool State, int const Notify ) {
+
+    if( false == dizel_heat.auxiliary_water_circuit ) {
+        // can't link the circuits if the vehicle only has one
+        return false;
+    }
+
+    bool const initialstate { WaterCircuitsLink };
+
+    WaterCircuitsLink = State;
+
+    if( Notify != range::local ) {
+        SendCtrlToNext(
+            "WaterCircuitsLinkSwitch",
+            ( WaterCircuitsLink ? 1 : 0 ),
+            CabNo,
+            ( Notify == range::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterCircuitsLink != initialstate );
+}
+
 // fuel pump state toggle
 bool TMoverParameters::FuelPumpSwitch( bool State, int const Notify ) {
 
@@ -2544,7 +2677,7 @@ bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
 // *************************************************************************************************
 bool TMoverParameters::CompressorSwitch( bool State, int const Notify )
 {
-    if( CompressorPower > 1 ) {
+    if( CompressorStart != start::manual ) {
         // only pay attention if the compressor can be controlled manually
         return false;
     }
@@ -3188,35 +3321,38 @@ void TMoverParameters::CompressorCheck(double dt)
     else {
         if( CompressorPower == 3 ) {
             // experimental: make sure compressor coupled with diesel engine is always ready for work
-            CompressorAllow = true;
+            CompressorStart = start::automatic;
         }
         if (CompressorFlag) // jeśli sprężarka załączona
         { // sprawdzić możliwe warunki wyłączenia sprężarki
             if (CompressorPower == 5) // jeśli zasilanie z sąsiedniego członu
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                if (Couplers[1].Connected != NULL)
-                    CompressorFlag =
-                        ( Couplers[ 1 ].Connected->CompressorAllow
-                       && Couplers[ 1 ].Connected->CompressorAllowLocal
-                       && Couplers[ 1 ].Connected->Mains
-                       && Couplers[ 1 ].Connected->ConverterFlag );
-                else
-                    CompressorFlag = false; // bez tamtego członu nie zadziała
+                if( Couplers[ side::rear ].Connected != NULL ) {
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
+                }
+                else {
+                    // bez tamtego członu nie zadziała
+                    CompressorFlag = false;
+                }
             }
             else if (CompressorPower == 4) // jeśli zasilanie z poprzedniego członu
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                if (Couplers[0].Connected != NULL)
-                    CompressorFlag =
-                        ( Couplers[ 0 ].Connected->CompressorAllow
-                       && Couplers[ 0 ].Connected->CompressorAllowLocal
-                       && Couplers[ 0 ].Connected->Mains
-                       && Couplers[ 0 ].Connected->ConverterFlag );
-                else
+                if( Couplers[ side::front ].Connected != NULL ) {
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Couplers[ side::front ].Connected->ConverterFlag ) );
+                }
+                else {
                     CompressorFlag = false; // bez tamtego członu nie zadziała
+                }
             }
             else
-                CompressorFlag =
-                    ( ( CompressorAllow ) 
+                CompressorFlag = (
+                      ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
                    && ( CompressorAllowLocal )
                    && ( Mains )
                    && ( ( ConverterFlag )
@@ -3267,38 +3403,37 @@ void TMoverParameters::CompressorCheck(double dt)
                     // or if the switch is on and the pressure isn't maxed
                 if( CompressorPower == 5 ) // jeśli zasilanie z następnego członu
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                    if( Couplers[ 1 ].Connected != nullptr ) {
-                        CompressorFlag =
-                            ( Couplers[ 1 ].Connected->CompressorAllow
-                           && Couplers[ 1 ].Connected->CompressorAllowLocal
-                           && Couplers[ 1 ].Connected->Mains
-                           && Couplers[ 1 ].Connected->ConverterFlag );
-                        }
+                    if( Couplers[ side::rear ].Connected != NULL ) {
+                        CompressorFlag = (
+                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                         && ( CompressorAllowLocal )
+                         && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
+                    }
                     else {
-                        CompressorFlag = false; // bez tamtego członu nie zadziała
+                        // bez tamtego członu nie zadziała
+                        CompressorFlag = false;
                     }
                 }
                 else if( CompressorPower == 4 ) // jeśli zasilanie z poprzedniego członu
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
-                    if( Couplers[ 0 ].Connected != nullptr ) {
-                        CompressorFlag =
-                            ( Couplers[ 0 ].Connected->CompressorAllow
-                           && Couplers[ 0 ].Connected->CompressorAllowLocal
-                           && Couplers[ 0 ].Connected->Mains
-                           && Couplers[ 0 ].Connected->ConverterFlag );
+                    if( Couplers[ side::front ].Connected != NULL ) {
+                        CompressorFlag = (
+                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                         && ( CompressorAllowLocal )
+                         && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                     }
                     else {
                         CompressorFlag = false; // bez tamtego członu nie zadziała
                     }
                 }
                 else {
-                    CompressorFlag =
-                        ( ( CompressorAllow )
-                       && ( CompressorAllowLocal )
-                       && ( Mains )
-                       && ( ( ConverterFlag )
-                         || ( CompressorPower == 0 )
-                         || ( CompressorPower == 3 ) ) );
+                    CompressorFlag = (
+                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                     && ( CompressorAllowLocal )
+                     && ( Mains )
+                     && ( ( ConverterFlag )
+                       || ( CompressorPower == 0 )
+                       || ( CompressorPower == 3 ) ) );
                 }
 
                 // NOTE: crude way to enforce simultaneous activation of compressors in multi-unit setups
@@ -4415,12 +4550,30 @@ double TMoverParameters::TractionForce(double dt)
         }
 
         case DieselElectric: {
+            // NOTE: for this type RventRot is the speed of motor blowers; we also update radiator fans while at it
             if( true == Mains ) {
                 // TBD, TODO: currently ignores RVentType, fix this?
-                RventRot += clamp( DElist[ MainCtrlPos ].RPM / 60.0 - RventRot, -100.0, 50.0 ) * dt;
+                RventRot += clamp( enrot - RventRot, -100.0, 50.0 ) * dt;
+                dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
+                dizel_heat.rpmw2 += clamp( dizel_heat.rpmwz2 - dizel_heat.rpmw2, -100.f, 50.f ) * dt;
             }
             else {
                 RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );
+                dizel_heat.rpmw *= std::max( 0.0, 1.0 - dizel_heat.rpmw * dt );
+                dizel_heat.rpmw2 *= std::max( 0.0, 1.0 - dizel_heat.rpmw2 * dt );
+            }
+            break;
+        }
+
+        case DieselEngine: {
+            // NOTE: we update only radiator fans, as vehicles with diesel engine don't have other ventilators
+            if( true == Mains ) {
+                dizel_heat.rpmw += clamp( dizel_heat.rpmwz - dizel_heat.rpmw, -100.f, 50.f ) * dt;
+                dizel_heat.rpmw2 += clamp( dizel_heat.rpmwz2 - dizel_heat.rpmw2, -100.f, 50.f ) * dt;
+            }
+            else {
+                dizel_heat.rpmw *= std::max( 0.0, 1.0 - dizel_heat.rpmw * dt );
+                dizel_heat.rpmw2 *= std::max( 0.0, 1.0 - dizel_heat.rpmw2 * dt );
             }
             break;
         }
@@ -4519,11 +4672,9 @@ double TMoverParameters::TractionForce(double dt)
                         if( MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ) ) // TODO: check whether we need to send this EMU-wide
 						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
 
-            if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) &&
-                (DynamicBrakeFlag))
+            if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) && (DynamicBrakeFlag))
                 Itot = Im * 2; // 2x2 silniki w EP09
-            else if ((TrainType == dt_EZT) && (Imin == IminLo) &&
-                     (ScndS)) // yBARC - boczniki na szeregu poprawnie
+            else if ((TrainType == dt_EZT) && (Imin == IminLo) && (ScndS)) // yBARC - boczniki na szeregu poprawnie
                 Itot = Im;
             else
                 Itot = Im * RList[MainCtrlActualPos].Bn; // prad silnika * ilosc galezi
@@ -4552,11 +4703,18 @@ double TMoverParameters::TractionForce(double dt)
             //       tmpV:=V*CabNo*ActiveDir;
             auto const tmpV { nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute }; //*CabNo*ActiveDir;
             // jazda manewrowa
-            if (ShuntMode)
-            {
-                Voltage = (SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1.0 - AnPos));
-                tmp = (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1.0 - AnPos));
-                Ft = tmp * 1000.0 / (abs(tmpV) + 1.6);
+            if( true == ShuntMode ) {
+                if( ( true == Mains ) && ( MainCtrlPos > 0 ) ) {
+                    Voltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
+                    // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
+                    auto const rpmratio { 60.0 * enrot / DElist[ MainCtrlPos ].RPM };
+                    tmp = rpmratio * ( SST[ MainCtrlPos ].Pmax * AnPos ) + ( SST[ MainCtrlPos ].Pmin * ( 1.0 - AnPos ) );
+                    Ft = tmp * 1000.0 / ( abs( tmpV ) + 1.6 );
+                }
+                else {
+                    Voltage = 0;
+                    Ft = 0;
+                }
                 PosRatio = 1;
             }
             else // jazda ciapongowa
@@ -4841,6 +4999,32 @@ double TMoverParameters::TractionForce(double dt)
             }
             if( true == Mains ) {
 
+				//tempomat
+
+				if (ScndCtrlPosNo > 1)
+				{
+					if (ScndCtrlPos != NewSpeed)
+					{
+
+						SpeedCtrlTimer = 0;
+						NewSpeed = ScndCtrlPos;
+					}
+					else
+					{
+						SpeedCtrlTimer += dt;
+						if (SpeedCtrlTimer > SpeedCtrlDelay)
+						{
+							int NewSCAP = (Vmax < 250 ? 1 : 0.5) * (float)ScndCtrlPos / (float)ScndCtrlPosNo * Vmax;
+							if (NewSCAP != ScndCtrlActualPos)
+							{
+								ScndCtrlActualPos = NewSCAP;
+								SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+							}
+						}
+					}
+				}
+
+
                 dtrans = Hamulec->GetEDBCP();
                 if (((DoorLeftOpened) || (DoorRightOpened)))
                     DynamicBrakeFlag = true;
@@ -4880,7 +5064,7 @@ double TMoverParameters::TractionForce(double dt)
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
-                    if (ScndCtrlActualPos > 0)
+                    if (ScndCtrlActualPos > 0) //speed control
                         if (Vmax < 250)
                             PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos - Vel)));
                         else
@@ -5845,6 +6029,12 @@ bool TMoverParameters::dizel_StartupCheck() {
             dizel_startup = false;
         }
     }
+    // test the water circuits and water temperature
+    if( true == dizel_heat.PA ) {
+        engineisready = false;
+        // TBD, TODO: reset startup procedure depending on pump and heater control mode
+        dizel_startup = false;
+    }
 
     return engineisready;
 }
@@ -5855,6 +6045,8 @@ bool TMoverParameters::dizel_StartupCheck() {
 // *************************************************************************************************
 bool TMoverParameters::dizel_Update(double dt) {
 
+    WaterPumpCheck( dt );
+    WaterHeaterCheck( dt );
     OilPumpCheck( dt );
     FuelPumpCheck( dt );
     if( ( true == dizel_startup )
@@ -5894,6 +6086,8 @@ bool TMoverParameters::dizel_Update(double dt) {
         double const fillspeed { 2 };
         dizel_fill = dizel_fill + fillspeed * dt * ( dizel_fillcheck( MainCtrlPos ) - dizel_fill );
     }
+
+    dizel_Heat( dt );
 
     return DU;
 }
@@ -5961,7 +6155,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
     double Moment = 0, enMoment = 0, gearMoment = 0, eps = 0, newn = 0, friction = 0, neps = 0;
 	double TorqueH = 0, TorqueL = 0, TorqueC = 0;
 	n = n * CabNo;
-	if (MotorParam[ScndCtrlActualPos].mIsat < 0.001)
+	if ((MotorParam[ScndCtrlActualPos].mIsat < 0.001)||(ActiveDir == 0))
 		n = enrot;
     friction = dizel_engagefriction;
 	hydro_TC_nIn = enrot; //wal wejsciowy przetwornika momentu
@@ -6073,7 +6267,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		}
 		eps = enMoment / dizel_AIM;
 		newn = enrot + eps * dt;
-		if ((newn - n)*(enrot - dizel_n_old) < 0) //przejscie przez zero - slizgalo sie i przestało
+		if (((newn - n)*(enrot - dizel_n_old) < 0)&&(TorqueC>0.1)) //przejscie przez zero - slizgalo sie i przestało
 			newn = n;
 		if ((newn * enrot <= 0) && (eps * enrot < 0)) //przejscie przez zero obrotow
 			newn = 0;
@@ -6099,6 +6293,205 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	dizel_n_old = n; //obecna predkosc katowa na potrzeby kolejnej klatki
 
     return gearMoment;
+}
+
+// sets component temperatures to specified value
+void TMoverParameters::dizel_HeatSet( float const Value ) {
+
+    dizel_heat.Te = // TODO: don't include ambient temperature, pull it from environment data instead
+    dizel_heat.Ts =
+    dizel_heat.To =
+    dizel_heat.Tsr =
+    dizel_heat.Twy =
+    dizel_heat.Tsr2 =
+    dizel_heat.Twy2 =
+    dizel_heat.temperatura1 =
+    dizel_heat.temperatura2 = Value;
+}
+
+// calculates diesel engine temperature and heat transfers
+// adapted from scripts written by adamst
+// NOTE: originally executed twice per second
+void TMoverParameters::dizel_Heat( double const dt ) {
+
+    auto const qs { 44700.0 };
+    auto const Cs { 11000.0 };
+    auto const Cw { 4.189 };
+    auto const Co { 1.885 };
+    auto const gwmin { 400.0 };
+    auto const gwmax { 4000.0 };
+    auto const gwmin2 { 400.0 };
+    auto const gwmax2 { 4000.0 };
+
+    auto const engineon { ( Mains ? 1 : 0 ) };
+    auto const engineoff { ( Mains ? 0 : 1 ) };
+    auto const rpm { enrot * 60 };
+    // TODO: calculate this once and cache for further use, instead of doing it repeatedly all over the place
+    auto const maxrevolutions { (
+        EngineType == DieselEngine ? dizel_nmax * 60 :
+        EngineType == DieselElectric ? DElist[ MainCtrlPosNo ].RPM :
+        std::numeric_limits<double>::max() ) }; // shouldn't ever get here but, eh
+    auto const revolutionsfactor { clamp( rpm / maxrevolutions, 0.0, 1.0 ) };
+    auto const waterpump { WaterPump.is_active ? 1 : 0 };
+
+    auto const gw = engineon * interpolate( gwmin, gwmax, revolutionsfactor ) + waterpump * 1000 + engineoff * 200;
+    auto const gw2 = engineon * interpolate( gwmin2, gwmax2, revolutionsfactor ) + waterpump * 1000 + engineoff * 200;
+    auto const gwO = interpolate( gwmin, gwmax, revolutionsfactor );
+
+    dizel_heat.water.is_cold = (
+        ( dizel_heat.water.config.temp_min > 0 )
+     && ( dizel_heat.temperatura1 < dizel_heat.water.config.temp_min - ( Mains ? 5 : 0 ) ) );
+    dizel_heat.water.is_hot = (
+        ( dizel_heat.water.config.temp_max > 0 )
+     && ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_max - ( dizel_heat.water.is_hot ? 8 : 0 ) ) );
+    dizel_heat.water_aux.is_cold = (
+        ( dizel_heat.water_aux.config.temp_min > 0 )
+     && ( dizel_heat.temperatura2 < dizel_heat.water_aux.config.temp_min - ( Mains ? 5 : 0 ) ) );
+    dizel_heat.water_aux.is_hot = (
+        ( dizel_heat.water_aux.config.temp_max > 0 )
+     && ( dizel_heat.temperatura2 > dizel_heat.water_aux.config.temp_max - ( dizel_heat.water_aux.is_hot ? 8 : 0 ) ) );
+    dizel_heat.oil.is_cold = (
+        ( dizel_heat.oil.config.temp_min > 0 )
+     && ( dizel_heat.To < dizel_heat.oil.config.temp_min - ( Mains ? 5 : 0 ) ) );
+    dizel_heat.oil.is_hot = (
+        ( dizel_heat.oil.config.temp_max > 0 )
+     && ( dizel_heat.To > dizel_heat.oil.config.temp_max - ( dizel_heat.oil.is_hot ? 8 : 0 ) ) );
+
+    auto const PT = (
+        ( false == dizel_heat.water.is_cold )
+     && ( false == dizel_heat.water.is_hot )
+     && ( false == dizel_heat.water_aux.is_cold )
+     && ( false == dizel_heat.water_aux.is_hot )
+     && ( false == dizel_heat.oil.is_cold )
+     && ( false == dizel_heat.oil.is_hot ) /* && ( false == awaria_termostatow ) */ ) /* || PTp */;
+    auto const PPT = ( false == PT ) /* && ( false == PPTp ) */;
+    dizel_heat.PA = ( /* ( ( !zamkniecie or niedomkniecie ) and !WBD ) || */ PPT /* || nurnik || ( woda < 7 ) */ ) /* && ( !PAp ) */;
+
+    // engine heat transfers
+    auto const Ge { engineon * ( 0.21 * EnginePower + 12 ) / 3600 };
+    // TODO: replace fixed heating power cost with more accurate calculation
+    auto const obciazenie { engineon * ( ( EnginePower / 950 ) + ( Heating ? HeatingPower : 0 ) + 70 ) };
+    auto const Qd { qs * Ge - obciazenie };
+    // silnik oddaje czesc ciepla do wody chlodzacej, a takze pewna niewielka czesc do otoczenia, modyfikowane przez okienko
+    auto const Qs { ( Qd - ( dizel_heat.kfs * ( dizel_heat.Ts - dizel_heat.Tsr ) ) - ( dizel_heat.kfe * /* ( 0.3 + 0.7 * ( dizel_heat.okienko ? 1 : 0 ) ) * */ ( dizel_heat.Ts - dizel_heat.Te ) ) ) };
+    auto const dTss { Qs / Cs };
+    dizel_heat.Ts += ( dTss * dt );
+
+    // oil heat transfers
+    // olej oddaje cieplo do wody gdy krazy przez wymiennik ciepla == wlaczona pompka lub silnik
+    auto const dTo { (
+        dizel_heat.auxiliary_water_circuit ?
+            ( ( dizel_heat.kfo * ( dizel_heat.Ts - dizel_heat.To ) ) - ( dizel_heat.kfs * ( 0.3 ) * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gwO * Co ) :
+            ( ( dizel_heat.kfo * ( dizel_heat.Ts - dizel_heat.To ) ) - ( dizel_heat.kfo2 * ( dizel_heat.To - dizel_heat.Tsr ) ) ) / ( gwO * Co ) ) };
+    dizel_heat.To += ( dTo * dt );
+
+    // heater
+/*
+    if( typ == "SP45" )
+        Qp = (float)( podgrzewacz and ( true == WaterPump.is_active ) and ( Twy < 55 ) and ( Twy2 < 55 ) ) * 1000;
+    else
+*/
+        auto const Qp = ( ( ( true == WaterHeater.is_active ) && ( true == WaterPump.is_active ) && ( dizel_heat.Twy < 60 ) && ( dizel_heat.Twy2 < 60 ) ) ? 1 : 0 ) * 1000;
+
+    auto const kurek07 { 1 }; // unknown/unimplemented device TBD, TODO: identify and implement?
+
+    if( true == dizel_heat.auxiliary_water_circuit ) {
+        // auxiliary water circuit setup
+        dizel_heat.water_aux.is_warm = (
+            ( true == dizel_heat.cooling )
+         || ( ( true == Mains )
+           && ( BatteryVoltage > 70 ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
+           && ( dizel_heat.water_aux.config.temp_cooling > 0 )
+           && ( dizel_heat.temperatura2 > dizel_heat.water_aux.config.temp_cooling - ( dizel_heat.water_aux.is_warm ? 8 : 0 ) ) ) );
+        auto const PTC2 { ( dizel_heat.water_aux.is_warm /*or PTC2p*/ ? 1 : 0 ) };
+        dizel_heat.rpmwz2 = PTC2 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
+        dizel_heat.zaluzje2 = ( dizel_heat.water_aux.config.shutters ? PTC2 : true ); // no shutters is an equivalent to having them open
+        auto const zaluzje2 { ( dizel_heat.zaluzje2 ? 1 : 0 ) };
+        // auxiliary water circuit heat transfer values
+        auto const kf2 { kurek07 * ( ( dizel_heat.kw * ( 0.3 + 0.7 * zaluzje2 ) ) * dizel_heat.rpmw2 + ( dizel_heat.kv * ( 0.3 + 0.7 * zaluzje2 ) * Vel / 3.6 ) ) + 2 };
+        auto const dTs2 { ( ( dizel_heat.kfs * ( 0.3 ) * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gw2 * Cw ) };
+        // przy otwartym kurku B ma³y obieg jest dogrzewany przez du¿y - stosujemy przy korzystaniu z podgrzewacza oraz w zimie
+        auto const Qch2 { -kf2 * ( dizel_heat.Tsr2 - dizel_heat.Te ) + ( 80 * ( true == WaterCircuitsLink ? 1 : 0 ) * ( dizel_heat.Twy - dizel_heat.Tsr2 ) ) };
+        auto const dTch2 { Qch2 / ( gw2 * Cw ) };
+        // auxiliary water circuit heat transfers finalization
+        // NOTE: since primary circuit doesn't read data from the auxiliary one, we can pretty safely finalize auxiliary updates before touching the primary circuit
+        auto const Twe2 { dizel_heat.Twy2 + ( dTch2 * dt ) };
+        dizel_heat.Twy2 = Twe2 + ( dTs2 * dt );
+        dizel_heat.Tsr2 = 0.5 * ( dizel_heat.Twy2 + Twe2 );
+        dizel_heat.temperatura2 = dizel_heat.Twy2;
+    }
+    // primary water circuit setup
+    dizel_heat.water.is_flowing = (
+        ( dizel_heat.water.config.temp_flow < 0 )
+     || ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_flow - ( dizel_heat.water.is_flowing ? 5 : 0 ) ) );
+    auto const obieg { ( dizel_heat.water.is_flowing ? 1 : 0 ) };
+    dizel_heat.water.is_warm = (
+        ( true == dizel_heat.cooling )
+     || ( ( true == Mains )
+       && ( BatteryVoltage > 70 ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
+       && ( dizel_heat.water.config.temp_cooling > 0 )
+       && ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_cooling - ( dizel_heat.water.is_warm ? 8 : 0 ) ) ) );
+    auto const PTC1 { ( dizel_heat.water.is_warm /*or PTC1p*/ ? 1 : 0 ) };
+    dizel_heat.rpmwz = PTC1 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
+    dizel_heat.zaluzje1 = ( dizel_heat.water.config.shutters ? PTC1 : true ); // no shutters is an equivalent to having them open
+    auto const zaluzje1 { ( dizel_heat.zaluzje1 ? 1 : 0 ) };
+    // primary water circuit heat transfer values
+    auto const kf { obieg * kurek07 * ( ( dizel_heat.kw * ( 0.3 + 0.7 * zaluzje1 ) ) * dizel_heat.rpmw + ( dizel_heat.kv * ( 0.3 + 0.7 * zaluzje1 ) * Vel / 3.6 ) + 3 ) + 2 };
+    auto const dTs { (
+        dizel_heat.auxiliary_water_circuit ?
+            ( ( dizel_heat.kfs * ( dizel_heat.Ts - dizel_heat.Tsr ) ) ) / ( gw * Cw ) :
+            ( ( dizel_heat.kfs * ( dizel_heat.Ts - dizel_heat.Tsr ) ) + ( dizel_heat.kfo2 * ( dizel_heat.To - dizel_heat.Tsr ) ) ) / ( gw * Cw ) ) };
+    auto const Qch { -kf * ( dizel_heat.Tsr - dizel_heat.Te ) + Qp };
+    auto const dTch { Qch / ( gw * Cw ) };
+    // primary water circuit heat transfers finalization
+    auto const Twe { dizel_heat.Twy + ( dTch * dt ) };
+    dizel_heat.Twy = Twe + ( dTs * dt );
+    dizel_heat.Tsr = 0.5 * ( dizel_heat.Twy + Twe );
+    dizel_heat.temperatura1 = dizel_heat.Twy;
+/*
+    fuelConsumed = fuelConsumed + ( Ge * 0.5 );
+
+    while( fuelConsumed >= 0.83 ) {
+        fuelConsumed = fuelConsumed - 0.83;
+        fuelQueue.DestroyProductMatching( null, 1 );
+    }//if
+
+    if( engineon )
+        temp_turbo = temp_turbo + 0.3 * ( t_pozycja );
+    if( t_pozycja == 0 and cisnienie > 0.04 )
+        temp_turbo = temp_turbo - 1;
+
+    if( temp_turbo > 400 )
+        temp_turbo = 400;
+    if( temp_turbo < 0 )
+        temp_turbo = 0;
+
+    if( temp_turbo > 50 and cisnienie < 0.05 )
+        timer_turbo = timer_turbo + 1;
+
+    if( temp_turbo == 0 )
+        timer_turbo = 0;
+
+    if( timer_turbo > 360 ) {
+        awaria_turbo = true;
+        timer_turbo = 400;
+    }
+
+    if( Ts < 50 )
+        p_odpal = 3;
+    if( Ts > 49 and Ts < 76 )
+        p_odpal = 4;
+    if( Ts > 75 )
+        p_odpal = 7;
+
+    stukanie = stukanie or awaria_oleju;
+
+    if( awaria_oleju == true and ilosc_oleju > 0 ) {
+        ilosc_oleju = ilosc_oleju - ( 0.002 * rpm / 1500 );
+    }
+    if( awaria_oleju == true and cisnienie < 0.06 )
+        damage = 1;
+*/
 }
 
 // *************************************************************************************************
@@ -7733,6 +8126,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
 
+    // speed control
+    extract_value( SpeedCtrlDelay, "SpeedCtrlDelay", line, "" );
+
     // converter
     {
         std::map<std::string, start> starts {
@@ -7746,6 +8142,19 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 start::manual;
     }
     extract_value( ConverterStartDelay, "ConverterStartDelay", line, "" );
+
+    // compressor
+    {
+        std::map<std::string, start> starts {
+            { "Manual", start::manual },
+            { "Automatic", start::automatic }
+        };
+        auto lookup = starts.find( extract_value( "CompressorStart", line ) );
+        CompressorStart =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
 
     // fuel pump
     {
@@ -7769,6 +8178,19 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         };
         auto lookup = starts.find( extract_value( "OilStart", line ) );
         OilPump.start_type =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
+
+    // water pump
+    {
+        std::map<std::string, start> starts {
+            { "Manual", start::manual },
+            { "Battery", start::battery }
+        };
+        auto lookup = starts.find( extract_value( "WaterStart", line ) );
+        WaterPump.start_type =
             lookup != starts.end() ?
                 lookup->second :
                 start::manual;
@@ -7985,7 +8407,31 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         default: {
             // nothing here
         }
-    }
+    } // engine type
+
+    // engine cooling factore
+    extract_value( dizel_heat.kw, "HeatKW", Input, "" );
+    extract_value( dizel_heat.kv, "HeatKV", Input, "" );
+    extract_value( dizel_heat.kfe, "HeatKFE", Input, "" );
+    extract_value( dizel_heat.kfs, "HeatKFS", Input, "" );
+    extract_value( dizel_heat.kfo, "HeatKFO", Input, "" );
+    extract_value( dizel_heat.kfo2, "HeatKFO2", Input, "" );
+    // engine cooling systems
+    extract_value( dizel_heat.water.config.temp_min, "WaterMinTemperature", Input, "" );
+    extract_value( dizel_heat.water.config.temp_max, "WaterMaxTemperature", Input, "" );
+    extract_value( dizel_heat.water.config.temp_flow, "WaterFlowTemperature", Input, "" );
+    extract_value( dizel_heat.water.config.temp_cooling, "WaterCoolingTemperature", Input, "" );
+    extract_value( dizel_heat.water.config.shutters, "WaterShutters", Input, "" );
+    extract_value( dizel_heat.auxiliary_water_circuit, "WaterAuxCircuit", Input, "" );
+    extract_value( dizel_heat.water_aux.config.temp_min, "WaterAuxMinTemperature", Input, "" );
+    extract_value( dizel_heat.water_aux.config.temp_max, "WaterAuxMaxTemperature", Input, "" );
+    extract_value( dizel_heat.water_aux.config.temp_cooling, "WaterAuxCoolingTemperature", Input, "" );
+    extract_value( dizel_heat.water_aux.config.shutters, "WaterAuxShutters", Input, "" );
+    extract_value( dizel_heat.oil.config.temp_min, "OilMinTemperature", Input, "" );
+    extract_value( dizel_heat.oil.config.temp_max, "OilMaxTemperature", Input, "" );
+    // water heater
+    extract_value( WaterHeater.config.temp_min, "HeaterMinTemperature", Input, "" );
+    extract_value( WaterHeater.config.temp_max, "HeaterMaxTemperature", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
@@ -8669,15 +9115,63 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		OK = BrakeReleaser(Round(CValue1)); // samo się przesyła dalej
 											// OK:=SendCtrlToNext(command,CValue1,CValue2); //to robiło kaskadę 2^n
 	}
+    else if( Command == "WaterPumpBreakerSwitch" ) {
+/*
+        if( FuelPump.start_type != start::automatic ) {
+            // automatic fuel pump ignores 'manual' state commands
+*/
+            WaterPump.breaker = ( CValue1 == 1 );
+/*
+        }
+*/
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "WaterPumpSwitch" ) {
+
+        if( WaterPump.start_type != start::battery ) {
+            // automatic fuel pump ignores 'manual' state commands
+            WaterPump.is_enabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "WaterHeaterBreakerSwitch" ) {
+/*
+        if( FuelPump.start_type != start::automatic ) {
+            // automatic fuel pump ignores 'manual' state commands
+*/
+            WaterHeater.breaker = ( CValue1 == 1 );
+/*
+        }
+*/
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "WaterHeaterSwitch" ) {
+/*
+        if( FuelPump.start_type != start::automatic ) {
+            // automatic fuel pump ignores 'manual' state commands
+*/
+            WaterHeater.is_enabled = ( CValue1 == 1 );
+/*
+        }
+*/
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "WaterCircuitsLinkSwitch" ) {
+        if( true == dizel_heat.auxiliary_water_circuit ) {
+            // can only link circuits if the vehicle has more than one of them
+            WaterCircuitsLink = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
     else if (Command == "FuelPumpSwitch") {
-        if( FuelPump.start_type == start::manual ) {
+        if( FuelPump.start_type != start::automatic ) {
             // automatic fuel pump ignores 'manual' state commands
             FuelPump.is_enabled = ( CValue1 == 1 );
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
     else if (Command == "OilPumpSwitch") {
-        if( OilPump.start_type == start::manual ) {
+        if( OilPump.start_type != start::automatic ) {
             // automatic pump ignores 'manual' state commands
             OilPump.is_enabled = ( CValue1 == 1 );
         }
@@ -8775,7 +9269,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         //   end
     else if (Command == "CompressorSwitch") /*NBMX*/
 	{
-        if( CompressorPower < 2 ) {
+        if( CompressorStart == start::manual ) {
             CompressorAllow = ( CValue1 == 1 );
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

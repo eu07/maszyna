@@ -368,7 +368,9 @@ int main(int argc, char *argv[])
 			|| (false == UILayer.init(window)))
 			return -1;
 
-		Global.pWorld = &World;
+    if( Global.bSoundEnabled ) {
+        Global.bSoundEnabled &= audio::renderer.init();
+    }
 
 		audio::renderer.init();
 		input::Keyboard.init();

@@ -29,16 +29,13 @@ public:
     TGauge() = default;
     inline
     void Clear() { *this = TGauge(); }
-    void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1, double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
+    void Init(TSubModel *Submodel, TGaugeType Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
     bool Load(cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, TModel3d *md2 = nullptr, double mul = 1.0);
-    void PermIncValue(double fNewDesired);
-    void IncValue(double fNewDesired);
-    void DecValue(double fNewDesired);
-    void UpdateValue( double fNewDesired );
-    void UpdateValue( double fNewDesired, sound_source &Fallbacksound );
-    void PutValue(double fNewDesired);
-    double GetValue() const;
-    double GetDesiredValue() const;
+    void UpdateValue( float fNewDesired );
+    void UpdateValue( float fNewDesired, sound_source &Fallbacksound );
+    void PutValue(float fNewDesired);
+    float GetValue() const;
+    float GetDesiredValue() const;
     void Update();
     void AssignFloat(float *fValue);
     void AssignDouble(double *dValue);
@@ -54,15 +51,22 @@ private:
 // imports member data pair from the config file
     bool
         Load_mapping( cParser &Input );
-    void UpdateValue( double fNewDesired, sound_source *Fallbacksound );
+    void
+        UpdateValue( float fNewDesired, sound_source *Fallbacksound );
+    float
+        GetScaledValue() const;
+
 // members
-    TGaugeType eType { gt_Unknown }; // typ ruchu
-    double fFriction { 0.0 }; // hamowanie przy zliżaniu się do zadanej wartości
-    double fDesiredValue { 0.0 }; // wartość docelowa
-    double fValue { 0.0 }; // wartość obecna
-    double fOffset { 0.0 }; // wartość początkowa ("0")
-    double fScale { 1.0 }; // wartość końcowa ("1")
-    char cDataType; // typ zmiennej parametru: f-float, d-double, i-int
+    TGaugeType m_type { gt_Unknown }; // typ ruchu
+    float m_friction { 0.f }; // hamowanie przy zliżaniu się do zadanej wartości
+    float m_targetvalue { 0.f }; // wartość docelowa
+    float m_value { 0.f }; // wartość obecna
+    float m_offset { 0.f }; // wartość początkowa ("0")
+    float m_scale { 1.f }; // scale applied to the value at the start of accepted value range
+    float m_endscale { -1.f }; // scale applied to the value at the end of accepted value range
+    float m_endvalue { -1.f }; // end value of accepted value range
+    bool m_interpolatescale { false };
+    char m_datatype; // typ zmiennej parametru: f-float, d-double, i-int
     union {
         // wskaźnik na parametr pokazywany przez animację
         float *fData;

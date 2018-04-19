@@ -194,6 +194,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::wheelspinbrakeactivate, &TTrain::OnCommand_wheelspinbrakeactivate },
     { user_command::sandboxactivate, &TTrain::OnCommand_sandboxactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
+	{ user_command::trainbrakeoperationmodeincrease, &TTrain::OnCommand_trainbrakeoperationmodeincrease },
+	{ user_command::trainbrakeoperationmodedecrease, &TTrain::OnCommand_trainbrakeoperationmodedecrease },
     { user_command::brakeactingspeedincrease, &TTrain::OnCommand_brakeactingspeedincrease },
     { user_command::brakeactingspeeddecrease, &TTrain::OnCommand_brakeactingspeeddecrease },
     { user_command::brakeactingspeedsetcargo, &TTrain::OnCommand_brakeactingspeedsetcargo },
@@ -229,6 +231,21 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::oilpumptoggle, &TTrain::OnCommand_oilpumptoggle },
     { user_command::oilpumpenable, &TTrain::OnCommand_oilpumpenable },
     { user_command::oilpumpdisable, &TTrain::OnCommand_oilpumpdisable },
+    { user_command::waterheaterbreakertoggle, &TTrain::OnCommand_waterheaterbreakertoggle },
+    { user_command::waterheaterbreakerclose, &TTrain::OnCommand_waterheaterbreakerclose },
+    { user_command::waterheaterbreakeropen, &TTrain::OnCommand_waterheaterbreakeropen },
+    { user_command::waterheatertoggle, &TTrain::OnCommand_waterheatertoggle },
+    { user_command::waterheaterenable, &TTrain::OnCommand_waterheaterenable },
+    { user_command::waterheaterdisable, &TTrain::OnCommand_waterheaterdisable },
+    { user_command::waterpumpbreakertoggle, &TTrain::OnCommand_waterpumpbreakertoggle },
+    { user_command::waterpumpbreakerclose, &TTrain::OnCommand_waterpumpbreakerclose },
+    { user_command::waterpumpbreakeropen, &TTrain::OnCommand_waterpumpbreakeropen },
+    { user_command::waterpumptoggle, &TTrain::OnCommand_waterpumptoggle },
+    { user_command::waterpumpenable, &TTrain::OnCommand_waterpumpenable },
+    { user_command::waterpumpdisable, &TTrain::OnCommand_waterpumpdisable },
+    { user_command::watercircuitslinktoggle, &TTrain::OnCommand_watercircuitslinktoggle },
+    { user_command::watercircuitslinkenable, &TTrain::OnCommand_watercircuitslinkenable },
+    { user_command::watercircuitslinkdisable, &TTrain::OnCommand_watercircuitslinkdisable },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
     { user_command::converterenable, &TTrain::OnCommand_converterenable },
     { user_command::converterdisable, &TTrain::OnCommand_converterdisable },
@@ -747,7 +764,7 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos + ( Command.time_delta * 1.0f ),
+                Train->mvControlled->AnPos + ( Command.time_delta * 2.0 ),
                 0.0, 1.0 );
         }
         else {
@@ -808,7 +825,7 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
         // on press or hold
         if( Train->mvControlled->ShuntMode ) {
             Train->mvControlled->AnPos = clamp(
-                Train->mvControlled->AnPos - ( Command.time_delta * 1.0f ),
+                Train->mvControlled->AnPos - ( Command.time_delta * 2.0 ),
                 0.0, 1.0 );
         }
         Train->mvControlled->DecScndCtrl( 1 );
@@ -1241,6 +1258,38 @@ void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &
             }
         }
     }
+}
+
+void TTrain::OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( ( Train->mvOccupied->BrakeOpModeFlag << 1 ) & Train->mvOccupied->BrakeOpModes ) != 0 ) {
+            // next mode
+            Train->mvOccupied->BrakeOpModeFlag <<= 1;
+            // audio feedback
+			Train->dsbPneumaticSwitch.play();
+			// visual feedback
+			// NOTE: there's no button for brake operation mode switch
+			// TBD, TODO: add brake operation mode switch?
+		}
+	}
+}
+
+void TTrain::OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( ( Train->mvOccupied->BrakeOpModeFlag >> 1 ) & Train->mvOccupied->BrakeOpModes ) != 0 ) {
+			// previous mode
+			Train->mvOccupied->BrakeOpModeFlag >>= 1;
+			// audio feedback
+			Train->dsbPneumaticSwitch.play();
+			// visual feedback
+			// NOTE: there's no button for brake operation mode switch
+			// TBD, TODO: add brake operation mode switch?
+		}
+	}
 }
 
 void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command ) {
@@ -2072,6 +2121,201 @@ void TTrain::OnCommand_oilpumpdisable( TTrain *Train, command_data const &Comman
         if( false == Train->mvControlled->OilPump.is_enabled ) { return; } // already disabled
 
         Train->mvControlled->OilPumpSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_waterheaterbreakertoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->WaterHeater.breaker ) {
+            // turn on
+            OnCommand_waterheaterbreakerclose( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_waterheaterbreakeropen( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_waterheaterbreakerclose( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterHeaterBreakerButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->WaterHeater.breaker ) { return; } // already enabled
+
+        Train->mvControlled->WaterHeaterBreakerSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_waterheaterbreakeropen( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterHeaterBreakerButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->WaterHeater.breaker ) { return; } // already enabled
+
+        Train->mvControlled->WaterHeaterBreakerSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_waterheatertoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->WaterHeater.is_enabled ) {
+            // turn on
+            OnCommand_waterheaterenable( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_waterheaterdisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_waterheaterenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterHeaterButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->WaterHeater.is_enabled ) { return; } // already enabled
+
+        Train->mvControlled->WaterHeaterSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_waterheaterdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterHeaterButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->WaterHeater.is_enabled ) { return; } // already disabled
+
+        Train->mvControlled->WaterHeaterSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_waterpumpbreakertoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->WaterPump.breaker ) {
+            // turn on
+            OnCommand_waterpumpbreakerclose( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_waterpumpbreakeropen( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_waterpumpbreakerclose( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterPumpBreakerButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->WaterPump.breaker ) { return; } // already enabled
+
+        Train->mvControlled->WaterPumpBreakerSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_waterpumpbreakeropen( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterPumpBreakerButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->WaterPump.breaker ) { return; } // already enabled
+
+        Train->mvControlled->WaterPumpBreakerSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_waterpumptoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->WaterPump.is_enabled ) {
+            // turn on
+            OnCommand_waterpumpenable( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_waterpumpdisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_waterpumpenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->WaterPump.is_enabled ) { return; } // already enabled
+
+        Train->mvControlled->WaterPumpSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_waterpumpdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->WaterPump.is_enabled ) { return; } // already disabled
+
+        Train->mvControlled->WaterPumpSwitch( false );
+    }
+}
+
+void TTrain::OnCommand_watercircuitslinktoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->WaterCircuitsLink ) {
+            // turn on
+            OnCommand_watercircuitslinkenable( Train, Command );
+        }
+        else {
+            //turn off
+            OnCommand_watercircuitslinkdisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_watercircuitslinkenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterCircuitsLinkButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvControlled->WaterCircuitsLink ) { return; } // already enabled
+
+        Train->mvControlled->WaterCircuitsLinkSwitch( true );
+    }
+}
+
+void TTrain::OnCommand_watercircuitslinkdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggWaterCircuitsLinkButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvControlled->WaterCircuitsLink ) { return; } // already disabled
+
+        Train->mvControlled->WaterCircuitsLinkSwitch( false );
     }
 }
 
@@ -3941,8 +4185,8 @@ bool TTrain::Update( double const Deltatime )
         }
     }
     if( m_linebreakerstate == 1 ) {
-        if( false == mvControlled->Mains ) {
-            // crude way to catch cases where the main was knocked out and the user is trying to restart it
+        if( false == ( mvControlled->Mains || mvControlled->dizel_startup ) ) {
+            // crude way to catch cases where the main was knocked out
             // because the state of the line breaker isn't changed to match, we need to do it here manually
             m_linebreakerstate = 0;
         }
@@ -4484,8 +4728,11 @@ bool TTrain::Update( double const Deltatime )
                     mvControlled->ResistorsFlagCheck() :
                     false );
 
-            btLampkaBezoporowa.Turn( mvControlled->ResistorsFlagCheck() || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
-            if( ( mvControlled->Itot != 0 )
+            btLampkaBezoporowa.Turn(
+                ( true == mvControlled->ResistorsFlagCheck() )
+             || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
+
+            if( ( mvControlled->Im != 0 )
              || ( mvOccupied->BrakePress > 2 )
              || ( mvOccupied->PipePress < 3.6 ) ) {
                 // Ra: czy to jest udawanie działania styczników liniowych?
@@ -4657,6 +4904,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaNadmPrzetwB.Turn( tmp->MoverParameters->ConvOvldFlag ); // nadmiarowy przetwornicy?
                     btLampkaPrzetwB.Turn( tmp->MoverParameters->ConverterFlag ); // zalaczenie przetwornicy
                     btLampkaPrzetwBOff.Turn( false == tmp->MoverParameters->ConverterFlag );
+                    btLampkaMalfunctionB.Turn( tmp->MoverParameters->dizel_heat.PA );
                 }
                 else // wylaczone
                 {
@@ -4671,6 +4919,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaNadmPrzetwB.Turn( false );
                     btLampkaPrzetwB.Turn( false );
                     btLampkaPrzetwBOff.Turn( false );
+                    btLampkaMalfunctionB.Turn( false );
                 }
         }
 
@@ -4724,6 +4973,9 @@ bool TTrain::Update( double const Deltatime )
             btLampkaRearRightLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_right ) != 0 );
             btLampkaRearLeftEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_left ) != 0 );
             btLampkaRearRightEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_right ) != 0 );
+            // others
+            btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
+            btLampkaMotorBlowers.Turn( mvControlled->RventRot > 0.1 );
         }
         else
         { // gdy bateria wyłączona
@@ -4755,6 +5007,9 @@ bool TTrain::Update( double const Deltatime )
             btLampkaRearRightLight.Turn( false );
             btLampkaRearLeftEndLight.Turn( false );
             btLampkaRearRightEndLight.Turn( false );
+            // others
+            btLampkaMalfunction.Turn( false );
+            btLampkaMotorBlowers.Turn( false );
         }
 
         // McZapkie-080602: obroty (albo translacje) regulatorow
@@ -4966,6 +5221,11 @@ bool TTrain::Update( double const Deltatime )
         ggCabLightDimButton.Update();
         ggBatteryButton.Update();
 
+        ggWaterPumpBreakerButton.Update();
+        ggWaterPumpButton.Update();
+        ggWaterHeaterBreakerButton.Update();
+        ggWaterHeaterButton.Update();
+        ggWaterCircuitsLinkButton.Update();
         ggFuelPumpButton.Update();
         ggOilPumpButton.Update();
         //------
@@ -6019,6 +6279,11 @@ void TTrain::clear_cab_controls()
     ggMainGearStatus.Clear();
     ggIgnitionKey.Clear();
 
+    ggWaterPumpBreakerButton.Clear();
+    ggWaterPumpButton.Clear();
+    ggWaterHeaterBreakerButton.Clear();
+    ggWaterHeaterButton.Clear();
+    ggWaterCircuitsLinkButton.Clear();
     ggFuelPumpButton.Clear();
     ggOilPumpButton.Clear();
 
@@ -6081,6 +6346,11 @@ void TTrain::clear_cab_controls()
     btLampkaRearLeftEndLight.Clear();
     btLampkaRearRightEndLight.Clear();
     btCabLight.Clear(); // hunter-171012
+    // others
+    btLampkaMalfunction.Clear();
+    btLampkaMalfunctionB.Clear();
+    btLampkaMotorBlowers.Clear();
+
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
     ggUpperLightButton.Clear();
@@ -6286,14 +6556,36 @@ void TTrain::set_cab_controls() {
         ShowNextCurrent ?
             1.0 :
             0.0 );
+    // water pump
+    ggWaterPumpBreakerButton.PutValue(
+        mvControlled->WaterPump.breaker ?
+            1.0 :
+            0.0 );
+    ggWaterPumpButton.PutValue(
+        mvControlled->WaterPump.is_enabled ?
+            1.0 :
+            0.0 );
+    // water heater
+    ggWaterHeaterBreakerButton.PutValue(
+        mvControlled->WaterHeater.breaker ?
+            1.0 :
+            0.0 );
+    ggWaterHeaterButton.PutValue(
+        mvControlled->WaterHeater.is_enabled ?
+            1.0 :
+            0.0 );
+    ggWaterCircuitsLinkButton.PutValue(
+        mvControlled->WaterCircuitsLink ?
+            1.0 :
+            0.0 );
     // fuel pump
     ggFuelPumpButton.PutValue(
-        mvOccupied->FuelPump.is_enabled ?
+        mvControlled->FuelPump.is_enabled ?
             1.0 :
             0.0 );
     // oil pump
     ggOilPumpButton.PutValue(
-        mvOccupied->OilPump.is_enabled ?
+        mvControlled->OilPump.is_enabled ?
             1.0 :
             0.0 );
     
@@ -6335,6 +6627,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-no_resistors_b:", btLampkaBezoporowaB },
         { "i-highcurrent:", btLampkaWysRozr },
         { "i-vent_trim:", btLampkaWentZaluzje },
+        { "i-motorblowers:", btLampkaMotorBlowers },
         { "i-trainheating:", btLampkaOgrzewanieSkladu },
         { "i-security_aware:", btLampkaCzuwaka },
         { "i-security_cabsignal:", btLampkaSHP },
@@ -6364,6 +6657,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-resistorsb:", btLampkaOporyB },
         { "i-contactorsb:", btLampkaStycznB },
         { "i-conv_ovldb:", btLampkaNadmPrzetwB },
+        { "i-malfunction:", btLampkaMalfunction },
+        { "i-malfunctionb:", btLampkaMalfunctionB },
         { "i-forward:", btLampkaForward },
         { "i-backward:", btLampkaBackward },
         { "i-upperlight:", btLampkaUpperLight },
@@ -6402,6 +6697,14 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         button.Load(Parser, DynamicObject, DynamicObject->mdKabina);
         button.AssignBool(bDoors[0] + 3 * i);
     }
+/*
+    else if( Label == "i-malfunction:" ) {
+        // generic malfunction indicator
+        auto &button = Cabine[ Cabindex ].Button( -1 ); // pierwsza wolna gałka
+        button.Load( Parser, DynamicObject, DynamicObject->mdKabina );
+        button.AssignBool( &mvOccupied->dizel_heat.PA );
+    }
+*/
     else
     {
         // failed to match the label
@@ -6460,6 +6763,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "converterlocal_sw:", ggConverterLocalButton },
         { "converteroff_sw:", ggConverterOffButton },
         { "main_sw:", ggMainButton },
+        { "waterpumpbreaker_sw:", ggWaterPumpBreakerButton },
+        { "waterpump_sw:", ggWaterPumpButton },
+        { "waterheaterbreaker_sw:", ggWaterHeaterBreakerButton },
+        { "waterheater_sw:", ggWaterHeaterButton },
+        { "watercircuitslink_sw:", ggWaterCircuitsLinkButton },
         { "fuelpump_sw:", ggFuelPumpButton },
         { "oilpump_sw:", ggOilPumpButton },
         { "radio_sw:", ggRadioButton },
@@ -6625,7 +6933,25 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // oil pressure
         auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
         gauge.Load( Parser, DynamicObject, DynamicObject->mdKabina, nullptr );
-        gauge.AssignFloat( &mvOccupied->OilPump.pressure_present );
+        gauge.AssignFloat( &mvControlled->OilPump.pressure_present );
+    }
+    else if( Label == "oiltemp:" ) {
+        // oil temperature
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, DynamicObject->mdKabina, nullptr );
+        gauge.AssignFloat( &mvControlled->dizel_heat.To );
+    }
+    else if( Label == "water1temp:" ) {
+        // main circuit water temperature
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, DynamicObject->mdKabina, nullptr );
+        gauge.AssignFloat( &mvControlled->dizel_heat.temperatura1 );
+    }
+    else if( Label == "water2temp:" ) {
+        // auxiliary circuit water temperature
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, DynamicObject->mdKabina, nullptr );
+        gauge.AssignFloat( &mvControlled->dizel_heat.temperatura2 );
     }
     // yB - dla drugiej sekcji
     else if (Label == "hvbcurrent1:")
@@ -6655,9 +6981,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0, 0, 0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0, 0, 0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0, 0, 0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0);
         }
     }
     else if (Label == "evoltage:")
@@ -6719,6 +7045,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina);
         gauge.AssignDouble(&mvControlled->DistCounter);
+    }
+    else if( Label == "shuntmodepower:" ) {
+        // shunt mode power slider
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject, DynamicObject->mdKabina);
+        gauge.AssignDouble(&mvControlled->AnPos);
     }
     else
     {

@@ -2222,18 +2222,22 @@ bool TController::PrepareEngine()
             voltfront = true;
         }
     }
+    auto workingtemperature { true };
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch( true );
-        if( ( mvOccupied->EngineType == DieselElectric )
-         || ( mvOccupied->EngineType == DieselEngine ) ) {
-            mvOccupied->FuelPumpSwitch( true );
-            mvOccupied->OilPumpSwitch( true );
+        if( ( mvControlling->EngineType == DieselElectric )
+         || ( mvControlling->EngineType == DieselEngine ) ) {
+            mvControlling->OilPumpSwitch( true );
+            workingtemperature = UpdateHeating();
+            if( true == workingtemperature ) {
+                mvControlling->FuelPumpSwitch( true );
+            }
         }
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
-            mvControlling->PantFront( true );
-            mvControlling->PantRear( true );
+            mvOccupied->PantFront( true );
+            mvOccupied->PantRear( true );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
                 if( mvControlling->TrainType != dt_EZT ) {
@@ -2261,11 +2265,11 @@ bool TController::PrepareEngine()
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
                     if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
-                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == ctrain_virtual ) {
+                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == coupling::faux ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
                         }
-                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == ctrain_virtual ) {
+                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == coupling::faux ) {
                             // jeśli z przodu nie ma nic
                             iDirection = 1; // jazda w kierunku sprzęgu 0
                         }
@@ -2297,22 +2301,13 @@ bool TController::PrepareEngine()
             else if (false == mvControlling->Mains) {
                 while (DecSpeed(true))
                     ; // zerowanie napędu
-/*
-                if( ( mvOccupied->EngineType == DieselEngine )
-                 || ( mvOccupied->EngineType == DieselElectric ) ) {
-                    // start helper devices before spinning up the engine
-                    // TODO: replace with dedicated diesel engine subsystems
-                    mvOccupied->ConverterSwitch( true );
-                    mvOccupied->CompressorSwitch( true );
-                }
-*/
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
                     if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
                         mvControlling->IncMainCtrl( 1 );
                     }
                 }
-                OK = mvControlling->MainSwitch(true);
+                mvControlling->MainSwitch(true);
 /*
                 if (mvControlling->EngineType == DieselEngine) {
                     // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
@@ -2336,7 +2331,7 @@ bool TController::PrepareEngine()
                 OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
                 mvOccupied->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvControlling->CompressorSwitch( true );
+                mvOccupied->CompressorSwitch( true );
             }
         }
         else
@@ -2344,7 +2339,8 @@ bool TController::PrepareEngine()
     }
     else
         OK = false;
-    OK = OK && (mvOccupied->ActiveDir != 0) && (mvControlling->CompressorAllow);
+
+    OK = OK && ( mvOccupied->ActiveDir != 0 ) && ( mvControlling->ScndPipePress > 4.5 ) && ( workingtemperature );
     if (OK)
     {
         if (eStopReason == stopSleep) // jeśli dotychczas spał
@@ -2383,6 +2379,7 @@ bool TController::ReleaseEngine()
                     mvControlling->PantFront(false);
                     mvControlling->PantRear(false);
                 }
+                // line breaker
                 OK = mvControlling->MainSwitch(false);
             }
             else
@@ -2415,7 +2412,20 @@ bool TController::ReleaseEngine()
         eAction = actSleep; //śpi (wygaszony)
         if (AIControllFlag)
         {
-            Lights(0, 0); // gasimy światła
+            if( ( mvControlling->EngineType == DieselElectric )
+             || ( mvControlling->EngineType == DieselEngine ) ) {
+                // heating/cooling subsystem
+                mvControlling->WaterHeaterSwitch( false );
+                // optionally turn off the water pump as well
+                if( mvControlling->WaterPump.start_type != start::battery ) {
+                    mvControlling->WaterPumpSwitch( false );
+                }
+                // fuel and oil subsystems
+                mvControlling->FuelPumpSwitch( false );
+                mvControlling->OilPumpSwitch( false );
+            }
+            // gasimy światła
+            Lights(0, 0);
             mvOccupied->BatterySwitch(false);
         }
         OrderNext(Wait_for_orders); //żeby nie próbował coś robić dalej
@@ -2733,13 +2743,14 @@ bool TController::IncSpeed()
             {
                 OK = mvControlling->IncMainCtrl(std::max(1,mvOccupied->MainCtrlPosNo/10));
 				//tutaj jeszcze powinien być tempomat
-				mvControlling->IncScndCtrl(1);
+
 				double SpeedCntrl = VelDesired;
 				if (fProximityDist < 50)
 				{
 					SpeedCntrl = std::min(SpeedCntrl, VelNext);
 				}
-				mvControlling->RunCommand("SpeedCntrl", VelDesired, mvControlling->CabNo);
+				this->SpeedCntrl(SpeedCntrl);
+
             }
         break;
     case WheelsDriven:
@@ -3014,6 +3025,21 @@ void TController::SpeedSet()
             }
         break;
     }
+};
+
+void TController::SpeedCntrl(double DesiredSpeed)
+{
+	if (mvControlling->ScndCtrlPosNo == 1)
+	{
+		mvControlling->IncScndCtrl(1);
+		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
+	}
+	else if (mvControlling->ScndCtrlPosNo > 1)
+	{
+		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
+		while (mvControlling->ScndCtrlPos > DesiredPos) mvControlling->DecScndCtrl(1);
+		while (mvControlling->ScndCtrlPos < DesiredPos) mvControlling->IncScndCtrl(1);
+	}
 };
 
 // otwieranie/zamykanie drzwi w składzie albo (tylko AI) EZT
@@ -5165,6 +5191,59 @@ TController::UpdateSituation(double dt) {
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])
+}
+
+// configures vehicle heating given current situation; returns: true if vehicle can be operated normally, false otherwise
+bool
+TController::UpdateHeating() {
+
+    switch( mvControlling->EngineType ) {
+
+        case DieselElectric:
+        case DieselEngine: {
+
+            auto const &heat { mvControlling->dizel_heat };
+
+            // determine whether there's need to enable the water heater
+            // if the heater has configured maximum temperature, it'll disable itself automatically, so we can leave it always running
+            // otherwise enable the heater only to maintain minimum required temperature
+            auto const lowtemperature { (
+                ( ( heat.water.config.temp_min > 0 ) && ( heat.temperatura1 < heat.water.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) )
+             || ( ( heat.water_aux.config.temp_min > 0 ) && ( heat.temperatura2 < heat.water_aux.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) )
+             || ( ( heat.oil.config.temp_min > 0 ) && ( heat.To < heat.oil.config.temp_min + ( mvControlling->WaterHeater.is_active ? 5 : 0 ) ) ) ) };
+            auto const heateron { (
+                ( mvControlling->WaterHeater.config.temp_max > 0 )
+             || ( true == lowtemperature ) ) };
+            if( true == heateron ) {
+                // make sure the water pump is running before enabling the heater
+                if( false == mvControlling->WaterPump.is_active ) {
+                    mvControlling->WaterPumpBreakerSwitch( true );
+                    mvControlling->WaterPumpSwitch( true );
+                }
+                if( true == mvControlling->WaterPump.is_active ) {
+                    mvControlling->WaterHeaterBreakerSwitch( true );
+                    mvControlling->WaterHeaterSwitch( true );
+                    mvControlling->WaterCircuitsLinkSwitch( true );
+                }
+            }
+            else {
+                // no need to heat anything up, switch the heater off
+                mvControlling->WaterCircuitsLinkSwitch( false );
+                mvControlling->WaterHeaterSwitch( false );
+                mvControlling->WaterHeaterBreakerSwitch( false );
+                // optionally turn off the water pump as well
+                if( mvControlling->WaterPump.start_type != start::battery ) {
+                    mvControlling->WaterPumpSwitch( false );
+                    mvControlling->WaterPumpBreakerSwitch( false );
+                }
+            }
+
+            return ( false == lowtemperature );
+        }
+        default: {
+            return true;
+        }
+    }
 }
 
 void TController::JumpToNextOrder()

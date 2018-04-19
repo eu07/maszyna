@@ -255,6 +255,36 @@ keyboard_input::default_bindings() {
         { -1 },
         // reverserbackward
         { -1 },
+        // waterpumpbreakertoggle
+        { GLFW_KEY_W | keymodifier::control },
+        // waterpumpbreakerclose
+        { -1 },
+        // waterpumpbreakeropen
+        { -1 },
+        // waterpumptoggle
+        { GLFW_KEY_W },
+        // waterpumpenable
+        { -1 },
+        // waterpumpdisable
+        { -1 },
+        // waterheaterbreakertoggle
+        { GLFW_KEY_W | keymodifier::control | keymodifier::shift },
+        // waterheaterbreakerclose
+        { -1 },
+        // waterheaterbreakeropen
+        { -1 },
+        // waterheatertoggle
+        { GLFW_KEY_W | keymodifier::shift },
+        // waterheaterenable
+        { -1 },
+        // waterheaterdisable
+        { -1 },
+        // watercircuitslinktoggle
+        { GLFW_KEY_H | keymodifier::shift },
+        // watercircuitslinkenable
+        { -1 },
+        // watercircuitslinkdisable
+        { -1 },
         // fuelpumptoggle
         { GLFW_KEY_F },
         // fuelpumpenable,
@@ -303,6 +333,10 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_G },
         // epbrakecontroltoggle
         { GLFW_KEY_Z | keymodifier::control },
+		// trainbrakeoperationmodeincrease
+        { GLFW_KEY_KP_3 | keymodifier::shift | keymodifier::control },
+		// trainbrakeoperationmodedecrease
+        { GLFW_KEY_KP_9 | keymodifier::shift | keymodifier::control },
         // brakeactingspeedincrease
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
