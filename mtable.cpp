@@ -83,8 +83,7 @@ bool TTrainParameters::UpdateMTable(double hh, double mm, std::string const &New
     {
         if (NewName == NextStationName) // jeśli dojechane do następnego
         { // Ra: wywołanie może być powtarzane, jak stoi na W4
-            if (TimeTable[StationIndex + 1].km - TimeTable[StationIndex].km <
-                0) // to jest bez sensu
+            if (TimeTable[StationIndex + 1].km - TimeTable[StationIndex].km < 0) // to jest bez sensu
                 Direction = -1;
             else
                 Direction = 1; // prowizorka bo moze byc zmiana kilometrazu
@@ -92,46 +91,40 @@ bool TTrainParameters::UpdateMTable(double hh, double mm, std::string const &New
             LastStationLatency =
                 CompareTime(hh, mm, TimeTable[StationIndex].Dh, TimeTable[StationIndex].Dm);
             // inc(StationIndex); //przejście do następnej pozycji StationIndex<=StationCount
-            if (StationIndex <
-                StationCount) // Ra: "<", bo dodaje 1 przy przejściu do następnej stacji
-            { // jeśli nie ostatnia stacja
+            // Ra: "<", bo dodaje 1 przy przejściu do następnej stacji
+            if (StationIndex < StationCount) {
+                // jeśli nie ostatnia stacja
                 NextStationName = TimeTable[StationIndex + 1].StationName; // zapamiętanie nazwy
-                TTVmax = TimeTable[StationIndex + 1]
-                             .vmax; // Ra: nowa prędkość rozkładowa na kolejnym odcinku
+                // Ra: nowa prędkość rozkładowa na kolejnym odcinku
+                TTVmax = TimeTable[StationIndex + 1].vmax;
             }
-            else // gdy ostatnia stacja
-                NextStationName = ""; // nie ma następnej stacji
+            else {
+                // gdy ostatnia stacja, nie ma następnej stacji
+                NextStationName = "";
+            }
             OK = true;
         }
     }
     return OK; /*czy jest nastepna stacja*/
 }
 
-void Mtable::TTrainParameters::RewindTimeTable(std::string actualStationName)
-{
-    //actualStationName = ToLower(actualStationName); // na małe znaki
-    if (int s = actualStationName.find("PassengerStopPoint:") != std::string::npos)
-    {
-        actualStationName = ToLower(actualStationName.substr(s + 19));
+bool Mtable::TTrainParameters::RewindTimeTable(std::string actualStationName) {
+
+    if( actualStationName.compare( 0, 19, "PassengerStopPoint:" ) == 0 ) {
+        actualStationName = ToLower( actualStationName.substr( 19 ) );
     }
-    for (int i = 1; i <= StationCount; i++)
-    { // przechodzimy po całej tabelce i sprawdzamy nazwy stacji (bez pierwszej)
-        if (ToLower(TimeTable[i].StationName) == actualStationName)
-        { // nazwa stacji zgodna 
-          // więc ustawiamy na poprzednią, żeby w następnym kroku poprawnie obsłużyć
-            StationIndex = i - 1;
-            if (StationIndex <
-                StationCount) // Ra: "<", bo dodaje 1 przy przejściu do następnej stacji
-            { // jeśli nie ostatnia stacja
-                NextStationName = TimeTable[StationIndex + 1].StationName; // zapamiętanie nazwy
-                TTVmax = TimeTable[StationIndex + 1]
-                    .vmax; // Ra: nowa prędkość rozkładowa na kolejnym odcinku
-            }
-            else // gdy ostatnia stacja
-                NextStationName = ""; // nie ma następnej stacji
-            break; // znaleźliśmy więc kończymy
+    for( auto i = 1; i <= StationCount; ++i ) {
+        // przechodzimy po całej tabelce i sprawdzamy nazwy stacji (bez pierwszej)
+        if (ToLower(TimeTable[i].StationName) == actualStationName) {
+            // nazwa stacji zgodna więc ustawiamy na poprzednią, żeby w następnym kroku poprawnie obsłużyć
+            StationIndex = i;
+            NextStationName = TimeTable[ i ].StationName;
+            TTVmax = TimeTable[ i ].vmax;
+            return true; // znaleźliśmy więc kończymy
         }
     }
+    // failed to find a match
+    return false;
 }
 
 void TTrainParameters::StationIndexInc()

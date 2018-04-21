@@ -1479,6 +1479,7 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         }
     }
     // uklady hamulcowe:
+    ConverterCheck( Deltatime );
     if (VeselVolume > 0)
         Compressor = CompressedVolume / VeselVolume;
     else
@@ -1486,7 +1487,6 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         Compressor = 0;
         CompressorFlag = false;
     };
-    ConverterCheck(Deltatime);
     if( CompressorSpeed > 0.0 ) {
         // sprężarka musi mieć jakąś niezerową wydajność żeby rozważać jej załączenie i pracę
         CompressorCheck( Deltatime );
@@ -3791,17 +3791,12 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
         }
 
     Pipe2->Flow(Hamulec->GetHPFlow(ScndPipePress, dt));
-/*
     // NOTE: condition disabled to allow the air flow from the main hose to the main tank as well
-    if (((Compressor > ScndPipePress) && (CompressorSpeed > 0.0001)) || (TrainType == dt_EZT))
-    {
-*/
+    if( /* ( ( Compressor > ScndPipePress ) && ( */ VeselVolume > 0.0 /* ) ) || ( TrainType == dt_EZT ) || ( TrainType == dt_DMU ) */ ) {
         dV = PF(Compressor, ScndPipePress, Spz) * dt;
         CompressedVolume += dV / 1000.0;
         Pipe2->Flow(-dV);
-/*
     }
-*/
     Pipe2->Flow(dv1 + dv2);
     Pipe2->Act();
     ScndPipePress = Pipe2->P();
@@ -8864,9 +8859,10 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         WriteLog( "Ready to depart" );
         CompressedVolume = VeselVolume * MinCompressor * ( 9.8 ) / 10.0;
         ScndPipePress = (
-            VeselVolume > 0.0 ?
-                CompressedVolume / VeselVolume :
-                0.0 );
+            VeselVolume > 0.0 ? CompressedVolume / VeselVolume :
+            ( Couplers[ side::front ].AllowedFlag & coupling::mainhose ) != 0 ? 5.0 :
+            ( Couplers[ side::rear ].AllowedFlag & coupling::mainhose ) != 0 ? 5.0 :
+            0.0 );
         PipePress = CntrlPipePress;
         BrakePress = 0.0;
         LocalBrakePos = 0;
@@ -8889,7 +8885,14 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         WriteLog( "Braked" );
         Volume = BrakeVVolume * MaxBrakePress[ 3 ];
         CompressedVolume = VeselVolume * MinCompressor * 0.55;
+/*
         ScndPipePress = 5.1;
+*/
+        ScndPipePress = (
+            VeselVolume > 0.0 ? CompressedVolume / VeselVolume :
+            ( Couplers[ side::front ].AllowedFlag & coupling::mainhose ) != 0 ? 5.1 :
+            ( Couplers[ side::rear ].AllowedFlag & coupling::mainhose ) != 0 ? 5.1 :
+            0.0 );
         PipePress = LowPipePress;
         PipeBrakePress = MaxBrakePress[ 3 ] * 0.5;
         BrakePress = MaxBrakePress[ 3 ] * 0.5;
@@ -8957,9 +8960,9 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		CompressorPower = 0;
 
 	Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-
+/*
 	ScndPipePress = Compressor;
-
+*/
 	// WriteLogSS("OK=", BoolTo10(OK));
 	// WriteLog("");
 

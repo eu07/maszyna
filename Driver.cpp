@@ -815,8 +815,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     {
                         // porównuje do następnej stacji, więc trzeba przewinąć do poprzedniej
                         // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
-                        TrainParams->RewindTimeTable(sSpeedTable[i].evEvent->CommandGet());
-                        asNextStop = TrainParams->NextStop();
+                        if( true == TrainParams->RewindTimeTable( sSpeedTable[ i ].evEvent->CommandGet() ) ) {
+                            asNextStop = TrainParams->NextStop();
+                            iStationStart = TrainParams->StationIndex;
+                        }
                     }
                     else if( sSpeedTable[ i ].fDist < -fLength ) {
                         // jeśli został przejechany
@@ -996,13 +998,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 #endif
                                 asNextStop = TrainParams->NextStop(); // informacja o końcu trasy
                                 TrainParams->NewName("none"); // czyszczenie nieaktualnego rozkładu
-                                // TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to
-                                // nie jest dobry pomysł
-                                iDrivigFlags &=
-                                    ~(moveStopCloser |
-                                      moveStopPoint); // ma nie podjeżdżać pod W4 i ma je pomijać
-                                sSpeedTable[i].iFlags =
-                                    0; // W4 nie liczy się już (nie wyśle SetVelocity)
+                                // ma nie podjeżdżać pod W4 i ma je pomijać
+                                iDrivigFlags &= ~( moveStopCloser );
+                                if( false == TestFlag( iDrivigFlags, movePushPull ) ) {
+                                    // if the consist can change direction through a simple cab change it doesn't need fiddling with recognition of passenger stops
+                                    iDrivigFlags &= ~( moveStopPoint );
+                                }
+                                sSpeedTable[i].iFlags = 0; // W4 nie liczy się już (nie wyśle SetVelocity)
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
                                 WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
@@ -3271,8 +3273,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // CheckVehicles(); //sprawdzenie składu, AI zapali światła
         TableClear(); // wyczyszczenie tabelki prędkości, bo na nowo trzeba określić kierunek i
         // sprawdzić przystanki
-        OrdersInit(
-            fabs(NewValue1)); // ustalenie tabelki komend wg rozkładu oraz prędkości początkowej
+        OrdersInit(fabs(NewValue1)); // ustalenie tabelki komend wg rozkładu oraz prędkości początkowej
         // if (NewValue1!=0.0) if (!AIControllFlag) DirectionForward(NewValue1>0.0); //ustawienie
         // nawrotnika użytkownikowi (propaguje się do członów)
         // if (NewValue1>0)
@@ -5375,8 +5376,6 @@ inline TOrders TController::OrderNextGet()
 void TController::OrdersInit(double fVel)
 { // wypełnianie tabelki rozkazów na podstawie rozkładu
     // ustawienie kolejności komend, niezależnie kto prowadzi
-    // Mechanik->OrderPush(Wait_for_orders); //czekanie na lepsze czasy
-    // OrderPos=OrderTop=0; //wypełniamy od pozycji 0
     OrdersClear(); // usunięcie poprzedniej tabeli
     OrderPush(Prepare_engine); // najpierw odpalenie silnika
     if (TrainParams->TrainName == "none")
@@ -5390,16 +5389,14 @@ void TController::OrdersInit(double fVel)
             OrderPush(Shunt); // dla prędkości 0.01 włączamy jazdę manewrową
         else if (TrainParams ?
                      (TrainParams->DirectionChange() ? //  jeśli obrót na pierwszym przystanku
-                          ((iDrivigFlags &
-                            movePushPull) ? // SZT również! SN61 zależnie od wagonów...
+                          ((iDrivigFlags & movePushPull) ? // SZT również! SN61 zależnie od wagonów...
                                (TrainParams->TimeTable[1].StationName == TrainParams->Relation1) :
                                false) :
                           false) :
                      true)
             OrderPush(Shunt); // a teraz start będzie w manewrowym, a tryb pociągowy włączy W4
         else
-            // jeśli start z pierwszej stacji i jednocześnie jest na niej zmiana kierunku, to EZT ma
-            // mieć Shunt
+            // jeśli start z pierwszej stacji i jednocześnie jest na niej zmiana kierunku, to EZT ma mieć Shunt
             OrderPush(Obey_train); // dla starych scenerii start w trybie pociagowym
         if (DebugModeFlag) // normalnie nie ma po co tego wypisywać
             WriteLog("/* Timetable: " + TrainParams->ShowRelation());
@@ -5407,10 +5404,14 @@ void TController::OrdersInit(double fVel)
         for (int i = 0; i <= TrainParams->StationCount; ++i)
         {
             t = TrainParams->TimeTable + i;
-            if (DebugModeFlag) // normalnie nie ma po co tego wypisywa?
-                WriteLog(t->StationName + " " + std::to_string(t->Ah) + ":" +
-                         std::to_string(t->Am) + ", " + std::to_string(t->Dh) + ":" +
-                         std::to_string(t->Dm) + " " + t->StationWare);
+            if (DebugModeFlag) {
+                // normalnie nie ma po co tego wypisywa?
+                WriteLog(
+                    t->StationName
+                    + " " + std::to_string(t->Ah) + ":" + std::to_string(t->Am)
+                    + ", " + std::to_string(t->Dh) + ":" + std::to_string(t->Dm)
+                    + " " + t->StationWare);
+            }
             if (t->StationWare.find('@') != std::string::npos)
             { // zmiana kierunku i dalsza jazda wg rozk?adu
                 if (iDrivigFlags & movePushPull) // SZT również! SN61 zależnie od wagonów...
@@ -5421,33 +5422,34 @@ void TController::OrdersInit(double fVel)
                 { // dla zwykłego składu wagonowego odczepiamy lokomotywę
                     OrderPush(Disconnect); // odczepienie lokomotywy
                     OrderPush(Shunt); // a dalej manewry
-                    if (i <= TrainParams->StationCount) // 130827: to się jednak nie sprawdza
-                    { //"@" na ostatniej robi tylko odpięcie
-                        // OrderPush(Change_direction); //zmiana kierunku
-                        // OrderPush(Shunt); //jazda na drugą stronę składu
-                        // OrderPush(Change_direction); //zmiana kierunku
-                        // OrderPush(Connect); //jazda pod wagony
-                    }
                 }
                 if (i < TrainParams->StationCount) // jak nie ostatnia stacja
                     OrderPush(Obey_train); // to dalej wg rozkładu
             }
         }
-        if (DebugModeFlag) // normalnie nie ma po co tego wypisywać
-            WriteLog("*/");
+        if( DebugModeFlag ) {
+            // normalnie nie ma po co tego wypisywać
+            WriteLog( "*/" );
+        }
         OrderPush(Shunt); // po wykonaniu rozkładu przełączy się na manewry
     }
     // McZapkie-100302 - to ma byc wyzwalane ze scenerii
-    if (fVel == 0.0)
-        SetVelocity(0, 0, stopSleep); // jeśli nie ma prędkości początkowej, to śpi
-    else
-    { // jeśli podana niezerowa prędkość
-        if ((fVel >= 1.0) ||
-            (fVel < 0.02)) // jeśli ma jechać - dla 0.01 ma podjechać manewrowo po podaniu sygnału
-            iDrivigFlags = (iDrivigFlags & ~moveStopHere) |
-                           moveStopCloser; // to do następnego W4 ma podjechać blisko
-        else
-            iDrivigFlags |= moveStopHere; // czekać na sygnał
+    if( fVel == 0.0 ) {
+        // jeśli nie ma prędkości początkowej, to śpi
+        SetVelocity( 0, 0, stopSleep );
+    }
+    else {
+        // jeśli podana niezerowa prędkość
+        if( ( fVel >= 1.0 )
+         || ( fVel < 0.02 ) ) {
+            // jeśli ma jechać - dla 0.01 ma podjechać manewrowo po podaniu sygnału
+            // to do następnego W4 ma podjechać blisko
+            iDrivigFlags = ( iDrivigFlags & ~( moveStopHere ) ) | moveStopCloser;
+        }
+        else {
+            // czekać na sygnał
+            iDrivigFlags |= moveStopHere;
+        }
         JumpToFirstOrder();
         if (fVel >= 1.0) // jeśli ma jechać
             SetVelocity(fVel, -1); // ma ustawić żądaną prędkość
