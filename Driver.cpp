@@ -2628,7 +2628,7 @@ bool TController::DecBrake()
     case ElectroPneumatic:
 		if (mvOccupied->EngineType == ElectricInductionMotor) {
 			if (mvOccupied->BrakeHandle == MHZ_EN57) {
-				if (mvOccupied->BrakeCtrlPos > mvOccupied->Handle->GetPos(bh_MB))
+				if (mvOccupied->BrakeCtrlPos > mvOccupied->Handle->GetPos(bh_RP))
 					OK = mvOccupied->BrakeLevelAdd(-1.0);
 			}
 			else {
