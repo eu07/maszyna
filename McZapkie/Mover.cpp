@@ -7432,6 +7432,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("Blending:", inputline)) {
+
+			startBPT = true; LISTLINE = 0;
+			fizlines.emplace( "Blending", inputline);
+			LoadFIZ_Blending( inputline );
+			continue;
+		}
+
         if( issection( "Light:", inputline ) ) {
 
             startBPT = false;
@@ -8195,6 +8203,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     }
 }
 
+void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
+
+	extract_value(MED_Vmax, "MED_Vmax", line, to_string(Vmax));
+	extract_value(MED_Vmin, "MED_Vmin", line, "0");
+	extract_value(MED_Vref, "MED_Vref", line, to_string(Vmax));
+	extract_value(MED_amax, "MED_amax", line, "9.81");
+	MED_EPVC = (extract_value("MED_EPVC", line).find("Yes") != std::string::npos);
+	MED_Ncor = (extract_value("MED_Ncor", line).find("Yes") != std::string::npos);
+
+}
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 
     LightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "Light", line ) );

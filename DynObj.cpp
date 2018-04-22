@@ -2955,7 +2955,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                              p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
                 FmaxPN += Nmax * p->MoverParameters->Hamulec->GetFC(
                               Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
-                              p->MoverParameters->Vmax) *
+                              p->MoverParameters->MED_Vref) *
                           1000; // sila hamowania pn
                 FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->ActiveDir != 0) &&
 					(p->MoverParameters->eimc[eimc_p_Fh] * p->MoverParameters->NPoweredAxles >
@@ -2974,7 +2974,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				osie += p->MoverParameters->NAxles;
 			}
 
-            auto const amax = FmaxPN / masamax;
+			auto const amax = std::min(FmaxPN / masamax, MoverParameters->MED_amax);
             if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
                 (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
             {
@@ -3044,7 +3044,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 FmaxEP[i] = Nmax *
                             p->MoverParameters->Hamulec->GetFC(
                                 Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
-                                p->MoverParameters->Vmax) *
+                                p->MoverParameters->MED_Vref) *
                             1000; // sila hamowania pn
 
                 PrzekrF[i] = false;
@@ -3106,10 +3106,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
                              p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
+				float VelC = ((FrED > 0.1) || p->MoverParameters->MED_EPVC ? clamp(p->MoverParameters->Vel, p->MoverParameters->MED_Vmin, p->MoverParameters->MED_Vmax) : p->MoverParameters->MED_Vref);//korekcja EP po prędkości
                 float FmaxPoj = Nmax * 
 					p->MoverParameters->Hamulec->GetFC(
-						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
-						p->MoverParameters->Vel) *
+						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA), VelC) *
 					1000; // sila hamowania pn
 				p->MoverParameters->LocalBrakePosA = (p->MoverParameters->SlippingWheels ? 0 : FzEP[i] / FmaxPoj);
 				if (p->MoverParameters->LocalBrakePosA>0.009)

@@ -922,9 +922,16 @@ public:
 	double Ftmax = 0.0;
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
-	bool EIMCLogForce; // 
+	bool EIMCLogForce = false; // 
     static std::vector<std::string> const eimc_labels;
     double InverterFrequency { 0.0 }; // current frequency of power inverters
+	/* -dla pojazdów z blendingiem EP/ED (MED) */
+	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
+	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED
+	double MED_Vref = 0; // predkosc referencyjna dla obliczen dostepnej sily hamowania EP w MED
+	double MED_amax = 9.81; // maksymalne opoznienie hamowania sluzbowego MED
+	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
+	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
 	/*-dla wagonow*/
     float MaxLoad = 0.f;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
@@ -1375,6 +1382,7 @@ private:
     void LoadFIZ_BuffCoupl( std::string const &line, int const Index );
     void LoadFIZ_TurboPos( std::string const &line );
     void LoadFIZ_Cntrl( std::string const &line );
+	void LoadFIZ_Blending(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
     void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );
