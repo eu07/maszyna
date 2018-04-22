@@ -3331,7 +3331,7 @@ void TMoverParameters::CompressorCheck(double dt)
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                 if( Couplers[ side::rear ].Connected != NULL ) {
                     CompressorFlag = (
-                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                        ( ( Couplers[ side::rear ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                      && ( CompressorAllowLocal )
                      && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
                 }
@@ -3344,7 +3344,7 @@ void TMoverParameters::CompressorCheck(double dt)
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                 if( Couplers[ side::front ].Connected != NULL ) {
                     CompressorFlag = (
-                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                        ( ( Couplers[ side::front ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                      && ( CompressorAllowLocal )
                      && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                 }
@@ -3407,7 +3407,7 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if( Couplers[ side::rear ].Connected != NULL ) {
                         CompressorFlag = (
-                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                            ( ( Couplers[ side::rear ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                          && ( CompressorAllowLocal )
                          && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
                     }
@@ -3420,7 +3420,7 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if( Couplers[ side::front ].Connected != NULL ) {
                         CompressorFlag = (
-                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                            ( ( Couplers[ side::front ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                          && ( CompressorAllowLocal )
                          && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                     }

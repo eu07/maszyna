@@ -854,17 +854,19 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     } // koniec obsługi przelotu na W4
                     else
                     { // zatrzymanie na W4
-                        if (!eSignNext) //jeśli nie widzi następnego sygnału
-                            eSignNext = sSpeedTable[i].evEvent; //ustawia dotychczasową
-                        if (mvOccupied->Vel > 0.3) // jeśli jedzie (nie trzeba czekać, aż się
-                            // drgania wytłumią - drzwi zamykane od 1.0)
-                            sSpeedTable[i].fVelNext = 0; // to będzie zatrzymanie
-                        // else if
-                        // ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:10.0):true)
+                        if( !eSignNext ) {
+                            //jeśli nie widzi następnego sygnału ustawia dotychczasową
+                            eSignNext = sSpeedTable[ i ].evEvent;
+                        }
+                        if( mvOccupied->Vel > 0.3 ) {
+                            // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
+                            sSpeedTable[ i ].fVelNext = 0;
+                        }
                         else if ((iDrivigFlags & moveStopCloser) ?
                                      sSpeedTable[i].fDist + fLength <=
-                                         Max0R(sSpeedTable[i].evEvent->ValueGet(2),
-                                               fMaxProximityDist + fLength) :
+                                         std::max(
+                                             sSpeedTable[i].evEvent->ValueGet(2),
+                                             2.0 * fMaxProximityDist + fLength) : // fmaxproximitydist typically equals ~50 m
                                      sSpeedTable[i].fDist < d_to_next_sem)
                         // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
                         // peronu, chyba że pociąg jest dłuższy, to wtedy minimalna
