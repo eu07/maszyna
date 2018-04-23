@@ -797,6 +797,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double v; // prędkość
     double d; // droga
 	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej niż widzi AI
+    bool isatpassengerstop { false }; // true if the consist is within acceptable range of w4 post
     TCommandType go = cm_Unknown;
     eSignNext = NULL;
     // te flagi są ustawiane tutaj, w razie potrzeby
@@ -852,8 +853,20 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             continue; // nie analizować prędkości
                         }
                     } // koniec obsługi przelotu na W4
-                    else
-                    { // zatrzymanie na W4
+                    else {
+                        // zatrzymanie na W4
+                        isatpassengerstop = (
+                            // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
+                            // peronu, chyba że pociąg jest dłuższy, to wtedy minimalna.
+                            // jeśli długość peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
+                            // przyjąć odległość fMinProximityDist
+                            ( iDrivigFlags & moveStopCloser ) ?
+                                ( sSpeedTable[ i ].fDist + fLength ) <=
+                                std::max(
+                                    sSpeedTable[ i ].evEvent->ValueGet( 2 ),
+                                    2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
+                                sSpeedTable[ i ].fDist < d_to_next_sem );
+
                         if( !eSignNext ) {
                             //jeśli nie widzi następnego sygnału ustawia dotychczasową
                             eSignNext = sSpeedTable[ i ].evEvent;
@@ -862,17 +875,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                             sSpeedTable[ i ].fVelNext = 0;
                         }
-                        else if ((iDrivigFlags & moveStopCloser) ?
-                                     sSpeedTable[i].fDist + fLength <=
-                                         std::max(
-                                             sSpeedTable[i].evEvent->ValueGet(2),
-                                             2.0 * fMaxProximityDist + fLength) : // fmaxproximitydist typically equals ~50 m
-                                     sSpeedTable[i].fDist < d_to_next_sem)
-                        // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
-                        // peronu, chyba że pociąg jest dłuższy, to wtedy minimalna
-                        // jeśli długość peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
-                        // przyjąć odległość fMinProximityDist
-                        { // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
+                        else if( true == isatpassengerstop ) {
+                            // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
                             if( !AIControllFlag ) {
                                 // w razie przełączenia na AI ma nie podciągać do W4, gdy użytkownik zatrzymał za daleko
                                 iDrivigFlags &= ~moveStopCloser;
@@ -881,8 +885,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             if( ( iDrivigFlags & moveDoorOpened ) == 0 ) {
                                 // drzwi otwierać jednorazowo
                                 iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                                Doors( true, static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10 );
+                                Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) ) % 10 );
                             }
+
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
                                 // to się wykona tylko raz po zatrzymaniu na W4
                                 if( TrainParams->StationIndex < TrainParams->StationCount ) {
@@ -892,7 +897,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
 
                                 // perform loading/unloading
-                                auto const platformside = static_cast<int>( std::floor( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) % 10;
+                                auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) ) % 10;
                                 auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
                                 WaitingSet( std::max( -fStopTime, exchangetime ) ); // na końcu rozkładu się ustawia 60s i tu by było skrócenie
 
@@ -936,29 +941,21 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     continue;
                                 }
                             }
-                            if (OrderCurrentGet() == Shunt)
-                            {
+
+                            if (OrderCurrentGet() == Shunt) {
                                 OrderNext(Obey_train); // uruchomić jazdę pociągową
                                 CheckVehicles(); // zmienić światła
                             }
-                            if (TrainParams->StationIndex < TrainParams->StationCount)
-                            { // jeśli są dalsze stacje, czekamy do godziny odjazdu
-                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute))
-                                { // z dalszą akcją czekamy do godziny odjazdu
-									/* potencjalny problem z ruszaniem z w4
-                                    if (TrainParams->CheckTrainLatency() < 0)
-										WaitingSet(20); //Jak spóźniony to czeka 20s
-									*/
-                                    // iDrivigFlags|=moveLate1; //oflagować, gdy odjazd ze
-                                    // spóźnieniem, będzie jechał forsowniej
-                                    fLastStopExpDist =
-                                        mvOccupied->DistCounter + 0.050 +
-                                        0.001 * fLength; // przy jakim dystansie (stanie licznika)
-                                    // ma przesunąć na następny postój
-                                    //         Controlled->    //zapisać odległość do przejechania
+
+                            if (TrainParams->StationIndex < TrainParams->StationCount) {
+                                // jeśli są dalsze stacje, czekamy do godziny odjazdu
+                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute)) {
+                                    // z dalszą akcją czekamy do godziny odjazdu
+                                    isatpassengerstop = false;
+                                    // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
+                                    fLastStopExpDist = mvOccupied->DistCounter + 0.050 + 0.001 * fLength;
                                     TrainParams->StationIndexInc(); // przejście do następnej
                                     asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
-// TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to nie jest dobry pomysł
 #if LOGSTOPS
                                     WriteLog(
                                         pVehicle->asName + " as " + TrainParams->TrainName
@@ -990,8 +987,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     continue; // nie analizować prędkości
                                 } // koniec startu z zatrzymania
                             } // koniec obsługi początkowych stacji
-                            else
-                            { // jeśli dojechaliśmy do końca rozkładu
+                            else {
+                                // jeśli dojechaliśmy do końca rozkładu
 #if LOGSTOPS
                                 WriteLog(
                                     pVehicle->asName + " as " + TrainParams->TrainName
@@ -1026,7 +1023,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     continue; // nie analizować prędkości
                 }
             } // koniec obsługi W4
-            v = sSpeedTable[i].fVelNext; // odczyt prędkości do zmiennej pomocniczej
+            v = sSpeedTable[ i ].fVelNext; // odczyt prędkości do zmiennej pomocniczej
             if( sSpeedTable[ i ].iFlags & spSwitch ) {
                 // zwrotnice są usuwane z tabelki dopiero po zjechaniu z nich
                 iDrivigFlags |= moveSwitchFound; // rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
@@ -1190,12 +1187,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 { // zawalidrogi nie ma (albo pojazd jest samochodem), sprawdzić sygnał
                     if (sSpeedTable[i].iFlags & spShuntSemaphor) // jeśli Tm - w zasadzie to sprawdzić komendę!
                     { // jeśli podana prędkość manewrowa
-                        if ((OrderCurrentGet() & Obey_train) ? v == 0.0 : false)
-                        { // jeśli tryb pociągowy a tarcze ma ShuntVelocity 0 0
+                        if( ( v == 0.0 ) && ( true == TestFlag( OrderCurrentGet(), Obey_train ) ) ) {
+                            // jeśli tryb pociągowy a tarcze ma ShuntVelocity 0 0
                             v = -1; // ignorować, chyba że prędkość stanie się niezerowa
-                            if (sSpeedTable[i].iFlags & spElapsed) // a jak przejechana
-                                sSpeedTable[i].iFlags = 0; // to można usunąć, bo podstawowy automat
-                            // usuwa tylko niezerowe
+                            if( true == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) {
+                                // a jak przejechana to można usunąć, bo podstawowy automat usuwa tylko niezerowe
+                                sSpeedTable[ i ].iFlags = 0;
+                            }
                         }
                         else if (go == cm_Unknown) // jeśli jeszcze nie ma komendy
                             if (v != 0.0) // komenda jest tylko gdy ma jechać, bo stoi na podstawie
@@ -1269,19 +1267,19 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     }
                 } // jeśli nie ma zawalidrogi
             } // jeśli event
-            if (v >= 0.0)
-            { // pozycje z prędkością -1 można spokojnie pomijać
+
+            if (v >= 0.0) {
+                // pozycje z prędkością -1 można spokojnie pomijać
                 d = sSpeedTable[i].fDist;
                 if( ( d > 0.0 )
                  && ( false == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) ) {
                     // sygnał lub ograniczenie z przodu (+32=przejechane)
                     // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
-                    if( ( mvOccupied->Vel == 0.0 )
-                     && ( d > fMaxProximityDist )
-                     && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) ) ) {
+                    if( ( mvOccupied->Vel < 0.01 )
+                     && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) )
+                     && ( false == isatpassengerstop ) ) {
                         // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
-                        a = (
-                            iDrivigFlags & moveStopCloser ?
+                        a = ( iDrivigFlags & moveStopCloser ?
                                 fAcc :
                                 0.0 );
                     }
@@ -1351,14 +1349,16 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 			VelSignalLast = -1.0; // jeśli mieliśmy ograniczenie z semafora i nie ma przed nami
 
     //analiza spisanych z tabelki ograniczeń i nadpisanie aktualnego
-    if (VelSignalLast >= 0.0)
-        fVelDes = Min0R(fVelDes, VelSignalLast);
-    if (VelLimitLast >= 0.0)
-        fVelDes = Min0R(fVelDes, VelLimitLast);
-    if (VelRoad >= 0.0)
-        fVelDes = Min0R(fVelDes, VelRoad);
-    if( VelRestricted >= 0.0 )
-        fVelDes = Min0R( fVelDes, VelRestricted );
+    if( ( true == isatpassengerstop ) && ( mvOccupied->Vel < 0.01 ) ) {
+        // if stopped at a valid passenger stop, hold there
+        fVelDes = 0.0;
+    }
+    else {
+        fVelDes = min_speed( fVelDes, VelSignalLast );
+        fVelDes = min_speed( fVelDes, VelLimitLast );
+        fVelDes = min_speed( fVelDes, VelRoad );
+        fVelDes = min_speed( fVelDes, VelRestricted );
+    }
     // nastepnego semafora albo zwrotnicy to uznajemy, że mijamy W5
     FirstSemaphorDist = d_to_next_sem; // przepisanie znalezionej wartosci do zmiennej
     return go;
@@ -4442,6 +4442,8 @@ TController::UpdateSituation(double dt) {
                         eSignNext->StopCommandSent(); // się wykonało już
                     }
                 }
+                break;
+            default:
                 break;
             }
 

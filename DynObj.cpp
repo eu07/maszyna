@@ -6117,40 +6117,31 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
         auto const goalpitch { std::max( 0.025, ( engine_volume + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
-        auto const goalvolume { std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) };
+        auto const goalvolume { (
+            ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?
+                std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) :
+                0.0 ) };
         auto const currentvolume { engine_turbo.gain() };
         auto const changerate { 0.4 * Deltatime };
 
-        if( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest )
-         && ( Vehicle.enrot > 0.1 ) ) {
+        engine_turbo_pitch = (
+            engine_turbo_pitch > goalpitch ?
+                std::max( goalpitch, engine_turbo_pitch - changerate * 0.5 ) :
+                std::min( goalpitch, engine_turbo_pitch + changerate ) );
 
-            engine_turbo_pitch = (
-                engine_turbo_pitch > goalpitch ?
-                    std::max( goalpitch, engine_turbo_pitch - changerate * 0.5 ) :
-                    std::min( goalpitch, engine_turbo_pitch + changerate ) );
+        volume = (
+            currentvolume > goalvolume ?
+                std::max( goalvolume, currentvolume - changerate ) :
+                std::min( goalvolume, currentvolume + changerate ) );
 
-            volume = (
-                currentvolume > goalvolume ?
-                    std::max( goalvolume, currentvolume - changerate ) :
-                    std::min( goalvolume, currentvolume + changerate ) );
-
+        if( volume > 0.05 ) {
             engine_turbo
                 .pitch( 0.4 + engine_turbo_pitch * 0.4 )
                 .gain( volume )
                 .play( sound_flags::exclusive | sound_flags::looping );
         }
         else {
-            engine_turbo_pitch = std::max( goalpitch, engine_turbo_pitch - changerate * 0.5 );
-            volume = std::max( 0.0, engine_turbo.gain() - 2.0 * Deltatime );
-            if( volume > 0.05 ) {
-                engine_turbo
-                    .pitch( 0.4 + engine_turbo_pitch * 0.4 )
-                    .gain( volume );
-            }
-            else {
-                engine_turbo.stop();
-                engine_turbo_pitch = goalpitch;
-            }
+            engine_turbo.stop();
         }
     }
 
