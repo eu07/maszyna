@@ -3329,7 +3329,7 @@ void TMoverParameters::CompressorCheck(double dt)
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                 if( Couplers[ side::rear ].Connected != NULL ) {
                     CompressorFlag = (
-                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                        ( ( Couplers[ side::rear ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                      && ( CompressorAllowLocal )
                      && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
                 }
@@ -3342,7 +3342,7 @@ void TMoverParameters::CompressorCheck(double dt)
             { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                 if( Couplers[ side::front ].Connected != NULL ) {
                     CompressorFlag = (
-                        ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                        ( ( Couplers[ side::front ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                      && ( CompressorAllowLocal )
                      && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                 }
@@ -3405,7 +3405,7 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if( Couplers[ side::rear ].Connected != NULL ) {
                         CompressorFlag = (
-                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                            ( ( Couplers[ side::rear ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                          && ( CompressorAllowLocal )
                          && ( Couplers[ side::rear ].Connected->ConverterFlag ) );
                     }
@@ -3418,7 +3418,7 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if( Couplers[ side::front ].Connected != NULL ) {
                         CompressorFlag = (
-                            ( ( CompressorAllow ) || ( CompressorStart == start::automatic ) )
+                            ( ( Couplers[ side::front ].Connected->CompressorAllow ) || ( CompressorStart == start::automatic ) )
                          && ( CompressorAllowLocal )
                          && ( Couplers[ side::front ].Connected->ConverterFlag ) );
                     }
@@ -7430,6 +7430,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("Blending:", inputline)) {
+
+			startBPT = true; LISTLINE = 0;
+			fizlines.emplace( "Blending", inputline);
+			LoadFIZ_Blending( inputline );
+			continue;
+		}
+
         if( issection( "Light:", inputline ) ) {
 
             startBPT = false;
@@ -8193,6 +8201,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     }
 }
 
+void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
+
+	extract_value(MED_Vmax, "MED_Vmax", line, to_string(Vmax));
+	extract_value(MED_Vmin, "MED_Vmin", line, "0");
+	extract_value(MED_Vref, "MED_Vref", line, to_string(Vmax));
+	extract_value(MED_amax, "MED_amax", line, "9.81");
+	MED_EPVC = (extract_value("MED_EPVC", line).find("Yes") != std::string::npos);
+	MED_Ncor = (extract_value("MED_Ncor", line).find("Yes") != std::string::npos);
+
+}
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 
     LightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "Light", line ) );
