@@ -5064,6 +5064,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// pliki z turbogeneratorem
                     m_powertrainsounds.engine_turbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     m_powertrainsounds.engine_turbo.owner( this );
+                    m_powertrainsounds.engine_turbo.gain( 0 );
                 }
 
 				else if( token == "small-compressor:" ) {

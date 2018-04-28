@@ -4371,7 +4371,7 @@ bool TTrain::Update( double const Deltatime )
                 asCarName[i] = p->name();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
                 bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
-				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow);
+				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)
                 {

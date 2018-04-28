@@ -135,6 +135,14 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     // restore parser behaviour
     Input.autoclear( inputautoclear );
 
+    // catch and correct oddball cases with the same sample assigned as all parts of multipart sound
+    if( m_sounds[ begin ].buffer == m_sounds[ main ].buffer ) {
+        m_sounds[ begin ].buffer = null_handle;
+    }
+    if( m_sounds[ end ].buffer == m_sounds[ main ].buffer ) {
+        m_sounds[ end ].buffer = null_handle;
+    }
+
     return *this;
 }
 

@@ -8115,9 +8115,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     else if( autorelay == "Yes" ) { AutoRelayType = 1; }
     else { AutoRelayType = 0; }
 
-    CoupledCtrl = ( extract_value( "CoupledCtrl", line ) == "Yes" );
+    extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
 
-    ScndS = ( extract_value( "ScndS", line ) == "Yes" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
+    extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
     extract_value( InitialCtrlDelay, "IniCDelay", line, "" );
     extract_value( CtrlDelay, "SCDelay", line, "" );
@@ -8209,8 +8209,8 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 	extract_value(MED_Vmin, "MED_Vmin", line, "0");
 	extract_value(MED_Vref, "MED_Vref", line, to_string(Vmax));
 	extract_value(MED_amax, "MED_amax", line, "9.81");
-	MED_EPVC = (extract_value("MED_EPVC", line).find("Yes") != std::string::npos);
-	MED_Ncor = (extract_value("MED_Ncor", line).find("Yes") != std::string::npos);
+	extract_value(MED_EPVC, "MED_EPVC", line, "");
+	extract_value(MED_Ncor, "MED_Ncor", line, "");
 
 }
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
@@ -8241,7 +8241,7 @@ void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
     extract_value( SecuritySystem.AwareMinSpeed, "AwareMinSpeed", line, "" );
     extract_value( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
     extract_value( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
-    SecuritySystem.RadioStop = ( extract_value( "RadioStop", line ).find( "Yes" ) != std::string::npos );
+    extract_value( SecuritySystem.RadioStop, "RadioStop", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Clima( std::string const &line ) {
@@ -8320,7 +8320,6 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             // TODO: unify naming scheme and sort out which diesel engine params are used where and how
             extract_value( nmax, "nmax", Input, "" );
             nmax /= 60.0; 
-//            nmax = dizel_nmax; // not sure if this is needed, but just in case
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );
@@ -8338,7 +8337,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 }
 
             }
-			hydro_TC = (extract_value("IsTC", Input) == "Yes");
+			extract_value(hydro_TC, "IsTC", Input, "");
 			if (true == hydro_TC) {
 				extract_value(hydro_TC_TMMax, "TC_TMMax", Input, "");
 				extract_value(hydro_TC_CouplingPoint, "TC_CP", Input, "");
@@ -8353,7 +8352,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 				extract_value(hydro_TC_LockupSpeed, "TC_LS", Input, "");
 				extract_value(hydro_TC_UnlockSpeed, "TC_ULS", Input, "");
 
-				hydro_R = (extract_value("IsRetarder", Input) == "Yes");
+				extract_value(hydro_R, "IsRetarder", Input, "");
 				if (true == hydro_R) {
 					extract_value(hydro_R_Placement, "R_Place", Input, "");
 					extract_value(hydro_R_TorqueInIn, "R_TII", Input, "");
@@ -8414,7 +8413,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_Imax ], "Imax", Input, "" );
             extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
-			EIMCLogForce = ( extract_value( "eimclf", Input ) == "Yes" );
+			extract_value( EIMCLogForce, "eimclf", Input, "" );
 
             Flat = ( extract_value( "Flat", Input ) == "1" );
 
