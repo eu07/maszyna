@@ -15,6 +15,8 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "resourcemanager.h"
 
+#define STB_VORBIS_HEADER_ONLY
+#include "stb_vorbis.c"
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 #define DR_FLAC_IMPLEMENTATION
@@ -27,8 +29,28 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 
     ::alGenBuffers( 1, &id );
     // fetch audio data
-    if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
-        // .wav file
+    if( Filename.substr( Filename.rfind( '.' ) ) == ".ogg" ) {
+        // vorbis .ogg audio data file
+        // TBD, TODO: customized vorbis_decode to avoid unnecessary shuffling around of the decoded data
+        int channels, samplerate;
+        std::int16_t *filedata { nullptr };
+        auto const samplecount{ stb_vorbis_decode_filename( Filename.c_str(), &channels, &samplerate, &filedata ) };
+        if( samplecount > 0 ) {
+            rate = samplerate;
+            data.resize( samplecount );
+            std::copy( filedata, filedata + samplecount, std::begin( data ) );
+            free( filedata );
+            if( channels > 1 ) {
+                narrow_to_mono( channels );
+                data.resize( samplecount / channels );
+            }
+        }
+        else {
+            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
+        }
+    }
+    else if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
+        // .wav audio data file
         auto *file { drwav_open_file( Filename.c_str() ) };
         if( file != nullptr ) {
             rate = file->sampleRate;
@@ -49,8 +71,8 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
         // we're done with the disk data
         drwav_close( file );
     }
-    else {
-        // .flac or .ogg file
+    else if( Filename.substr( Filename.rfind( '.' ) ) == ".flac" ) {
+        // .flac audio data file
         auto *file { drflac_open_file( Filename.c_str() ) };
         if( file != nullptr ) {
             rate = file->sampleRate;
@@ -209,7 +231,7 @@ buffer_manager::find_buffer( std::string const &Buffername ) const {
 std::string
 buffer_manager::find_file( std::string const &Filename ) const {
 
-    std::vector<std::string> const extensions { ".wav", ".flac", ".ogg" };
+    std::vector<std::string> const extensions { ".ogg", ".flac", ".wav" };
 
     for( auto const &extension : extensions ) {
         if( FileExists( Filename + extension ) ) {

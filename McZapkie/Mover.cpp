@@ -6402,7 +6402,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
            && ( dizel_heat.temperatura2 > dizel_heat.water_aux.config.temp_cooling - ( dizel_heat.water_aux.is_warm ? 8 : 0 ) ) ) );
         auto const PTC2 { ( dizel_heat.water_aux.is_warm /*or PTC2p*/ ? 1 : 0 ) };
         dizel_heat.rpmwz2 = PTC2 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
-        dizel_heat.zaluzje2 = ( dizel_heat.water_aux.config.shutters ? PTC2 : true ); // no shutters is an equivalent to having them open
+        dizel_heat.zaluzje2 = ( dizel_heat.water_aux.config.shutters ? ( PTC2 == 1 ) : true ); // no shutters is an equivalent to having them open
         auto const zaluzje2 { ( dizel_heat.zaluzje2 ? 1 : 0 ) };
         // auxiliary water circuit heat transfer values
         auto const kf2 { kurek07 * ( ( dizel_heat.kw * ( 0.3 + 0.7 * zaluzje2 ) ) * dizel_heat.rpmw2 + ( dizel_heat.kv * ( 0.3 + 0.7 * zaluzje2 ) * Vel / 3.6 ) ) + 2 };
@@ -6430,7 +6430,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
        && ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_cooling - ( dizel_heat.water.is_warm ? 8 : 0 ) ) ) );
     auto const PTC1 { ( dizel_heat.water.is_warm /*or PTC1p*/ ? 1 : 0 ) };
     dizel_heat.rpmwz = PTC1 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
-    dizel_heat.zaluzje1 = ( dizel_heat.water.config.shutters ? PTC1 : true ); // no shutters is an equivalent to having them open
+    dizel_heat.zaluzje1 = ( dizel_heat.water.config.shutters ? ( PTC1 == 1 ) : true ); // no shutters is an equivalent to having them open
     auto const zaluzje1 { ( dizel_heat.zaluzje1 ? 1 : 0 ) };
     // primary water circuit heat transfer values
     auto const kf { obieg * kurek07 * ( ( dizel_heat.kw * ( 0.3 + 0.7 * zaluzje1 ) ) * dizel_heat.rpmw + ( dizel_heat.kv * ( 0.3 + 0.7 * zaluzje1 ) * Vel / 3.6 ) + 3 ) + 2 };
