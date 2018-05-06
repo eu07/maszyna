@@ -943,9 +943,10 @@ public:
 	double DoorOpenSpeed = 1.0; double DoorCloseSpeed = 1.0;      /*predkosc otwierania i zamykania w j.u. */
 	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.1;/*szerokosc otwarcia lub kat*/
 	int DoorOpenMethod = 2;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
-	double PlatformSpeed = 0.25;   /*szybkosc stopnia*/
-	double PlatformMaxShift = 0.5; /*wysuniecie stopnia*/
-	int PlatformOpenMethod = 1; /*sposob animacji stopnia*/
+	double PlatformSpeed = 0.5;   /*szybkosc stopnia*/
+    double PlatformMaxShift { 45.0 }; /*wysuniecie stopnia*/
+    int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
+    double MirrorMaxShift { 90.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	double SpeedCtrlDelay = 2; /*opoznienie dzialania tempomatu z wybieralna predkoscia*/
     /*--sekcja zmiennych*/

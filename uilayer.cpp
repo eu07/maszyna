@@ -434,7 +434,7 @@ ui_layer::update() {
 
                 auto const train { Global.pWorld->train() };
                 if( ( train != nullptr ) && ( train->Dynamic() == vehicle ) ) {
-                    uitextline2 += " R: " + std::to_string( train->RadioChannel() );
+                    uitextline2 += ( vehicle->MoverParameters->Radio ? " R: " : " r: " ) + std::to_string( train->RadioChannel() );
                 }
 /*
                 uitextline2 +=

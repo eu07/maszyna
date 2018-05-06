@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 namespace scene {
 
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
+std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
 
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
 void
@@ -883,7 +884,7 @@ basic_region::serialize( std::string const &Scenariofile ) const {
     // region file version 1
     // header: EU07SBT + version (0-255)
     sn_utils::ls_uint32( output, MAKE_ID4( 'E', 'U', '0', '7' ) );
-    sn_utils::ls_uint32( output, MAKE_ID4( 'S', 'B', 'T', 1 ) );
+    sn_utils::ls_uint32( output, EU07_FILEVERSION_REGION );
     // sections
     // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
     std::uint32_t sectioncount { 0 };
@@ -928,7 +929,7 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     uint32_t headertype { sn_utils::ld_uint32( input ) };
 
     if( ( headermain != MAKE_ID4( 'E', 'U', '0', '7' )
-     || ( headertype != MAKE_ID4( 'S', 'B', 'T', 1 ) ) ) ) {
+     || ( headertype != EU07_FILEVERSION_REGION ) ) ) {
         // wrong file type
         WriteLog( "Bad file: \"" + filename + "\" is of either unrecognized type or version" );
         return false;

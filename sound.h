@@ -111,6 +111,9 @@ public:
     // returns location of the sound source in simulation region space
     glm::dvec3 const
         location() const;
+    // returns defined range of the sound
+    float const
+        range() const;
 
 // members
     float m_amplitudefactor { 1.f }; // helper, value potentially used by gain calculation

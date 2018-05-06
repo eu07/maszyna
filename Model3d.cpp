@@ -1222,12 +1222,16 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
 bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {
     // wczytanie modelu z pliku
+/*
+    // NOTE: disabled, this work is now done by the model manager
     std::string name = ToLower(FileName);
     // trim extension if needed
     if( name.rfind( '.' ) != std::string::npos )
     {
         name.erase(name.rfind('.'));
     }
+*/
+    auto const name { FileName };
 
 	asBinary = name + ".e3d";
 	if (FileExists(asBinary))
@@ -1255,7 +1259,7 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)
 	{
-		ErrorLog("Bad model: failed to load 3d model \"" + FileName + "\"");
+		ErrorLog("Bad model: failed to load 3d model \"" + name + "\"");
 	}
 	return result;
 };

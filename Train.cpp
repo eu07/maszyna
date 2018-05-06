@@ -5580,7 +5580,13 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     if( fTachoCount > 3.f ) {
-        dsbHasler.play( sound_flags::exclusive | sound_flags::looping );
+        auto const frequency { (
+            true == dsbHasler.is_combined() ?
+                fTachoVelocity * 0.01 :
+                1.0 ) };
+        dsbHasler
+            .pitch( frequency )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else if( fTachoCount < 1.f ) {
         dsbHasler.stop();
@@ -6139,8 +6145,10 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
         // skip message playback if the radio isn't able to receive it
         return;
     }
-    auto const radiorange { 7500 * 7500 };
-    if( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > radiorange ) {
+    auto const soundrange { Message->range() };
+    if( ( soundrange > 0 )
+     && ( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > ( soundrange * soundrange ) ) ) {
+        // skip message playback if the receiver is outside of the emitter's range
         return;
     }
 

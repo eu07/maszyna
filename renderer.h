@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 //#define EU07_USE_DEBUG_SHADOWMAP
 //#define EU07_USE_DEBUG_CABSHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
+//#define EU07_USE_DEBUG_SOUNDEMITTERS
 
 struct opengl_light : public basic_light {
 

@@ -1591,8 +1591,8 @@ void TMoverParameters::FuelPumpCheck( double const Timestep ) {
         FuelPump.is_enabled = ( dizel_startup || Mains );
     }
     FuelPump.is_active = (
-        ( true == FuelPump.is_enabled )
-     && ( true == Battery ) );
+        ( true == Battery )
+     && ( true == FuelPump.is_enabled ) );
 }
 
 // oil pump status update
@@ -7863,8 +7863,8 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     extract_value( DoorCloseSpeed, "CloseSpeed", line, "" );
     extract_value( DoorMaxShiftL, "DoorMaxShiftL", line, "" );
     extract_value( DoorMaxShiftR, "DoorMaxShiftR", line, "" );
+    extract_value( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
 
-    DoorOpenMethod = 2; //obrót, default
     std::string openmethod; extract_value( openmethod, "DoorOpenMethod", line, "" );
     if( openmethod == "Shift" ) { DoorOpenMethod = 1; } //przesuw
     else if( openmethod == "Fold" ) { DoorOpenMethod = 3; } //3 submodele się obracają
@@ -7876,11 +7876,11 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     std::string doorblocked; extract_value( doorblocked, "DoorBlocked", line, "" );
     DoorBlocked = ( doorblocked == "Yes" );
 
-    extract_value( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
     extract_value( PlatformSpeed, "PlatformSpeed", line, "" );
-    extract_value( PlatformMaxShift, "PlatformMaxSpeed", line, "" );
+    extract_value( PlatformMaxShift, "PlatformMaxShift", line, "" );
 
-    PlatformOpenMethod = 2; // obrót, default
+    extract_value( MirrorMaxShift, "MirrorMaxShift", line, "" );
+
     std::string platformopenmethod; extract_value( platformopenmethod, "PlatformOpenMethod", line, "" );
     if( platformopenmethod == "Shift" ) { PlatformOpenMethod = 1; } // przesuw
 }

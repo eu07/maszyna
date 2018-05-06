@@ -838,6 +838,13 @@ sound_source::location() const {
         + m_owner->VectorFront() * m_offset.z };
 }
 
+// returns defined range of the sound
+float const
+sound_source::range() const {
+
+    return m_range;
+}
+
 void
 sound_source::update_counter( sound_handle const Sound, int const Value ) {
 

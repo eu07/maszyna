@@ -23,7 +23,6 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-int const ANIM_TYPES = 7; // Ra: ilość typów animacji
 int const ANIM_WHEELS = 0; // koła
 int const ANIM_DOORS = 1; // drzwi
 int const ANIM_LEVERS = 2; // elementy obracane (wycieraczki, koła skrętne, przestawiacze, klocki ham.)
@@ -31,6 +30,9 @@ int const ANIM_BUFFERS = 3; // elementy przesuwane (zderzaki)
 int const ANIM_BOOGIES = 4; // wózki (są skręcane w dwóch osiach)
 int const ANIM_PANTS = 5; // pantografy
 int const ANIM_STEAMS = 6; // napęd parowozu
+int const ANIM_DOORSTEPS = 7;
+int const ANIM_MIRRORS = 8;
+int const ANIM_TYPES = 9; // Ra: ilość typów animacji
 
 class TAnim;
 //typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizującej położenie submodeli
@@ -103,7 +105,14 @@ class TAnimPant
 class TAnim
 { // klasa animowanej części pojazdu (koła, drzwi, pantografy, burty, napęd parowozu, siłowniki
     // itd.)
-  public:
+public:
+// constructor
+    TAnim() = default;
+// destructor
+    ~TAnim();
+// methods
+    int TypeSet( int i, int fl = 0 ); // ustawienie typu
+// members
     union
     {
         TSubModel *smAnimated; // animowany submodel (jeśli tylko jeden, np. oś)
@@ -125,16 +134,15 @@ class TAnim
         int *iIntBase; // jakiś int w fizyce
     };
     // void _fastcall Update(); //wskaźnik do funkcji aktualizacji animacji
-    int iFlags; // flagi animacji
+    int iFlags{ 0 }; // flagi animacji
     float fMaxDist; // do jakiej odległości wykonywana jest animacja
     float fSpeed; // parametr szybkości animacji
     int iNumber; // numer kolejny obiektu
-  public:
-    TAnim();
-    ~TAnim();
+
     TUpdate yUpdate; // metoda TDynamicObject aktualizująca animację
-    int TypeSet(int i, int fl = 0); // ustawienie typu
+/*
     void Parovoz(); // wykonanie obliczeń animacji
+*/
 };
 
 //---------------------------------------------------------------------------
@@ -215,16 +223,15 @@ public:
         *Material() const {
             return &m_materialdata; }
     // tymczasowo udostępnione do wyszukiwania drutu
-    int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
+    std::array<int, ANIM_TYPES> iAnimType{ 0 }; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
 private:
     int iAnimations; // liczba obiektów animujących
-/*
-    TAnim *pAnimations; // obiekty animujące (zawierają wskaźnik do funkcji wykonującej animację)
-*/
     std::vector<TAnim> pAnimations;
     TSubModel ** pAnimated; // lista animowanych submodeli (może być ich więcej niż obiektów animujących)
     double dWheelAngle[3]; // kąty obrotu kół: 0=przednie toczne, 1=napędzające i wiązary, 2=tylne toczne
+/*
     void UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
+*/
     void UpdateAxle(TAnim *pAnim); // animacja osi
     void UpdateBoogie(TAnim *pAnim); // animacja wózka
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
@@ -232,10 +239,15 @@ private:
     void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - składanie
 	void UpdateDoorPlug(TAnim *pAnim);      // animacja drzwi - odskokowo-przesuwne
 	void UpdatePant(TAnim *pAnim); // animacja pantografu
+    void UpdatePlatformTranslate(TAnim *pAnim); // doorstep animation, shift
+    void UpdatePlatformRotate(TAnim *pAnim); // doorstep animation, rotate
+    void UpdateMirror(TAnim *pAnim); // mirror animation
+/*
     void UpdateLeverDouble(TAnim *pAnim); // animacja gałki zależna od double
     void UpdateLeverFloat(TAnim *pAnim); // animacja gałki zależna od float
     void UpdateLeverInt(TAnim *pAnim); // animacja gałki zależna od int (wartość)
     void UpdateLeverEnum(TAnim *pAnim); // animacja gałki zależna od int (lista kątów)
+*/
     void toggle_lights(); // switch light levels for registered interior sections
   private: // Ra: ciąg dalszy animacji, dopiero do ogarnięcia
     // ABuWozki 060504
@@ -257,6 +269,10 @@ private:
     double NoVoltTime; // czas od utraty zasilania
     double dDoorMoveL; // NBMX
     double dDoorMoveR; // NBMX
+    double dDoorstepMoveL{ 0.0 };
+    double dDoorstepMoveR{ 0.0 };
+    double dMirrorMoveL{ 0.0 };
+    double dMirrorMoveR{ 0.0 };
     TSubModel *smBrakeSet; // nastawa hamulca (wajcha)
     TSubModel *smLoadSet; // nastawa ładunku (wajcha)
     TSubModel *smWiper; // wycieraczka (poniekąd też wajcha)

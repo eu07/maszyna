@@ -70,8 +70,7 @@ void TAnimPant::AKP_4E()
 };
 //---------------------------------------------------------------------------
 int TAnim::TypeSet(int i, int fl)
-{ // ustawienie typu animacji i zależnej od
-    // niego ilości animowanych submodeli
+{ // ustawienie typu animacji i zależnej od niego ilości animowanych submodeli
     fMaxDist = -1.0; // normalnie nie pokazywać
     switch (i)
     { // maska 0x000F: ile używa wskaźników na submodele (0 gdy jeden,
@@ -104,16 +103,19 @@ int TAnim::TypeSet(int i, int fl)
     case 6:
         iFlags = 0x068;
         break; // 6-tłok i rozrząd - 8 submodeli
+    case 7:
+        iFlags = 0x070;
+        break; // doorstep
+    case 8:
+        iFlags = 0x080;
+        break; // mirror
     default:
         iFlags = 0;
     }
     yUpdate = nullptr;
     return iFlags & 15; // ile wskaźników rezerwować dla danego typu animacji
 };
-TAnim::TAnim()
-{ // potrzebne to w ogóle?
-    iFlags = -1; // nieznany typ - destruktor nic nie usuwa
-};
+
 TAnim::~TAnim()
 { // usuwanie animacji
     switch (iFlags & 0xF0)
@@ -124,13 +126,15 @@ TAnim::~TAnim()
     case 0x50: // 5-pantograf
         delete fParamPants;
         break;
-    case 0x60: // 6-tłok i rozrząd
+    default:
         break;
     }
 };
+/*
 void TAnim::Parovoz(){
     // animowanie tłoka i rozrządu parowozu
 };
+*/
 //---------------------------------------------------------------------------
 TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr, int cf)
 { // szukanie skrajnego połączonego pojazdu w pociagu
@@ -400,11 +404,6 @@ void TDynamicObject::UpdateBoogie(TAnim *pAnim)
 
 void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
 { // animacja drzwi - przesuw
-    // WriteLog("Dla drzwi nr:", i);
-    // WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
-    // Ra: te współczynniki są bez sensu, bo modyfikują wektor przesunięcia
-    // w efekcie drzwi otwierane na zewnątrz będą odlatywac dowolnie daleko :)
-    // ograniczyłem zakres ruchu funkcją max
     if (pAnim->smAnimated) {
 
         if( pAnim->iNumber & 1 ) {
@@ -427,9 +426,7 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
 void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 { // animacja drzwi - obrót
     if (pAnim->smAnimated)
-    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe
-        // albo dwójłomne (trzeba kombinowac
-        // submodelami i ShiftL=90,R=180)
+    {
         if (pAnim->iNumber & 1)
             pAnim->smAnimated->SetRotate(float3(1, 0, 0), dDoorMoveR);
         else
@@ -440,9 +437,7 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
 { // animacja drzwi - obrót
     if (pAnim->smAnimated)
-    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe
-        // albo dwójłomne (trzeba kombinowac
-        // submodelami i ShiftL=90,R=180)
+    {
         if (pAnim->iNumber & 1)
         {
             pAnim->smAnimated->SetRotate(float3(0, 0, 1), dDoorMoveR);
@@ -458,7 +453,6 @@ void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
         else
         {
             pAnim->smAnimated->SetRotate(float3(0, 0, 1), dDoorMoveL);
-            // SubModel->SetRotate(float3(0,1,0),fValue*360.0);
             TSubModel *sm = pAnim->smAnimated->ChildGet(); // skrzydło mniejsze
             if (sm)
             {
@@ -470,6 +464,35 @@ void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
         }
     }
 };
+
+void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
+{ // animacja drzwi - odskokprzesuw
+    if (pAnim->smAnimated) {
+
+        if( pAnim->iNumber & 1 ) {
+            pAnim->smAnimated->SetTranslate(
+                Math3D::vector3 {
+                    std::min(
+                        dDoorMoveR * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveR - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
+        }
+        else {
+            pAnim->smAnimated->SetTranslate(
+                Math3D::vector3 {
+                    std::min(
+                        dDoorMoveL * 2,
+                        MoverParameters->DoorMaxPlugShift ),
+                    0.0,
+                    std::max(
+                        0.0,
+                        dDoorMoveL - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
+        }
+    }
+}
 
 void TDynamicObject::UpdatePant(TAnim *pAnim)
 { // animacja pantografu - 4 obracane ramiona, ślizg piąty
@@ -487,37 +510,66 @@ void TDynamicObject::UpdatePant(TAnim *pAnim)
         pAnim->smElement[3]->SetRotate(float3(-1, 0, 0), c);
     if (pAnim->smElement[4])
         pAnim->smElement[4]->SetRotate(float3(-1, 0, 0), b); //ślizg
-};
+}
 
-void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
-{ // animacja drzwi - odskokprzesuw
-    if (pAnim->smAnimated) {
+// doorstep animation, shift
+void TDynamicObject::UpdatePlatformTranslate( TAnim *pAnim ) {
 
-        if( pAnim->iNumber & 1 ) {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3 {
-                    std::min(
-                        dDoorMoveR * 2,
-                        MoverParameters->DoorMaxPlugShift ),
-                    0.0,
-                    std::max(
-                        0.0,
-                        dDoorMoveR - MoverParameters->DoorMaxPlugShift * 0.5 ) } );
-        }
-        else {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3 {
-                    std::min(
-                        dDoorMoveL * 2,
-                        MoverParameters->DoorMaxPlugShift ),
-                    0.0,
-                    std::max(
-                        0.0,
-                        dDoorMoveL - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
-        }
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    if( pAnim->iNumber & 1 ) {
+        pAnim->smAnimated->SetTranslate(
+            Math3D::vector3{
+                interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveR ),
+                0.0,
+                0.0 } );
     }
-};
+    else {
+        pAnim->smAnimated->SetTranslate(
+            Math3D::vector3{
+                interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveL ),
+                0.0,
+                0.0 } );
+    }
+}
 
+// doorstep animation, rotate
+void TDynamicObject::UpdatePlatformRotate( TAnim *pAnim ) {
+
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    if( pAnim->iNumber & 1 )
+        pAnim->smAnimated->SetRotate(
+            float3( 0, 1, 0 ),
+            interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveR ) );
+    else
+        pAnim->smAnimated->SetRotate(
+            float3( 0, 1, 0 ),
+            interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveL ) );
+}
+
+// mirror animation, rotate
+void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
+
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    // only animate the mirror if it's located on the same end of the vehicle as the active cab
+    auto const isactive { (
+        ( ( pAnim->iNumber & 0xf ) >> 4 ) == ( MoverParameters->ActiveCab > 0 ? side::front : side::rear ) ?
+            1.0 :
+            0.0 ) };
+
+    if( pAnim->iNumber & 1 )
+        pAnim->smAnimated->SetRotate(
+            float3( 0, 1, 0 ),
+            interpolate( 0.0, MoverParameters->MirrorMaxShift, dMirrorMoveR * isactive ) );
+    else
+        pAnim->smAnimated->SetRotate(
+            float3( 0, 1, 0 ),
+            interpolate( 0.0, MoverParameters->MirrorMaxShift, dMirrorMoveL * isactive ) );
+}
+
+/*
 void TDynamicObject::UpdateLeverDouble(TAnim *pAnim)
 { // animacja gałki zależna od double
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), pAnim->fSpeed * *pAnim->fDoubleBase);
@@ -537,7 +589,7 @@ void TDynamicObject::UpdateLeverEnum(TAnim *pAnim)
     // pAnim->fParam[0]; - dodać lepkość
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), pAnim->fParam[*pAnim->iIntBase]);
 };
-
+*/
 // sets light levels for registered interior sections
 void
 TDynamicObject::toggle_lights() {
@@ -586,10 +638,14 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
     if (ObjSqrDist < ( 400 * 400 ) ) // gdy bliżej niż 400m
     {
-        for (int i = 0; i < iAnimations; ++i) // wykonanie kolejnych animacji
-            if (ObjSqrDist < pAnimations[ i ].fMaxDist)
-                if (pAnimations[ i ].yUpdate) // jeśli zdefiniowana funkcja
-                    pAnimations[ i ].yUpdate( &pAnimations[ i ] ); // aktualizacja animacji (położenia submodeli
+        for( auto &animation : pAnimations ) {
+            // wykonanie kolejnych animacji
+            if( ( ObjSqrDist < animation.fMaxDist )
+             && ( animation.yUpdate ) ) {
+                // jeśli zdefiniowana funkcja aktualizacja animacji (położenia submodeli
+                animation.yUpdate( &animation );
+            }
+        }
 
         if( ( mdModel != nullptr )
          && ( ObjSqrDist < ( 50 * 50 ) ) ) {
@@ -1655,13 +1711,6 @@ TDynamicObject::TDynamicObject() {
     // w MMD)
 	// ustawienie liczby modeli animowanych podczas konstruowania obiektu a nie na 0
 	// prowadzi prosto do wysypów jeśli źle zdefiniowane mmd
-    iAnimType[ANIM_WHEELS] = 0; // 0-osie (8)
-    iAnimType[ANIM_DOORS] = 0; // 1-drzwi (8)
-    iAnimType[ANIM_LEVERS] = 0; // 2-wahacze (4) - np. nogi konia
-    iAnimType[ANIM_BUFFERS] = 0; // 3-zderzaki (4)
-    iAnimType[ANIM_BOOGIES] = 0; // 4-wózki (2)
-    iAnimType[ANIM_PANTS] = 0; // 5-pantografy (2)
-    iAnimType[ANIM_STEAMS] = 0; // 6-tłoki (napęd parowozu)
     iAnimations = 0; // na razie nie ma żadnego
     pAnimated = NULL;
     fShade = 0.0; // standardowe oświetlenie na starcie
@@ -3603,6 +3652,60 @@ bool TDynamicObject::Update(double dt, double dt1)
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         dDoorMoveR = std::max( dDoorMoveR, 0.0 );
     }
+    // doorsteps
+    if( ( dDoorstepMoveL < 1.0 )
+     && ( true == MoverParameters->DoorLeftOpened ) ) {
+        dDoorstepMoveL = std::min(
+            1.0,
+            dDoorstepMoveL + MoverParameters->PlatformSpeed * dt1 );
+    }
+    if( ( dDoorstepMoveL > 0.0 )
+     && ( false == MoverParameters->DoorLeftOpened ) ) {
+        dDoorstepMoveL = std::max(
+            0.0,
+            dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
+    }
+    if( ( dDoorstepMoveR < 1.0 )
+     && ( true == MoverParameters->DoorRightOpened ) ) {
+        dDoorstepMoveR = std::min(
+            1.0,
+            dDoorstepMoveR + MoverParameters->PlatformSpeed * dt1 );
+    }
+    if( ( dDoorstepMoveR > 0.0 )
+     && ( false == MoverParameters->DoorRightOpened ) ) {
+        dDoorstepMoveR = std::max(
+            0.0,
+            dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
+    }
+    // mirrors
+    if( MoverParameters->Vel > 5.0 ) {
+        // automatically fold mirrors when above velocity threshold
+        if( dMirrorMoveL > 0.0 ) {
+            dMirrorMoveL = std::max(
+                0.0,
+                dMirrorMoveL - 1.0 * dt1 );
+        }
+        if( dMirrorMoveR > 0.0 ) {
+            dMirrorMoveR = std::max(
+                0.0,
+                dMirrorMoveR - 1.0 * dt1 );
+        }
+    }
+    else {
+        // unfold mirror on the side with open doors, if not moving too fast
+        if( ( dMirrorMoveL < 1.0 )
+         && ( true == MoverParameters->DoorLeftOpened ) ) {
+            dMirrorMoveL = std::min(
+                1.0,
+                dMirrorMoveL + 1.0 * dt1 );
+        }
+        if( ( dMirrorMoveR < 1.0 )
+         && ( true == MoverParameters->DoorRightOpened ) ) {
+            dMirrorMoveR = std::min(
+                1.0,
+                dMirrorMoveR + 1.0 * dt1 );
+        }
+    }
 
     // compartment lights
     // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
@@ -4338,43 +4441,23 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         { // kolejne liczby to ilość animacj, -1 to znacznik końca
 							parser.getTokens( 1, false );
                             parser >> ile; // ilość danego typu animacji
-                            // if (co==ANIM_PANTS)
-                            // if (!Global.bLoadTraction)
-                            //  if (!DebugModeFlag) //w debugmode pantografy mają "niby działać"
-                            //   ile=0; //wyłączenie animacji pantografów
-                            if (co < ANIM_TYPES)
-                                if (ile >= 0)
-                                {
-                                    iAnimType[co] = ile; // zapamiętanie
-                                    iAnimations += ile; // ogólna ilość animacji
-                                }
+                            if (ile >= 0)
+                            {
+                                iAnimType[co] = ile; // zapamiętanie
+                                iAnimations += ile; // ogólna ilość animacji
+                            }
+                            else {
+                                iAnimType[co] = 0;
+                            }
                             ++co;
-                        } while (ile >= 0); //-1 to znacznik końca
+                        } while ( (ile >= 0) && (co < ANIM_TYPES) ); //-1 to znacznik końca
 
-						while( co < ANIM_TYPES ) {
-							iAnimType[ co++ ] = 0; // zerowanie pozostałych
-                        }
-						parser.getTokens(); parser >> token; // NOTE: should this be here? seems at best superfluous
+						parser.getTokens(); parser >> token;
                     }
-                    // WriteLog("Total animations: "+AnsiString(iAnimations));
                 }
 
                 if( true == pAnimations.empty() ) {
                     // Ra: tworzenie tabeli animacji, jeśli jeszcze nie było
-/*
-                    // disabled as default animation amounts are no longer supported
-                    if( !iAnimations ) {
-                        // jeśli nie podano jawnie, ile ma być animacji
-                        iAnimations = 28; // tyle było kiedyś w każdym pojeździe (2 wiązary wypadły)
-                    }
-*/
-                    /* //pojazd może mieć pantograf do innych celów niż napęd
-                    if (MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)
-                    {//nie będzie pantografów, to się trochę uprości
-                     iAnimations-=iAnimType[ANIM_PANTS]; //domyślnie były 2 pantografy
-                     iAnimType[ANIM_PANTS]=0;
-                    }
-                    */
                     pAnimations.resize( iAnimations );
                     int i, j, k = 0, sm = 0;
                     for (j = 0; j < ANIM_TYPES; ++j)
@@ -4787,23 +4870,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 						parser >> fWahaczeAmp;
 					}
                 }
-                /*
-				else if (str == AnsiString("engineer:"))
-                { // nazwa submodelu maszynisty
-                    str = Parser->GetNextSymbol();
-                    smMechanik0 = mdModel->GetFromName(str.c_str());
-                    if (!smMechanik0)
-                    { // jak nie ma bez numerka, to może jest z
-                        // numerkiem?
-                        smMechanik0 = mdModel->GetFromName(AnsiString(str + "1").c_str());
-                        smMechanik1 = mdModel->GetFromName(AnsiString(str + "2").c_str());
-                    }
-                    // aby dało się go obracać, musi mieć włączoną animację w T3D!
-                    // if (!smMechanik1) //jeśli drugiego nie ma
-                    // if (smMechanik0) //a jest pierwszy
-                    //  smMechanik0->WillBeAnimated(); //to będziemy go obracać
-                }
-				*/
 
 				else if( token == "animdoorprefix:" ) {
                     // nazwa animowanych drzwi
@@ -4838,9 +4904,80 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 							}
                             pAnimations[i + j].iNumber = i; // parzyste działają inaczej niż nieparzyste
                             pAnimations[i + j].fMaxDist = 300 * 300; // drzwi to z daleka widać
+/*
+                            // NOTE: no longer used
                             pAnimations[i + j].fSpeed = Random(150); // oryginalny koncept z DoorSpeedFactor
                             pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
-                            // Ra: te współczynniki są bez sensu, bo modyfikują wektor przesunięcia
+*/
+                        }
+                    }
+                }
+
+                else if( token == "animstepprefix:" ) {
+                    // animated doorstep submodel name prefix
+					int i, j;
+					parser.getTokens(1, false); parser >> token;
+                    for (i = 0, j = 0; i < ANIM_DOORSTEPS; ++i)
+                        j += iAnimType[i]; // zliczanie wcześniejszych animacji
+                    for (i = 0; i < iAnimType[ANIM_DOORSTEPS]; ++i) // liczba drzwi
+                    { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
+                      // ustalenie submodelu
+                        asAnimName = token + std::to_string(i + 1);
+                        pAnimations[i + j].smAnimated = mdModel->GetFromName(asAnimName);
+                        if (pAnimations[i + j].smAnimated)
+                        { //++iAnimatedDoors;
+                            pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
+                            switch (MoverParameters->PlatformOpenMethod)
+                            { // od razu zapinamy potrzebny typ animacji
+                            case 1: // shift
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdatePlatformTranslate, this, std::placeholders::_1 );
+                                break;
+                            case 2: // rotate
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdatePlatformRotate, this, std::placeholders::_1 );
+                                break;
+							default:
+								break;
+							}
+                            pAnimations[i + j].iNumber = i; // parzyste działają inaczej niż nieparzyste
+                            pAnimations[i + j].fMaxDist = 150 * 150; // drzwi to z daleka widać
+/*
+                            // NOTE: no longer used
+                            pAnimations[i + j].fSpeed = Random(150); // oryginalny koncept z DoorSpeedFactor
+                            pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
+*/
+                        }
+                    }
+                }
+
+                else if( token == "animmirrorprefix:" ) {
+                    // animated mirror submodel name prefix
+                    int i, j;
+                    parser.getTokens( 1, false ); parser >> token;
+                    for( i = 0, j = 0; i < ANIM_MIRRORS; ++i )
+                        j += iAnimType[ i ]; // zliczanie wcześniejszych animacji
+                    for( i = 0; i < iAnimType[ ANIM_MIRRORS ]; ++i ) // liczba drzwi
+                    { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
+                      // ustalenie submodelu
+                        asAnimName = token + std::to_string( i + 1 );
+                        pAnimations[ i + j ].smAnimated = mdModel->GetFromName( asAnimName );
+                        if( pAnimations[ i + j ].smAnimated ) {
+                            pAnimations[ i + j ].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
+                            // od razu zapinamy potrzebny typ animacji
+                            auto const offset { pAnimations[ i + j ].smAnimated->offset() };
+                            pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateMirror, this, std::placeholders::_1 );
+                            // we don't expect more than 2-4 mirrors, so it should be safe to store submodel location (front/rear) in the higher bits
+                            // parzyste działają inaczej niż nieparzyste
+                            pAnimations[ i + j ].iNumber =
+                                ( ( pAnimations[ i + j ].smAnimated->offset().z > 0 ?
+                                    side::front :
+                                    side::rear ) << 4 )
+                                + i;
+                            pAnimations[ i + j ].fMaxDist = 150 * 150; // drzwi to z daleka widać
+/*
+                            // NOTE: no longer used
+                            pAnimations[i + j].fSpeed = Random(150); // oryginalny koncept z DoorSpeedFactor
+                            pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
+*/
                         }
                     }
                 }
