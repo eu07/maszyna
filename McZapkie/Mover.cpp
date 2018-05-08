@@ -1613,10 +1613,9 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
         OilPump.pressure_minimum > 0.f ?
             OilPump.pressure_minimum :
             0.15f }; // arbitrary fallback value
-    auto const maxpressure { 0.65f }; // arbitrary value
 
     OilPump.pressure_target = (
-        enrot > 0.1 ? interpolate( minpressure, maxpressure, static_cast<float>( clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) ) * OilPump.resource_amount :
+        enrot > 0.1 ? interpolate( minpressure, OilPump.pressure_maximum, static_cast<float>( clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) ) * OilPump.resource_amount :
         true == OilPump.is_active ? minpressure :
         0.f );
 
@@ -6320,6 +6319,8 @@ void TMoverParameters::dizel_Heat( double const dt ) {
     auto const gwmin2 { 400.0 };
     auto const gwmax2 { 4000.0 };
 
+    dizel_heat.Te = Global.AirTemperature;
+
     auto const engineon { ( Mains ? 1 : 0 ) };
     auto const engineoff { ( Mains ? 0 : 1 ) };
     auto const rpm { enrot * 60 };
@@ -6709,14 +6710,14 @@ TMoverParameters::update_autonomous_doors( double const Deltatime ) {
     // the door are closed if their timer goes below 0, or if the vehicle is moving at > 5 km/h
     // NOTE: timer value of 0 is 'special' as it means the door will stay open until vehicle is moving
     if( true == DoorLeftOpened ) {
-        if( ( DoorLeftOpenTimer < 0.0 )
+        if( ( ( DoorStayOpen > 0.0 ) && ( DoorLeftOpenTimer < 0.0 ) )
          || ( Vel > 5.0 ) ) {
             // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
             DoorLeft( false, range::local );
         }
     }
     if( true == DoorRightOpened ) {
-        if( ( DoorRightOpenTimer < 0.0 )
+        if( ( ( DoorStayOpen > 0.0 ) && ( DoorRightOpenTimer < 0.0 ) )
          || ( Vel > 5.0 ) ) {
             // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
             DoorRight( false, range::local );
@@ -7861,6 +7862,7 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 
     extract_value( DoorOpenSpeed, "OpenSpeed", line, "" );
     extract_value( DoorCloseSpeed, "CloseSpeed", line, "" );
+    extract_value( DoorCloseDelay, "DoorCloseDelay", line, "" );
     extract_value( DoorMaxShiftL, "DoorMaxShiftL", line, "" );
     extract_value( DoorMaxShiftR, "DoorMaxShiftR", line, "" );
     extract_value( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
@@ -8363,7 +8365,6 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 					extract_value(hydro_R_MinVel, "R_MinVel", Input, "");
 				}
 			}
-            extract_value( OilPump.pressure_minimum, "MinOilPressure", Input, "" );
             break;
         }
         case DieselElectric: { //youBy
@@ -8384,7 +8385,6 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 ImaxHi = 2;
                 ImaxLo = 1;
             }
-            extract_value( OilPump.pressure_minimum, "OilMinPressure", Input, "" );
             break;
         }
         case ElectricInductionMotor: {
@@ -8424,29 +8424,36 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         }
     } // engine type
 
-    // engine cooling factore
-    extract_value( dizel_heat.kw, "HeatKW", Input, "" );
-    extract_value( dizel_heat.kv, "HeatKV", Input, "" );
-    extract_value( dizel_heat.kfe, "HeatKFE", Input, "" );
-    extract_value( dizel_heat.kfs, "HeatKFS", Input, "" );
-    extract_value( dizel_heat.kfo, "HeatKFO", Input, "" );
-    extract_value( dizel_heat.kfo2, "HeatKFO2", Input, "" );
-    // engine cooling systems
-    extract_value( dizel_heat.water.config.temp_min, "WaterMinTemperature", Input, "" );
-    extract_value( dizel_heat.water.config.temp_max, "WaterMaxTemperature", Input, "" );
-    extract_value( dizel_heat.water.config.temp_flow, "WaterFlowTemperature", Input, "" );
-    extract_value( dizel_heat.water.config.temp_cooling, "WaterCoolingTemperature", Input, "" );
-    extract_value( dizel_heat.water.config.shutters, "WaterShutters", Input, "" );
-    extract_value( dizel_heat.auxiliary_water_circuit, "WaterAuxCircuit", Input, "" );
-    extract_value( dizel_heat.water_aux.config.temp_min, "WaterAuxMinTemperature", Input, "" );
-    extract_value( dizel_heat.water_aux.config.temp_max, "WaterAuxMaxTemperature", Input, "" );
-    extract_value( dizel_heat.water_aux.config.temp_cooling, "WaterAuxCoolingTemperature", Input, "" );
-    extract_value( dizel_heat.water_aux.config.shutters, "WaterAuxShutters", Input, "" );
-    extract_value( dizel_heat.oil.config.temp_min, "OilMinTemperature", Input, "" );
-    extract_value( dizel_heat.oil.config.temp_max, "OilMaxTemperature", Input, "" );
-    // water heater
-    extract_value( WaterHeater.config.temp_min, "HeaterMinTemperature", Input, "" );
-    extract_value( WaterHeater.config.temp_max, "HeaterMaxTemperature", Input, "" );
+    // NOTE: elements shared by both diesel engine variants; crude but, eh
+    if( ( EngineType == DieselEngine )
+     || ( EngineType == DieselElectric ) ) {
+        // oil pump
+        extract_value( OilPump.pressure_minimum, "OilMinPressure", Input, "" );
+        extract_value( OilPump.pressure_maximum, "OilMaxPressure", Input, "" );
+        // engine cooling factore
+        extract_value( dizel_heat.kw, "HeatKW", Input, "" );
+        extract_value( dizel_heat.kv, "HeatKV", Input, "" );
+        extract_value( dizel_heat.kfe, "HeatKFE", Input, "" );
+        extract_value( dizel_heat.kfs, "HeatKFS", Input, "" );
+        extract_value( dizel_heat.kfo, "HeatKFO", Input, "" );
+        extract_value( dizel_heat.kfo2, "HeatKFO2", Input, "" );
+        // engine cooling systems
+        extract_value( dizel_heat.water.config.temp_min, "WaterMinTemperature", Input, "" );
+        extract_value( dizel_heat.water.config.temp_max, "WaterMaxTemperature", Input, "" );
+        extract_value( dizel_heat.water.config.temp_flow, "WaterFlowTemperature", Input, "" );
+        extract_value( dizel_heat.water.config.temp_cooling, "WaterCoolingTemperature", Input, "" );
+        extract_value( dizel_heat.water.config.shutters, "WaterShutters", Input, "" );
+        extract_value( dizel_heat.auxiliary_water_circuit, "WaterAuxCircuit", Input, "" );
+        extract_value( dizel_heat.water_aux.config.temp_min, "WaterAuxMinTemperature", Input, "" );
+        extract_value( dizel_heat.water_aux.config.temp_max, "WaterAuxMaxTemperature", Input, "" );
+        extract_value( dizel_heat.water_aux.config.temp_cooling, "WaterAuxCoolingTemperature", Input, "" );
+        extract_value( dizel_heat.water_aux.config.shutters, "WaterAuxShutters", Input, "" );
+        extract_value( dizel_heat.oil.config.temp_min, "OilMinTemperature", Input, "" );
+        extract_value( dizel_heat.oil.config.temp_max, "OilMaxTemperature", Input, "" );
+        // water heater
+        extract_value( WaterHeater.config.temp_min, "HeaterMinTemperature", Input, "" );
+        extract_value( WaterHeater.config.temp_max, "HeaterMaxTemperature", Input, "" );
+    }
 }
 
 void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
@@ -9299,9 +9306,9 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "DoorOpen") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-        if( ( DoorCloseCtrl == control::conductor )
-         || ( DoorCloseCtrl == control::driver ) 
-         || ( DoorCloseCtrl == control::mixed ) ) {
+        if( ( DoorOpenCtrl == control::conductor )
+         || ( DoorOpenCtrl == control::driver ) 
+         || ( DoorOpenCtrl == control::mixed ) ) {
             // ignore remote command if the door is only operated locally
             if( CValue2 > 0 ) {
                 // normalne ustawienie pojazdu

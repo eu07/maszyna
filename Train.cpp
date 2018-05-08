@@ -308,6 +308,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
+    { user_command::whistleactivate, &TTrain::OnCommand_whistleactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
@@ -382,25 +383,18 @@ TTrain::TTrain() {
 
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powiązanie ręcznego sterowania kabiną z pojazdem
-    // Global.pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzęsienia
+    if( NewDynamicObject->Mechanik == nullptr ) {
+        ErrorLog( "Bad config: can't take control of inactive vehicle \"" + NewDynamicObject->asName + "\"" );
+        return false;
+    }
+
     DynamicSet(NewDynamicObject);
     if (!e3d)
         if (DynamicObject->Mechanik == NULL)
             return false;
-    // if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
-    // return false;
+
     DynamicObject->MechInside = true;
 
-    /*    iPozSzereg=28;
-        for (int i=1; i<mvControlled->MainCtrlPosNo; i++)
-         {
-          if (mvControlled->RList[i].Bn>1)
-           {
-            iPozSzereg=i-1;
-            i=mvControlled->MainCtrlPosNo+1;
-           }
-         }
-    */
     MechSpring.Init(125.0);
     vMechVelocity = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3( 0, 0, 0 );
@@ -416,25 +410,6 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
         return false;
 	}
 
-    // McZapkie: w razie wykolejenia
-    //    dsbDerailment=TSoundsManager::GetFromName("derail.wav");
-    // McZapkie: jazda luzem:
-    //    dsbRunningNoise=TSoundsManager::GetFromName("runningnoise.wav");
-
-    // McZapkie? - dzwieki slyszalne tylko wewnatrz kabiny - generowane przez
-    // obiekt sterowany:
-
-    // McZapkie-080302 sWentylatory.Init("wenton.wav","went.wav","wentoff.wav");
-    // McZapkie-010302
-    //    sCompressor.Init("compressor-start.wav","compressor.wav","compressor-stop.wav");
-
-    //    sHorn1.Init("horn1.wav",0.3);
-    //    sHorn2.Init("horn2.wav",0.3);
-
-    //  sHorn1.Init("horn1-start.wav","horn1.wav","horn1-stop.wav");
-    //  sHorn2.Init("horn2-start.wav","horn2.wav","horn2-stop.wav");
-
-    //  sConverter.Init("converter.wav",1.5); //NBMX obsluga przez AdvSound
     iCabn = 0;
     // Ra: taka proteza - przesłanie kierunku do członów connected
     if (mvControlled->ActiveDir > 0)
@@ -3895,6 +3870,32 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
     }
 }
 
+void TTrain::OnCommand_whistleactivate( TTrain *Train, command_data const &Command ) {
+
+    if( Train->ggWhistleButton.SubModel == nullptr ) {
+        if( Command.action == GLFW_PRESS ) {
+            WriteLog( "Whistle button is missing, or wasn't defined" );
+        }
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only need to react to press, sound will continue until stopped
+        if( false == TestFlag( Train->mvOccupied->WarningSignal, 4 ) ) {
+            // turn on
+            Train->mvOccupied->WarningSignal |= 4;
+            // visual feedback
+            Train->ggWhistleButton.UpdateValue( 1.0 );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // turn off
+        Train->mvOccupied->WarningSignal &= ~4;
+        // visual feedback
+        Train->ggWhistleButton.UpdateValue( 0.0 );
+    }
+}
+
 void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggRadioButton.SubModel == nullptr ) {
@@ -4530,30 +4531,34 @@ bool TTrain::Update( double const Deltatime )
                 if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == -1))
                     tmp = DynamicObject->PrevConnected;
-            if (tmp)
-                if (tmp->MoverParameters->Power > 0)
-                {
-                    if (ggI1B.SubModel)
-                    {
-                        ggI1B.UpdateValue(tmp->MoverParameters->ShowCurrent(1));
+            if( tmp ) {
+                if( tmp->MoverParameters->Power > 0 ) {
+                    if( ggI1B.SubModel ) {
+                        ggI1B.UpdateValue( tmp->MoverParameters->ShowCurrent( 1 ) );
                         ggI1B.Update();
                     }
-                    if (ggI2B.SubModel)
-                    {
-                        ggI2B.UpdateValue(tmp->MoverParameters->ShowCurrent(2));
+                    if( ggI2B.SubModel ) {
+                        ggI2B.UpdateValue( tmp->MoverParameters->ShowCurrent( 2 ) );
                         ggI2B.Update();
                     }
-                    if (ggI3B.SubModel)
-                    {
-                        ggI3B.UpdateValue(tmp->MoverParameters->ShowCurrent(3));
+                    if( ggI3B.SubModel ) {
+                        ggI3B.UpdateValue( tmp->MoverParameters->ShowCurrent( 3 ) );
                         ggI3B.Update();
                     }
-                    if (ggItotalB.SubModel)
-                    {
-                        ggItotalB.UpdateValue(tmp->MoverParameters->ShowCurrent(0));
+                    if( ggItotalB.SubModel ) {
+                        ggItotalB.UpdateValue( tmp->MoverParameters->ShowCurrent( 0 ) );
                         ggItotalB.Update();
                     }
+                    if( ggWater1TempB.SubModel ) {
+                        ggWater1TempB.UpdateValue( tmp->MoverParameters->dizel_heat.temperatura1 );
+                        ggWater1TempB.Update();
+                    }
+                    if( ggOilPressB.SubModel ) {
+                        ggOilPressB.UpdateValue( tmp->MoverParameters->OilPump.pressure_present );
+                        ggOilPressB.Update();
+                    }
                 }
+            }
         }
         // McZapkie-300302: zegarek
         if (ggClockMInd.SubModel)
@@ -5213,6 +5218,7 @@ bool TTrain::Update( double const Deltatime )
         ggHornButton.Update();
         ggHornLowButton.Update();
         ggHornHighButton.Update();
+        ggWhistleButton.Update();
         for( auto &universal : ggUniversals ) {
             universal.Update();
         }
@@ -6235,6 +6241,7 @@ void TTrain::clear_cab_controls()
     ggHornButton.Clear();
     ggHornLowButton.Clear();
     ggHornHighButton.Clear();
+    ggWhistleButton.Clear();
     ggNextCurrentButton.Clear();
     for( auto &universal : ggUniversals ) {
         universal.Clear();
@@ -6272,6 +6279,8 @@ void TTrain::clear_cab_controls()
     ggI2B.Clear();
     ggI3B.Clear();
     ggItotalB.Clear();
+    ggOilPressB.Clear();
+    ggWater1TempB.Clear();
 
     ggClockSInd.Clear();
     ggClockMInd.Clear();
@@ -6741,6 +6750,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },
         { "hornhigh_bt:", ggHornHighButton },
+        { "whistle_bt:", ggHornHighButton },
         { "fuse_bt:", ggFuseButton },
         { "converterfuse_bt:", ggConverterFuseButton },
         { "stlinoff_bt:", ggStLinOffButton },
@@ -6769,9 +6779,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "waterpump_sw:", ggWaterPumpButton },
         { "waterheaterbreaker_sw:", ggWaterHeaterBreakerButton },
         { "waterheater_sw:", ggWaterHeaterButton },
+        { "water1tempb:", ggWater1TempB },
         { "watercircuitslink_sw:", ggWaterCircuitsLinkButton },
         { "fuelpump_sw:", ggFuelPumpButton },
         { "oilpump_sw:", ggOilPumpButton },
+        { "oilpressb:", ggOilPressB },
         { "radio_sw:", ggRadioButton },
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },

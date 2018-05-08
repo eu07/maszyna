@@ -45,6 +45,7 @@ struct global_settings {
     bool DLFont{ false }; // switch indicating presence of basic font
     bool bActive{ true }; // czy jest aktywnym oknem
     int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
+    float AirTemperature{ 15.f };
     // settings
     // filesystem
     bool bLoadTraction{ true };

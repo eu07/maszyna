@@ -263,6 +263,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
             Controlled = NULL;
             mvControlled = NULL;
+            SafeDelete( Train );
             Camera.Type = tp_Free;
         }
     }

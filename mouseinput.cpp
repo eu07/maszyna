@@ -291,6 +291,9 @@ mouse_input::default_bindings() {
         { "hornhigh_bt:", {
             user_command::hornhighactivate,
             user_command::none } },
+        { "whistle_bt:", {
+            user_command::whistleactivate,
+            user_command::none } },
         { "fuse_bt:", {
             user_command::motoroverloadrelayreset,
             user_command::none } },

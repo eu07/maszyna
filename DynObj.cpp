@@ -555,9 +555,9 @@ void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
 
     // only animate the mirror if it's located on the same end of the vehicle as the active cab
     auto const isactive { (
-        ( ( pAnim->iNumber & 0xf ) >> 4 ) == ( MoverParameters->ActiveCab > 0 ? side::front : side::rear ) ?
-            1.0 :
-            0.0 ) };
+        MoverParameters->ActiveCab > 0 ? ( ( pAnim->iNumber >> 4 ) == side::front ? 1.0 : 0.0 ) :
+        MoverParameters->ActiveCab < 0 ? ( ( pAnim->iNumber >> 4 ) == side::rear  ? 1.0 : 0.0 ) :
+        0.0 ) };
 
     if( pAnim->iNumber & 1 )
         pAnim->smAnimated->SetRotate(
@@ -2025,7 +2025,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
             if( true == setambient ) {
                 // TODO: pull ambient temperature from environment data
-                MoverParameters->dizel_HeatSet( 15.f );
+                MoverParameters->dizel_HeatSet( Global.AirTemperature );
             }
         } // temperature
 /*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
@@ -3636,21 +3636,29 @@ bool TDynamicObject::Update(double dt, double dt1)
      && ( true == MoverParameters->DoorLeftOpened ) ) {
         dDoorMoveL += dt1 * MoverParameters->DoorOpenSpeed;
         dDoorMoveL = std::min( dDoorMoveL, MoverParameters->DoorMaxShiftL );
+        DoorDelayL = 0.f;
     }
-    if( ( dDoorMoveL > 0 )
+    if( ( dDoorMoveL > 0.0 )
      && ( false == MoverParameters->DoorLeftOpened ) ) {
-        dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
-        dDoorMoveL = std::max( dDoorMoveL, 0.0 );
+        DoorDelayL += dt1;
+        if( DoorDelayL > MoverParameters->DoorCloseDelay ) {
+            dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
+            dDoorMoveL = std::max( dDoorMoveL, 0.0 );
+        }
     }
     if( ( dDoorMoveR < MoverParameters->DoorMaxShiftR )
      && ( true == MoverParameters->DoorRightOpened ) ) {
         dDoorMoveR += dt1 * MoverParameters->DoorOpenSpeed;
         dDoorMoveR = std::min( dDoorMoveR, MoverParameters->DoorMaxShiftR );
-	}
-    if( ( dDoorMoveR > 0 )
+        DoorDelayR = 0.f;
+    }
+    if( ( dDoorMoveR > 0.0 )
      && ( false == MoverParameters->DoorRightOpened ) ) {
-        dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
-        dDoorMoveR = std::max( dDoorMoveR, 0.0 );
+        DoorDelayR += dt1;
+        if( DoorDelayR > MoverParameters->DoorCloseDelay ) {
+            dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
+            dDoorMoveR = std::max( dDoorMoveR, 0.0 );
+        }
     }
     // doorsteps
     if( ( dDoorstepMoveL < 1.0 )
@@ -3660,7 +3668,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             dDoorstepMoveL + MoverParameters->PlatformSpeed * dt1 );
     }
     if( ( dDoorstepMoveL > 0.0 )
-     && ( false == MoverParameters->DoorLeftOpened ) ) {
+     && ( false == MoverParameters->DoorLeftOpened )
+     && ( DoorDelayL > MoverParameters->DoorCloseDelay ) ) {
         dDoorstepMoveL = std::max(
             0.0,
             dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
@@ -3672,7 +3681,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             dDoorstepMoveR + MoverParameters->PlatformSpeed * dt1 );
     }
     if( ( dDoorstepMoveR > 0.0 )
-     && ( false == MoverParameters->DoorRightOpened ) ) {
+     && ( false == MoverParameters->DoorRightOpened )
+     && ( DoorDelayR > MoverParameters->DoorCloseDelay ) ) {
         dDoorstepMoveR = std::max(
             0.0,
             dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
@@ -3990,7 +4000,14 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX sygnal odjazdu
     if( MoverParameters->DoorClosureWarning ) {
-        if( MoverParameters->DepartureSignal ) {
+        if( ( MoverParameters->DepartureSignal )
+/*
+         || ( ( MoverParameters->DoorCloseCtrl = control::autonomous )
+           && ( ( ( false == MoverParameters->DoorLeftOpened )  && ( dDoorMoveL > 0.0 ) )
+             || ( ( false == MoverParameters->DoorRightOpened ) && ( dDoorMoveR > 0.0 ) ) ) )
+*/
+             ) {
+            // for the autonomous doors play the warning automatically whenever a door is closing
             // MC: pod warunkiem ze jest zdefiniowane w chk
             sDepartureSignal.play( sound_flags::exclusive | sound_flags::looping );
         }
@@ -4055,6 +4072,12 @@ void TDynamicObject::RenderSounds() {
     }
     else {
         sHorn2.stop();
+    }
+    if( TestFlag( MoverParameters->WarningSignal, 4 ) ) {
+        sHorn3.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        sHorn3.stop();
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
@@ -4452,43 +4475,37 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             ++co;
                         } while ( (ile >= 0) && (co < ANIM_TYPES) ); //-1 to znacznik końca
 
-						parser.getTokens(); parser >> token;
-                    }
-                }
-
-                if( true == pAnimations.empty() ) {
-                    // Ra: tworzenie tabeli animacji, jeśli jeszcze nie było
-                    pAnimations.resize( iAnimations );
-                    int i, j, k = 0, sm = 0;
-                    for (j = 0; j < ANIM_TYPES; ++j)
-                        for (i = 0; i < iAnimType[j]; ++i)
+                        pAnimations.resize( iAnimations );
+                        int i, j, k = 0, sm = 0;
+                        for (j = 0; j < ANIM_TYPES; ++j)
+                            for (i = 0; i < iAnimType[j]; ++i)
+                            {
+                                if (j == ANIM_PANTS) // zliczamy poprzednie animacje
+                                    if (!pants)
+                                        if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
+                                            pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
+                                pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
+                                sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
+                            }
+                        if (sm) // o ile są bardziej złożone animacje
                         {
-                            if (j == ANIM_PANTS) // zliczamy poprzednie animacje
-                                if (!pants)
-                                    if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
-                                        pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
-                            pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
-                            sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
+                            pAnimated = new TSubModel *[sm]; // tabela na animowane submodele
+                            for (k = 0; k < iAnimations; ++k)
+                                pAnimations[k].smElement = pAnimated + pAnimations[k].iShift; // przydzielenie wskaźnika do tabelki
                         }
-                    if (sm) // o ile są bardziej złożone animacje
-                    {
-                        pAnimated = new TSubModel *[sm]; // tabela na animowane submodele
-                        for (k = 0; k < iAnimations; ++k)
-                            pAnimations[k].smElement = pAnimated + pAnimations[k].iShift; // przydzielenie wskaźnika do tabelki
                     }
                 }
 
-                if(token == "lowpolyinterior:") {
+                else if(token == "lowpolyinterior:") {
 					// ABu: wnetrze lowpoly
 					parser.getTokens();
 					parser >> asModel;
                     asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
-                    // Global.asCurrentTexturePath=AnsiString(szTexturePath); //kiedyś uproszczone wnętrze mieszało tekstury nieba
                 }
 
-				if( token == "brakemode:" ) {
+				else if( token == "brakemode:" ) {
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
@@ -4496,7 +4513,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
-				if( token == "loadmode:" ) {
+				else if( token == "loadmode:" ) {
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
@@ -4566,7 +4583,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                  // Ra: pantografy po nowemu mają literki i numerki
                 }
                 // Pantografy - Winger 160204
-				if( token == "animpantrd1prefix:" ) {
+				else if( token == "animpantrd1prefix:" ) {
                 // prefiks ramion dolnych 1
 					parser.getTokens(); parser >> token;
                     float4x4 m; // macierz do wyliczenia pozycji i wektora ruchu pantografu
@@ -4733,6 +4750,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 						}
                         }
                 }
+
 				else if( token == "pantfactors:" ) {
                  // Winger 010304:
                     // parametry pantografow
@@ -5153,11 +5171,16 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// pliki z trabieniem wysokoton.
                     sHorn2.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sHorn2.owner( this );
-
+                    // TBD, TODO: move horn selection to ai config file
                     if( iHornWarning ) {
                         iHornWarning = 2; // numer syreny do użycia po otrzymaniu sygnału do jazdy
                     }
 				}
+
+                else if( token == "horn3:" ) {
+                    sHorn3.deserialize( parser, sound_type::multipart, sound_parameters::range );
+                    sHorn3.owner( this );
+                }
 
 				else if( token == "departuresignal:" ) {
 					// pliki z sygnalem odjazdu

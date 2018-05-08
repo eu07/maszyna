@@ -267,6 +267,8 @@ private:
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
     double NoVoltTime; // czas od utraty zasilania
+    float DoorDelayL{ 0.f }; // left side door closing delay timer
+    float DoorDelayR{ 0.f }; // right side door closing delay timer
     double dDoorMoveL; // NBMX
     double dDoorMoveR; // NBMX
     double dDoorstepMoveL{ 0.0 };
@@ -418,6 +420,7 @@ private:
     sound_source sDepartureSignal { sound_placement::general };
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+    sound_source sHorn3 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     std::vector<sound_source> m_bogiesounds; // TBD, TODO: wrapper for all bogie-related sounds (noise, brakes, squeal etc)
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy

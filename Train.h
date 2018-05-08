@@ -299,6 +299,7 @@ class TTrain
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
+    static void OnCommand_whistleactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
@@ -335,6 +336,9 @@ public: // reszta może by?publiczna
     TGauge ggI2B;
     TGauge ggI3B;
     TGauge ggItotalB;
+
+    TGauge ggOilPressB;
+    TGauge ggWater1TempB;
 
     // McZapkie: definicje regulatorow
     TGauge ggMainCtrl;
@@ -395,6 +399,7 @@ public: // reszta może by?publiczna
     TGauge ggHornButton;
     TGauge ggHornLowButton;
     TGauge ggHornHighButton;
+    TGauge ggWhistleButton;
     TGauge ggNextCurrentButton;
 
     std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table

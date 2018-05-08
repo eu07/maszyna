@@ -3515,7 +3515,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             if (NewValue1 > 0)
             {
                 fWarningDuration = NewValue1; // czas trąbienia
-                mvOccupied->WarningSignal = (NewValue2 > 1) ? 2 : 1; // wysokość tonu
+                mvOccupied->WarningSignal = NewValue2; // horn combination flag
             }
     }
     else if (NewCommand == "Radio_channel")

@@ -358,7 +358,9 @@ keyboard_input::default_bindings() {
         // hornlowactivate
         { GLFW_KEY_A },
         // hornhighactivate
-        { GLFW_KEY_A | keymodifier::shift },
+        { GLFW_KEY_S },
+        // whistleactivate
+        { GLFW_KEY_Z },
         // radiotoggle
         { GLFW_KEY_R | keymodifier::control },
         // radiochannelincrease

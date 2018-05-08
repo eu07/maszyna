@@ -637,6 +637,7 @@ struct oil_pump {
     start start_type { start::manual };
     float resource_amount { 1.f };
     float pressure_minimum { 0.f }; // lowest acceptable working pressure
+    float pressure_maximum { 0.f }; // oil pressure at maximum engine revolutions
     float pressure_target { 0.f };
     float pressure_present { 0.f };
 };
@@ -943,6 +944,7 @@ public:
 	double DoorOpenSpeed = 1.0; double DoorCloseSpeed = 1.0;      /*predkosc otwierania i zamykania w j.u. */
 	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.1;/*szerokosc otwarcia lub kat*/
 	int DoorOpenMethod = 2;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
+    float DoorCloseDelay { 0.f }; // delay (in seconds) before the door begin closing, once conditions to close are met
 	double PlatformSpeed = 0.5;   /*szybkosc stopnia*/
     double PlatformMaxShift { 45.0 }; /*wysuniecie stopnia*/
     int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
@@ -1065,7 +1067,7 @@ public:
 	int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
 	int ActiveCab = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład)
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
-							  //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
+    int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
 	bool InsideConsist = false;
 	/*-zmienne dla lokomotywy elektrycznej*/
@@ -1184,7 +1186,6 @@ public:
 	double TotalMassxg = 0.0; /*TotalMass*g*/
 
 	Math3D::vector3 vCoulpler[2]; // powtórzenie współrzędnych sprzęgów z DynObj :/
-	int WarningSignal = 0; // tymczasowo 8bit, ze względu na funkcje w MTools
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
