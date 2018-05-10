@@ -7789,6 +7789,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
             }
 
             extract_value( RapidMult, "RM", line, "1" );
+			extract_value( RapidVel, "RV", line, "55" );
         }
     }
     else {
@@ -8779,6 +8780,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             WriteLog( "XBT EStED" );
             Hamulec = std::make_shared<TEStED>( MaxBrakePress[ 3 ], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA );
             Hamulec->SetRM( RapidMult );
+			Hamulec->SetRV( RapidVel );
             if( MBPM < 2 ) {
                 //jesli przystawka wazaca
                 Hamulec->SetLP( 0, MaxBrakePress[ 3 ], 0 );

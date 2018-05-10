@@ -807,6 +807,7 @@ public:
 	double BrakeSlckAdj = 0.0; /*opor nastawiacza skoku tloka, kN*/
 	double BrakeRigEff = 0.0; /*sprawnosc przekladni dzwigniowej*/
 	double RapidMult = 1.0; /*przelozenie rapidu*/
+	double RapidVel = 55.0; /*szybkosc przelaczania rapidu*/
 	int BrakeValveSize = 0;
 	std::string BrakeValveParams;
 	double Spg = 0.0;

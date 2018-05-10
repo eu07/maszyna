@@ -1514,7 +1514,7 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
     Miedzypoj->Flow(dv * dt * 0.15);
 
     RapidTemp =
-        RapidTemp + (RM * int((Vel > 55) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
+        RapidTemp + (RM * int((Vel > RV) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
     temp = Max0R(1 - RapidTemp, 0.001);
     //  if EDFlag then temp:=1000;
     //  temp:=temp/(1-);
@@ -1634,6 +1634,11 @@ void TEStED::SetLP( double const TM, double const LM, double const TBP )
     TareM = TM;
     LoadM = LM;
     TareBP = TBP;
+}
+
+void TEStED::SetRV(double const RVR)
+{
+	RV = RVR;
 }
 
 //---DAKO CV1---
