@@ -132,6 +132,10 @@ public:
     bool
         insert( TEventLauncher *Launcher ) {
             return m_launchers.insert( Launcher ); }
+    // returns first event in the queue
+    TEvent *
+        begin() {
+            return QueryRootEvent; }
     // legacy method, returns pointer to specified event, or null
     TEvent *
         FindEvent( std::string const &Name );

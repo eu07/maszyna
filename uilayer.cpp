@@ -184,6 +184,12 @@ ui_layer::on_key( int const Key, int const Action ) {
             return true;
         }
 
+        case GLFW_KEY_F11: {
+            // scenario inspector
+            Global.iTextMode = Key;
+            return true;
+        }
+
         case GLFW_KEY_F12: {
             // coś tam jeszcze
             Global.iTextMode = Key;
@@ -641,7 +647,34 @@ ui_layer::update() {
 
         case( GLFW_KEY_F10 ) : {
 
-            uitextline1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
+            uitextline1 = "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y].";
+
+            break;
+        }
+
+        case( GLFW_KEY_F11 ): {
+            // scenario inspector
+            auto const time { Timer::GetTime() };
+            auto const *event { simulation::Events.begin() };
+            auto eventtableindex{ 0 };
+            while( ( event != nullptr )
+                && ( eventtableindex < 30 ) ) {
+
+                if( ( false == event->m_ignored )
+                 && ( true == event->bEnabled ) ) {
+
+                    auto const delay { "   " + to_string( std::max( 0.0, event->fStartTime - time ), 1 ) };
+                    auto const eventline =
+                        "Delay: " + delay.substr( delay.length() - 6 )
+                        + ", Event: " + event->asName
+                        + ( event->Activator ? " (by: " + event->Activator->asName + ")" : "" )
+                        + ( event->evJoined ? " (joint event)" : "" );
+
+                    UITable->text_lines.emplace_back( eventline, Global.UITextColor );
+                    ++eventtableindex;
+                }
+                event = event->evNext;
+            }
 
             break;
         }

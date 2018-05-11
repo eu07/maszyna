@@ -322,7 +322,9 @@ global_settings::ConfigParse(cParser &Parser) {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AirTemperature;
-            AirTemperature = clamp( AirTemperature, -15.f, 45.f );
+            if( false == DebugModeFlag ) {
+                AirTemperature = clamp( AirTemperature, -15.f, 45.f );
+            }
         }
         else if( token == "scalespeculars" ) {
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)

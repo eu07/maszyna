@@ -535,6 +535,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "hours", PyGetInt( simulation::Time.data().wHour ) );
     PyDict_SetItemString( dict, "minutes", PyGetInt( simulation::Time.data().wMinute ) );
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
+    PyDict_SetItemString( dict, "air_temperature", PyGetInt( Global.AirTemperature ) );
 
     return dict;
 }
@@ -6396,44 +6397,60 @@ void TTrain::set_cab_controls() {
     ggRadioChannelSelector.PutValue( iRadioChannel - 1 );
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
-        ggPantFrontButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                1.0 :
-                0.0 ) );
-        ggPantFrontButtonOff.PutValue(
-            ( mvControlled->PantFrontUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantFrontButton.SubModel ) {
+            ggPantFrontButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantFrontButtonOff.SubModel ) {
+            ggPantFrontButtonOff.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    0.0 :
+                    1.0 ) );
+        }
         // NOTE: currently we animate the selectable pantograph control for both pantographs
         // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        ggPantSelectedButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                1.0 :
-                0.0 ) );
-        ggPantSelectedDownButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantSelectedButton.SubModel ) {
+            ggPantSelectedButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantSelectedDownButton.SubModel ) {
+            ggPantSelectedDownButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    0.0 :
+                    1.0 ) );
+        }
     }
     if( mvOccupied->PantSwitchType != "impulse" ) {
-        ggPantRearButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                1.0 :
-                0.0 ) );
-        ggPantRearButtonOff.PutValue(
-            ( mvControlled->PantRearUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantRearButton.SubModel ) {
+            ggPantRearButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantRearButtonOff.SubModel ) {
+            ggPantRearButtonOff.PutValue(
+                ( mvControlled->PantRearUp ?
+                    0.0 :
+                    1.0 ) );
+        }
         // NOTE: currently we animate the selectable pantograph control for both pantographs
         // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        ggPantSelectedButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                1.0 :
-                0.0 ) );
-        ggPantSelectedDownButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantSelectedButton.SubModel ) {
+            ggPantSelectedButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantSelectedDownButton.SubModel ) {
+            ggPantSelectedDownButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    0.0 :
+                    1.0 ) );
+        }
     }
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
@@ -6750,7 +6767,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },
         { "hornhigh_bt:", ggHornHighButton },
-        { "whistle_bt:", ggHornHighButton },
+        { "whistle_bt:", ggWhistleButton },
         { "fuse_bt:", ggFuseButton },
         { "converterfuse_bt:", ggConverterFuseButton },
         { "stlinoff_bt:", ggStLinOffButton },
