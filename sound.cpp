@@ -216,7 +216,7 @@ sound_source::deserialize_mapping( cParser &Input ) {
             auto const pitch { Input.getToken<float>( false, "\n\r\t ,;" ) };
             for( auto &chunk : m_soundchunks ) {
                 if( chunk.second.threshold == index ) {
-                    chunk.second.pitch = pitch;
+                    chunk.second.pitch = ( pitch > 0.f ? pitch : 1.f );
                     break;
                 }
             }
@@ -386,8 +386,9 @@ sound_source::play_combined() {
         if( soundpoint < soundchunk.second.fadein )  { break; }
         if( soundpoint >= soundchunk.second.fadeout ) { continue; }
         
-        if( ( soundchunk.first.playing > 0 )
-         || ( soundchunk.first.buffer == null_handle ) ) {
+        if( ( soundchunk.first.buffer == null_handle )
+         || ( ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) != 0 )
+           && ( soundchunk.first.playing > 0 ) ) ) {
             // combined sounds only play looped, single copy of each activated chunk
             continue;
         }
@@ -612,13 +613,15 @@ sound_source::update_combined( audio::openal_source &Source ) {
 */
         if( ( soundhandle & sound_id::chunk ) != 0 ) {
             // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
-            auto const soundpoint { compute_combined_point() };
-            auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
-            if( ( soundpoint < soundchunk.second.fadein )
-             || ( soundpoint >= soundchunk.second.fadeout ) ) {
-                Source.stop();
-                update_counter( soundhandle, -1 );
-                return;
+            if( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) != 0 ) {
+                auto const soundpoint { compute_combined_point() };
+                auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
+                if( ( soundpoint < soundchunk.second.fadein )
+                 || ( soundpoint >= soundchunk.second.fadeout ) ) {
+                    Source.stop();
+                    update_counter( soundhandle, -1 );
+                    return;
+                }
             }
         }
 

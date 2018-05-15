@@ -6379,7 +6379,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
     // olej oddaje cieplo do wody gdy krazy przez wymiennik ciepla == wlaczona pompka lub silnik
     auto const dTo { (
         dizel_heat.auxiliary_water_circuit ?
-            ( ( dizel_heat.kfo * ( dizel_heat.Ts - dizel_heat.To ) ) - ( dizel_heat.kfs * ( 0.3 ) * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gwO * Co ) :
+            ( ( dizel_heat.kfo * ( dizel_heat.Ts - dizel_heat.To ) ) - ( dizel_heat.kfo2 * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gwO * Co ) :
             ( ( dizel_heat.kfo * ( dizel_heat.Ts - dizel_heat.To ) ) - ( dizel_heat.kfo2 * ( dizel_heat.To - dizel_heat.Tsr ) ) ) / ( gwO * Co ) ) };
     dizel_heat.To += ( dTo * dt );
 

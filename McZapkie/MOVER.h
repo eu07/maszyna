@@ -637,7 +637,7 @@ struct oil_pump {
     start start_type { start::manual };
     float resource_amount { 1.f };
     float pressure_minimum { 0.f }; // lowest acceptable working pressure
-    float pressure_maximum { 0.f }; // oil pressure at maximum engine revolutions
+    float pressure_maximum { 0.65f }; // oil pressure at maximum engine revolutions
     float pressure_target { 0.f };
     float pressure_present { 0.f };
 };

@@ -307,6 +307,8 @@ private:
     struct door_sounds {
         sound_source rsDoorOpen { sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
         sound_source rsDoorClose { sound_placement::general, 25.f };
+        sound_source step_open { sound_placement::general, 25.f };
+        sound_source step_close { sound_placement::general, 25.f };
     };
 
     struct exchange_sounds {
@@ -408,8 +410,10 @@ private:
     bool bBrakeAcc { false };
     sound_source rsPisk { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // McZapkie-260302
     sound_source rsUnbrake { sound_placement::external }; // yB - odglos luzowania
-    float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in brake cylinder
-    float m_brakepressurechange { 0.f }; // recent change of pressure in brake cylinder
+    sound_source m_brakecylinderpistonadvance { sound_placement::external };
+    sound_source m_brakecylinderpistonrecede { sound_placement::external };
+    float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in the brake cylinder
+    float m_brakepressurechange { 0.f }; // recent change of pressure in the brake cylinder
     sound_source sReleaser { sound_placement::external };
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
@@ -618,6 +622,11 @@ public:
     // legacy method, sends list of vehicles over network
     void
         DynamicList( bool const Onlycontrolled = false ) const;
+
+private:
+    // maintenance; removes from tracks consists with vehicles marked as disabled
+    bool
+        erase_disabled();
 };
 
 //---------------------------------------------------------------------------

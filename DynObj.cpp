@@ -3882,14 +3882,40 @@ void TDynamicObject::RenderSounds() {
 
 
     // brake system and braking sounds:
+
+    // brake cylinder piston
+    auto const brakepressureratio { std::max( 0.0, MoverParameters->BrakePress ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) };
+    if( m_lastbrakepressure != -1.f ) {
+        auto const quantizedratio { static_cast<int>( 15 * brakepressureratio ) };
+        auto const lastbrakepressureratio { std::max( 0.f, m_lastbrakepressure ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) };
+        auto const quantizedratiochange { quantizedratio - static_cast<int>( 15 * lastbrakepressureratio ) };
+        if( quantizedratiochange > 0 ) {
+            m_brakecylinderpistonadvance
+                .pitch(
+                    true == m_brakecylinderpistonadvance.is_combined() ?
+                        quantizedratio * 0.01f :
+                        m_brakecylinderpistonadvance.m_frequencyoffset + m_brakecylinderpistonadvance.m_frequencyfactor * 1.f )
+                .play();
+        }
+        else if( quantizedratiochange < 0 ) {
+            m_brakecylinderpistonrecede
+                .pitch(
+                    true == m_brakecylinderpistonrecede.is_combined() ?
+                        quantizedratio * 0.01f :
+                        m_brakecylinderpistonrecede.m_frequencyoffset + m_brakecylinderpistonrecede.m_frequencyfactor * 1.f )
+                .play();
+        }
+    }
+
+    // air release
     if( m_lastbrakepressure != -1.f ) {
         // calculate rate of pressure drop in brake cylinder, once it's been initialized
         auto const brakepressuredifference{ m_lastbrakepressure - MoverParameters->BrakePress };
         m_brakepressurechange = interpolate<float>( m_brakepressurechange, brakepressuredifference / dt, 0.005f );
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
-    // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the leak rate
-    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * ( std::max( 0.0, MoverParameters->BrakePress ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) ) );
+    // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the air release rate
+    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * brakepressureratio );
     if( volume > 0.075f ) {
         rsUnbrake
             .gain( volume )
@@ -3917,6 +3943,7 @@ void TDynamicObject::RenderSounds() {
         sReleaser.stop();
     }
 
+    // slipping wheels
     if( MoverParameters->SlippingWheels ) {
 
         if( ( MoverParameters->UnitBrakeForce > 100.0 )
@@ -3940,6 +3967,7 @@ void TDynamicObject::RenderSounds() {
         sSand.stop();
     }
 
+    // brakes
     auto brakeforceratio{ 0.0 };
     if( //( false == mvOccupied->SlippingWheels ) &&
         ( MoverParameters->UnitBrakeForce > 10.0 )
@@ -4016,47 +4044,96 @@ void TDynamicObject::RenderSounds() {
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
-    if( ( true == MoverParameters->DoorLeftOpened )
-     && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
-
-        for( auto &door : m_doorsounds ) {
-            if( door.rsDoorClose.offset().x > 0.f ) {
-                // determine left side doors from their offset
-                door.rsDoorOpen.play( sound_flags::exclusive );
-                door.rsDoorClose.stop();
+    if( true == MoverParameters->DoorLeftOpened ) {
+        // open left door
+        // door sounds
+        if( dDoorMoveL < MoverParameters->DoorMaxShiftL ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.rsDoorClose.offset().x > 0.f ) {
+                    // determine left side doors from their offset
+                    door.rsDoorOpen.play( sound_flags::exclusive );
+                    door.rsDoorClose.stop();
+                }
+            }
+        }
+        // doorstep sounds
+        if( dDoorstepMoveL < 1.0 ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.step_close.offset().x > 0.f ) {
+                    door.step_open.play( sound_flags::exclusive );
+                    door.step_close.stop();
+                }
             }
         }
     }
-    if( ( false == MoverParameters->DoorLeftOpened )
-     && ( dDoorMoveL > 0.01 ) ) {
-
-        for( auto &door : m_doorsounds ) {
-            if( door.rsDoorClose.offset().x > 0.f ) {
-                // determine left side doors from their offset
-                door.rsDoorClose.play( sound_flags::exclusive );
-                door.rsDoorOpen.stop();
+    if( false == MoverParameters->DoorLeftOpened ) {
+        // close left door
+        // door sounds can start playing before the door begins moving
+        if( dDoorMoveL > 0.0 ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.rsDoorClose.offset().x > 0.f ) {
+                    // determine left side doors from their offset
+                    door.rsDoorClose.play( sound_flags::exclusive );
+                    door.rsDoorOpen.stop();
+                }
+            }
+        }
+        // doorstep sounds are played only when the doorstep is moving
+        if( ( dDoorstepMoveL > 0.0 )
+         && ( dDoorstepMoveL < 1.0 ) ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.step_close.offset().x > 0.f ) {
+                    // determine left side doors from their offset
+                    door.step_close.play( sound_flags::exclusive );
+                    door.step_open.stop();
+                }
             }
         }
     }
-    if( ( true == MoverParameters->DoorRightOpened )
-     && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
 
-        for( auto &door : m_doorsounds ) {
-            if( door.rsDoorClose.offset().x < 0.f ) {
-                // determine left side doors from their offset
-                door.rsDoorOpen.play( sound_flags::exclusive );
-                door.rsDoorClose.stop();
+    if( true == MoverParameters->DoorRightOpened ) {
+        // open right door
+        // door sounds
+        if( dDoorMoveR < MoverParameters->DoorMaxShiftR ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.rsDoorClose.offset().x < 0.f ) {
+                    // determine right side doors from their offset
+                    door.rsDoorOpen.play( sound_flags::exclusive );
+                    door.rsDoorClose.stop();
+                }
+            }
+        }
+        // doorstep sounds
+        if( dDoorstepMoveR < 1.0 ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.step_close.offset().x < 0.f ) {
+                    door.step_open.play( sound_flags::exclusive );
+                    door.step_close.stop();
+                }
             }
         }
     }
-    if( ( false == MoverParameters->DoorRightOpened )
-     && ( dDoorMoveR > 0.01 ) ) {
-
-        for( auto &door : m_doorsounds ) {
-            if( door.rsDoorClose.offset().x < 0.f ) {
-                // determine left side doors from their offset
-                door.rsDoorClose.play( sound_flags::exclusive );
-                door.rsDoorOpen.stop();
+    if( false == MoverParameters->DoorRightOpened ) {
+        // close right door
+        // door sounds can start playing before the door begins moving
+        if( dDoorMoveR > 0.0 ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.rsDoorClose.offset().x < 0.f ) {
+                    // determine left side doors from their offset
+                    door.rsDoorClose.play( sound_flags::exclusive );
+                    door.rsDoorOpen.stop();
+                }
+            }
+        }
+        // doorstep sounds are played only when the doorstep is moving
+        if( ( dDoorstepMoveR > 0.0 )
+         && ( dDoorstepMoveR < 1.0 ) ) {
+            for( auto &door : m_doorsounds ) {
+                if( door.step_close.offset().x < 0.f ) {
+                    // determine left side doors from their offset
+                    door.step_close.play( sound_flags::exclusive );
+                    door.step_open.stop();
+                }
             }
         }
     }
@@ -5136,6 +5213,18 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     rsPisk.m_amplitudeoffset *= ( 105.f - Random( 10.f ) ) / 100.f;
                 }
 
+                else if( token == "brakecylinderinc:" ) {
+                    // brake cylinder pressure increase sounds
+                    m_brakecylinderpistonadvance.deserialize( parser, sound_type::single );
+                    m_brakecylinderpistonadvance.owner( this );
+                }
+
+                else if( token == "brakecylinderdec:" ) {
+                    // brake cylinder pressure decrease sounds
+                    m_brakecylinderpistonrecede.deserialize( parser, sound_type::single );
+                    m_brakecylinderpistonrecede.owner( this );
+                }
+
 				else if( token == "brakeacc:" ) {
 					// plik z przyspieszaczem (upust po zlapaniu hamowania)
                     sBrakeAcc.deserialize( parser, sound_type::single );
@@ -5234,26 +5323,50 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
 				else if( token == "dooropen:" ) {
-                    sound_source doortemplate { sound_placement::general };
-                    doortemplate.deserialize( parser, sound_type::single );
-                    doortemplate.owner( this );
+                    sound_source soundtemplate { sound_placement::general };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
                         // apply configuration to all defined doors, but preserve their individual offsets
                         auto const dooroffset { door.rsDoorOpen.offset() };
-                        door.rsDoorOpen = doortemplate;
+                        door.rsDoorOpen = soundtemplate;
                         door.rsDoorOpen.offset( dooroffset );
                     }
                 }
 
 				else if( token == "doorclose:" ) {
-                    sound_source doortemplate { sound_placement::general };
-                    doortemplate.deserialize( parser, sound_type::single );
-                    doortemplate.owner( this );
+                    sound_source soundtemplate { sound_placement::general };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
                         // apply configuration to all defined doors, but preserve their individual offsets
                         auto const dooroffset { door.rsDoorClose.offset() };
-                        door.rsDoorClose = doortemplate;
+                        door.rsDoorClose = soundtemplate;
                         door.rsDoorClose.offset( dooroffset );
+                    }
+                }
+
+                else if( token == "doorstepopen:" ) {
+                    sound_source soundtemplate { sound_placement::general };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.step_open.offset() };
+                        door.step_open = soundtemplate;
+                        door.step_open.offset( dooroffset );
+                    }
+                }
+
+                else if( token == "doorstepclose:" ) {
+                    sound_source soundtemplate { sound_placement::general };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.step_close.offset() };
+                        door.step_close = soundtemplate;
+                        door.step_close.offset( dooroffset );
                     }
                 }
 
@@ -5336,6 +5449,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
+                            door.step_close.offset( location );
+                            door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
                         if( ( sides == "both" )
@@ -5344,6 +5459,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
+                            door.step_close.offset( location );
+                            door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
                     }
@@ -6570,19 +6687,9 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
         // Ra 2015-01: tylko tu przelicza sieć trakcyjną
         vehicle->Update( Deltatime, totaltime );
     }
-/*
-    // TODO: re-implement
-    if (TDynamicObject::bDynamicRemove)
-    { // jeśli jest coś do usunięcia z listy, to trzeba na końcu
-        for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-            if ( false == Current->DynamicObject->bEnabled)
-            {
-                DynamicRemove(Current->DynamicObject); // usunięcie tego i podłączonych
-                Current = nRootDynamic; // sprawdzanie listy od początku
-            }
-        TDynamicObject::bDynamicRemove = false; // na razie koniec
-    }
-*/
+
+    // jeśli jest coś do usunięcia z listy, to trzeba na końcu
+    erase_disabled();
 }
 
 // legacy method, checks for presence and height of traction wire for specified vehicle
@@ -6692,4 +6799,57 @@ vehicle_table::DynamicList( bool const Onlycontrolled ) const {
     }
     // informacja o końcu listy
     multiplayer::WyslijString( "none", 6 );
+}
+
+// maintenance; removes from tracks consists with vehicles marked as disabled
+bool
+vehicle_table::erase_disabled() {
+
+    if( false == TDynamicObject::bDynamicRemove ) { return false; }
+
+    // go through the list and retrieve vehicles scheduled for removal...
+    type_sequence disabledvehicles;
+    for( auto *vehicle : m_items ) {
+        if( false == vehicle->bEnabled ) {
+            disabledvehicles.emplace_back( vehicle );
+        }
+    }
+    // ...now propagate removal flag through affected consists...
+    for( auto *vehicle : disabledvehicles ) {
+        TDynamicObject *coupledvehicle { vehicle };
+        while( ( coupledvehicle = coupledvehicle->Next() ) != nullptr ) {
+            coupledvehicle->bEnabled = false;
+        }
+        // (try to) run propagation in both directions, it's simpler than branching based on direction etc
+        coupledvehicle = vehicle;
+        while( ( coupledvehicle = coupledvehicle->Prev() ) != nullptr ) {
+            coupledvehicle->bEnabled = false;
+        }
+    }
+    // ...then actually remove all disabled vehicles...
+    auto vehicleiter = std::begin( m_items );
+    while( vehicleiter != std::end( m_items ) ) {
+
+        auto *vehicle { *vehicleiter };
+
+        if( true == vehicle->bEnabled ) {
+            ++vehicleiter;
+        }
+        else {
+            if( vehicle->MyTrack != nullptr ) {
+                vehicle->MyTrack->RemoveDynamicObject( vehicle );
+            }
+            // clear potential train binding
+            Global.pWorld->TrainDelete( vehicle );
+            // remove potential entries in the light array
+            simulation::Lights.remove( vehicle );
+            // finally get rid of the vehicle and its record themselves
+            SafeDelete( vehicle );
+            vehicleiter = m_items.erase( vehicleiter );
+        }
+    }
+    // ...and call it a day
+    TDynamicObject::bDynamicRemove = false;
+
+    return true;
 }
