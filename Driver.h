@@ -314,8 +314,6 @@ private:
     void AutoRewident(); // ustawia hamulce w składzie
 	double ESMVelocity(bool Main);
   public:
-    Mtable::TTrainParameters *Timetable() {
-        return TrainParams; };
     void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason = stopComm );
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
@@ -385,13 +383,14 @@ private:
     void PhysicsLog();
     std::string StopReasonText();
     ~TController();
-    std::string NextStop();
     void TakeControl(bool yes);
+    Mtable::TTrainParameters const * TrainTimetable() const;
+    std::string TrainName() const;
     std::string Relation();
-    std::string TrainName();
-    int StationCount();
-    int StationIndex();
+    int StationCount() const;
+    int StationIndex() const;
     bool IsStop();
+    std::string NextStop();
     inline
     bool Primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };

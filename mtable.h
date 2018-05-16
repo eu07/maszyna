@@ -36,15 +36,14 @@ struct TMTableLine
     int Dh;
     int Dm; // godz. i min. odjazdu
     double tm; // czas jazdy do tej stacji w min. (z kolumny)
-    int WaitTime; // czas postoju (liczony plus 6 sekund)
     TMTableLine()
     {
         km = 0;
         vmax = -1;
         StationName = "nowhere", StationWare = "";
         TrackNo = 1;
-        Ah, Am, Dh, Dm = -1;
-        WaitTime, tm = 0;
+        Ah = Am = Dh = Dm = -1;
+        tm = 0;
     }
 };
 

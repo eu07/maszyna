@@ -5882,22 +5882,27 @@ void TController::DirectionForward(bool forward)
     }
 };
 
+Mtable::TTrainParameters const *
+TController::TrainTimetable() const {
+    return TrainParams;
+}
+
 std::string TController::Relation()
 { // zwraca relację pociągu
     return TrainParams->ShowRelation();
 };
 
-std::string TController::TrainName()
+std::string TController::TrainName() const
 { // zwraca numer pociągu
     return TrainParams->TrainName;
 };
 
-int TController::StationCount()
+int TController::StationCount() const
 { // zwraca ilość stacji (miejsc zatrzymania)
     return TrainParams->StationCount;
 };
 
-int TController::StationIndex()
+int TController::StationIndex() const
 { // zwraca indeks aktualnej stacji (miejsca zatrzymania)
     return TrainParams->StationIndex;
 };

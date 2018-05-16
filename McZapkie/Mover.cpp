@@ -6398,7 +6398,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
         dizel_heat.water_aux.is_warm = (
             ( true == dizel_heat.cooling )
          || ( ( true == Mains )
-           && ( BatteryVoltage > 70 ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
+           && ( BatteryVoltage > ( 0.75 * NominalBatteryVoltage ) ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
            && ( dizel_heat.water_aux.config.temp_cooling > 0 )
            && ( dizel_heat.temperatura2 > dizel_heat.water_aux.config.temp_cooling - ( dizel_heat.water_aux.is_warm ? 8 : 0 ) ) ) );
         auto const PTC2 { ( dizel_heat.water_aux.is_warm /*or PTC2p*/ ? 1 : 0 ) };
@@ -6426,7 +6426,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
     dizel_heat.water.is_warm = (
         ( true == dizel_heat.cooling )
      || ( ( true == Mains )
-       && ( BatteryVoltage > 70 ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
+       && ( BatteryVoltage > ( 0.75 * NominalBatteryVoltage ) ) /* && !bezpompy && !awaria_chlodzenia && !WS10 */
        && ( dizel_heat.water.config.temp_cooling > 0 )
        && ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_cooling - ( dizel_heat.water.is_warm ? 8 : 0 ) ) ) );
     auto const PTC1 { ( dizel_heat.water.is_warm /*or PTC1p*/ ? 1 : 0 ) };

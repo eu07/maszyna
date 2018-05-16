@@ -58,6 +58,26 @@ std::string Now() {
     return converter.str();
 }
 
+// zwraca różnicę czasu
+// jeśli pierwsza jest aktualna, a druga rozkładowa, to ujemna oznacza opóżnienie
+// na dłuższą metę trzeba uwzględnić datę, jakby opóżnienia miały przekraczać 12h (towarowych)
+double CompareTime(double t1h, double t1m, double t2h, double t2m) {
+
+    double t;
+
+    if ((t2h < 0))
+        return 0;
+    else
+    {
+        t = (t2h - t1h) * 60 + t2m - t1m; // jeśli t2=00:05, a t1=23:50, to różnica wyjdzie ujemna
+        if ((t < -720)) // jeśli różnica przekracza 12h na minus
+            t = t + 1440; // to dodanie doby minut;else
+        if ((t > 720)) // jeśli przekracza 12h na plus
+            t = t - 1440; // to odjęcie doby minut
+        return t;
+    }
+}
+
 bool SetFlag( int &Flag, int const Value ) {
 
     if( Value > 0 ) {

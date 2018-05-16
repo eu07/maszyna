@@ -78,6 +78,8 @@ inline double BorlandTime()
 
 std::string Now();
 
+double CompareTime( double t1h, double t1m, double t2h, double t2m );
+
 /*funkcje logiczne*/
 inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
 bool SetFlag( int &Flag,  int const Value);
