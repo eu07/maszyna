@@ -1535,12 +1535,15 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
-        LogFile << std::string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
-            "Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   "
-            "BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   "
-            "MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2" )
-            .c_str()
+        LogFile
+            << "Time[s] Velocity[m/s] Acceleration[m/ss] "
+            << "Coupler.Dist[m] Coupler.Force[N] TractionForce[kN] FrictionForce[kN] BrakeForce[kN] "
+            << "BrakePress[MPa] PipePress[MPa] MotorCurrent[A] "
+            << "MCP SCP BCP LBP Direction Command CVal1 CVal2 "
+            << "Security Wheelslip "
+            << "EngineTemp[Deg] OilTemp[Deg] WaterTemp[Deg] WaterAuxTemp[Deg]"
             << "\r\n";
+        LogFile << std::fixed << std::setprecision( 4 );
 #endif
 #if LOGPRESS == 1
         LogFile << string( "t\tVel\tAcc\tPP\tVVP\tBP\tBVP\tCVP" ).c_str() << "\n";
@@ -3539,20 +3542,40 @@ void TController::PhysicsLog()
     if (LogFile.is_open())
     {
 #if LOGPRESS == 0
-        LogFile << ElapsedTime << " " << fabs(11.31 * mvOccupied->WheelDiameter * mvOccupied->nrot)
-                << " ";
-        LogFile << mvControlling->AccS << " " << mvOccupied->Couplers[1].Dist << " "
-                << mvOccupied->Couplers[1].CForce << " ";
-        LogFile << mvOccupied->Ft << " " << mvOccupied->Ff << " " << mvOccupied->Fb << " "
-                << mvOccupied->BrakePress << " ";
-        LogFile << mvOccupied->PipePress << " " << mvControlling->Im << " "
-                << int(mvControlling->MainCtrlPos) << "   ";
-        LogFile << int(mvControlling->ScndCtrlPos) << "   " << int(mvOccupied->BrakeCtrlPos)
-                << "   " << int(mvOccupied->LocalBrakePos) << "   ";
-        LogFile << int(mvControlling->ActiveDir) << "   " << mvOccupied->CommandIn.Command.c_str()
-                << " " << mvOccupied->CommandIn.Value1 << " ";
-        LogFile << mvOccupied->CommandIn.Value2 << " " << int(mvControlling->SecuritySystem.Status)
-                << " " << int(mvControlling->SlippingWheels) << "\r\n";
+/*
+<< "Time[s] Velocity[m/s] Acceleration[m/ss] "
+<< "Coupler.Dist[m] Coupler.Force[N] TractionForce[kN] FrictionForce[kN] BrakeForce[kN] "
+<< "BrakePress[MPa] PipePress[MPa] MotorCurrent[A]    "
+<< "MCP SCP BCP LBP DmgFlag Command CVal1 CVal2 "
+<< "EngineTemp[Deg] OilTemp[Deg] WaterTemp[Deg] WaterAuxTemp[Deg]"
+*/
+        LogFile
+            << ElapsedTime << " "
+            << fabs(11.31 * mvOccupied->WheelDiameter * mvOccupied->nrot) << " "
+            << mvControlling->AccS << " "
+            << mvOccupied->Couplers[1].Dist << " "
+            << mvOccupied->Couplers[1].CForce << " "
+            << mvOccupied->Ft << " "
+            << mvOccupied->Ff << " "
+            << mvOccupied->Fb << " "
+            << mvOccupied->BrakePress << " "
+            << mvOccupied->PipePress << " "
+            << mvControlling->Im << " "
+            << int(mvControlling->MainCtrlPos) << " "
+            << int(mvControlling->ScndCtrlPos) << " "
+            << int(mvOccupied->BrakeCtrlPos) << " "
+            << int(mvOccupied->LocalBrakePos) << " "
+            << int(mvControlling->ActiveDir) << " "
+            << ( mvOccupied->CommandIn.Command.empty() ? "none" : mvOccupied->CommandIn.Command.c_str() ) << " "
+            << mvOccupied->CommandIn.Value1 << " "
+            << mvOccupied->CommandIn.Value2 << " "
+            << int(mvControlling->SecuritySystem.Status) << " "
+            << int(mvControlling->SlippingWheels) << " "
+            << mvControlling->dizel_heat.Ts << " "
+            << mvControlling->dizel_heat.To << " "
+            << mvControlling->dizel_heat.temperatura1 << " "
+            << mvControlling->dizel_heat.temperatura2
+            << "\r\n";
 #endif
 #if LOGPRESS == 1
         LogFile << ElapsedTime << "\t" << fabs(11.31 * mvOccupied->WheelDiameter * mvOccupied->nrot)

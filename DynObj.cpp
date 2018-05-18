@@ -3632,14 +3632,31 @@ bool TDynamicObject::Update(double dt, double dt1)
         }
 
     // NBMX Obsluga drzwi, MC: zuniwersalnione
+    // TODO: fully generalized door assembly
     if( ( dDoorMoveL < MoverParameters->DoorMaxShiftL )
      && ( true == MoverParameters->DoorLeftOpened ) ) {
-        dDoorMoveL += dt1 * MoverParameters->DoorOpenSpeed;
-        dDoorMoveL = std::min( dDoorMoveL, MoverParameters->DoorMaxShiftL );
+        // open left door
+        if( ( MoverParameters->TrainType == dt_EZT )
+         || ( MoverParameters->TrainType == dt_DMU ) ) {
+            // multi-unit vehicles typically open door only after unfolding the doorstep
+            if( ( MoverParameters->PlatformMaxShift == 0.0 ) // no wait if no doorstep
+             || ( MoverParameters->PlatformOpenMethod == 2 ) // no wait for rotating doorstep
+             || ( dDoorstepMoveL == 1.0 ) ) {
+                dDoorMoveL = std::min(
+                    MoverParameters->DoorMaxShiftL,
+                    dDoorMoveL + MoverParameters->DoorOpenSpeed * dt1 );
+            }
+        }
+        else {
+            dDoorMoveL = std::min(
+                MoverParameters->DoorMaxShiftL,
+                dDoorMoveL + MoverParameters->DoorOpenSpeed * dt1 );
+        }
         DoorDelayL = 0.f;
     }
     if( ( dDoorMoveL > 0.0 )
      && ( false == MoverParameters->DoorLeftOpened ) ) {
+        // close left door
         DoorDelayL += dt1;
         if( DoorDelayL > MoverParameters->DoorCloseDelay ) {
             dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
@@ -3648,12 +3665,28 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
     if( ( dDoorMoveR < MoverParameters->DoorMaxShiftR )
      && ( true == MoverParameters->DoorRightOpened ) ) {
-        dDoorMoveR += dt1 * MoverParameters->DoorOpenSpeed;
-        dDoorMoveR = std::min( dDoorMoveR, MoverParameters->DoorMaxShiftR );
+        // open right door
+        if( ( MoverParameters->TrainType == dt_EZT )
+         || ( MoverParameters->TrainType == dt_DMU ) ) {
+            // multi-unit vehicles typically open door only after unfolding the doorstep
+            if( ( MoverParameters->PlatformMaxShift == 0.0 ) // no wait if no doorstep
+             || ( MoverParameters->PlatformOpenMethod == 2 ) // no wait for rotating doorstep
+             || ( dDoorstepMoveR == 1.0 ) ) {
+                dDoorMoveR = std::min(
+                    MoverParameters->DoorMaxShiftR,
+                    dDoorMoveR + MoverParameters->DoorOpenSpeed * dt1 );
+            }
+        }
+        else {
+            dDoorMoveR = std::min(
+                MoverParameters->DoorMaxShiftR,
+                dDoorMoveR + MoverParameters->DoorOpenSpeed * dt1 );
+        }
         DoorDelayR = 0.f;
     }
     if( ( dDoorMoveR > 0.0 )
      && ( false == MoverParameters->DoorRightOpened ) ) {
+        // close right door
         DoorDelayR += dt1;
         if( DoorDelayR > MoverParameters->DoorCloseDelay ) {
             dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
@@ -3663,6 +3696,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // doorsteps
     if( ( dDoorstepMoveL < 1.0 )
      && ( true == MoverParameters->DoorLeftOpened ) ) {
+        // unfold left doorstep
         dDoorstepMoveL = std::min(
             1.0,
             dDoorstepMoveL + MoverParameters->PlatformSpeed * dt1 );
@@ -3670,12 +3704,25 @@ bool TDynamicObject::Update(double dt, double dt1)
     if( ( dDoorstepMoveL > 0.0 )
      && ( false == MoverParameters->DoorLeftOpened )
      && ( DoorDelayL > MoverParameters->DoorCloseDelay ) ) {
-        dDoorstepMoveL = std::max(
-            0.0,
-            dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
+        // fold left doorstep
+        if( ( MoverParameters->TrainType == dt_EZT )
+         || ( MoverParameters->TrainType == dt_DMU ) ) {
+            // multi-unit vehicles typically fold the doorstep only after closing the door
+            if( dDoorMoveL == 0.0 ) {
+                dDoorstepMoveL = std::max(
+                    0.0,
+                    dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
+            }
+        }
+        else {
+            dDoorstepMoveL = std::max(
+                0.0,
+                dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
+        }
     }
     if( ( dDoorstepMoveR < 1.0 )
      && ( true == MoverParameters->DoorRightOpened ) ) {
+        // unfold right doorstep
         dDoorstepMoveR = std::min(
             1.0,
             dDoorstepMoveR + MoverParameters->PlatformSpeed * dt1 );
@@ -3683,9 +3730,21 @@ bool TDynamicObject::Update(double dt, double dt1)
     if( ( dDoorstepMoveR > 0.0 )
      && ( false == MoverParameters->DoorRightOpened )
      && ( DoorDelayR > MoverParameters->DoorCloseDelay ) ) {
-        dDoorstepMoveR = std::max(
-            0.0,
-            dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
+        // fold right doorstep
+        if( ( MoverParameters->TrainType == dt_EZT )
+         || ( MoverParameters->TrainType == dt_DMU ) ) {
+            // multi-unit vehicles typically fold the doorstep only after closing the door
+            if( dDoorMoveR == 0.0 ) {
+                dDoorstepMoveR = std::max(
+                    0.0,
+                    dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
+            }
+        }
+        else {
+            dDoorstepMoveR = std::max(
+                0.0,
+                dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
+        }
     }
     // mirrors
     if( MoverParameters->Vel > 5.0 ) {
@@ -4044,10 +4103,13 @@ void TDynamicObject::RenderSounds() {
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
+    // TODO: fully generalized door assembly
     if( true == MoverParameters->DoorLeftOpened ) {
         // open left door
         // door sounds
-        if( dDoorMoveL < MoverParameters->DoorMaxShiftL ) {
+        // due to potential wait for the doorstep we play the sound only during actual animation
+        if( ( dDoorMoveL > 0.0 )
+         && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
             for( auto &door : m_doorsounds ) {
                 if( door.rsDoorClose.offset().x > 0.f ) {
                     // determine left side doors from their offset
@@ -4094,7 +4156,9 @@ void TDynamicObject::RenderSounds() {
     if( true == MoverParameters->DoorRightOpened ) {
         // open right door
         // door sounds
-        if( dDoorMoveR < MoverParameters->DoorMaxShiftR ) {
+        // due to potential wait for the doorstep we play the sound only during actual animation
+        if( ( dDoorMoveR > 0.0 )
+         && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
             for( auto &door : m_doorsounds ) {
                 if( door.rsDoorClose.offset().x < 0.f ) {
                     // determine right side doors from their offset

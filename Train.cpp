@@ -335,9 +335,7 @@ std::vector<std::string> const TTrain::fPress_labels = {
 };
 
 TTrain::TTrain() {
-/*
-    Universal4Active = false;
-*/
+
     ShowNextCurrent = false;
     // McZapkie-240302 - przyda sie do tachometru
     fTachoVelocity = 0;
@@ -428,10 +426,10 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
 PyObject *TTrain::GetTrainState() {
 
-    auto const &mover = DynamicObject->MoverParameters;
+    auto const *mover = DynamicObject->MoverParameters;
     auto *dict = PyDict_New();
     if( ( dict == nullptr )
-        || ( mover == nullptr ) ) {
+     || ( mover == nullptr ) ) {
         return nullptr;
     }
 

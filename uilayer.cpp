@@ -950,7 +950,7 @@ ui_layer::render() {
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
+    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
 	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_ALPHA_TEST );
@@ -973,7 +973,7 @@ ui_layer::render() {
     render_panels();
     render_tooltip();
 
-	glPopAttrib();
+    glPopAttrib();
 }
 
 void
