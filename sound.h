@@ -30,8 +30,8 @@ enum sound_parameters {
 };
 
 enum sound_flags {
-    looping = 0x1, // the main sample will be looping; implied for multi-sounds
-    exclusive = 0x2, // the source won't dispatch more than one active instance of the sound; implied for multi-sounds
+    looping = 0x1, // the main sample will be looping
+    exclusive = 0x2, // the source won't dispatch more than one active instance of the sound
     event = 0x80 // sound was activated by an event; we should keep note of the activation state for the update() calls it may receive
 };
 
@@ -111,6 +111,9 @@ public:
     // returns location of the sound source in simulation region space
     glm::dvec3 const
         location() const;
+    // returns defined range of the sound
+    float const
+        range() const;
 
 // members
     float m_amplitudefactor { 1.f }; // helper, value potentially used by gain calculation

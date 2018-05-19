@@ -46,6 +46,7 @@ static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "horn_bt:", "horn" },
     { "hornlow_bt:", "low tone horn" },
     { "hornhigh_bt:", "high tone horn" },
+    { "whistle_bt:", "whistle" },
     { "fuse_bt:", "motor overload relay reset" },
     { "converterfuse_bt:", "converter overload relay reset" },
     { "stlinoff_bt:", "motor connectors" },

@@ -160,7 +160,7 @@ void uart_input::poll()
             auto const bit { std::get<std::size_t>( entry ) % 8 };
 
             bool const state { ( ( buffer[ byte ] & ( 1 << bit ) ) != 0 ) };
-            bool const changed { ( ( old_packet[ byte ] & ( 1 << bit ) ) != state ) };
+            bool const changed { ( ( ( old_packet[ byte ] & ( 1 << bit ) ) != 0 ) != state ) };
 
             if( false == changed ) { continue; }
 

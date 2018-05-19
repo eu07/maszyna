@@ -21,6 +21,13 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "renderer.h"
 
+TGauge::TGauge( sound_source const &Soundtemplate ) :
+    m_soundtemplate( Soundtemplate )
+{
+    m_soundfxincrease = m_soundtemplate;
+    m_soundfxdecrease = m_soundtemplate;
+}
+
 void TGauge::Init(TSubModel *Submodel, TGaugeType Type, float Scale, float Offset, float Friction, float Value, float const Endvalue, float const Endscale, bool const Interpolatescale )
 { // ustawienie parametrów animacji submodelu
     SubModel = Submodel;
@@ -172,7 +179,7 @@ TGauge::Load_mapping( cParser &Input ) {
         if( indexstart != std::string::npos ) {
             m_soundfxvalues.emplace(
                 std::stoi( key.substr( indexstart, indexend - indexstart ) ),
-                sound_source( sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( Input, sound_type::single ) );
+                sound_source( m_soundtemplate ).deserialize( Input, sound_type::single ) );
         }
     }
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
@@ -333,13 +340,15 @@ void TGauge::UpdateValue()
     switch (m_datatype)
     { // to nie jest zbyt optymalne, można by zrobić osobne funkcje
     case 'f':
-        m_targetvalue = (*fData);
+        UpdateValue( *fData );
         break;
     case 'd':
-        m_targetvalue = (*dData);
+        UpdateValue( *dData );
         break;
     case 'i':
-        m_targetvalue = (*iData);
+        UpdateValue( *iData );
+        break;
+    default:
         break;
     }
 };

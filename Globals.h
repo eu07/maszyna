@@ -47,6 +47,7 @@ struct global_settings {
     bool DLFont{ false }; // switch indicating presence of basic font
     bool bActive{ true }; // czy jest aktywnym oknem
     int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
+    float AirTemperature{ 15.f };
     // settings
     // filesystem
     bool bLoadTraction{ true };
@@ -90,6 +91,7 @@ struct global_settings {
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
     // ui
+    int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
     int iScreenMode[ 12 ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // numer ekranu wyświetlacza tekstowego
     glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text

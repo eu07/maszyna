@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MdlMngr.h"
 #include "Timer.h"
 #include "Driver.h"
+#include "mtable.h"
 #include "Console.h"
 #include "sound.h"
 
@@ -309,6 +310,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
+    { user_command::whistleactivate, &TTrain::OnCommand_whistleactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
@@ -387,25 +389,18 @@ TTrain::~TTrain()
 
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powiązanie ręcznego sterowania kabiną z pojazdem
-    // Global.pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzęsienia
+    if( NewDynamicObject->Mechanik == nullptr ) {
+        ErrorLog( "Bad config: can't take control of inactive vehicle \"" + NewDynamicObject->asName + "\"" );
+        return false;
+    }
+
     DynamicSet(NewDynamicObject);
     if (!e3d)
         if (DynamicObject->Mechanik == NULL)
             return false;
-    // if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
-    // return false;
+
     DynamicObject->MechInside = true;
 
-    /*    iPozSzereg=28;
-        for (int i=1; i<mvControlled->MainCtrlPosNo; i++)
-         {
-          if (mvControlled->RList[i].Bn>1)
-           {
-            iPozSzereg=i-1;
-            i=mvControlled->MainCtrlPosNo+1;
-           }
-         }
-    */
     MechSpring.Init(125.0);
     vMechVelocity = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3( 0, 0, 0 );
@@ -421,25 +416,6 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
         return false;
 	}
 
-    // McZapkie: w razie wykolejenia
-    //    dsbDerailment=TSoundsManager::GetFromName("derail.wav");
-    // McZapkie: jazda luzem:
-    //    dsbRunningNoise=TSoundsManager::GetFromName("runningnoise.wav");
-
-    // McZapkie? - dzwieki slyszalne tylko wewnatrz kabiny - generowane przez
-    // obiekt sterowany:
-
-    // McZapkie-080302 sWentylatory.Init("wenton.wav","went.wav","wentoff.wav");
-    // McZapkie-010302
-    //    sCompressor.Init("compressor-start.wav","compressor.wav","compressor-stop.wav");
-
-    //    sHorn1.Init("horn1.wav",0.3);
-    //    sHorn2.Init("horn2.wav",0.3);
-
-    //  sHorn1.Init("horn1-start.wav","horn1.wav","horn1-stop.wav");
-    //  sHorn2.Init("horn2-start.wav","horn2.wav","horn2-stop.wav");
-
-    //  sConverter.Init("converter.wav",1.5); //NBMX obsluga przez AdvSound
     iCabn = 0;
     // Ra: taka proteza - przesłanie kierunku do członów connected
     if (mvControlled->ActiveDir > 0)
@@ -460,7 +436,7 @@ PyObject *TTrain::GetTrainState() {
     auto const &mover = DynamicObject->MoverParameters;
     auto *dict = PyDict_New();
     if( ( dict == nullptr )
-     || ( mover == nullptr ) ) {
+        || ( mover == nullptr ) ) {
         return nullptr;
     }
 
@@ -480,14 +456,14 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "scnd_ctrl_actual_pos", PyGetInt( mover->ScndCtrlActualPos ) );
     // brakes
     PyDict_SetItemString( dict, "manual_brake", PyGetBool( mvOccupied->ManualBrakePos > 0 ) );
-    bool const bEP = ( mvControlled->LocHandle->GetCP()>0.2 ) || ( fEIMParams[ 0 ][ 2 ]>0.01 );
+    bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
     PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
     bool bPN;
     if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
-     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+        || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
 
         TBrake* temp_ham = mvControlled->Hamulec.get();
-        bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP()>0.2 );
+        bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP() > 0.2 );
     }
     else
         bPN = false;
@@ -502,13 +478,13 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
     PyDict_SetItemString( dict, "slipping_wheels", PyGetBool( mover->SlippingWheels ) );
-	PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SandDose ));
+    PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SandDose ) );
     // electric current data
     PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mover->RunningTraction.TractionVoltage ) );
     PyDict_SetItemString( dict, "voltage", PyGetFloat( mover->Voltage ) );
     PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
     PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
-	PyDict_SetItemString( dict, "epfuse", PyGetBool( mover->EpFuse ));
+    PyDict_SetItemString( dict, "epfuse", PyGetBool( mover->EpFuse ) );
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
@@ -517,23 +493,24 @@ PyObject *TTrain::GetTrainState() {
         PyDict_SetItemString( dict, ( std::string( "eimp_t_" ) + std::string( TXTT[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ 0 ][ j ] ) );
     for( int i = 0; i < 8; ++i ) {
         for( int j = 0; j < 10; ++j )
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_" ) + std::string( TXTC[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ i + 1 ][ j ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_ms" ) ).c_str(), PyGetBool( bMains[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_cv" ) ).c_str(), PyGetFloatS( fCntVol[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + std::string( "_pf" ) ).c_str(), PyGetBool( bPants[ i ][ 0 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + std::string( "_pr" ) ).c_str(), PyGetBool( bPants[ i ][ 1 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_fuse" ) ).c_str(), PyGetBool( bFuse[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_batt" ) ).c_str(), PyGetBool( bBatt[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_conv" ) ).c_str(), PyGetBool( bConv[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + std::string( "_comp_a" ) ).c_str(), PyGetBool( bComp[ i ][ 0 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + std::string( "_comp_w" ) ).c_str(), PyGetBool( bComp[ i ][ 1 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_heat" ) ).c_str(), PyGetBool( bHeat[ i ] ) );
+            PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_" + std::string( TXTC[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ i + 1 ][ j ] ) );
+
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_ms" ).c_str(), PyGetBool( bMains[ i ] ) );
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_cv" ).c_str(), PyGetFloatS( fCntVol[ i ] ) );
+        PyDict_SetItemString( dict, ( "eimp_u" + std::to_string( i + 1 ) + "_pf" ).c_str(), PyGetBool( bPants[ i ][ 0 ] ) );
+        PyDict_SetItemString( dict, ( "eimp_u" + std::to_string( i + 1 ) + "_pr" ).c_str(), PyGetBool( bPants[ i ][ 1 ] ) );
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_fuse" ).c_str(), PyGetBool( bFuse[ i ] ) );
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_batt" ).c_str(), PyGetBool( bBatt[ i ] ) );
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_conv" ).c_str(), PyGetBool( bConv[ i ] ) );
+        PyDict_SetItemString( dict, ( "eimp_u" + std::to_string( i + 1 ) + "_comp_a" ).c_str(), PyGetBool( bComp[ i ][ 0 ] ) );
+        PyDict_SetItemString( dict, ( "eimp_u" + std::to_string( i + 1 ) + "_comp_w" ).c_str(), PyGetBool( bComp[ i ][ 1 ] ) );
+        PyDict_SetItemString( dict, ( "eimp_c" + std::to_string( i + 1 ) + "_heat" ).c_str(), PyGetBool( bHeat[ i ] ) );
 
     }
     for( int i = 0; i < 20; ++i ) {
         for( int j = 0; j < 3; ++j )
-            PyDict_SetItemString( dict, ( std::string( "eimp_pn" ) + std::to_string( i + 1 ) + std::string( "_" ) + std::string( TXTP[ j ] ) ).c_str(),
-            PyGetFloatS( fPress[ i ][ j ] ) );
+            PyDict_SetItemString( dict, ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ).c_str(),
+                PyGetFloatS( fPress[ i ][ j ] ) );
     }
     // multi-unit state data
     PyDict_SetItemString( dict, "car_no", PyGetInt( iCarNo ) );
@@ -541,17 +518,16 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "unit_no", PyGetInt( iUnitNo ) );
 
     for( int i = 0; i < 20; i++ ) {
-        PyDict_SetItemString( dict, ( std::string( "doors_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 0 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "doors_r_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 1 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "doors_l_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 2 ] ) );
-        PyDict_SetItemString( dict, ( std::string( "doors_no_" ) + std::to_string( i + 1 ) ).c_str(), PyGetInt( iDoorNo[ i ] ) );
-        PyDict_SetItemString( dict, ( std::string( "code_" ) + std::to_string( i + 1 ) ).c_str(), PyGetString( std::string( std::to_string( iUnits[ i ] ) +
-            cCode[ i ] ).c_str() ) );
-        PyDict_SetItemString( dict, ( std::string( "car_name" ) + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
-		PyDict_SetItemString( dict, ( std::string( "slip_" ) + std::to_string( i + 1 )).c_str(), PyGetBool( bSlip[i]) );
+        PyDict_SetItemString( dict, ( "doors_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 0 ] ) );
+        PyDict_SetItemString( dict, ( "doors_r_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 1 ] ) );
+        PyDict_SetItemString( dict, ( "doors_l_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 2 ] ) );
+        PyDict_SetItemString( dict, ( "doors_no_" + std::to_string( i + 1 ) ).c_str(), PyGetInt( iDoorNo[ i ] ) );
+        PyDict_SetItemString( dict, ( "code_" + std::to_string( i + 1 ) ).c_str(), PyGetString( ( std::to_string( iUnits[ i ] ) + cCode[ i ] ).c_str() ) );
+        PyDict_SetItemString( dict, ( "car_name" + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
+        PyDict_SetItemString( dict, ( "slip_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bSlip[ i ] ) );
     }
     // ai state data
-    auto const &driver = DynamicObject->Mechanik;
+    auto const *driver = DynamicObject->Mechanik;
 
     PyDict_SetItemString( dict, "velocity_desired", PyGetFloat( driver->VelDesired ) );
     PyDict_SetItemString( dict, "velroad", PyGetFloat( driver->VelRoad ) );
@@ -560,11 +536,32 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "velsignalnext", PyGetFloat( driver->VelSignalNext ) );
     PyDict_SetItemString( dict, "velnext", PyGetFloat( driver->VelNext ) );
     PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( driver->ActualProximityDist ) );
+    // train data
     PyDict_SetItemString( dict, "trainnumber", PyGetString( driver->TrainName().c_str() ) );
+    PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->StationIndex() ) );
+    auto const stationcount { driver->StationCount() };
+    PyDict_SetItemString( dict, "train_stationcount", PyGetInt( stationcount ) );
+    if( stationcount > 0 ) {
+        // timetable stations data, if there's any
+        auto const *timetable { driver->TrainTimetable() };
+        for( auto stationidx = 1; stationidx <= stationcount; ++stationidx ) {
+            auto const stationlabel { "train_station" + std::to_string( stationidx ) + "_" };
+            auto const &timetableline { timetable->TimeTable[ stationidx ] };
+            PyDict_SetItemString( dict, ( stationlabel + "name" ).c_str(), PyGetString( Bezogonkow( timetableline.StationName ).c_str() ) );
+            PyDict_SetItemString( dict, ( stationlabel + "fclt" ).c_str(), PyGetString( Bezogonkow( timetableline.StationWare ).c_str() ) );
+            PyDict_SetItemString( dict, ( stationlabel + "lctn" ).c_str(), PyGetFloat( timetableline.km ) );
+            PyDict_SetItemString( dict, ( stationlabel + "vmax" ).c_str(), PyGetInt( timetableline.vmax ) );
+            PyDict_SetItemString( dict, ( stationlabel + "ah" ).c_str(), PyGetInt( timetableline.Ah ) );
+            PyDict_SetItemString( dict, ( stationlabel + "am" ).c_str(), PyGetInt( timetableline.Am ) );
+            PyDict_SetItemString( dict, ( stationlabel + "dh" ).c_str(), PyGetInt( timetableline.Dh ) );
+            PyDict_SetItemString( dict, ( stationlabel + "dm" ).c_str(), PyGetInt( timetableline.Dm ) );
+        }
+    }
     // world state data
     PyDict_SetItemString( dict, "hours", PyGetInt( simulation::Time.data().wHour ) );
     PyDict_SetItemString( dict, "minutes", PyGetInt( simulation::Time.data().wMinute ) );
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
+    PyDict_SetItemString( dict, "air_temperature", PyGetInt( Global.AirTemperature ) );
 
     return dict;
 }
@@ -3898,6 +3895,32 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
     }
 }
 
+void TTrain::OnCommand_whistleactivate( TTrain *Train, command_data const &Command ) {
+
+    if( Train->ggWhistleButton.SubModel == nullptr ) {
+        if( Command.action == GLFW_PRESS ) {
+            WriteLog( "Whistle button is missing, or wasn't defined" );
+        }
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only need to react to press, sound will continue until stopped
+        if( false == TestFlag( Train->mvOccupied->WarningSignal, 4 ) ) {
+            // turn on
+            Train->mvOccupied->WarningSignal |= 4;
+            // visual feedback
+            Train->ggWhistleButton.UpdateValue( 1.0 );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // turn off
+        Train->mvOccupied->WarningSignal &= ~4;
+        // visual feedback
+        Train->ggWhistleButton.UpdateValue( 0.0 );
+    }
+}
+
 void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggRadioButton.SubModel == nullptr ) {
@@ -4374,7 +4397,7 @@ bool TTrain::Update( double const Deltatime )
                 asCarName[i] = p->name();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
                 bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
-				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow);
+				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)
                 {
@@ -4533,30 +4556,34 @@ bool TTrain::Update( double const Deltatime )
                 if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == -1))
                     tmp = DynamicObject->PrevConnected;
-            if (tmp)
-                if (tmp->MoverParameters->Power > 0)
-                {
-                    if (ggI1B.SubModel)
-                    {
-                        ggI1B.UpdateValue(tmp->MoverParameters->ShowCurrent(1));
+            if( tmp ) {
+                if( tmp->MoverParameters->Power > 0 ) {
+                    if( ggI1B.SubModel ) {
+                        ggI1B.UpdateValue( tmp->MoverParameters->ShowCurrent( 1 ) );
                         ggI1B.Update();
                     }
-                    if (ggI2B.SubModel)
-                    {
-                        ggI2B.UpdateValue(tmp->MoverParameters->ShowCurrent(2));
+                    if( ggI2B.SubModel ) {
+                        ggI2B.UpdateValue( tmp->MoverParameters->ShowCurrent( 2 ) );
                         ggI2B.Update();
                     }
-                    if (ggI3B.SubModel)
-                    {
-                        ggI3B.UpdateValue(tmp->MoverParameters->ShowCurrent(3));
+                    if( ggI3B.SubModel ) {
+                        ggI3B.UpdateValue( tmp->MoverParameters->ShowCurrent( 3 ) );
                         ggI3B.Update();
                     }
-                    if (ggItotalB.SubModel)
-                    {
-                        ggItotalB.UpdateValue(tmp->MoverParameters->ShowCurrent(0));
+                    if( ggItotalB.SubModel ) {
+                        ggItotalB.UpdateValue( tmp->MoverParameters->ShowCurrent( 0 ) );
                         ggItotalB.Update();
                     }
+                    if( ggWater1TempB.SubModel ) {
+                        ggWater1TempB.UpdateValue( tmp->MoverParameters->dizel_heat.temperatura1 );
+                        ggWater1TempB.Update();
+                    }
+                    if( ggOilPressB.SubModel ) {
+                        ggOilPressB.UpdateValue( tmp->MoverParameters->OilPump.pressure_present );
+                        ggOilPressB.Update();
+                    }
                 }
+            }
         }
         // McZapkie-300302: zegarek
         if (ggClockMInd.SubModel)
@@ -5212,6 +5239,7 @@ bool TTrain::Update( double const Deltatime )
         ggHornButton.Update();
         ggHornLowButton.Update();
         ggHornHighButton.Update();
+        ggWhistleButton.Update();
         for( auto &universal : ggUniversals ) {
             universal.Update();
         }
@@ -5585,7 +5613,13 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     if( fTachoCount > 3.f ) {
-        dsbHasler.play( sound_flags::exclusive | sound_flags::looping );
+        auto const frequency { (
+            true == dsbHasler.is_combined() ?
+                fTachoVelocity * 0.01 :
+                1.0 ) };
+        dsbHasler
+            .pitch( frequency )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else if( fTachoCount < 1.f ) {
         dsbHasler.stop();
@@ -6145,8 +6179,10 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
         // skip message playback if the radio isn't able to receive it
         return;
     }
-    auto const radiorange { 7500 * 7500 };
-    if( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > radiorange ) {
+    auto const soundrange { Message->range() };
+    if( ( soundrange > 0 )
+     && ( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > ( soundrange * soundrange ) ) ) {
+        // skip message playback if the receiver is outside of the emitter's range
         return;
     }
 
@@ -6233,6 +6269,7 @@ void TTrain::clear_cab_controls()
     ggHornButton.Clear();
     ggHornLowButton.Clear();
     ggHornHighButton.Clear();
+    ggWhistleButton.Clear();
     ggNextCurrentButton.Clear();
     for( auto &universal : ggUniversals ) {
         universal.Clear();
@@ -6270,6 +6307,8 @@ void TTrain::clear_cab_controls()
     ggI2B.Clear();
     ggI3B.Clear();
     ggItotalB.Clear();
+    ggOilPressB.Clear();
+    ggWater1TempB.Clear();
 
     ggClockSInd.Clear();
     ggClockMInd.Clear();
@@ -6385,44 +6424,60 @@ void TTrain::set_cab_controls() {
     ggRadioChannelSelector.PutValue( iRadioChannel - 1 );
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
-        ggPantFrontButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                1.0 :
-                0.0 ) );
-        ggPantFrontButtonOff.PutValue(
-            ( mvControlled->PantFrontUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantFrontButton.SubModel ) {
+            ggPantFrontButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantFrontButtonOff.SubModel ) {
+            ggPantFrontButtonOff.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    0.0 :
+                    1.0 ) );
+        }
         // NOTE: currently we animate the selectable pantograph control for both pantographs
         // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        ggPantSelectedButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                1.0 :
-                0.0 ) );
-        ggPantSelectedDownButton.PutValue(
-            ( mvControlled->PantFrontUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantSelectedButton.SubModel ) {
+            ggPantSelectedButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantSelectedDownButton.SubModel ) {
+            ggPantSelectedDownButton.PutValue(
+                ( mvControlled->PantFrontUp ?
+                    0.0 :
+                    1.0 ) );
+        }
     }
     if( mvOccupied->PantSwitchType != "impulse" ) {
-        ggPantRearButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                1.0 :
-                0.0 ) );
-        ggPantRearButtonOff.PutValue(
-            ( mvControlled->PantRearUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantRearButton.SubModel ) {
+            ggPantRearButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantRearButtonOff.SubModel ) {
+            ggPantRearButtonOff.PutValue(
+                ( mvControlled->PantRearUp ?
+                    0.0 :
+                    1.0 ) );
+        }
         // NOTE: currently we animate the selectable pantograph control for both pantographs
         // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        ggPantSelectedButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                1.0 :
-                0.0 ) );
-        ggPantSelectedDownButton.PutValue(
-            ( mvControlled->PantRearUp ?
-                0.0 :
-                1.0 ) );
+        if( ggPantSelectedButton.SubModel ) {
+            ggPantSelectedButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    1.0 :
+                    0.0 ) );
+        }
+        if( ggPantSelectedDownButton.SubModel ) {
+            ggPantSelectedDownButton.PutValue(
+                ( mvControlled->PantRearUp ?
+                    0.0 :
+                    1.0 ) );
+        }
     }
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
@@ -6739,6 +6794,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },
         { "hornhigh_bt:", ggHornHighButton },
+        { "whistle_bt:", ggWhistleButton },
         { "fuse_bt:", ggFuseButton },
         { "converterfuse_bt:", ggConverterFuseButton },
         { "stlinoff_bt:", ggStLinOffButton },
@@ -6767,9 +6823,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "waterpump_sw:", ggWaterPumpButton },
         { "waterheaterbreaker_sw:", ggWaterHeaterBreakerButton },
         { "waterheater_sw:", ggWaterHeaterButton },
+        { "water1tempb:", ggWater1TempB },
         { "watercircuitslink_sw:", ggWaterCircuitsLinkButton },
         { "fuelpump_sw:", ggFuelPumpButton },
         { "oilpump_sw:", ggOilPumpButton },
+        { "oilpressb:", ggOilPressB },
         { "radio_sw:", ggRadioButton },
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },
