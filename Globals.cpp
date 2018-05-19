@@ -316,6 +316,14 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1, false );
             Parser >> ScenarioTimeCurrent;
         }
+        else if( token == "scenario.weather.temperature" ) {
+            // selected device for audio renderer
+            Parser.getTokens();
+            Parser >> AirTemperature;
+            if( false == DebugModeFlag ) {
+                AirTemperature = clamp( AirTemperature, -15.f, 45.f );
+            }
+        }
         else if( token == "scalespeculars" ) {
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();
@@ -566,6 +574,17 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> asLang;
         }
+        else if( token == "pyscreenrendererpriority" )
+        {
+            // old variable, repurposed as update rate of python screen renderer
+            Parser.getTokens();
+            Parser >> token;
+            auto const priority { ToLower( token ) };
+            PythonScreenUpdateRate = (
+                priority == "lower" ? 500 :
+                priority == "lowest" ? 1000 :
+                200 );
+        }
         else if( token == "uitextcolor" ) {
             // color of the ui text. NOTE: will be obsolete once the real ui is in place
             Parser.getTokens( 3, false );
@@ -573,11 +592,9 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> UITextColor.r
                 >> UITextColor.g
                 >> UITextColor.b;
-            UITextColor.r = clamp( UITextColor.r, 0.0f, 255.0f );
-            UITextColor.g = clamp( UITextColor.g, 0.0f, 255.0f );
-            UITextColor.b = clamp( UITextColor.b, 0.0f, 255.0f );
-            UITextColor = UITextColor / 255.0f;
-            UITextColor.a = 1.0f;
+            glm::clamp( UITextColor, 0.f, 255.f );
+            UITextColor = UITextColor / 255.f;
+            UITextColor.a = 1.f;
         }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach

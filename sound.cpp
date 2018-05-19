@@ -135,6 +135,14 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     // restore parser behaviour
     Input.autoclear( inputautoclear );
 
+    // catch and correct oddball cases with the same sample assigned as all parts of multipart sound
+    if( m_sounds[ begin ].buffer == m_sounds[ main ].buffer ) {
+        m_sounds[ begin ].buffer = null_handle;
+    }
+    if( m_sounds[ end ].buffer == m_sounds[ main ].buffer ) {
+        m_sounds[ end ].buffer = null_handle;
+    }
+
     return *this;
 }
 
@@ -209,7 +217,7 @@ sound_source::deserialize_mapping( cParser &Input ) {
             auto const pitch { Input.getToken<float>( false, "\n\r\t ,;" ) };
             for( auto &chunk : m_soundchunks ) {
                 if( chunk.second.threshold == index ) {
-                    chunk.second.pitch = pitch;
+                    chunk.second.pitch = ( pitch > 0.f ? pitch : 1.f );
                     break;
                 }
             }
@@ -380,8 +388,9 @@ sound_source::play_combined() {
         if( soundpoint < soundchunk.second.fadein )  { break; }
         if( soundpoint >= soundchunk.second.fadeout ) { continue; }
         
-        if( ( soundchunk.first.playing > 0 )
-         || ( soundchunk.first.buffer == null_handle ) ) {
+        if( ( soundchunk.first.buffer == null_handle )
+         || ( ( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) != 0 )
+           && ( soundchunk.first.playing > 0 ) ) ) {
             // combined sounds only play looped, single copy of each activated chunk
             continue;
         }
@@ -606,13 +615,15 @@ sound_source::update_combined( audio::openal_source &Source ) {
 */
         if( ( soundhandle & sound_id::chunk ) != 0 ) {
             // for sound chunks, test whether the chunk should still be active given current value of the controlling variable
-            auto const soundpoint { compute_combined_point() };
-            auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
-            if( ( soundpoint < soundchunk.second.fadein )
-             || ( soundpoint >= soundchunk.second.fadeout ) ) {
-                Source.stop();
-                update_counter( soundhandle, -1 );
-                return;
+            if( ( m_flags & ( sound_flags::exclusive | sound_flags::looping ) ) != 0 ) {
+                auto const soundpoint { compute_combined_point() };
+                auto const &soundchunk { m_soundchunks[ soundhandle ^ sound_id::chunk ] };
+                if( ( soundpoint < soundchunk.second.fadein )
+                 || ( soundpoint >= soundchunk.second.fadeout ) ) {
+                    Source.stop();
+                    update_counter( soundhandle, -1 );
+                    return;
+                }
             }
         }
 
@@ -830,6 +841,13 @@ sound_source::location() const {
         + m_owner->VectorLeft() * m_offset.x
         + m_owner->VectorUp() * m_offset.y
         + m_owner->VectorFront() * m_offset.z };
+}
+
+// returns defined range of the sound
+float const
+sound_source::range() const {
+
+    return m_range;
 }
 
 void

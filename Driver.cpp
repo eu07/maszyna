@@ -3514,7 +3514,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             if (NewValue1 > 0)
             {
                 fWarningDuration = NewValue1; // czas trąbienia
-                mvOccupied->WarningSignal = (NewValue2 > 1) ? 2 : 1; // wysokość tonu
+                mvOccupied->WarningSignal = NewValue2; // horn combination flag
             }
     }
     else if (NewCommand == "Radio_channel")
@@ -5881,22 +5881,27 @@ void TController::DirectionForward(bool forward)
     }
 };
 
+Mtable::TTrainParameters const *
+TController::TrainTimetable() const {
+    return TrainParams;
+}
+
 std::string TController::Relation()
 { // zwraca relację pociągu
     return TrainParams->ShowRelation();
 };
 
-std::string TController::TrainName()
+std::string TController::TrainName() const
 { // zwraca numer pociągu
     return TrainParams->TrainName;
 };
 
-int TController::StationCount()
+int TController::StationCount() const
 { // zwraca ilość stacji (miejsc zatrzymania)
     return TrainParams->StationCount;
 };
 
-int TController::StationIndex()
+int TController::StationIndex() const
 { // zwraca indeks aktualnej stacji (miejsca zatrzymania)
     return TrainParams->StationIndex;
 };

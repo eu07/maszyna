@@ -1959,6 +1959,38 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
         ++first;
     }
+#ifdef EU07_USE_DEBUG_SOUNDEMITTERS
+    // sound emitters
+    if( DebugModeFlag ) {
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color: {
+
+                ::glPushAttrib( GL_ENABLE_BIT );
+                ::glDisable( GL_TEXTURE_2D );
+                ::glColor3f( 0.36f, 0.75f, 0.35f );
+
+                for( auto const &audiosource : audio::renderer.m_sources ) {
+
+                    ::glPushMatrix();
+                    auto const position = audiosource.properties.location - m_renderpass.camera.position();
+                    ::glTranslated( position.x, position.y, position.z );
+
+                    ::gluSphere( m_quadric, 0.1, 4, 2 );
+
+                    ::glPopMatrix();
+                }
+
+                ::glPopAttrib();
+
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+#endif
+
 }
 
 void
@@ -2471,7 +2503,9 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // kąt większy niż maksymalny stożek swiatła
                         float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
                         // view angle attenuation
-                        float const anglefactor = ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
+                        float const anglefactor = clamp(
+                            ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle ),
+                            0.f, 1.f );
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
                         float const distancefactor = std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist );

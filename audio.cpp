@@ -180,7 +180,7 @@ buffer_manager::find_buffer( std::string const &Buffername ) const {
 std::string
 buffer_manager::find_file( std::string const &Filename ) const {
 
-    std::vector<std::string> const extensions { ".wav", ".WAV", ".flac", ".ogg" };
+    std::vector<std::string> const extensions { ".ogg", ".flac", ".wav" };
 
     for( auto const &extension : extensions ) {
         if( FileExists( Filename + extension ) ) {

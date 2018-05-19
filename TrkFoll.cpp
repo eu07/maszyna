@@ -227,8 +227,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // jeśli przekroczenie toru od strony Point2
             bCanSkip = ( bPrimary && pCurrentTrack->CheckDynamicObject( Owner ) );
             if (bCanSkip) // tylko główna oś przenosi pojazd do innego toru
-                Owner->MyTrack->RemoveDynamicObject(
-                    Owner); // zdejmujemy pojazd z dotychczasowego toru
+                Owner->MyTrack->RemoveDynamicObject(Owner); // zdejmujemy pojazd z dotychczasowego toru
             fDistance = s - pCurrentSegment->GetLength();
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
@@ -236,8 +235,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 1))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Connected(1, fDirection),
-                                      1)) // ustawia fDirection
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(1, fDirection), 1)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir != fDirection) //(pCurrentTrack->iNextDirection)
             { // gdy zmiana kierunku toru (Point2->Point2)
@@ -249,8 +247,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if (bCanSkip)
             { // jak główna oś, to dodanie pojazdu do nowego toru
                 pCurrentTrack->AddDynamicObject(Owner);
-                iEventFlag =
-                    3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
+                iEventFlag = 3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
                 iEventallFlag = 3;
                 if (!Owner->MyTrack)
                     return false;

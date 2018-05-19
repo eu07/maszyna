@@ -17,6 +17,7 @@
 #include "Python.h"
 #endif
 #include "Classes.h"
+#include "Timer.h"
 
 #define PyGetFloat(param) PyFloat_FromDouble(param >= 0 ? param : -param)
 #define PyGetFloatS(param) PyFloat_FromDouble(param)
@@ -25,34 +26,21 @@
 #define PyGetBool(param) param ? Py_True : Py_False
 #define PyGetString(param) PyString_FromString(param)
 
-struct ltstr
-{
-    bool operator()(const char *s1, const char *s2) const
-    {
-        return strcmp(s1, s2) < 0;
-    }
-};
-
 class TPythonInterpreter
 {
   protected:
     TPythonInterpreter();
 	~TPythonInterpreter() {}
     static TPythonInterpreter *_instance;
-//    std::set<const char *, ltstr> _classes;
 	std::set<std::string> _classes;
 	PyObject *_main;
     PyObject *_stdErr;
-//    FILE *_getFile(const char *lookupPath, const char *className);
 	FILE *_getFile( std::string const &lookupPath, std::string const &className );
 
   public:
     static TPythonInterpreter *getInstance();
 	static void killInstance();
-/*  bool loadClassFile(const char *lookupPath, const char *className);
-    PyObject *newClass(const char *className);
-    PyObject *newClass(const char *className, PyObject *argsTuple);
-*/	bool loadClassFile( std::string const &lookupPath, std::string const &className );
+	bool loadClassFile( std::string const &lookupPath, std::string const &className );
 	PyObject *newClass( std::string const &className );
 	PyObject *newClass( std::string const &className, PyObject *argsTuple );
     void handleError();
@@ -78,16 +66,18 @@ class TPythonScreenRenderer
 class TPythonScreens
 {
   protected:
-    bool _cleanupReadyFlag;
-    bool _renderReadyFlag;
-    bool _terminationFlag;
-    std::thread *_thread;
+    bool _cleanupReadyFlag{ false };
+    bool _renderReadyFlag{ false };
+    bool _terminationFlag{ false };
+    std::thread *_thread{ nullptr };
     std::vector<TPythonScreenRenderer *> _screens;
     std::string _lookupPath;
     void *_train;
     void _cleanup();
     void _freeTrainState();
     PyObject *_trainState;
+    int m_updaterate { 200 };
+    Timer::stopwatch m_updatestopwatch;
 
   public:
     void reset(void *train);

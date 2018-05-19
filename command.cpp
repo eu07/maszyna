@@ -115,6 +115,7 @@ commanddescription_sequence Commands_descriptions = {
     { "alerteracknowledge", command_target::vehicle },
     { "hornlowactivate", command_target::vehicle },
     { "hornhighactivate", command_target::vehicle },
+    { "whistleactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
     { "radiochannelincrease", command_target::vehicle },
     { "radiochanneldecrease", command_target::vehicle },

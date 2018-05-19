@@ -27,8 +27,11 @@ class TGauge {
 public:
 // methods
     TGauge() = default;
+    explicit TGauge( sound_source const &Soundtemplate );
+
     inline
-    void Clear() { *this = TGauge(); }
+    void Clear() {
+        *this = TGauge(); }
     void Init(TSubModel *Submodel, TGaugeType Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
     bool Load(cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, TModel3d *md2 = nullptr, double mul = 1.0);
     void UpdateValue( float fNewDesired );
@@ -73,8 +76,9 @@ private:
         double *dData { nullptr };
         int *iData;
     };
-    sound_source m_soundfxincrease { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // sound associated with increasing control's value
-    sound_source m_soundfxdecrease { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // sound associated with decreasing control's value
+    sound_source m_soundtemplate { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // shared properties for control's sounds
+    sound_source m_soundfxincrease { m_soundtemplate }; // sound associated with increasing control's value
+    sound_source m_soundfxdecrease { m_soundtemplate }; // sound associated with decreasing control's value
     std::map<int, sound_source> m_soundfxvalues; // sounds associated with specific values
 
 };

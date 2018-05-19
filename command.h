@@ -110,6 +110,7 @@ enum class user_command {
     alerteracknowledge,
     hornlowactivate,
     hornhighactivate,
+    whistleactivate,
     radiotoggle,
     radiochannelincrease,
     radiochanneldecrease,

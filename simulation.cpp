@@ -723,11 +723,13 @@ state_manager::deserialize_model( cParser &Input, scene::scratch_data &Scratchpa
     auto *instance = new TAnimModel( Nodedata );
     instance->RaAnglesSet( Scratchpad.location.rotation + rotation ); // dostosowanie do pochylania linii
 
-    if( false == instance->Load( &Input, false ) ) {
+    if( instance->Load( &Input, false ) ) {
+        instance->location( transform( location, Scratchpad ) );
+    }
+    else {
         // model nie wczytał się - ignorowanie node
         SafeDelete( instance );
     }
-    instance->location( transform( location, Scratchpad ) );
 
     return instance;
 }
