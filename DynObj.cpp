@@ -40,6 +40,16 @@ std::string const TDynamicObject::MED_labels[] = {
 
 bool TDynamicObject::bDynamicRemove { false };
 
+// helper, locates submodel with specified name in specified 3d model; returns: pointer to the submodel, or null
+TSubModel *
+GetSubmodelFromName( TModel3d * const Model, std::string const Name ) {
+
+    return (
+        Model ?
+            Model->GetFromName( Name ) :
+            nullptr );
+}
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -4421,7 +4431,7 @@ void TDynamicObject::RenderSounds() {
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
 void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, std::string ReplacableSkin ) {
 
-    double dSDist;
+    replace_slashes( BaseDir );
     Global.asCurrentDynamicPath = BaseDir;
     std::string asFileName = BaseDir + TypeName + ".mmd";
     std::string asLoadName;
@@ -4469,10 +4479,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
             Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
-            assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
             {
-				std::string nowheretexture = TextureTest(Global.asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+                std::string nowheretexture = TextureTest( Global.asCurrentTexturePath + "nowhere" ); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
                     m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( nowheretexture );
                 }
@@ -4486,8 +4495,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         int skinindex = 0;
                         std::string texturename; nameparser >> texturename;
                         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-                            erase_extension( texturename );
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + texturename );
+                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( texturename );
                             ++skinindex;
                             texturename = ""; nameparser >> texturename;
                         }
@@ -4498,7 +4506,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         erase_extension( ReplacableSkin );
                         int skinindex = 0;
                         do {
-                            material_handle material = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
+                            material_handle material = GfxRenderer.Fetch_Material( ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
                             if( material == null_handle ) {
                                 break;
                             }
@@ -4508,12 +4516,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         m_materialdata.multi_textures = skinindex;
                         if( m_materialdata.multi_textures == 0 ) {
                             // zestaw nie zadziałał, próbujemy normanie
-                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin );
+                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
                         }
                     }
                 }
                 else {
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Global.asCurrentTexturePath + ReplacableSkin );
+                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
                 }
                 if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
@@ -4641,6 +4649,11 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 					// ABu: wnetrze lowpoly
 					parser.getTokens();
 					parser >> asModel;
+                    replace_slashes( asModel );
+                    if( asModel[ 0 ] == '/' ) {
+                        // filename can potentially begin with a slash, and we don't need it
+                        asModel.erase( 0, 1 );
+                    }
                     asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
@@ -4650,7 +4663,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smBrakeMode = mdModel->GetFromName(asAnimName);
+                    smBrakeMode = GetSubmodelFromName( mdModel, asAnimName );
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4658,7 +4671,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
-                    smLoadMode = mdModel->GetFromName(asAnimName);
+                    smLoadMode = GetSubmodelFromName( mdModel, asAnimName );
                     // jeszcze wczytać kąty obrotu dla poszczególnych ustawień
                 }
 
@@ -4670,7 +4683,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // liczba osi
                     { // McZapkie-050402: wyszukiwanie kol o nazwie str*
                         asAnimName = token + std::to_string(i + 1);
-                        pAnimations[i].smAnimated = mdModel->GetFromName(asAnimName); // ustalenie submodelu
+                        pAnimations[i].smAnimated = GetSubmodelFromName( mdModel, asAnimName );
                         if (pAnimations[i].smAnimated)
                         { //++iAnimatedAxles;
                             pAnimations[i].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
@@ -4733,7 +4746,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
                             asAnimName = token + std::to_string(i + 1);
-                            sm = mdModel->GetFromName(asAnimName);
+                            sm = GetSubmodelFromName( mdModel, asAnimName );
                             pants[i].smElement[0] = sm; // jak NULL, to nie będzie animowany
                             if (sm)
                             { // w EP09 wywalało się tu z powodu NULL
@@ -4742,27 +4755,22 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                 // m(3)[1]=m[3][1]+0.054; //w górę o wysokość ślizgu (na razie tak)
                                 if ((mdModel->Flags() & 0x8000) == 0) // jeśli wczytano z T3D
                                     m.InitialRotate(); // może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, tzn. przed wykonaniem Init()
-                                pants[i].fParamPants->vPos.z =
-                                    m[3][0]; // przesunięcie w bok (asymetria)
-                                pants[i].fParamPants->vPos.y =
-                                    m[3][1]; // przesunięcie w górę odczytane z modelu
+                                pants[i].fParamPants->vPos.z = m[3][0]; // przesunięcie w bok (asymetria)
+                                pants[i].fParamPants->vPos.y = m[3][1]; // przesunięcie w górę odczytane z modelu
                                 if ((sm = pants[i].smElement[0]->ChildGet()) != NULL)
                                 { // jeśli ma potomny, można policzyć długość (odległość potomnego od osi obrotu)
                                     m = float4x4(*sm->GetMatrix()); // wystarczyłby wskaźnik, nie trzeba kopiować
                                     // może trzeba: pobrać macierz dolnego ramienia, wyzerować przesunięcie, przemnożyć przez macierz górnego
                                     pants[i].fParamPants->fHoriz = -fabs(m[3][1]);
-                                    pants[i].fParamPants->fLenL1 =
-                                        hypot(m[3][1], m[3][2]); // po osi OX nie potrzeba
-                                    pants[i].fParamPants->fAngleL0 =
-                                        atan2(fabs(m[3][2]), fabs(m[3][1]));
+                                    pants[i].fParamPants->fLenL1 = hypot(m[3][1], m[3][2]); // po osi OX nie potrzeba
+                                    pants[i].fParamPants->fAngleL0 = atan2(fabs(m[3][2]), fabs(m[3][1]));
                                     // if (pants[i].fParamPants->fAngleL0<M_PI_2)
                                     // pants[i].fParamPants->fAngleL0+=M_PI; //gdyby w odwrotną stronę wyszło
                                     // if
                                     // ((pants[i].fParamPants->fAngleL0<0.03)||(pants[i].fParamPants->fAngleL0>0.09))
                                     // //normalnie ok. 0.05
                                     // pants[i].fParamPants->fAngleL0=pants[i].fParamPants->fAngleL;
-                                    pants[i].fParamPants->fAngleL = pants[i].fParamPants->fAngleL0; // początkowy kąt dolnego
-                                    // ramienia
+                                    pants[i].fParamPants->fAngleL = pants[i].fParamPants->fAngleL0; // początkowy kąt dolnego ramienia
                                     if ((sm = sm->ChildGet()) != NULL)
                                     { // jeśli dalej jest ślizg, można policzyć długość górnego ramienia
                                         m = float4x4(*sm->GetMatrix()); // wystarczyłby wskaźnik,
@@ -4788,12 +4796,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                         float det = Det(m);
                                         if (std::fabs(det - 1.0) < 0.001) // dopuszczamy 1 promil błędu na skalowaniu ślizgu
                                         { // skalowanie jest w normie, można pobrać wymiary z modelu
-                                            pants[i].fParamPants->fHeight =
-                                                sm->MaxY(m); // przeliczenie maksimum wysokości wierzchołków względem macierzy
-                                            pants[i].fParamPants->fHeight -=
-                                                m[3][1]; // odjęcie wysokości pivota ślizgu
-                                            pants[i].fParamPants->vPos.x =
-                                                m[3][2]; // przy okazji odczytać z modelu pozycję w długości
+                                            pants[i].fParamPants->fHeight = sm->MaxY(m); // przeliczenie maksimum wysokości wierzchołków względem macierzy
+                                            pants[i].fParamPants->fHeight -= m[3][1]; // odjęcie wysokości pivota ślizgu
+                                            pants[i].fParamPants->vPos.x = m[3][2]; // przy okazji odczytać z modelu pozycję w długości
                                             // ErrorLog("Model OK: "+asModel+",
                                             // height="+pants[i].fParamPants->fHeight);
                                             // ErrorLog("Model OK: "+asModel+",
@@ -4801,8 +4806,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                         }
                                         else
                                         { // gdy ktoś przesadził ze skalowaniem
-                                            pants[i].fParamPants->fHeight =
-                                                0.0; // niech będzie odczyt z pantfactors:
+                                            pants[i].fParamPants->fHeight = 0.0; // niech będzie odczyt z pantfactors:
                                             ErrorLog(
                                                 "Bad model: " + asModel + ", scale of " + (sm->pName) + " is " + std::to_string(100.0 * det) + "%",
                                                 logtype::model );
@@ -4810,8 +4814,11 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                                     }
                                 }
                             }
-                            else
-                                ErrorLog("Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model); // brak ramienia
+                            else {
+                                // brak ramienia
+                                pants[ i ].fParamPants->fHeight = 0.0; // niech będzie odczyt z pantfactors:
+                                ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model );
+                            }
                         }
                 }
 
@@ -4824,7 +4831,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
 							asAnimName = token + std::to_string( i + 1 );
-							sm = mdModel->GetFromName( asAnimName );
+                            sm = GetSubmodelFromName( mdModel, asAnimName );
 							pants[ i ].smElement[ 1 ] = sm; // jak NULL, to nie będzie animowany
 							if( sm ) { // w EP09 wywalało się tu z powodu NULL
                                 sm->WillBeAnimated();
@@ -4853,43 +4860,49 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 				else if( token == "animpantrg1prefix:" ) {
                  // prefiks ramion górnych 1
 					parser.getTokens(); parser >> token;
-					if( pants ) {
-						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
+                    if( pants ) {
+                        for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 2 ] = mdModel->GetFromName( asAnimName );
-							pants[ i ].smElement[ 2 ]->WillBeAnimated();
-						}
+                            asAnimName = token + std::to_string( i + 1 );
+                            pants[ i ].smElement[ 2 ] = GetSubmodelFromName( mdModel, asAnimName );
+                            if( pants[ i ].smElement[ 2 ] ) {
+                                pants[ i ].smElement[ 2 ]->WillBeAnimated();
+                            }
                         }
+                    }
                 }
 
 				else if( token == "animpantrg2prefix:" ) {
                  // prefiks ramion górnych 2
-					parser.getTokens(); parser >> token;
-					if( pants ) {
-						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
+                    parser.getTokens(); parser >> token;
+                    if( pants ) {
+                        for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 3 ] = mdModel->GetFromName( asAnimName );
-							pants[ i ].smElement[ 3 ]->WillBeAnimated();
-						}
+                            asAnimName = token + std::to_string( i + 1 );
+                            pants[ i ].smElement[ 3 ] = GetSubmodelFromName( mdModel, asAnimName );
+                            if( pants[ i ].smElement[ 3 ] ) {
+                                pants[ i ].smElement[ 3 ]->WillBeAnimated();
+                            }
                         }
+                    }
                 }
 
 				else if( token == "animpantslprefix:" ) {
                  // prefiks ślizgaczy
 					parser.getTokens(); parser >> token;
-					if( pants ) {
-						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
+                    if( pants ) {
+                        for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 4 ] = mdModel->GetFromName( asAnimName );
-							pants[ i ].smElement[ 4 ]->WillBeAnimated();
-							pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
-							pants[ i ].fMaxDist = 300 * 300; // nie podnosić w większej odległości
-							pants[ i ].iNumber = i;
-						}
+                            asAnimName = token + std::to_string( i + 1 );
+                            pants[ i ].smElement[ 4 ] = GetSubmodelFromName( mdModel, asAnimName );
+                            if( pants[ i ].smElement[ 4 ] ) {
+                                pants[ i ].smElement[ 4 ]->WillBeAnimated();
+                                pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
+                                pants[ i ].fMaxDist = 300 * 300; // nie podnosić w większej odległości
+                                pants[ i ].iNumber = i;
+                            }
                         }
+                    }
                 }
 
 				else if( token == "pantfactors:" ) {
@@ -4914,34 +4927,38 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     if( pants ) {
                         for( int i = 0; i < iAnimType[ ANIM_PANTS ]; ++i ) {
                             // przepisanie współczynników do pantografów (na razie nie będzie lepiej)
-                            pants[ i ].fParamPants->fAngleL = pants[ i ].fParamPants->fAngleL0; // początkowy kąt dolnego ramienia
-                            pants[ i ].fParamPants->fAngleU = pants[ i ].fParamPants->fAngleU0; // początkowy kąt
+                            auto &pantograph { *(pants[ i ].fParamPants) };
+
+                            pantograph.fAngleL = pantograph.fAngleL0; // początkowy kąt dolnego ramienia
+                            pantograph.fAngleU = pantograph.fAngleU0; // początkowy kąt
                             // pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU);
                             // //wysokość początkowa
                             // pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU);
                             // //wysokość początkowa
-                            if( pants[ i ].fParamPants->fHeight == 0.0 ) // gdy jest nieprawdopodobna wartość (np. nie znaleziony ślizg)
+                            if( pantograph.fHeight == 0.0 ) // gdy jest nieprawdopodobna wartość (np. nie znaleziony ślizg)
                             { // gdy pomiary modelu nie udały się, odczyt podanych parametrów z MMD
-                                pants[ i ].fParamPants->vPos.x =
+                                pantograph.vPos.x =
                                     ( i & 1 ) ?
                                         pant2x :
                                         pant1x;
-                                pants[ i ].fParamPants->fHeight =
+                                pantograph.fHeight =
                                     ( i & 1 ) ?
                                         pant2h :
                                         pant1h; // wysokość ślizgu jest zapisana w MMD
                             }
-                            pants[ i ].fParamPants->PantWys =
-                                pants[ i ].fParamPants->fLenL1 * sin( pants[ i ].fParamPants->fAngleL ) +
-                                pants[ i ].fParamPants->fLenU1 * sin( pants[ i ].fParamPants->fAngleU ) +
-                                pants[ i ].fParamPants->fHeight; // wysokość początkowa
-                            // pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys;
-                            // //np. 4.429-0.097=4.332=~4.335
-                            // pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów
-                            // asymetrycznych
-                            pants[ i ].fParamPants->PantTraction = pants[ i ].fParamPants->PantWys;
+                            pantograph.PantWys =
+                                pantograph.fLenL1 * sin( pantograph.fAngleL ) +
+                                pantograph.fLenU1 * sin( pantograph.fAngleU ) +
+                                pantograph.fHeight; // wysokość początkowa
+                            // pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
+                            if( pantograph.vPos.y == 0.0 ) {
+                                // crude fallback, place the pantograph(s) atop of the vehicle-sized box
+                                pantograph.vPos.y = MoverParameters->Dim.H - pantograph.fHeight - pantograph.PantWys;
+                            }
+                            // pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
+                            pantograph.PantTraction = pantograph.PantWys;
                             // połowa szerokości ślizgu; jest w "Power: CSW="
-                            pants[ i ].fParamPants->fWidth = 0.5 * MoverParameters->EnginePowerSource.CollectorParameters.CSW;
+                            pantograph.fWidth = 0.5 * MoverParameters->EnginePowerSource.CollectorParameters.CSW;
 
                             // create sound emitters for the pantograph
                             m_pantographsounds.emplace_back();
@@ -5017,11 +5034,13 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                  // prefiks wahaczy
 					parser.getTokens(); parser >> token;
                     asAnimName = "";
-                    for (int i = 1; i <= 4; i++)
-                    { // McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
-                        asAnimName = token + std::to_string(i);
-                        smWahacze[i - 1] = mdModel->GetFromName(asAnimName);
-                        smWahacze[i - 1]->WillBeAnimated();
+                    for( int i = 1; i <= 4; ++i ) {
+                        // McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
+                        asAnimName = token + std::to_string( i );
+                        smWahacze[ i - 1 ] = GetSubmodelFromName( mdModel, asAnimName );
+                        if( smWahacze[ i - 1 ] ) {
+                            smWahacze[ i - 1 ]->WillBeAnimated();
+                        }
                     }
 					parser.getTokens(); parser >> token;
 					if( token == "pendulumamplitude:" ) {
@@ -5040,7 +5059,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
                       // ustalenie submodelu
                         asAnimName = token + std::to_string(i + 1);
-                        pAnimations[i + j].smAnimated = mdModel->GetFromName(asAnimName);
+                        pAnimations[ i + j ].smAnimated = GetSubmodelFromName( mdModel, asAnimName );
                         if (pAnimations[i + j].smAnimated)
                         { //++iAnimatedDoors;
                             pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
@@ -5082,7 +5101,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
                       // ustalenie submodelu
                         asAnimName = token + std::to_string(i + 1);
-                        pAnimations[i + j].smAnimated = mdModel->GetFromName(asAnimName);
+                        pAnimations[i + j].smAnimated = GetSubmodelFromName( mdModel, asAnimName );
                         if (pAnimations[i + j].smAnimated)
                         { //++iAnimatedDoors;
                             pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
@@ -5118,7 +5137,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
                       // ustalenie submodelu
                         asAnimName = token + std::to_string( i + 1 );
-                        pAnimations[ i + j ].smAnimated = mdModel->GetFromName( asAnimName );
+                        pAnimations[ i + j ].smAnimated = GetSubmodelFromName( mdModel, asAnimName );
                         if( pAnimations[ i + j ].smAnimated ) {
                             pAnimations[ i + j ].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
                             // od razu zapinamy potrzebny typ animacji
@@ -5153,6 +5172,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 				parser.getTokens(); parser >> token;
 				if( token == "wheel_clatter:" ){
 					// polozenia osi w/m srodka pojazdu
+                    double dSDist;
 					parser.getTokens( 1, false );
 					parser >> dSDist;
                     while( ( ( token = parser.getToken<std::string>() ) != "" )

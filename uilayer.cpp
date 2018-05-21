@@ -740,7 +740,7 @@ ui_layer::update() {
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-                    + ( vehicle->MoverParameters->ShuntMode ?
+                    + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == DieselElectric ) ?
                         "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
                         "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
                     + "; I=" +

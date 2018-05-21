@@ -762,6 +762,10 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 
     erase_extension( Filename );
     replace_slashes( Filename );
+    if( Filename[ 0 ] == '/' ) {
+        // filename can potentially begin with a slash, and we don't need it
+        Filename.erase( 0, 1 );
+    }
 
     std::vector<std::string> extensions { { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
 

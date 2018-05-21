@@ -752,7 +752,8 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( Train->mvControlled->ShuntMode ) {
+        if( ( Train->mvControlled->EngineType == DieselElectric )
+         && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos + 0.025,
                 0.0, 1.0 );
@@ -767,7 +768,13 @@ void TTrain::OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->IncScndCtrl( 2 );
+        if( ( Train->mvControlled->EngineType == DieselElectric )
+         && ( true == Train->mvControlled->ShuntMode ) ) {
+            Train->mvControlled->AnPos = 1.0;
+        }
+        else {
+            Train->mvControlled->IncScndCtrl( 2 );
+        }
     }
 }
 
@@ -813,12 +820,15 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( Train->mvControlled->ShuntMode ) {
+        if( ( Train->mvControlled->EngineType == DieselElectric )
+         && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos - 0.025,
                 0.0, 1.0 );
         }
-        Train->mvControlled->DecScndCtrl( 1 );
+        else {
+            Train->mvControlled->DecScndCtrl( 1 );
+        }
     }
 }
 
@@ -826,7 +836,13 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->DecScndCtrl( 2 );
+        if( ( Train->mvControlled->EngineType == DieselElectric )
+         && ( true == Train->mvControlled->ShuntMode ) ) {
+            Train->mvControlled->AnPos = 0.0;
+        }
+        else {
+            Train->mvControlled->DecScndCtrl( 2 );
+        }
     }
 }
 
@@ -5970,6 +5986,11 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     // bieżąca sciezka do tekstur to dynamic/...
                     Global.asCurrentTexturePath = DynamicObject->asBaseDir;
                     // szukaj kabinę jako oddzielny model
+                    // name can contain leading slash, erase it to avoid creation of double slashes when the name is combined with current directory
+                    replace_slashes( token );
+                    if( token[ 0 ] == '/' ) {
+                        token.erase( 0, 1 );
+                    }
                     TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true);
                     // z powrotem defaultowa sciezka do tekstur
                     Global.asCurrentTexturePath = szTexturePath;
