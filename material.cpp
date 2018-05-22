@@ -115,6 +115,11 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
     erase_extension( filename );
 
+    if( filename[ 0 ] == '/' ) {
+        // filename can potentially begin with a slash, and we don't need it
+        filename.erase( 0, 1 );
+    }
+
     filename += ".mat";
 
     // try to locate requested material in the databank
@@ -124,7 +129,6 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
     // if this fails, try to look for it on disk
     opengl_material material;
-    material.name = filename;
     auto const disklookup = find_on_disk( filename );
     if( disklookup != "" ) {
         cParser materialparser( disklookup, cParser::buffer_FILE );
@@ -132,6 +136,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
             // deserialization failed but the .mat file does exist, so we give up at this point
             return null_handle;
         }
+        material.name = disklookup;
     }
     else {
         // if there's no .mat file, this could be legacy method of referring just to diffuse texture directly, make a material out of it in such case
@@ -140,6 +145,10 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
             // if there's also no texture, give up
             return null_handle;
         }
+        // use texture path and name to tell the newly created materials apart
+        filename = GfxRenderer.Texture( material.texture1 ).name;
+        erase_extension( filename );
+        material.name = filename + ".mat";
         material.has_alpha = GfxRenderer.Texture( material.texture1 ).has_alpha;
     }
 
@@ -149,21 +158,23 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     return handle;
 };
 
-// checks whether specified texture is in the texture bank. returns texture id, or npos.
+// checks whether specified material is in the material bank. returns handle to the material, or a null handle
 material_handle
 material_manager::find_in_databank( std::string const &Materialname ) const {
 
-    auto lookup = m_materialmappings.find( Materialname );
-    if( lookup != m_materialmappings.end() ) {
-        return lookup->second;
-    }
-    // jeszcze próba z dodatkową ścieżką
-    lookup = m_materialmappings.find( szTexturePath + Materialname );
+    std::vector<std::string> filenames {
+        Global.asCurrentTexturePath + Materialname,
+        Materialname,
+        szTexturePath + Materialname };
 
-    return (
-        lookup != m_materialmappings.end() ?
-            lookup->second :
-            null_handle );
+    for( auto const &filename : filenames ) {
+        auto const lookup { m_materialmappings.find( filename ) };
+        if( lookup != m_materialmappings.end() ) {
+            return lookup->second;
+        }
+    }
+
+    return null_handle;
 }
 
 // checks whether specified file exists.
@@ -172,6 +183,7 @@ std::string
 material_manager::find_on_disk( std::string const &Materialname ) const {
 
     return(
+        FileExists( Global.asCurrentTexturePath + Materialname ) ? Global.asCurrentTexturePath + Materialname :
         FileExists( Materialname ) ? Materialname :
         FileExists( szTexturePath + Materialname ) ? szTexturePath + Materialname :
         "" );

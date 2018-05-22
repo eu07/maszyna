@@ -747,7 +747,8 @@ ui_layer::update() {
                     + " dist: " + to_string( vehicle->MoverParameters->DistCounter, 2 ) + " km"
                     + "; pos: [" + to_string( vehicle->GetPosition().x, 2 ) + ", " + to_string( vehicle->GetPosition().y, 2 ) + ", " + to_string( vehicle->GetPosition().z, 2 ) + "]"
                     + ", PM=" + to_string( vehicle->MoverParameters->WheelFlat, 1 )
-                    + " mm; enrot=" + to_string( vehicle->MoverParameters->enrot * 60, 0 )
+                    + " mm; enpwr=" + to_string( vehicle->MoverParameters->EnginePower, 1 )
+                    + "; enrot=" + to_string( vehicle->MoverParameters->enrot * 60, 0 )
                     + " tmrot=" + to_string( std::abs( vehicle->MoverParameters->nrot ) * vehicle->MoverParameters->Transmision.Ratio * 60, 0 )
                     + "; ventrot=" + to_string( vehicle->MoverParameters->RventRot * 60, 1 )
                     + "; fanrot=" + to_string( vehicle->MoverParameters->dizel_heat.rpmw, 1 ) + ", " + to_string( vehicle->MoverParameters->dizel_heat.rpmw2, 1 );
@@ -756,7 +757,7 @@ ui_layer::update() {
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-                    + ( vehicle->MoverParameters->ShuntMode ?
+                    + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == DieselElectric ) ?
                         "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
                         "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
                     + "; I=" +
@@ -965,7 +966,7 @@ ui_layer::render() {
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
+    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
 	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_ALPHA_TEST );
@@ -988,7 +989,7 @@ ui_layer::render() {
     render_panels();
     render_tooltip();
 
-	glPopAttrib();
+    glPopAttrib();
 }
 
 void
