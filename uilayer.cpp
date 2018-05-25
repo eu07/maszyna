@@ -192,7 +192,7 @@ ui_layer::on_key( int const Key, int const Action ) {
             // quit
             if( Global.iTextMode == Key ) {
                 Global.iTextMode =
-                    ( Global.iPause && ( Key != GLFW_KEY_F1 ) ?
+                    ( Global.any_pause() && ( Key != GLFW_KEY_F1 ) ?
                         GLFW_KEY_F1 :
                         0 ); // wyłączenie napisów, chyba że pauza
             }
@@ -275,7 +275,7 @@ ui_layer::update() {
                 + to_string( time.wHour ) + ":"
                 + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
                 + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
-            if( Global.iPause ) {
+            if( Global.any_pause() ) {
                 uitextline1 += " (paused)";
             }
 
@@ -352,7 +352,7 @@ ui_layer::update() {
                 + to_string( time.wHour ) + ":"
                 + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
                 + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
-            if( Global.iPause ) {
+            if( Global.any_pause() ) {
                 uitextline1 += " (paused)";
             }
 

@@ -577,12 +577,13 @@ basic_section::update_events( glm::dvec3 const &Location, float const Radius ) {
 // legacy method, updates sounds within radius around specified point
 void
 basic_section::update_sounds( glm::dvec3 const &Location, float const Radius ) {
-
-    for( auto &cell : m_cells ) {
-
-        if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
-            // we reject cells which aren't within our area of interest
-            cell.update_sounds();
+    
+    if( Global.any_pause() ){
+        for( auto &cell : m_cells ) {
+            if( glm::length2( cell.area().center - Location ) < ( ( cell.area().radius + Radius ) * ( cell.area().radius + Radius ) ) ) {
+                // we reject cells which aren't within our area of interest
+                cell.update_sounds();
+            }
         }
     }
 }

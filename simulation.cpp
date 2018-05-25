@@ -58,8 +58,6 @@ state_manager::deserialize( std::string const &Scenariofile ) {
         // as long as the scenario file wasn't rainsted-created base file override
         Region->serialize( Scenariofile );
     }
-
-    Global.iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
 

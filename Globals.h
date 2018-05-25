@@ -46,7 +46,6 @@ struct global_settings {
     bool ControlPicking{ false }; // indicates controls pick mode is active
     bool DLFont{ false }; // switch indicating presence of basic font
     bool bActive{ true }; // czy jest aktywnym oknem
-    int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     float AirTemperature{ 15.f };
     // settings
     // filesystem
@@ -175,11 +174,30 @@ struct global_settings {
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
 	bool loading_log = true;
-	bool dds_upper_origin = false;
+    bool dds_upper_origin = false;
+    
+    enum PAUSES : short{
+        PAUSE_PHYSICS  = 1 << 1,
+        PAUSE_RENDER   = 1 << 2,
+        PAUSE_SOUND    = 1 << 3,
+        LAGS           = 1 << 4, // lags caused ie. by hardware
+        INACTIVE_STATE = 1 << 5, // ie. when loading
+    };
 
-// methods
+    // methods
     void LoadIniFile( std::string asFileName );
-    void ConfigParse( cParser &parser );
+    void ConfigParse( cParser &parser );    
+    // Pause - old iPause
+    bool any_pause();
+    void set_pause( short v );
+    short get_pause();
+    void set_pause_flag( PAUSES flag, bool var );
+    bool get_pause_flag( PAUSES flag );
+    void flip_pause_flag( PAUSES flag );
+
+    private:
+        // Pause - old iPause
+        short pause = 0b0000000000000000;
 };
 
 extern global_settings Global;

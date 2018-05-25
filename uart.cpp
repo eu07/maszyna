@@ -234,7 +234,7 @@ void uart_input::poll()
 	    // TODO: ugly! move it into structure like input_bits
         auto const trainstate = t->get_state();
 
-	    uint8_t tacho = Global.iPause ? 0 : trainstate.velocity;
+	    uint8_t tacho = Global.any_pause() ? 0 : trainstate.velocity;
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, trainstate.reservoir_pressure * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, trainstate.brake_pressure * 0.1f / conf.brakemax * conf.brakeuart);
