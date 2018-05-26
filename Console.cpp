@@ -284,19 +284,19 @@ void Console::ValueSet(int x, double y)
 
 void Console::Update()
 { // funkcja powinna być wywoływana regularnie, np. raz w każdej ramce ekranowej
-    if (iMode == 4)
-        if (PoKeys55[0])
-            if (PoKeys55[0]->Update((Global.iPause & 8) > 0))
-            { // wykrycie przestawionych przełączników?
-                Global.iPause &= ~8;
+    if((iMode == 4) && ( PoKeys55[0] )){
+        if( PoKeys55[0]->Update( Global.get_pause_flag( Global.PAUSES::LAGS ) ) ){
+            // wykrycie przestawionych przełączników?
+            Global.set_pause_flag( Global.PAUSES::LAGS, false );
+        } else {
+            // błąd komunikacji - zapauzować symulację?
+            if( !Global.get_pause_flag( Global.PAUSES::LAGS ) ){ // jeśli jeszcze nie oflagowana
+                Global.iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
             }
-            else
-            { // błąd komunikacji - zapauzować symulację?
-                if (!(Global.iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global.iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
-                Global.iPause |= 8; // tak???
-                PoKeys55[0]->Connect(); // próba ponownego podłączenia
-            }
+            Global.set_pause_flag( Global.PAUSES::LAGS, true );
+            PoKeys55[0]->Connect(); // próba ponownego podłączenia
+        }
+    }
 };
 
 float Console::AnalogGet(int x)

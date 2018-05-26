@@ -56,7 +56,7 @@ double GetFPS()
 
 void ResetTimers()
 {
-    UpdateTimers( Global.iPause != 0 );
+    UpdateTimers( Global.any_pause() );
     DeltaTime = 0.1;
     DeltaRenderTime = 0.0;
     fSoundTimer = 0.0;

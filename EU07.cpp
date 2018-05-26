@@ -201,11 +201,17 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
 void focus_callback( GLFWwindow *window, int focus )
 {
-    if( Global.bInactivePause ) // jeśli ma być pauzowanie okna w tle
-        if( focus )
-            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
-        else
-            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
+    if( Global.bInactivePause ){ // jeśli ma być pauzowanie okna w tle
+        if( focus ){
+            Global.set_pause_flag( Global.PAUSES::INACTIVE_STATE, false );
+            Global.set_pause_flag( Global.PAUSES::PAUSE_RENDER, false );
+            Global.set_pause_flag( Global.PAUSES::PAUSE_SOUND, false );
+        } else {
+            Global.set_pause_flag( Global.PAUSES::INACTIVE_STATE, true );
+            Global.set_pause_flag( Global.PAUSES::PAUSE_RENDER, true );
+            Global.set_pause_flag( Global.PAUSES::PAUSE_SOUND, true );
+        }
+    }
 }
 
 void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {

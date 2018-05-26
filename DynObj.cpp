@@ -3446,7 +3446,6 @@ bool TDynamicObject::Update(double dt, double dt1)
                         MoverParameters->PantRearVolt = 0.0;
                 }
                 else {
-//                    Global.iPause ^= 2;
                     MoverParameters->PantRearVolt = 0.0;
                 }
                 break;
@@ -3839,8 +3838,6 @@ void TDynamicObject::TurnOff()
 
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
 void TDynamicObject::RenderSounds() {
-
-    if( Global.iPause != 0 ) { return; }
 
     double const dt{ Timer::GetDeltaRenderTime() };
     double volume{ 0.0 };

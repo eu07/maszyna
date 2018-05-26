@@ -249,7 +249,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     WriteLog( "World setup..." );
     if( false == simulation::State.deserialize( Global.SceneryFile ) ) { return false; }
-
+   
     simulation::Time.init();
 
     Environment.init();
@@ -329,7 +329,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
 void TWorld::OnKeyDown(int cKey) {
     // dump keypress info in the log
-    if( !Global.iPause ) {
+    if( Global.any_pause() ) {
         // podczas pauzy klawisze nie działają
         std::string keyinfo;
         auto keyname = glfwGetKeyName( cKey, 0 );
@@ -381,7 +381,7 @@ void TWorld::OnKeyDown(int cKey) {
         int i = cKey - GLFW_KEY_0; // numer klawisza
         if (Global.shiftState) {
             // z [Shift] uruchomienie eventu
-            if( ( false == Global.iPause ) // podczas pauzy klawisze nie działają
+            if( ( Global.any_pause() ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
                 simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
             }
@@ -544,7 +544,7 @@ void TWorld::OnKeyDown(int cKey) {
         {
             if (cKey == GLFW_KEY_1)
                 Global.iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
-#ifdef _WIN32
+            #ifdef _WIN32
             else if (cKey == GLFW_KEY_2)
             { // włącz/wyłącz okno konsoli
                 Global.iWriteLogEnabled ^= 2;
@@ -555,18 +555,16 @@ void TWorld::OnKeyDown(int cKey) {
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
                 }
             }
-#endif
+            #endif
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
-    }
+    } 
     else if( cKey == GLFW_KEY_ESCAPE ) {
-        // toggle pause
-        if( Global.iPause & 1 ) // jeśli pauza startowa
-            Global.iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
-        else if( !( Global.iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
-            Global.iPause ^= 2; // zmiana stanu zapauzowania
-        if( Global.iPause ) {// jak pauza
-            Global.iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
+        if( !( Global.iMultiplayer & 2 ) ){ // w multiplayerze pauza nie ma sensu
+            Global.flip_pause_flag( Global.PAUSES::PAUSE_PHYSICS );
+        }
+        if( Global.any_pause() ){
+            Global.iTextMode = GLFW_KEY_F1;
         }
     }
     else {
@@ -744,10 +742,10 @@ void TWorld::FollowView(bool wycisz) {
 
 bool TWorld::Update() {
 
-    Timer::UpdateTimers(Global.iPause != 0);
+    Timer::UpdateTimers( Global.any_pause() );
     Timer::subsystem.sim_total.start();
 
-    if( (Global.iPause == 0)
+    if( ( !Global.any_pause() )
      || (m_init == false) ) {
         // jak pauza, to nie ma po co tego przeliczać
         simulation::Time.update( Timer::GetDeltaTime() );
@@ -845,9 +843,9 @@ bool TWorld::Update() {
 
         // awaria PoKeys mogła włączyć pauzę - przekazać informację
         if( Global.iMultiplayer ) // dajemy znać do serwera o wykonaniu
-            if( iPause != Global.iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
+            if( iPause != Global.get_pause() ) { // przesłanie informacji o pauzie do programu nadzorującego
                 multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
-                iPause = Global.iPause;
+                iPause = Global.get_pause();
             }
 
         // fixed step part of the camera update
@@ -913,7 +911,7 @@ bool TWorld::Update() {
     Timer::subsystem.sim_total.stop();
 
     simulation::Region->update_sounds();
-    audio::renderer.update( Global.iPause ? 0.0 : dt );
+    audio::renderer.update( Global.any_pause() ? 0.0 : dt );
 
     GfxRenderer.Update( dt );
     ResourceSweep();
@@ -1006,7 +1004,7 @@ TWorld::Update_Camera( double const Deltatime ) {
         else {
             // patrzenie standardowe
             Camera.Pos = Train->GetWorldMechPosition(); // Train.GetPosition1();
-            if( !Global.iPause ) {
+            if( !Global.any_pause() ) {
                 // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
                 // hustanie kamery na boki
                 Camera.Roll = atan( Train->vMechVelocity.x * Train->fMechRoll );
@@ -1136,7 +1134,7 @@ void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                 }
             if (*pRozkaz->iPar & 2)
             { // ustawienie flag zapauzowania
-                Global.iPause = pRozkaz->fPar[2]; // zakładamy, że wysyłający wie, co robi
+                Global.set_pause( pRozkaz->fPar[2] ); // zakładamy, że wysyłający wie, co robi
             }
         }
         break;

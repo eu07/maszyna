@@ -240,7 +240,7 @@ WyslijParam(int nr, int fl)
     { // można tym przesyłać różne zestawy parametrów
     case 5: // czas i pauza
         r.fPar[1] = Global.fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
-        r.iPar[2] = Global.iPause; // stan zapauzowania
+        r.iPar[2] = Global.get_pause(); // stan zapauzowania // REGRESSION
         i = 8; // dwa parametry po 4 bajty każdy
         break;
     }

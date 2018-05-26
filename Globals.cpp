@@ -566,7 +566,11 @@ global_settings::ConfigParse(cParser &Parser) {
             // czy po wczytaniu ma być pauza?
             Parser.getTokens();
             Parser >> token;
-            iPause |= (token == "yes" ? 1 : 0);
+            if( token == "yes" ){
+                set_pause_flag( PAUSES::PAUSE_PHYSICS, true );
+            } else {
+                set_pause_flag( PAUSES::PAUSE_PHYSICS, false );
+            }
         }
         else if (token == "lang")
         {
@@ -692,7 +696,7 @@ global_settings::ConfigParse(cParser &Parser) {
     fFpsMax = fFpsAverage +
               fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
 */
-    if (iPause)
+    if( Global.any_pause() )
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
     /*  this won't execute anymore with the old parser removed
             // TBD: remove, or launch depending on passed flag?
@@ -717,3 +721,46 @@ global_settings::ConfigParse(cParser &Parser) {
         }
     */
 }
+
+bool global_settings::any_pause(){
+
+    if( this->pause == 0 )
+         return false;
+    else return true;
+};
+
+void global_settings::set_pause( short v ){
+    
+    this->pause = v;
+};
+
+short global_settings::get_pause(){
+    
+    return this->pause;
+};
+
+void global_settings::set_pause_flag( PAUSES flag, bool var ){
+    
+    switch(flag){
+        case PAUSES::PAUSE_PHYSICS :{
+            // GUI handling
+            break;
+        };
+    }
+    if( var ){
+        this->pause |= flag;
+    } else {
+        this->pause &= ~flag;
+    }
+};
+
+bool global_settings::get_pause_flag( PAUSES flag ){
+
+    if( this->pause & flag ) return true;
+    else return false;
+};
+
+void global_settings::flip_pause_flag( PAUSES flag ){
+
+    this->pause ^= flag;
+};
