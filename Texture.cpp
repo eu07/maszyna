@@ -767,55 +767,22 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         Filename.erase( 0, 1 );
     }
 
-    std::vector<std::string> extensions { { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
-
     // try to locate requested texture in the databank
-    auto lookup = find_in_databank( Filename + Global.szDefaultExt );
+    auto lookup { find_in_databank( Filename ) };
     if( lookup != npos ) {
-        // start with the default extension...
         return lookup;
     }
-    else {
-        // ...then try recognized file extensions other than default
-        for( auto const &extension : extensions ) {
-
-            if( extension == Global.szDefaultExt ) {
-                // we already tried this one
-                continue;
-            }
-            lookup = find_in_databank( Filename + extension );
-            if( lookup != npos ) {
-
-                return lookup;
-            }
-        }
-    }
     // if we don't have the texture in the databank, check if it's on disk
-    std::string filename = find_on_disk( Filename + Global.szDefaultExt );
-    if( true == filename.empty() ) {
-        // if the default lookup fails, try other known extensions
-        for( auto const &extension : extensions ) {
+    auto const disklookup { find_on_disk( Filename ) };
 
-            if( extension == Global.szDefaultExt ) {
-                // we already tried this one
-                continue;
-            }
-            filename = find_on_disk( Filename + extension );
-            if( false == filename.empty() ) {
-                // we found something, don't bother with others
-                break;
-            }
-        }
-    }
-
-    if( true == filename.empty() ) {
+    if( true == disklookup.first.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
         ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
         return npos;
     }
 
     auto texture = new opengl_texture();
-    texture->name = filename;
+    texture->name = disklookup.first + disklookup.second;
     if( Filename.find('#') != std::string::npos ) {
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
         traits += '#';
@@ -823,9 +790,9 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     texture->traits = traits;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
-    m_texturemappings.emplace( filename, textureindex );
+    m_texturemappings.emplace( disklookup.first, textureindex );
 
-    WriteLog( "Created texture object for \"" + filename + "\"", logtype::texture );
+    WriteLog( "Created texture object for \"" + disklookup.first + disklookup.second + "\"", logtype::texture );
 
     if( true == Loadnow ) {
 
@@ -942,7 +909,7 @@ texture_manager::info() const {
 texture_handle
 texture_manager::find_in_databank( std::string const &Texturename ) const {
 
-    std::vector<std::string> filenames {
+    std::vector<std::string> const filenames {
         Global.asCurrentTexturePath + Texturename,
         Texturename,
         szTexturePath + Texturename };
@@ -953,19 +920,34 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
             return lookup->second;
         }
     }
-
+    // all lookups failed
     return npos;
 }
 
 // checks whether specified file exists.
-std::string
+std::pair<std::string, std::string>
 texture_manager::find_on_disk( std::string const &Texturename ) const {
 
-    return(
-        FileExists( Global.asCurrentTexturePath + Texturename ) ? Global.asCurrentTexturePath + Texturename :
-        FileExists( Texturename ) ? Texturename :
-        FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
-        "" );
+    std::vector<std::string> const filenames {
+        Global.asCurrentTexturePath + Texturename,
+        Texturename,
+        szTexturePath + Texturename };
+
+    auto lookup =
+        FileExists(
+            filenames,
+            { Global.szDefaultExt } );
+
+    if( false == lookup.first.empty() ) {
+        return lookup;
+    }
+
+    // if the first attempt fails, try entire extension list
+    // NOTE: slightly wasteful as it means preferred extension is tested twice, but, eh
+    return (
+        FileExists(
+            filenames,
+            { ".dds", ".tga", ".bmp", ".ext" } ) );
 }
 
 //---------------------------------------------------------------------------

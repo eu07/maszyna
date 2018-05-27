@@ -3222,17 +3222,24 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 iStationStart = TrainParams->StationIndex;
                 asNextStop = TrainParams->NextStop();
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
-                NewCommand = Global.asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
-                if (FileExists(NewCommand)) {
+                NewCommand = Global.asCurrentSceneryPath + NewCommand;
+                auto lookup =
+                    FileExists(
+                        { NewCommand },
+                        { ".ogg", ".flac", ".wav" } );
+                if( false == lookup.first.empty() ) {
                     //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = sound_source( sound_placement::external, 75.f ).deserialize( NewCommand, sound_type::single );
+                    tsGuardSignal = sound_source( sound_placement::external, 75.f ).deserialize( lookup.first + lookup.second, sound_type::single );
                     iGuardRadio = 0; // nie przez radio
                 }
                 else {
-                    NewCommand = NewCommand.insert(NewCommand.rfind('.'),"radio"); // wstawienie przed kropkč
-                    if (FileExists(NewCommand)) {
+                    auto lookup =
+                        FileExists(
+                            { NewCommand + "radio" },
+                            { ".ogg", ".flac", ".wav" } );
+                    if( false == lookup.first.empty() ) {
                         //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( NewCommand, sound_type::single );
+                        tsGuardSignal = sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( lookup.first + lookup.second, sound_type::single );
                         iGuardRadio = iRadioChannel;
                     }
                 }

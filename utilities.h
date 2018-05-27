@@ -179,6 +179,8 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
 
 bool FileExists( std::string const &Filename );
 
+std::pair<std::string, std::string> FileExists( std::vector<std::string> const &Names, std::vector<std::string> const &Extensions );
+
 // returns time of last modification for specified file
 std::time_t last_modified( std::string const &Filename );
 

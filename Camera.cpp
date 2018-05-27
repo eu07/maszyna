@@ -18,8 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle)
-{
+void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle) {
 
     vUp = Math3D::vector3(0, 1, 0);
     Velocity = Math3D::vector3(0, 0, 0);
@@ -31,8 +30,15 @@ void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle)
     Type = (Global.bFreeFly ? tp_Free : tp_Follow);
 };
 
-void TCamera::OnCursorMove(double x, double y) {
+void TCamera::Reset() {
 
+    Pitch = Yaw = Roll = 0;
+    m_rotationoffsets = {};
+};
+
+
+void TCamera::OnCursorMove(double x, double y) {
+/*
     Yaw -= x;
     while( Yaw > M_PI ) {
         Yaw -= 2 * M_PI;
@@ -45,6 +51,8 @@ void TCamera::OnCursorMove(double x, double y) {
         // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
         Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
     }
+*/
+    m_rotationoffsets += glm::dvec3 { y, x, 0.0 };
 }
 
 bool
@@ -151,8 +159,9 @@ void TCamera::Update()
         OnCommand( command );
     }
 
-    auto const deltatime = Timer::GetDeltaRenderTime(); // czas bez pauzy
+    auto const deltatime { Timer::GetDeltaRenderTime() }; // czas bez pauzy
 
+    // update position
     if( ( Type == tp_Free )
      || ( false == Global.ctrlState )
      || ( true == DebugCameraFlag ) ) {
@@ -169,6 +178,24 @@ void TCamera::Update()
         Math3D::vector3 Vec = Velocity;
         Vec.RotateY( Yaw );
         Pos += Vec * 5.0 * deltatime;
+    }
+    // update rotation
+    auto const rotationfactor { std::min( 1.0, 20 * deltatime ) };
+
+    Yaw -= rotationfactor * m_rotationoffsets.y;
+    m_rotationoffsets.y *= ( 1.0 - rotationfactor );
+    while( Yaw > M_PI ) {
+        Yaw -= 2 * M_PI;
+    }
+    while( Yaw < -M_PI ) {
+        Yaw += 2 * M_PI;
+    }
+
+    Pitch -= rotationfactor * m_rotationoffsets.x;
+    m_rotationoffsets.x *= ( 1.0 - rotationfactor );
+    if( Type == tp_Follow ) {
+        // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
+        Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
     }
 }
 
@@ -200,11 +227,15 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
 void TCamera::RaLook()
 { // zmiana kierunku patrzenia - przelicza Yaw
     Math3D::vector3 where = LookAt - Pos + Math3D::vector3(0, 3, 0); // trochę w górę od szyn
-    if ((where.x != 0.0) || (where.z != 0.0))
-        Yaw = atan2(-where.x, -where.z); // kąt horyzontalny
+    if( ( where.x != 0.0 ) || ( where.z != 0.0 ) ) {
+        Yaw = atan2( -where.x, -where.z ); // kąt horyzontalny
+        m_rotationoffsets.y = 0.0;
+    }
     double l = Math3D::Length3(where);
-    if (l > 0.0)
-        Pitch = asin(where.y / l); // kąt w pionie
+    if( l > 0.0 ) {
+        Pitch = asin( where.y / l ); // kąt w pionie
+        m_rotationoffsets.x = 0.0;
+    }
 };
 
 void TCamera::Stop()

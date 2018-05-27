@@ -5882,6 +5882,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         sound->offset( nullvector );
         sound->owner( DynamicObject );
     }
+    // reset view angles
+    pMechViewAngle = { 0.0, 0.0 };
+    Global.pCamera->Pitch = pMechViewAngle.x;
+    Global.pCamera->Yaw = pMechViewAngle.y;
 
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
@@ -5934,41 +5938,59 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         // jeśli znaleziony wpis kabiny
         Cabine[cabindex].Load(*parser);
-        // NOTE: the next part is likely to break if sitpos doesn't follow pos
+        // NOTE: the position and angle definitions depend on strict entry order
+        // TODO: refactor into more flexible arrangement
         parser->getTokens();
         *parser >> token;
+        if( token == std::string( "driver" + std::to_string( cabindex ) + "angle:" ) ) {
+            // camera view angle
+            parser->getTokens( 2, false );
+            // angle is specified in degrees but internally stored in radians
+            glm::vec2 viewangle;
+            *parser
+                >> viewangle.y // yaw first, then pitch
+                >> viewangle.x;
+            pMechViewAngle = glm::radians( viewangle );
+            Global.pCamera->Pitch = pMechViewAngle.x;
+            Global.pCamera->Yaw = pMechViewAngle.y;
+
+            parser->getTokens();
+            *parser >> token;
+        }
         if (token == std::string("driver" + std::to_string(cabindex) + "pos:"))
         {
             // pozycja poczatkowa maszynisty
             parser->getTokens(3, false);
-            *parser >> pMechOffset.x >> pMechOffset.y >> pMechOffset.z;
-            pMechSittingPosition.x = pMechOffset.x;
-            pMechSittingPosition.y = pMechOffset.y;
-            pMechSittingPosition.z = pMechOffset.z;
+            *parser
+                >> pMechOffset.x
+                >> pMechOffset.y
+                >> pMechOffset.z;
+            pMechSittingPosition = pMechOffset;
+
+            parser->getTokens();
+            *parser >> token;
         }
         // ABu: pozycja siedzaca mechanika
-        parser->getTokens();
-        *parser >> token;
         if (token == std::string("driver" + std::to_string(cabindex) + "sitpos:"))
         {
             // ABu 180404 pozycja siedzaca maszynisty
             parser->getTokens(3, false);
-            *parser >> pMechSittingPosition.x >> pMechSittingPosition.y >> pMechSittingPosition.z;
-            parse = true;
+            *parser
+                >> pMechSittingPosition.x
+                >> pMechSittingPosition.y
+                >> pMechSittingPosition.z;
+
+            parser->getTokens();
+            *parser >> token;
         }
         // else parse=false;
-        do
-        {
-            // ABu: wstawione warunki, wczesniej tylko to:
-            //   str=Parser->GetNextSymbol().LowerCase();
-            if (parse == true) {
-
+        do {
+            if( parse == true ) {
                 token = "";
                 parser->getTokens();
                 *parser >> token;
             }
-            else
-            {
+            else {
                 parse = true;
             }
             // inicjacja kabiny

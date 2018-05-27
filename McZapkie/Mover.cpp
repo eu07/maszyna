@@ -4426,8 +4426,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 // Q: 20160714
 // oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)
 // *************************************************************************************************
-double TMoverParameters::TractionForce(double dt)
-{
+double TMoverParameters::TractionForce( double dt ) {
     double PosRatio, dmoment, dtrans, tmp;
 
     Ft = 0;
@@ -4437,13 +4436,13 @@ double TMoverParameters::TractionForce(double dt)
     switch( EngineType ) {
         case DieselElectric: {
             if( ( true == Mains )
-             && ( true == FuelPump.is_active ) ) {
+                && ( true == FuelPump.is_active ) ) {
 
                 tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
                 if( ( true == Heating )
-                 && ( HeatingPower > 0 )
-                 && ( MainCtrlPosNo > MainCtrlPos ) ) {
+                    && ( HeatingPower > 0 )
+                    && ( MainCtrlPosNo > MainCtrlPos ) ) {
 
                     int i = MainCtrlPosNo;
                     while( DElist[ i - 2 ].RPM / 60.0 > tmp ) {
@@ -4460,8 +4459,8 @@ double TMoverParameters::TractionForce(double dt)
                 enrot = clamp(
                     enrot + ( dt / 1.25 ) * ( // TODO: equivalent of dizel_aim instead of fixed inertia
                         enrot < tmp ?
-                             1.0 :
-                            -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
+                        1.0 :
+                        -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
                     0.0, std::max( tmp, enrot ) );
                 if( std::abs( tmp - enrot ) < 0.001 ) {
                     enrot = tmp;
@@ -4503,7 +4502,7 @@ double TMoverParameters::TractionForce(double dt)
 
                     case 1: { // manual
                         if( ( ActiveDir != 0 )
-                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                            && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
@@ -4515,7 +4514,7 @@ double TMoverParameters::TractionForce(double dt)
                     case 2: { // automatic
                         auto const motorcurrent{ std::min<double>( ImaxHi, std::abs( Im ) ) };
                         if( ( std::abs( Itot ) > RVentMinI )
-                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                            && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
 
                             RventRot +=
                                 ( RVentnmax
@@ -4525,7 +4524,7 @@ double TMoverParameters::TractionForce(double dt)
                                 * RVentSpeed * dt;
                         }
                         else if( ( DynamicBrakeType == dbrake_automatic )
-                              && ( true == DynamicBrakeFlag ) ) {
+                            && ( true == DynamicBrakeFlag ) ) {
                             RventRot += ( RVentnmax * motorcurrent / ImaxLo - RventRot ) * RVentSpeed * dt;
                         }
                         else {
@@ -4579,13 +4578,35 @@ double TMoverParameters::TractionForce(double dt)
         }
     }
 
+    switch( EngineType ) {
+        case Dumb: {
+            PosRatio = ( MainCtrlPos + ScndCtrlPos ) / ( MainCtrlPosNo + ScndCtrlPosNo + 0.01 );
+            EnginePower = 1000.0 * Power * PosRatio;
+            break;
+        }
+        case DieselEngine: {
+            EnginePower = ( 2 * dizel_Mstand + dmoment ) * enrot * ( 2.0 * M_PI / 1000.0 );
+            if( MainCtrlPos > 1 ) {
+                // dodatkowe opory z powodu sprezarki}
+                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax );
+            }
+            break;
+        }
+        case DieselElectric: {
+            EnginePower = 0; // the actual calculation is done in two steps later in the method
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (ActiveDir != 0)
         switch (EngineType)
         {
         case Dumb:
         {
-            PosRatio = (MainCtrlPos + ScndCtrlPos) / (MainCtrlPosNo + ScndCtrlPosNo + 0.01);
-            if (Mains && (ActiveDir != 0) && (CabNo != 0))
+            if (Mains && (CabNo != 0))
             {
                 if (Vel > 0.1)
                 {
@@ -4597,7 +4618,6 @@ double TMoverParameters::TractionForce(double dt)
             }
             else
                 Ft = 0;
-            EnginePower = 1000.0 * Power * PosRatio;
             break;
         } // Dumb
 
@@ -4682,11 +4702,6 @@ double TMoverParameters::TractionForce(double dt)
 
         case DieselEngine:
         {
-            EnginePower = ( 2 * dizel_Mstand + dmoment ) * enrot * ( 2.0 * M_PI / 1000.0 );
-            if( MainCtrlPos > 1 ) {
-                // dodatkowe opory z powodu sprezarki}
-                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax );
-            }
             Mm = dmoment; //bylo * dizel_engage
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
@@ -4995,9 +5010,7 @@ double TMoverParameters::TractionForce(double dt)
                 }
             }
             if( true == Mains ) {
-
 				//tempomat
-
 				if (ScndCtrlPosNo > 1)
 				{
 					if (ScndCtrlPos != NewSpeed)
@@ -5020,7 +5033,6 @@ double TMoverParameters::TractionForce(double dt)
 						}
 					}
 				}
-
 
                 dtrans = Hamulec->GetEDBCP();
                 if (((DoorLeftOpened) || (DoorRightOpened)))
@@ -5241,6 +5253,20 @@ double TMoverParameters::TractionForce(double dt)
             break;
         }
         } // case EngineType
+
+    switch( EngineType ) {
+        case DieselElectric: {
+            // rough approximation of extra effort to overcome friction etc
+            auto const rpmratio{ 60.0 * enrot / DElist[ MainCtrlPosNo ].RPM };
+            EnginePower += rpmratio * 0.2 * DElist[ MainCtrlPosNo ].GenPower;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+
     return Ft;
 }
 

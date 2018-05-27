@@ -50,6 +50,18 @@ GetSubmodelFromName( TModel3d * const Model, std::string const Name ) {
             nullptr );
 }
 
+// Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
+std::string
+TextureTest( std::string const &Name ) {
+    
+    auto const lookup {
+        FileExists(
+            { Global.asCurrentTexturePath + Name, Name, szTexturePath + Name },
+            { ".mat", ".dds", ".tga", ".bmp" } ) };
+
+    return ( lookup.first + lookup.second );
+}
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -4481,7 +4493,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none")
             {
-                std::string nowheretexture = TextureTest( Global.asCurrentTexturePath + "nowhere" ); // na razie prymitywnie
+                std::string nowheretexture = TextureTest( "nowhere" ); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
                     m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( nowheretexture );
                 }
@@ -6204,17 +6216,6 @@ int TDynamicObject::RouteWish(TTrack *tr)
     return Mechanik ? Mechanik->CrossRoute(tr) : 0; // wg AI albo prosto
 };
 
-std::string TDynamicObject::TextureTest(std::string const &name)
-{ // Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
-	std::vector<std::string> extensions = { ".mat", ".dds", ".tga", ".bmp" };
-	for( auto const &extension : extensions ) {
-		if( true == FileExists( name + extension ) ) {
-			return name + extension;
-        }
-    }
-    return ""; // nie znaleziona
-};
-
 void TDynamicObject::DestinationSet(std::string to, std::string numer)
 { // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
     // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
@@ -6228,13 +6229,20 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
 	numer = Bezogonkow(numer);
     asDestination = to;
     to = Bezogonkow(to); // do szukania pliku obcinamy ogonki
-
+    if( true == to.empty() ) {
+        to = "nowhere";
+    }
+    // destination textures are kept in the vehicle's directory so we point the current texture path there
+    auto const currenttexturepath { Global.asCurrentTexturePath };
+    Global.asCurrentTexturePath = asBaseDir;
+    // now see if we can find any version of the texture
     std::vector<std::string> destinations = {
-        asBaseDir + numer + "@" + MoverParameters->TypeName,
-        asBaseDir + numer,
-        asBaseDir + to + "@" + MoverParameters->TypeName,
-        asBaseDir + to,
-        asBaseDir + "nowhere" };
+        numer + '@' + MoverParameters->TypeName,
+        numer,
+        to + '@' + MoverParameters->TypeName,
+        to,
+        "nowhere" + '@' + MoverParameters->TypeName,
+        "nowhere" };
 
     for( auto const &destination : destinations ) {
 
@@ -6244,6 +6252,8 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
             break;
         }
     }
+    // whether we got anything, restore previous texture path
+    Global.asCurrentTexturePath = currenttexturepath;
 };
 
 void TDynamicObject::OverheadTrack(float o)

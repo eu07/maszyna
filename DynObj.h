@@ -601,7 +601,6 @@ private:
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
-    std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED

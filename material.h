@@ -25,6 +25,9 @@ struct opengl_material {
     bool has_alpha { false }; // alpha state, calculated from presence of alpha in texture1
     std::string name;
 
+// constructors
+    opengl_material() = default;
+
 // methods
     bool
         deserialize( cParser &Input, bool const Loadnow );
@@ -59,7 +62,7 @@ private:
     material_handle
         find_in_databank( std::string const &Materialname ) const;
     // checks whether specified file exists. returns name of the located file, or empty string.
-    std::string
+    std::pair<std::string, std::string>
         find_on_disk( std::string const &Materialname ) const;
 // members:
     material_sequence m_materials;

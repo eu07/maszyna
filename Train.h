@@ -592,6 +592,7 @@ public: // reszta może by?publiczna
 
     Math3D::vector3 pMechSittingPosition; // ABu 180404
     Math3D::vector3 MirrorPosition(bool lewe);
+    glm::vec2 pMechViewAngle { 0.0, 0.0 }; // camera pitch and yaw values, preserved while in external view
 
 private:
     double fBlinkTimer;

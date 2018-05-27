@@ -210,8 +210,9 @@ buffer_manager::emplace( std::string Filename ) {
     m_buffers.emplace_back( Filename );
 
     // NOTE: we store mapping without file type extension, to simplify lookups
+    erase_extension( Filename );
     m_buffermappings.emplace(
-        Filename.erase( Filename.rfind( '.' ) ),
+        Filename,
         handle );
 
     return handle;
@@ -220,26 +221,22 @@ buffer_manager::emplace( std::string Filename ) {
 audio::buffer_handle
 buffer_manager::find_buffer( std::string const &Buffername ) const {
 
-    auto lookup = m_buffermappings.find( Buffername );
-    if( lookup != m_buffermappings.end() )
+    auto const lookup = m_buffermappings.find( Buffername );
+    if( lookup != std::end( m_buffermappings ) )
         return lookup->second;
     else
         return null_handle;
 }
 
-
 std::string
 buffer_manager::find_file( std::string const &Filename ) const {
 
-    std::vector<std::string> const extensions { ".ogg", ".flac", ".wav" };
+    auto const lookup {
+        FileExists(
+            { Filename },
+            { ".ogg", ".flac", ".wav" } ) };
 
-    for( auto const &extension : extensions ) {
-        if( FileExists( Filename + extension ) ) {
-            // valid name on success
-            return Filename + extension;
-        }
-    }
-    return {}; // empty string on failure
+    return lookup.first + lookup.second;
 }
 
 } // audio
