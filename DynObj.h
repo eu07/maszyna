@@ -605,6 +605,10 @@ private:
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
+	std::ofstream MEDLogFile; // zapis parametrów hamowania
+	double MEDLogTime = 0;
+	double MEDLogInactiveTime = 0;
+	int MEDLogCount = 0;
 };
 
 

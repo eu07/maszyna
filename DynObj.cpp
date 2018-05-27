@@ -3073,7 +3073,20 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 Fzad = std::max(MoverParameters->StopBrakeDecc * masa, Fzad);
             }
-
+			if ((Fzad > 1) && (!MEDLogFile.is_open()) && (MoverParameters->Vel > 1))
+			{
+				MEDLogFile.open(std::string("MEDLOGS/" + MoverParameters->Name + "_" + to_string(++MEDLogCount) + ".csv"),
+					std::ios::in | std::ios::out | std::ios::trunc);
+				MEDLogFile << std::string("t\tVel\tMasa\tOsie\tFmaxPN\tFmaxED\tFfulED\tFrED\tFzad\tFzadED\tFzadPN").c_str();
+				for(int k=1;k<=np;k++)
+				{
+					MEDLogFile << "\tBP" << k;
+				}
+				MEDLogFile << "\n";
+				MEDLogFile.flush();
+				MEDLogInactiveTime = 0;
+				MEDLogTime = 0;
+			}
             auto FzadED { 0.0 };
             if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != MHZ_EN57))
              || ( ( MoverParameters->BrakeHandle == MHZ_EN57 )
@@ -3207,6 +3220,38 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MED[0][5] = FrED*0.001;
 			MED[0][6] = FzadPN*0.001;
 			MED[0][7] = nPrzekrF;
+
+			if (MEDLogFile.is_open())
+			{
+				MEDLogFile << MEDLogTime << "\t" << MoverParameters->Vel << "\t" << masa*0.001 << "\t" << osie << "\t" << FmaxPN*0.001 << "\t" << FmaxED*0.001 << "\t"
+					<< FfulED*0.001 << "\t" << FrED*0.001 << "\t" << Fzad*0.001 << "\t" << FzadED*0.001 << "\t" << FzadPN*0.001;
+				for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+					(true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
+				{
+					MEDLogFile << "\t" << p->MoverParameters->BrakePress;
+				}
+				MEDLogFile << "\n";
+				if (floor(MEDLogTime + dt1) > floor(MEDLogTime))
+				{
+					MEDLogFile.flush();
+				}
+				MEDLogTime += dt1;
+
+				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPos > 0))
+				{
+					MEDLogInactiveTime += dt1;
+				}
+				else
+				{
+					MEDLogInactiveTime = 0;
+				}
+				if (MEDLogInactiveTime > 5)
+				{
+					MEDLogFile.flush();
+					MEDLogFile.close();
+				}
+
+			}
 
 			delete[] PrzekrF;
 			delete[] FzED;
