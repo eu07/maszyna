@@ -377,3 +377,13 @@ replace_slashes( std::string &Filename ) {
         std::begin( Filename ), std::end( Filename ),
         '\\', '/' );
 }
+
+// returns potential path part from provided file name
+std::string
+substr_path( std::string const &Filename ) {
+
+    return (
+        Filename.rfind( '/' ) != std::string::npos ?
+            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
+            "" );
+}

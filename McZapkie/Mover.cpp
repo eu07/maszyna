@@ -1616,7 +1616,7 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
 
     OilPump.pressure_target = (
         enrot > 0.1 ? interpolate( minpressure, OilPump.pressure_maximum, static_cast<float>( clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) ) * OilPump.resource_amount :
-        true == OilPump.is_active ? minpressure :
+        true == OilPump.is_active ? std::min( minpressure + 0.1f, OilPump.pressure_maximum ) : // slight pressure margin to give time to switch off the pump and start the engine
         0.f );
 
     if( OilPump.pressure_present < OilPump.pressure_target ) {
@@ -6453,7 +6453,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
            && ( dizel_heat.water_aux.config.temp_cooling > 0 )
            && ( dizel_heat.temperatura2 > dizel_heat.water_aux.config.temp_cooling - ( dizel_heat.water_aux.is_warm ? 8 : 0 ) ) ) );
         auto const PTC2 { ( dizel_heat.water_aux.is_warm /*or PTC2p*/ ? 1 : 0 ) };
-        dizel_heat.rpmwz2 = PTC2 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
+        dizel_heat.rpmwz2 = PTC2 * ( dizel_heat.fan_speed >= 0 ? ( rpm * dizel_heat.fan_speed ) : ( dizel_heat.fan_speed * -1 ) );
         dizel_heat.zaluzje2 = ( dizel_heat.water_aux.config.shutters ? ( PTC2 == 1 ) : true ); // no shutters is an equivalent to having them open
         auto const zaluzje2 { ( dizel_heat.zaluzje2 ? 1 : 0 ) };
         // auxiliary water circuit heat transfer values
@@ -6481,7 +6481,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
        && ( dizel_heat.water.config.temp_cooling > 0 )
        && ( dizel_heat.temperatura1 > dizel_heat.water.config.temp_cooling - ( dizel_heat.water.is_warm ? 8 : 0 ) ) ) );
     auto const PTC1 { ( dizel_heat.water.is_warm /*or PTC1p*/ ? 1 : 0 ) };
-    dizel_heat.rpmwz = PTC1 * 80 * rpm / ( ( 0.5 * rpm ) + 500 );
+    dizel_heat.rpmwz = PTC1 * ( dizel_heat.fan_speed >= 0 ? ( rpm * dizel_heat.fan_speed ) : ( dizel_heat.fan_speed * -1 ) );
     dizel_heat.zaluzje1 = ( dizel_heat.water.config.shutters ? ( PTC1 == 1 ) : true ); // no shutters is an equivalent to having them open
     auto const zaluzje1 { ( dizel_heat.zaluzje1 ? 1 : 0 ) };
     // primary water circuit heat transfer values
@@ -8502,6 +8502,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         extract_value( dizel_heat.water_aux.config.shutters, "WaterAuxShutters", Input, "" );
         extract_value( dizel_heat.oil.config.temp_min, "OilMinTemperature", Input, "" );
         extract_value( dizel_heat.oil.config.temp_max, "OilMaxTemperature", Input, "" );
+        extract_value( dizel_heat.fan_speed, "WaterCoolingFanSpeed", Input, "" );
         // water heater
         extract_value( WaterHeater.config.temp_min, "HeaterMinTemperature", Input, "" );
         extract_value( WaterHeater.config.temp_max, "HeaterMaxTemperature", Input, "" );

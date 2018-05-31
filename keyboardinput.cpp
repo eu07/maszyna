@@ -249,6 +249,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_D },
         // reverserdecrease
         { GLFW_KEY_R },
+        // reverserforwardhigh
+        { -1 },
         // reverserforward
         { -1 },
         // reverserneutral

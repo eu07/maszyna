@@ -4562,7 +4562,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             }
             if( !MoverParameters->LoadAccepted.empty() ) {
 
-                if( MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+                if( ( MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                 && ( asLoadName == "pantstate" ) ) {
                     // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
                     if( MoverParameters->Load == 1 ) {
                         MoverParameters->PantFront( true );

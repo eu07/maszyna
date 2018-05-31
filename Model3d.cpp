@@ -1241,8 +1241,6 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		LoadFromBinFile(asBinary, dynamic);
 		asBinary = ""; // wyłączenie zapisu
 		Init();
-        // cache the file name, in case someone wants it later
-        m_filename = name + ".e3d";
     }
 	else
 	{
@@ -1253,10 +1251,10 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
                 // pojazdy dopiero po ustawieniu animacji
                 Init(); // generowanie siatek i zapis E3D
             }
-            // cache the file name, in case someone wants it later
-            m_filename = name + ".t3d";
         }
 	}
+    // cache the file name, in case someone wants it later
+    m_filename = name;
 	bool const result =
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)

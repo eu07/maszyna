@@ -14,14 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "globals.h"
 
-// helper, returns potential path part from provided file name
-std::string path( std::string const &Filename ) {
-    return (
-        Filename.rfind( '/' ) != std::string::npos ?
-            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
-            "" );
-}
-
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 

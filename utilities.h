@@ -192,6 +192,9 @@ erase_extension( std::string &Filename );
 void
 replace_slashes( std::string &Filename );
 
+// returns potential path part from provided file name
+std::string substr_path( std::string const &Filename );
+
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
     delete Pointer;
@@ -228,6 +231,8 @@ clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
 template <typename Type_>
 Type_
 min_speed( Type_ const Left, Type_ const Right ) {
+
+    if( Left == Right ) { return Left; }
 
     return std::min(
         ( Left != -1 ?

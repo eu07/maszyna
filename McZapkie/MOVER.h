@@ -669,6 +669,7 @@ struct heat_data {
 //    bool okienko { true }; // window in the engine compartment
     // system configuration
     bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
+    double fan_speed { 0.075 }; // cooling fan rpm; either fraction of engine rpm, or absolute value if negative
     // heat exchange factors
     double kw { 0.35 };
     double kv { 0.6 };

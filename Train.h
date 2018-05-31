@@ -196,6 +196,7 @@ class TTrain
     static void OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserdecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_reverserforwardhigh( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserforward( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserneutral( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserbackward( TTrain *Train, command_data const &Command );

@@ -206,6 +206,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::mubrakingindicatortoggle, &TTrain::OnCommand_mubrakingindicatortoggle },
     { user_command::reverserincrease, &TTrain::OnCommand_reverserincrease },
     { user_command::reverserdecrease, &TTrain::OnCommand_reverserdecrease },
+    { user_command::reverserforwardhigh, &TTrain::OnCommand_reverserforwardhigh },
     { user_command::reverserforward, &TTrain::OnCommand_reverserforward },
     { user_command::reverserneutral, &TTrain::OnCommand_reverserneutral },
     { user_command::reverserbackward, &TTrain::OnCommand_reverserbackward },
@@ -1464,9 +1465,20 @@ void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Comm
     }
 }
 
+void TTrain::OnCommand_reverserforwardhigh( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        OnCommand_reverserforward( Train, Command );
+        OnCommand_reverserincrease( Train, Command );
+    }
+}
+
 void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+        // HACK: try to move the reverser one position back, in case it's set to "high forward"
+        OnCommand_reverserdecrease( Train, Command );
 
         if( Train->mvOccupied->ActiveDir < 1 ) {
 
