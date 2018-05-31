@@ -3044,8 +3044,13 @@ bool TDynamicObject::Update(double dt, double dt1)
 				masa += p->MoverParameters->TotalMass;
 				osie += p->MoverParameters->NAxles;
 			}
+			double RapidMult = 1.0;
+			if (((MoverParameters->BrakeDelays & (bdelay_P + bdelay_R)) == (bdelay_P + bdelay_R))
+				&& (MoverParameters->BrakeDelayFlag & bdelay_P))
+				RapidMult = MoverParameters->RapidMult;
 
-			auto const amax = std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+
             if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
                 (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
             {
