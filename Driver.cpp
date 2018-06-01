@@ -1327,7 +1327,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka
                 }
-                else if ((fAcc > 0) && (v > 0) && (v <= fNext)) {
+                else if ((fAcc > 0) && (v >= 0) && (v <= fNext)) {
                     // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli prędkość jest stała)
@@ -4614,7 +4614,7 @@ TController::UpdateSituation(double dt) {
                 // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
                 if( ( iDrivigFlags & moveStopHere )
                  && ( vel == 0.0 )
-                 && ( VelNext == 0.0 ) ) {
+                 && ( VelSignal == 0.0 ) ) {
                     // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
                     VelDesired = 0.0;
                 }
@@ -4651,45 +4651,49 @@ TController::UpdateSituation(double dt) {
                         VelDesired,
                         TrainParams->TTVmax );
             }
-            if (VelDesired > 0.0)
+
+            if( ( VelDesired > 0.0 )
+             && ( iDrivigFlags & moveGuardSignal )
+             && ( OrderCurrentGet() & Obey_train ) ) {
+                // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
+                iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
+                if( false == tsGuardSignal.empty() ) {
+                    tsGuardSignal.stop();
+                    // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
+                    // bezpośrednim
+                    // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
+                    // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
+                    // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
+                    // obsługę kanałów radiowych itd.
+                    if( iGuardRadio == 0 ) {
+                        // jeśli nie przez radio
+                        tsGuardSignal.owner( pVehicle );
+                        // place virtual conductor some distance away
+                        tsGuardSignal.offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
+                        tsGuardSignal.play( sound_flags::exclusive );
+                    }
+                    else {
+                        // if (iGuardRadio==iRadioChannel) //zgodność kanału
+                        // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
+                        // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
+                        // przy braku reakcji
+                        // TODO: proper system for sending/receiving radio messages
+                        // place the sound in appropriate cab of the manned vehicle
+                        tsGuardSignal.owner( pVehicle );
+                        tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
+                        tsGuardSignal.play( sound_flags::exclusive );
+                    }
+                }
+/*
                 if( ( ( iDrivigFlags & moveStopHere ) == 0 )
                  || ( ( SemNextIndex != -1 )
                    && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
                    && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) ) ) {
                     // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w
                     // składzie, jeśli nie mamy czekać na sygnał też trzeba odpalić
-                    if (iDrivigFlags & moveGuardSignal)
-                    { // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
-                        iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
-                        if( false == tsGuardSignal.empty() ) {
-                            tsGuardSignal.stop();
-                            // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                            // bezpośrednim
-                            // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
-                            // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
-                            // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
-                            // obsługę kanałów radiowych itd.
-                            if( iGuardRadio == 0 ) {
-                                // jeśli nie przez radio
-                                tsGuardSignal.owner( pVehicle );
-                                // place virtual conductor some distance away
-                                tsGuardSignal.offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
-                                tsGuardSignal.play( sound_flags::exclusive );
-                            }
-                            else {
-                                // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                                // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                                // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                                // przy braku reakcji
-                                // TODO: proper system for sending/receiving radio messages
-                                // place the sound in appropriate cab of the manned vehicle
-                                tsGuardSignal.owner( pVehicle );
-                                tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
-                                tsGuardSignal.play( sound_flags::exclusive );
-                            }
-                        }
-                    }
                 }
+*/
+            }
             if( mvOccupied->V == 0.0 ) {
                 // Ra 2014-03: jesli skład stoi, to działa na niego składowa styczna grawitacji
                 AbsAccS = fAccGravity;
@@ -4730,7 +4734,7 @@ TController::UpdateSituation(double dt) {
                 if (vel > 0.0) {
                     // jeśli jedzie
                     if( ( vel < VelNext )
-                        && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
+                     && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
                         // jeśli jedzie wolniej niż można i jest wystarczająco daleko, to można przyspieszyć
                         if( AccPreferred > 0.0 ) {
                             // jeśli nie ma zawalidrogi dojedz do semafora/przeszkody
@@ -4769,18 +4773,21 @@ TController::UpdateSituation(double dt) {
 						}
 						else {
                             // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-                            // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
-                            auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
-                            AccDesired = std::min(
-                                AccDesired,
-                                ( VelNext * VelNext - vel * vel )
-                                / ( 25.92
-                                    * std::max(
-                                        ActualProximityDist - brakingpointoffset,
-                                        std::min(
-                                            ActualProximityDist,
-                                            brakingpointoffset ) )
-                                    + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                            if( ( std::max( 75.0, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                                // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
+                                // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
+                                auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
+                                AccDesired = std::min(
+                                    AccDesired,
+                                    ( VelNext * VelNext - vel * vel )
+                                    / ( 25.92
+                                        * std::max(
+                                            ActualProximityDist - brakingpointoffset,
+                                            std::min(
+                                                ActualProximityDist,
+                                                brakingpointoffset ) )
+                                        + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                            }
 						}
                         AccDesired = std::min( AccDesired, AccPreferred );
                     }

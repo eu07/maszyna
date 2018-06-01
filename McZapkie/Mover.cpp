@@ -4850,6 +4850,8 @@ double TMoverParameters::TractionForce( double dt ) {
             else {
                 if( AutoRelayFlag ) {
 
+                    auto const shuntfieldstate { ScndCtrlPos };
+
                     switch( RelayType ) {
 
                         case 0: {
@@ -4995,6 +4997,10 @@ double TMoverParameters::TractionForce( double dt ) {
                             break;
                         }
                     } // switch RelayType
+
+                    if( ScndCtrlPos != shuntfieldstate ) {
+                        SetFlag( SoundFlag, ( sound::relay | sound::shuntfield ) );
+                    }
                 }
             }
 			break;
