@@ -8088,6 +8088,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 { "test", testH },
                 { "D2", D2 },
                 { "MHZ_EN57", MHZ_EN57 },
+				{ "MHZ_K5P", MHZ_K5P },
                 { "M394", M394 },
                 { "Knorr", Knorr },
                 { "Westinghouse", West },
@@ -8895,6 +8896,9 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         case St113:
             Handle = std::make_shared<TSt113>();
             break;
+		case MHZ_K5P:
+			Handle = std::make_shared<TMHZ_K5P>();
+			break;
         default:
             Handle = std::make_shared<TDriverHandle>();
     }
