@@ -283,11 +283,17 @@ ui_layer::update() {
 
                 if( Global.iScreenMode[ Global.iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
+                    auto const speedlimit { static_cast<int>( std::floor( driver->VelDesired ) ) };
                     uitextline2 +=
                         " Speed: " + std::to_string( static_cast<int>( std::floor( mover->Vel ) ) ) + " km/h"
-                        + " (limit: " + std::to_string( static_cast<int>( std::floor( driver->VelDesired ) ) ) + " km/h"
-                        + ", next limit: " + std::to_string( static_cast<int>( std::floor( controlled->Mechanik->VelNext ) ) ) + " km/h"
-                        + " in " + to_string( controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
+                        + " (limit: " + std::to_string( speedlimit ) + " km/h";
+                    auto const nextspeedlimit { static_cast<int>( std::floor( controlled->Mechanik->VelNext ) ) };
+                    if( nextspeedlimit != speedlimit ) {
+                        uitextline2 +=
+                            ", new limit: " + std::to_string( nextspeedlimit ) + " km/h"
+                            + " in " + to_string( controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km";
+                    }
+                    uitextline2 += ")";
                     uitextline3 +=
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";

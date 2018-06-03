@@ -740,12 +740,22 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_mastercontrollerset( TTrain *Train, command_data const &Command ) {
 
-    auto const targetposition { std::min<int>( Command.param1, Train->mvControlled->MainCtrlPosNo ) };
-    while( targetposition < Train->mvControlled->MainCtrlPos ) {
-        Train->mvControlled->DecMainCtrl( 1 );
+    auto positionchange {
+        std::min<int>(
+            Command.param1,
+            ( Train->mvControlled->CoupledCtrl ?
+                Train->mvControlled->MainCtrlPosNo + Train->mvControlled->ScndCtrlPosNo :
+                Train->mvControlled->MainCtrlPosNo ) )
+        - ( Train->mvControlled->CoupledCtrl ?
+                Train->mvControlled->MainCtrlPos + Train->mvControlled->ScndCtrlPos :
+                Train->mvControlled->MainCtrlPos ) };
+    while( ( positionchange < 0 )
+        && ( true == Train->mvControlled->DecMainCtrl( 1 ) ) ) {
+        ++positionchange;
     }
-    while( targetposition > Train->mvControlled->MainCtrlPos ) {
-        Train->mvControlled->IncMainCtrl( 1 );
+    while( ( positionchange > 0 )
+        && ( true == Train->mvControlled->IncMainCtrl( 1 ) ) ) {
+        --positionchange;
     }
 }
 
@@ -850,11 +860,15 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 void TTrain::OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command ) {
 
     auto const targetposition { std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
-    while( targetposition < Train->mvControlled->ScndCtrlPos ) {
-        Train->mvControlled->DecScndCtrl( 1 );
+    while( ( targetposition < Train->mvControlled->ScndCtrlPos )
+        && ( true == Train->mvControlled->DecScndCtrl( 1 ) ) ) {
+        // all work is done in the header
+        ;
     }
-    while( targetposition > Train->mvControlled->ScndCtrlPos ) {
-        Train->mvControlled->IncScndCtrl( 1 );
+    while( ( targetposition > Train->mvControlled->ScndCtrlPos )
+        && ( true == Train->mvControlled->IncScndCtrl( 1 ) ) ) {
+        // all work is done in the header
+        ;
     }
 }
 

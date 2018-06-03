@@ -9574,6 +9574,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         else {
             OK = false;
         }
+        SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Sandbox")
 	{
