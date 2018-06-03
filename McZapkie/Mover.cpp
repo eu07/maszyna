@@ -8474,8 +8474,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
 			extract_value( EIMCLogForce, "eimclf", Input, "" );
 
-            Flat = ( extract_value( "Flat", Input ) == "1" );
-
+			extract_value( Flat, "Flat", Input, "");
             break;
         }
         default: {
