@@ -5198,10 +5198,8 @@ bool TTrain::Update( double const Deltatime )
         //---------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
         if( ( mvControlled->Heating == true )
-         && ( ( mvControlled->ConverterFlag )
-           || ( ( mvControlled->EngineType == ElectricSeriesMotor )
-             && ( mvControlled->Mains == true )
-             && ( mvControlled->ConvOvldFlag == false ) ) ) )
+         && ( mvControlled->Mains == true )
+         && ( mvControlled->ConvOvldFlag == false ) )
             btLampkaOgrzewanieSkladu.Turn( true );
         else
             btLampkaOgrzewanieSkladu.Turn( false );

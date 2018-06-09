@@ -1006,7 +1006,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[i].iFlags = 0; // W4 nie liczy się już (nie wyśle SetVelocity)
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
+/*
+                                // NOTE: disabled as it's no longer needed, required time is calculated as part of loading/unloading procedure
                                 WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
+*/
                                 // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
                                 JumpToNextOrder();
                                 // ma się nie ruszać aż do momentu podania sygnału
@@ -2274,7 +2277,7 @@ bool TController::PrepareEngine()
     { // najpierw ustalamy kierunek, jeśli nie został ustalony
         if( !iDirection ) {
             // jeśli nie ma ustalonego kierunku
-            if( mvOccupied->V == 0 ) { // ustalenie kierunku, gdy stoi
+            if( mvOccupied->Vel < 0.01 ) { // ustalenie kierunku, gdy stoi
                 iDirection = mvOccupied->CabNo; // wg wybranej kabiny
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
@@ -4610,20 +4613,7 @@ TController::UpdateSituation(double dt) {
             }
 
             // sprawdzamy możliwe ograniczenia prędkości
-            if( OrderCurrentGet() & ( Shunt | Obey_train ) ) {
-                // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
-                if( ( iDrivigFlags & moveStopHere )
-                 && ( vel == 0.0 )
-                 && ( VelSignal == 0.0 ) ) {
-                    // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
-                    VelDesired = 0.0;
-                }
-            }
-            if( fStopTime < 0 ) {
-                // czas postoju przed dalszą jazdą (np. na przystanku)
-                VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
-            }
-            else if( VelSignal >= 0 ) {
+            if( VelSignal >= 0 ) {
                 // jeśli skład był zatrzymany na początku i teraz już może jechać
                 VelDesired =
                     min_speed(
@@ -4640,27 +4630,56 @@ TController::UpdateSituation(double dt) {
             if( VelforDriver >= 0 ) {
                 // tu jest zero przy zmianie kierunku jazdy
                 // Ra: tu może być 40, jeśli mechanik nie ma znajomości szlaaku, albo kierowca jeździ 70
-                VelDesired = min_speed( VelDesired, VelforDriver );
-            }
-            if( ( TrainParams != nullptr )
-             && ( TrainParams->CheckTrainLatency() < 5.0 )
-             && ( TrainParams->TTVmax > 0.0 ) ) {
-                // jesli nie spozniony to nie przekraczać rozkladowej
                 VelDesired =
                     min_speed(
                         VelDesired,
-                        TrainParams->TTVmax );
+                        VelforDriver );
+            }
+            if( fStopTime < 0 ) {
+                // czas postoju przed dalszą jazdą (np. na przystanku)
+                VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
             }
 
-            if( ( VelDesired > 0.0 )
-             && ( iDrivigFlags & moveGuardSignal )
-             && ( OrderCurrentGet() & Obey_train ) ) {
+            if( ( OrderCurrentGet() & Obey_train ) != 0 ) {
+
+                if( ( TrainParams->CheckTrainLatency() < 5.0 )
+                 && ( TrainParams->TTVmax > 0.0 ) ) {
+                    // jesli nie spozniony to nie przekraczać rozkladowej
+                    VelDesired =
+                        min_speed(
+                            VelDesired,
+                            TrainParams->TTVmax );
+                }
+
+                if( ( ( iDrivigFlags & moveStopHere ) != 0 )
+                 && ( vel < 0.01 )
+                 && ( SemNextIndex != -1 )
+                 && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
+                 && ( sSpeedTable[ SemNextIndex ].fVelNext == 0.0 ) ) {
+                    // don't depart if told to wait at passenger stop until allowed to by the signal
+                    VelDesired = 0.0;
+                }
+            }
+
+            if( ( OrderCurrentGet() & ( Shunt | Obey_train ) ) != 0 ) {
+                // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
+                if( ( ( iDrivigFlags & moveStopHere ) != 0 )
+                 && ( vel < 0.01 )
+                 && ( VelSignal == 0.0 ) ) {
+                    // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
+                    VelDesired = 0.0;
+                }
+            }
+            // end of speed caps checks
+
+            if( ( ( OrderCurrentGet() & Obey_train ) != 0 )
+             && ( ( iDrivigFlags & moveGuardSignal ) != 0 )
+             && ( VelDesired > 0.0 ) ) {
                 // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
                 iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
                 if( false == tsGuardSignal.empty() ) {
                     tsGuardSignal.stop();
-                    // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                    // bezpośrednim
+                    // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy bezpośrednim
                     // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
                     // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
                     // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
@@ -4675,8 +4694,7 @@ TController::UpdateSituation(double dt) {
                     else {
                         // if (iGuardRadio==iRadioChannel) //zgodność kanału
                         // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                        // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                        // przy braku reakcji
+                        // (albo może mieć radio przenośne) - kierownik mógłby powtarzać przy braku reakcji
                         // TODO: proper system for sending/receiving radio messages
                         // place the sound in appropriate cab of the manned vehicle
                         tsGuardSignal.owner( pVehicle );
@@ -4684,17 +4702,9 @@ TController::UpdateSituation(double dt) {
                         tsGuardSignal.play( sound_flags::exclusive );
                     }
                 }
-/*
-                if( ( ( iDrivigFlags & moveStopHere ) == 0 )
-                 || ( ( SemNextIndex != -1 )
-                   && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
-                   && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) ) ) {
-                    // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w
-                    // składzie, jeśli nie mamy czekać na sygnał też trzeba odpalić
-                }
-*/
             }
-            if( mvOccupied->V == 0.0 ) {
+
+            if( mvOccupied->Vel < 0.01 ) {
                 // Ra 2014-03: jesli skład stoi, to działa na niego składowa styczna grawitacji
                 AbsAccS = fAccGravity;
             }
@@ -5235,13 +5245,22 @@ TController::UpdateSituation(double dt) {
         }
         if (AIControllFlag)
         { // odhamowywanie składu po zatrzymaniu i zabezpieczanie lokomotywy
-			if ((OrderList[OrderPos] & (Disconnect | Connect)) ==
-				0) // przy (p)odłączaniu nie zwalniamy tu hamulca
-				if ((mvOccupied->V == 0.0) && ((VelDesired == 0.0) || (AccDesired == 0.0)))
-					if (mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos(bh_RP))
-						mvOccupied->IncLocalBrakeLevel(1); // dodatkowy na pozycję 1
-					else
-						mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+            if( ( ( OrderList[ OrderPos ] & ( Disconnect | Connect ) ) == 0 )
+             && ( std::abs( fAccGravity ) < 0.01 ) ) {
+                // przy (p)odłączaniu nie zwalniamy tu hamulca
+                // only do this on flats, on slopes keep applied the train brake
+                if( ( mvOccupied->Vel < 0.01 )
+                 && ( ( VelDesired == 0.0 )
+                   || ( AccDesired == 0.0 ) ) ) {
+                    if( mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) ) {
+                        // dodatkowy na pozycję 1
+                        mvOccupied->IncLocalBrakeLevel( 1 );
+                    }
+                    else {
+                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                    }
+                }
+            }
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])

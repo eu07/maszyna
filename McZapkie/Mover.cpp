@@ -3302,7 +3302,7 @@ void TMoverParameters::CompressorCheck(double dt)
                     CompressedVolume +=
                         CompressorSpeed
                         * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
-                        * ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM )
+                        * ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM )
                         * dt;
                 }
                 else {
@@ -3467,7 +3467,7 @@ void TMoverParameters::CompressorCheck(double dt)
                 // the compressor is coupled with the diesel engine, engine revolutions affect the output
                 if( false == CompressorGovernorLock ) {
                     auto const enginefactor { (
-                        EngineType == DieselElectric ? ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM ) :
+                        EngineType == DieselElectric ? ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM ) :
                         EngineType == DieselEngine ? ( std::abs( enrot ) / nmax ) :
                         1.0 ) }; // shouldn't ever get here but, eh
                     CompressedVolume +=
@@ -4436,19 +4436,21 @@ double TMoverParameters::TractionForce( double dt ) {
     switch( EngineType ) {
         case DieselElectric: {
             if( ( true == Mains )
-                && ( true == FuelPump.is_active ) ) {
+             && ( true == FuelPump.is_active ) ) {
 
                 tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
                 if( ( true == Heating )
-                    && ( HeatingPower > 0 )
-                    && ( MainCtrlPosNo > MainCtrlPos ) ) {
-
-                    int i = MainCtrlPosNo;
-                    while( DElist[ i - 2 ].RPM / 60.0 > tmp ) {
-                        --i;
-                    }
-                    tmp = DElist[ i ].RPM / 60.0;
+                 && ( HeatingPower > 0 )
+                 && ( EngineHeatingRPM > 0 ) ) {
+                    // bump engine revolutions up if needed, when heating is on
+                    tmp =
+                        std::max(
+                            tmp,
+                            std::min(
+                                DElist[ MainCtrlPosNo ].RPM,
+                                EngineHeatingRPM )
+                                / 60.0 );
                 }
             }
             else {
@@ -4719,6 +4721,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 if( ( true == Mains ) && ( MainCtrlPos > 0 ) ) {
                     Voltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
                     // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
+                    // NOTE, TODO: doesn't take into account potentially increased revolutions if heating is on, fix it
                     auto const rpmratio { 60.0 * enrot / DElist[ MainCtrlPos ].RPM };
                     tmp = rpmratio * ( SST[ MainCtrlPos ].Pmax * AnPos ) + ( SST[ MainCtrlPos ].Pmin * ( 1.0 - AnPos ) );
                     Ft = tmp * 1000.0 / ( abs( tmpV ) + 1.6 );
@@ -4735,6 +4738,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 if( true == Heating ) { power -= HeatingPower; }
                 if( power < 0.0 ) { power = 0.0; }
                 // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
+                // NOTE, TODO: doesn't take into account potentially increased revolutions if heating is on, fix it
                 auto const currentgenpower { (
                     DElist[ MainCtrlPos ].RPM > 0 ?
                         DElist[ MainCtrlPos ].GenPower * ( 60.0 * enrot / DElist[ MainCtrlPos ].RPM ) :
@@ -8444,6 +8448,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 ImaxHi = 2;
                 ImaxLo = 1;
             }
+            extract_value( EngineHeatingRPM, "HeatingRPM", Input, "" );
             break;
         }
         case ElectricInductionMotor: {

@@ -4670,10 +4670,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 */
                     if( true == pAnimations.empty() )
                     { // jeśli nie ma jeszcze tabeli animacji, można odczytać nowe ilości
-						int co = 0, ile = -1;
+                        int co = 0;
                         iAnimations = 0;
+                        int ile;
                         do
                         { // kolejne liczby to ilość animacj, -1 to znacznik końca
+                            ile = -1;
 							parser.getTokens( 1, false );
                             parser >> ile; // ilość danego typu animacji
                             if (ile >= 0)
@@ -6426,7 +6428,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // main engine sound
     if( true == Vehicle.Mains ) {
 
-        if( ( std::fabs( Vehicle.enrot ) > 0.01 )
+        if( ( std::abs( Vehicle.enrot ) > 0.01 )
             // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
          || ( Vehicle.EngineType == Dumb ) ) {
 

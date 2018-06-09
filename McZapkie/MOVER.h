@@ -741,6 +741,7 @@ public:
 	double Mred = 0.0;    /*Ra: zredukowane masy wirujące; potrzebne do obliczeń hamowania*/
 	double TotalMass = 0.0; /*wyliczane przez ComputeMass*/
 	double HeatingPower = 0.0;
+    double EngineHeatingRPM { 0.0 }; // guaranteed engine revolutions with heating enabled
     double LightPower = 0.0; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
 	bool Battery = false; /*Czy sa zalavzone baterie*/
