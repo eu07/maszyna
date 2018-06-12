@@ -818,6 +818,11 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 
     erase_extension( Filename );
 
+    if( Filename[ 0 ] == '/' ) {
+        // filename can potentially begin with a slash, and we don't need it
+        Filename.erase( 0, 1 );
+    }
+
     std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".png" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank

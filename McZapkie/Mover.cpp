@@ -4680,10 +4680,11 @@ double TMoverParameters::TractionForce(double dt)
 
         case DieselEngine:
         {
-            EnginePower = dmoment * enrot;
-            if (MainCtrlPos > 1)
-                dmoment -=
-                    dizel_Mstand * (0.2 * enrot / dizel_nmax); // dodatkowe opory z powodu sprezarki}
+            EnginePower = ( 2 * dizel_Mstand + dmoment ) * enrot * ( 2.0 * M_PI / 1000.0 );
+            if( MainCtrlPos > 1 ) {
+                // dodatkowe opory z powodu sprezarki}
+                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax );
+            }
             Mm = dmoment; //bylo * dizel_engage
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;

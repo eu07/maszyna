@@ -947,7 +947,7 @@ public:
 	int DoorOpenMethod = 2;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
     float DoorCloseDelay { 0.f }; // delay (in seconds) before the door begin closing, once conditions to close are met
 	double PlatformSpeed = 0.5;   /*szybkosc stopnia*/
-    double PlatformMaxShift { 45.0 }; /*wysuniecie stopnia*/
+    double PlatformMaxShift { 0.0 }; /*wysuniecie stopnia*/
     int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
     double MirrorMaxShift { 90.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
