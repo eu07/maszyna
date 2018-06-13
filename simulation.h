@@ -36,6 +36,9 @@ public:
         update( double Deltatime, int Iterationcount );
     bool
         deserialize( std::string const &Scenariofile );
+    // stores class data in specified file, in legacy (text) format
+    void
+        export_as_text( std::string const &Scenariofile ) const;
 
 private:
 // methods
@@ -69,6 +72,7 @@ private:
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
+
 };
 
 extern state_manager State;

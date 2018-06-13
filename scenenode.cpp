@@ -142,7 +142,7 @@ shape_node::deserialize( std::istream &Input ) {
 
 // restores content of the node from provided input stream
 shape_node &
-shape_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
+shape_node::import( cParser &Input, scene::node_data const &Nodedata ) {
 
     // import common data
     m_name = Nodedata.name;
@@ -523,7 +523,7 @@ lines_node::deserialize( std::istream &Input ) {
 
 // restores content of the node from provded input stream
 lines_node &
-lines_node::deserialize( cParser &Input, scene::node_data const &Nodedata ) {
+lines_node::import( cParser &Input, scene::node_data const &Nodedata ) {
 
     // import common data
     m_name = Nodedata.name;
@@ -684,11 +684,8 @@ memory_node::deserialize( cParser &Input, node_data const &Nodedata ) {
     memorycell.Load( &Input );
 }
 */
-} // scene
 
 
-
-namespace editor {
 
 basic_node::basic_node( scene::node_data const &Nodedata ) :
     m_name( Nodedata.name )
@@ -700,23 +697,69 @@ basic_node::basic_node( scene::node_data const &Nodedata ) :
             std::numeric_limits<double>::max() );
 }
 
+// sends content of the class to provided stream
+void
+basic_node::serialize( std::ostream &Output ) const {
+    // bounding area
+    m_area.serialize( Output );
+    // visibility
+    sn_utils::ls_float64( Output, m_rangesquaredmin );
+    sn_utils::ls_float64( Output, m_rangesquaredmax );
+    sn_utils::s_bool( Output, m_visible );
+    // name
+    sn_utils::s_str( Output, m_name );
+    // template method implementation
+    serialize_( Output );
+}
+
+// restores content of the class from provided stream
+void
+basic_node::deserialize( std::istream &Input ) {
+    // bounding area
+    m_area.deserialize( Input );
+    // visibility
+    m_rangesquaredmin = sn_utils::ld_float64( Input );
+    m_rangesquaredmax = sn_utils::ld_float64( Input );
+    m_visible = sn_utils::d_bool( Input );
+    // name
+    m_name = sn_utils::d_str( Input );
+    // template method implementation
+    deserialize_( Input );
+}
+
+// sends basic content of the class in legacy (text) format to provided stream
+void
+basic_node::export_as_text( std::ostream &Output ) const {
+
+    Output
+        // header
+        << "node"
+        // visibility
+        << ' ' << ( m_rangesquaredmax < std::numeric_limits<double>::max() ? std::sqrt( m_rangesquaredmax ) : -1 )
+        << ' ' << std::sqrt( m_rangesquaredmin )
+        // name
+        << ' ' << m_name << ' ';
+    // template method implementation
+    export_as_text_( Output );
+}
+
 float const &
 basic_node::radius() {
 
     if( m_area.radius == -1.0 ) {
         // calculate if needed
-        radius_();
+        m_area.radius = radius_();
     }
     return m_area.radius;
 }
 
 // radius() subclass details, calculates node's bounding radius
 // by default nodes are 'virtual don't extend from their center point
-void
+float
 basic_node::radius_() {
     
-    m_area.radius = 0.f;
+    return 0.f;
 }
 
-} // editor
+} // scene
 //---------------------------------------------------------------------------

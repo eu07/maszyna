@@ -18,8 +18,36 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-// 101206 Ra: trapezoidalne drogi
-// 110806 Ra: odwrócone mapowanie wzdłuż - Point1 == 1.0
+// helper, restores content of a 3d vector from provided input stream
+// TODO: review and clean up the helper routines, there's likely some redundant ones
+Math3D::vector3 LoadPoint( cParser &Input ) {
+    // pobranie współrzędnych punktu
+    Input.getTokens( 3 );
+    Math3D::vector3 point;
+    Input
+        >> point.x
+        >> point.y
+        >> point.z;
+
+    return point;
+}
+
+
+void
+segment_data::deserialize( cParser &Input, Math3D::vector3 const &Offset ) {
+
+    points[ segment_data::point::start ] = LoadPoint( Input ) + Offset;
+    Input.getTokens();
+    Input >> rolls[ 0 ];
+    points[ segment_data::point::control1 ] = LoadPoint( Input );
+    points[ segment_data::point::control2 ] = LoadPoint( Input );
+    points[ segment_data::point::end ] = LoadPoint( Input ) + Offset;
+    Input.getTokens( 2 );
+    Input
+        >> rolls[ 1 ]
+        >> radius;
+}
+
 
 TSegment::TSegment(TTrack *owner) :
                    pOwner( owner )
@@ -62,6 +90,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     // poprawienie przechyłki
     fRoll1 = glm::radians(fNewRoll1); // Ra: przeliczone jest bardziej przydatne do obliczeń
     fRoll2 = glm::radians(fNewRoll2);
+    bCurve = bIsCurve;
     if (Global.bRollFix)
     { // Ra: poprawianie przechyłki
         // Przechyłka powinna być na środku wewnętrznej szyny, a standardowo jest w osi
@@ -91,7 +120,6 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
     // kąt w planie, żeby nie liczyć wielokrotnie
     // Ra: ten kąt jeszcze do przemyślenia jest
     fDirection = -std::atan2(Point2.x - Point1.x, Point2.z - Point1.z);
-    bCurve = bIsCurve;
     if (bCurve)
     { // przeliczenie współczynników wielomianu, będzie mniej mnożeń i można policzyć pochodne
         vC = 3.0 * (CPointOut - Point1); // t^1
@@ -99,9 +127,9 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
         vA = Point2 - Point1 - vC - vB; // t^3
         fLength = ComputeLength();
     }
-    else
-        fLength = (Point1 - Point2).Length();
-    fStep = fNewStep;
+    else {
+        fLength = ( Point1 - Point2 ).Length();
+    }
     if (fLength <= 0) {
 
         ErrorLog( "Bad track: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
@@ -111,17 +139,25 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
 */
     }
 
-    if( ( pOwner->eType == tt_Switch )
-     && ( fStep * 3.0 > fLength ) ) {
-        // NOTE: a workaround for too short switches (less than 3 segments) messing up animation/generation of blades
-        fStep = fLength / 3.0;
-    }
-
     fStoop = std::atan2((Point2.y - Point1.y), fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
-    SafeDeleteArray(fTsBuffer);
 
+    fStep = fNewStep;
+    // NOTE: optionally replace this part with the commented version, after solving geometry issues with double switches
+    if( ( pOwner->eType == tt_Switch )
+     && ( fStep * ( 3.0 * Global.SplineFidelity ) > fLength ) ) {
+        // NOTE: a workaround for too short switches (less than 3 segments) messing up animation/generation of blades
+        fStep = fLength / ( 3.0 * Global.SplineFidelity );
+    }
     iSegCount = static_cast<int>( std::ceil( fLength / fStep ) ); // potrzebne do VBO
+/*
+    iSegCount = (
+        pOwner->eType == tt_Switch ?
+            6 * Global.SplineFidelity :
+            static_cast<int>( std::ceil( fLength / fStep ) ) ); // potrzebne do VBO
+*/
     fStep = fLength / iSegCount; // update step to equalize size of individual pieces
+
+    SafeDeleteArray( fTsBuffer );
     fTsBuffer = new double[ iSegCount + 1 ];
     fTsBuffer[ 0 ] = 0.0;
     for( int i = 1; i < iSegCount; ++i ) {

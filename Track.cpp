@@ -343,14 +343,6 @@ void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-Math3D::vector3 LoadPoint(cParser *parser)
-{ // pobranie współrzędnych punktu
-    Math3D::vector3 p;
-    parser->getTokens(3);
-    *parser >> p.x >> p.y >> p.z;
-    return p;
-}
-
 void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
 { // pobranie obiektu trajektorii ruchu
     Math3D::vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
@@ -473,20 +465,44 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         WriteLog("unvis");
     Init(); // ustawia SwitchExtension
     double segsize = 5.0; // długość odcinka segmentowania
-    switch (eType)
-    { // Ra: łuki segmentowane co 5m albo 314-kątem foremnym
-    case tt_Table: // obrotnica jest prawie jak zwykły tor
+
+    // path data
+    // all subtypes contain at least one path
+    m_paths.emplace_back();
+    m_paths.back().deserialize( *parser, pOrigin );
+    switch( eType ) {
+        case tt_Switch:
+        case tt_Cross:
+        case tt_Tributary: {
+            // these subtypes contain additional path
+            m_paths.emplace_back();
+            m_paths.back().deserialize( *parser, pOrigin );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    switch (eType) {
+        // Ra: łuki segmentowane co 5m albo 314-kątem foremnym
+    case tt_Table: {
+        // obrotnica jest prawie jak zwykły tor
         iAction |= 2; // flaga zmiany położenia typu obrotnica
-    case tt_Normal:
-        p1 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P1
-        parser->getTokens();
-        *parser >> r1; // pobranie przechyłki w P1
-        cp1 = LoadPoint(parser); // pobranie współrzędnych punktów kontrolnych
-        cp2 = LoadPoint(parser);
-        p2 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P2
-        parser->getTokens(2);
-        *parser >> r2 >> fRadius; // pobranie przechyłki w P1 i promienia
-        fRadius = fabs(fRadius); // we wpisie może być ujemny
+    }
+    case tt_Normal: {
+        // pobranie współrzędnych P1
+        auto const &path { m_paths[ 0 ] };
+        p1 = path.points[ segment_data::point::start ];
+        // pobranie współrzędnych punktów kontrolnych
+        cp1 = path.points[ segment_data::point::control1 ];
+        cp2 = path.points[ segment_data::point::control2 ];
+        // pobranie współrzędnych P2
+        p2 = path.points[ segment_data::point::end ];
+        r1 = path.rolls[ 0 ];
+        r2 = path.rolls[ 1 ];
+        fRadius = std::abs( path.radius ); // we wpisie może być ujemny
+
         if (iCategoryFlag & 1)
         { // zero na główce szyny
             p1.y += 0.18;
@@ -502,7 +518,11 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
 
         if( fRadius != 0 ) {
             // gdy podany promień
-            segsize = clamp( std::abs( fRadius ) * ( 0.02 / Global.SplineFidelity ), 2.0 / Global.SplineFidelity, 10.0 );
+            segsize =
+                clamp(
+                    std::abs( fRadius ) * ( 0.02 / Global.SplineFidelity ),
+                    2.0 / Global.SplineFidelity,
+                    10.0 / Global.SplineFidelity );
         }
         else {
             // HACK: crude check whether claimed straight is an actual straight piece
@@ -512,7 +532,11 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             }
             else {
                 // HACK: divide roughly in 10 segments. 
-                segsize = clamp( ( p1 - p2 ).Length() * ( 0.1 / Global.SplineFidelity ), 2.0 / Global.SplineFidelity, 10.0 );
+                segsize =
+                    clamp(
+                        ( p1 - p2 ).Length() * 0.1,
+                        2.0 / Global.SplineFidelity,
+                        10.0 / Global.SplineFidelity );
             }
         }
 
@@ -529,6 +553,7 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
 
         if ((r1 != 0) || (r2 != 0))
             iTrapezoid = 1; // są przechyłki do uwzględniania w rysowaniu
+
         if (eType == tt_Table) // obrotnica ma doklejkę
         { // SwitchExtension=new TSwitchExtension(this,1); //dodatkowe zmienne dla obrotnicy
             SwitchExtension->Segments[0]->Init(p1, p2, segsize); // kopia oryginalnego toru
@@ -549,56 +574,92 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
                     fTexRatio2 = w / h; // proporcja boków
             }
         break;
-
-    case tt_Cross: // skrzyżowanie dróg - 4 punkty z wektorami kontrolnymi
-        segsize = 1.0; // specjalne segmentowanie ze względu na małe promienie
+    }
+    case tt_Cross: {
+        // skrzyżowanie dróg - 4 punkty z wektorami kontrolnymi
+//        segsize = 1.0; // specjalne segmentowanie ze względu na małe promienie
+    }
     case tt_Tributary: // dopływ
-    case tt_Switch: // zwrotnica
+    case tt_Switch: { // zwrotnica
         iAction |= 1; // flaga zmiany położenia typu zwrotnica lub skrzyżowanie dróg
         // problemy z animacją iglic powstaje, gdzy odcinek prosty ma zmienną przechyłkę
         // wtedy dzieli się na dodatkowe odcinki (po 0.2m, bo R=0) i animację diabli biorą
         // Ra: na razie nie podejmuję się przerabiania iglic
 
         // SwitchExtension=new TSwitchExtension(this,eType==tt_Cross?6:2); //zwrotnica ma doklejkę
+        auto const &path { m_paths[ 0 ] };
+        p1 = path.points[ segment_data::point::start ];
+        // pobranie współrzędnych punktów kontrolnych
+        cp1 = path.points[ segment_data::point::control1 ];
+        cp2 = path.points[ segment_data::point::control2 ];
+        // pobranie współrzędnych P2
+        p2 = path.points[ segment_data::point::end ];
+        r1 = path.rolls[ 0 ];
+        r2 = path.rolls[ 1 ];
+        fRadiusTable[0] = std::abs( path.radius ); // we wpisie może być ujemny
 
-        p1 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P1
-        parser->getTokens();
-        *parser >> r1;
-        cp1 = LoadPoint(parser);
-        cp2 = LoadPoint(parser);
-        p2 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P2
-        parser->getTokens(2);
-        *parser >> r2 >> fRadiusTable[0];
-        fRadiusTable[0] = fabs(fRadiusTable[0]); // we wpisie może być ujemny
         if (iCategoryFlag & 1)
         { // zero na główce szyny
             p1.y += 0.18;
             p2.y += 0.18;
             // na przechyłce doliczyć jeszcze pół przechyłki?
         }
-        if (fRadiusTable[0] > 0)
-            segsize = clamp( 0.2 + fRadiusTable[0] * 0.02, 2.0, 5.0 );
-        else if (eType != tt_Cross) // dla skrzyżowań muszą być podane kontrolne
-        { // jak promień zerowy, to przeliczamy punkty kontrolne
-            cp1 = (p1 + p1 + p2) / 3.0 - p1; // jak jest prosty, to się zoptymalizuje
-            cp2 = (p1 + p2 + p2) / 3.0 - p2;
-            segsize = 5.0;
-        } // ułomny prosty
 
-        if (!(cp1 == Math3D::vector3(0, 0, 0)) && !(cp2 == Math3D::vector3(0, 0, 0)))
-            SwitchExtension->Segments[0]->Init(p1, p1 + cp1, p2 + cp2, p2, segsize, r1, r2);
-        else
-            SwitchExtension->Segments[0]->Init(p1, p2, segsize, r1, r2);
+        if( eType != tt_Cross ) {
+            // dla skrzyżowań muszą być podane kontrolne
+            if( ( ( ( p1 + p1 + p2 ) / 3.0 - p1 - cp1 ).Length() < 0.02 )
+             || ( ( ( p1 + p2 + p2 ) / 3.0 - p2 + cp1 ).Length() < 0.02 ) ) {
+                // "prostowanie" prostych z kontrolnymi, dokładność 2cm
+                cp1 = cp2 = Math3D::vector3( 0, 0, 0 );
+            }
+        }
 
-        p3 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P3
-        parser->getTokens();
-        *parser >> r3;
-        cp3 = LoadPoint(parser);
-        cp4 = LoadPoint(parser);
-        p4 = LoadPoint(parser) + pOrigin; // pobranie współrzędnych P4
-        parser->getTokens(2);
-        *parser >> r4 >> fRadiusTable[1];
-        fRadiusTable[1] = fabs(fRadiusTable[1]); // we wpisie może być ujemny
+        if( fRadiusTable[ 0 ] != 0 ) {
+            // gdy podany promień
+            segsize =
+                clamp(
+                    std::abs( fRadiusTable[ 0 ] ) * ( 0.02 / Global.SplineFidelity ),
+                    2.0 / Global.SplineFidelity,
+                    10.0 / Global.SplineFidelity );
+        }
+        else {
+            // HACK: crude check whether claimed straight is an actual straight piece
+            if( ( cp1 == Math3D::vector3() )
+             && ( cp2 == Math3D::vector3() ) ) {
+                segsize = 10.0; // for straights, 10m per segment works good enough
+            }
+            else {
+                // HACK: divide roughly in 10 segments. 
+                segsize =
+                    clamp(
+                        ( p1 - p2 ).Length() * 0.1,
+                        2.0 / Global.SplineFidelity,
+                        10.0 / Global.SplineFidelity );
+            }
+        }
+
+        if( ( cp1 == Math3D::vector3( 0, 0, 0 ) )
+         && ( cp2 == Math3D::vector3( 0, 0, 0 ) ) ) {
+            // Ra: hm, czasem dla prostego są podane...
+            // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
+            SwitchExtension->Segments[ 0 ]->Init( p1, p2, segsize, r1, r2 );
+        }
+        else {
+            // gdy łuk (ustawia bCurve=true)
+            SwitchExtension->Segments[ 0 ]->Init( p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2 );
+        }
+
+        auto const &path2 { m_paths[ 1 ] };
+        p3 = path2.points[ segment_data::point::start ];
+        // pobranie współrzędnych punktów kontrolnych
+        cp3 = path2.points[ segment_data::point::control1 ];
+        cp4 = path2.points[ segment_data::point::control2 ];
+        // pobranie współrzędnych P2
+        p4 = path2.points[ segment_data::point::end ];
+        r3 = path2.rolls[ 0 ];
+        r4 = path2.rolls[ 1 ];
+        fRadiusTable[1] = std::abs( path2.radius ); // we wpisie może być ujemny
+
         if (iCategoryFlag & 1)
         { // zero na główce szyny
             p3.y += 0.18;
@@ -606,25 +667,54 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             // na przechyłce doliczyć jeszcze pół przechyłki?
         }
 
-        if (fRadiusTable[1] > 0)
-            segsize = clamp( 0.2 + fRadiusTable[ 1 ] * 0.02, 2.0, 5.0 );
-
-        else if (eType != tt_Cross) // dla skrzyżowań muszą być podane kontrolne
-        { // jak promień zerowy, to przeliczamy punkty kontrolne
-            cp3 = (p3 + p3 + p4) / 3.0 - p3; // jak jest prosty, to się zoptymalizuje
-            cp4 = (p3 + p4 + p4) / 3.0 - p4;
-            segsize = 5.0;
-        } // ułomny prosty
-
-        if (!(cp3 == Math3D::vector3(0, 0, 0)) && !(cp4 == Math3D::vector3(0, 0, 0)))
-        { // dla skrzyżowania dróg dać odwrotnie końce, żeby brzegi generować lewym
-            if (eType != tt_Cross)
-                SwitchExtension->Segments[1]->Init(p3, p3 + cp3, p4 + cp4, p4, segsize, r3, r4);
-            else
-                SwitchExtension->Segments[1]->Init(p4, p4 + cp4, p3 + cp3, p3, segsize, r4, r3); // odwrócony
+        if( eType != tt_Cross ) {
+            // dla skrzyżowań muszą być podane kontrolne
+            if( ( ( ( p3 + p3 + p4 ) / 3.0 - p3 - cp3 ).Length() < 0.02 )
+             || ( ( ( p3 + p4 + p4 ) / 3.0 - p4 + cp3 ).Length() < 0.02 ) ) {
+                // "prostowanie" prostych z kontrolnymi, dokładność 2cm
+                cp3 = cp4 = Math3D::vector3( 0, 0, 0 );
+            }
         }
-        else
-            SwitchExtension->Segments[1]->Init(p3, p4, segsize, r3, r4);
+
+        if( fRadiusTable[ 1 ] != 0 ) {
+            // gdy podany promień
+            segsize =
+                clamp(
+                    std::abs( fRadiusTable[ 1 ] ) * ( 0.02 / Global.SplineFidelity ),
+                    2.0 / Global.SplineFidelity,
+                    10.0 / Global.SplineFidelity );
+        }
+        else {
+            // HACK: crude check whether claimed straight is an actual straight piece
+            if( ( cp3 == Math3D::vector3() )
+             && ( cp4 == Math3D::vector3() ) ) {
+                segsize = 10.0; // for straights, 10m per segment works good enough
+            }
+            else {
+                // HACK: divide roughly in 10 segments. 
+                segsize =
+                    clamp(
+                        ( p3 - p4 ).Length() * 0.1,
+                        2.0 / Global.SplineFidelity,
+                        10.0 / Global.SplineFidelity );
+            }
+        }
+
+        if( ( cp3 == Math3D::vector3( 0, 0, 0 ) )
+         && ( cp4 == Math3D::vector3( 0, 0, 0 ) ) ) {
+            // Ra: hm, czasem dla prostego są podane...
+            // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
+            SwitchExtension->Segments[ 1 ]->Init( p3, p4, segsize, r3, r4 );
+        }
+        else {
+            if( eType != tt_Cross ) {
+                SwitchExtension->Segments[ 1 ]->Init( p3, p3 + cp3, p4 + cp4, p4, segsize, r3, r4 );
+            }
+            else {
+                // dla skrzyżowania dróg dać odwrotnie końce, żeby brzegi generować lewym
+                SwitchExtension->Segments[ 1 ]->Init( p4, p4 + cp4, p3 + cp3, p3, segsize, r4, r3 ); // odwrócony
+            }
+        }
 
         if (eType == tt_Cross)
         { // Ra 2014-07: dla skrzyżowań będą dodatkowe segmenty
@@ -646,10 +736,10 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         {
             Math3D::vector3 v1, v2;
             double a1, a2;
-            v1 = SwitchExtension->Segments[0]->FastGetPoint_1() -
-                 SwitchExtension->Segments[0]->FastGetPoint_0();
-            v2 = SwitchExtension->Segments[1]->FastGetPoint_1() -
-                 SwitchExtension->Segments[1]->FastGetPoint_0();
+            v1 =  SwitchExtension->Segments[0]->FastGetPoint_1()
+                - SwitchExtension->Segments[0]->FastGetPoint_0();
+            v2 =  SwitchExtension->Segments[1]->FastGetPoint_1()
+                - SwitchExtension->Segments[1]->FastGetPoint_0();
             a1 = atan2(v1.x, v1.z);
             a2 = atan2(v2.x, v2.z);
             a2 = a2 - a1;
@@ -660,7 +750,10 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             SwitchExtension->RightSwitch = a2 < 0; // lustrzany układ OXY...
         }
         break;
+        }
     }
+
+    // optional attributes
     parser->getTokens();
     *parser >> token;
     str = token;
@@ -707,9 +800,9 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             parser->getTokens();
             *parser >> fVelocity; //*0.28; McZapkie-010602
             if (SwitchExtension) // jeśli tor ruchomy
-                if (std::fabs(fVelocity) >= 1.0) //żeby zero nie ograniczało dożywotnio
-                    SwitchExtension->fVelocity = static_cast<float>(fVelocity); // zapamiętanie głównego ograniczenia; a
-            // np. -40 ogranicza tylko na bok
+                if (std::abs(fVelocity) >= 1.0) //żeby zero nie ograniczało dożywotnio
+                    // zapamiętanie głównego ograniczenia; a np. -40 ogranicza tylko na bok
+                    SwitchExtension->fVelocity = static_cast<float>(fVelocity);
         }
         else if (str == "isolated")
         { // obwód izolowany, do którego tor należy
@@ -777,20 +870,25 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
 }
 
 // TODO: refactor this mess
-bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit )
 {
     bool bError = false;
 
     if( NewEvent0 == nullptr ) {
         if( false == asEvent0Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEvent0 == nullptr ) {
             evEvent0 = NewEvent0;
+/*
+            // preserve event names, we'll need them if we want the scenario export to be unaffected by missing events and such
             asEvent0Name = "";
+*/
             iEvents |= 1; // sumaryczna informacja o eventach
         }
         else {
@@ -801,14 +899,18 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
 
     if( NewEvent1 == nullptr ) {
         if( false == asEvent1Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEvent1 == nullptr ) {
             evEvent1 = NewEvent1;
+/*
             asEvent1Name = "";
+*/
             iEvents |= 2; // sumaryczna informacja o eventach
         }
         else {
@@ -819,14 +921,18 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
 
     if( NewEvent2 == nullptr ) {
         if( false == asEvent2Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEvent2 == nullptr ) {
             evEvent2 = NewEvent2;
+/*
             asEvent2Name = "";
+*/
             iEvents |= 4; // sumaryczna informacja o eventach
         }
         else {
@@ -838,20 +944,25 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
     return ( bError == false );
 }
 
-bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit)
 {
     bool bError = false;
 
     if( NewEvent0 == nullptr ) {
         if( false == asEventall0Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEventall0 == nullptr ) {
             evEventall0 = NewEvent0;
+/*
+            // preserve event names, we'll need them if we want the scenario export to be unaffected by missing events and such
             asEventall0Name = "";
+*/
             iEvents |= 8; // sumaryczna informacja o eventach
         }
         else {
@@ -862,14 +973,18 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
 
     if( NewEvent1 == nullptr ) {
         if( false == asEventall1Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEventall1 == nullptr ) {
             evEventall1 = NewEvent1;
+/*
             asEventall1Name = "";
+*/
             iEvents |= 16; // sumaryczna informacja o eventach
         }
         else {
@@ -880,14 +995,18 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
 
     if( NewEvent2 == nullptr ) {
         if( false == asEventall2Name.empty() ) {
-            ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
             bError = true;
+            if( true == Explicit ) {
+                ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+            }
         }
     }
     else {
         if( evEventall2 == nullptr ) {
             evEventall2 = NewEvent2;
+/*
             asEventall2Name = "";
+*/
             iEvents |= 32; // sumaryczna informacja o eventach
         }
         else {
@@ -1404,6 +1523,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                          {szyna[ i ].texture.x, 0.f} };
                 }
                 // TODO, TBD: change all track geometry to triangles, to allow packing data in less, larger buffers
+                auto const bladelength { 2 * Global.SplineFidelity };
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                     gfx::vertex_array vertices;
@@ -1412,11 +1532,11 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, 2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, bladelength );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // left blade
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, SwitchExtension->fOffset2 );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1425,11 +1545,11 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                         SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, 2 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, bladelength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // right blade
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -fMaxOffset + SwitchExtension->fOffset1 );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1442,11 +1562,11 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength, 1.0, bladelength ); // prawa szyna za iglicą
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // right blade
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -SwitchExtension->fOffset2 );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -1455,11 +1575,11 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                         SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, nnumPts, fTexLength ); // prawa szyna normalnie cała
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, nnumPts, fTexLength, 1.0, bladelength ); // lewa szyna za iglicą
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                         // left blade
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, fMaxOffset - SwitchExtension->fOffset1 );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
@@ -2220,9 +2340,13 @@ bool TTrack::Switch(int i, float const t, float const d)
             iNextDirection = SwitchExtension->iNextDirection[i];
             iPrevDirection = SwitchExtension->iPrevDirection[i];
             fRadius = fRadiusTable[i]; // McZapkie: wybor promienia toru
-            if (SwitchExtension->fVelocity <=
-                -2) //-1 oznacza maksymalną prędkość, a dalsze ujemne to ograniczenie na bok
+            if( SwitchExtension->fVelocity <= -2 ) {
+                //-1 oznacza maksymalną prędkość, a dalsze ujemne to ograniczenie na bok
                 fVelocity = i ? -SwitchExtension->fVelocity : -1;
+            }
+            else {
+                fVelocity = SwitchExtension->fVelocity;
+            }
             if (SwitchExtension->pOwner ? SwitchExtension->pOwner->RaTrackAnimAdd(this) :
                                           true) // jeśli nie dodane do animacji
             { // nie ma się co bawić
@@ -2455,17 +2579,18 @@ TTrack * TTrack::RaAnimate()
 
             gfx::vertex_array vertices;
 
+            auto const bladelength { 2 * Global.SplineFidelity };
             if (SwitchExtension->RightSwitch)
             { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                 if( m_material1 ) {
                     // left blade
-                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
+                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // right blade
-                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -fMaxOffset + SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
                     vertices.clear();
                 }
@@ -2473,13 +2598,13 @@ TTrack * TTrack::RaAnimate()
             else { // lewa działa lepiej niż prawa
                 if( m_material1 ) {
                     // right blade
-                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
+                    SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // left blade
-                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
+                    SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, fMaxOffset - SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
                     vertices.clear();
                 }
@@ -2659,32 +2784,188 @@ TTrack::endpoints() const {
     }
 }
 
-// calculates path's bounding radius
-void
+// radius() subclass details, calculates node's bounding radius
+float
 TTrack::radius_() {
 
-    auto const points = endpoints();
+    auto const points { endpoints() };
+    auto radius { 0.f };
     for( auto &point : points ) {
-        m_area.radius = std::max(
-            m_area.radius,
+        radius = std::max(
+            radius,
             static_cast<float>( glm::length( m_area.center - point ) ) ); // extra margin to prevent driven vehicle from flicking
     }
+    return radius;
+}
+
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TTrack::serialize_( std::ostream &Output ) const {
+
+    // TODO: implement
+}
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TTrack::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TTrack::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "track ";
+    // type
+    Output << (
+            eType == tt_Normal ? (
+                iCategoryFlag == 1 ? "normal" :
+                iCategoryFlag == 2 ? "road" :
+                iCategoryFlag == 4 ? "river" :
+                "none" ) :
+            eType == tt_Switch ? "switch" :
+            eType == tt_Cross ? "cross" :
+            eType == tt_Table ? "turn" :
+            eType == tt_Tributary ? "tributary" :
+            "none" )
+            << ' ';
+    // basic attributes
+    Output
+        << Length() << ' '
+        << fTrackWidth << ' '
+        << fFriction << ' '
+        << fSoundDistance << ' '
+        << iQualityFlag << ' '
+        << iDamageFlag << ' ';
+    // environment
+    Output << (
+            eEnvironment == e_flat ? "flat" :
+            eEnvironment == e_bridge ? "bridge" :
+            eEnvironment == e_tunnel ? "tunnel" :
+            eEnvironment == e_bank ? "bank" :
+            eEnvironment == e_canyon ? "canyon" :
+            eEnvironment == e_mountains ? "mountains" :
+            "none" )
+            << ' ';
+    // visibility
+    // NOTE: 'invis' would be less wrong than 'unvis', but potentially incompatible with old 3rd party tools
+    Output << ( m_visible ? "vis" : "unvis" ) << ' ';
+    if( m_visible ) {
+        // texture parameters are supplied only if the path is set as visible
+        auto texturefile { (
+            m_material1 != null_handle ?
+            GfxRenderer.Material( m_material1 ).name :
+            "none" ) };
+        if( texturefile.find( szTexturePath ) == 0 ) {
+            // don't include 'textures/' in the path
+            texturefile.erase( 0, std::string{ szTexturePath }.size() );
+        }
+        Output
+            << texturefile << ' '
+            << fTexLength << ' ';
+
+        texturefile = (
+            m_material2 != null_handle ?
+            GfxRenderer.Material( m_material2 ).name :
+            "none" );
+        if( texturefile.find( szTexturePath ) == 0 ) {
+            // don't include 'textures/' in the path
+            texturefile.erase( 0, std::string{ szTexturePath }.size() );
+        }
+        Output << texturefile << ' ';
+
+        Output
+            << (fTexHeight1 - fTexHeightOffset ) * ( ( iCategoryFlag & 4 ) ? -1 : 1 ) << ' '
+            << fTexWidth << ' '
+            << fTexSlope << ' ';
+    }
+    // path data
+    for( auto const &path : m_paths ) {
+        Output
+            << path.points[ segment_data::point::start ].x << ' '
+            << path.points[ segment_data::point::start ].y << ' '
+            << path.points[ segment_data::point::start ].z << ' '
+            << path.rolls[ 0 ] << ' '
+
+            << path.points[ segment_data::point::control1 ].x << ' '
+            << path.points[ segment_data::point::control1 ].y << ' '
+            << path.points[ segment_data::point::control1 ].z << ' '
+
+            << path.points[ segment_data::point::control2 ].x << ' '
+            << path.points[ segment_data::point::control2 ].y << ' '
+            << path.points[ segment_data::point::control2 ].z << ' '
+
+            << path.points[ segment_data::point::end ].x << ' '
+            << path.points[ segment_data::point::end ].y << ' '
+            << path.points[ segment_data::point::end ].z << ' '
+            << path.rolls[ 1 ] << ' '
+
+            << path.radius << ' ';
+    }
+    // optional attributes
+    if( false == asEvent0Name.empty() ) {
+        Output << "event0 " << asEvent0Name << ' ';
+    }
+    if( false == asEvent1Name.empty() ) {
+        Output << "event1 " << asEvent1Name << ' ';
+    }
+    if( false == asEvent2Name.empty() ) {
+        Output << "event2 " << asEvent2Name << ' ';
+    }
+    if( false == asEventall0Name.empty() ) {
+        Output << "eventall0 " << asEventall0Name << ' ';
+    }
+    if( false == asEventall1Name.empty() ) {
+        Output << "eventall1 " << asEventall1Name << ' ';
+    }
+    if( false == asEventall2Name.empty() ) {
+        Output << "eventall2 " << asEventall2Name << ' ';
+    }
+    if( ( SwitchExtension )
+     && ( SwitchExtension->fVelocity != -1.0 ) ) {
+        Output << "velocity " << SwitchExtension->fVelocity << ' ';
+    }
+    else {
+        if( fVelocity != -1.0 ) {
+            Output << "velocity " << fVelocity << ' ';
+        }
+    }
+    if( pIsolated ) {
+        Output << "isolated " << pIsolated->asName << ' ';
+    }
+    if( fOverhead != -1.0 ) {
+        Output << "overhead " << fOverhead << ' ';
+    }
+    // footer
+    Output
+        << "endtrack"
+        << "\n";
 }
 
 void TTrack::MovedUp1(float const dh)
 { // poprawienie przechyłki wymaga wydłużenia podsypki
     fTexHeight1 += dh;
+    fTexHeightOffset += dh;
 };
 
-void TTrack::VelocitySet(float v)
-{ // ustawienie prędkości z ograniczeniem do pierwotnej wartości (zapisanej w scenerii)
-    if (SwitchExtension ? SwitchExtension->fVelocity >= 0.0 : false)
-    { // zwrotnica może mieć odgórne ograniczenie, nieprzeskakiwalne eventem
-        if (v > SwitchExtension->fVelocity ? true : v < 0.0)
-            return void(fVelocity =
-                            SwitchExtension->fVelocity); // maksymalnie tyle, ile było we wpisie
+// ustawienie prędkości z ograniczeniem do pierwotnej wartości (zapisanej w scenerii)
+void TTrack::VelocitySet(float v) {
+    // TBD, TODO: add a variable to preserve potential speed limit set by the track configuration on basic track pieces
+    if( ( SwitchExtension )
+     && ( SwitchExtension->fVelocity != -1 ) ) {
+        // zwrotnica może mieć odgórne ograniczenie, nieprzeskakiwalne eventem
+        fVelocity =
+            min_speed<float>(
+                v,
+                ( SwitchExtension->fVelocity > 0 ?
+                    SwitchExtension->fVelocity : // positive limit applies to both switch tracks
+                    ( SwitchExtension->CurrentIndex == 0 ?
+                        -1 : // negative limit applies only to the diverging track
+                        -SwitchExtension->fVelocity ) ) );
     }
-    fVelocity = v; // nie ma ograniczenia
+    else {
+        fVelocity = v; // nie ma ograniczenia
+    }
 };
 
 double TTrack::VelocityGet()
@@ -2800,11 +3081,13 @@ path_table::InitTracks() {
             track->AssignEvents(
                 simulation::Events.FindEvent( trackname + ":event0" ),
                 simulation::Events.FindEvent( trackname + ":event1" ),
-                simulation::Events.FindEvent( trackname + ":event2" ) );
+                simulation::Events.FindEvent( trackname + ":event2" ),
+                false );
             track->AssignallEvents(
                 simulation::Events.FindEvent( trackname + ":eventall0" ),
                 simulation::Events.FindEvent( trackname + ":eventall1" ),
-                simulation::Events.FindEvent( trackname + ":eventall2" ) );
+                simulation::Events.FindEvent( trackname + ":eventall2" ),
+                false );
         }
 
         switch (track->eType) {
@@ -2948,6 +3231,8 @@ path_table::InitTracks() {
             scene::node_data nodedata;
             nodedata.name = isolated->asName;
             auto *memorycell = new TMemCell( nodedata ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
+            // NOTE: autogenerated cells aren't exported; they'll be autogenerated anew when exported file is loaded
+            memorycell->is_exportable = false;
             simulation::Memory.insert( memorycell );
             isolated->pMemCell = memorycell; // wskaźnik komóki przekazany do odcinka izolowanego
         }

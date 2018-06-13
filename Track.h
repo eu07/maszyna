@@ -124,7 +124,7 @@ private:
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack : public editor::basic_node {
+class TTrack : public scene::basic_node {
 
     friend class opengl_renderer;
 
@@ -142,6 +142,7 @@ private:
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexHeight1 = 0.6f; // wysokość brzegu względem trajektorii
+    float fTexHeightOffset = 0.f; // potential adjustment to account for the path roll
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
 
@@ -151,6 +152,8 @@ private:
     typedef std::vector<gfx::geometry_handle> geometryhandle_sequence;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
+
+    std::vector<segment_data> m_paths; // source data for owned paths
 
 public:
     typedef std::deque<TDynamicObject *> dynamics_sequence;
@@ -231,8 +234,8 @@ public:
                 SwitchExtension->iRoads - 1 :
                 1 ); }
     void Load(cParser *parser, Math3D::vector3 pOrigin);
-    bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
-    bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
+    bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit = true );
+    bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit = true );
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
@@ -270,10 +273,16 @@ public:
     double VelocityGet();
     void ConnectionsLog();
 
-protected:
-    // calculates path's bounding radius
-    void
-        radius_();
+private:
+    // radius() subclass details, calculates node's bounding radius
+    float radius_();
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
 };
 
 

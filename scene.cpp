@@ -228,6 +228,17 @@ basic_cell::deserialize( std::istream &Input ) {
      || ( false == m_lines.empty() ) );
 }
 
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_cell::export_as_text( std::ostream &Output ) const {
+
+    // text format export dumps only relevant basic objects
+    // sounds
+    for( auto const *sound : m_sounds ) {
+        sound->export_as_text( Output );
+    }
+}
+
 // adds provided shape to the cell
 void
 basic_cell::insert( shape_node Shape ) {
@@ -530,7 +541,7 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
 // adjusts cell bounding area to enclose specified node
 void
-basic_cell::enclose_area( editor::basic_node *Node ) {
+basic_cell::enclose_area( scene::basic_node *Node ) {
 
     m_area.radius = std::max(
         m_area.radius,
@@ -642,6 +653,16 @@ basic_section::deserialize( std::istream &Input ) {
     // partitioned data
     for( auto &cell : m_cells ) {
         cell.deserialize( Input );
+    }
+}
+
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_section::export_as_text( std::ostream &Output ) const {
+
+    // text format export dumps only relevant basic objects from non-empty cells
+    for( auto const &cell : m_cells ) {
+        cell.export_as_text( Output );
     }
 }
 
@@ -947,6 +968,18 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     }
 
     return true;
+}
+
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_region::export_as_text( std::ostream &Output ) const {
+
+    for( auto *section : m_sections ) {
+        // text format export dumps only relevant basic objects from non-empty sections
+        if( section != nullptr ) {
+            section->export_as_text( Output );
+        }
+    }
 }
 
 // legacy method, links specified path piece with potential neighbours

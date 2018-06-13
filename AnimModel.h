@@ -122,7 +122,7 @@ class TAnimAdvanced
 };
 
 // opakowanie modelu, określające stan egzemplarza
-class TAnimModel : public editor::basic_node {
+class TAnimModel : public scene::basic_node {
 
     friend class opengl_renderer;
 
@@ -133,15 +133,12 @@ public:
     ~TAnimModel();
 // methods
     static void AnimUpdate( double dt );
-    bool Init(TModel3d *pNewModel);
     bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
     void RaAnglesSet( glm::vec3 Angles ) {
-        vAngle.x = Angles.x;
-        vAngle.y = Angles.y;
-        vAngle.z = Angles.z; };
+        vAngle = { Angles }; };
     void LightSet( int const n, float const v );
     void AnimationVND( void *pData, double a, double b, double c, double d );
     bool TerrainLoaded();
@@ -159,16 +156,20 @@ public:
 // members
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
 
-protected:
-    // calculates piece's bounding radius
-    void
-        radius_();
-
 private:
 // methods
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
     void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
     void Advanced();
+    // radius() subclass details, calculates node's bounding radius
+    float radius_();
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
 // members
     TAnimContainer *pRoot { nullptr }; // pojemniki sterujące, tylko dla aniomowanych submodeli
     TModel3d *pModel { nullptr };

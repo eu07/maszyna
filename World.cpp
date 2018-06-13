@@ -311,49 +311,47 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
 void TWorld::OnKeyDown(int cKey) {
     // dump keypress info in the log
-    if( !Global.iPause ) {
-        // podczas pauzy klawisze nie działają
-        std::string keyinfo;
-        auto keyname = glfwGetKeyName( cKey, 0 );
-        if( keyname != nullptr ) {
-            keyinfo += std::string( keyname );
-        }
-        else {
-            switch( cKey ) {
+    // podczas pauzy klawisze nie działają
+    std::string keyinfo;
+    auto keyname = glfwGetKeyName( cKey, 0 );
+    if( keyname != nullptr ) {
+        keyinfo += std::string( keyname );
+    }
+    else {
+        switch( cKey ) {
 
-                case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
-                case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
-                case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
-                case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
-                case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
-                case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
-                case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
-                case GLFW_KEY_END: { keyinfo += "End"; break; }
-                case GLFW_KEY_F1: { keyinfo += "F1"; break; }
-                case GLFW_KEY_F2: { keyinfo += "F2"; break; }
-                case GLFW_KEY_F3: { keyinfo += "F3"; break; }
-                case GLFW_KEY_F4: { keyinfo += "F4"; break; }
-                case GLFW_KEY_F5: { keyinfo += "F5"; break; }
-                case GLFW_KEY_F6: { keyinfo += "F6"; break; }
-                case GLFW_KEY_F7: { keyinfo += "F7"; break; }
-                case GLFW_KEY_F8: { keyinfo += "F8"; break; }
-                case GLFW_KEY_F9: { keyinfo += "F9"; break; }
-                case GLFW_KEY_F10: { keyinfo += "F10"; break; }
-                case GLFW_KEY_F11: { keyinfo += "F11"; break; }
-                case GLFW_KEY_F12: { keyinfo += "F12"; break; }
-                case GLFW_KEY_PAUSE: { keyinfo += "Pause"; break; }
-            }
+            case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
+            case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
+            case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
+            case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
+            case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
+            case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
+            case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
+            case GLFW_KEY_END: { keyinfo += "End"; break; }
+            case GLFW_KEY_F1: { keyinfo += "F1"; break; }
+            case GLFW_KEY_F2: { keyinfo += "F2"; break; }
+            case GLFW_KEY_F3: { keyinfo += "F3"; break; }
+            case GLFW_KEY_F4: { keyinfo += "F4"; break; }
+            case GLFW_KEY_F5: { keyinfo += "F5"; break; }
+            case GLFW_KEY_F6: { keyinfo += "F6"; break; }
+            case GLFW_KEY_F7: { keyinfo += "F7"; break; }
+            case GLFW_KEY_F8: { keyinfo += "F8"; break; }
+            case GLFW_KEY_F9: { keyinfo += "F9"; break; }
+            case GLFW_KEY_F10: { keyinfo += "F10"; break; }
+            case GLFW_KEY_F11: { keyinfo += "F11"; break; }
+            case GLFW_KEY_F12: { keyinfo += "F12"; break; }
+            case GLFW_KEY_PAUSE: { keyinfo += "Pause"; break; }
         }
-        if( keyinfo.empty() == false ) {
+    }
+    if( keyinfo.empty() == false ) {
 
-            std::string keymodifiers;
-            if( Global.shiftState )
-                keymodifiers += "[Shift]+";
-            if( Global.ctrlState )
-                keymodifiers += "[Ctrl]+";
+        std::string keymodifiers;
+        if( Global.shiftState )
+            keymodifiers += "[Shift]+";
+        if( Global.ctrlState )
+            keymodifiers += "[Ctrl]+";
 
-            WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
-        }
+        WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
     }
 
     // actual key processing
@@ -501,6 +499,14 @@ void TWorld::OnKeyDown(int cKey) {
                             glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                         }
                     }
+                }
+                break;
+            }
+            case GLFW_KEY_F11: {
+                // scenery export
+                if( Global.ctrlState
+                 && Global.shiftState ) {
+                    simulation::State.export_as_text( Global.SceneryFile );
                 }
                 break;
             }

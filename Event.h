@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 enum TEventType {
     tp_Unknown,
     tp_Sound,
-    tp_SoundPos,
     tp_Exit,
     tp_Disable,
     tp_Velocity,
@@ -31,7 +30,6 @@ enum TEventType {
     tp_TrackVel,
     tp_Multiple,
     tp_AddValues,
-//    tp_Ignored, // NOTE: refactored to separate flag
     tp_CopyValues,
     tp_WhoIs,
     tp_LogValues,
@@ -61,7 +59,7 @@ union TParam
 {
     void *asPointer;
     TMemCell *asMemCell;
-    editor::basic_node *asEditorNode;
+    scene::basic_node *asSceneNode;
     glm::dvec3 const *asLocation;
     TTrack *asTrack;
     TAnimModel *asModel;
@@ -103,6 +101,9 @@ public:
     TEvent(std::string const &m = "");
     ~TEvent();
     void Load(cParser *parser, Math3D::vector3 const &org);
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     static void AddToQuery( TEvent *Event, TEvent *&Start );
     std::string CommandGet();
     TCommandType Command();
@@ -151,6 +152,9 @@ public:
     // legacy method, initializes event launchers after deserialization from scenario file
     void
         InitLaunchers();
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
 
 private:
 // types

@@ -112,7 +112,7 @@ public:
         deserialize( std::istream &Input );
     // restores content of the node from provided input stream
     shape_node &
-        deserialize( cParser &Input, scene::node_data const &Nodedata );
+        import( cParser &Input, scene::node_data const &Nodedata );
     // imports data from provided submodel
     shape_node &
         convert( TSubModel const *Submodel );
@@ -201,7 +201,7 @@ public:
         deserialize( std::istream &Input );
     // restores content of the node from provided input stream
     lines_node &
-        deserialize( cParser &Input, scene::node_data const &Nodedata );
+        import( cParser &Input, scene::node_data const &Nodedata );
     // adds content of provided node to already enclosed geometry. returns: true if merge could be performed
     bool
         merge( lines_node &Lines );
@@ -295,11 +295,8 @@ private:
     TTrack * m_path;
 };
 */
-} // scene
 
 
-
-namespace editor {
 
 // base interface for nodes which can be actvated in scenario editor
 struct basic_node {
@@ -310,6 +307,15 @@ public:
 // destructor
     virtual ~basic_node() = default;
 // methods
+    // sends content of the class to provided stream
+    void
+        serialize( std::ostream &Output ) const;
+    // restores content of the class from provided stream
+    void
+        deserialize( std::istream &Input );
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     std::string const &
         name() const;
     void
@@ -324,15 +330,23 @@ public:
         visible() const;
 
 protected:
-// methods
-    // radius() subclass details, calculates node's bounding radius
-    virtual void radius_();
 // members
     scene::bounding_area m_area;
-    bool m_visible { true };
     double m_rangesquaredmin { 0.0 }; // visibility range, min
     double m_rangesquaredmax { 0.0 }; // visibility range, max
+    bool m_visible { true }; // visibility flag
     std::string m_name;
+
+private:
+// methods
+    // radius() subclass details, calculates node's bounding radius
+    virtual float radius_();
+    // serialize() subclass details, sends content of the subclass to provided stream
+    virtual void serialize_( std::ostream &Output ) const = 0;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    virtual void deserialize_( std::istream &Input ) = 0;
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    virtual void export_as_text_( std::ostream &Output ) const = 0;
 };
 
 inline
@@ -365,6 +379,6 @@ basic_node::visible() const {
     return m_visible;
 }
 
-} // editor
+} // scene
 
 //---------------------------------------------------------------------------

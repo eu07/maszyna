@@ -293,6 +293,43 @@ sound_source::deserialize_soundset( cParser &Input ) {
     }
 }
 
+// sends content of the class in legacy (text) format to provided stream
+// NOTE: currently exports only the main sound
+void
+sound_source::export_as_text( std::ostream &Output ) const {
+
+    if( sound( sound_id::main ).buffer == null_handle ) { return;  }
+
+    // generic node header
+    Output
+        << "node "
+        // visibility
+        << m_range << ' '
+        << 0 << ' '
+        // name
+        << m_name << ' ';
+    // sound node header
+    Output
+        << "sound ";
+    // location
+    Output
+        << m_offset.x << ' '
+        << m_offset.y << ' '
+        << m_offset.z << ' ';
+    // sound data
+    auto soundfile { audio::renderer.buffer( sound( sound_id::main ).buffer ).name };
+    if( soundfile.find( szSoundPath ) == 0 ) {
+        // don't include 'sounds/' in the path
+        soundfile.erase( 0, std::string{ szSoundPath }.size() );
+    }
+    Output
+        << soundfile << ' ';
+    // footer
+    Output
+        << "endsound"
+        << "\n";
+}
+
 // copies list of sounds from provided source
 sound_source &
 sound_source::copy_sounds( sound_source const &Source ) {

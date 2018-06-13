@@ -423,13 +423,6 @@ TAnimModel::~TAnimModel()
     SafeDelete(pRoot);
 }
 
-bool TAnimModel::Init(TModel3d *pNewModel)
-{
-    fBlinkTimer = double(Random(1000 * fOffTime)) / (1000 * fOffTime);
-    pModel = pNewModel;
-    return (pModel != nullptr);
-}
-
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
     if( asReplacableTexture.substr( 0, 1 ) == "*" ) {
@@ -445,17 +438,21 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         m_materialdata.textures_alpha = 0x31310031;
     }
     else{
-        // tekstura nieprzezroczysta - nie renderować w cyklu
+        // tekstura nieprzezroczysta - nie renderować w cyklu przezroczystych
         m_materialdata.textures_alpha = 0x30300030;
     }
-    // przezroczystych
-    return (Init(TModelsManager::GetModel(asName)));
+    
+    fBlinkTimer = double( Random( 1000 * fOffTime ) ) / ( 1000 * fOffTime );
+
+    pModel = TModelsManager::GetModel( asName );
+    return ( pModel != nullptr );
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
 	std::string name = parser->getToken<std::string>();
-    std::string texture = parser->getToken<std::string>(false); // tekstura (zmienia na małe)
+    std::string texture = parser->getToken<std::string>(); // tekstura (zmienia na małe)
+    replace_slashes( name );
     if (!Init( name, texture ))
     {
         if (name != "notload")
@@ -504,7 +501,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 		while( ( token != "" )
 			&& ( token != "endmodel" ) ) {
 
-			LightSet( i, std::stod( token ) ); // stan światła jest liczbą z ułamkiem
+			LightSet( i, std::stof( token ) ); // stan światła jest liczbą z ułamkiem
             ++i;
 
 			token = "";
@@ -563,15 +560,6 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
     m_framestamp = Framestamp;
 };
 
-// calculates piece's bounding radius
-void
-TAnimModel::radius_() {
-
-    if( pModel != nullptr ) {
-        m_area.radius = pModel->bounding_radius();
-    }
-}
-
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
     bool state; // stan światła
@@ -584,7 +572,11 @@ void TAnimModel::RaPrepare()
             state = ( fBlinkTimer < fOnTime );
             break;
         case ls_Dark: // zapalone, gdy ciemno
-            state = ( Global.fLuminance <= ( lsLights[i] - 3.0 ) );
+            state = (
+                Global.fLuminance <= (
+                    lsLights[i] == 3.f ?
+                        DefaultDarkThresholdLevel :
+                        ( lsLights[i] - 3.f ) ) );
             break;
         default: // zapalony albo zgaszony
             state = (lightmode == ls_On);
@@ -780,15 +772,17 @@ void TAnimModel::LightSet(int const n, float const v)
         }
         case ls_Dark: {
             // zapalenie świateł zależne od oświetlenia scenerii
-            if( v == 3.0 ) {
+/*
+            if( v == 3.f ) {
                 // standardowy próg zaplania
-                lsLights[ n ] = 3.0 + DefaultDarkThresholdLevel;
+                lsLights[ n ] = 3.f + DefaultDarkThresholdLevel;
             } 
+*/
             break;
         }
     }
 };
-//---------------------------------------------------------------------------
+
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
     TAnimContainer *p = TAnimModel::acAnimList;
@@ -798,4 +792,72 @@ void TAnimModel::AnimUpdate(double dt)
         p = p->acAnimNext; // na razie bez usuwania z listy, bo głównie obrotnica na nią wchodzi
     }
 };
+
+// radius() subclass details, calculates node's bounding radius
+float
+TAnimModel::radius_() {
+
+    return (
+        pModel ?
+            pModel->bounding_radius() :
+            0.f );
+}
+
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TAnimModel::serialize_( std::ostream &Output ) const {
+    
+    // TODO: implement
+}
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TAnimModel::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TAnimModel::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "model ";
+    // location and rotation
+    Output
+        << location().x << ' '
+        << location().y << ' '
+        << location().z << ' '
+        << vAngle.y << ' ';
+    // 3d shape
+    auto modelfile { (
+        pModel ?
+            pModel->NameGet() + ".t3d" : // rainsted requires model file names to include an extension
+            "none" ) };
+    if( modelfile.find( szModelPath ) == 0 ) {
+        // don't include 'models/' in the path
+        modelfile.erase( 0, std::string{ szModelPath }.size() );
+    }
+    Output << modelfile << ' ';
+    // texture
+    auto texturefile { (
+        m_materialdata.replacable_skins[ 1 ] != null_handle ?
+            GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).name :
+            "none" ) };
+    if( texturefile.find( szTexturePath ) == 0 ) {
+        // don't include 'textures/' in the path
+        texturefile.erase( 0, std::string{ szTexturePath }.size() );
+    }
+    Output << texturefile << ' ';
+    // light submodels activation configuration
+    if( iNumLights > 0 ) {
+        Output << "lights ";
+        for( int lightidx = 0; lightidx < iNumLights; ++lightidx ) {
+            Output << lsLights[ lightidx ] << ' ';
+        }
+    }
+    // footer
+    Output
+        << "endmodel"
+        << "\n";
+}
+
 //---------------------------------------------------------------------------

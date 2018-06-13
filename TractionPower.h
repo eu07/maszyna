@@ -13,9 +13,33 @@ http://mozilla.org/MPL/2.0/.
 #include "scenenode.h"
 #include "names.h"
 
-class TTractionPowerSource : public editor::basic_node {
+class TTractionPowerSource : public scene::basic_node {
 
-  private:
+public:
+// constructor
+    TTractionPowerSource( scene::node_data const &Nodedata );
+// methods
+    void Init(double const u, double const i);
+    bool Load(cParser *parser);
+    bool Update(double dt);
+    double CurrentGet(double res);
+    void VoltageSet(double const v) {
+        NominalVoltage = v; };
+    void PowerSet(TTractionPowerSource *ps);
+// members
+    TTractionPowerSource *psNode[ 2 ] = { nullptr, nullptr }; // zasilanie na końcach dla sekcji
+    bool bSection = false; // czy jest sekcją
+
+private:
+// methods
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
+// members
     double NominalVoltage = 0.0;
     double VoltageFrequency = 0.0;
     double InternalRes = 0.2;
@@ -34,20 +58,6 @@ class TTractionPowerSource : public editor::basic_node {
     double FuseTimer = 0.0;
     int FuseCounter = 0;
 
-public:
-    // zmienne publiczne
-    TTractionPowerSource *psNode[ 2 ] = { nullptr, nullptr }; // zasilanie na końcach dla sekcji
-    bool bSection = false; // czy jest sekcją
-
-    TTractionPowerSource( scene::node_data const &Nodedata );
-
-    void Init(double const u, double const i);
-    bool Load(cParser *parser);
-    bool Update(double dt);
-    double CurrentGet(double res);
-    void VoltageSet(double const v) {
-        NominalVoltage = v; };
-    void PowerSet(TTractionPowerSource *ps);
 };
 
 

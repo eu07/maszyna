@@ -88,6 +88,9 @@ public:
     // restores content of the class from provided stream
     void
         deserialize( std::istream &Input );
+    // sends content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     // adds provided shape to the cell
     void
         insert( shape_node Shape );
@@ -149,7 +152,7 @@ private:
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
 // methods
     void
-        enclose_area( editor::basic_node *Node );
+        enclose_area( scene::basic_node *Node );
 // members
     scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE ) };
     bool m_active { false }; // whether the cell holds any actual data
@@ -199,6 +202,9 @@ public:
     // restores content of the class from provided stream
     void
         deserialize( std::istream &Input );
+    // sends content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     // adds provided shape to the section
     void
         insert( shape_node Shape );
@@ -289,6 +295,9 @@ public:
     // restores content of the class from file with specified name. returns: true on success, false otherwise
     bool
         deserialize( std::string const &Scenariofile );
+    // sends content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     // legacy method, links specified path piece with potential neighbours
     void
         TrackJoin( TTrack *Track );

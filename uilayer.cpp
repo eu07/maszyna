@@ -98,6 +98,7 @@ ui_layer::on_key( int const Key, int const Action ) {
         case GLFW_KEY_F8:
         case GLFW_KEY_F9:
         case GLFW_KEY_F10:
+        case GLFW_KEY_F11:
         case GLFW_KEY_F12: { // ui mode selectors
 
             if( ( true == Global.ctrlState )

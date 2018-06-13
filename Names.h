@@ -60,5 +60,8 @@ public:
     type_sequence &
         sequence() {
             return m_items; }
+    type_sequence const &
+        sequence() const {
+            return m_items; }
 
 };
