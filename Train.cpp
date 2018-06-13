@@ -4345,7 +4345,7 @@ bool TTrain::Update( double const Deltatime )
 
         tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
-        float maxtacho = 3;
+        auto const maxtacho { 3.0 };
         fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
         { // skacze osobna zmienna
             float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
@@ -4361,12 +4361,12 @@ bool TTrain::Update( double const Deltatime )
         }
         if (fTachoVelocity > 1) // McZapkie-270503: podkrecanie tachometru
         {
-            if (fTachoCount < maxtacho)
-                fTachoCount += Deltatime * 3; // szybciej zacznij stukac
+            // szybciej zacznij stukac
+            fTachoCount = std::min( maxtacho, fTachoCount + Deltatime * 3 );
         }
         else if( fTachoCount > 0 ) {
             // schodz powoli - niektore haslery to ze 4 sekundy potrafia stukac
-            fTachoCount -= Deltatime * 0.66;
+            fTachoCount = std::max( 0.0, fTachoCount - Deltatime * 0.66 );
         }
 
         // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys

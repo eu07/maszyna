@@ -6559,11 +6559,12 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 std::max( goalvolume, currentvolume - changerate ) :
                 std::min( goalvolume, currentvolume + changerate ) );
 
+        engine_turbo
+            .pitch( 0.4 + engine_turbo_pitch * 0.4 )
+            .gain( volume );
+
         if( volume > 0.05 ) {
-            engine_turbo
-                .pitch( 0.4 + engine_turbo_pitch * 0.4 )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
+            engine_turbo.play( sound_flags::exclusive | sound_flags::looping );
         }
         else {
             engine_turbo.stop();
@@ -6597,7 +6598,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( ( true == Vehicle.Mains )
      && ( false == motors.empty() ) ) {
 
-        if( std::fabs( Vehicle.enrot ) > 0.01 ) {
+        if( std::abs( Vehicle.enrot ) > 0.01 ) {
 
             auto const &motor { motors.front() };
             // frequency calculation

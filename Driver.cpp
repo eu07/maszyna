@@ -4783,7 +4783,7 @@ TController::UpdateSituation(double dt) {
 						}
 						else {
                             // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-                            if( ( std::max( 75.0, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                            if( ( std::max( 100.0, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
                                 // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
                                 // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
                                 auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
