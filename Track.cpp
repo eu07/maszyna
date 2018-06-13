@@ -763,37 +763,37 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         {
             parser->getTokens();
             *parser >> token;
-            asEvent0Name = token;
+            m_events0.emplace_back( token, nullptr );
         }
         else if (str == "event1")
         {
             parser->getTokens();
             *parser >> token;
-            asEvent1Name = token;
+            m_events1.emplace_back( token, nullptr );
         }
         else if (str == "event2")
         {
             parser->getTokens();
             *parser >> token;
-			asEvent2Name = token;
+            m_events2.emplace_back( token, nullptr );
         }
         else if (str == "eventall0")
         {
             parser->getTokens();
             *parser >> token;
-			asEventall0Name = token;
+            m_events0all.emplace_back( token, nullptr );
         }
         else if (str == "eventall1")
         {
             parser->getTokens();
             *parser >> token;
-			asEventall1Name = token;
+            m_events1all.emplace_back( token, nullptr );
         }
         else if (str == "eventall2")
         {
             parser->getTokens();
             *parser >> token;
-			asEventall2Name = token;
+            m_events2all.emplace_back( token, nullptr );
         }
         else if (str == "velocity")
         {
@@ -869,153 +869,44 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         / 3.0 } );
 }
 
-// TODO: refactor this mess
-bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit )
-{
-    bool bError = false;
+bool TTrack::AssignEvents() {
 
-    if( NewEvent0 == nullptr ) {
-        if( false == asEvent0Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+    bool lookupfail { false };
+
+    std::vector< std::pair< std::string, event_sequence * > > const eventsequences {
+        { "event0", &m_events0 }, { "eventall0", &m_events0all },
+        { "event1", &m_events1 }, { "eventall1", &m_events1all },
+        { "event2", &m_events2 }, { "eventall2", &m_events2all } };
+
+    for( auto &eventsequence : eventsequences ) {
+        for( auto &event : *( eventsequence.second ) ) {
+            event.second = simulation::Events.FindEvent( event.first );
+            if( event.second != nullptr ) {
+                m_events = true;
+            }
+            else {
+                ErrorLog( "Bad event: event \"" + event.first + "\" assigned to track \"" + m_name + "\" does not exist" );
+                lookupfail = true;
             }
         }
     }
-    else {
-        if( evEvent0 == nullptr ) {
-            evEvent0 = NewEvent0;
-/*
-            // preserve event names, we'll need them if we want the scenario export to be unaffected by missing events and such
-            asEvent0Name = "";
-*/
-            iEvents |= 1; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
 
-    if( NewEvent1 == nullptr ) {
-        if( false == asEvent1Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
+    auto const trackname { name() };
+
+    if( ( Global.iHiddenEvents & 1 )
+     && ( false == trackname.empty() ) ) {
+        // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
+        for( auto &eventsequence : eventsequences ) {
+            auto *event = simulation::Events.FindEvent( trackname + ':' + eventsequence.first );
+            if( event != nullptr ) {
+                // HACK: auto-associated events come with empty lookup string, to avoid including them in the text format export
+                eventsequence.second->emplace_back( "", event );
+                m_events = true;
             }
         }
     }
-    else {
-        if( evEvent1 == nullptr ) {
-            evEvent1 = NewEvent1;
-/*
-            asEvent1Name = "";
-*/
-            iEvents |= 2; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
 
-    if( NewEvent2 == nullptr ) {
-        if( false == asEvent2Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
-            }
-        }
-    }
-    else {
-        if( evEvent2 == nullptr ) {
-            evEvent2 = NewEvent2;
-/*
-            asEvent2Name = "";
-*/
-            iEvents |= 4; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
-
-    return ( bError == false );
-}
-
-bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit)
-{
-    bool bError = false;
-
-    if( NewEvent0 == nullptr ) {
-        if( false == asEventall0Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + m_name + "\" does not exist" );
-            }
-        }
-    }
-    else {
-        if( evEventall0 == nullptr ) {
-            evEventall0 = NewEvent0;
-/*
-            // preserve event names, we'll need them if we want the scenario export to be unaffected by missing events and such
-            asEventall0Name = "";
-*/
-            iEvents |= 8; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
-
-    if( NewEvent1 == nullptr ) {
-        if( false == asEventall1Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + m_name + "\" does not exist" );
-            }
-        }
-    }
-    else {
-        if( evEventall1 == nullptr ) {
-            evEventall1 = NewEvent1;
-/*
-            asEventall1Name = "";
-*/
-            iEvents |= 16; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
-
-    if( NewEvent2 == nullptr ) {
-        if( false == asEventall2Name.empty() ) {
-            bError = true;
-            if( true == Explicit ) {
-                ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + m_name + "\" does not exist" );
-            }
-        }
-    }
-    else {
-        if( evEventall2 == nullptr ) {
-            evEventall2 = NewEvent2;
-/*
-            asEventall2Name = "";
-*/
-            iEvents |= 32; // sumaryczna informacja o eventach
-        }
-        else {
-            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
-            bError = true;
-        }
-    }
-
-    return ( bError == false );
+    return ( lookupfail == false );
 }
 
 bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
@@ -2903,23 +2794,19 @@ TTrack::export_as_text_( std::ostream &Output ) const {
             << path.radius << ' ';
     }
     // optional attributes
-    if( false == asEvent0Name.empty() ) {
-        Output << "event0 " << asEvent0Name << ' ';
-    }
-    if( false == asEvent1Name.empty() ) {
-        Output << "event1 " << asEvent1Name << ' ';
-    }
-    if( false == asEvent2Name.empty() ) {
-        Output << "event2 " << asEvent2Name << ' ';
-    }
-    if( false == asEventall0Name.empty() ) {
-        Output << "eventall0 " << asEventall0Name << ' ';
-    }
-    if( false == asEventall1Name.empty() ) {
-        Output << "eventall1 " << asEventall1Name << ' ';
-    }
-    if( false == asEventall2Name.empty() ) {
-        Output << "eventall2 " << asEventall2Name << ' ';
+    std::vector< std::pair< std::string, event_sequence const * > > const eventsequences {
+        { "event0", &m_events0 }, { "eventall0", &m_events0all },
+        { "event1", &m_events1 }, { "eventall1", &m_events1all },
+        { "event2", &m_events2 }, { "eventall2", &m_events2all } };
+
+    for( auto &eventsequence : eventsequences ) {
+        for( auto &event : *( eventsequence.second ) ) {
+            if( false == event.first.empty() ) {
+                Output
+                    << eventsequence.first << ' '
+                    << event.first << ' ';
+            }
+        }
     }
     if( ( SwitchExtension )
      && ( SwitchExtension->fVelocity != -1.0 ) ) {
@@ -3063,32 +2950,9 @@ path_table::InitTracks() {
     for( auto first = std::rbegin(m_items); first != std::rend(m_items); ++first ) {
         auto *track = *first;
 #endif
-
-        track->AssignEvents(
-            simulation::Events.FindEvent( track->asEvent0Name ),
-            simulation::Events.FindEvent( track->asEvent1Name ),
-            simulation::Events.FindEvent( track->asEvent2Name ) );
-        track->AssignallEvents(
-            simulation::Events.FindEvent( track->asEventall0Name ),
-            simulation::Events.FindEvent( track->asEventall1Name ),
-            simulation::Events.FindEvent( track->asEventall2Name ) );
+        track->AssignEvents();
 
         auto const trackname { track->name() };
-
-        if( ( Global.iHiddenEvents & 1 )
-         && ( false == trackname.empty() ) ) {
-            // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
-            track->AssignEvents(
-                simulation::Events.FindEvent( trackname + ":event0" ),
-                simulation::Events.FindEvent( trackname + ":event1" ),
-                simulation::Events.FindEvent( trackname + ":event2" ),
-                false );
-            track->AssignallEvents(
-                simulation::Events.FindEvent( trackname + ":eventall0" ),
-                simulation::Events.FindEvent( trackname + ":eventall1" ),
-                simulation::Events.FindEvent( trackname + ":eventall2" ),
-                false );
-        }
 
         switch (track->eType) {
         // TODO: re-enable

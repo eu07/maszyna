@@ -789,7 +789,7 @@ state_manager::deserialize_dynamic( cParser &Input, scene::scratch_data &Scratch
     }
 
     if( ( true == Scratchpad.trainset.vehicles.empty() ) // jeśli pierwszy pojazd,
-     && ( false == path->asEvent0Name.empty() ) // tor ma Event0
+     && ( false == path->m_events0.empty() ) // tor ma Event0
      && ( std::abs( velocity ) <= 1.f ) // a skład stoi
      && ( Scratchpad.trainset.offset >= 0.0 ) // ale może nie sięgać na owy tor
      && ( Scratchpad.trainset.offset <  8.0 ) ) { // i raczej nie sięga

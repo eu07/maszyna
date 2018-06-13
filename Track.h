@@ -149,16 +149,26 @@ private:
     glm::dvec3 m_origin;
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
-    typedef std::vector<gfx::geometry_handle> geometryhandle_sequence;
+    using geometryhandle_sequence = std::vector<gfx::geometry_handle>;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
 
     std::vector<segment_data> m_paths; // source data for owned paths
 
 public:
-    typedef std::deque<TDynamicObject *> dynamics_sequence;
+    using dynamics_sequence = std::deque<TDynamicObject *>;
+    using event_sequence = std::vector<std::pair<std::string, TEvent *> >;
+
     dynamics_sequence Dynamics;
-    int iEvents = 0; // Ra: flaga informująca o obecności eventów
+    event_sequence
+        m_events0all,
+        m_events1all,
+        m_events2all,
+        m_events0,
+        m_events1,
+        m_events2;
+    bool m_events { false }; // Ra: flaga informująca o obecności eventów
+/*
     TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
     TEvent *evEventall1 = nullptr;
     TEvent *evEventall2 = nullptr;
@@ -171,6 +181,7 @@ public:
 	std::string asEvent0Name;
 	std::string asEvent1Name;
 	std::string asEvent2Name;
+*/
     int iNextDirection = 0; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
     int iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
     TTrackType eType = tt_Normal; // domyślnie zwykły
@@ -234,8 +245,7 @@ public:
                 SwitchExtension->iRoads - 1 :
                 1 ); }
     void Load(cParser *parser, Math3D::vector3 pOrigin);
-    bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit = true );
-    bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2, bool const Explicit = true );
+    bool AssignEvents();
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);

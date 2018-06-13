@@ -349,7 +349,7 @@ private:
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
     // Ra: metody obsługujące skanowanie toru
-    TEvent *CheckTrackEvent(TTrack *Track, double const fDirection ) const;
+    std::vector<TEvent *> CheckTrackEvent(TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);

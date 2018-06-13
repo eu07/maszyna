@@ -418,15 +418,17 @@ void TController::TableClear()
     eSignSkip = nullptr; // nic nie pomijamy
 };
 
-TEvent * TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
+std::vector<TEvent *> TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
 { // sprawdzanie eventów na podanym torze do podstawowego skanowania
-    TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
-    if (!e)
-        return NULL;
-    if (e->bEnabled)
-        return NULL;
-    // jednak wszystkie W4 do tabelki, bo jej czyszczenie na przystanku wprowadza zamieszanie
-    return e;
+    std::vector<TEvent *> events;
+    auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
+    for( auto const &event : eventsequence ) {
+        if( ( event.second != nullptr )
+         && ( false == event.second->bEnabled ) ) {
+            events.emplace_back( event.second );
+        }
+    }
+    return events;
 }
 
 bool TController::TableAddNew()
@@ -462,7 +464,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     TTrack *pTrack{ nullptr }; // zaczynamy od ostatniego analizowanego toru
     double fTrackLength{ 0.0 }; // długość aktualnego toru (krótsza dla pierwszego)
     double fCurrentDistance{ 0.0 }; // aktualna przeskanowana długość
-    TEvent *pEvent{ nullptr };
     double fLastDir{ 0.0 };
 
     if (iTableDirection != iDirection ) {
@@ -538,47 +539,50 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->name() );
             }
 
-            if( ( pEvent = CheckTrackEvent( pTrack, fLastDir ) ) != nullptr ) // jeśli jest semafor na tym torze
-            { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-                if (TableNotFound(pEvent)) // jeśli nie ma
-                {
-                    TableAddNew(); // zawsze jest true
+            auto const events { CheckTrackEvent( pTrack, fLastDir ) };
+            for( auto *pEvent : events ) {
+                if( pEvent != nullptr ) // jeśli jest semafor na tym torze
+                { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
+                    if (TableNotFound(pEvent)) // jeśli nie ma
+                    {
+                        TableAddNew(); // zawsze jest true
 
-                    if (Global.iWriteLogEnabled & 8) {
-                        WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
-                    }
-                    auto &newspeedpoint = sSpeedTable[iLast];
+                        if (Global.iWriteLogEnabled & 8) {
+                            WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
+                        }
+                        auto &newspeedpoint = sSpeedTable[iLast];
 /*
-                    if( newspeedpoint.Set(
-                        pEvent,
-                        fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
-                        OrderCurrentGet() ) ) {
+                        if( newspeedpoint.Set(
+                            pEvent,
+                            fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
+                            OrderCurrentGet() ) ) {
 */
-                    if( newspeedpoint.Set(
-                        pEvent,
-                        GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
-                        OrderCurrentGet() ) ) {
+                        if( newspeedpoint.Set(
+                            pEvent,
+                            GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
+                            OrderCurrentGet() ) ) {
 
-                        fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
-                        SemNextStopIndex = iLast;
-                        if (SemNextIndex == -1) {
-                            SemNextIndex = iLast;
+                            fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
+                            SemNextStopIndex = iLast;
+                            if (SemNextIndex == -1) {
+                                SemNextIndex = iLast;
+                            }
+                            if (Global.iWriteLogEnabled & 8) {
+                                WriteLog("(stop signal from "
+                                    + (SemNextStopIndex != -1 ? sSpeedTable[SemNextStopIndex].GetName() : "unknown semaphor")
+                                    + ")");
+                            }
                         }
-                        if (Global.iWriteLogEnabled & 8) {
-                            WriteLog("(stop signal from "
-                                + (SemNextStopIndex != -1 ? sSpeedTable[SemNextStopIndex].GetName() : "unknown semaphor")
-                                + ")");
-                        }
-                    }
-                    else {
-                        if ((true == newspeedpoint.IsProperSemaphor(OrderCurrentGet()))
-                            && (SemNextIndex == -1)) {
-                            SemNextIndex = iLast; // sprawdzamy czy pierwszy na drodze
-                        }
-                        if (Global.iWriteLogEnabled & 8) {
-                            WriteLog("(forward signal for "
-                                + (SemNextIndex != -1 ? sSpeedTable[SemNextIndex].GetName() : "unknown semaphor")
-                                + ")");
+                        else {
+                            if( ( true == newspeedpoint.IsProperSemaphor( OrderCurrentGet() ) )
+                             && ( SemNextIndex == -1 ) ) {
+                                SemNextIndex = iLast; // sprawdzamy czy pierwszy na drodze
+                            }
+                            if (Global.iWriteLogEnabled & 8) {
+                                WriteLog("(forward signal for "
+                                    + (SemNextIndex != -1 ? sSpeedTable[SemNextIndex].GetName() : "unknown semaphor")
+                                    + ")");
+                            }
                         }
                     }
                 }
@@ -5563,12 +5567,17 @@ bool TController::BackwardTrackBusy(TTrack *Track)
 
 TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
 { // sprawdzanie eventu w torze, czy jest sygnałowym - skanowanie do tyłu
-    TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
-    if (e)
-        if (!e->bEnabled) // jeśli sygnałowy (nie dodawany do kolejki)
-            if (e->Type == tp_GetValues) // PutValues nie może się zmienić
-                return e;
-    return NULL;
+    // NOTE: this method returns only one event which meets the conditions, due to limitations in the caller
+    // TBD, TODO: clean up the caller and return all suitable events, as in theory things will go awry if the track has more than one signal
+    auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
+    for( auto const &event : eventsequence ) {
+        if( ( event.second != nullptr )
+         && ( false == event.second->bEnabled )
+         && ( event.second->Type == tp_GetValues ) ) {
+            return event.second;
+        }
+    }
+    return nullptr;
 };
 
 TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event)
