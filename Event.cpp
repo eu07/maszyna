@@ -536,8 +536,7 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
         *parser >> token;
         break;
     case tp_Multiple: {
-        int paramidx { 0 };
-        bool ti { false }; // flaga dla else
+        bool conditionalelse { false }; // flaga dla else
         parser->getTokens();
         *parser >> token;
 
@@ -548,18 +547,7 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             if( token != "else" ) {
                 if( token.substr( 0, 5 ) != "none_" ) {
                     // eventy rozpoczynające się od "none_" są ignorowane
-                    if( paramidx < 8 ) {
-                        Params[ paramidx ].asText = new char[ token.size() + 1 ];
-                        strcpy( Params[ paramidx ].asText, token.c_str() );
-                        if( ti ) {
-                            // oflagowanie dla eventów "else"
-                            iFlags |= conditional_else << paramidx;
-                        }
-                        ++paramidx;
-                    }
-                    else {
-                        ErrorLog( "Bad event: multi-event \"" + asName + "\" with more than 8 events; discarding link to event \"" + token + "\"" );
-                    }
+                    m_children.emplace_back( token, nullptr, ( conditionalelse == false ) );
                 }
                 else {
                     WriteLog( "Multi-event \"" + asName + "\" ignored link to event \"" + token + "\"" );
@@ -567,7 +555,8 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             }
             else {
                 // zmiana flagi dla słowa "else"
-                ti = !ti;
+                conditionalelse = !conditionalelse;
+                m_conditionalelse = true;
             }
             parser->getTokens();
             *parser >> token;
@@ -655,25 +644,19 @@ TEvent::export_as_text( std::ostream &Output ) const {
             break;
         }
         case tp_Multiple: {
-            // NOTE: conditional_anyelse won't work when event cap is removed
-            bool hasconditionalelse { false };
-            for( auto eventidx = 0; eventidx < 8; ++eventidx ) {
-                if( Params[ eventidx ].asEvent == nullptr ) { continue; }
-                if( ( iFlags & ( conditional_else << eventidx ) ) == 0 ) {
-                    Output << Params[ eventidx ].asEvent->asName << ' ';
-                }
-                else {
-                    // this event is executed as part of the 'else' block
-                    hasconditionalelse = true;
+            for( auto const &childevent : m_children ) {
+                if( std::get<TEvent *>( childevent ) == nullptr ) { continue; }
+                if( true == std::get<bool>( childevent ) ) {
+                    Output << std::get<std::string>( childevent ) << ' ';
                 }
             }
             // optional 'else' block
-            if( true == hasconditionalelse ) {
+            if( true == m_conditionalelse ) {
                 Output << "else ";
-                for( auto eventidx = 0; eventidx < 8; ++eventidx ) {
-                    if( Params[ eventidx ].asEvent == nullptr ) { continue; }
-                    if( ( iFlags & ( conditional_else << eventidx ) ) != 0 ) {
-                        Output << Params[ eventidx ].asEvent->asName << ' ';
+                for( auto const &childevent : m_children ) {
+                    if( std::get<TEvent *>( childevent ) == nullptr ) { continue; }
+                    if( false == std::get<bool>( childevent ) ) {
+                        Output << std::get<std::string>( childevent ) << ' ';
                     }
                 }
             }
@@ -1317,29 +1300,30 @@ event_manager::CheckQuery() {
                 Error("Event \"DynVel\" is obsolete");
                 break;
             case tp_Multiple: {
-                auto const bCondition = EventConditon(m_workevent);
-                if( ( bCondition )
-                 || ( m_workevent->iFlags & conditional_anyelse ) ) {
+                auto const condition { EventConditon( m_workevent ) };
+                if( ( true == condition )
+                 || ( true == m_workevent->m_conditionalelse ) ) {
                     // warunek spelniony albo było użyte else
                     WriteLog("Type: Multi-event");
-                    for (i = 0; i < 8; ++i) {
-                        // dodawane do kolejki w kolejności zapisania
-                        if( m_workevent->Params[ i ].asEvent ) {
-                            if( bCondition != ( ( ( m_workevent->iFlags & ( conditional_else << i ) ) != 0 ) ) ) {
-                                if( m_workevent->Params[ i ].asEvent != m_workevent )
-                                    AddToQuery( m_workevent->Params[ i ].asEvent, m_workevent->Activator ); // normalnie dodać
-                                else {
-                                    // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
-                                    if( m_workevent->fDelay >= 5.0 ) {
-                                        AddToQuery( m_workevent, m_workevent->Activator );
-                                    }
-                                }
+                    for( auto &childevent : m_workevent->m_children ) {
+                        auto *childeventdata { std::get<TEvent*>( childevent ) };
+                        if( childeventdata == nullptr ) { continue; }
+                        if( std::get<bool>( childevent ) != condition ) { continue; }
+
+                        if( childeventdata != m_workevent ) {
+                            // normalnie dodać
+                            AddToQuery( childeventdata, m_workevent->Activator );
+                        }
+                        else {
+                            // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
+                            if( m_workevent->fDelay >= 5.0 ) {
+                                AddToQuery( m_workevent, m_workevent->Activator );
                             }
                         }
                     }
                     if( Global.iMultiplayer ) {
                         // dajemy znać do serwera o wykonaniu
-                        if( ( m_workevent->iFlags & conditional_anyelse ) == 0 ) {
+                        if( false == m_workevent->m_conditionalelse ) {
                             // jednoznaczne tylko, gdy nie było else
                             if( m_workevent->Activator ) {
                                 multiplayer::WyslijEvent( m_workevent->asName, m_workevent->Activator->name() );
@@ -1711,15 +1695,10 @@ event_manager::InitEvents() {
                     event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
                 }
             }
-            for( int i = 0; i < 8; ++i ) {
-                if( event->Params[ i ].asText != nullptr ) {
-                    cellastext = event->Params[ i ].asText;
-                    SafeDeleteArray( event->Params[ i ].asText );
-                    event->Params[ i ].asEvent = FindEvent( cellastext );
-                    if( event->Params[ i ].asEvent == nullptr ) {
-                        // Ra: tylko w logu informacja o braku
-                        ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find event \"" + cellastext + "\"" );
-                    }
+            for( auto &childevent : event->m_children ) {
+                std::get<TEvent *>( childevent ) = FindEvent( std::get<std::string>( childevent ) );
+                if( std::get<TEvent *>( childevent ) == nullptr ) {
+                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find event \"" + std::get<std::string>( childevent ) + "\"" );
                 }
             }
             break;

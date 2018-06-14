@@ -48,8 +48,6 @@ const int update_only = 0x00000FF; // wartość graniczna
 const int conditional_memstring = 0x0000100; // porównanie tekstu
 const int conditional_memval1 = 0x0000200; // porównanie pierwszej wartości liczbowej
 const int conditional_memval2 = 0x0000400; // porównanie drugiej wartości
-const int conditional_else = 0x0010000; // flaga odwrócenia warunku (przesuwana bitowo)
-const int conditional_anyelse = 0x0FF0000; // do sprawdzania, czy są odwrócone warunki
 const int conditional_trackoccupied = 0x1000000; // jeśli tor zajęty
 const int conditional_trackfree = 0x2000000; // jeśli tor wolny
 const int conditional_propability = 0x4000000; // zależnie od generatora lizcb losowych
@@ -67,7 +65,6 @@ union TParam
     TTrain *asTrain;
     TDynamicObject *asDynamic;
     TEvent *asEvent;
-    bool asBool;
     double asdouble;
     int asInt;
     sound_source *tsTextSound;
@@ -78,10 +75,27 @@ union TParam
 
 class TEvent // zmienne: ev*
 { // zdarzenie
-  private:
-    void Conditions(cParser *parser, std::string s);
-
-  public:
+public:
+// types
+    // wrapper for binding between editor-supplied name, event, and execution conditional flag
+    using conditional_event = std::tuple<std::string, TEvent *, bool>;
+// constructors
+    TEvent(std::string const &m = "");
+    ~TEvent();
+// metody
+    void Load(cParser *parser, Math3D::vector3 const &org);
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
+    static void AddToQuery( TEvent *Event, TEvent *&Start );
+    std::string CommandGet();
+    TCommandType Command();
+    double ValueGet(int n);
+    glm::dvec3 PositionGet() const;
+    bool StopCommand();
+    void StopCommandSent();
+    void Append(TEvent *e);
+// members
     std::string asName;
     bool m_ignored { false }; // replacement for tp_ignored
     bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
@@ -96,22 +110,11 @@ class TEvent // zmienne: ev*
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
     TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378
     double fRandomDelay = 0.0; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
-public:
-    // metody
-    TEvent(std::string const &m = "");
-    ~TEvent();
-    void Load(cParser *parser, Math3D::vector3 const &org);
-    // sends basic content of the class in legacy (text) format to provided stream
-    void
-        export_as_text( std::ostream &Output ) const;
-    static void AddToQuery( TEvent *Event, TEvent *&Start );
-    std::string CommandGet();
-    TCommandType Command();
-    double ValueGet(int n);
-    glm::dvec3 PositionGet() const;
-    bool StopCommand();
-    void StopCommandSent();
-    void Append(TEvent *e);
+    std::vector<conditional_event> m_children; // events which are placed in the query when this event is executed
+    bool m_conditionalelse { false }; // TODO: make a part of condition struct
+
+private:
+    void Conditions( cParser *parser, std::string s );
 };
 
 class event_manager {

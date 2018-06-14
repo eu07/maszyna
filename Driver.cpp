@@ -4023,9 +4023,9 @@ TController::UpdateSituation(double dt) {
         // podłączanie do składu
         if (iDrivigFlags & moveConnect) {
             // jeśli stanął już blisko, unikając zderzenia i można próbować podłączyć
-            fMinProximityDist = -0.5;
+            fMinProximityDist = -1.0;
             fMaxProximityDist =  0.0; //[m] dojechać maksymalnie
-            fVelPlus = 0.5; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+            fVelPlus = 1.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 0.5; // margines prędkości powodujący załączenie napędu
             if (AIControllFlag)
             { // to robi tylko AI, wersję dla człowieka trzeba dopiero zrobić
@@ -4033,21 +4033,17 @@ TController::UpdateSituation(double dt) {
                 bool ok; // true gdy się podłączy (uzyskany sprzęg będzie zgodny z żądanym)
                 if (pVehicles[0]->DirectionGet() > 0) // jeśli sprzęg 0
                 { // sprzęg 0 - próba podczepienia
-                    if (pVehicles[0]->MoverParameters->Couplers[0].Connected) // jeśli jest coś
-                        // wykryte (a
-                        // chyba jest,
-                        // nie?)
-                        if (pVehicles[0]->MoverParameters->Attach(
-                                0, 2, pVehicles[0]->MoverParameters->Couplers[0].Connected,
-                                iCoupler))
-                        {
-                            // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                            // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
+                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected ) {
+                        // jeśli jest coś wykryte (a chyba jest, nie?)
+                        if( pVehicles[ 0 ]->MoverParameters->Attach(
+                            0, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected,
+                            iCoupler ) ) {
+                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
                         }
-                    // WriteLog("CoupleDist[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CoupleDist)+",
-                    // Connected[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag));
-                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag ==
-                            iCoupler); // udało się? (mogło częściowo)
+                    }
+                    // udało się? (mogło częściowo)
+                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag == iCoupler);
                 }
                 else // if (pVehicles[0]->MoverParameters->DirAbsolute<0) //jeśli sprzęg 1
                 { // sprzęg 1 - próba podczepienia
@@ -4060,10 +4056,8 @@ TController::UpdateSituation(double dt) {
                         // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
                         }
                     }
-                    // WriteLog("CoupleDist[1]="+AnsiString(Controlling->Couplers[1].CoupleDist)+",
-                    // Connected[0]="+AnsiString(Controlling->Couplers[1].CouplingFlag));
-                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag ==
-                            iCoupler); // udało się? (mogło częściowo)
+                    // udało się? (mogło częściowo)
+                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag == iCoupler); 
                 }
                 if (ok)
                 { // jeżeli został podłączony

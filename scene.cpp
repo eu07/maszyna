@@ -432,7 +432,7 @@ basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlyco
             std::tie( vehiclenearest, leastdistance ) = std::tie( vehicle, distance );
         }
     }
-    return std::tie( vehiclenearest, leastdistance );
+    return { vehiclenearest, leastdistance };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -449,7 +449,7 @@ basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) const {
         endpointid = path->TestPoint( &point );
         if( endpointid >= 0 ) {
 
-            return std::tie( path, endpointid );
+            return { path, endpointid };
         }
     }
     return { nullptr, -1 };
@@ -468,7 +468,7 @@ basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) const {
         endpointid = traction->TestPoint( Point );
         if( endpointid >= 0 ) {
 
-            return std::tie( traction, endpointid );
+            return { traction, endpointid };
         }
     }
     return { nullptr, -1 };
@@ -729,7 +729,7 @@ basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onl
             std::tie( vehiclenearest, distancenearest ) = std::tie( vehiclefound, distancefound );
         }
     }
-    return std::tie( vehiclenearest, distancenearest );
+    return { vehiclenearest, distancenearest };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -1245,7 +1245,7 @@ basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool co
             std::tie( nearestvehicle, nearestdistance ) = std::tie( foundvehicle, founddistance );
         }
     }
-    return std::tie( nearestvehicle, nearestdistance );
+    return { nearestvehicle, nearestdistance };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -1258,7 +1258,7 @@ basic_region::find_path( glm::dvec3 const &Point, TTrack const *Exclude ) {
         return section( Point ).find( Point, Exclude );
     }
 
-    return std::make_tuple<TTrack *, int>( nullptr, -1 );
+    return { nullptr, -1 };
 }
 
 // finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
@@ -1271,7 +1271,7 @@ basic_region::find_traction( glm::dvec3 const &Point, TTraction const *Exclude )
         return section( Point ).find( Point, Exclude );
     }
 
-    return std::make_tuple<TTraction *, int>( nullptr, -1 );
+    return { nullptr, -1 };
 }
 
 // finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece
