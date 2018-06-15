@@ -179,6 +179,8 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
 
 bool FileExists( std::string const &Filename );
 
+std::pair<std::string, std::string> FileExists( std::vector<std::string> const &Names, std::vector<std::string> const &Extensions );
+
 // returns time of last modification for specified file
 std::time_t last_modified( std::string const &Filename );
 
@@ -189,6 +191,9 @@ erase_extension( std::string &Filename );
 // potentially replaces backward slashes in provided file path with unix-compatible forward slashes
 void
 replace_slashes( std::string &Filename );
+
+// returns potential path part from provided file name
+std::string substr_path( std::string const &Filename );
 
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
@@ -226,6 +231,8 @@ clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
 template <typename Type_>
 Type_
 min_speed( Type_ const Left, Type_ const Right ) {
+
+    if( Left == Right ) { return Left; }
 
     return std::min(
         ( Left != -1 ?

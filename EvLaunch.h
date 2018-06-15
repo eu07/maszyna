@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "scenenode.h"
 
-class TEventLauncher : public editor::basic_node {
+class TEventLauncher : public scene::basic_node {
 
 public:
 // constructor
@@ -37,12 +37,17 @@ public:
     int iCheckMask { 0 };
     double dRadius { 0.0 };
 
-protected:
-    // calculates node's bounding radius
-    void
-        radius_();
-
 private:
+// methods
+    // radius() subclass details, calculates node's bounding radius
+    float radius_();
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
 // members
     int iKey { 0 };
     double DeltaTime { -1.0 };

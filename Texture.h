@@ -20,6 +20,8 @@ struct opengl_texture {
 	static DDPIXELFORMAT deserialize_ddpf(std::istream&);
 	static DDSCAPS2 deserialize_ddscaps(std::istream&);
 
+// constructors
+    opengl_texture() = default;
 // methods
     void
         load();
@@ -120,7 +122,7 @@ private:
     texture_handle
         find_in_databank( std::string const &Texturename ) const;
     // checks whether specified file exists. returns name of the located file, or empty string.
-    std::string
+    std::pair<std::string, std::string>
         find_on_disk( std::string const &Texturename ) const;
     void
         delete_textures();

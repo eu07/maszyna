@@ -196,11 +196,90 @@ bool TEventLauncher::IsGlobal() const {
           && ( dRadius < 0.0 ) ); // bez ograniczenia zasięgu
 }
 
-// calculates node's bounding radius
-void
+// radius() subclass details, calculates node's bounding radius
+float
 TEventLauncher::radius_() {
 
-    m_area.radius = std::sqrt( dRadius );
+    return std::sqrt( dRadius );
+}
+
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TEventLauncher::serialize_( std::ostream &Output ) const {
+
+    // TODO: implement
+}
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TEventLauncher::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TEventLauncher::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "eventlauncher ";
+    // location
+    Output
+        << location().x << ' '
+        << location().y << ' '
+        << location().z << ' ';
+    // activation radius
+    Output
+        << ( dRadius > 0 ? std::sqrt( dRadius ) : dRadius ) << ' ';
+    // activation key
+    if( iKey != 0 ) {
+        auto const key { iKey & 0xff };
+        auto const modifier { ( iKey & 0xff00 ) >> 8 };
+        if( ( key >= GLFW_KEY_A ) && ( key <= GLFW_KEY_Z ) ) {
+            Output << static_cast<char>(( 'A' + key - GLFW_KEY_A + ( ( modifier & 1 ) == 0 ? 32 : 0 ) )) << ' ';
+        }
+        else if( ( key >= GLFW_KEY_0 ) && ( key <= GLFW_KEY_9 ) ) {
+            Output << static_cast<char>(( '0' + key - GLFW_KEY_0 )) << ' ';
+        }
+    }
+    else {
+        Output << "none ";
+    }
+    // activation interval or hour
+    if( DeltaTime != 0 ) {
+        // cyclical launcher
+        Output << -DeltaTime << ' ';
+    }
+    else {
+        // single activation at specified time
+        if( ( iHour < 0 )
+         && ( iMinute < 0 ) ) {
+            Output << DeltaTime << ' ';
+        }
+        else {
+        // NOTE: activation hour might be affected by user-requested time offset
+            auto const timeoffset{ static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
+            auto const adjustedtime{ clamp_circular( iHour * 60 + iMinute - timeoffset, 24 * 60 ) };
+            Output
+                << ( adjustedtime / 60 ) % 24
+                << ( adjustedtime % 60 )
+                << ' ';
+        }
+    }
+    // associated event(s)
+    Output << ( asEvent1Name.empty() ? "none" : asEvent1Name ) << ' ';
+    Output << ( asEvent2Name.empty() ? "none" : asEvent2Name ) << ' ';
+    if( false == asMemCellName.empty() ) {
+        // conditional event
+        Output
+            << "condition "
+            << asMemCellName << ' '
+            << szText << ' '
+            << ( ( iCheckMask & conditional_memval1 ) != 0 ? to_string( fVal1 ) : "*" ) << ' '
+            << ( ( iCheckMask & conditional_memval2 ) != 0 ? to_string( fVal2 ) : "*" ) << ' ';
+    }
+    // footer
+    Output
+        << "end"
+        << "\n";
 }
 
 //---------------------------------------------------------------------------

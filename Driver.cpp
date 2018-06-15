@@ -417,15 +417,17 @@ void TController::TableClear()
     eSignSkip = nullptr; // nic nie pomijamy
 };
 
-TEvent * TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
+std::vector<TEvent *> TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
 { // sprawdzanie eventów na podanym torze do podstawowego skanowania
-    TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
-    if (!e)
-        return NULL;
-    if (e->bEnabled)
-        return NULL;
-    // jednak wszystkie W4 do tabelki, bo jej czyszczenie na przystanku wprowadza zamieszanie
-    return e;
+    std::vector<TEvent *> events;
+    auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
+    for( auto const &event : eventsequence ) {
+        if( ( event.second != nullptr )
+         && ( false == event.second->bEnabled ) ) {
+            events.emplace_back( event.second );
+        }
+    }
+    return events;
 }
 
 bool TController::TableAddNew()
@@ -461,7 +463,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     TTrack *pTrack{ nullptr }; // zaczynamy od ostatniego analizowanego toru
     double fTrackLength{ 0.0 }; // długość aktualnego toru (krótsza dla pierwszego)
     double fCurrentDistance{ 0.0 }; // aktualna przeskanowana długość
-    TEvent *pEvent{ nullptr };
     double fLastDir{ 0.0 };
 
     if (iTableDirection != iDirection ) {
@@ -537,47 +538,50 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->name() );
             }
 
-            if( ( pEvent = CheckTrackEvent( pTrack, fLastDir ) ) != nullptr ) // jeśli jest semafor na tym torze
-            { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-                if (TableNotFound(pEvent)) // jeśli nie ma
-                {
-                    TableAddNew(); // zawsze jest true
+            auto const events { CheckTrackEvent( pTrack, fLastDir ) };
+            for( auto *pEvent : events ) {
+                if( pEvent != nullptr ) // jeśli jest semafor na tym torze
+                { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
+                    if (TableNotFound(pEvent)) // jeśli nie ma
+                    {
+                        TableAddNew(); // zawsze jest true
 
-                    if (Global.iWriteLogEnabled & 8) {
-                        WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
-                    }
-                    auto &newspeedpoint = sSpeedTable[iLast];
+                        if (Global.iWriteLogEnabled & 8) {
+                            WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
+                        }
+                        auto &newspeedpoint = sSpeedTable[iLast];
 /*
-                    if( newspeedpoint.Set(
-                        pEvent,
-                        fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
-                        OrderCurrentGet() ) ) {
+                        if( newspeedpoint.Set(
+                            pEvent,
+                            fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
+                            OrderCurrentGet() ) ) {
 */
-                    if( newspeedpoint.Set(
-                        pEvent,
-                        GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
-                        OrderCurrentGet() ) ) {
+                        if( newspeedpoint.Set(
+                            pEvent,
+                            GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
+                            OrderCurrentGet() ) ) {
 
-                        fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
-                        SemNextStopIndex = iLast;
-                        if (SemNextIndex == -1) {
-                            SemNextIndex = iLast;
+                            fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
+                            SemNextStopIndex = iLast;
+                            if (SemNextIndex == -1) {
+                                SemNextIndex = iLast;
+                            }
+                            if (Global.iWriteLogEnabled & 8) {
+                                WriteLog("(stop signal from "
+                                    + (SemNextStopIndex != -1 ? sSpeedTable[SemNextStopIndex].GetName() : "unknown semaphor")
+                                    + ")");
+                            }
                         }
-                        if (Global.iWriteLogEnabled & 8) {
-                            WriteLog("(stop signal from "
-                                + (SemNextStopIndex != -1 ? sSpeedTable[SemNextStopIndex].GetName() : "unknown semaphor")
-                                + ")");
-                        }
-                    }
-                    else {
-                        if ((true == newspeedpoint.IsProperSemaphor(OrderCurrentGet()))
-                            && (SemNextIndex == -1)) {
-                            SemNextIndex = iLast; // sprawdzamy czy pierwszy na drodze
-                        }
-                        if (Global.iWriteLogEnabled & 8) {
-                            WriteLog("(forward signal for "
-                                + (SemNextIndex != -1 ? sSpeedTable[SemNextIndex].GetName() : "unknown semaphor")
-                                + ")");
+                        else {
+                            if( ( true == newspeedpoint.IsProperSemaphor( OrderCurrentGet() ) )
+                             && ( SemNextIndex == -1 ) ) {
+                                SemNextIndex = iLast; // sprawdzamy czy pierwszy na drodze
+                            }
+                            if (Global.iWriteLogEnabled & 8) {
+                                WriteLog("(forward signal for "
+                                    + (SemNextIndex != -1 ? sSpeedTable[SemNextIndex].GetName() : "unknown semaphor")
+                                    + ")");
+                            }
                         }
                     }
                 }
@@ -1005,7 +1009,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[i].iFlags = 0; // W4 nie liczy się już (nie wyśle SetVelocity)
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
+/*
+                                // NOTE: disabled as it's no longer needed, required time is calculated as part of loading/unloading procedure
                                 WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
+*/
                                 // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
                                 JumpToNextOrder();
                                 // ma się nie ruszać aż do momentu podania sygnału
@@ -1326,7 +1333,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka
                 }
-                else if ((fAcc > 0) && (v > 0) && (v <= fNext)) {
+                else if ((fAcc > 0) && (v >= 0) && (v <= fNext)) {
                     // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli prędkość jest stała)
@@ -2273,7 +2280,7 @@ bool TController::PrepareEngine()
     { // najpierw ustalamy kierunek, jeśli nie został ustalony
         if( !iDirection ) {
             // jeśli nie ma ustalonego kierunku
-            if( mvOccupied->V == 0 ) { // ustalenie kierunku, gdy stoi
+            if( mvOccupied->Vel < 0.01 ) { // ustalenie kierunku, gdy stoi
                 iDirection = mvOccupied->CabNo; // wg wybranej kabiny
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
@@ -3221,17 +3228,24 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 iStationStart = TrainParams->StationIndex;
                 asNextStop = TrainParams->NextStop();
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
-                NewCommand = Global.asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
-                if (FileExists(NewCommand)) {
+                NewCommand = Global.asCurrentSceneryPath + NewCommand;
+                auto lookup =
+                    FileExists(
+                        { NewCommand },
+                        { ".ogg", ".flac", ".wav" } );
+                if( false == lookup.first.empty() ) {
                     //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = sound_source( sound_placement::external, 75.f ).deserialize( NewCommand, sound_type::single );
+                    tsGuardSignal = sound_source( sound_placement::external, 75.f ).deserialize( lookup.first + lookup.second, sound_type::single );
                     iGuardRadio = 0; // nie przez radio
                 }
                 else {
-                    NewCommand = NewCommand.insert(NewCommand.rfind('.'),"radio"); // wstawienie przed kropkč
-                    if (FileExists(NewCommand)) {
+                    auto lookup =
+                        FileExists(
+                            { NewCommand + "radio" },
+                            { ".ogg", ".flac", ".wav" } );
+                    if( false == lookup.first.empty() ) {
                         //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( NewCommand, sound_type::single );
+                        tsGuardSignal = sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( lookup.first + lookup.second, sound_type::single );
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4008,9 +4022,9 @@ TController::UpdateSituation(double dt) {
         // podłączanie do składu
         if (iDrivigFlags & moveConnect) {
             // jeśli stanął już blisko, unikając zderzenia i można próbować podłączyć
-            fMinProximityDist = -0.5;
+            fMinProximityDist = -1.0;
             fMaxProximityDist =  0.0; //[m] dojechać maksymalnie
-            fVelPlus = 0.5; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+            fVelPlus = 1.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 0.5; // margines prędkości powodujący załączenie napędu
             if (AIControllFlag)
             { // to robi tylko AI, wersję dla człowieka trzeba dopiero zrobić
@@ -4018,21 +4032,17 @@ TController::UpdateSituation(double dt) {
                 bool ok; // true gdy się podłączy (uzyskany sprzęg będzie zgodny z żądanym)
                 if (pVehicles[0]->DirectionGet() > 0) // jeśli sprzęg 0
                 { // sprzęg 0 - próba podczepienia
-                    if (pVehicles[0]->MoverParameters->Couplers[0].Connected) // jeśli jest coś
-                        // wykryte (a
-                        // chyba jest,
-                        // nie?)
-                        if (pVehicles[0]->MoverParameters->Attach(
-                                0, 2, pVehicles[0]->MoverParameters->Couplers[0].Connected,
-                                iCoupler))
-                        {
-                            // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                            // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
+                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected ) {
+                        // jeśli jest coś wykryte (a chyba jest, nie?)
+                        if( pVehicles[ 0 ]->MoverParameters->Attach(
+                            0, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected,
+                            iCoupler ) ) {
+                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
                         }
-                    // WriteLog("CoupleDist[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CoupleDist)+",
-                    // Connected[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag));
-                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag ==
-                            iCoupler); // udało się? (mogło częściowo)
+                    }
+                    // udało się? (mogło częściowo)
+                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag == iCoupler);
                 }
                 else // if (pVehicles[0]->MoverParameters->DirAbsolute<0) //jeśli sprzęg 1
                 { // sprzęg 1 - próba podczepienia
@@ -4045,10 +4055,8 @@ TController::UpdateSituation(double dt) {
                         // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
                         }
                     }
-                    // WriteLog("CoupleDist[1]="+AnsiString(Controlling->Couplers[1].CoupleDist)+",
-                    // Connected[0]="+AnsiString(Controlling->Couplers[1].CouplingFlag));
-                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag ==
-                            iCoupler); // udało się? (mogło częściowo)
+                    // udało się? (mogło częściowo)
+                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag == iCoupler); 
                 }
                 if (ok)
                 { // jeżeli został podłączony
@@ -4602,20 +4610,7 @@ TController::UpdateSituation(double dt) {
             }
 
             // sprawdzamy możliwe ograniczenia prędkości
-            if( OrderCurrentGet() & ( Shunt | Obey_train ) ) {
-                // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
-                if( ( iDrivigFlags & moveStopHere )
-                 && ( vel == 0.0 )
-                 && ( VelNext == 0.0 ) ) {
-                    // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
-                    VelDesired = 0.0;
-                }
-            }
-            if( fStopTime < 0 ) {
-                // czas postoju przed dalszą jazdą (np. na przystanku)
-                VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
-            }
-            else if( VelSignal >= 0 ) {
+            if( VelSignal >= 0 ) {
                 // jeśli skład był zatrzymany na początku i teraz już może jechać
                 VelDesired =
                     min_speed(
@@ -4632,57 +4627,81 @@ TController::UpdateSituation(double dt) {
             if( VelforDriver >= 0 ) {
                 // tu jest zero przy zmianie kierunku jazdy
                 // Ra: tu może być 40, jeśli mechanik nie ma znajomości szlaaku, albo kierowca jeździ 70
-                VelDesired = min_speed( VelDesired, VelforDriver );
-            }
-            if( ( TrainParams != nullptr )
-             && ( TrainParams->CheckTrainLatency() < 5.0 )
-             && ( TrainParams->TTVmax > 0.0 ) ) {
-                // jesli nie spozniony to nie przekraczać rozkladowej
                 VelDesired =
                     min_speed(
                         VelDesired,
-                        TrainParams->TTVmax );
+                        VelforDriver );
             }
-            if (VelDesired > 0.0)
-                if( ( ( iDrivigFlags & moveStopHere ) == 0 )
-                 || ( ( SemNextIndex != -1 )
-                   && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
-                   && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) ) ) {
-                    // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w
-                    // składzie, jeśli nie mamy czekać na sygnał też trzeba odpalić
-                    if (iDrivigFlags & moveGuardSignal)
-                    { // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
-                        iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
-                        if( false == tsGuardSignal.empty() ) {
-                            tsGuardSignal.stop();
-                            // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                            // bezpośrednim
-                            // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
-                            // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
-                            // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
-                            // obsługę kanałów radiowych itd.
-                            if( iGuardRadio == 0 ) {
-                                // jeśli nie przez radio
-                                tsGuardSignal.owner( pVehicle );
-                                // place virtual conductor some distance away
-                                tsGuardSignal.offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
-                                tsGuardSignal.play( sound_flags::exclusive );
-                            }
-                            else {
-                                // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                                // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                                // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                                // przy braku reakcji
-                                // TODO: proper system for sending/receiving radio messages
-                                // place the sound in appropriate cab of the manned vehicle
-                                tsGuardSignal.owner( pVehicle );
-                                tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
-                                tsGuardSignal.play( sound_flags::exclusive );
-                            }
-                        }
+            if( fStopTime < 0 ) {
+                // czas postoju przed dalszą jazdą (np. na przystanku)
+                VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
+            }
+
+            if( ( OrderCurrentGet() & Obey_train ) != 0 ) {
+
+                if( ( TrainParams->CheckTrainLatency() < 5.0 )
+                 && ( TrainParams->TTVmax > 0.0 ) ) {
+                    // jesli nie spozniony to nie przekraczać rozkladowej
+                    VelDesired =
+                        min_speed(
+                            VelDesired,
+                            TrainParams->TTVmax );
+                }
+
+                if( ( ( iDrivigFlags & moveStopHere ) != 0 )
+                 && ( vel < 0.01 )
+                 && ( SemNextIndex != -1 )
+                 && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
+                 && ( sSpeedTable[ SemNextIndex ].fVelNext == 0.0 ) ) {
+                    // don't depart if told to wait at passenger stop until allowed to by the signal
+                    VelDesired = 0.0;
+                }
+            }
+
+            if( ( OrderCurrentGet() & ( Shunt | Obey_train ) ) != 0 ) {
+                // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
+                if( ( ( iDrivigFlags & moveStopHere ) != 0 )
+                 && ( vel < 0.01 )
+                 && ( VelSignal == 0.0 ) ) {
+                    // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
+                    VelDesired = 0.0;
+                }
+            }
+            // end of speed caps checks
+
+            if( ( ( OrderCurrentGet() & Obey_train ) != 0 )
+             && ( ( iDrivigFlags & moveGuardSignal ) != 0 )
+             && ( VelDesired > 0.0 ) ) {
+                // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
+                iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
+                if( false == tsGuardSignal.empty() ) {
+                    tsGuardSignal.stop();
+                    // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy bezpośrednim
+                    // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
+                    // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
+                    // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
+                    // obsługę kanałów radiowych itd.
+                    if( iGuardRadio == 0 ) {
+                        // jeśli nie przez radio
+                        tsGuardSignal.owner( pVehicle );
+                        // place virtual conductor some distance away
+                        tsGuardSignal.offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
+                        tsGuardSignal.play( sound_flags::exclusive );
+                    }
+                    else {
+                        // if (iGuardRadio==iRadioChannel) //zgodność kanału
+                        // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
+                        // (albo może mieć radio przenośne) - kierownik mógłby powtarzać przy braku reakcji
+                        // TODO: proper system for sending/receiving radio messages
+                        // place the sound in appropriate cab of the manned vehicle
+                        tsGuardSignal.owner( pVehicle );
+                        tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
+                        tsGuardSignal.play( sound_flags::exclusive );
                     }
                 }
-            if( mvOccupied->V == 0.0 ) {
+            }
+
+            if( mvOccupied->Vel < 0.01 ) {
                 // Ra 2014-03: jesli skład stoi, to działa na niego składowa styczna grawitacji
                 AbsAccS = fAccGravity;
             }
@@ -4722,7 +4741,7 @@ TController::UpdateSituation(double dt) {
                 if (vel > 0.0) {
                     // jeśli jedzie
                     if( ( vel < VelNext )
-                        && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
+                     && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
                         // jeśli jedzie wolniej niż można i jest wystarczająco daleko, to można przyspieszyć
                         if( AccPreferred > 0.0 ) {
                             // jeśli nie ma zawalidrogi dojedz do semafora/przeszkody
@@ -4761,18 +4780,21 @@ TController::UpdateSituation(double dt) {
 						}
 						else {
                             // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-                            // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
-                            auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
-                            AccDesired = std::min(
-                                AccDesired,
-                                ( VelNext * VelNext - vel * vel )
-                                / ( 25.92
-                                    * std::max(
-                                        ActualProximityDist - brakingpointoffset,
-                                        std::min(
-                                            ActualProximityDist,
-                                            brakingpointoffset ) )
-                                    + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                            if( ( std::max( 100.0, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                                // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
+                                // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
+                                auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
+                                AccDesired = std::min(
+                                    AccDesired,
+                                    ( VelNext * VelNext - vel * vel )
+                                    / ( 25.92
+                                        * std::max(
+                                            ActualProximityDist - brakingpointoffset,
+                                            std::min(
+                                                ActualProximityDist,
+                                                brakingpointoffset ) )
+                                        + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                            }
 						}
                         AccDesired = std::min( AccDesired, AccPreferred );
                     }
@@ -5220,13 +5242,22 @@ TController::UpdateSituation(double dt) {
         }
         if (AIControllFlag)
         { // odhamowywanie składu po zatrzymaniu i zabezpieczanie lokomotywy
-			if ((OrderList[OrderPos] & (Disconnect | Connect)) ==
-				0) // przy (p)odłączaniu nie zwalniamy tu hamulca
-				if ((mvOccupied->V == 0.0) && ((VelDesired == 0.0) || (AccDesired == 0.0)))
-					if (mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos(bh_RP))
-						mvOccupied->IncLocalBrakeLevel(1); // dodatkowy na pozycję 1
-					else
-						mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+            if( ( ( OrderList[ OrderPos ] & ( Disconnect | Connect ) ) == 0 )
+             && ( std::abs( fAccGravity ) < 0.01 ) ) {
+                // przy (p)odłączaniu nie zwalniamy tu hamulca
+                // only do this on flats, on slopes keep applied the train brake
+                if( ( mvOccupied->Vel < 0.01 )
+                 && ( ( VelDesired == 0.0 )
+                   || ( AccDesired == 0.0 ) ) ) {
+                    if( mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) ) {
+                        // dodatkowy na pozycję 1
+                        mvOccupied->IncLocalBrakeLevel( 1 );
+                    }
+                    else {
+                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                    }
+                }
+            }
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])
@@ -5529,12 +5560,17 @@ bool TController::BackwardTrackBusy(TTrack *Track)
 
 TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
 { // sprawdzanie eventu w torze, czy jest sygnałowym - skanowanie do tyłu
-    TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
-    if (e)
-        if (!e->bEnabled) // jeśli sygnałowy (nie dodawany do kolejki)
-            if (e->Type == tp_GetValues) // PutValues nie może się zmienić
-                return e;
-    return NULL;
+    // NOTE: this method returns only one event which meets the conditions, due to limitations in the caller
+    // TBD, TODO: clean up the caller and return all suitable events, as in theory things will go awry if the track has more than one signal
+    auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
+    for( auto const &event : eventsequence ) {
+        if( ( event.second != nullptr )
+         && ( false == event.second->bEnabled )
+         && ( event.second->Type == tp_GetValues ) ) {
+            return event.second;
+        }
+    }
+    return nullptr;
 };
 
 TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event)

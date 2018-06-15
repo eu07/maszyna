@@ -55,6 +55,7 @@ enum class user_command {
     sandboxactivate,
     reverserincrease,
     reverserdecrease,
+    reverserforwardhigh,
     reverserforward,
     reverserneutral,
     reverserbackward,

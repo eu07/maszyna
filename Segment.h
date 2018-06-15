@@ -14,6 +14,24 @@ http://mozilla.org/MPL/2.0/.
 #include "openglgeometrybank.h"
 #include "utilities.h"
 
+struct segment_data {
+// types
+    enum point {
+        start = 0,
+        control1,
+        control2,
+        end
+    };
+// members
+    std::array<glm::dvec3, 4> points {};
+    std::array<float, 2> rolls {};
+    float radius {};
+// constructors
+    segment_data() = default;
+// methods
+    void deserialize( cParser &Input, Math3D::vector3 const &Offset );
+};
+
 class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
   private:

@@ -328,6 +328,20 @@ bool FileExists( std::string const &Filename ) {
     return( true == file.is_open() );
 }
 
+std::pair<std::string, std::string>
+FileExists( std::vector<std::string> const &Names, std::vector<std::string> const &Extensions ) {
+
+    for( auto const &name : Names ) {
+        for( auto const &extension : Extensions ) {
+            if( FileExists( name + extension ) ) {
+                return { name, extension };
+            }
+        }
+    }
+    // nothing found
+    return { {}, {} };
+}
+
 // returns time of last modification for specified file
 std::time_t
 last_modified( std::string const &Filename ) {
@@ -362,4 +376,14 @@ replace_slashes( std::string &Filename ) {
     std::replace(
         std::begin( Filename ), std::end( Filename ),
         '\\', '/' );
+}
+
+// returns potential path part from provided file name
+std::string
+substr_path( std::string const &Filename ) {
+
+    return (
+        Filename.rfind( '/' ) != std::string::npos ?
+            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
+            "" );
 }

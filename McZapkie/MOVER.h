@@ -355,7 +355,7 @@ enum TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 /*podtypy hamulcow zespolonych*/
 enum TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
 enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57 };
+enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P };
 /*typy hamulcow indywidualnych*/
 enum TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
 /*dla osob/towar: opoznienie hamowania/odhamowania*/
@@ -669,6 +669,7 @@ struct heat_data {
 //    bool okienko { true }; // window in the engine compartment
     // system configuration
     bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
+    double fan_speed { 0.075 }; // cooling fan rpm; either fraction of engine rpm, or absolute value if negative
     // heat exchange factors
     double kw { 0.35 };
     double kv { 0.6 };
@@ -740,6 +741,7 @@ public:
 	double Mred = 0.0;    /*Ra: zredukowane masy wirujące; potrzebne do obliczeń hamowania*/
 	double TotalMass = 0.0; /*wyliczane przez ComputeMass*/
 	double HeatingPower = 0.0;
+    double EngineHeatingRPM { 0.0 }; // guaranteed engine revolutions with heating enabled
     double LightPower = 0.0; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
 	bool Battery = false; /*Czy sa zalavzone baterie*/

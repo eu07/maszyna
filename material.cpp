@@ -14,15 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "utilities.h"
 
-// helper, returns potential path part from provided file name
-std::string path( std::string const &Filename )
-{
-    return (
-        Filename.rfind( '/' ) != std::string::npos ?
-            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
-            "" );
-}
-
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 
@@ -120,23 +111,21 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         filename.erase( 0, 1 );
     }
 
-    filename += ".mat";
-
     // try to locate requested material in the databank
-    auto const databanklookup = find_in_databank( filename );
+    auto const databanklookup { find_in_databank( filename ) };
     if( databanklookup != null_handle ) {
         return databanklookup;
     }
     // if this fails, try to look for it on disk
     opengl_material material;
-    auto const disklookup = find_on_disk( filename );
-    if( disklookup != "" ) {
-        cParser materialparser( disklookup, cParser::buffer_FILE );
+    auto const disklookup { find_on_disk( filename ) };
+    if( false == disklookup.first.empty() ) {
+        cParser materialparser( disklookup.first + disklookup.second, cParser::buffer_FILE );
         if( false == material.deserialize( materialparser, Loadnow ) ) {
             // deserialization failed but the .mat file does exist, so we give up at this point
             return null_handle;
         }
-        material.name = disklookup;
+        material.name = disklookup.first;
     }
     else {
         // if there's no .mat file, this could be legacy method of referring just to diffuse texture directly, make a material out of it in such case
@@ -148,7 +137,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         // use texture path and name to tell the newly created materials apart
         filename = GfxRenderer.Texture( material.texture1 ).name;
         erase_extension( filename );
-        material.name = filename + ".mat";
+        material.name = filename;
         material.has_alpha = GfxRenderer.Texture( material.texture1 ).has_alpha;
     }
 
@@ -162,7 +151,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 material_handle
 material_manager::find_in_databank( std::string const &Materialname ) const {
 
-    std::vector<std::string> filenames {
+    std::vector<std::string> const filenames {
         Global.asCurrentTexturePath + Materialname,
         Materialname,
         szTexturePath + Materialname };
@@ -173,20 +162,19 @@ material_manager::find_in_databank( std::string const &Materialname ) const {
             return lookup->second;
         }
     }
-
+    // all lookups failed
     return null_handle;
 }
 
 // checks whether specified file exists.
-// NOTE: this is direct copy of the method used by texture manager. TBD, TODO: refactor into common routine?
-std::string
+// NOTE: technically could be static, but we might want to switch from global texture path to instance-specific at some point
+std::pair<std::string, std::string>
 material_manager::find_on_disk( std::string const &Materialname ) const {
 
-    return(
-        FileExists( Global.asCurrentTexturePath + Materialname ) ? Global.asCurrentTexturePath + Materialname :
-        FileExists( Materialname ) ? Materialname :
-        FileExists( szTexturePath + Materialname ) ? szTexturePath + Materialname :
-        "" );
+    return (
+        FileExists(
+            { Global.asCurrentTexturePath + Materialname, Materialname, szTexturePath + Materialname },
+            { ".mat" } ) );
 }
 
 //---------------------------------------------------------------------------
