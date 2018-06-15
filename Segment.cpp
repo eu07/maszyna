@@ -16,23 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "renderer.h"
 
-//---------------------------------------------------------------------------
-
-// helper, restores content of a 3d vector from provided input stream
-// TODO: review and clean up the helper routines, there's likely some redundant ones
-Math3D::vector3 LoadPoint( cParser &Input ) {
-    // pobranie współrzędnych punktu
-    Input.getTokens( 3 );
-    Math3D::vector3 point;
-    Input
-        >> point.x
-        >> point.y
-        >> point.z;
-
-    return point;
-}
-
-
 void
 segment_data::deserialize( cParser &Input, Math3D::vector3 const &Offset ) {
 

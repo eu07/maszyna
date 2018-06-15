@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <ctime>
 #include <vector>
 #include <sstream>
+#include "dumb3d.h"
 
 /*rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze*/
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
@@ -300,4 +301,5 @@ nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend,
     return c1 / c2;
 }
 
-//---------------------------------------------------------------------------
+class cParser;
+glm::dvec3 LoadPoint( cParser &Input );

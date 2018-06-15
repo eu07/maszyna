@@ -25,6 +25,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 #include "utilities.h"
 #include "Globals.h"
+#include "parser.h"
 
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
@@ -386,4 +387,18 @@ substr_path( std::string const &Filename ) {
         Filename.rfind( '/' ) != std::string::npos ?
             Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
             "" );
+}
+
+// helper, restores content of a 3d vector from provided input stream
+// TODO: review and clean up the helper routines, there's likely some redundant ones
+
+glm::dvec3 LoadPoint( cParser &Input ) {
+    // pobranie współrzędnych punktu
+    glm::dvec3 point;
+    Input.getTokens( 3 );
+    Input
+        >> point.x
+        >> point.y
+        >> point.z;
+    return point;
 }
