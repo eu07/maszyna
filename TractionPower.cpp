@@ -141,6 +141,52 @@ void TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
     // else ErrorLog("nie może być więcej punktów zasilania niż dwa");
 };
 
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TTractionPowerSource::serialize_( std::ostream &Output ) const {
+
+    // TODO: implement
+}
+
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TTractionPowerSource::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TTractionPowerSource::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "tractionpowersource ";
+    // placement
+    Output
+        << location().x << ' '
+        << location().y << ' '
+        << location().z << ' ';
+    // basic attributes
+    Output
+        << NominalVoltage << ' '
+        << VoltageFrequency << ' '
+        << InternalRes << ' '
+        << MaxOutputCurrent << ' '
+        << FastFuseTimeOut << ' '
+        << FastFuseRepetition << ' '
+        << SlowFuseTimeOut << ' ';
+    // optional attributes
+    if( true == Recuperation ) {
+        Output << "recuperation ";
+    }
+    if( true == bSection ) {
+        Output << "section ";
+    }
+    // footer
+    Output
+        << "end"
+        << "\n";
+}
+
 
 
 // legacy method, calculates changes in simulation state over specified time

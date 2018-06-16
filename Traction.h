@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 
 class TTractionPowerSource;
 
-class TTraction : public editor::basic_node {
+class TTraction : public scene::basic_node {
 
     friend class opengl_renderer;
 
@@ -74,13 +74,18 @@ class TTraction : public editor::basic_node {
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
 
-protected:
-    // calculates piece's bounding radius
-    void
-        radius_();
-
 private:
+// methods
     glm::vec3 wire_color() const;
+    // radius() subclass details, calculates node's bounding radius
+    float radius_();
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
 };
 
 

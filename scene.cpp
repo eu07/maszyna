@@ -228,6 +228,17 @@ basic_cell::deserialize( std::istream &Input ) {
      || ( false == m_lines.empty() ) );
 }
 
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_cell::export_as_text( std::ostream &Output ) const {
+
+    // text format export dumps only relevant basic objects
+    // sounds
+    for( auto const *sound : m_sounds ) {
+        sound->export_as_text( Output );
+    }
+}
+
 // adds provided shape to the cell
 void
 basic_cell::insert( shape_node Shape ) {
@@ -421,7 +432,7 @@ basic_cell::find( glm::dvec3 const &Point, float const Radius, bool const Onlyco
             std::tie( vehiclenearest, leastdistance ) = std::tie( vehicle, distance );
         }
     }
-    return std::tie( vehiclenearest, leastdistance );
+    return { vehiclenearest, leastdistance };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -438,7 +449,7 @@ basic_cell::find( glm::dvec3 const &Point, TTrack const *Exclude ) const {
         endpointid = path->TestPoint( &point );
         if( endpointid >= 0 ) {
 
-            return std::tie( path, endpointid );
+            return { path, endpointid };
         }
     }
     return { nullptr, -1 };
@@ -457,7 +468,7 @@ basic_cell::find( glm::dvec3 const &Point, TTraction const *Exclude ) const {
         endpointid = traction->TestPoint( Point );
         if( endpointid >= 0 ) {
 
-            return std::tie( traction, endpointid );
+            return { traction, endpointid };
         }
     }
     return { nullptr, -1 };
@@ -530,7 +541,7 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
 // adjusts cell bounding area to enclose specified node
 void
-basic_cell::enclose_area( editor::basic_node *Node ) {
+basic_cell::enclose_area( scene::basic_node *Node ) {
 
     m_area.radius = std::max(
         m_area.radius,
@@ -645,6 +656,16 @@ basic_section::deserialize( std::istream &Input ) {
     }
 }
 
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_section::export_as_text( std::ostream &Output ) const {
+
+    // text format export dumps only relevant basic objects from non-empty cells
+    for( auto const &cell : m_cells ) {
+        cell.export_as_text( Output );
+    }
+}
+
 // adds provided shape to the section
 void
 basic_section::insert( shape_node Shape ) {
@@ -708,7 +729,7 @@ basic_section::find( glm::dvec3 const &Point, float const Radius, bool const Onl
             std::tie( vehiclenearest, distancenearest ) = std::tie( vehiclefound, distancefound );
         }
     }
-    return std::tie( vehiclenearest, distancenearest );
+    return { vehiclenearest, distancenearest };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -947,6 +968,18 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     }
 
     return true;
+}
+
+// sends content of the class in legacy (text) format to provided stream
+void
+basic_region::export_as_text( std::ostream &Output ) const {
+
+    for( auto *section : m_sections ) {
+        // text format export dumps only relevant basic objects from non-empty sections
+        if( section != nullptr ) {
+            section->export_as_text( Output );
+        }
+    }
 }
 
 // legacy method, links specified path piece with potential neighbours
@@ -1212,7 +1245,7 @@ basic_region::find_vehicle( glm::dvec3 const &Point, float const Radius, bool co
             std::tie( nearestvehicle, nearestdistance ) = std::tie( foundvehicle, founddistance );
         }
     }
-    return std::tie( nearestvehicle, nearestdistance );
+    return { nearestvehicle, nearestdistance };
 }
 
 // finds a path with one of its ends located in specified point. returns: located path and id of the matching endpoint
@@ -1225,7 +1258,7 @@ basic_region::find_path( glm::dvec3 const &Point, TTrack const *Exclude ) {
         return section( Point ).find( Point, Exclude );
     }
 
-    return std::make_tuple<TTrack *, int>( nullptr, -1 );
+    return { nullptr, -1 };
 }
 
 // finds a traction piece with one of its ends located in specified point. returns: located traction piece and id of the matching endpoint
@@ -1238,7 +1271,7 @@ basic_region::find_traction( glm::dvec3 const &Point, TTraction const *Exclude )
         return section( Point ).find( Point, Exclude );
     }
 
-    return std::make_tuple<TTraction *, int>( nullptr, -1 );
+    return { nullptr, -1 };
 }
 
 // finds a traction piece located nearest to specified point, sharing section with specified other piece and powered in specified direction. returns: located traction piece

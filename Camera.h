@@ -22,14 +22,9 @@ enum TCameraType
 
 class TCamera {
 
-  private:
-      glm::dvec3 m_moverate;
-
   public: // McZapkie: potrzebuje do kiwania na boki
     void Init( Math3D::vector3 NPos, Math3D::vector3 NAngle);
-    inline
-    void Reset() {
-        Pitch = Yaw = Roll = 0; };
+    void Reset();
     void OnCursorMove(double const x, double const y);
     bool OnCommand( command_data const &Command );
     void Update();
@@ -46,4 +41,9 @@ class TCamera {
     Math3D::vector3 LookAt; // współrzędne punktu, na który ma patrzeć
     Math3D::vector3 vUp;
     Math3D::vector3 Velocity;
+
+private:
+    glm::dvec3 m_moverate;
+    glm::dvec3 m_rotationoffsets; // requested changes to pitch, yaw and roll
+
 };

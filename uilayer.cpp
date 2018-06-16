@@ -116,6 +116,7 @@ ui_layer::on_key( int const Key, int const Action ) {
         case GLFW_KEY_F8:
         case GLFW_KEY_F9:
         case GLFW_KEY_F10:
+        case GLFW_KEY_F11:
         case GLFW_KEY_F12: { // ui mode selectors
 
             if( ( true == Global.ctrlState )
@@ -303,11 +304,17 @@ ui_layer::update() {
 
                 if( Global.iScreenMode[ Global.iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
+                    auto const speedlimit { static_cast<int>( std::floor( driver->VelDesired ) ) };
                     uitextline2 +=
                         " Speed: " + std::to_string( static_cast<int>( std::floor( mover->Vel ) ) ) + " km/h"
-                        + " (limit: " + std::to_string( static_cast<int>( std::floor( driver->VelDesired ) ) ) + " km/h"
-                        + ", next limit: " + std::to_string( static_cast<int>( std::floor( controlled->Mechanik->VelNext ) ) ) + " km/h"
-                        + " in " + to_string( controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
+                        + " (limit: " + std::to_string( speedlimit ) + " km/h";
+                    auto const nextspeedlimit { static_cast<int>( std::floor( controlled->Mechanik->VelNext ) ) };
+                    if( nextspeedlimit != speedlimit ) {
+                        uitextline2 +=
+                            ", new limit: " + std::to_string( nextspeedlimit ) + " km/h"
+                            + " in " + to_string( controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km";
+                    }
+                    uitextline2 += ")";
                     uitextline3 +=
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
@@ -966,7 +973,7 @@ ui_layer::render() {
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
+    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT);// | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
 	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_ALPHA_TEST );

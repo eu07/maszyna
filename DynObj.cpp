@@ -52,6 +52,18 @@ GetSubmodelFromName( TModel3d * const Model, std::string const Name ) {
             nullptr );
 }
 
+// Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
+std::string
+TextureTest( std::string const &Name ) {
+    
+    auto const lookup {
+        FileExists(
+            { Global.asCurrentTexturePath + Name, Name, szTexturePath + Name },
+            { ".mat", ".dds", ".tga", ".bmp" } ) };
+
+    return ( lookup.first + lookup.second );
+}
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -3033,8 +3045,13 @@ bool TDynamicObject::Update(double dt, double dt1)
 				masa += p->MoverParameters->TotalMass;
 				osie += p->MoverParameters->NAxles;
 			}
+			double RapidMult = 1.0;
+			if (((MoverParameters->BrakeDelays & (bdelay_P + bdelay_R)) == (bdelay_P + bdelay_R))
+				&& (MoverParameters->BrakeDelayFlag & bdelay_P))
+				RapidMult = MoverParameters->RapidMult;
 
-			auto const amax = std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+
             if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
                 (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
             {
@@ -3062,7 +3079,20 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 Fzad = std::max(MoverParameters->StopBrakeDecc * masa, Fzad);
             }
-
+			if ((Fzad > 1) && (!MEDLogFile.is_open()) && (MoverParameters->Vel > 1))
+			{
+				MEDLogFile.open(std::string("MEDLOGS/" + MoverParameters->Name + "_" + to_string(++MEDLogCount) + ".csv"),
+					std::ios::in | std::ios::out | std::ios::trunc);
+				MEDLogFile << std::string("t\tVel\tMasa\tOsie\tFmaxPN\tFmaxED\tFfulED\tFrED\tFzad\tFzadED\tFzadPN").c_str();
+				for(int k=1;k<=np;k++)
+				{
+					MEDLogFile << "\tBP" << k;
+				}
+				MEDLogFile << "\n";
+				MEDLogFile.flush();
+				MEDLogInactiveTime = 0;
+				MEDLogTime = 0;
+			}
             auto FzadED { 0.0 };
             if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != MHZ_EN57))
              || ( ( MoverParameters->BrakeHandle == MHZ_EN57 )
@@ -3196,6 +3226,38 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MED[0][5] = FrED*0.001;
 			MED[0][6] = FzadPN*0.001;
 			MED[0][7] = nPrzekrF;
+
+			if (MEDLogFile.is_open())
+			{
+				MEDLogFile << MEDLogTime << "\t" << MoverParameters->Vel << "\t" << masa*0.001 << "\t" << osie << "\t" << FmaxPN*0.001 << "\t" << FmaxED*0.001 << "\t"
+					<< FfulED*0.001 << "\t" << FrED*0.001 << "\t" << Fzad*0.001 << "\t" << FzadED*0.001 << "\t" << FzadPN*0.001;
+				for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+					(true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
+				{
+					MEDLogFile << "\t" << p->MoverParameters->BrakePress;
+				}
+				MEDLogFile << "\n";
+				if (floor(MEDLogTime + dt1) > floor(MEDLogTime))
+				{
+					MEDLogFile.flush();
+				}
+				MEDLogTime += dt1;
+
+				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPos > 0))
+				{
+					MEDLogInactiveTime += dt1;
+				}
+				else
+				{
+					MEDLogInactiveTime = 0;
+				}
+				if (MEDLogInactiveTime > 5)
+				{
+					MEDLogFile.flush();
+					MEDLogFile.close();
+				}
+
+			}
 
 			delete[] PrzekrF;
 			delete[] FzED;
@@ -4482,7 +4544,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none")
             {
-                std::string nowheretexture = TextureTest( Global.asCurrentTexturePath + "nowhere" ); // na razie prymitywnie
+                std::string nowheretexture = TextureTest( "nowhere" ); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
                     m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( nowheretexture );
                 }
@@ -4552,7 +4614,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             }
             if( !MoverParameters->LoadAccepted.empty() ) {
 
-                if( MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+                if( ( MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                 && ( asLoadName == "pantstate" ) ) {
                     // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
                     if( MoverParameters->Load == 1 ) {
                         MoverParameters->PantFront( true );
@@ -4609,10 +4672,12 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 */
                     if( true == pAnimations.empty() )
                     { // jeśli nie ma jeszcze tabeli animacji, można odczytać nowe ilości
-						int co = 0, ile = -1;
+                        int co = 0;
                         iAnimations = 0;
+                        int ile;
                         do
                         { // kolejne liczby to ilość animacj, -1 to znacznik końca
+                            ile = -1;
 							parser.getTokens( 1, false );
                             parser >> ile; // ilość danego typu animacji
                             if (ile >= 0)
@@ -6209,17 +6274,6 @@ int TDynamicObject::RouteWish(TTrack *tr)
     return Mechanik ? Mechanik->CrossRoute(tr) : 0; // wg AI albo prosto
 };
 
-std::string TDynamicObject::TextureTest(std::string const &name)
-{ // Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
-	std::vector<std::string> extensions = { ".mat", ".dds", ".tga", ".bmp" };
-	for( auto const &extension : extensions ) {
-		if( true == FileExists( name + extension ) ) {
-			return name + extension;
-        }
-    }
-    return ""; // nie znaleziona
-};
-
 void TDynamicObject::DestinationSet(std::string to, std::string numer)
 { // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
     // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
@@ -6233,13 +6287,20 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
 	numer = Bezogonkow(numer);
     asDestination = to;
     to = Bezogonkow(to); // do szukania pliku obcinamy ogonki
-
+    if( true == to.empty() ) {
+        to = "nowhere";
+    }
+    // destination textures are kept in the vehicle's directory so we point the current texture path there
+    auto const currenttexturepath { Global.asCurrentTexturePath };
+    Global.asCurrentTexturePath = asBaseDir;
+    // now see if we can find any version of the texture
     std::vector<std::string> destinations = {
-        asBaseDir + numer + "@" + MoverParameters->TypeName,
-        asBaseDir + numer,
-        asBaseDir + to + "@" + MoverParameters->TypeName,
-        asBaseDir + to,
-        asBaseDir + "nowhere" };
+        numer + '@' + MoverParameters->TypeName,
+        numer,
+        to + '@' + MoverParameters->TypeName,
+        to,
+        "nowhere" + '@' + MoverParameters->TypeName,
+        "nowhere" };
 
     for( auto const &destination : destinations ) {
 
@@ -6249,6 +6310,8 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
             break;
         }
     }
+    // whether we got anything, restore previous texture path
+    Global.asCurrentTexturePath = currenttexturepath;
 };
 
 void TDynamicObject::OverheadTrack(float o)
@@ -6370,7 +6433,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // main engine sound
     if( true == Vehicle.Mains ) {
 
-        if( ( std::fabs( Vehicle.enrot ) > 0.01 )
+        if( ( std::abs( Vehicle.enrot ) > 0.01 )
             // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
          || ( Vehicle.EngineType == Dumb ) ) {
 
@@ -6501,11 +6564,12 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 std::max( goalvolume, currentvolume - changerate ) :
                 std::min( goalvolume, currentvolume + changerate ) );
 
+        engine_turbo
+            .pitch( 0.4 + engine_turbo_pitch * 0.4 )
+            .gain( volume );
+
         if( volume > 0.05 ) {
-            engine_turbo
-                .pitch( 0.4 + engine_turbo_pitch * 0.4 )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
+            engine_turbo.play( sound_flags::exclusive | sound_flags::looping );
         }
         else {
             engine_turbo.stop();
@@ -6539,7 +6603,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( ( true == Vehicle.Mains )
      && ( false == motors.empty() ) ) {
 
-        if( std::fabs( Vehicle.enrot ) > 0.01 ) {
+        if( std::abs( Vehicle.enrot ) > 0.01 ) {
 
             auto const &motor { motors.front() };
             // frequency calculation

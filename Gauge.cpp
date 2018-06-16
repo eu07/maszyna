@@ -61,11 +61,18 @@ void TGauge::Init(TSubModel *Submodel, TGaugeType Type, float Scale, float Offse
     else // a banan może być z optymalizacją?
         Submodel->WillBeAnimated(); // wyłączenie ignowania jedynkowego transformu
     // pass submodel location to defined sounds
+    auto const nulloffset { glm::vec3{} };
     auto const offset{ model_offset() };
-    m_soundfxincrease.offset( offset );
-    m_soundfxdecrease.offset( offset );
+    if( m_soundfxincrease.offset() == nulloffset ) {
+        m_soundfxincrease.offset( offset );
+    }
+    if( m_soundfxdecrease.offset() == nulloffset ) {
+        m_soundfxdecrease.offset( offset );
+    }
     for( auto &soundfxrecord : m_soundfxvalues ) {
-        soundfxrecord.second.offset( offset );
+        if( soundfxrecord.second.offset() == nulloffset ) {
+            soundfxrecord.second.offset( offset );
+        }
     }
 };
 

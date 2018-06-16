@@ -163,14 +163,14 @@ public:
     // utility methods
     TSubModel const *
         Pick_Control() const { return m_pickcontrolitem; }
-    editor::basic_node const *
+    scene::basic_node const *
         Pick_Node() const { return m_picksceneryitem; }
     // maintenance methods
     void
         Update( double const Deltatime );
     TSubModel const *
         Update_Pick_Control();
-    editor::basic_node const *
+    scene::basic_node const *
         Update_Pick_Node();
     // debug methods
     std::string const &
@@ -320,7 +320,9 @@ private:
     texture_manager m_textures;
     opengl_light m_sunlight;
     opengllight_array m_lights;
-
+/*
+    float m_sunandviewangle; // cached dot product of sunlight and camera vectors
+*/
     gfx::geometry_handle m_billboardgeometry { 0, 0 };
     texture_handle m_glaretexture { -1 };
     texture_handle m_suntexture { -1 };
@@ -386,8 +388,8 @@ private:
     renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
-    std::vector<editor::basic_node const *> m_picksceneryitems;
-    editor::basic_node const *m_picksceneryitem { nullptr };
+    std::vector<scene::basic_node const *> m_picksceneryitems;
+    scene::basic_node const *m_picksceneryitem { nullptr };
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif

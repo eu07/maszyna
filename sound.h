@@ -60,6 +60,9 @@ public:
         deserialize( cParser &Input, sound_type const Legacytype, int const Legacyparameters = 0, int const Chunkrange = 100 );
     sound_source &
         deserialize( std::string const &Input, sound_type const Legacytype, int const Legacyparameters = 0 );
+    // sends content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
     // copies list of sounds from provided source
     sound_source &
         copy_sounds( sound_source const &Source );

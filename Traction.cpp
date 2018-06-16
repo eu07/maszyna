@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "renderer.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -92,17 +93,6 @@ sekcji z sąsiedniego przęsła).
 */
 
 TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
-
-glm::dvec3 LoadPoint( cParser &Input ) {
-    // pobranie współrzędnych punktu
-    glm::dvec3 point;
-    Input.getTokens( 3 );
-    Input
-        >> point.x
-        >> point.y
-        >> point.z;
-    return point;
-}
 
 void
 TTraction::Load( cParser *parser, glm::dvec3 const &pOrigin ) {
@@ -529,18 +519,6 @@ double TTraction::VoltageGet(double u, double i)
     return 0.0; // gdy nie podłączony wcale?
 };
 
-// calculates path's bounding radius
-void
-TTraction::radius_() {
-
-    auto const points = endpoints();
-    for( auto &point : points ) {
-        m_area.radius = std::max(
-            m_area.radius,
-            static_cast<float>( glm::length( m_area.center - point ) ) );
-    }
-}
-
 glm::vec3
 TTraction::wire_color() const {
 
@@ -581,6 +559,7 @@ TTraction::wire_color() const {
         color.r *= Global.DayLight.ambient[ 0 ];
         color.g *= Global.DayLight.ambient[ 1 ];
         color.b *= Global.DayLight.ambient[ 2 ];
+        color *= 0.5f;
     }
     else {
         // tymczasowo pokazanie zasilanych odcinków
@@ -674,6 +653,77 @@ TTraction::wire_color() const {
 */
     }
     return color;
+}
+
+// radius() subclass details, calculates node's bounding radius
+float
+TTraction::radius_() {
+
+    auto const points { endpoints() };
+    auto radius { 0.f };
+    for( auto &point : points ) {
+        radius = std::max(
+            radius,
+            static_cast<float>( glm::length( m_area.center - point ) ) );
+    }
+    return radius;
+}
+
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TTraction::serialize_( std::ostream &Output ) const {
+
+    // TODO: implement
+}
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TTraction::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TTraction::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "traction ";
+    // basic attributes
+    Output
+        << asPowerSupplyName << ' '
+        << NominalVoltage << ' '
+        << MaxCurrent << ' '
+        << ( fResistivity * 1000 ) << ' '
+        << (
+            Material == 2 ? "al" :
+            Material == 0 ? "none" :
+            "cu" ) << ' '
+        << WireThickness << ' '
+        << DamageFlag << ' ';
+    // path data
+    Output
+        << pPoint1.x << ' ' << pPoint1.y << ' ' << pPoint1.z << ' '
+        << pPoint2.x << ' ' << pPoint2.y << ' ' << pPoint2.z << ' '
+        << pPoint3.x << ' ' << pPoint3.y << ' ' << pPoint3.z << ' '
+        << pPoint4.x << ' ' << pPoint4.y << ' ' << pPoint4.z << ' ';
+    // minimum height
+    Output << ( ( pPoint3.y - pPoint1.y + pPoint4.y - pPoint2.y ) * 0.5 - fHeightDifference ) << ' ';
+    // segment length
+    Output << static_cast<int>( iNumSections ? glm::length( pPoint1 - pPoint2 ) / iNumSections : 0.0 ) << ' ';
+    // wire data
+    Output
+        << Wires << ' '
+        << WireOffset << ' ';
+    // visibility
+    // NOTE: 'invis' would be less wrong than 'unvis', but potentially incompatible with old 3rd party tools
+    Output << ( m_visible ? "vis" : "unvis" ) << ' ';
+    // optional attributes
+    if( false == asParallel.empty() ) {
+        Output << "parallel " << asParallel << ' ';
+    }
+    // footer
+    Output
+        << "endtraction"
+        << "\n";
 }
 
 

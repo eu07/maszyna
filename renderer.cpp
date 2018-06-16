@@ -841,14 +841,20 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
             auto const znear = (
                 Znear > 0.f ?
-                    Znear * zfar :
-                    0.1f * Global.ZoomFactor );
+                Znear * zfar :
+                0.1f * Global.ZoomFactor );
             camera.projection() *=
                 glm::perspective(
                     glm::radians( Global.FieldOfView / Global.ZoomFactor ),
                     std::max( 1.f, (float)Global.iWindowWidth ) / std::max( 1.f, (float)Global.iWindowHeight ),
                     znear,
                     zfar );
+/*
+            m_sunandviewangle =
+                glm::dot(
+                    m_sunlight.direction,
+                    glm::vec3( 0.f, 0.f, -1.f ) * glm::mat3( viewmatrix ) );
+*/
             break;
         }
         case rendermode::shadows: {
@@ -2985,7 +2991,7 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     ::glColor4fv(
         glm::value_ptr(
             glm::vec4{
-                Traction->wire_color(),
+                Traction->wire_color() /* * ( DebugModeFlag ? 1.f : clamp( m_sunandviewangle, 0.25f, 1.f ) ) */,
                 linealpha } ) );
     // render
     m_geometry.draw( Traction->m_geometry );
@@ -3442,7 +3448,7 @@ opengl_renderer::Update_Pick_Control() {
     return control;
 }
 
-editor::basic_node const *
+scene::basic_node const *
 opengl_renderer::Update_Pick_Node() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3477,7 +3483,7 @@ opengl_renderer::Update_Pick_Node() {
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
     auto const nodeindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-    editor::basic_node const *node { nullptr };
+    scene::basic_node const *node { nullptr };
     if( ( nodeindex > 0 )
      && ( nodeindex <= m_picksceneryitems.size() ) ) {
         node = m_picksceneryitems[ nodeindex - 1 ];

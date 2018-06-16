@@ -329,49 +329,47 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
 void TWorld::OnKeyDown(int cKey) {
     // dump keypress info in the log
-    if( !Global.iPause ) {
-        // podczas pauzy klawisze nie działają
-        std::string keyinfo;
-        auto keyname = glfwGetKeyName( cKey, 0 );
-        if( keyname != nullptr ) {
-            keyinfo += std::string( keyname );
-        }
-        else {
-            switch( cKey ) {
+    // podczas pauzy klawisze nie działają
+    std::string keyinfo;
+    auto keyname = glfwGetKeyName( cKey, 0 );
+    if( keyname != nullptr ) {
+        keyinfo += std::string( keyname );
+    }
+    else {
+        switch( cKey ) {
 
-                case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
-                case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
-                case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
-                case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
-                case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
-                case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
-                case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
-                case GLFW_KEY_END: { keyinfo += "End"; break; }
-                case GLFW_KEY_F1: { keyinfo += "F1"; break; }
-                case GLFW_KEY_F2: { keyinfo += "F2"; break; }
-                case GLFW_KEY_F3: { keyinfo += "F3"; break; }
-                case GLFW_KEY_F4: { keyinfo += "F4"; break; }
-                case GLFW_KEY_F5: { keyinfo += "F5"; break; }
-                case GLFW_KEY_F6: { keyinfo += "F6"; break; }
-                case GLFW_KEY_F7: { keyinfo += "F7"; break; }
-                case GLFW_KEY_F8: { keyinfo += "F8"; break; }
-                case GLFW_KEY_F9: { keyinfo += "F9"; break; }
-                case GLFW_KEY_F10: { keyinfo += "F10"; break; }
-                case GLFW_KEY_F11: { keyinfo += "F11"; break; }
-                case GLFW_KEY_F12: { keyinfo += "F12"; break; }
-                case GLFW_KEY_PAUSE: { keyinfo += "Pause"; break; }
-            }
+            case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
+            case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
+            case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
+            case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
+            case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
+            case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
+            case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
+            case GLFW_KEY_END: { keyinfo += "End"; break; }
+            case GLFW_KEY_F1: { keyinfo += "F1"; break; }
+            case GLFW_KEY_F2: { keyinfo += "F2"; break; }
+            case GLFW_KEY_F3: { keyinfo += "F3"; break; }
+            case GLFW_KEY_F4: { keyinfo += "F4"; break; }
+            case GLFW_KEY_F5: { keyinfo += "F5"; break; }
+            case GLFW_KEY_F6: { keyinfo += "F6"; break; }
+            case GLFW_KEY_F7: { keyinfo += "F7"; break; }
+            case GLFW_KEY_F8: { keyinfo += "F8"; break; }
+            case GLFW_KEY_F9: { keyinfo += "F9"; break; }
+            case GLFW_KEY_F10: { keyinfo += "F10"; break; }
+            case GLFW_KEY_F11: { keyinfo += "F11"; break; }
+            case GLFW_KEY_F12: { keyinfo += "F12"; break; }
+            case GLFW_KEY_PAUSE: { keyinfo += "Pause"; break; }
         }
-        if( keyinfo.empty() == false ) {
+    }
+    if( keyinfo.empty() == false ) {
 
-            std::string keymodifiers;
-            if( Global.shiftState )
-                keymodifiers += "[Shift]+";
-            if( Global.ctrlState )
-                keymodifiers += "[Ctrl]+";
+        std::string keymodifiers;
+        if( Global.shiftState )
+            keymodifiers += "[Shift]+";
+        if( Global.ctrlState )
+            keymodifiers += "[Ctrl]+";
 
-            WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
-        }
+        WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
     }
 
     // actual key processing
@@ -522,6 +520,14 @@ void TWorld::OnKeyDown(int cKey) {
                 }
                 break;
             }
+            case GLFW_KEY_F11: {
+                // scenery export
+                if( Global.ctrlState
+                 && Global.shiftState ) {
+                    simulation::State.export_as_text( Global.SceneryFile );
+                }
+                break;
+            }
             case GLFW_KEY_F12: {
                 // quick debug mode toggle
                 if( Global.ctrlState
@@ -626,6 +632,7 @@ void TWorld::InOutKey( bool const Near )
         if (Train) {
             // cache current cab position so there's no need to set it all over again after each out-in switch
             Train->pMechSittingPosition = Train->pMechOffset;
+
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
@@ -637,9 +644,8 @@ void TWorld::InOutKey( bool const Near )
         if (Train)
         {
             Train->Dynamic()->bDisplayCab = true;
-            Train->Dynamic()->ABuSetModelShake(
-                Math3D::vector3(0, 0, 0)); // zerowanie przesunięcia przed powrotem?
-            // Camera.Stop(); //zatrzymanie ruchu
+            // zerowanie przesunięcia przed powrotem?
+            Train->Dynamic()->ABuSetModelShake( { 0, 0, 0 } );
             Train->MechStop();
             FollowView(); // na pozycję mecha
         }
@@ -713,14 +719,12 @@ void TWorld::FollowView(bool wycisz) {
             // tu ustawić nową, bo od niej liczą się odległości
             Global.pCameraPosition = Camera.Pos;
         }
-        else if (Train)
-        { // korekcja ustawienia w kabinie - OK
-            if( wycisz ) {
-                // wyciszenie dźwięków z poprzedniej pozycji
-                // trzymanie prawego w kabinie daje marny efekt
-                // TODO: re-implement, old one kinda didn't really work
-            }
+        else if (Train) {
             Camera.Pos = Train->pMechPosition;
+            // potentially restore cached camera angles
+            Camera.Pitch = Train->pMechViewAngle.x;
+            Camera.Yaw = Train->pMechViewAngle.y;
+
             Camera.Roll = std::atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
             Camera.Pitch -= 0.5 * std::atan(Train->vMechVelocity.z * Train->fMechPitch); // hustanie kamery przod tyl
 
@@ -969,6 +973,14 @@ TWorld::Update_Camera( double const Deltatime ) {
 
     if( DebugCameraFlag ) { DebugCamera.Update(); }
     else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
+                                               
+    if( ( false == FreeFlyModeFlag )
+     && ( false == Global.CabWindowOpen )
+     && ( Train != nullptr ) ) {
+        // cache cab camera view angles in case of view type switch
+        Train->pMechViewAngle = { Camera.Pitch, Camera.Yaw };
+    }
+
     // reset window state, it'll be set again if applicable in a check below
     Global.CabWindowOpen = false;
 
@@ -977,7 +989,7 @@ TWorld::Update_Camera( double const Deltatime ) {
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         auto tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
-        double modelrotate = atan2( -tempangle.x, tempangle.z );
+//        double modelrotate = atan2( -tempangle.x, tempangle.z );
 
         if( ( true == Global.ctrlState )
          && ( ( glfwGetKey( Global.window, GLFW_KEY_LEFT ) == GLFW_TRUE )
@@ -1005,6 +1017,11 @@ TWorld::Update_Camera( double const Deltatime ) {
         }
         else {
             // patrzenie standardowe
+            // potentially restore view angle after returning from external view
+            // TODO: mirror view toggle as separate method
+            Camera.Pitch = Train->pMechViewAngle.x;
+            Camera.Yaw = Train->pMechViewAngle.y;
+
             Camera.Pos = Train->GetWorldMechPosition(); // Train.GetPosition1();
             if( !Global.iPause ) {
                 // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
@@ -1014,8 +1031,8 @@ TWorld::Update_Camera( double const Deltatime ) {
                 // Ra: tu jest uciekanie kamery w górę!!!
                 Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch );
             }
-            // ABu011104: rzucanie pudlem
 /*
+            // ABu011104: rzucanie pudlem
             vector3 temp;
             if( abs( Train->pMechShake.y ) < 0.25 )
                 temp = vector3( 0, 0, 6 * Train->pMechShake.y );
@@ -1027,7 +1044,6 @@ TWorld::Update_Camera( double const Deltatime ) {
                 Controlled->ABuSetModelShake( temp );
             // ABu: koniec rzucania
 */
-
             if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
                 Camera.LookAt = Train->GetWorldMechPosition() + Train->GetDirection() * 5.0; // gdy w korytarzu
             else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny

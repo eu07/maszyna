@@ -25,6 +25,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 #include "utilities.h"
 #include "Globals.h"
+#include "parser.h"
 
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
@@ -328,6 +329,20 @@ bool FileExists( std::string const &Filename ) {
     return( true == file.is_open() );
 }
 
+std::pair<std::string, std::string>
+FileExists( std::vector<std::string> const &Names, std::vector<std::string> const &Extensions ) {
+
+    for( auto const &name : Names ) {
+        for( auto const &extension : Extensions ) {
+            if( FileExists( name + extension ) ) {
+                return { name, extension };
+            }
+        }
+    }
+    // nothing found
+    return { {}, {} };
+}
+
 // returns time of last modification for specified file
 std::time_t
 last_modified( std::string const &Filename ) {
@@ -362,4 +377,28 @@ replace_slashes( std::string &Filename ) {
     std::replace(
         std::begin( Filename ), std::end( Filename ),
         '\\', '/' );
+}
+
+// returns potential path part from provided file name
+std::string
+substr_path( std::string const &Filename ) {
+
+    return (
+        Filename.rfind( '/' ) != std::string::npos ?
+            Filename.substr( 0, Filename.rfind( '/' ) + 1 ) :
+            "" );
+}
+
+// helper, restores content of a 3d vector from provided input stream
+// TODO: review and clean up the helper routines, there's likely some redundant ones
+
+glm::dvec3 LoadPoint( cParser &Input ) {
+    // pobranie współrzędnych punktu
+    glm::dvec3 point;
+    Input.getTokens( 3 );
+    Input
+        >> point.x
+        >> point.y
+        >> point.z;
+    return point;
 }

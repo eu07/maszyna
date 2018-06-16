@@ -162,6 +162,41 @@ void TMemCell::AssignEvents(TEvent *e)
     OnSent = e;
 };
 
+// serialize() subclass details, sends content of the subclass to provided stream
+void
+TMemCell::serialize_( std::ostream &Output ) const {
+
+    // TODO: implement
+}
+// deserialize() subclass details, restores content of the subclass from provided stream
+void
+TMemCell::deserialize_( std::istream &Input ) {
+
+    // TODO: implement
+}
+
+// export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+void
+TMemCell::export_as_text_( std::ostream &Output ) const {
+    // header
+    Output << "memcell ";
+    // location
+    Output
+        << location().x << ' '
+        << location().y << ' '
+        << location().z << ' '
+    // cell data
+        << szText << ' '
+        << fValue1 << ' '
+        << fValue2 << ' '
+    // associated track
+        << ( asTrackName.empty() ? "none" : asTrackName ) << ' '
+    // footer
+        << "endmemcell"
+        << "\n";
+}
+
+
 
 
 // legacy method, initializes traction after deserialization from scenario file

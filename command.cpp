@@ -60,6 +60,7 @@ commanddescription_sequence Commands_descriptions = {
     { "sandboxactivate", command_target::vehicle },
     { "reverserincrease", command_target::vehicle },
     { "reverserdecrease", command_target::vehicle },
+    { "reverserforwardhigh", command_target::vehicle },
     { "reverserforward", command_target::vehicle },
     { "reverserneutral", command_target::vehicle },
     { "reverserbackward", command_target::vehicle },
