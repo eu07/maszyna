@@ -91,8 +91,6 @@ jawnie nazwę sekcji, ewentualnie nazwę zasilacza (zostanie zastąpiona wskazan
 sekcji z sąsiedniego przęsła).
 */
 
-TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
-
 glm::dvec3 LoadPoint( cParser &Input ) {
     // pobranie współrzędnych punktu
     glm::dvec3 point;
@@ -103,6 +101,8 @@ glm::dvec3 LoadPoint( cParser &Input ) {
         >> point.z;
     return point;
 }
+
+TTraction::TTraction( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}
 
 void
 TTraction::Load( cParser *parser, glm::dvec3 const &pOrigin ) {

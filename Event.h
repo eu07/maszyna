@@ -120,6 +120,8 @@ private:
 class event_manager {
 
 public:
+// constructors
+    event_manager() = default;
 // destructor
     ~event_manager();
 // methods

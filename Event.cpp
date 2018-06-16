@@ -39,7 +39,6 @@ TEvent::~TEvent() {
     switch (Type)
     { // sprzątanie
     case tp_Multiple:
-        // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa obiektu powiązanego zamieniana na wskaźnik
         if (iFlags & conditional_memstring) // o ile jest łańcuch do porównania w memcompare
             SafeDeleteArray(Params[10].asText);
         break;
@@ -71,12 +70,6 @@ void TEvent::Conditions(cParser *parser, std::string s)
     if (s == "condition")
     { // jesli nie "endevent"
         std::string token, str;
-        if (!asNodeName.empty())
-        { // podczepienie łańcucha, jeśli nie jest pusty
-			// BUG: source of a memory leak -- the array never gets deleted. fix the destructor
-            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na wskaźnik
-            strcpy(Params[9].asText, asNodeName.c_str());
-        }
         parser->getTokens();
         *parser >> token;
 		str = token;
@@ -1673,26 +1666,22 @@ event_manager::InitEvents() {
             break;
         }
         case tp_Multiple: {
-            std::string cellastext;
-            if( event->Params[ 9 ].asText != nullptr ) { // przepisanie nazwy do bufora
-                cellastext = event->Params[ 9 ].asText;
-                SafeDeleteArray( event->Params[ 9 ].asText );
-                event->Params[ 9 ].asPointer = nullptr; // zerowanie wskaźnika, aby wykryć brak obeiktu
-            }
-            if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
-                // jeśli chodzi o zajetosc toru
-                event->Params[ 9 ].asTrack = simulation::Paths.find( cellastext );
-                if( event->Params[ 9 ].asTrack == nullptr ) {
-                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find track \"" + cellastext + "\"" );
-                    event->iFlags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
+            if( false == event->asNodeName.empty() ) {
+                if( event->iFlags & ( conditional_trackoccupied | conditional_trackfree ) ) {
+                    // jeśli chodzi o zajetosc toru
+                    event->Params[ 9 ].asTrack = simulation::Paths.find( event->asNodeName );
+                    if( event->Params[ 9 ].asTrack == nullptr ) {
+                        ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find track \"" + event->asNodeName + "\"" );
+                        event->iFlags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
+                    }
                 }
-            }
-            else if( event->iFlags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
-                // jeśli chodzi o komorke pamieciową
-                event->Params[ 9 ].asMemCell = simulation::Memory.find( cellastext );
-                if( event->Params[ 9 ].asMemCell == nullptr ) {
-                    ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find memory cell \"" + cellastext + "\"" );
-                    event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
+                else if( event->iFlags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
+                    // jeśli chodzi o komorke pamieciową
+                    event->Params[ 9 ].asMemCell = simulation::Memory.find( event->asNodeName );
+                    if( event->Params[ 9 ].asMemCell == nullptr ) {
+                        ErrorLog( "Bad event: multi-event \"" + event->asName + "\" cannot find memory cell \"" + event->asNodeName + "\"" );
+                        event->iFlags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
+                    }
                 }
             }
             for( auto &childevent : event->m_children ) {

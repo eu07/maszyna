@@ -63,6 +63,8 @@ class basic_cell {
     friend class opengl_renderer;
 
 public:
+// constructors
+    basic_cell() = default;
 // methods
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
@@ -183,6 +185,8 @@ class basic_section {
     friend class opengl_renderer;
 
 public:
+// constructors
+    basic_section() = default;
 // methods
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void

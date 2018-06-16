@@ -24,7 +24,7 @@ class cFrustum {
 
 public:
 // constructors:
-
+    cFrustum() = default;
 // methods:
 	// update the frustum to match current view orientation
     void

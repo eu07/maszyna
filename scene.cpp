@@ -124,7 +124,6 @@ basic_cell::update_events() {
 void
 basic_cell::update_sounds() {
 
-    auto const deltatime = Timer::GetDeltaRenderTime();
     for( auto *sound : m_sounds ) {
         sound->play_event();
     }

@@ -295,10 +295,10 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
                                    int Cab) ://: T_MoverParameters(VelInitial, TypeNameInit,
                                             //NameInit, LoadInitial, LoadTypeInitial, Cab)
 TypeName( TypeNameInit ),
+Name( NameInit ),
 ActiveCab( Cab ),
-LoadType( LoadTypeInitial ),
 Load( LoadInitial ),
-Name( NameInit )
+LoadType( LoadTypeInitial )
 {
     WriteLog(
         "------------------------------------------------------");
@@ -1579,9 +1579,10 @@ void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
         WaterHeater.is_active = false;
     }
 
-    WaterHeater.is_damaged |= (
-        ( true == WaterHeater.is_active )
-     && ( false == WaterPump.is_active ) );
+    WaterHeater.is_damaged = (
+        ( true == WaterHeater.is_damaged )
+     || ( ( true == WaterHeater.is_active )
+       && ( false == WaterPump.is_active ) ) );
 }
 
 // fuel pump status update
@@ -5988,16 +5989,19 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
             if (MotorParam[ScndCtrlActualPos].AutoSwitch &&
                 (dizel_automaticgearstatus == 0)) // sprawdz czy zmienic biegi
             {
-                if ((Vel > MotorParam[ScndCtrlActualPos].mfi) &&
-                    (ScndCtrlActualPos < ScndCtrlPosNo))
-                {
-                    dizel_automaticgearstatus = 1;
-                    OK = true;
+                if( Vel > MotorParam[ ScndCtrlActualPos ].mfi ) {
+                    // shift up
+                    if( ScndCtrlActualPos < ScndCtrlPosNo ) {
+                        dizel_automaticgearstatus = 1;
+                        OK = true;
+                    }
                 }
-                else if ((Vel < MotorParam[ScndCtrlActualPos].fi) && (ScndCtrlActualPos > 0))
-                {
-                    dizel_automaticgearstatus = -1;
-                    OK = true;
+                else if( Vel < MotorParam[ ScndCtrlActualPos ].fi ) {
+                    // shift down
+                    if( ScndCtrlActualPos > 0 ) {
+                        dizel_automaticgearstatus = -1;
+                        OK = true;
+                    }
                 }
             }
         }

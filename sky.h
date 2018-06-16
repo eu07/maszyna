@@ -16,11 +16,13 @@ class TSky {
 
     friend class opengl_renderer;
 
+public:
+    TSky() = default;
+
+    void Init();
+
 private:
     TModel3d *mdCloud { nullptr };
-
-public:
-    void Init();
 };
 
 //---------------------------------------------------------------------------

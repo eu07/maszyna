@@ -521,7 +521,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         pTrack = lastspeedpoint.trTrack;
         assert( pTrack != nullptr );
         // flaga ustawiona, gdy Point2 toru jest blizej
-        fLastDir = lastspeedpoint.iFlags & spReverse  ? -1.0 : 1.0;
+        fLastDir = ( ( ( lastspeedpoint.iFlags & spReverse ) != 0 )  ? -1.0 : 1.0 );
         fCurrentDistance = lastspeedpoint.fDist; // aktualna odleglosc do jego Point1
         fTrackLength = pTrack->Length();
     }
@@ -1286,7 +1286,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                      && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) )
                      && ( false == isatpassengerstop ) ) {
                         // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
-                        a = ( iDrivigFlags & moveStopCloser ?
+                        a = ( ( ( iDrivigFlags & moveStopCloser ) != 0 ) ?
                                 fAcc :
                                 0.0 );
                     }
@@ -4575,14 +4575,14 @@ TController::UpdateSituation(double dt) {
                             else {
                                 // jeśli oba jadą, to przyhamuj lekko i ogranicz prędkość
                                 if( vehicle->fTrackBlock < (
-                                        mvOccupied->CategoryFlag & 2 ?
+                                        ( mvOccupied->CategoryFlag & 2 ) ?
                                             fMaxProximityDist + 0.5 * vel : // cars
                                             2.0 * fMaxProximityDist + 2.0 * vel ) ) { //others
                                     // jak tamten jedzie wolniej a jest w drodze hamowania
                                     AccPreferred = std::min( -0.9, AccPreferred );
                                     VelNext = min_speed( std::round( k ) - 5.0, VelDesired );
                                     if( vehicle->fTrackBlock <= (
-                                        mvOccupied->CategoryFlag & 2 ?
+                                        ( mvOccupied->CategoryFlag & 2 ) ?
                                             fMaxProximityDist : // cars
                                             2.0 * fMaxProximityDist ) ) { //others
                                         // try to force speed change if obstacle is really close
@@ -4826,7 +4826,7 @@ TController::UpdateSituation(double dt) {
                     else {
                         // jeśli daleko jechać nie można
                         if( ActualProximityDist > (
-                                mvOccupied->CategoryFlag & 2 ?
+                                ( mvOccupied->CategoryFlag & 2 ) ?
                                     fMinProximityDist : // cars
                                     fMaxProximityDist ) ) { // trains and others
                             // ale ma kawałek do sygnalizatora
@@ -5134,7 +5134,7 @@ TController::UpdateSituation(double dt) {
                             VelDesired - fVelMinus ) ) {
                         // ...jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines
                         if( ( ActualProximityDist > (
-                            mvOccupied->CategoryFlag & 2 ?
+                            ( mvOccupied->CategoryFlag & 2 ) ?
                                 fMinProximityDist : // cars are allowed to move within min proximity distance
                                 fMaxProximityDist ) ? // other vehicle types keep wider margin
                                     true :

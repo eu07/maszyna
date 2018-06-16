@@ -1189,7 +1189,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                  { szyna[ i ].texture.x,
                    szyna[ i ].texture.y } };
 
-            if( false == iTrapezoid ) { continue; }
+            if( iTrapezoid == 0 ) { continue; }
             // trapez albo przechyłki, to oddzielne punkty na końcu
 
             rpts1[ 12 + i ] = {

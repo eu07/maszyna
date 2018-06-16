@@ -16,7 +16,7 @@ public:
 // methods:
     void init();
 // constructors:
-
+    cStars() = default;
 // deconstructor:
 
 // members:
