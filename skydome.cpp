@@ -2,7 +2,6 @@
 #include "skydome.h"
 #include "color.h"
 #include "utilities.h"
-#include <unistd.h>
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
