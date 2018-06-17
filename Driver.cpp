@@ -1202,26 +1202,29 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[ i ].iFlags = 0;
                             }
                         }
-                        else if (go == cm_Unknown) // jeśli jeszcze nie ma komendy
-                            if (v != 0.0) // komenda jest tylko gdy ma jechać, bo stoi na podstawie
-                            // tabelki
-                            { // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie
-                                // VelSignal
+                        else if( go == cm_Unknown ) {
+                            // jeśli jeszcze nie ma komendy
+                            // komenda jest tylko gdy ma jechać, bo stoi na podstawietabelki
+                            if( v != 0.0 ) {
+                                // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
                                 go = cm_ShuntVelocity; // w trybie pociągowym tylko jeśli włącza
                                 // tryb manewrowy (v!=0.0)
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo Tm może być
                                 // daleko
                                 // VelSignal=v; //nie do końca tak, to jest druga prędkość
-                                if (VelSignal == 0.0)
-                                    VelSignal = v; // aby stojący ruszył
-                                if (sSpeedTable[i].fDist < 0.0) // jeśli przejechany
-                                {
-                                    VelSignal = v; //!!! ustawienie, gdy przejechany jest lepsze niż
-                                    // wcale, ale to jeszcze nie to
-                                    sSpeedTable[i].iFlags =
-                                        0; // to można usunąć (nie mogą być usuwane w skanowaniu)
+                                if( VelSignal == 0.0 ) {
+                                    // aby stojący ruszył
+                                    VelSignal = v;
+                                }
+                                if( sSpeedTable[ i ].fDist < 0.0 ) {
+                                    // jeśli przejechany
+                                    //!!! ustawienie, gdy przejechany jest lepsze niż wcale, ale to jeszcze nie to
+                                    VelSignal = v; 
+                                    // to można usunąć (nie mogą być usuwane w skanowaniu)
+                                    sSpeedTable[ i ].iFlags = 0;
                                 }
                             }
+                        }
                     }
                     else if( !( sSpeedTable[ i ].iFlags & spSectionVel ) ) {
                         //jeśli jakiś event pasywny ale nie ograniczenie
@@ -4648,22 +4651,13 @@ TController::UpdateSituation(double dt) {
                             VelDesired,
                             TrainParams->TTVmax );
                 }
-
-                if( ( ( iDrivigFlags & moveStopHere ) != 0 )
-                 && ( vel < 0.01 )
-                 && ( SemNextIndex != -1 )
-                 && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
-                 && ( sSpeedTable[ SemNextIndex ].fVelNext == 0.0 ) ) {
-                    // don't depart if told to wait at passenger stop until allowed to by the signal
-                    VelDesired = 0.0;
-                }
             }
 
             if( ( OrderCurrentGet() & ( Shunt | Obey_train ) ) != 0 ) {
                 // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
                 if( ( ( iDrivigFlags & moveStopHere ) != 0 )
                  && ( vel < 0.01 )
-                 && ( VelSignal == 0.0 ) ) {
+                 && ( VelSignalNext == 0.0 ) ) {
                     // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
                     VelDesired = 0.0;
                 }

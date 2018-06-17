@@ -5645,7 +5645,7 @@ TTrain::update_sounds( double const Deltatime ) {
         m_radiostop.stop();
     }
 
-    if( fTachoCount > 3.f ) {
+    if( fTachoCount >= 3.f ) {
         auto const frequency { (
             true == dsbHasler.is_combined() ?
                 fTachoVelocity * 0.01 :

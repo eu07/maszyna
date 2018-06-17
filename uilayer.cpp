@@ -673,19 +673,7 @@ ui_layer::update() {
             uitextline3 =
                   "vehicles: " + to_string( Timer::subsystem.sim_dynamics.average(), 2 ) + " msec"
                 + " update total: " + to_string( Timer::subsystem.sim_total.average(), 2 ) + " msec";
-
-            break;
-        }
-
-        case( GLFW_KEY_F10 ) : {
-
-            uitextline1 = "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y].";
-
-            break;
-        }
-
-        case( GLFW_KEY_F11 ): {
-            // scenario inspector
+            // current event queue
             auto const time { Timer::GetTime() };
             auto const *event { simulation::Events.begin() };
             auto eventtableindex{ 0 };
@@ -707,6 +695,19 @@ ui_layer::update() {
                 }
                 event = event->evNext;
             }
+
+            break;
+        }
+
+        case( GLFW_KEY_F10 ) : {
+
+            uitextline1 = "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y].";
+
+            break;
+        }
+
+        case( GLFW_KEY_F11 ): {
+            // scenario inspector
 
             break;
         }
