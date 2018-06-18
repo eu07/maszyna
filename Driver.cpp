@@ -858,6 +858,26 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         }
                     } // koniec obsługi przelotu na W4
                     else {
+						if ( !sSpeedTable[i].bMoved )
+						{
+							auto L = 0.0;
+							auto Par1 = sSpeedTable[i].evEvent->ValueGet(1);
+							auto Par2 = sSpeedTable[i].evEvent->ValueGet(2);
+							if ((Par2 > 0) || (fLength < -Par2)) { //użyj tego W4
+								if (Par1 < 0) { //środek
+									L = -Par1 - fLength * 0.5 - 10;
+								}
+								else {
+									L = Par1;
+								}
+								L = std::max(0.0, std::min(L, abs(Par2) - 10 - fLength));
+								sSpeedTable[i].UpdateDistance(L);
+								sSpeedTable[i].bMoved = true;
+							}
+							else {
+								sSpeedTable[i].iFlags = 0;
+							}
+						}
                         // zatrzymanie na W4
                         isatpassengerstop = (
                             // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
