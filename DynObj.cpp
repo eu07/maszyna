@@ -5658,6 +5658,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // odpalanie silnika
                     m_powertrainsounds.engine_ignition.deserialize( parser, sound_type::single );
                     m_powertrainsounds.engine_ignition.owner( this );
+                } else if (token == "shutdown:") {
+                    m_powertrainsounds.engine_shutdown.deserialize(parser, sound_type::single);
+                    m_powertrainsounds.engine_shutdown.owner(this);
                 }
                 else if( token == "engageslippery:" ) {
                     // tarcie tarcz sprzegla:
@@ -6371,7 +6374,7 @@ TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
     std::vector<sound_source *> enginesounds = {
         &inverter,
         &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &motor_shuntfield, &rsWentylator,
-        &engine, &engine_ignition, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
+        &engine, &engine_ignition, &engine_shutdown, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
         &transmission, &rsEngageSlippery
     };
     for( auto sound : enginesounds ) {
@@ -6406,7 +6409,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
         if( true == Vehicle.Mains ) {
            // TODO: separate engine and main circuit
-           // engine activation
+            engine_shutdown.stop();
             engine_ignition
                 .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
                 .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
@@ -6420,6 +6423,9 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         else {
             // engine deactivation
             engine_ignition.stop();
+            engine_shutdown.pitch( engine_shutdown.m_frequencyoffset + engine_shutdown.m_frequencyfactor * 1.f )
+                .gain( engine_shutdown.m_amplitudeoffset + engine_shutdown.m_amplitudefactor * 1.f )
+                .play( sound_flags::exclusive );
             // main circuit
             linebreaker_open
                 .pitch( linebreaker_open.m_frequencyoffset + linebreaker_open.m_frequencyfactor * 1.f )
