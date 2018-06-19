@@ -6,45 +6,47 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-
 #pragma once
 
 #include "Classes.h"
 
 class AirCoupler
 {
-private:
-    TSubModel *ModelOn, *ModelOff, *ModelxOn;
-    bool On;
-    bool xOn;
-    void Update();
-
 public:
-    AirCoupler();
-    ~AirCoupler();
-    ///Reset members.
-    void Clear();
-    ///Looks for submodels.
-    void Init(std::string const &asName, TModel3d *Model);
-    ///Loads info about coupler.
-    void Load(cParser *Parser, TModel3d *Model);
-    int GetStatus();
-    inline void TurnOn() ///Turns on straight coupler.
-    {
-        On = true;
-        xOn = false;
-        Update();
-    };
-    inline void TurnOff() ///Turns on disconnected coupler.
-    {
-        On = false;
-        xOn = false;
-        Update();
-    };
-    inline void TurnxOn() ///Turns on slanted coupler.
-    {
-        On = false;
-        xOn = true;
-        Update();
-    };
+	AirCoupler();
+	~AirCoupler();
+	//Reset members.
+	void clear();
+	//Looks for submodels.
+	void init(const std::string& asName, TModel3d* model);
+	//Loads info about coupler.
+	void load(cParser* parser, TModel3d* model);
+	int getStatus();
+	//Turns on straight coupler.
+	inline void turnOn()
+	{
+		on = true;
+		xOn = false;
+		update();
+	};
+	//Turns on disconnected coupler.
+	inline void turnOff()
+	{
+		on = false;
+		xOn = false;
+		update();
+	};
+	//Turns on slanted coupler.
+	inline void turnxOn()
+	{
+		on = false;
+		xOn = true;
+		update();
+	};
+
+private:
+	TSubModel *modelOn, *modelOff, *modelxOn;
+	bool on;
+	bool xOn;
+	void update();
 };
