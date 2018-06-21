@@ -9,6 +9,8 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Classes.h"
+#include "Model3d.h"
+#include "parser.h"
 
 class AirCoupler
 {
@@ -45,8 +47,8 @@ public:
 	};
 
 private:
-	TSubModel *modelOn, *modelOff, *modelxOn;
-	bool on;
-	bool xOn;
 	void update();
+
+	TSubModel *modelOn, *modelOff, *modelxOn;
+	bool on, xOn;
 };
