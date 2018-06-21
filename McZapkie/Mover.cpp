@@ -1714,18 +1714,11 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 					// szybkie przejœcie na bezoporow¹
 					if( TrainType == dt_ET40 ) {
 						break; // this means ET40 won't react at all to fast acceleration command. should it issue just IncMainCtrl(1) instead?
-                                }
+                    }
 					while( ( RList[ MainCtrlPos ].R > 0.0 )
 						&& IncMainCtrl( 1 ) ) {
 						// all work is done in the loop header
 						;
-					}
-					// OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
-					if( ActiveDir < 0 ) {
-						while( ( RList[ MainCtrlPos ].Bn > 1 )
-							&& IncMainCtrl( 1 ) ) {
-							--MainCtrlPos;
-						}
 					}
 					OK = false; // shouldn't this be part of the loop above?
 					// if (TrainType=dt_ET40)  then
@@ -1752,14 +1745,6 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
                             }
 						}
 					}
-					if( ActiveDir < 0 ) {
-						if( ( TrainType != dt_PseudoDiesel )
-						 && ( RList[ MainCtrlPos ].Bn > 1 )	) {
-                            // blokada wejścia na równoległą podczas jazdy do tyłu
-							--MainCtrlPos;
-                            OK = false;
-                        }
-					}
                         //
                         // if (TrainType == "et40")
                         //  if (Abs(Im) > IminHi)
@@ -1768,15 +1753,14 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
                         //    OK = false;
                         //   }
                         //}
-                                }
+                }
 
-				if( ( TrainType == dt_ET42 ) && ( true == DynamicBrakeFlag ) ) {
-					if( MainCtrlPos > 20 ) {
-						MainCtrlPos = 20;
+                if( ( TrainType == dt_ET42 ) && ( true == DynamicBrakeFlag ) ) {
+                    if( MainCtrlPos > 20 ) {
+                        MainCtrlPos = 20;
                         OK = false;
                     }
-				}
-                    // return OK;
+                }
                     break;
                 }
 
@@ -2866,7 +2850,6 @@ bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
             LocalBrakePos++;
-//            LocalBrakePosA = static_cast<double>(LocalBrakePos) / LocalBrakePosNo; // temporary hack until i figure out how this element is supposed to work
             CtrlSpeed--;
         }
         IBL = true;
@@ -2890,7 +2873,6 @@ bool TMoverParameters::DecLocalBrakeLevel(int CtrlSpeed)
         while ((CtrlSpeed > 0) && (LocalBrakePos > 0))
         {
             LocalBrakePos--;
-//            LocalBrakePosA = static_cast<double>( LocalBrakePos ) / LocalBrakePosNo; // temporary hack until i figure out how this element is supposed to work
             CtrlSpeed--;
         }
         DBL = true;
@@ -2912,7 +2894,6 @@ bool TMoverParameters::IncLocalBrakeLevelFAST(void)
     if (LocalBrakePos < LocalBrakePosNo)
     {
         LocalBrakePos = LocalBrakePosNo;
-//        LocalBrakePosA = static_cast<double>( LocalBrakePos ) / LocalBrakePosNo; // temporary hack until i figure out how this element is supposed to work
         ILBLF = true;
     }
     else
@@ -2931,7 +2912,6 @@ bool TMoverParameters::DecLocalBrakeLevelFAST(void)
     if (LocalBrakePos > 0)
     {
         LocalBrakePos = 0;
-//        LocalBrakePosA = static_cast<double>( LocalBrakePos ) / LocalBrakePosNo; // temporary hack until i figure out how this element is supposed to work
         DLBLF = true;
     }
     else
@@ -6472,7 +6452,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
         auto const zaluzje2 { ( dizel_heat.zaluzje2 ? 1 : 0 ) };
         // auxiliary water circuit heat transfer values
         auto const kf2 { kurek07 * ( ( dizel_heat.kw * ( 0.3 + 0.7 * zaluzje2 ) ) * dizel_heat.rpmw2 + ( dizel_heat.kv * ( 0.3 + 0.7 * zaluzje2 ) * Vel / 3.6 ) ) + 2 };
-        auto const dTs2 { ( ( dizel_heat.kfs * ( 0.3 ) * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gw2 * Cw ) };
+        auto const dTs2 { ( ( dizel_heat.kfo2 * ( dizel_heat.To - dizel_heat.Tsr2 ) ) ) / ( gw2 * Cw ) };
         // przy otwartym kurku B ma³y obieg jest dogrzewany przez du¿y - stosujemy przy korzystaniu z podgrzewacza oraz w zimie
         auto const Qch2 { -kf2 * ( dizel_heat.Tsr2 - dizel_heat.Te ) + ( 80 * ( true == WaterCircuitsLink ? 1 : 0 ) * ( dizel_heat.Twy - dizel_heat.Tsr2 ) ) };
         auto const dTch2 { Qch2 / ( gw2 * Cw ) };

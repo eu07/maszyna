@@ -75,7 +75,7 @@ mouse_input::button( int const Button, int const Action ) {
 
     if( true == FreeFlyModeFlag ) {
         // world editor controls
-        // currently we only handle view panning in this mode
+        // TODO: separate behaviour when the scenery editor is active and in 'regular' free fly mode
         if( Action == GLFW_RELEASE ) {
             // if it's the right mouse button that got released we were potentially in view panning mode; stop it
             if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
@@ -84,6 +84,19 @@ mouse_input::button( int const Button, int const Action ) {
         }
         else {
             // button press
+            if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
+                // the left button selects scene node
+                // further behaviour can vary depending on whether we're in editor mode
+                auto const *node { GfxRenderer.Update_Pick_Node() };
+                if( true == EditorModeFlag ) {
+                    // NOTE: until we have proper editor object in place we set the current node manually
+                    editor::Node = node;
+                }
+                else {
+                    // launch on_click event associated with to the node
+                    // TODO: implement
+                }
+            }
             if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
                 // the right button activates mouse panning mode
                 m_pickmodepanning = true;

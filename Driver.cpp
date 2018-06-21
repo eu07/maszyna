@@ -858,19 +858,28 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         }
                     } // koniec obsługi przelotu na W4
                     else {
-						if ( !sSpeedTable[i].bMoved )
-						{
+                        // zatrzymanie na W4
+                        if ( ( false == sSpeedTable[i].bMoved )
+                          && ( ( OrderCurrentGet() & ( Obey_train | Shunt ) ) != 0 ) ) {
+                            // potentially shift the stop point in accordance with its defined parameters
+                            /*
+                            // https://rainsted.com/pl/Wersja/18.2.133#Okr.C4.99gi_dla_W4_i_W32
+                            Pierwszy parametr ujemny - preferowane zatrzymanie czoła składu (np. przed przejściem).
+                            Pierwszy parametr dodatni - preferowane zatrzymanie środka składu (np. przy wiacie, przejściu podziemnym).
+                            Drugi parametr ujemny - wskazanie zatrzymania dla krótszych składów (W32).
+                            Drugi paramer dodatni - długość peronu (W4).
+                            */
 							auto L = 0.0;
 							auto Par1 = sSpeedTable[i].evEvent->ValueGet(1);
 							auto Par2 = sSpeedTable[i].evEvent->ValueGet(2);
 							if ((Par2 > 0) || (fLength < -Par2)) { //użyj tego W4
 								if (Par1 < 0) { //środek
-									L = -Par1 - fLength * 0.5 - 10;
+									L = -Par1 - fMinProximityDist - fLength * 0.5;
 								}
 								else {
 									L = Par1;
 								}
-								L = std::max(0.0, std::min(L, abs(Par2) - 10 - fLength));
+								L = std::max(0.0, std::min(L, std::abs(Par2) - fMinProximityDist - fLength));
 								sSpeedTable[i].UpdateDistance(L);
 								sSpeedTable[i].bMoved = true;
 							}
@@ -878,7 +887,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 								sSpeedTable[i].iFlags = 0;
 							}
 						}
-                        // zatrzymanie na W4
                         isatpassengerstop = (
                             // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
                             // peronu, chyba że pociąg jest dłuższy, to wtedy minimalna.
@@ -887,7 +895,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             ( iDrivigFlags & moveStopCloser ) ?
                                 ( sSpeedTable[ i ].fDist + fLength ) <=
                                 std::max(
-                                    sSpeedTable[ i ].evEvent->ValueGet( 2 ),
+                                    std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ),
                                     2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
                                 sSpeedTable[ i ].fDist < d_to_next_sem );
 
@@ -990,7 +998,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // NOTE: this calculation is expected to run after completing loading/unloading
                                     AutoRewident(); // nastawianie hamulca do jazdy pociągowej
 
-                                    if( int( floor( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) & 1 ) {
+                                    if( static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) ) % 2 ) {
                                         // nie podjeżdżać do semafora, jeśli droga nie jest wolna
                                         iDrivigFlags |= moveStopHere;
                                     }

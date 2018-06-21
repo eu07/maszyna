@@ -708,6 +708,13 @@ ui_layer::update() {
 
         case( GLFW_KEY_F11 ): {
             // scenario inspector
+            auto const *node { editor::Node };
+
+            if( node == nullptr ) { break; }
+
+            uitextline1 =
+                "Node name: " + node->name()
+                + "; location: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]";
 
             break;
         }

@@ -919,7 +919,12 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
 }
 
 void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &Command ) {
-    
+
+    Train->mvControlled->LocalBrakePosA = (
+        clamp(
+            reinterpret_cast<double const &>( Command.param1 ),
+            0.0, 1.0 ) );
+/*
     Train->mvControlled->LocalBrakePos = (
         std::round(
             interpolate<double>(
@@ -928,6 +933,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
                 clamp(
                     reinterpret_cast<double const &>( Command.param1 ),
                     0.0, 1.0 ) ) ) );
+*/
 }
 
 void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command ) {
@@ -5174,7 +5180,7 @@ bool TTrain::Update( double const Deltatime )
 #endif
             {
                 // standardowa prodedura z kranem powiązanym z klawiaturą
-                ggLocalBrake.UpdateValue( double( mvOccupied->LocalBrakePos ) );
+                ggLocalBrake.UpdateValue( std::max<double>( mvOccupied->LocalBrakePos, mvOccupied->LocalBrakePosA * LocalBrakePosNo ) );
             }
             ggLocalBrake.Update();
         }

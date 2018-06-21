@@ -85,6 +85,8 @@
 //m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
 #include <GLFW/glfw3.h>
 
+#define GLM_ENABLE_EXPERIMENTAL 
+#define GLM_FORCE_CTOR_INIT 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>

@@ -982,75 +982,76 @@ event_manager::FindEvent( std::string const &Name ) {
 
 // legacy method, inserts specified event in the event query
 bool
-event_manager::AddToQuery( TEvent *Event, TDynamicObject *Owner ) {
+event_manager::AddToQuery( TEvent *Event, TDynamicObject const *Owner ) {
 
-    if( true == Event->bEnabled ) {
-        // jeśli może być dodany do kolejki (nie używany w skanowaniu)
-        if( !Event->iQueued ) // jeśli nie dodany jeszcze do kolejki
-        { // kolejka eventów jest posortowana względem (fStartTime)
-            Event->Activator = Owner;
-            if( ( Event->Type == tp_AddValues )
-             && ( Event->fDelay == 0.0 ) ) {
-                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
-                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
-                // wykonującą eventy i ją wywołać
-                if( ( false == Event->m_ignored )
-                 && ( true == EventConditon( Event ) ) ) { // teraz mogą być warunki do tych eventów
+    if( false == Event->bEnabled ) { return false; }
+    if( Event->iQueued != 0 )      { return false; }
+    // jeśli może być dodany do kolejki (nie używany w skanowaniu)
+    // jeśli nie dodany jeszcze do kolejki
+        
+    // kolejka eventów jest posortowana względem (fStartTime)
+    Event->Activator = Owner;
+    if( ( Event->Type == tp_AddValues )
+     && ( Event->fDelay == 0.0 ) ) {
+        // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
+        // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
+        // wykonującą eventy i ją wywołać
+        if( ( false == Event->m_ignored )
+         && ( true == EventConditon( Event ) ) ) { // teraz mogą być warunki do tych eventów
 
-                    Event->Params[ 5 ].asMemCell->UpdateValues(
-                        Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
-                        Event->Params[ 2 ].asdouble, Event->iFlags );
+            Event->Params[ 5 ].asMemCell->UpdateValues(
+                Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
+                Event->Params[ 2 ].asdouble, Event->iFlags );
 
-                    if( Event->Params[ 6 ].asTrack ) { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
-                        // wszystkich 'dynamic' na danym torze
-                        for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
-                            Event->Params[ 5 ].asMemCell->PutCommand(
-                                dynamic->Mechanik,
-                                Event->Params[ 4 ].asLocation );
-                        }
-                        //if (DebugModeFlag)
-                        WriteLog(
-                            "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues & Track command - ["
-                            + std::string{ Event->Params[ 0 ].asText } + "] ["
-                            + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
-                            + to_string( Event->Params[ 2 ].asdouble, 2 ) + " ]" );
-                    }
-                    //else if (DebugModeFlag)
-                    WriteLog(
-                        "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues - ["
-                        + std::string( Event->Params[ 0 ].asText ) + "] ["
-                        + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
-                        + to_string( Event->Params[ 2 ].asdouble, 2 ) + "]" );
+            if( Event->Params[ 6 ].asTrack ) {
+                // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
+                for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
+                    Event->Params[ 5 ].asMemCell->PutCommand(
+                        dynamic->Mechanik,
+                        Event->Params[ 4 ].asLocation );
                 }
-                // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
-                do {
-                    Event = Event->evJoined;
-                    // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
-                    // TODO: refactor this arrangement, it's hardly optimal
-                } while( ( Event != nullptr )
-                    && ( ( false == Event->bEnabled )
-                      || ( Event->iQueued > 0 ) ) );
+                //if (DebugModeFlag)
+                WriteLog(
+                    "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues & Track command - ["
+                    + std::string{ Event->Params[ 0 ].asText } + "] ["
+                    + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                    + to_string( Event->Params[ 2 ].asdouble, 2 ) + " ]" );
             }
-            if( ( Event != nullptr )
-             && ( false == Event->m_ignored ) ) {
-                // standardowe dodanie do kolejki
-                ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
-                WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
-                Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
-                if( Event->fRandomDelay > 0.0 ) {
-                    // doliczenie losowego czasu opóźnienia
-                    Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
-                }
-                if( QueryRootEvent != nullptr ) {
-                    TEvent::AddToQuery( Event, QueryRootEvent );
-                }
-                else {
-                    QueryRootEvent = Event;
-                    QueryRootEvent->evNext = nullptr;
-                }
-            }
+            //else if (DebugModeFlag)
+            WriteLog(
+                "EVENT EXECUTED" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": AddValues - ["
+                + std::string( Event->Params[ 0 ].asText ) + "] ["
+                + to_string( Event->Params[ 1 ].asdouble, 2 ) + "] ["
+                + to_string( Event->Params[ 2 ].asdouble, 2 ) + "]" );
+        }
+        // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
+        do {
+            Event = Event->evJoined;
+            // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
+            // TODO: refactor this arrangement, it's hardly optimal
+        } while( ( Event != nullptr )
+              && ( ( false == Event->bEnabled )
+                || ( Event->iQueued > 0 ) ) );
+    }
+    if( ( Event != nullptr )
+     && ( false == Event->m_ignored ) ) {
+        // standardowe dodanie do kolejki
+        ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
+        WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
+        Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+        if( Event->fRandomDelay > 0.0 ) {
+            // doliczenie losowego czasu opóźnienia
+            Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
+        }
+        if( QueryRootEvent != nullptr ) {
+            TEvent::AddToQuery( Event, QueryRootEvent );
+        }
+        else {
+            QueryRootEvent = Event;
+            QueryRootEvent->evNext = nullptr;
         }
     }
+
     return true;
 }
 

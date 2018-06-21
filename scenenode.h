@@ -381,4 +381,10 @@ basic_node::visible() const {
 
 } // scene
 
+namespace editor {
+
+extern scene::basic_node const *Node; // temporary helper, currently selected scene node
+
+} // editor
+
 //---------------------------------------------------------------------------

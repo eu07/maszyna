@@ -922,6 +922,16 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
     return false;
 };
 
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner ) {
+
+    for( auto const &event : Events ) {
+        if( ( event.second != nullptr )
+         && ( event.second->fDelay <= -1.0 ) ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
+
 std::string TTrack::IsolatedName()
 { // podaje nazwę odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeń
     if (pIsolated)
