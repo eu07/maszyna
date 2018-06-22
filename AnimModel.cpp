@@ -11,8 +11,15 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
 */
+#include "stdafx.h"
 #include "AnimModel.h"
+#include "renderer.h"
+#include "MdlMngr.h"
 #include "simulation.h"
+#include "Globals.h"
+#include "Timer.h"
+#include "Logs.h"
+#include "renderer.h"
 
 TAnimContainer* TAnimModel::acAnimList = nullptr;
 

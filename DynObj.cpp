@@ -11,7 +11,6 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
-
 #include "stdafx.h"
 #include "DynObj.h"
 
@@ -590,15 +589,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 			// jeden
 			// z polaczonych sprzegow
 			if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_coupler)) && (MoverParameters->Couplers[0].Render)) {
-				btCoupler1.Turn(true);
+				btCoupler1.turn(true);
 				btnOn = true;
 			}
-			// else btCoupler1.TurnOff();
 			if ((TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_coupler)) && (MoverParameters->Couplers[1].Render)) {
-				btCoupler2.Turn(true);
+				btCoupler2.turn(true);
 				btnOn = true;
 			}
-			// else btCoupler2.TurnOff();
 			//********************************************************************************
 			// przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
 			// 'render' - juz
@@ -741,59 +738,59 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
 		// przewody sterowania ukrotnionego
 		if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_controll)) {
-			btCCtrl1.Turn(true);
+			btCCtrl1.turn(true);
 			btnOn = true;
 		}
 		// else btCCtrl1.TurnOff();
 		if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_controll)) {
-			btCCtrl2.Turn(true);
+			btCCtrl2.turn(true);
 			btnOn = true;
 		}
 		// else btCCtrl2.TurnOff();
 		// McZapkie-181103: mostki przejsciowe
 		if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_passenger)) {
-			btCPass1.Turn(true);
+			btCPass1.turn(true);
 			btnOn = true;
 		}
 		// else btCPass1.TurnOff();
 		if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_passenger)) {
-			btCPass2.Turn(true);
+			btCPass2.turn(true);
 			btnOn = true;
 		}
 		// else btCPass2.TurnOff();
 		if (MoverParameters->Battery || MoverParameters->ConverterFlag) { // sygnaly konca pociagu
-			if (btEndSignals1.Active()) {
+			if (btEndSignals1.active()) {
 				if (TestFlag(iLights[0], 2) || TestFlag(iLights[0], 32)) {
-					btEndSignals1.Turn(true);
+					btEndSignals1.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals1.TurnOff();
 			} else {
 				if (TestFlag(iLights[0], 2)) {
-					btEndSignals11.Turn(true);
+					btEndSignals11.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals11.TurnOff();
 				if (TestFlag(iLights[0], 32)) {
-					btEndSignals13.Turn(true);
+					btEndSignals13.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals13.TurnOff();
 			}
-			if (btEndSignals2.Active()) {
+			if (btEndSignals2.active()) {
 				if (TestFlag(iLights[1], 2) || TestFlag(iLights[1], 32)) {
-					btEndSignals2.Turn(true);
+					btEndSignals2.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals2.TurnOff();
 			} else {
 				if (TestFlag(iLights[1], 2)) {
-					btEndSignals21.Turn(true);
+					btEndSignals21.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals21.TurnOff();
 				if (TestFlag(iLights[1], 32)) {
-					btEndSignals23.Turn(true);
+					btEndSignals23.turn(true);
 					btnOn = true;
 				}
 				// else btEndSignals23.TurnOff();
@@ -801,12 +798,12 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 		}
 		// tablice blaszane:
 		if (TestFlag(iLights[side::front], light::rearendsignals)) {
-			btEndSignalsTab1.Turn(true);
+			btEndSignalsTab1.turn(true);
 			btnOn = true;
 		}
 		// else btEndSignalsTab1.TurnOff();
 		if (TestFlag(iLights[side::rear], light::rearendsignals)) {
-			btEndSignalsTab2.Turn(true);
+			btEndSignalsTab2.turn(true);
 			btnOn = true;
 		}
 		// else btEndSignalsTab2.TurnOff();
@@ -819,18 +816,18 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 		// cooling shutters
 		// NOTE: shutters display _on state when they're closed, _off otherwise
 		if ((true == MoverParameters->dizel_heat.water.config.shutters) && (false == MoverParameters->dizel_heat.zaluzje1)) {
-			btShutters1.Turn(true);
+			btShutters1.turn(true);
 			btnOn = true;
 		}
 		if ((true == MoverParameters->dizel_heat.water_aux.config.shutters) && (false == MoverParameters->dizel_heat.zaluzje2)) {
-			btShutters2.Turn(true);
+			btShutters2.turn(true);
 			btnOn = true;
 		}
 
 		if ((Mechanik != nullptr) && (Mechanik->GetAction() != actSleep)) {
 			// rysowanie figurki mechanika
-			btMechanik1.Turn(MoverParameters->ActiveCab > 0);
-			btMechanik2.Turn(MoverParameters->ActiveCab < 0);
+			btMechanik1.turn(MoverParameters->ActiveCab > 0);
+			btMechanik2.turn(MoverParameters->ActiveCab < 0);
 			if (MoverParameters->ActiveCab != 0) {
 				btnOn = true;
 			}
@@ -842,32 +839,32 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 		// ograniczeń odległości, by były widoczne z
 		// daleka
 		if (TestFlag(iLights[0], 1)) {
-			btHeadSignals11.Turn(true);
+			btHeadSignals11.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals11.TurnOff();
 		if (TestFlag(iLights[0], 4)) {
-			btHeadSignals12.Turn(true);
+			btHeadSignals12.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals12.TurnOff();
 		if (TestFlag(iLights[0], 16)) {
-			btHeadSignals13.Turn(true);
+			btHeadSignals13.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals13.TurnOff();
 		if (TestFlag(iLights[1], 1)) {
-			btHeadSignals21.Turn(true);
+			btHeadSignals21.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals21.TurnOff();
 		if (TestFlag(iLights[1], 4)) {
-			btHeadSignals22.Turn(true);
+			btHeadSignals22.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals22.TurnOff();
 		if (TestFlag(iLights[1], 16)) {
-			btHeadSignals23.Turn(true);
+			btHeadSignals23.turn(true);
 			btnOn = true;
 		}
 		// else btHeadSignals23.TurnOff();
@@ -1831,8 +1828,8 @@ std::string MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
 	// wczytywanie z pliku nazwatypu.mmd, w tym model
 	LoadMMediaFile(asBaseDir, Type_Name, asReplacableSkin);
 	// McZapkie-100402: wyszukiwanie submodeli sprzegów
-	btCoupler1.Init("coupler1", mdModel, false); // false - ma być wyłączony
-	btCoupler2.Init("coupler2", mdModel, false);
+	btCoupler1.init("coupler1", mdModel, false); // false - ma być wyłączony
+	btCoupler2.init("coupler2", mdModel, false);
 	// brake hoses
 	btCPneumatic1.init("cpneumatic1", mdModel);
 	btCPneumatic2.init("cpneumatic2", mdModel);
@@ -1844,50 +1841,50 @@ std::string MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
 	btPneumatic1r.init("pneumatic1r", mdModel);
 	btPneumatic2r.init("pneumatic2r", mdModel);
 	// control cables
-	btCCtrl1.Init("cctrl1", mdModel, false);
-	btCCtrl2.Init("cctrl2", mdModel, false);
+	btCCtrl1.init("cctrl1", mdModel, false);
+	btCCtrl2.init("cctrl2", mdModel, false);
 	// gangways
-	btCPass1.Init("cpass1", mdModel, false);
-	btCPass2.Init("cpass2", mdModel, false);
+	btCPass1.init("cpass1", mdModel, false);
+	btCPass2.init("cpass2", mdModel, false);
 	// sygnaly
 	// ABu 060205: Zmiany dla koncowek swiecacych:
-	btEndSignals11.Init("endsignal13", mdModel, false);
-	btEndSignals21.Init("endsignal23", mdModel, false);
-	btEndSignals13.Init("endsignal12", mdModel, false);
-	btEndSignals23.Init("endsignal22", mdModel, false);
-	iInventory[side::front] |= btEndSignals11.Active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
-	iInventory[side::front] |= btEndSignals13.Active() ? light::redmarker_right : 0;
-	iInventory[side::rear] |= btEndSignals21.Active() ? light::redmarker_left : 0;
-	iInventory[side::rear] |= btEndSignals23.Active() ? light::redmarker_right : 0;
+	btEndSignals11.init("endsignal13", mdModel, false);
+	btEndSignals21.init("endsignal23", mdModel, false);
+	btEndSignals13.init("endsignal12", mdModel, false);
+	btEndSignals23.init("endsignal22", mdModel, false);
+	iInventory[side::front] |= btEndSignals11.active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
+	iInventory[side::front] |= btEndSignals13.active() ? light::redmarker_right : 0;
+	iInventory[side::rear] |= btEndSignals21.active() ? light::redmarker_left : 0;
+	iInventory[side::rear] |= btEndSignals23.active() ? light::redmarker_right : 0;
 	// ABu: to niestety zostawione dla kompatybilnosci modeli:
-	btEndSignals1.Init("endsignals1", mdModel, false);
-	btEndSignals2.Init("endsignals2", mdModel, false);
-	btEndSignalsTab1.Init("endtab1", mdModel, false);
-	btEndSignalsTab2.Init("endtab2", mdModel, false);
-	iInventory[side::front] |= btEndSignals1.Active() ? (light::redmarker_left | light::redmarker_right) : 0;
-	iInventory[side::front] |= btEndSignalsTab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
-	iInventory[side::rear] |= btEndSignals2.Active() ? (light::redmarker_left | light::redmarker_right) : 0;
-	iInventory[side::rear] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
+	btEndSignals1.init("endsignals1", mdModel, false);
+	btEndSignals2.init("endsignals2", mdModel, false);
+	btEndSignalsTab1.init("endtab1", mdModel, false);
+	btEndSignalsTab2.init("endtab2", mdModel, false);
+	iInventory[side::front] |= btEndSignals1.active() ? (light::redmarker_left | light::redmarker_right) : 0;
+	iInventory[side::front] |= btEndSignalsTab1.active() ? light::rearendsignals : 0; // tabliczki blaszane
+	iInventory[side::rear] |= btEndSignals2.active() ? (light::redmarker_left | light::redmarker_right) : 0;
+	iInventory[side::rear] |= btEndSignalsTab2.active() ? light::rearendsignals : 0;
 	// ABu Uwaga! tu zmienic w modelu!
-	btHeadSignals11.Init("headlamp13", mdModel, false); // lewe
-	btHeadSignals12.Init("headlamp11", mdModel, false); // górne
-	btHeadSignals13.Init("headlamp12", mdModel, false); // prawe
-	btHeadSignals21.Init("headlamp23", mdModel, false);
-	btHeadSignals22.Init("headlamp21", mdModel, false);
-	btHeadSignals23.Init("headlamp22", mdModel, false);
-	iInventory[side::front] |= btHeadSignals11.Active() ? light::headlight_left : 0;
-	iInventory[side::front] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
-	iInventory[side::front] |= btHeadSignals13.Active() ? light::headlight_right : 0;
-	iInventory[side::rear] |= btHeadSignals21.Active() ? light::headlight_left : 0;
-	iInventory[side::rear] |= btHeadSignals22.Active() ? light::headlight_upper : 0;
-	iInventory[side::rear] |= btHeadSignals23.Active() ? light::headlight_right : 0;
-	btMechanik1.Init("mechanik1", mdLowPolyInt, false);
-	btMechanik2.Init("mechanik2", mdLowPolyInt, false);
+	btHeadSignals11.init("headlamp13", mdModel, false); // lewe
+	btHeadSignals12.init("headlamp11", mdModel, false); // górne
+	btHeadSignals13.init("headlamp12", mdModel, false); // prawe
+	btHeadSignals21.init("headlamp23", mdModel, false);
+	btHeadSignals22.init("headlamp21", mdModel, false);
+	btHeadSignals23.init("headlamp22", mdModel, false);
+	iInventory[side::front] |= btHeadSignals11.active() ? light::headlight_left : 0;
+	iInventory[side::front] |= btHeadSignals12.active() ? light::headlight_upper : 0;
+	iInventory[side::front] |= btHeadSignals13.active() ? light::headlight_right : 0;
+	iInventory[side::rear] |= btHeadSignals21.active() ? light::headlight_left : 0;
+	iInventory[side::rear] |= btHeadSignals22.active() ? light::headlight_upper : 0;
+	iInventory[side::rear] |= btHeadSignals23.active() ? light::headlight_right : 0;
+	btMechanik1.init("mechanik1", mdLowPolyInt, false);
+	btMechanik2.init("mechanik2", mdLowPolyInt, false);
 	if (MoverParameters->dizel_heat.water.config.shutters) {
-		btShutters1.Init("shutters1", mdModel, false);
+		btShutters1.init("shutters1", mdModel, false);
 	}
 	if (MoverParameters->dizel_heat.water_aux.config.shutters) {
-		btShutters1.Init("shutters2", mdModel, false);
+		btShutters1.init("shutters2", mdModel, false);
 	}
 	TurnOff(); // resetowanie zmiennych submodeli
 
@@ -3400,8 +3397,8 @@ void TDynamicObject::TurnOff()
 { // wyłączenie rysowania submodeli zmiennych dla
 	// egemplarza pojazdu
 	btnOn = false;
-	btCoupler1.Turn(false);
-	btCoupler2.Turn(false);
+	btCoupler1.turn(false);
+	btCoupler2.turn(false);
 	btCPneumatic1.turnOff();
 	btCPneumatic1r.turnOff();
 	btCPneumatic2.turnOff();
@@ -3410,28 +3407,28 @@ void TDynamicObject::TurnOff()
 	btPneumatic1r.turnOff();
 	btPneumatic2.turnOff();
 	btPneumatic2r.turnOff();
-	btCCtrl1.Turn(false);
-	btCCtrl2.Turn(false);
-	btCPass1.Turn(false);
-	btCPass2.Turn(false);
-	btEndSignals11.Turn(false);
-	btEndSignals13.Turn(false);
-	btEndSignals21.Turn(false);
-	btEndSignals23.Turn(false);
-	btEndSignals1.Turn(false);
-	btEndSignals2.Turn(false);
-	btEndSignalsTab1.Turn(false);
-	btEndSignalsTab2.Turn(false);
-	btHeadSignals11.Turn(false);
-	btHeadSignals12.Turn(false);
-	btHeadSignals13.Turn(false);
-	btHeadSignals21.Turn(false);
-	btHeadSignals22.Turn(false);
-	btHeadSignals23.Turn(false);
-	btMechanik1.Turn(false);
-	btMechanik2.Turn(false);
-	btShutters1.Turn(false);
-	btShutters2.Turn(false);
+	btCCtrl1.turn(false);
+	btCCtrl2.turn(false);
+	btCPass1.turn(false);
+	btCPass2.turn(false);
+	btEndSignals11.turn(false);
+	btEndSignals13.turn(false);
+	btEndSignals21.turn(false);
+	btEndSignals23.turn(false);
+	btEndSignals1.turn(false);
+	btEndSignals2.turn(false);
+	btEndSignalsTab1.turn(false);
+	btEndSignalsTab2.turn(false);
+	btHeadSignals11.turn(false);
+	btHeadSignals12.turn(false);
+	btHeadSignals13.turn(false);
+	btHeadSignals21.turn(false);
+	btHeadSignals22.turn(false);
+	btHeadSignals23.turn(false);
+	btMechanik1.turn(false);
+	btMechanik2.turn(false);
+	btShutters1.turn(false);
+	btShutters2.turn(false);
 };
 
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem

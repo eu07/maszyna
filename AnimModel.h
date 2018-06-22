@@ -19,11 +19,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Model3d.h"
 #include "DynObj.h"
 #include "scenenode.h"
-#include "renderer.h"
-#include "MdlMngr.h"
-#include "Globals.h"
-#include "Timer.h"
-#include "Logs.h"
 
 const int iMaxNumLights = 8;
 const float defaultDarkThresholdLevel = 0.325f;
