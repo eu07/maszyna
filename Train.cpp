@@ -3916,13 +3916,13 @@ bool TTrain::Update(double const Deltatime)
 
 	// update driver's position
 	{
-		auto Vec = Global.pCamera->Velocity * -2.0; // -7.5 * Timer::GetDeltaRenderTime();
+		auto Vec = Global.pCamera->velocity * -2.0; // -7.5 * Timer::GetDeltaRenderTime();
 		Vec.y = -Vec.y;
 		if (mvOccupied->ActiveCab < 0) {
 			Vec *= -1.0f;
 			Vec.y = -Vec.y;
 		}
-		Vec.RotateY(Global.pCamera->Yaw);
+		Vec.RotateY(Global.pCamera->yaw);
 		vMechMovement = Vec;
 	}
 
@@ -5191,8 +5191,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const& asFileName)
 	}
 	// reset view angles
 	pMechViewAngle = { 0.0, 0.0 };
-	Global.pCamera->Pitch = pMechViewAngle.x;
-	Global.pCamera->Yaw = pMechViewAngle.y;
+	Global.pCamera->pitch = pMechViewAngle.x;
+	Global.pCamera->yaw = pMechViewAngle.y;
 
 	pyScreens.reset(this);
 	pyScreens.setLookupPath(DynamicObject->asBaseDir);
@@ -5252,8 +5252,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const& asFileName)
 			*parser >> viewangle.y // yaw first, then pitch
 			>> viewangle.x;
 			pMechViewAngle = glm::radians(viewangle);
-			Global.pCamera->Pitch = pMechViewAngle.x;
-			Global.pCamera->Yaw = pMechViewAngle.y;
+			Global.pCamera->pitch = pMechViewAngle.x;
+			Global.pCamera->yaw = pMechViewAngle.y;
 
 			parser->getTokens();
 			*parser >> token;

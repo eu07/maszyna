@@ -790,10 +790,10 @@ void opengl_renderer::setup_pass(renderpass_config& Config, rendermode const Mod
 			// modelview
 			if ((false == DebugCameraFlag) || (true == Ignoredebug)) {
 				camera.position() = Global.pCameraPosition;
-				World.Camera.SetMatrix(viewmatrix);
+				World.Camera.setMatrix(viewmatrix);
 			} else {
 				camera.position() = Global.DebugCameraPosition;
-				World.DebugCamera.SetMatrix(viewmatrix);
+				World.DebugCamera.setMatrix(viewmatrix);
 			}
 			// projection
 			auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
@@ -902,7 +902,7 @@ void opengl_renderer::setup_pass(renderpass_config& Config, rendermode const Mod
 			// TODO: scissor test for pick modes
 			// modelview
 			camera.position() = Global.pCameraPosition;
-			World.Camera.SetMatrix(viewmatrix);
+			World.Camera.setMatrix(viewmatrix);
 			// projection
 			camera.projection() *= glm::perspective(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight),
 			0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
