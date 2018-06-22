@@ -44,6 +44,8 @@ public:
         year_day( int Day, int const Month, int const Year ) const;
     int
         julian_day() const;
+    double
+        zone_bias() const { return m_timezonebias; }
 
 private:
     // calculates day and month from given day of year
@@ -54,6 +56,7 @@ private:
     double m_milliseconds{ 0.0 };
     int m_yearday;
     char m_monthdaycounts[ 2 ][ 13 ];
+    double m_timezonebias{ 0.0 };
 };
 
 namespace simulation {

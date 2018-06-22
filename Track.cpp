@@ -925,8 +925,17 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
 void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner ) {
 
     for( auto const &event : Events ) {
+        if( event.second != nullptr ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
+
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit ) {
+
+    for( auto const &event : Events ) {
         if( ( event.second != nullptr )
-         && ( event.second->fDelay <= -1.0 ) ) {
+         && ( event.second->fDelay <= Delaylimit) ) {
             simulation::Events.AddToQuery( event.second, Owner );
         }
     }

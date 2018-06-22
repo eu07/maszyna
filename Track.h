@@ -248,6 +248,7 @@ public:
     bool AssignEvents();
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
     void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner );
+    void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit );
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);

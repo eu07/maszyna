@@ -873,11 +873,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 							auto Par1 = sSpeedTable[i].evEvent->ValueGet(1);
 							auto Par2 = sSpeedTable[i].evEvent->ValueGet(2);
 							if ((Par2 > 0) || (fLength < -Par2)) { //użyj tego W4
-								if (Par1 < 0) { //środek
-									L = -Par1 - fMinProximityDist - fLength * 0.5;
-								}
+								if (Par1 < 0) {
+                                    L = -Par1;
+                                }
 								else {
-									L = Par1;
+                                    //środek
+                                    L = Par1 - fMinProximityDist - fLength * 0.5;
 								}
 								L = std::max(0.0, std::min(L, std::abs(Par2) - fMinProximityDist - fLength));
 								sSpeedTable[i].UpdateDistance(L);

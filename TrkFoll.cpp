@@ -245,11 +245,11 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             { // tylko gdy początkowe ustawienie, dodajemy eventy stania do kolejki
                 if (Owner->MoverParameters->ActiveCab != 0) {
 
-                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
-                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner, -1.0 );
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner, -1.0 );
                 }
-                pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner );
-                pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner );
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner, -1.0 );
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner, -1.0 );
             }
             fCurrentDistance = s;
             return ComputatePosition(); // przeliczenie XYZ, true o ile nie wyjechał na NULL

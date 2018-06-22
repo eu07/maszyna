@@ -14,10 +14,6 @@ cMoon::cMoon() {
 	setLocation( 19.00f, 52.00f );					// default location roughly in centre of Poland
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
-
-	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
-	::GetTimeZoneInformation( &timezoneinfo );
-	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
 }
 
 cMoon::~cMoon() { gluDeleteQuadric( moonsphere ); }
@@ -25,15 +21,19 @@ cMoon::~cMoon() { gluDeleteQuadric( moonsphere ); }
 void
 cMoon::init() {
 
-    moonsphere = gluNewQuadric();
-    gluQuadricNormals( moonsphere, GLU_SMOOTH );
+    m_observer.timezone = -1.0 * simulation::Time.zone_bias();
     // NOTE: we're calculating phase just once, because it's unlikely simulation will last a few days,
     // plus a sudden texture change would be pretty jarring
     phase();
+
+    moonsphere = gluNewQuadric();
+    gluQuadricNormals( moonsphere, GLU_SMOOTH );
 }
 
 void
 cMoon::update() {
+
+    m_observer.temp = Global.AirTemperature;
 
     move();
     glm::vec3 position( 0.f, 0.f, -1.f );
@@ -118,7 +118,7 @@ void cMoon::move() {
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
     if( m_observer.second >= 0 ) { localtime.wSecond = m_observer.second; }
 
-    double ut =
+    double localut =
         localtime.wHour
         + localtime.wMinute / 60.0 // too low resolution, noticeable skips
         + localtime.wSecond / 3600.0; // good enough in normal circumstances
@@ -131,11 +131,10 @@ void cMoon::move() {
         + 275 * localtime.wMonth / 9
         + localtime.wDay
         - 730530
-        + ( ut / 24.0 );
+        + ( localut / 24.0 );
 
     // Universal Coordinated (Greenwich standard) time
-    m_observer.utime = ut * 3600.0;
-    m_observer.utime = m_observer.utime / 3600.0 - m_observer.timezone;
+    m_observer.utime = localut - m_observer.timezone;
 
     // obliquity of the ecliptic
     m_body.oblecl = clamp_circular( 23.4393 - 3.563e-7 * daynumber );
