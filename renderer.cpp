@@ -190,184 +190,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     }
     WriteLog( "...gfx data pre-loading done" );
 
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    // pick buffer resources
-    if( true == m_framebuffersupport ) {
-        // try to create the pick buffer. RGBA8 2D texture, 24 bit depth texture, 1024x1024 (height of 512 would suffice but, eh)
-        // texture
-        ::glGenTextures( 1, &m_picktexture );
-        ::glBindTexture( GL_TEXTURE_2D, m_picktexture );
-        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-        // depth buffer
-        ::glGenRenderbuffersEXT( 1, &m_pickdepthbuffer );
-        ::glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, m_pickdepthbuffer );
-        ::glRenderbufferStorageEXT( GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE );
-        // create and assemble the framebuffer
-        ::glGenFramebuffersEXT( 1, &m_pickframebuffer );
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_pickframebuffer );
-        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, m_picktexture, 0 );
-        ::glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_pickdepthbuffer );
-        // check if we got it working
-        GLenum status = ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT );
-        if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
-            WriteLog( "Picking framebuffer setup complete" );
-        }
-        else{
-            ErrorLog( "Picking framebuffer setup failed" );
-            m_framebuffersupport = false;
-        }
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
-    }
-#endif
-    // shadowmap resources
-    if( ( true == Global.RenderShadows )
-     && ( true == m_framebuffersupport ) ) {
-        // primary shadow map
-        {
-            // texture:
-            ::glGenTextures( 1, &m_shadowtexture );
-            ::glBindTexture( GL_TEXTURE_2D, m_shadowtexture );
-            // allocate memory
-            ::glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_shadowbuffersize, m_shadowbuffersize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL );
-            // setup parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            // enable shadow comparison: true (ie not in shadow) if r<=texture...
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE );
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-            ::glGenTextures( 1, &m_shadowdebugtexture );
-            ::glBindTexture( GL_TEXTURE_2D, m_shadowdebugtexture );
-            // allocate memory
-            ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, m_shadowbuffersize, m_shadowbuffersize, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
-            // setup parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-#endif
-            // create and assemble the framebuffer
-            ::glGenFramebuffersEXT( 1, &m_shadowframebuffer );
-            ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_shadowframebuffer );
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-            ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, m_shadowdebugtexture, 0 );
-#else
-            ::glDrawBuffer( GL_NONE ); // we won't be rendering colour data, so can skip the colour attachment
-            ::glReadBuffer( GL_NONE );
-#endif
-            ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, m_shadowtexture, 0 );
-            // check if we got it working
-            GLenum const status{ ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT ) };
-            if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
-                WriteLog( "Shadows framebuffer setup complete" );
-            }
-            else {
-                ErrorLog( "Shadows framebuffer setup failed" );
-                Global.RenderShadows = false;
-            }
-            // switch back to primary render target for now
-            ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-         }
-        // cab shadow map
-        {
-            // NOTE: using separate framebuffer as more efficient arrangement than swapping attachments on a single one
-            // TODO: for shader-based implementation use instead a quarter of the CSM
-            // texture:
-            ::glGenTextures( 1, &m_cabshadowtexture );
-            ::glBindTexture( GL_TEXTURE_2D, m_cabshadowtexture );
-            // allocate memory
-            ::glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_shadowbuffersize / 2, m_shadowbuffersize / 2, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL );
-            // setup parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            // enable shadow comparison: true (ie not in shadow) if r<=texture...
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE );
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-            ::glGenTextures( 1, &m_cabshadowdebugtexture );
-            ::glBindTexture( GL_TEXTURE_2D, m_cabshadowdebugtexture );
-            // allocate memory
-            ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, m_shadowbuffersize / 2, m_shadowbuffersize / 2, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
-            // setup parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-#endif
-            // create and assemble the framebuffer
-            ::glGenFramebuffersEXT( 1, &m_cabshadowframebuffer );
-            ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_cabshadowframebuffer );
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-            ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, m_cabshadowdebugtexture, 0 );
-#else
-            ::glDrawBuffer( GL_NONE ); // we won't be rendering colour data, so can skip the colour attachment
-            ::glReadBuffer( GL_NONE );
-#endif
-            ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, m_cabshadowtexture, 0 );
-            // check if we got it working
-            GLenum const status{ ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT ) };
-            if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
-                WriteLog( "Cab shadows framebuffer setup complete" );
-            }
-            else {
-                ErrorLog( "Cab shadows framebuffer setup failed" );
-                Global.RenderShadows = false;
-            }
-        }
-        // switch back to primary render target for now
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-    }
-    // environment cube map resources
-    if( ( false == Global.BasicRenderer )
-     && ( true == m_framebuffersupport ) ) {
-        // texture:
-        ::glGenTextures( 1, &m_environmentcubetexture );
-        ::glBindTexture( GL_TEXTURE_CUBE_MAP, m_environmentcubetexture );
-        // allocate space
-        for( GLuint faceindex = GL_TEXTURE_CUBE_MAP_POSITIVE_X; faceindex < GL_TEXTURE_CUBE_MAP_POSITIVE_X + 6; ++faceindex ) {
-            ::glTexImage2D( faceindex, 0, GL_RGBA8, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
-        }
-        // setup parameters
-        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
-        // depth buffer
-        ::glGenRenderbuffersEXT( 1, &m_environmentdepthbuffer );
-        ::glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, m_environmentdepthbuffer );
-        ::glRenderbufferStorageEXT( GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE );
-        // create and assemble the framebuffer
-        ::glGenFramebuffersEXT( 1, &m_environmentframebuffer );
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_environmentframebuffer );
-        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_environmentcubetexture, 0 );
-        ::glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_environmentdepthbuffer );
-        // check if we got it working
-        GLenum status = ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT );
-        if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
-            WriteLog( "Reflections framebuffer setup complete" );
-            m_environmentcubetexturesupport = true;
-        }
-        else {
-            ErrorLog( "Reflections framebuffer setup failed" );
-            m_environmentcubetexturesupport = false;
-        }
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
-    }
     // prepare basic geometry chunks
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
@@ -471,46 +293,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
         case rendermode::color: {
 
-            if( ( true == Global.RenderShadows )
-             && ( false == Global.bWireFrame )
-             && ( true == World.InitPerformed() )
-             && ( m_shadowcolor != colors::white ) ) {
-
-                // run shadowmaps pass before color
-                Timer::subsystem.gfx_shadows.start();
-                Render_pass( rendermode::shadows );
-                if( false == FreeFlyModeFlag ) {
-                    Render_pass( rendermode::cabshadows );
-                }
-                Timer::subsystem.gfx_shadows.stop();
-                m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-                UILayer.set_texture( m_shadowdebugtexture );
-#endif
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-                UILayer.set_texture( m_cabshadowdebugtexture );
-#endif
-                setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
-                // setup shadowmap matrices
-                m_shadowtexturematrix =
-                    glm::mat4 { 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f, 1.0f } // bias from [-1, 1] to [0, 1]
-                    * m_shadowpass.camera.projection()
-                    // during colour pass coordinates are moved from camera-centric to light-centric, essentially the difference between these two origins
-                    * glm::translate(
-                        glm::mat4{ glm::mat3{ m_shadowpass.camera.modelview() } },
-                        glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
-
-                if( false == FreeFlyModeFlag ) {
-                    m_cabshadowtexturematrix =
-                        glm::mat4{ 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f, 1.0f } // bias from [-1, 1] to [0, 1]
-                        * m_cabshadowpass.camera.projection()
-                        // during colour pass coordinates are moved from camera-centric to light-centric, essentially the difference between these two origins
-                        * glm::translate(
-                            glm::mat4{ glm::mat3{ m_cabshadowpass.camera.modelview() } },
-                            glm::vec3{ m_renderpass.camera.position() - m_cabshadowpass.camera.position() } );
-                }
-            }
-
             if( ( true == m_environmentcubetexturesupport )
              && ( true == World.InitPerformed() ) ) {
                 // potentially update environmental cube map
@@ -609,164 +391,22 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
         }
 
         case rendermode::shadows: {
-
-            if( World.InitPerformed() ) {
-                // setup
-                ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
-                ::glPolygonOffset( 1.f, 1.f );
-
-                // main shadowmap
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_shadowframebuffer );
-                ::glViewport( 0, 0, m_shadowbuffersize, m_shadowbuffersize );
-
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-                ::glClearColor( 0.f / 255.f, 0.f / 255.f, 0.f / 255.f, 1.f ); // initial background Color
-                ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-#else
-                ::glClear( GL_DEPTH_BUFFER_BIT ); 
-#endif
-                ::glScissor( 1, 1, m_shadowbuffersize - 2, m_shadowbuffersize - 2 );
-                ::glEnable( GL_SCISSOR_TEST );
-
-                setup_matrices();
-                // render
-                // opaque parts...
-                setup_drawing( false );
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-                setup_units( true, false, false );
-#else
-                setup_units( false, false, false );
-#endif
-                Render( simulation::Region );
-                m_shadowpass = m_renderpass;
-
-                // post-render restore
-                ::glDisable( GL_SCISSOR_TEST );
-                ::glDisable( GL_POLYGON_OFFSET_FILL );
-
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
-            }
             break;
         }
 
         case rendermode::cabshadows: {
-
-            if( ( World.InitPerformed() )
-             && ( false == FreeFlyModeFlag ) ) {
-                // setup
-                ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
-                ::glPolygonOffset( 1.f, 1.f );
-                ::glDisable( GL_CULL_FACE );
-
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_cabshadowframebuffer );
-                ::glViewport( 0, 0, m_shadowbuffersize / 2, m_shadowbuffersize / 2 );
-
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-                ::glClearColor( 0.f / 255.f, 0.f / 255.f, 0.f / 255.f, 1.f ); // initial background Color
-                ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-#else
-                ::glClear( GL_DEPTH_BUFFER_BIT );
-#endif
-                ::glScissor( 1, 1, m_shadowbuffersize / 2 - 2, m_shadowbuffersize / 2 - 2 );
-                ::glEnable( GL_SCISSOR_TEST );
-
-                setup_matrices();
-                // render
-                // opaque parts...
-                setup_drawing( false );
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-                setup_units( true, false, false );
-#else
-                setup_units( false, false, false );
-#endif
-                Render_cab( World.Train->Dynamic(), false );
-                Render_cab( World.Train->Dynamic(), true );
-                m_cabshadowpass = m_renderpass;
-
-                // post-render restore
-                ::glDisable( GL_SCISSOR_TEST );
-                ::glEnable( GL_CULL_FACE );
-                ::glDisable( GL_POLYGON_OFFSET_FILL );
-
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
-            }
             break;
         }
 
         case rendermode::reflections: {
-            // NOTE: buffer and viewport setup in this mode is handled by the wrapper method
-            ::glClearColor( 0.f, 0.f, 0.f, 1.f );
-            ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-            if( World.InitPerformed() ) {
-
-                ::glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE );
-                // setup
-                setup_matrices();
-                // render
-                setup_drawing( true );
-                setup_units( true, false, false );
-                Render( &World.Environment );
-                // opaque parts...
-                setup_drawing( false );
-                setup_units( true, true, true );
-                setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
-                Render( simulation::Region );
-/*
-                // reflections are limited to sky and ground only, the update rate is too low for anything else
-                // ...translucent parts
-                setup_drawing( true );
-                Render_Alpha( &World.Ground );
-                // cab render is performed without shadows, due to low resolution and number of models without windows :|
-                switch_units( true, false, false );
-                // cab render is done in translucent phase to deal with badly configured vehicles
-                if( World.Train != nullptr ) { Render_cab( World.Train->Dynamic() ); }
-*/
-                ::glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-            }
             break;
         }
 
         case rendermode::pickcontrols: {
-            if( World.InitPerformed() ) {
-                // setup
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-                ::glViewport( 0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE );
-#endif
-                ::glClearColor( 0.f, 0.f, 0.f, 1.f );
-                ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-                m_pickcontrolsitems.clear();
-                setup_matrices();
-                // render
-                // opaque parts...
-                setup_drawing( false );
-                setup_units( false, false, false );
-                // cab render skips translucent parts, so we can do it here
-                if( World.Train != nullptr ) { Render_cab( World.Train->Dynamic() ); }
-                // post-render cleanup
-            }
             break;
         }
 
         case rendermode::pickscenery: {
-            if( World.InitPerformed() ) {
-                // setup
-                m_picksceneryitems.clear();
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-                ::glViewport( 0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE );
-#endif
-                ::glClearColor( 0.f, 0.f, 0.f, 1.f );
-                ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-                setup_matrices();
-                // render
-                // opaque parts...
-                setup_drawing( false );
-                setup_units( false, false, false );
-                Render( simulation::Region );
-                // post-render cleanup
-            }
             break;
         }
 
@@ -779,27 +419,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 // creates dynamic environment cubemap
 bool
 opengl_renderer::Render_reflections() {
-
-    auto const &time = simulation::Time.data();
-    auto const timestamp = time.wDay * 24 * 60 + time.wHour * 60 + time.wMinute;
-    if( ( timestamp - m_environmentupdatetime < 5 )
-     && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
-        // run update every 5+ mins of simulation time, or at least 1km from the last location
-        return false;
-    }
-    m_environmentupdatetime = timestamp;
-    m_environmentupdatelocation = m_renderpass.camera.position();
-
-    ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_environmentframebuffer );
-    ::glViewport( 0, 0, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE );
-    for( m_environmentcubetextureface = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-         m_environmentcubetextureface < GL_TEXTURE_CUBE_MAP_POSITIVE_X + 6;
-       ++m_environmentcubetextureface ) {
-
-        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0, m_environmentcubetextureface, m_environmentcubetexture, 0 );
-        Render_pass( rendermode::reflections );
-    }
-    ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
 
     return true;
 }
@@ -855,151 +474,6 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                     m_sunlight.direction,
                     glm::vec3( 0.f, 0.f, -1.f ) * glm::mat3( viewmatrix ) );
 */
-            break;
-        }
-        case rendermode::shadows: {
-            // calculate lightview boundaries based on relevant area of the world camera frustum:
-            // ...setup chunk of frustum we're interested in...
-            auto const zfar = std::min( 1.f, Global.shadowtune.depth / ( Global.BaseDrawRange * Global.fDistanceFactor ) * std::max( 1.f, Global.ZoomFactor * 0.5f ) );
-            renderpass_config worldview;
-            setup_pass( worldview, rendermode::color, 0.f, zfar, true );
-            auto &frustumchunkshapepoints = worldview.camera.frustum_points();
-            // ...modelview matrix: determine the centre of frustum chunk in world space...
-            glm::vec3 frustumchunkmin, frustumchunkmax;
-            bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            auto const frustumchunkcentre = ( frustumchunkmin + frustumchunkmax ) * 0.5f;
-            // ...cap the vertical angle to keep shadows from getting too long...
-            auto const lightvector =
-                glm::normalize( glm::vec3{
-                              m_sunlight.direction.x,
-                    std::min( m_sunlight.direction.y, -0.2f ),
-                              m_sunlight.direction.z } );
-            // ...place the light source at the calculated centre and setup world space light view matrix...
-            camera.position() = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };
-            viewmatrix *= glm::lookAt(
-                camera.position(),
-                camera.position() + glm::dvec3{ lightvector },
-                glm::dvec3{ 0.f, 1.f, 0.f } );
-            // ...projection matrix: calculate boundaries of the frustum chunk in light space...
-            auto const lightviewmatrix =
-                glm::translate(
-                    glm::mat4{ glm::mat3{ viewmatrix } },
-                    -frustumchunkcentre );
-            for( auto &point : frustumchunkshapepoints ) {
-                point = lightviewmatrix * point;
-            }
-            bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            // quantize the frustum points and add some padding, to reduce shadow shimmer on scale changes
-            auto const quantizationstep{ std::min( Global.shadowtune.depth, 50.f ) };
-            frustumchunkmin = quantizationstep * glm::floor( frustumchunkmin * ( 1.f / quantizationstep ) );
-            frustumchunkmax = quantizationstep * glm::ceil( frustumchunkmax * ( 1.f / quantizationstep ) );
-            // ...use the dimensions to set up light projection boundaries...
-            // NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
-            camera.projection() *=
-                glm::ortho(
-                    frustumchunkmin.x, frustumchunkmax.x,
-                    frustumchunkmin.y, frustumchunkmax.y,
-                    frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f );
-/*
-            // fixed ortho projection from old build, for quick quality comparisons
-            camera.projection() *=
-                glm::ortho(
-                    -Global.shadowtune.width, Global.shadowtune.width,
-                    -Global.shadowtune.width, Global.shadowtune.width,
-                    -Global.shadowtune.depth, Global.shadowtune.depth );
-            camera.position() = Global.pCameraPosition - glm::dvec3{ m_sunlight.direction };
-            if( camera.position().y - Global.pCameraPosition.y < 0.1 ) {
-                camera.position().y = Global.pCameraPosition.y + 0.1;
-            }
-            viewmatrix *= glm::lookAt(
-                camera.position(),
-                glm::dvec3{ Global.pCameraPosition },
-                glm::dvec3{ 0.f, 1.f, 0.f } );
-*/
-            // ... and adjust the projection to sample complete shadow map texels:
-            // get coordinates for a sample texel...
-            auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
-            // ...convert result from clip space to texture coordinates, and calculate adjustment...
-            shadowmaptexel *= m_shadowbuffersize * 0.5f;
-            auto shadowmapadjustment = glm::round( shadowmaptexel ) - shadowmaptexel;
-            // ...transform coordinate change back to homogenous light space...
-            shadowmapadjustment /= m_shadowbuffersize * 0.5f;
-            // ... and bake the adjustment into the projection matrix
-            camera.projection() =
-                glm::translate(
-                    glm::mat4{ 1.f },
-                    glm::vec3{ shadowmapadjustment, 0.f } )
-                * camera.projection();
-
-            break;
-        }
-        case rendermode::cabshadows: {
-            // fixed size cube large enough to enclose a vehicle compartment
-            // modelview
-            auto const lightvector =
-                glm::normalize( glm::vec3{
-                              m_sunlight.direction.x,
-                    std::min( m_sunlight.direction.y, -0.2f ),
-                              m_sunlight.direction.z } );
-            camera.position() = Global.pCameraPosition - glm::dvec3 { lightvector };
-            viewmatrix *= glm::lookAt(
-                camera.position(),
-                glm::dvec3 { Global.pCameraPosition },
-                glm::dvec3 { 0.f, 1.f, 0.f } );
-            // projection
-            auto const maphalfsize { Config.draw_range * 0.5f };
-            camera.projection() *=
-                glm::ortho(
-                    -maphalfsize, maphalfsize,
-                    -maphalfsize, maphalfsize,
-                    -Config.draw_range, Config.draw_range );
-/*
-            // adjust the projection to sample complete shadow map texels
-            auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
-            shadowmaptexel *= ( m_shadowbuffersize / 2 ) * 0.5f;
-            auto shadowmapadjustment = glm::round( shadowmaptexel ) - shadowmaptexel;
-            shadowmapadjustment /= ( m_shadowbuffersize / 2 ) * 0.5f;
-            camera.projection() = glm::translate( glm::mat4{ 1.f }, glm::vec3{ shadowmapadjustment, 0.f } ) * camera.projection();
-*/
-            break;
-        }
-        case rendermode::reflections: {
-            // modelview
-            camera.position() = (
-                ( ( true == DebugCameraFlag ) && ( false == Ignoredebug ) ) ?
-                    Global.DebugCameraPosition :
-                    Global.pCameraPosition );
-            glm::dvec3 const cubefacetargetvectors[ 6 ] = { {  1.0,  0.0,  0.0 }, { -1.0,  0.0,  0.0 }, {  0.0,  1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 } };
-            glm::dvec3 const cubefaceupvectors[ 6 ] =     { {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 }, {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 } };
-            auto const cubefaceindex = m_environmentcubetextureface - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-            viewmatrix *=
-                glm::lookAt(
-                    camera.position(),
-                    camera.position() + cubefacetargetvectors[ cubefaceindex ],
-                    cubefaceupvectors[ cubefaceindex ] );
-            // projection
-            camera.projection() *=
-                glm::perspective(
-                    glm::radians( 90.f ),
-                    1.f,
-                    0.1f * Global.ZoomFactor,
-                    Config.draw_range * Global.fDistanceFactor );
-            break;
-        }
-
-        case rendermode::pickcontrols:
-        case rendermode::pickscenery: {
-            // TODO: scissor test for pick modes
-            // modelview
-            camera.position() = Global.pCameraPosition;
-            World.Camera.SetMatrix( viewmatrix );
-            // projection
-            camera.projection() *=
-                glm::perspective(
-                    glm::radians( Global.FieldOfView / Global.ZoomFactor ),
-                    std::max( 1.f, (float)Global.iWindowWidth ) / std::max( 1.f, (float)Global.iWindowHeight ),
-                    0.1f * Global.ZoomFactor,
-                    Config.draw_range * Global.fDistanceFactor );
             break;
         }
         default: {
@@ -1066,17 +540,7 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
         case rendermode::shadows:
         case rendermode::cabshadows:
         case rendermode::pickcontrols:
-        case rendermode::pickscenery: {
-            ::glColor4fv( glm::value_ptr( colors::white ) );
-            ::glDisable( GL_LIGHTING );
-            ::glShadeModel( GL_FLAT );
-            if( Global.iMultisampling ) {
-                ::glDisable( GL_MULTISAMPLE );
-            }
-            ::glDisable( GL_FOG );
-
-            break;
-        }
+        case rendermode::pickscenery:
         default: {
             break;
         }
@@ -1086,185 +550,11 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
 // configures, enables and disables specified texture units
 void
 opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const Reflections ) {
-    // helper texture unit.
-    // darkens previous stage, preparing data for the shadow texture unit to select from
-    if( m_helpertextureunit >= 0 ) {
-
-        select_unit( m_helpertextureunit );
-
-        if( ( true == Reflections )
-         || ( ( true == Global.RenderShadows ) && ( true == Shadows ) && ( false == Global.bWireFrame ) ) ) {
-            // we need to have texture on the helper for either the reflection and shadow generation (or both)
-            if( true == m_environmentcubetexturesupport ) {
-                // bind dynamic environment cube if it's enabled...
-                // NOTE: environment cube map isn't part of regular texture system, so we use direct bind call here
-                ::glBindTexture( GL_TEXTURE_CUBE_MAP, m_environmentcubetexture );
-                ::glEnable( GL_TEXTURE_CUBE_MAP );
-            }
-            else {
-                // ...otherwise fallback on static spherical image
-                m_textures.bind( textureunit::helper, m_reflectiontexture );
-                ::glEnable( GL_TEXTURE_2D );
-            }
-        }
-        else {
-            if( true == m_environmentcubetexturesupport ) {
-                ::glDisable( GL_TEXTURE_CUBE_MAP );
-            }
-            else {
-                ::glDisable( GL_TEXTURE_2D );
-            }
-        }
-
-        if( ( true == Global.RenderShadows ) && ( true == Shadows ) && ( false == Global.bWireFrame ) ) {
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-            ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( m_shadowcolor ) );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE ); // darken the previous stage
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_CONSTANT );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE ); // pass the previous stage alpha down the chain
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PREVIOUS );
-        }
-        else {
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE ); // pass the previous stage colour down the chain
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE ); // pass the previous stage alpha down the chain
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PREVIOUS );
-        }
-
-        if( true == Reflections ) {
-            if( true == m_environmentcubetexturesupport ) {
-                ::glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
-                ::glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
-                ::glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
-                ::glEnable( GL_TEXTURE_GEN_S );
-                ::glEnable( GL_TEXTURE_GEN_T );
-                ::glEnable( GL_TEXTURE_GEN_R );
-            }
-            else {
-                // fixed texture fall back
-                ::glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
-                ::glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
-                ::glEnable( GL_TEXTURE_GEN_S );
-                ::glEnable( GL_TEXTURE_GEN_T );
-            }
-        }
-        else {
-            if( true == m_environmentcubetexturesupport ) {
-                ::glDisable( GL_TEXTURE_GEN_S );
-                ::glDisable( GL_TEXTURE_GEN_T );
-                ::glDisable( GL_TEXTURE_GEN_R );
-            }
-            else {
-                ::glDisable( GL_TEXTURE_GEN_S );
-                ::glDisable( GL_TEXTURE_GEN_T );
-            }
-        }
-    }
-    // shadow texture unit.
-    // interpolates between primary colour and the previous unit, which should hold darkened variant of the primary colour
-    if( m_shadowtextureunit >= 0 ) {
-        if( ( true == Global.RenderShadows )
-         && ( true == Shadows )
-         && ( false == Global.bWireFrame )
-         && ( m_shadowcolor != colors::white ) ) {
-
-            select_unit( m_shadowtextureunit );
-            // NOTE: texture and transformation matrix setup are done through separate call
-            ::glEnable( GL_TEXTURE_2D );
-            // s
-            ::glEnable( GL_TEXTURE_GEN_S );
-            // t
-            ::glEnable( GL_TEXTURE_GEN_T );
-            // r
-            ::glEnable( GL_TEXTURE_GEN_R );
-            // q
-            ::glEnable( GL_TEXTURE_GEN_Q );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE ); // choose between lit and lit * shadow colour, based on depth test
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PRIMARY_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_PREVIOUS );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_TEXTURE );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_COLOR );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE ); // pass the previous stage alpha down the chain
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PREVIOUS );
-        }
-        else {
-            // turn off shadow map tests
-            select_unit( m_shadowtextureunit );
-
-            ::glDisable( GL_TEXTURE_2D );
-            ::glDisable( GL_TEXTURE_GEN_S );
-            ::glDisable( GL_TEXTURE_GEN_T );
-            ::glDisable( GL_TEXTURE_GEN_R );
-            ::glDisable( GL_TEXTURE_GEN_Q );
-        }
-    }
-    // reflections/normals texture unit
-    // NOTE: comes after diffuse stage in the operation chain
-    if( m_normaltextureunit >= 0 ) {
-
-        select_unit( m_normaltextureunit );
-
-        if( true == Reflections ) {
-            ::glEnable( GL_TEXTURE_2D );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE ); // blend between object colour and env.reflection
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0 );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_PREVIOUS );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR );
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_TEXTURE ); // alpha channel of the normal map controls reflection strength
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_ALPHA );
-
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE ); // pass the previous stage alpha down the chain
-            ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PREVIOUS );
-        }
-        else {
-            ::glDisable( GL_TEXTURE_2D );
-        }
-    }
     // diffuse texture unit.
     // NOTE: diffuse texture mapping is never fully disabled, alpha channel information is always included
     select_unit( m_diffusetextureunit );
     ::glEnable( GL_TEXTURE_2D );
-    if( true == Diffuse ) {
-        // default behaviour, modulate with previous stage
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-/*
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_MODULATE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA );
-*/
-    }
-    else {
-        // solid colour with texture alpha
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-/*
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE );
-        ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA );
-*/
-    }
+
     // update unit state
     m_unitstate.diffuse = Diffuse;
     m_unitstate.shadows = Shadows;
@@ -1275,82 +565,11 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
 void
 opengl_renderer::setup_shadow_map( GLuint const Texture, glm::mat4 const &Transformation ) {
 
-    if( ( m_shadowtextureunit == -1 )
-     || ( false == Global.RenderShadows )
-     || ( true == Global.bWireFrame )
-     || ( m_shadowcolor == colors::white ) ) {
-        // shadows are off
-        return;
-    }
-
-    select_unit( m_shadowtextureunit );
-    // NOTE: shadowmap isn't part of regular texture system, so we use direct bind call here
-    ::glBindTexture( GL_TEXTURE_2D, Texture );
-    // s
-    ::glTexGenfv( GL_S, GL_EYE_PLANE, glm::value_ptr( glm::row( Transformation, 0 ) ) );
-    // t
-    ::glTexGenfv( GL_T, GL_EYE_PLANE, glm::value_ptr( glm::row( Transformation, 1 ) ) );
-    // r
-    ::glTexGenfv( GL_R, GL_EYE_PLANE, glm::value_ptr( glm::row( Transformation, 2 ) ) );
-    // q
-    ::glTexGenfv( GL_Q, GL_EYE_PLANE, glm::value_ptr( glm::row( Transformation, 3 ) ) );
-
-    select_unit( m_diffusetextureunit );
 }
 
 // enables and disables specified texture units
 void
 opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool const Reflections ) {
-    // helper texture unit.
-    if( m_helpertextureunit >= 0 ) {
-
-        select_unit( m_helpertextureunit );
-        if( ( true == Reflections )
-         || ( ( true == Global.RenderShadows )
-           && ( true == Shadows )
-           && ( false == Global.bWireFrame )
-           && ( m_shadowcolor != colors::white ) ) ) {
-            if( true == m_environmentcubetexturesupport ) {
-                ::glEnable( GL_TEXTURE_CUBE_MAP );
-            }
-            else {
-                ::glEnable( GL_TEXTURE_2D );
-            }
-        }
-        else {
-            if( true == m_environmentcubetexturesupport ) {
-                ::glDisable( GL_TEXTURE_CUBE_MAP );
-            }
-            else {
-                ::glDisable( GL_TEXTURE_2D );
-            }
-        }
-    }
-    // shadow texture unit.
-    if( m_shadowtextureunit >= 0 ) {
-        if( ( true == Global.RenderShadows ) && ( true == Shadows ) && ( false == Global.bWireFrame ) ) {
-
-            select_unit( m_shadowtextureunit );
-            ::glEnable( GL_TEXTURE_2D );
-        }
-        else {
-
-            select_unit( m_shadowtextureunit );
-            ::glDisable( GL_TEXTURE_2D );
-        }
-    }
-    // normal/reflection texture unit
-    if( m_normaltextureunit >= 0 ) {
-        if( true == Reflections ) {
-
-            select_unit( m_normaltextureunit );
-            ::glEnable( GL_TEXTURE_2D );
-        }
-        else {
-            select_unit( m_normaltextureunit );
-            ::glDisable( GL_TEXTURE_2D );
-        }
-    }
     // diffuse texture unit.
     // NOTE: toggle actually disables diffuse texture mapping, unlike setup counterpart
     if( true == Diffuse ) {
@@ -1371,10 +590,6 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
 
 void
 opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
-
-    select_unit( m_helpertextureunit );
-    ::glTexEnvfv( GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, glm::value_ptr( Shadowcolor ) ); // in-shadow colour multiplier
-    select_unit( m_diffusetextureunit );
 }
 
 void
@@ -1693,19 +908,8 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             break;
         }
         case rendermode::shadows:
-        case rendermode::pickscenery: {
-            // these render modes don't bother with lights
-            Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
-            // they can also skip queue sorting, as they only deal with opaque geometry
-            // NOTE: there's benefit from rendering front-to-back, but is it significant enough? TODO: investigate
-            Render( std::begin( m_cellqueue ), std::end( m_cellqueue ) );
-            break;
-        }
-        case rendermode::reflections: {
-            // for the time being reflections render only terrain geometry
-            Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
-            break;
-        }
+        case rendermode::pickscenery:
+        case rendermode::reflections:
         case rendermode::pickcontrols:
         default: {
             // no need to render anything ourside of the cab in control picking mode
@@ -1724,12 +928,8 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
             break;
         }
         case rendermode::shadows: {
-            // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
-            ::glDisable( GL_CULL_FACE );
             break; }
         case rendermode::pickscenery: {
-            // non-interactive scenery elements get neutral colour
-            ::glColor3fv( glm::value_ptr( colors::none ) );
             break;
         }
         default: {
@@ -1826,99 +1026,13 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // tracks
                 // TODO: update after path node refactoring
                 Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
-#ifdef EU07_SCENERY_EDITOR
-                // TODO: re-implement
-                // memcells
-                if( EditorModeFlag ) {
-                    for( auto const memcell : Groundsubcell->m_memcells ) {
-                        Render( memcell );
-                    }
-                }
-#endif
-#ifdef EU07_USE_DEBUG_CULLING
-                // debug
-                ::glLineWidth( 2.f );
-                float const width = cell->m_area.radius;
-                float const height = cell->m_area.radius * 0.2f;
-                glDisable( GL_LIGHTING );
-                glDisable( GL_TEXTURE_2D );
-                glColor3ub( 255, 128, 128 );
-                glBegin( GL_LINE_LOOP );
-                glVertex3f( -width, height, width );
-                glVertex3f( -width, height, -width );
-                glVertex3f( width, height, -width );
-                glVertex3f( width, height, width );
-                glEnd();
-                glBegin( GL_LINE_LOOP );
-                glVertex3f( -width, 0, width );
-                glVertex3f( -width, 0, -width );
-                glVertex3f( width, 0, -width );
-                glVertex3f( width, 0, width );
-                glEnd();
-                glBegin( GL_LINES );
-                glVertex3f( -width, height, width ); glVertex3f( -width, 0, width );
-                glVertex3f( -width, height, -width ); glVertex3f( -width, 0, -width );
-                glVertex3f( width, height, -width ); glVertex3f( width, 0, -width );
-                glVertex3f( width, height, width ); glVertex3f( width, 0, width );
-                glEnd();
-                glColor3ub( 255, 255, 255 );
-                glEnable( GL_TEXTURE_2D );
-                glEnable( GL_LIGHTING );
-                glLineWidth( 1.f );
-#endif
                 // post-render cleanup
                 ::glPopMatrix();
 
                 break;
             }
-            case rendermode::shadows: {
-                // since all shapes of the section share center point we can optimize out a few calls here
-                ::glPushMatrix();
-                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-                // render
-                // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
-                // tracks
-                Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
-
-                // post-render cleanup
-                ::glPopMatrix();
-
-                break;
-            }
-            case rendermode::pickscenery: {
-                // same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
-                // since all shapes of the section share center point we can optimize out a few calls here
-                ::glPushMatrix();
-                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-                // render
-                // opaque non-instanced shapes
-                // non-interactive scenery elements get neutral colour
-                ::glColor3fv( glm::value_ptr( colors::none ) );
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
-                // tracks
-                for( auto *path : cell->m_paths ) {
-                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                    Render( path );
-                }
-#ifdef EU07_SCENERY_EDITOR
-                // memcells
-                // TODO: re-implement
-                if( EditorModeFlag ) {
-                    for( auto const memcell : Groundsubcell->m_memcells ) {
-                        ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                        Render( memcell );
-                    }
-                }
-#endif
-                // post-render cleanup
-                ::glPopMatrix();
-
-                break;
-            }
+            case rendermode::shadows:
+            case rendermode::pickscenery:
             case rendermode::reflections:
             case rendermode::pickcontrols:
             default: {
@@ -1946,16 +1060,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 }
                 break;
             }
-            case rendermode::pickscenery: {
-                // opaque parts of instanced models
-                // same procedure like with regular render, but each node receives custom colour used for picking
-                for( auto *instance : cell->m_instancesopaque ) {
-                    ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                    Render( instance );
-                }
-                // vehicles aren't included in scenery picking for the time being
-                break;
-            }
+            case rendermode::pickscenery:
             case rendermode::reflections:
             case rendermode::pickcontrols:
             default: {
@@ -1965,38 +1070,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
         ++first;
     }
-#ifdef EU07_USE_DEBUG_SOUNDEMITTERS
-    // sound emitters
-    if( DebugModeFlag ) {
-        switch( m_renderpass.draw_mode ) {
-            case rendermode::color: {
-
-                ::glPushAttrib( GL_ENABLE_BIT );
-                ::glDisable( GL_TEXTURE_2D );
-                ::glColor3f( 0.36f, 0.75f, 0.35f );
-
-                for( auto const &audiosource : audio::renderer.m_sources ) {
-
-                    ::glPushMatrix();
-                    auto const position = audiosource.properties.location - m_renderpass.camera.position();
-                    ::glTranslated( position.x, position.y, position.z );
-
-                    ::gluSphere( m_quadric, 0.1, 4, 2 );
-
-                    ::glPopMatrix();
-                }
-
-                ::glPopAttrib();
-
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-    }
-#endif
-
 }
 
 void
@@ -2027,16 +1100,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
     Bind_Material( data.material );
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
-        case rendermode::reflections: {
-            ::glColor3fv( glm::value_ptr( data.lighting.diffuse ) );
-/*
-            // NOTE: ambient component is set by diffuse component
-            // NOTE: for the time being non-instanced shapes are rendered without specular component due to wrong/arbitrary values set in legacy scenarios
-            // TBD, TODO: find a way to resolve this with the least amount of tears?
-            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( data.lighting.specular * m_sunlight.specular.a * m_specularopaquescalefactor ) );
-*/
-            break;
-        }
+        case rendermode::reflections:
         // pick modes are painted with custom colours, and shadow pass doesn't use any
         case rendermode::shadows:
         case rendermode::pickscenery:
@@ -2062,9 +1126,6 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
         }
         default: {
             distancesquared = Math3D::SquareMagnitude( ( Instance->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
@@ -2078,8 +1139,6 @@ opengl_renderer::Render( TAnimModel *Instance ) {
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::pickscenery: {
-            // add the node to the pick list
-            m_picksceneryitems.emplace_back( Instance );
             break;
         }
         default: {
@@ -2116,10 +1175,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCameraPosition } } / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
-        }
+        case rendermode::shadows:
         default: {
             squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -2173,20 +1229,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             }
             break;
         }
-        case rendermode::shadows: {
-            if( Dynamic->mdLowPolyInt ) {
-                // low poly interior
-                if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-                    Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-                }
-            }
-            if( Dynamic->mdModel )
-                Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-            if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
-            // post-render cleanup
-            break;
-        }
+        case rendermode::shadows:
         case rendermode::pickcontrols:
         case rendermode::pickscenery:
         default: {
@@ -2261,27 +1304,8 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                 }
                 break;
             }
-            case rendermode::cabshadows: {
-                // cab shadowmap mode skips lighting setup and translucent parts
-                // render
-                if( true == Alpha ) {
-                    // translucent parts
-                    Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
-                }
-                else {
-                    // opaque parts
-                    Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
-                }
-                // since the setup is simpler, there's nothing to reset afterwards
-                break;
-            }
-            case rendermode::pickcontrols: {
-                // control picking mode skips lighting setup and translucent parts
-                // render
-                Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
-                // since the setup is simpler, there's nothing to reset afterwards
-                break;
-            }
+            case rendermode::cabshadows:
+            case rendermode::pickcontrols:
             default: {
                 break;
             }
@@ -2450,40 +1474,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     }
                     case rendermode::shadows:
                     case rendermode::cabshadows:
-                    case rendermode::pickscenery: {
-                        // scenery picking and shadow both use enforced colour and no frills
-                        // material configuration:
-                        // textures...
-                        if( Submodel->m_material < 0 ) { // zmienialne skóry
-                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                        }
-                        else {
-                            // również 0
-                            Bind_Material( Submodel->m_material );
-                        }
-                        // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
-                        // post-draw reset
-                        break;
-                    }
-                    case rendermode::pickcontrols: {
-                        // material configuration:
-                        // control picking applies individual colour for each submodel
-                        m_pickcontrolsitems.emplace_back( Submodel );
-                        ::glColor3fv( glm::value_ptr( pick_color( m_pickcontrolsitems.size() ) ) );
-                        // textures...
-                        if( Submodel->m_material < 0 ) { // zmienialne skóry
-                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                        }
-                        else {
-                            // również 0
-                            Bind_Material( Submodel->m_material );
-                        }
-                        // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
-                        // post-draw reset
-                        break;
-                    }
+                    case rendermode::pickscenery:
+                    case rendermode::pickcontrols:
                     default: {
                         break;
                     }
@@ -2634,17 +1626,6 @@ opengl_renderer::Render( TTrack *Track ) {
             break;
         }
         case rendermode::pickscenery: {
-            // add the node to the pick list
-            m_picksceneryitems.emplace_back( Track );
-
-            if( Track->m_material1 != 0 ) {
-                Bind_Material( Track->m_material1 );
-                m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
-            }
-            if( Track->m_material2 != 0 ) {
-                Bind_Material( Track->m_material2 );
-                m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
-            }
             break;
         }
         case rendermode::pickcontrols:
@@ -2663,7 +1644,6 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
-            ::glDisable( GL_CULL_FACE );
             break;
         }
         default: {
@@ -2701,13 +1681,6 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 break;
             }
             case rendermode::shadows: {
-                if( ( std::abs( track->fTexHeight1 ) < 0.35f )
-                 || ( track->iCategoryFlag != 2 ) ) {
-                    // shadows are only calculated for high enough roads, typically meaning track platforms
-                    continue;
-                }
-                Bind_Material( track->m_material1 );
-                m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
                 break;
             }
             case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
@@ -2744,14 +1717,6 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 break;
             }
             case rendermode::shadows: {
-                if( ( std::abs( track->fTexHeight1 ) < 0.35f )
-                 || ( ( track->iCategoryFlag == 1 )
-                   && ( track->eType != tt_Normal ) ) ) {
-                    // shadows are only calculated for high enough trackbeds
-                    continue;
-                }
-                Bind_Material( track->m_material2 );
-                m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
                 break;
             }
             case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
@@ -2793,7 +1758,6 @@ opengl_renderer::Render( TMemCell *Memcell ) {
         }
         case rendermode::shadows:
         case rendermode::pickscenery: {
-            ::gluSphere( m_quadric, 0.35, 4, 2 );
             break;
         }
         case rendermode::reflections:
@@ -2914,11 +1878,7 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
-        }
+        case rendermode::shadows:
         default: {
             distancesquared = glm::length2( ( Instance->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -2946,11 +1906,7 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Traction->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
-        }
+        case rendermode::shadows:
         default: {
             distancesquared = glm::length2( ( Traction->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -3007,11 +1963,7 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
-        }
+        case rendermode::shadows:
         default: {
             distancesquared = glm::length2( ( data.area.center - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -3056,10 +2008,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCameraPosition } } / Global.ZoomFactor ) / Global.fDistanceFactor;
-            break;
-        }
+        case rendermode::shadows:
         default: {
             squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -3403,98 +2352,12 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 // utility methods
 TSubModel const *
 opengl_renderer::Update_Pick_Control() {
-
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    if( true == m_framebuffersupport ) {
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_pickframebuffer );
-    }
-#endif
-    Render_pass( rendermode::pickcontrols );
-    // determine point to examine
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
-
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    glm::ivec2 pickbufferpos;
-    if( true == m_framebuffersupport ) {
-//        ::glReadBuffer( GL_COLOR_ATTACHMENT0_EXT );
-        pickbufferpos = glm::ivec2{
-            mousepos.x * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowWidth ),
-            mousepos.y * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowHeight ) };
-    }
-    else {
-//        ::glReadBuffer( GL_BACK );
-        pickbufferpos = glm::ivec2{ mousepos };
-    }
-#else
-//    ::glReadBuffer( GL_BACK );
-    glm::ivec2 pickbufferpos{ mousepos };
-#endif
-    unsigned char pickreadout[4];
-    ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
-    auto const controlindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-    TSubModel const *control { nullptr };
-    if( ( controlindex > 0 )
-     && ( controlindex <= m_pickcontrolsitems.size() ) ) {
-        control = m_pickcontrolsitems[ controlindex - 1 ];
-    }
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    if( true == m_framebuffersupport ) {
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-    }
-#endif
-    m_pickcontrolitem = control;
-    return control;
+    return nullptr;
 }
 
 scene::basic_node const *
 opengl_renderer::Update_Pick_Node() {
-
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    if( true == m_framebuffersupport ) {
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_pickframebuffer );
-    }
-#endif
-    Render_pass( rendermode::pickscenery );
-    // determine point to examine
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
-
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    glm::ivec2 pickbufferpos;
-    if( true == m_framebuffersupport ) {
-//        ::glReadBuffer( GL_COLOR_ATTACHMENT0_EXT );
-        pickbufferpos = glm::ivec2{
-            mousepos.x * EU07_PICKBUFFERSIZE / Global.iWindowWidth,
-            mousepos.y * EU07_PICKBUFFERSIZE / Global.iWindowHeight
-        };
-    }
-    else {
-//        ::glReadBuffer( GL_BACK );
-        pickbufferpos = glm::ivec2{ mousepos };
-    }
-#else
-//    ::glReadBuffer( GL_BACK );
-    glm::ivec2 pickbufferpos{ mousepos };
-#endif
-
-    unsigned char pickreadout[4];
-    ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
-    auto const nodeindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-    scene::basic_node const *node { nullptr };
-    if( ( nodeindex > 0 )
-     && ( nodeindex <= m_picksceneryitems.size() ) ) {
-        node = m_picksceneryitems[ nodeindex - 1 ];
-    }
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-    if( true == m_framebuffersupport ) {
-        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-    }
-#endif
-    m_picksceneryitem = node;
-    return node;
+    return nullptr;
 }
 
 void

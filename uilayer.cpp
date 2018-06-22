@@ -100,6 +100,8 @@ ui_layer::init( GLFWwindow *Window ) {
         return true;
     }
 #endif
+
+    return true;
 }
 
 // potentially processes provided input key. returns: true if key was processed, false otherwise
