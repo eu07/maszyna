@@ -6,30 +6,26 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-
-#ifndef CurveH
-#define CurveH
+#pragma once
 
 #include "QueryParserComp.hpp"
 #include "usefull.h"
 
 class TCurve
 {
-  public:
-    TCurve();
-    ~TCurve();
-    bool Init(int n, int c);
-    float GetValue(int c, float p);
-    bool SetValue(int c, float p, float v);
-    bool Load(TQueryParserComp *Parser);
-    bool LoadFromFile(AnsiString asName);
-    bool SaveToFile(AnsiString asName);
+public:
+	TCurve();
+	~TCurve();
+	bool init(int n, int c);
+	float getValue(int c, float p);
+	bool setValue(int c, float p, float v);
+	bool load(TQueryParserComp* parser);
+	bool loadFromFile(AnsiString asName);
+	bool saveToFile(AnsiString asName);
 
-    int iNumValues;
-    int iNumCols;
+	int iNumValues;
+	int iNumCols;
 
-  private:
-    float **Values;
+private:
+	float** values;
 };
-//---------------------------------------------------------------------------
-#endif

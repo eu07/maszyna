@@ -6,44 +6,40 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-
 #pragma once
 
 #include "dumb3d.h"
 #include "command.h"
 
-//---------------------------------------------------------------------------
-enum TCameraType
-{ // tryby pracy kamery
-    tp_Follow, // jazda z pojazdem
-    tp_Free, // stoi na scenerii
-    tp_Satelite // widok z góry (nie używany)
+enum TCameraType { // tryby pracy kamery
+	TP_FOLLOW, // jazda z pojazdem
+	TP_FREE, // stoi na scenerii
+	TP_SATELITE // widok z góry (nie używany)
 };
 
-class TCamera {
+class TCamera
+{
+public: // McZapkie: potrzebuje do kiwania na boki
+	void init(Math3D::vector3 nPos, Math3D::vector3 nAngle);
+	void reset();
+	void onCursorMove(const double x, const double y);
+	bool onCommand(const command_data& command);
+	void update();
+	Math3D::vector3 getDirection();
+	bool setMatrix(glm::dmat4& matrix);
+	void raLook();
+	void stop();
 
-  public: // McZapkie: potrzebuje do kiwania na boki
-    void Init( Math3D::vector3 NPos, Math3D::vector3 NAngle);
-    void Reset();
-    void OnCursorMove(double const x, double const y);
-    bool OnCommand( command_data const &Command );
-    void Update();
-    Math3D::vector3 GetDirection();
-    bool SetMatrix(glm::dmat4 &Matrix);
-    void RaLook();
-    void Stop();
-
-    TCameraType Type;
-    double Pitch;
-    double Yaw; // w środku: 0=do przodu; na zewnątrz: 0=na południe
-    double Roll;
-    Math3D::vector3 Pos; // współrzędne obserwatora
-    Math3D::vector3 LookAt; // współrzędne punktu, na który ma patrzeć
-    Math3D::vector3 vUp;
-    Math3D::vector3 Velocity;
+	TCameraType type;
+	double pitch;
+	double yaw; // w środku: 0=do przodu; na zewnątrz: 0=na południe
+	double roll;
+	Math3D::vector3 pos; // współrzędne obserwatora
+	Math3D::vector3 lookAt; // współrzędne punktu, na który ma patrzeć
+	Math3D::vector3 vUp;
+	Math3D::vector3 velocity;
 
 private:
-    glm::dvec3 m_moverate;
-    glm::dvec3 m_rotationoffsets; // requested changes to pitch, yaw and roll
-
+	glm::dvec3 moveRate;
+	glm::dvec3 rotationOffsets; // requested changes to pitch, yaw and roll
 };

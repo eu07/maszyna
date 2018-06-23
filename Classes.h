@@ -6,17 +6,17 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
+#pragma once
 
-#ifndef ClassesH
-#define ClassesH
 //---------------------------------------------------------------------------
 // Ra: zestaw klas do robienia wskaźników, aby uporządkować nagłówki
 //---------------------------------------------------------------------------
+struct material_data;
+
 class TTrack; // odcinek trajektorii
 class TEvent;
 class TTrain; // pojazd sterowany
 class TDynamicObject; // pojazd w scenerii
-struct material_data;
 class TAnimModel; // opakowanie egzemplarz modelu
 class TAnimContainer; // fragment opakowania egzemplarza modelu
 class TModel3d; //siatka modelu wspólna dla egzemplarzy
@@ -29,36 +29,32 @@ class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
 class TWorld;
 class TCamera;
-
 class simulation_time;
 class TMoverParameters;
+class TController; // obiekt sterujący pociągiem (AI)
 
-namespace scene {
-struct node_data;
+namespace scene
+{
+	struct node_data;
 }
 
 namespace Mtable
 {
-class TTrainParameters; // rozkład jazdy
-class TMtableTime; // czas dla danego posterunku
+	class TTrainParameters; // rozkład jazdy
+	class TMtableTime; // czas dla danego posterunku
 };
 
-class TController; // obiekt sterujący pociągiem (AI)
-
-enum TCommandType
-{ // binarne odpowiedniki komend w komórce pamięci
-    cm_Unknown, // ciąg nierozpoznany (nie jest komendą)
-    cm_Ready, // W4 zezwala na odjazd, ale semafor może zatrzymać
-    cm_SetVelocity, // prędkość pociągowa zadawana na semaforze
-    cm_RoadVelocity, // prędkość drogowa
-    cm_SectionVelocity, //ograniczenie prędkości na odcinku
-    cm_ShuntVelocity, // prędkość manewrowa na semaforze
-    cm_SetProximityVelocity, // informacja wstępna o ograniczeniu
-    cm_ChangeDirection,
-    cm_PassengerStopPoint,
-    cm_OutsideStation,
-    cm_Shunt,
-    cm_Command // komenda pobierana z komórki
+enum TCommandType { // binarne odpowiedniki komend w komórce pamięci
+	CM_UNKNOWN, // ciąg nierozpoznany (nie jest komendą)
+	CM_READY, // W4 zezwala na odjazd, ale semafor może zatrzymać
+	CM_SET_VELOCITY, // prędkość pociągowa zadawana na semaforze
+	CM_ROAD_VELOCITY, // prędkość drogowa
+	CM_SECTION_VELOCITY, //ograniczenie prędkości na odcinku
+	CM_SHUNT_VELOCITY, // prędkość manewrowa na semaforze
+	CM_SET_PROXIMITY_VELOCITY, // informacja wstępna o ograniczeniu
+	CM_CHANGE_DIRECTION,
+	CM_PASSENGER_STOP_POINT,
+	CM_OUTSIDE_STATION,
+	CM_SHUNT,
+	CM_COMMAND // komenda pobierana z komórki
 };
-
-#endif

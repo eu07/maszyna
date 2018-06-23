@@ -6,7 +6,6 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-
 #include "stdafx.h"
 #include "AirCoupler.h"
 #include "Model3d.h"
@@ -14,77 +13,72 @@ http://mozilla.org/MPL/2.0/.
 
 AirCoupler::AirCoupler()
 {
-    Clear();
+	clear();
 }
 
-AirCoupler::~AirCoupler()
-{
-}
+AirCoupler::~AirCoupler() {}
 
-/**
- * \return 1 when \(straight\) TModel3d \c only ModelOn exists
- * \return 2 when \(slanted\) TModel3d \c ModelxOn exists
- * \return 0 when neither of them exist
- */
-int AirCoupler::GetStatus()
+int AirCoupler::getStatus()
 {
-    if (ModelxOn)
+	if (modelxOn) {
 		return 2;
-    if (ModelOn)
+	}
+	if (modelOn) {
 		return 1;
-    return 0;
+	}
+	return 0;
 }
 
 /**
  * Reset pointers and variables.
  */
-void AirCoupler::Clear()
+void AirCoupler::clear()
 {
-    ModelOn = NULL;
-    ModelOff = NULL;
-    ModelxOn = NULL;
-    On = false;
-    xOn = false;
+	modelOn = nullptr;
+	modelOff = nullptr;
+	modelxOn = nullptr;
+	on = false;
+	xOn = false;
 }
 
 /**
  * Looks for submodels in the model and updates pointers.
  */
-void AirCoupler::Init(std::string const &asName, TModel3d *Model)
+void AirCoupler::init(const std::string& asName, TModel3d* model)
 {
-    if (!Model)
-        return;
-    ModelOn = Model->GetFromName(asName + "_on"); // Straight connect.
-    ModelOff = Model->GetFromName(asName + "_off"); // Not connected. Hung up.
-    ModelxOn = Model->GetFromName(asName + "_xon"); // Slanted connect.
+	if (model) {
+		modelOn = model->GetFromName(asName + "_on"); // Straight connect.
+		modelOff = model->GetFromName(asName + "_off"); // Not connected. Hung up.
+		modelxOn = model->GetFromName(asName + "_xon"); // Slanted connect.
+	}
 }
 /**
  * Gets name of submodel \(from cParser \b *Parser\),
  * looks for it in the TModel3d \b *Model and update pointers.
  * If submodel is not found, reset pointers.
 */
-void AirCoupler::Load(cParser *Parser, TModel3d *Model)
+void AirCoupler::load(cParser* parser, TModel3d* model)
 {
-	std::string name = Parser->getToken<std::string>();
-    if(Model)
-    {
-		Init(name, Model);
+	std::string name = parser->getToken<std::string>();
+	if (model) {
+		init(name, model);
+	} else {
+		modelOn = nullptr;
+		modelxOn = nullptr;
+		modelOff = nullptr;
 	}
-    else
-    {
-        ModelOn = NULL;
-        ModelxOn = NULL;
-        ModelOff = NULL;
-    }
 }
 
 // Update submodels visibility.
-void AirCoupler::Update()
+void AirCoupler::update()
 {
-    if (ModelOn)
-        ModelOn->iVisible = On;
-    if (ModelOff)
-        ModelOff->iVisible = !(On || xOn);
-    if (ModelxOn)
-        ModelxOn->iVisible = xOn;
+	if (modelOn) {
+		modelOn->iVisible = on;
+	}
+	if (modelOff) {
+		modelOff->iVisible = !(on || xOn);
+	}
+	if (modelxOn) {
+		modelxOn->iVisible = xOn;
+	}
 }

@@ -6,7 +6,6 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-
 #include "stdafx.h"
 #include "Camera.h"
 
@@ -16,231 +15,166 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "MOVER.h"
 
-//---------------------------------------------------------------------------
-
-void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle) {
-
-    vUp = Math3D::vector3(0, 1, 0);
-    Velocity = Math3D::vector3(0, 0, 0);
-    Pitch = NAngle.x;
-    Yaw = NAngle.y;
-    Roll = NAngle.z;
-    Pos = NPos;
-
-    Type = (Global.bFreeFly ? tp_Free : tp_Follow);
-};
-
-void TCamera::Reset() {
-
-    Pitch = Yaw = Roll = 0;
-    m_rotationoffsets = {};
-};
-
-
-void TCamera::OnCursorMove(double x, double y) {
-/*
-    Yaw -= x;
-    while( Yaw > M_PI ) {
-        Yaw -= 2 * M_PI;
-    }
-    while( Yaw < -M_PI ) {
-        Yaw += 2 * M_PI;
-    }
-    Pitch -= y;
-    if (Type == tp_Follow) {
-        // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
-        Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
-    }
-*/
-    m_rotationoffsets += glm::dvec3 { y, x, 0.0 };
-}
-
-bool
-TCamera::OnCommand( command_data const &Command ) {
-
-    auto const walkspeed { 1.0 };
-    auto const runspeed { 10.0 };
-
-    bool iscameracommand { true };
-    switch( Command.command ) {
-
-        case user_command::viewturn: {
-
-            OnCursorMove(
-                reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global.fMouseXScale / Global.ZoomFactor,
-                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global.fMouseYScale / Global.ZoomFactor );
-            break;
-        }
-
-        case user_command::movehorizontal:
-        case user_command::movehorizontalfast: {
-
-            auto const movespeed = (
-                Type == tp_Free ?   runspeed :
-                Type == tp_Follow ? walkspeed :
-                0.0 );
-
-            auto const speedmultiplier = (
-                ( ( Type == tp_Free ) && ( Command.command == user_command::movehorizontalfast ) ) ?
-                    30.0 :
-                    1.0 );
-
-            // left-right
-            auto const movexparam { reinterpret_cast<double const &>( Command.param1 ) };
-            // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
-            auto const movex { walkspeed + ( std::max( 0.0, std::abs( movexparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
-
-            m_moverate.x = (
-                movexparam > 0.0 ?  movex * speedmultiplier :
-                movexparam < 0.0 ? -movex * speedmultiplier :
-                0.0 );
-
-            // forward-back
-            double const movezparam { reinterpret_cast<double const &>( Command.param2 ) };
-            auto const movez { walkspeed + ( std::max( 0.0, std::abs( movezparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
-            // NOTE: z-axis is flipped given world coordinate system
-            m_moverate.z = (
-                movezparam > 0.0 ? -movez * speedmultiplier :
-                movezparam < 0.0 ?  movez * speedmultiplier :
-                0.0 );
-
-            break;
-        }
-
-        case user_command::movevertical:
-        case user_command::moveverticalfast: {
-
-            auto const movespeed = (
-                Type == tp_Free ?   runspeed * 0.5 :
-                Type == tp_Follow ? walkspeed :
-                0.0 );
-
-            auto const speedmultiplier = (
-                ( ( Type == tp_Free ) && ( Command.command == user_command::moveverticalfast ) ) ?
-                    10.0 :
-                    1.0 );
-
-            // up-down
-            auto const moveyparam { reinterpret_cast<double const &>( Command.param1 ) };
-            // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
-            auto const movey { walkspeed + ( std::max( 0.0, std::abs( moveyparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
-
-            m_moverate.y = (
-                moveyparam > 0.0 ?  movey * speedmultiplier :
-                moveyparam < 0.0 ? -movey * speedmultiplier :
-                0.0 );
-
-            break;
-        }
-
-        default: {
-
-            iscameracommand = false;
-            break;
-        }
-    } // switch
-
-    return iscameracommand;
-}
-
-void TCamera::Update()
+void TCamera::init(Math3D::vector3 nPos, Math3D::vector3 nAngle)
 {
-    if( FreeFlyModeFlag == true ) { Type = tp_Free; }
-    else                          { Type = tp_Follow; }
+	vUp = Math3D::vector3(0, 1, 0);
+	velocity = Math3D::vector3(0, 0, 0);
+	pitch = nAngle.x;
+	yaw = nAngle.y;
+	roll = nAngle.z;
+	pos = nPos;
+	type = (Global.bFreeFly ? TP_FREE : TP_FOLLOW);
+};
 
-    // check for sent user commands
-    // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
-    // ultimately we'll need to track position of camera/driver for all human entities present in the scenario
-    command_data command;
-    // NOTE: currently we're only storing commands for local entity and there's no id system in place,
-    // so we're supplying 'default' entity id of 0
-    while( simulation::Commands.pop( command, static_cast<std::size_t>( command_target::entity ) | 0 ) ) {
+void TCamera::reset()
+{
+	pitch = yaw = roll = 0;
+	rotationOffsets = {};
+};
 
-        OnCommand( command );
-    }
-
-    auto const deltatime { Timer::GetDeltaRenderTime() }; // czas bez pauzy
-
-    // update position
-    if( ( Type == tp_Free )
-     || ( false == Global.ctrlState )
-     || ( true == DebugCameraFlag ) ) {
-        // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
-        // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
-        Velocity.x = clamp( Velocity.x + m_moverate.x * 10.0 * deltatime, -std::abs( m_moverate.x ), std::abs( m_moverate.x ) );
-        Velocity.z = clamp( Velocity.z + m_moverate.z * 10.0 * deltatime, -std::abs( m_moverate.z ), std::abs( m_moverate.z ) );
-        Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -std::abs( m_moverate.y ), std::abs( m_moverate.y ) );
-    }
-
-    if( ( Type == tp_Free )
-     || ( true == DebugCameraFlag ) ) {
-        // free movement position update is handled here, movement while in vehicle is handled by train update
-        Math3D::vector3 Vec = Velocity;
-        Vec.RotateY( Yaw );
-        Pos += Vec * 5.0 * deltatime;
-    }
-    // update rotation
-    auto const rotationfactor { std::min( 1.0, 20 * deltatime ) };
-
-    Yaw -= rotationfactor * m_rotationoffsets.y;
-    m_rotationoffsets.y *= ( 1.0 - rotationfactor );
-    while( Yaw > M_PI ) {
-        Yaw -= 2 * M_PI;
-    }
-    while( Yaw < -M_PI ) {
-        Yaw += 2 * M_PI;
-    }
-
-    Pitch -= rotationfactor * m_rotationoffsets.x;
-    m_rotationoffsets.x *= ( 1.0 - rotationfactor );
-    if( Type == tp_Follow ) {
-        // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
-        Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
-    }
+void TCamera::onCursorMove(const double x, const double y)
+{
+	rotationOffsets += glm::dvec3{ y, x, 0.0 };
 }
 
-Math3D::vector3 TCamera::GetDirection() {
+bool TCamera::onCommand(const command_data& command)
+{
+	auto const walkSpeed{ 1.0 };
+	auto const runSpeed{ 10.0 };
 
-    glm::vec3 v = glm::normalize( glm::rotateY<float>( glm::vec3{ 0.f, 0.f, 1.f }, Yaw ) );
+	bool isCameraCommand{ true };
+	switch (command.command) {
+		case user_command::viewturn:
+			onCursorMove(reinterpret_cast<double const&>(command.param1) * 0.005 * Global.fMouseXScale / Global.ZoomFactor,
+			    reinterpret_cast<double const&>(command.param2) * 0.01 * Global.fMouseYScale / Global.ZoomFactor);
+			break;
+		case user_command::movehorizontal:
+		case user_command::movehorizontalfast: {
+			auto const moveSpeed = (type == TP_FREE ? runSpeed : (type == TP_FOLLOW ? walkSpeed : 0.0));
+			auto const speedMultiplier = (((type == TP_FREE) && (command.command == user_command::movehorizontalfast)) ? 30.0 : 1.0);
+			// left-right
+			auto const moveXParam{ reinterpret_cast<double const&>(command.param1) };
+			// 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
+			auto const moveX{ walkSpeed + (std::max(0.0, std::abs(moveXParam) - 0.65) / 0.35) * (moveSpeed - walkSpeed) };
+			moveRate.x = (moveXParam > 0.0 ? moveX * speedMultiplier : (moveXParam < 0.0 ? -moveX * speedMultiplier : 0.0));
+			// forward-back
+			double const moveZParam{ reinterpret_cast<double const&>(command.param2) };
+			auto const moveZ{ walkSpeed + (std::max(0.0, std::abs(moveZParam) - 0.65) / 0.35) * (moveSpeed - walkSpeed) };
+			// NOTE: z-axis is flipped given world coordinate system
+			moveRate.z = (moveZParam > 0.0 ? -moveZ * speedMultiplier : (moveZParam < 0.0 ? moveZ * speedMultiplier : 0.0));
+			break;
+		}
+		case user_command::movevertical:
+		case user_command::moveverticalfast: {
+			auto const moveSpeed = (type == TP_FREE ? runSpeed * 0.5 : type == TP_FOLLOW ? walkSpeed : 0.0);
+			auto const speedMultiplier = (((type == TP_FREE) && (command.command == user_command::moveverticalfast)) ? 10.0 : 1.0);
+			// up-down
+			auto const moveYParam{ reinterpret_cast<double const&>(command.param1) };
+			// 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
+			auto const moveY{ walkSpeed + (std::max(0.0, std::abs(moveYParam) - 0.65) / 0.35) * (moveSpeed - walkSpeed) };
+			moveRate.y = (moveYParam > 0.0 ? moveY * speedMultiplier : (moveYParam < 0.0 ? -moveY * speedMultiplier : 0.0));
+			break;
+		}
+		default:
+			isCameraCommand = false;
+			break;
+	}
+
+	return isCameraCommand;
+}
+
+void TCamera::update()
+{
+	if (FreeFlyModeFlag) {
+		type = TP_FREE;
+	} else {
+		type = TP_FOLLOW;
+	}
+
+	// check for sent user commands
+	// NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
+	// ultimately we'll need to track position of camera/driver for all human entities present in the scenario
+	command_data command;
+	// NOTE: currently we're only storing commands for local entity and there's no id system in place,
+	// so we're supplying 'default' entity id of 0
+	while (simulation::Commands.pop(command, static_cast<std::size_t>(command_target::entity) | 0)) {
+		onCommand(command);
+	}
+
+	auto const deltaTime{ Timer::GetDeltaRenderTime() }; // czas bez pauzy
+
+	// update position
+	if ((type == TP_FREE) || !Global.ctrlState || DebugCameraFlag) {
+		// ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
+		// McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
+		velocity.x = clamp(velocity.x + moveRate.x * 10.0 * deltaTime, -std::abs(moveRate.x), std::abs(moveRate.x));
+		velocity.z = clamp(velocity.z + moveRate.z * 10.0 * deltaTime, -std::abs(moveRate.z), std::abs(moveRate.z));
+		velocity.y = clamp(velocity.y + moveRate.y * 10.0 * deltaTime, -std::abs(moveRate.y), std::abs(moveRate.y));
+	}
+
+	if ((type == TP_FREE) || DebugCameraFlag) {
+		// free movement position update is handled here, movement while in vehicle is handled by train update
+		Math3D::vector3 vec = velocity;
+		vec.RotateY(yaw);
+		pos += vec * 5.0 * deltaTime;
+	}
+	// update rotation
+	auto const rotationFactor{ std::min(1.0, 20 * deltaTime) };
+
+	yaw -= (rotationFactor * rotationOffsets.y);
+	rotationOffsets.y *= (1.0 - rotationFactor);
+	while (yaw > M_PI) {
+		yaw -= 2 * M_PI;
+	}
+	while (yaw < -M_PI) {
+		yaw += 2 * M_PI;
+	}
+
+	pitch -= (rotationFactor * rotationOffsets.x);
+	rotationOffsets.x *= (1.0 - rotationFactor);
+	if (type == TP_FOLLOW) {
+		// jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
+		pitch = clamp(pitch, -M_PI_4, M_PI_4);
+	}
+}
+
+Math3D::vector3 TCamera::getDirection()
+{
+	glm::vec3 v = glm::normalize(glm::rotateY<float>(glm::vec3{ 0.f, 0.f, 1.f }, yaw));
 	return Math3D::vector3(v.x, v.y, v.z);
 }
 
-bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
+bool TCamera::setMatrix(glm::dmat4& matrix)
+{
+	matrix = glm::rotate(matrix, -roll, glm::dvec3(0.0, 0.0, 1.0)); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+	matrix = glm::rotate(matrix, -pitch, glm::dvec3(1.0, 0.0, 0.0));
+	matrix = glm::rotate(matrix, -yaw, glm::dvec3(0.0, 1.0, 0.0)); // w zewnętrznym widoku: kierunek patrzenia
 
-    Matrix = glm::rotate( Matrix, -Roll, glm::dvec3( 0.0, 0.0, 1.0 ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
-    Matrix = glm::rotate( Matrix, -Pitch, glm::dvec3( 1.0, 0.0, 0.0 ) );
-    Matrix = glm::rotate( Matrix, -Yaw, glm::dvec3( 0.0, 1.0, 0.0 ) ); // w zewnętrznym widoku: kierunek patrzenia
+	if ((type == TP_FOLLOW) && !DebugCameraFlag) {
+		matrix *= glm::lookAt(glm::dvec3{ pos }, glm::dvec3{ lookAt }, glm::dvec3{ vUp });
+	} else {
+		matrix = glm::translate(matrix, glm::dvec3{ -pos }); // nie zmienia kierunku patrzenia
+	}
 
-    if( ( Type == tp_Follow ) && ( false == DebugCameraFlag ) ) {
-
-        Matrix *= glm::lookAt(
-            glm::dvec3{ Pos },
-            glm::dvec3{ LookAt },
-            glm::dvec3{ vUp } );
-    }
-    else {
-        Matrix = glm::translate( Matrix, glm::dvec3{ -Pos } ); // nie zmienia kierunku patrzenia
-    }
-
-    return true;
+	return true;
 }
 
-void TCamera::RaLook()
+void TCamera::raLook()
 { // zmiana kierunku patrzenia - przelicza Yaw
-    Math3D::vector3 where = LookAt - Pos + Math3D::vector3(0, 3, 0); // trochę w górę od szyn
-    if( ( where.x != 0.0 ) || ( where.z != 0.0 ) ) {
-        Yaw = atan2( -where.x, -where.z ); // kąt horyzontalny
-        m_rotationoffsets.y = 0.0;
-    }
-    double l = Math3D::Length3(where);
-    if( l > 0.0 ) {
-        Pitch = asin( where.y / l ); // kąt w pionie
-        m_rotationoffsets.x = 0.0;
-    }
+	Math3D::vector3 where = lookAt - pos + Math3D::vector3(0, 3, 0); // trochę w górę od szyn
+	if ((where.x != 0.0) || (where.z != 0.0)) {
+		yaw = atan2(-where.x, -where.z); // kąt horyzontalny
+		rotationOffsets.y = 0.0;
+	}
+	double l = Math3D::Length3(where);
+	if (l > 0.0) {
+		pitch = asin(where.y / l); // kąt w pionie
+		rotationOffsets.x = 0.0;
+	}
 };
 
-void TCamera::Stop()
+void TCamera::stop()
 { // wyłącznie bezwładnego ruchu po powrocie do kabiny
-    Type = tp_Follow;
-    Velocity = Math3D::vector3(0, 0, 0);
+	type = TP_FOLLOW;
+	velocity = Math3D::vector3(0, 0, 0);
 };
