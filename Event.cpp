@@ -285,26 +285,26 @@ void TEvent::Load(cParser* parser, Math3D::vector3 const& org)
 				if (token.find('#') != std::string::npos)
 					token.erase(token.find('#')); // obcięcie unikatowości
 				win1250_to_ascii(token); // get rid of non-ascii chars
-				Params[6].asCommand = cm_PassengerStopPoint;
+				Params[6].asCommand = CM_PASSENGER_STOP_POINT;
 				// nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
 				bEnabled = false;
 			} else if (token == "SetVelocity") {
 				bEnabled = false;
-				Params[6].asCommand = cm_SetVelocity;
+				Params[6].asCommand = CM_SET_VELOCITY;
 			} else if (token == "RoadVelocity") {
 				bEnabled = false;
-				Params[6].asCommand = cm_RoadVelocity;
+				Params[6].asCommand = CM_ROAD_VELOCITY;
 			} else if (token == "SectionVelocity") {
 				bEnabled = false;
-				Params[6].asCommand = cm_SectionVelocity;
+				Params[6].asCommand = CM_SECTION_VELOCITY;
 			} else if (token == "ShuntVelocity") {
 				bEnabled = false;
-				Params[6].asCommand = cm_ShuntVelocity;
+				Params[6].asCommand = CM_SHUNT_VELOCITY;
 			} else if (token == "OutsideStation") {
 				bEnabled = false; // ma być skanowny, aby AI nie przekraczało W5
-				Params[6].asCommand = cm_OutsideStation;
+				Params[6].asCommand = CM_OUTSIDE_STATION;
 			} else
-				Params[6].asCommand = cm_Unknown;
+				Params[6].asCommand = CM_UNKNOWN;
 			Params[0].asText = new char[token.size() + 1];
 			strcpy(Params[0].asText, token.c_str());
 			parser->getTokens();
@@ -719,7 +719,7 @@ TCommandType TEvent::Command()
 		case tp_PutValues:
 			return Params[6].asCommand; // komenda zakodowana binarnie
 	}
-	return cm_Unknown; // inne eventy się nie liczą
+	return CM_UNKNOWN; // inne eventy się nie liczą
 };
 
 double TEvent::ValueGet(int n)

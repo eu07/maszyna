@@ -46,7 +46,7 @@ bool TCamera::onCommand(const command_data& command)
 	switch (command.command) {
 		case user_command::viewturn:
 			onCursorMove(reinterpret_cast<double const&>(command.param1) * 0.005 * Global.fMouseXScale / Global.ZoomFactor,
-			reinterpret_cast<double const&>(command.param2) * 0.01 * Global.fMouseYScale / Global.ZoomFactor);
+			    reinterpret_cast<double const&>(command.param2) * 0.01 * Global.fMouseYScale / Global.ZoomFactor);
 			break;
 		case user_command::movehorizontal:
 		case user_command::movehorizontalfast: {

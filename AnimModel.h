@@ -6,11 +6,6 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-/*
-    MaSzyna EU07 locomotive simulator
-    Copyright (C) 2001-2004  Marcin Wozniak and others
-
-*/
 #pragma once
 
 #include "Classes.h"

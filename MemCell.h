@@ -64,7 +64,7 @@ private:
     double fValue1 { 0.0 };
     double fValue2 { 0.0 };
     // other
-    TCommandType eCommand { cm_Unknown };
+    TCommandType eCommand { CM_UNKNOWN };
     bool bCommand { false }; // czy zawiera komendę dla zatrzymanego AI
     TEvent *OnSent { nullptr }; // event dodawany do kolejki po wysłaniu komendy zatrzymującej skład
 };

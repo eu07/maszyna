@@ -199,12 +199,12 @@ void TSpeedPos::CommandCheck()
     double value2 = evEvent->ValueGet(2);
     switch (command)
     {
-    case cm_ShuntVelocity:
+    case CM_SHUNT_VELOCITY:
         // prędkość manewrową zapisać, najwyżej AI zignoruje przy analizie tabelki
         fVelNext = value1; // powinno być value2, bo druga określa "za"?
         iFlags |= spShuntSemaphor;
         break;
-    case cm_SetVelocity:
+    case CM_SET_VELOCITY:
         // w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
         // SetVelocity * 0    -> można jechać, ale stanąć przed
         // SetVelocity 0 20   -> stanąć przed, potem można jechać 20 (SBL)
@@ -220,31 +220,31 @@ void TSpeedPos::CommandCheck()
                 iFlags |= spStopOnSBL; // flaga, że ma zatrzymać; na pewno nie zezwoli na manewry
             }
         break;
-    case cm_SectionVelocity:
+    case CM_SECTION_VELOCITY:
         // odcinek z ograniczeniem prędkości
         fVelNext = value1;
         fSectionVelocityDist = value2;
         iFlags |= spSectionVel;
         break;
-    case cm_RoadVelocity:
+    case CM_ROAD_VELOCITY:
         // prędkość drogowa (od tej pory będzie jako domyślna najwyższa)
         fVelNext = value1;
         iFlags |= spRoadVel;
         break;
-    case cm_PassengerStopPoint:
+    case CM_PASSENGER_STOP_POINT:
         // nie ma dostępu do rozkładu
         // przystanek, najwyżej AI zignoruje przy analizie tabelki
 //        if ((iFlags & spPassengerStopPoint) == 0)
             fVelNext = 0.0; // TrainParams->IsStop()?0.0:-1.0; //na razie tak
         iFlags |= spPassengerStopPoint; // niestety nie da się w tym miejscu współpracować z rozkładem
         break;
-    case cm_SetProximityVelocity:
+    case CM_SET_PROXIMITY_VELOCITY:
         // musi zostać gdyż inaczej nie działają manewry
         fVelNext = -1;
         iFlags |= spProximityVelocity;
         // fSectionVelocityDist = value2;
         break;
-    case cm_OutsideStation:
+    case CM_OUTSIDE_STATION:
         // w trybie manewrowym: skanować od niej wstecz i stanąć po wyjechaniu za sygnalizator i
         // zmienić kierunek
         // w trybie pociągowym: można przyspieszyć do wskazanej prędkości (po zjechaniu z rozjazdów)
@@ -801,7 +801,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double d; // droga
 	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej niż widzi AI
     bool isatpassengerstop { false }; // true if the consist is within acceptable range of w4 post
-    TCommandType go = cm_Unknown;
+    TCommandType go = CM_UNKNOWN;
     eSignNext = NULL;
     // te flagi są ustawiane tutaj, w razie potrzeby
     iDrivigFlags &= ~(moveTrackEnd | moveSwitchFound | moveSemaphorFound | moveSpeedLimitFound);
@@ -980,8 +980,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać blisko (z dociąganiem)
                                     sSpeedTable[i].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                                     sSpeedTable[i].fVelNext = -1; // można jechać za W4
-                                    if (go == cm_Unknown) // jeśli nie było komendy wcześniej
-                                        go = cm_Ready; // gotów do odjazdu z W4 (semafor może
+                                    if (go == CM_UNKNOWN) // jeśli nie było komendy wcześniej
+                                        go = CM_READY; // gotów do odjazdu z W4 (semafor może
                                     // zatrzymać)
                                     if( false == tsGuardSignal.empty() ) {
                                         // jeśli mamy głos kierownika, to odegrać
@@ -1201,12 +1201,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[ i ].iFlags = 0;
                             }
                         }
-                        else if (go == cm_Unknown) // jeśli jeszcze nie ma komendy
+                        else if (go == CM_UNKNOWN) // jeśli jeszcze nie ma komendy
                             if (v != 0.0) // komenda jest tylko gdy ma jechać, bo stoi na podstawie
                             // tabelki
                             { // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie
                                 // VelSignal
-                                go = cm_ShuntVelocity; // w trybie pociągowym tylko jeśli włącza
+                                go = CM_SHUNT_VELOCITY; // w trybie pociągowym tylko jeśli włącza
                                 // tryb manewrowy (v!=0.0)
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo Tm może być
                                 // daleko
@@ -1224,12 +1224,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     }
                     else if( !( sSpeedTable[ i ].iFlags & spSectionVel ) ) {
                         //jeśli jakiś event pasywny ale nie ograniczenie
-                        if( go == cm_Unknown ) {
+                        if( go == CM_UNKNOWN ) {
                             // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
                             if( ( v < 0.0 )
                              || ( v >= 1.0 ) ) {
                                 // bo wartość 0.1 służy do hamowania tylko
-                                go = cm_SetVelocity; // może odjechać
+                                go = CM_SET_VELOCITY; // może odjechać
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo semafor może być daleko
                                 // VelSignal=v; //nie do końca tak, to jest druga prędkość; -1 nie wpisywać...
                                 if( VelSignal == 0.0 ) {
@@ -1261,12 +1261,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 eSignNext = sSpeedTable[ i ].evEvent; // dla informacji
                                 if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
                                     // jeśli ma stać, dostaje komendę od razu
-                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                    go = CM_COMMAND; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
                                 else if( sSpeedTable[ i ].fDist <= fMaxProximityDist ) {
                                     // jeśli ma dociągnąć, to niech dociąga
                                     // (moveStopCloser dotyczy dociągania do W4, nie semafora)
-                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                    go = CM_COMMAND; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
                             }
                         }
@@ -4441,7 +4441,7 @@ TController::UpdateSituation(double dt) {
 
             switch (comm)
             { // ustawienie VelSignal - trochę proteza = do przemyślenia
-            case cm_Ready: // W4 zezwolił na jazdę
+            case CM_READY: // W4 zezwolił na jazdę
                 // ewentualne doskanowanie trasy za W4, który zezwolił na jazdę
                 TableCheck( routescanrange);
                 TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired); // aktualizacja po skanowaniu
@@ -4449,21 +4449,21 @@ TController::UpdateSituation(double dt) {
                     break; // ale jak coś z przodu zamyka, to ma stać
                 if (iDrivigFlags & moveStopCloser)
                     VelSignal = -1.0; // ma czekać na sygnał z sygnalizatora!
-            case cm_SetVelocity: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
+            case CM_SET_VELOCITY: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     if (fabs(VelSignal) >=
                         1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
                         PutCommand("SetVelocity", VelSignal, VelNext, nullptr); // komenda robi dodatkowe operacje
                 break;
-            case cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
+            case CM_SHUNT_VELOCITY: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     PutCommand("ShuntVelocity", VelSignal, VelNext, nullptr);
                 else if (iCoupler) // jeśli jedzie w celu połączenia
                     SetVelocity(VelSignal, VelNext);
                 break;
-            case cm_Command: // komenda z komórki
+            case CM_COMMAND: // komenda z komórki
                 if( !( OrderList[ OrderPos ] & ~( Obey_train | Shunt ) ) ) {
                     // jedzie w dowolnym trybie albo Wait_for_orders
                     if( mvOccupied->Vel < 0.1 ) {
@@ -4486,12 +4486,12 @@ TController::UpdateSituation(double dt) {
                     if( ( OrderList[ OrderPos ] & Connect ) ?
                             ( pVehicles[ 0 ]->fTrackBlock > 2000 || pVehicles[ 0 ]->fTrackBlock > FirstSemaphorDist ) :
                             true ) {
-                        if( ( comm = BackwardScan() ) != cm_Unknown ) {
+                        if( ( comm = BackwardScan() ) != CM_UNKNOWN ) {
                             // jeśli w drugą można jechać
                             // należy sprawdzać odległość od znalezionego sygnalizatora,
                             // aby w przypadku prędkości 0.1 wyciągnąć najpierw skład za sygnalizator
                             // i dopiero wtedy zmienić kierunek jazdy, oczekując podania prędkości >0.5
-                            if( comm == cm_Command ) {
+                            if( comm == CM_COMMAND ) {
                                 // jeśli komenda Shunt to ją odbierz bez przemieszczania się (np. odczep wagony po dopchnięciu do końca toru)
                                 iDrivigFlags |= moveStopHere;
                             }
@@ -5672,13 +5672,13 @@ TCommandType TController::BackwardScan()
     // zwraca true, jeśli należy odwrócić kierunek jazdy pojazdu
     if( ( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
         // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na rozkazy
-        return cm_Unknown;
+        return CM_UNKNOWN;
     }
     // kierunek jazdy względem sprzęgów pojazdu na czele
     int const startdir = -pVehicles[0]->DirectionGet();
     if( startdir == 0 ) {
         // jeśli kabina i kierunek nie jest określony nie robimy nic
-        return cm_Unknown;
+        return CM_UNKNOWN;
     }
     // szukamy od pierwszej osi w wybranym kierunku
     double scandir = startdir * pVehicles[0]->RaDirectionGet();
@@ -5693,7 +5693,7 @@ TCommandType TController::BackwardScan()
         auto const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
         if( !scantrack ) {
             // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
-            return cm_Unknown;
+            return CM_UNKNOWN;
         }
         else {
             // a jeśli są dalej tory
@@ -5723,7 +5723,7 @@ TCommandType TController::BackwardScan()
 #if LOGBACKSCAN
                         WriteLog(edir + " - ignored as not passed yet");
 #endif
-                        return cm_Unknown; // nic
+                        return CM_UNKNOWN; // nic
                     }
                     vmechmax = e->ValueGet(1); // prędkość przy tym semaforze
                     // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
@@ -5733,7 +5733,7 @@ TCommandType TController::BackwardScan()
                         scandist = 0;
                     }
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if( e->Command() == cm_SetVelocity ) {
+                    if( e->Command() == CM_SET_VELOCITY ) {
                         if( ( vmechmax == 0.0 ) ?
                                 ( OrderCurrentGet() & ( Shunt | Connect ) ) :
                                 ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
@@ -5752,8 +5752,8 @@ TCommandType TController::BackwardScan()
                                 // SetProximityVelocity(scandist,vmechmax,&sl);
                                 return (
                                     vmechmax > 0 ?
-                                        cm_SetVelocity :
-                                        cm_Unknown );
+                                        CM_SET_VELOCITY :
+                                        CM_UNKNOWN );
                             }
                             else {
                                 // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
@@ -5769,15 +5769,15 @@ TCommandType TController::BackwardScan()
 #endif
                                 return (
                                     vmechmax > 0 ?
-                                        cm_SetVelocity :
-                                        cm_Unknown );
+                                        CM_SET_VELOCITY :
+                                        CM_UNKNOWN );
                             }
                         }
                     }
                     if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
-                        if (move ? true : e->Command() == cm_ShuntVelocity)
+                        if (move ? true : e->Command() == CM_SHUNT_VELOCITY)
                         { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
                             if ((scandist > fMinProximityDist) ?
                                     (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) :
@@ -5795,8 +5795,8 @@ TCommandType TController::BackwardScan()
 #endif
                                     // SetProximityVelocity(scandist,vmechmax,&sl);
                                     return (iDrivigFlags & moveTrackEnd) ?
-                                               cm_ChangeDirection :
-                                               cm_Unknown; // jeśli jedzie na W5 albo koniec toru,
+                                               CM_CHANGE_DIRECTION :
+                                               CM_UNKNOWN; // jeśli jedzie na W5 albo koniec toru,
                                     // to można zmienić kierunek
                                 }
                             }
@@ -5814,8 +5814,8 @@ TCommandType TController::BackwardScan()
 #endif
                                     return (
                                         vmechmax > 0 ?
-                                            cm_ShuntVelocity :
-                                            cm_Unknown );
+                                            CM_SHUNT_VELOCITY :
+                                            CM_UNKNOWN );
                                 }
                             }
                             if ((vmechmax != 0.0) && (scandist < 100.0)) {
@@ -5826,19 +5826,19 @@ TCommandType TController::BackwardScan()
 #endif
                                 return (
                                     vmechmax > 0 ?
-                                        cm_ShuntVelocity :
-                                        cm_Unknown );
+                                        CM_SHUNT_VELOCITY :
+                                        CM_UNKNOWN );
                             }
                         } // if (move?...
                     } // if (OrderCurrentGet()==Shunt)
                     if (!e->bEnabled) // jeśli skanowany
                         if (e->StopCommand()) // a podłączona komórka ma komendę
-                            return cm_Command; // to też się obrócić
+                            return CM_COMMAND; // to też się obrócić
                 } // if (e->Type==tp_GetValues)
             } // if (e)
         } // if (scantrack)
     } // if (scandir!=0.0)
-    return cm_Unknown; // nic
+    return CM_UNKNOWN; // nic
 };
 
 std::string TController::NextStop()

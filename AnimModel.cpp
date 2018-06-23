@@ -6,11 +6,6 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-/*
-    MaSzyna EU07 locomotive simulator
-    Copyright (C) 2001-2004  Marcin Wozniak and others
-
-*/
 #include "stdafx.h"
 #include "AnimModel.h"
 #include "renderer.h"
@@ -25,9 +20,7 @@ TAnimContainer* TAnimModel::acAnimList = nullptr;
 
 TAnimAdvanced::TAnimAdvanced(){};
 
-TAnimAdvanced::~TAnimAdvanced(){
-	// delete[] pVocaloidMotionData; //plik został zmodyfikowany
-};
+TAnimAdvanced::~TAnimAdvanced(){};
 
 int TAnimAdvanced::sortByBone()
 { // sortowanie pliku animacji w celu optymalniejszego wykonania
@@ -174,7 +167,7 @@ void TAnimContainer::animSetVMD(double fNewSpeed)
 			//+-++ - nie podnosi ręki do głowy
 			//++-+ - dłoń ma w górze zamiast na pasie
 			qDesired = Normalize(float4(-pMovementData->qAngle.x, -pMovementData->qAngle.z, -pMovementData->qAngle.y,
-			pMovementData->qAngle.w)); // tu trzeba będzie osie zamienić
+			    pMovementData->qAngle.w)); // tu trzeba będzie osie zamienić
 			if (fNewSpeed > 0.0) {
 				fAngleSpeed = fNewSpeed; // wtedy animować za pomocą interpolacji
 				fAngleCurrent = 0.0; // początek interpolacji
