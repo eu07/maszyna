@@ -38,16 +38,6 @@ std::vector<std::string> const TMoverParameters::eimv_labels = {
     "Fful:"
 };
 
-inline long Trunc(float f)
-{
-    return (long)f;
-}
-
-inline long ROUND(float f)
-{
-    return Trunc(f + 0.5f);
-}
-
 inline double square(double val) // SQR() zle liczylo w current() ...
 {
     return val * val;
@@ -6909,39 +6899,9 @@ bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 int LISTLINE;
 
-// *************************************************************************************************
-// Q: 20160717
-// *************************************************************************************************
-size_t Pos(std::string str_find, std::string in)
-{
-    size_t pos = in.find(str_find);
-    return (pos != std::string::npos ? pos+1 : 0);
-}
-/*
-// *************************************************************************************************
-// Q: 20160717
-// *************************************************************************************************
-bool issection(std::string const &name)
-{
-    sectionname = name;
-    if (xline.compare(0, name.size(), name) == 0)
-    {
-        lastsectionname = name;
-        return true;
-    }
-    else
-        return false;
-}
-*/
 bool issection( std::string const &Name, std::string const &Input ) {
 
     return ( Input.compare( 0, Name.size(), Name ) == 0 );
-}
-
-int MARKERROR(int code, std::string type, std::string msg)
-{
-    WriteLog(msg);
-    return code;
 }
 
 int s2NPW(std::string s)
@@ -9161,9 +9121,7 @@ bool TMoverParameters::SendCtrlToNext( std::string const CtrlCommand, double con
 // jakiejś zmiany (np. IncMainCtrl) lepiej wywołać funkcję, czy od razu wysłać komendę.
 bool TMoverParameters::RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype )
 {
-    bool OK;
-    std::string testload;
-    OK = false;
+    bool OK { false };
 
 	if (Command == "MainCtrl")
 	{
@@ -9588,29 +9546,37 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		OK = true; // true, gdy można usunąć komendę
 	}
 	/*naladunek/rozladunek*/
-	else if (Pos("Load=", Command) == 1)
+	else if ( issection( "Load=", Command ) )
 	{
 		OK = false; // będzie powtarzane aż się załaduje
-		if ((Vel == 0) && (MaxLoad > 0) &&
-			(Load < MaxLoad * (1.0 + OverLoadFactor))) // czy można ładowac?
-			if (Distance(Loc, CommandIn.Location, Dim, Dim) < 10) // ten peron/rampa
-			{
-				testload = ToLower(DUE(Command));
-				if (Pos(testload, LoadAccepted) > 0) // nazwa jest obecna w CHK
-					OK = LoadingDone(Min0R(CValue2, LoadSpeed), testload); // zmienia LoadStatus
-			}
+        if( ( Vel < 0.01 )
+         && ( MaxLoad > 0 )
+         && ( Load < MaxLoad * ( 1.0 + OverLoadFactor ) ) ) {
+            // czy można ładowac?
+            if( Distance( Loc, CommandIn.Location, Dim, Dim ) < 10 ) {
+                // ten peron/rampa
+                auto const testload { ToLower( extract_value( "Load", Command ) ) };
+                if( LoadAccepted.find( testload ) != std::string::npos ) // nazwa jest obecna w CHK
+                    OK = LoadingDone( Min0R( CValue2, LoadSpeed ), testload ); // zmienia LoadStatus
+            }
+        }
 		// if OK then LoadStatus:=0; //nie udalo sie w ogole albo juz skonczone
 	}
-	else if (Pos("UnLoad=", Command) == 1)
+    else if( issection( "UnLoad=", Command ) )
 	{
 		OK = false; // będzie powtarzane aż się rozładuje
-		if ((Vel == 0) && (Load > 0)) // czy jest co rozladowac?
-			if (Distance(Loc, CommandIn.Location, Dim, Dim) < 10) // ten peron
-			{
-				testload = DUE(Command); // zgodność nazwy ładunku z CHK
-				if (LoadType == testload) /*mozna to rozladowac*/
-					OK = LoadingDone(-Min0R(CValue2, LoadSpeed), testload);
-			}
+        if( ( Vel < 0.01 )
+         && ( Load > 0 ) ) {
+            // czy jest co rozladowac?
+            if( Distance( Loc, CommandIn.Location, Dim, Dim ) < 10 ) {
+                // ten peron
+                auto const testload { ToLower( extract_value( "UnLoad", Command ) ) }; // zgodność nazwy ładunku z CHK
+                if( LoadType == testload ) {
+                    /*mozna to rozladowac*/
+                    OK = LoadingDone( -Min0R( CValue2, LoadSpeed ), testload );
+                }
+            }
+        }
 		// if OK then LoadStatus:=0;
 	}
 	else if (Command == "SpeedCntrl")
