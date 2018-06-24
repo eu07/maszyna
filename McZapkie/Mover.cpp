@@ -5064,7 +5064,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     Hamulec->SetED(0);
                     //           (Hamulec as TLSt).SetLBP(LocBrakePress);
                     if ((PosRatio > dizel_fill))
-                        tmp = 1;
+                        tmp = 4;
                     else
                         tmp = 4; // szybkie malenie, powolne wzrastanie
                 }
@@ -5073,7 +5073,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 // TODO: gather these in single place so they can be resolved together
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
-                    tmp = 9;
+                    tmp = 10;
                     Sandbox( true, range::unit );
                 } // przeciwposlizg
                 else {
@@ -5081,7 +5081,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     Sandbox( false, range::unit );
                 }
 
-                dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
+                dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.02), -0.02) * 12 *
                                  (tmp /*2{+4*byte(PosRatio<dizel_fill)*/) *
                                  dt; // wartość zadana/procent czegoś
 
