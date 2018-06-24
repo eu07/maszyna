@@ -126,14 +126,18 @@ void CSkyDome::Render() {
     }
 
     if( m_vertexbuffer == -1 ) {
+        m_vao = std::make_unique<gl::vao>();
+
         // build the buffers
         ::glGenBuffers( 1, &m_vertexbuffer );
         ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
         ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), m_vertices.data(), GL_STATIC_DRAW );
+        m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
 
         ::glGenBuffers( 1, &m_coloursbuffer );
         ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
         ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( glm::vec3 ), m_colours.data(), GL_DYNAMIC_DRAW );
+        m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(glm::vec3), 0);
 
         ::glGenBuffers( 1, &m_indexbuffer );
         ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
@@ -143,20 +147,10 @@ void CSkyDome::Render() {
 
     m_shader->bind();
     m_shader->copy_gl_mvp();
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexbuffer);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, m_coloursbuffer);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    glEnableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    m_vao->bind();
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer);
-    ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
-
-    glUseProgram(0);
+    glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
 }
 
 bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {

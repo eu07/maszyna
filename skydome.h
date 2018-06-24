@@ -1,6 +1,7 @@
 #pragma	once
 
 #include "gl/shader_mvp.h"
+#include "gl/vao.h"
 #include <memory>
 
 // sky gradient based on "A practical analytic model for daylight" 
@@ -65,4 +66,5 @@ private:
 	float PerezFunctionO2( float Perezcoeffs[ 5 ], const float Icostheta, const float Gamma, const float Cosgamma2, const float Zenithval );
 
     std::unique_ptr<gl::program_mvp> m_shader;
+    std::unique_ptr<gl::vao> m_vao;
 };

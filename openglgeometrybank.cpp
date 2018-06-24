@@ -118,12 +118,6 @@ geometry_bank::vertices( gfx::geometry_handle const &Geometry ) const {
     return geometry_bank::chunk( Geometry ).vertices;
 }
 
-// opengl vbo-based variant of the geometry bank
-
-GLuint opengl_vbogeometrybank::m_activebuffer { 0 }; // buffer bound currently on the opengl end, if any
-unsigned int opengl_vbogeometrybank::m_activestreams { gfx::stream::none }; // currently enabled data type pointers
-std::vector<GLint> opengl_vbogeometrybank::m_activetexturearrays; // currently enabled texture coord arrays
-
 // create() subclass details
 void
 opengl_vbogeometrybank::create_( gfx::geometry_handle const &Geometry ) {
@@ -173,7 +167,8 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
         if( datasize == 0 ) { return; }
         // try to set up the buffer we need
         ::glGenBuffers( 1, &m_buffer );
-        bind_buffer();
+        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+
         // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
         // TODO: allow to specify usage hint at the object creation, and pass it here
         ::glBufferData(
@@ -181,6 +176,9 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
             datasize * sizeof( gfx::basic_vertex ),
             nullptr,
             GL_STATIC_DRAW );
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
         if( ::glGetError() == GL_OUT_OF_MEMORY ) {
             // TBD: throw a bad_alloc?
             ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
@@ -189,34 +187,45 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
         }
         m_buffercapacity = datasize;
     }
-    // actual draw procedure starts here
-    // setup...
-    if( m_activebuffer != m_buffer ) {
-        bind_buffer();
+
+    if (!m_vao)
+    {
+        m_vao = std::make_unique<gl::vao>();
+        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+
+        if( Streams & gfx::stream::position )
+            m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
+
+        // NOTE: normal and color streams share the data, making them effectively mutually exclusive
+        if( Streams & gfx::stream::normal )
+            m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
+        else if( Streams & gfx::stream::color )
+            m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
+
+        if( Streams & gfx::stream::texture )
+            m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+
+    // actual draw procedure starts here
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
+        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
         // we may potentially need to upload new buffer data before we can draw it
         ::glBufferSubData(
             GL_ARRAY_BUFFER,
             chunkrecord.offset * sizeof( gfx::basic_vertex ),
             chunkrecord.size * sizeof( gfx::basic_vertex ),
             chunk.vertices.data() );
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         chunkrecord.is_good = true;
     }
-    if( m_activestreams != Streams ) {
-        bind_streams( Units, Streams );
-    }
+
     // ...render...
+    m_vao->bind();
     ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
-    // ...post-render cleanup
-/*
-    ::glDisableClientState( GL_VERTEX_ARRAY );
-    ::glDisableClientState( GL_NORMAL_ARRAY );
-    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-    ::glBindBuffer( GL_ARRAY_BUFFER, 0 ); m_activebuffer = 0;
-*/
 }
 
 // release () subclass details
@@ -227,74 +236,17 @@ opengl_vbogeometrybank::release_() {
 }
 
 void
-opengl_vbogeometrybank::bind_buffer() {
-
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
-    m_activebuffer = m_buffer;
-    m_activestreams = gfx::stream::none;
-}
-
-void
 opengl_vbogeometrybank::delete_buffer() {
 
     if( m_buffer != 0 ) {
         
+        m_vao.reset(nullptr);
         ::glDeleteBuffers( 1, &m_buffer );
-        if( m_activebuffer == m_buffer ) {
-            m_activebuffer = 0;
-            release_streams();
-        }
         m_buffer = 0;
         m_buffercapacity = 0;
         // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
         // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
     }
-}
-
-void
-opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned int const Streams ) {
-
-    if( Streams & gfx::stream::position ) {
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)0);
-        glEnableVertexAttribArray(0);
-    }
-    else {
-        glDisableVertexAttribArray(0);
-    }
-    // NOTE: normal and color streams share the data, making them effectively mutually exclusive
-    if( Streams & gfx::stream::normal ) {
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT)));
-        glEnableVertexAttribArray(1);
-    }
-    else {
-        glDisableVertexAttribArray(1);
-    }
-    if( Streams & gfx::stream::color ) {
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT)));
-        glEnableVertexAttribArray(1);
-    }
-    if( Streams & gfx::stream::texture ) {
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(6 * sizeof(GL_FLOAT)));
-        glEnableVertexAttribArray(2);
-        m_activetexturearrays = Units.texture;
-    }
-    else {
-        glDisableVertexAttribArray(2);
-        m_activetexturearrays.clear(); // NOTE: we're simplifying here, since we always toggle the same texture coord sets
-    }
-
-    m_activestreams = Streams;
-}
-
-void
-opengl_vbogeometrybank::release_streams() {
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-
-    m_activestreams = gfx::stream::none;
-    m_activetexturearrays.clear();
 }
 
 // opengl display list based variant of the geometry bank

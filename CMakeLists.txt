@@ -82,6 +82,7 @@ set(SOURCES
 "station.cpp"
 "gl/shader.cpp"
 "gl/shader_mvp.cpp"
+"gl/vao.cpp"
 )
 
 set (PREFIX "")

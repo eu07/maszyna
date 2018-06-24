@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/wglew.h"
 #endif
 #include "ResourceManager.h"
+#include "gl/vao.h"
 
 namespace gfx {
 
@@ -169,9 +170,7 @@ public:
 // methods:
     static
     void
-        reset() {
-            m_activebuffer = 0;
-            m_activestreams = gfx::stream::none; }
+        reset() { }
 
 private:
 // types:
@@ -197,21 +196,11 @@ private:
     void
         release_();
     void
-        bind_buffer();
-    void
         delete_buffer();
-    static
-    void
-        bind_streams( gfx::stream_units const &Units, unsigned int const Streams );
-    static
-    void
-        release_streams();
 
 // members:
-    static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
-    static unsigned int m_activestreams;
-    static std::vector<GLint> m_activetexturearrays;
     GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
+    std::unique_ptr<gl::vao> m_vao;
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 

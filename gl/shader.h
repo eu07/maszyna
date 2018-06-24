@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "object.h"
+#include "bindable.h"
 
 namespace gl
 {
@@ -15,14 +16,15 @@ namespace gl
         ~shader();
     };
 
-    class program : public object
+    class program : public object, public bindable<program>
     {
     public:
         program();
         program(std::vector<std::reference_wrapper<const gl::shader>>);
         ~program();
 
-        void bind();
+        using bindable::bind;
+        static void bind(GLuint i);
 
         void attach(const shader &);
         void link();

@@ -166,10 +166,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     shader = std::make_unique<gl::program_mvp>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
     shader->init();
 
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
     return true;
 }
 
@@ -323,7 +319,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     }
                 }
 
-                glUseProgram(0);
+                shader->unbind();
 
                 if( m_environmentcubetexturesupport ) {
                     // restore default texture matrix for reflections cube map

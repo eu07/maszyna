@@ -10,6 +10,9 @@ namespace gl
         GLint mvn_uniform;
         GLuint p_uniform;
 
+        glm::mat4 last_mv;
+        glm::mat4 last_p;
+
     public:
         using program::program;
 

@@ -10,6 +10,10 @@ void gl::program_mvp::init()
 
 void gl::program_mvp::set_mv(const glm::mat4 &m)
 {
+    if (last_mv == m)
+        return;
+    last_mv = m;
+
     if (mvn_uniform != -1)
     {
         glm::mat3 mvn = glm::mat3(glm::transpose(glm::inverse(m)));
@@ -20,6 +24,10 @@ void gl::program_mvp::set_mv(const glm::mat4 &m)
 
 void gl::program_mvp::set_p(const glm::mat4 &m)
 {
+    if (last_p == m)
+        return;
+    last_p = m;
+
     glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(m));
 }
 

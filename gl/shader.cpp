@@ -99,7 +99,7 @@ gl::program::~program()
     glDeleteProgram(*this);
 }
 
-void gl::program::bind()
+void gl::program::bind(GLuint i)
 {
-    glUseProgram(*this);
+    glUseProgram(i);
 }
