@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "scene.h"
 #include "light.h"
+#include "gl/shader_mvp.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -395,6 +396,8 @@ private:
 #endif
 	GLuint m_gltimequery = 0;
 	GLuint64 m_gllasttime = 0;
+
+    std::unique_ptr<gl::program_mvp> shader;
 };
 
 extern opengl_renderer GfxRenderer;

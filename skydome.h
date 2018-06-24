@@ -1,5 +1,8 @@
 #pragma	once
 
+#include "gl/shader_mvp.h"
+#include <memory>
+
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
 
@@ -60,4 +63,6 @@ private:
 	float GetZenith( float Zenithmatrix[ 3 ][ 4 ], const float Theta, const float Turbidity );		
 	float PerezFunctionO1( float Perezcoeffs[ 5 ], const float Thetasun, const float Zenithval );
 	float PerezFunctionO2( float Perezcoeffs[ 5 ], const float Icostheta, const float Gamma, const float Cosgamma2, const float Zenithval );
+
+    std::unique_ptr<gl::program_mvp> m_shader;
 };

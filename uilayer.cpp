@@ -974,22 +974,12 @@ ui_layer::render() {
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-    glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
-	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_ALPHA_TEST );
-    glEnable( GL_TEXTURE_2D );
     glEnable( GL_BLEND );
-
-    ::glColor4fv( glm::value_ptr( colors::white ) );
 
     // render code here
     render_background();
     render_texture();
-
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_TEXTURE_CUBE_MAP );
 
     render_progress();
 
@@ -997,8 +987,6 @@ ui_layer::render() {
 
     render_panels();
     render_tooltip();
-
-    glPopAttrib();
 }
 
 void
@@ -1064,6 +1052,8 @@ ui_layer::render_progress() {
                 Global.iWindowHeight / 768.f * screenratio / ( 4.0f / 3.0f ) );
         float const height = 768.0f * heightratio;
 
+        // m7t: port to core
+        /*
         ::glColor4f( 216.0f / 255.0f, 216.0f / 255.0f, 216.0f / 255.0f, 1.0f );
         auto const charsize = 9.0f;
         auto const textwidth = m_progresstext.size() * charsize;
@@ -1072,6 +1062,7 @@ ui_layer::render_progress() {
             ( 0.5f * ( Global.iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
             ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
         print( m_progresstext );
+        */
     }
 }
 
@@ -1089,12 +1080,14 @@ ui_layer::render_panels() {
 
         int lineidx = 0;
         for( auto const &line : panel->text_lines ) {
-
+            /*
             ::glColor4fv( glm::value_ptr( line.color ) );
             ::glRasterPos2f(
                 0.5f * ( Global.iWindowWidth - width ) + panel->origin_x * height,
                 panel->origin_y * height + 20.f * lineidx );
             print( line.data );
+            */
+            // m7t: port to core
             ++lineidx;
         }
     }
@@ -1110,9 +1103,12 @@ ui_layer::render_tooltip() {
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
 
+    // m7t: port to core
+    /*
     ::glColor4fv( glm::value_ptr( colors::white ) );
     ::glRasterPos2f( mousepos.x + 20.0f, mousepos.y + 25.0f );
     print( m_tooltip );
+    */
 }
 
 void
@@ -1141,7 +1137,6 @@ void
 ui_layer::render_texture() {
 
     if( m_texture != 0 ) {
-        ::glColor4fv( glm::value_ptr( colors::white ) );
 
         GfxRenderer.Bind_Texture( null_handle );
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
@@ -1149,6 +1144,8 @@ ui_layer::render_texture() {
         auto const size = 512.f;
         auto const offset = 64.f;
 
+        //m7t
+        /*
         glBegin( GL_TRIANGLE_STRIP );
 
         glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( offset, Global.iWindowHeight - offset - size );
@@ -1157,6 +1154,7 @@ ui_layer::render_texture() {
         glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( offset + size, Global.iWindowHeight - offset );
 
         glEnd();
+        */
 
         ::glBindTexture( GL_TEXTURE_2D, 0 );
     }
@@ -1165,6 +1163,8 @@ ui_layer::render_texture() {
 void
 ui_layer::print( std::string const &Text )
 {
+    //m7t
+    /*
     if( (false == Global.DLFont)
      || (true == Text.empty()) )
         return;
@@ -1183,11 +1183,13 @@ ui_layer::print( std::string const &Text )
 
 		::glPopAttrib();
 	}
+    */
 }
 
 void
 ui_layer::quad( glm::vec4 const &Coordinates, glm::vec4 const &Color ) {
-
+    //m7t
+/*
     float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
     float const width =
         ( screenratio >= ( 4.f / 3.f ) ?
@@ -1209,4 +1211,5 @@ ui_layer::quad( glm::vec4 const &Coordinates, glm::vec4 const &Color ) {
     glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.w * heightratio );
 
     glEnd();
+*/
 }

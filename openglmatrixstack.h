@@ -84,7 +84,7 @@ private:
 
 // methods:
     void
-        upload() { ::glLoadMatrixf( glm::value_ptr( m_stack.top() ) ); }
+        upload() { }
 
 // members:
     mat4_stack m_stack;
@@ -109,7 +109,7 @@ public:
                 case GL_PROJECTION: { m_mode = stack_mode::gl_projection; break; }
                 case GL_TEXTURE:    { m_mode = stack_mode::gl_texture; break; }
                 default:            { break; } }
-            ::glMatrixMode( Mode ); }
+             }
     glm::mat4 const &
         data( GLuint const Mode = -1 ) const {
             switch( Mode ) {

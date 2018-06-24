@@ -49,17 +49,7 @@ cMoon::update() {
 void
 cMoon::render() {
 
-    ::glColor4f( 225.f / 255.f, 225.f / 255.f, 255.f / 255.f, 1.f );
-	// debug line to locate the moon easier
-    auto const position { m_position * 2000.f };
-    ::glBegin( GL_LINES );
-    ::glVertex3fv( glm::value_ptr( position ) );
-    ::glVertex3f( position.x, 0.f, position.z );
-    ::glEnd();
-    ::glPushMatrix();
-    ::glTranslatef( position.x, position.y, position.z );
-    ::gluSphere( moonsphere, /* (float)( Global.iWindowHeight / Global.FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
-	::glPopMatrix();
+    //m7t
 }
 
 glm::vec3

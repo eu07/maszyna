@@ -50,18 +50,7 @@ cSun::update() {
 void
 cSun::render() {
 
-    ::glColor4f( 255.f / 255.f, 242.f / 255.f, 231.f / 255.f, 1.f );
-	// debug line to locate the sun easier
-    auto const position { m_position * 2000.f };
-    ::glBegin( GL_LINES );
-	::glVertex3fv( glm::value_ptr( position ) );
-	::glVertex3f( position.x, 0.f, position.z );
-	::glEnd();
-	::glPushMatrix();
-	::glTranslatef( position.x, position.y, position.z );
-	// radius is a result of scaling true distance down to 2km -- it's scaled by equal ratio
-	::gluSphere( sunsphere, m_body.distance * 9.359157, 12, 12 );
-	::glPopMatrix();
+    //m7t
 }
 /*
 glm::vec3

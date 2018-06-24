@@ -82,24 +82,23 @@ void WriteLog( const char *str, logtype const Type ) {
             output.open( filename, std::ios::trunc );
         }
         output << str << "\n";
-        output.flush();
     }
 
 	ui_log->text_lines.emplace_back(std::string(str), Global.UITextColor);
 	if (ui_log->text_lines.size() > 20)
 		ui_log->text_lines.pop_front();
 
-#ifdef _WIN32
     if( Global.iWriteLogEnabled & 2 ) {
+#ifdef _WIN32
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN | FOREGROUND_INTENSITY );
         DWORD wr = 0;
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
-    }
 #else
 	printf("%s\n", str);
 #endif
+    }
 }
 
 // Ra: bezwarunkowa rejestracja poważnych błędów

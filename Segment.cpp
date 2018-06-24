@@ -531,6 +531,8 @@ void TSegment::Render()
     Math3D::vector3 pt;
     GfxRenderer.Bind_Material( null_handle );
 
+    //m7t
+    /*
     if (bCurve)
     {
         glColor3f(0, 0, 1.0f);
@@ -572,6 +574,7 @@ void TSegment::Render()
         glVertex3f(Point2.x + CPointIn.x, Point2.y + CPointIn.y, Point2.z + CPointIn.z);
         glEnd();
     }
+    */
 }
 
 //---------------------------------------------------------------------------

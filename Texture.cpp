@@ -613,10 +613,6 @@ opengl_texture::create() {
 
         set_filtering();
 
-        if( data_mapcount == 1 ) {
-            // fill missing mipmaps if needed
-            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-        }
         // upload texture data
         int dataoffset = 0,
             datasize = 0,
@@ -652,6 +648,11 @@ opengl_texture::create() {
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
+        }
+
+        if( data_mapcount == 1 ) {
+            // fill missing mipmaps if needed
+            glGenerateMipmap(GL_TEXTURE_2D);
         }
 
         if( ( true == Global.ResourceMove )
@@ -729,15 +730,6 @@ opengl_texture::set_filtering() const {
             case '#': { sharpen = true; break; }
             default:  {                 break; }
         }
-    }
-
-    if( true == sharpen ) {
-        // #: sharpen more
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
-    }
-    else {
-        // regular texture sharpening
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
     }
 }
 

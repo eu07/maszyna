@@ -255,40 +255,31 @@ void
 opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned int const Streams ) {
 
     if( Streams & gfx::stream::position ) {
-        ::glVertexPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), static_cast<char *>( nullptr ) );
-        ::glEnableClientState( GL_VERTEX_ARRAY );
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)0);
+        glEnableVertexAttribArray(0);
     }
     else {
-        ::glDisableClientState( GL_VERTEX_ARRAY );
+        glDisableVertexAttribArray(0);
     }
     // NOTE: normal and color streams share the data, making them effectively mutually exclusive
     if( Streams & gfx::stream::normal ) {
-        ::glNormalPointer( GL_FLOAT, sizeof( gfx::basic_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
-        ::glEnableClientState( GL_NORMAL_ARRAY );
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT)));
+        glEnableVertexAttribArray(1);
     }
     else {
-        ::glDisableClientState( GL_NORMAL_ARRAY );
+        glDisableVertexAttribArray(1);
     }
     if( Streams & gfx::stream::color ) {
-        ::glColorPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
-        ::glEnableClientState( GL_COLOR_ARRAY );
-    }
-    else {
-        ::glDisableClientState( GL_COLOR_ARRAY );
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT)));
+        glEnableVertexAttribArray(1);
     }
     if( Streams & gfx::stream::texture ) {
-        for( auto unit : Units.texture ) {
-            ::glClientActiveTexture( unit );
-            ::glTexCoordPointer( 2, GL_FLOAT, sizeof( gfx::basic_vertex ), static_cast<char *>( nullptr ) + 24 );
-            ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-        }
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (void*)(6 * sizeof(GL_FLOAT)));
+        glEnableVertexAttribArray(2);
         m_activetexturearrays = Units.texture;
     }
     else {
-        for( auto unit : Units.texture ) {
-            ::glClientActiveTexture( unit );
-            ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-        }
+        glDisableVertexAttribArray(2);
         m_activetexturearrays.clear(); // NOTE: we're simplifying here, since we always toggle the same texture coord sets
     }
 
@@ -298,13 +289,9 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
 void
 opengl_vbogeometrybank::release_streams() {
 
-    ::glDisableClientState( GL_VERTEX_ARRAY );
-    ::glDisableClientState( GL_NORMAL_ARRAY );
-    ::glDisableClientState( GL_COLOR_ARRAY );
-    for( auto unit : m_activetexturearrays ) {
-        ::glClientActiveTexture( unit );
-        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-    }
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
 
     m_activestreams = gfx::stream::none;
     m_activetexturearrays.clear();

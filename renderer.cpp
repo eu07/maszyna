@@ -27,37 +27,17 @@ int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental 
 
 void
 opengl_light::apply_intensity( float const Factor ) {
-
-    if( Factor == 1.0 ) {
-
-        ::glLightfv( id, GL_AMBIENT, glm::value_ptr( ambient ) );
-        ::glLightfv( id, GL_DIFFUSE, glm::value_ptr( diffuse ) );
-        ::glLightfv( id, GL_SPECULAR, glm::value_ptr( specular ) );
-    }
-    else {
-        // temporary light scaling mechanics (ultimately this work will be left to the shaders
-        glm::vec4 scaledambient( ambient.r * Factor, ambient.g * Factor, ambient.b * Factor, ambient.a );
-        glm::vec4 scaleddiffuse( diffuse.r * Factor, diffuse.g * Factor, diffuse.b * Factor, diffuse.a );
-        glm::vec4 scaledspecular( specular.r * Factor, specular.g * Factor, specular.b * Factor, specular.a );
-        glLightfv( id, GL_AMBIENT, glm::value_ptr( scaledambient ) );
-        glLightfv( id, GL_DIFFUSE, glm::value_ptr( scaleddiffuse ) );
-        glLightfv( id, GL_SPECULAR, glm::value_ptr( scaledspecular ) );
-    }
+    // m7t setup light ubo here
 }
 
 void
 opengl_light::apply_angle() {
-
-    ::glLightfv( id, GL_POSITION, glm::value_ptr( glm::vec4{ position, ( is_directional ? 0.f : 1.f ) } ) );
-    if( false == is_directional ) {
-        ::glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr( direction ) );
-    }
+    // m7t setup light ubo here
 }
 
-
 void
-opengl_camera::update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
-
+opengl_camera::update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview )
+{
     m_frustum.calculate( Projection, Modelview );
     // cache inverse tranformation matrix
     // NOTE: transformation is done only to camera-centric space
@@ -71,14 +51,14 @@ opengl_camera::update_frustum( glm::mat4 const &Projection, glm::mat4 const &Mod
 
 // returns true if specified object is within camera frustum, false otherwise
 bool
-opengl_camera::visible( scene::bounding_area const &Area ) const {
-
+opengl_camera::visible( scene::bounding_area const &Area ) const
+{
     return ( m_frustum.sphere_inside( Area.center, Area.radius ) > 0.f );
 }
 
 bool
-opengl_camera::visible( TDynamicObject const *Dynamic ) const {
-
+opengl_camera::visible( TDynamicObject const *Dynamic ) const
+{
     // sphere test is faster than AABB, so we'll use it here
     glm::vec3 diagonal(
         static_cast<float>( Dynamic->MoverParameters->Dim.L ),
@@ -92,13 +72,16 @@ opengl_camera::visible( TDynamicObject const *Dynamic ) const {
 
 // debug helper, draws shape of frustum in world space
 void
-opengl_camera::draw( glm::vec3 const &Offset ) const {
-
+opengl_camera::draw( glm::vec3 const &Offset ) const
+{
+    // m7t port to core gl
+    /*
     ::glBegin( GL_LINES );
     for( auto const pointindex : frustumshapepoinstorder ) {
         ::glVertex3fv( glm::value_ptr( glm::vec3{ m_frustumpoints[ pointindex ] } - Offset ) );
     }
     ::glEnd();
+    */
 }
 
 bool
@@ -108,16 +91,14 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     m_window = Window;
 
-    ::glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-    ::glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+    glPixelStorei( GL_PACK_ALIGNMENT, 1 );
 
     glClearDepth( 1.0f );
     glClearColor( 51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // initial background Color
 
-    glPolygonMode( GL_FRONT, GL_FILL );
-    glFrontFace( GL_CCW ); // Counter clock-wise polygons face out
-    glEnable( GL_CULL_FACE ); // Cull back-facing triangles
-    glShadeModel( GL_SMOOTH ); // Enable Smooth Shading
+    glFrontFace( GL_CCW );
+    glEnable( GL_CULL_FACE );
 
     m_geometry.units().texture = (
         Global.BasicRenderer ?
@@ -127,34 +108,18 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     UILayer.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
 
-    ::glDepthFunc( GL_LEQUAL );
+    glDepthFunc( GL_LEQUAL );
     glEnable( GL_DEPTH_TEST );
-    glAlphaFunc( GL_GREATER, 0.f );
-    glEnable( GL_ALPHA_TEST );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glEnable( GL_BLEND );
-    glEnable( GL_TEXTURE_2D ); // Enable Texture Mapping
 
-    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ); // Really Nice Perspective Calculations
-    glHint( GL_POLYGON_SMOOTH_HINT, GL_NICEST );
-    glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
     glLineWidth( 1.0f );
     glPointSize( 3.0f );
-    glEnable( GL_POINT_SMOOTH );
 
-    ::glLightModeli( GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR );
-    ::glMaterialf( GL_FRONT, GL_SHININESS, 15.0f );
     if( true == Global.ScaleSpecularValues ) {
         m_specularopaquescalefactor = 0.25f;
         m_speculartranslucentscalefactor = 1.5f;
     }
-    ::glEnable( GL_COLOR_MATERIAL );
-    ::glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
-
-    // setup lighting
-    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
-    ::glEnable( GL_LIGHTING );
-    ::glEnable( opengl_renderer::sunlight );
 
     // rgb value for 5780 kelvin
     Global.DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
@@ -162,7 +127,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global.DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
     Global.DayLight.is_directional = true;
     m_sunlight.id = opengl_renderer::sunlight;
-    //    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
 
     // create dynamic light pool
     for( int idx = 0; idx < Global.DynamicLightCount; ++idx ) {
@@ -171,12 +135,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         light.id = GL_LIGHT1 + idx;
 
         light.is_directional = false;
-        ::glEnable( light.id ); // experimental intel chipset fix
-        ::glLightf( light.id, GL_SPOT_CUTOFF, 7.5f );
-        ::glLightf( light.id, GL_SPOT_EXPONENT, 7.5f );
-        ::glLightf( light.id, GL_CONSTANT_ATTENUATION, 0.0f );
-        ::glLightf( light.id, GL_LINEAR_ATTENUATION, 0.035f );
-        ::glDisable( light.id ); // experimental intel chipset fix
+
+        //m7t config light ubo here
 
         m_lights.emplace_back( light );
     }
@@ -199,11 +159,16 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             { {  size,  size, 0.f }, glm::vec3(), { 0.f, 1.f } },
             { { -size, -size, 0.f }, glm::vec3(), { 1.f, 0.f } },
             { {  size, -size, 0.f }, glm::vec3(), { 0.f, 0.f } } },
-            geometrybank,
-GL_TRIANGLE_STRIP );
-    // prepare debug mode objects
-    m_quadric = ::gluNewQuadric();
-    ::gluQuadricNormals( m_quadric, GLU_FLAT );
+            geometrybank, GL_TRIANGLE_STRIP );
+
+    gl::shader vert("shaders/simple.vert");
+    gl::shader frag("shaders/simple.frag");
+    shader = std::make_unique<gl::program_mvp>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
+    shader->init();
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     return true;
 }
@@ -278,20 +243,11 @@ opengl_renderer::Render() {
 // runs jobs needed to generate graphics for specified render pass
 void
 opengl_renderer::Render_pass( rendermode const Mode ) {
-
-#ifdef EU07_USE_DEBUG_CAMERA
-    // setup world camera for potential visualization
-    setup_pass(
-        m_worldcamera,
-        rendermode::color,
-        0.f,
-        1.0,
-        true );
-#endif
     setup_pass( m_renderpass, Mode );
     switch( m_renderpass.draw_mode ) {
 
         case rendermode::color: {
+            glDebug("color pass");
 
             if( ( true == m_environmentcubetexturesupport )
              && ( true == World.InitPerformed() ) ) {
@@ -318,30 +274,15 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // render
                 setup_drawing( true );
                 setup_units( true, false, false );
+                glDebug("render environment");
                 Render( &World.Environment );
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( true, true, true );
-#ifdef EU07_USE_DEBUG_CAMERA
-                if( DebugModeFlag ) {
-                    // draw light frustum
-                    ::glLineWidth( 2.f );
-                    ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
-                    ::glDisable( GL_LIGHTING );
-                    ::glDisable( GL_TEXTURE_2D );
-                    if( ( true == Global.RenderShadows ) && ( false == Global.bWireFrame ) ) {
-                        m_shadowpass.camera.draw( m_renderpass.camera.position() - m_shadowpass.camera.position() );
-                    }
-                    if( DebugCameraFlag ) {
-                        ::glColor4f( 0.8f, 1.f, 0.9f, 1.f );
-                        m_worldcamera.camera.draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
-                    }
-                    ::glLineWidth( 1.f );
-                    ::glEnable( GL_LIGHTING );
-                    ::glEnable( GL_TEXTURE_2D );
-                }
-#endif
+                shader->bind();
+
                 if( false == FreeFlyModeFlag ) {
+                    glDebug("render cab opaque");
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
@@ -355,13 +296,18 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                         setup_shadow_color( shadowcolor );
                     }
                 }
+
+                glDebug("render opaque region");
                 switch_units( true, true, true );
                 setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
                 Render( simulation::Region );
+
                 // ...translucent parts
+                glDebug("render translucent region");
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
                 if( false == FreeFlyModeFlag ) {
+                    glDebug("render translucent cab");
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
@@ -377,6 +323,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     }
                 }
 
+                glUseProgram(0);
+
                 if( m_environmentcubetexturesupport ) {
                     // restore default texture matrix for reflections cube map
                     select_unit( m_helpertextureunit );
@@ -385,8 +333,13 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     select_unit( m_diffusetextureunit );
                     ::glMatrixMode( GL_MODELVIEW );
                 }
+
+                glDebug("color pass done");
             }
+
+            glDebug("render ui");
             UILayer.render();
+            glDebug("ui render done");
             break;
         }
 
@@ -508,32 +461,21 @@ opengl_renderer::setup_matrices() {
 void
 opengl_renderer::setup_drawing( bool const Alpha ) {
 
-    if( true == Alpha ) {
-
+    if( true == Alpha )
         ::glEnable( GL_BLEND );
-        ::glAlphaFunc( GL_ALWAYS, 0.0f );
-    }
-    else {
+    else
         ::glDisable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.5f );
-    }
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
         case rendermode::reflections: {
-            ::glEnable( GL_LIGHTING );
-            ::glShadeModel( GL_SMOOTH );
             if( Global.iMultisampling ) {
                 ::glEnable( GL_MULTISAMPLE );
             }
             // setup fog
             if( Global.fFogEnd > 0 ) {
-                // fog setup
-                ::glFogfv( GL_FOG_COLOR, glm::value_ptr( Global.FogColor ) );
-                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / Global.fFogEnd ) );
-                ::glEnable( GL_FOG );
+                // m7t setup fog ubo
             }
-            else { ::glDisable( GL_FOG ); }
 
             break;
         }
@@ -553,7 +495,6 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // diffuse texture unit.
     // NOTE: diffuse texture mapping is never fully disabled, alpha channel information is always included
     select_unit( m_diffusetextureunit );
-    ::glEnable( GL_TEXTURE_2D );
 
     // update unit state
     m_unitstate.diffuse = Diffuse;
@@ -573,14 +514,10 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
     // diffuse texture unit.
     // NOTE: toggle actually disables diffuse texture mapping, unlike setup counterpart
     if( true == Diffuse ) {
-
         select_unit( m_diffusetextureunit );
-        ::glEnable( GL_TEXTURE_2D );
     }
     else {
-
         select_unit( m_diffusetextureunit );
-        ::glDisable( GL_TEXTURE_2D );
     }
     // update unit state
     m_unitstate.diffuse = Diffuse;
@@ -641,7 +578,6 @@ opengl_renderer::Render( world_environment *Environment ) {
     }
 
     Bind_Material( null_handle );
-    ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
@@ -650,129 +586,20 @@ opengl_renderer::Render( world_environment *Environment ) {
     Environment->m_skydome.Render();
     // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
     gfx::opengl_vbogeometrybank::reset();
-    // stars
-    if( Environment->m_stars.m_stars != nullptr ) {
-        // setup
-        ::glPushMatrix();
-        ::glRotatef( Environment->m_stars.m_latitude, 1.f, 0.f, 0.f ); // ustawienie osi OY na północ
-        ::glRotatef( -std::fmod( (float)Global.fTimeAngleDeg, 360.f ), 0.f, 1.f, 0.f ); // obrót dobowy osi OX
-        ::glPointSize( 2.f );
-        // render
-        GfxRenderer.Render( Environment->m_stars.m_stars, nullptr, 1.0 );
-        // post-render cleanup
-        ::glPointSize( 3.f );
-        ::glPopMatrix();
-    }
 
-    // celestial bodies
-    float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
-    glm::vec3 suncolor = interpolate(
-        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
-        duskfactor );
+    //m7t: restore celestial bodies
 
-    if( DebugModeFlag == true ) {
-        // mark sun position for easier debugging
-        Environment->m_sun.render();
-        Environment->m_moon.render();
-    }
-    // render actual sun and moon
-    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
-
-    ::glDisable( GL_LIGHTING );
-    ::glDisable( GL_ALPHA_TEST );
-    ::glEnable( GL_BLEND );
-    ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
-
-    auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
-    // sun
-    {
-        Bind_Texture( m_suntexture );
-        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, 1.0f );
-        auto const sunvector = Environment->m_sun.getDirection();
-        auto const sunposition = modelview * glm::vec4( sunvector.x, sunvector.y, sunvector.z, 1.0f );
-
-        ::glPushMatrix();
-        ::glLoadIdentity(); // macierz jedynkowa
-        ::glTranslatef( sunposition.x, sunposition.y, sunposition.z ); // początek układu zostaje bez zmian
-
-        float const size = 0.045f;
-        ::glBegin( GL_TRIANGLE_STRIP );
-        ::glMultiTexCoord2f( m_diffusetextureunit, 1.f, 1.f ); ::glVertex3f( -size,  size, 0.f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, 1.f, 0.f ); ::glVertex3f( -size, -size, 0.f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, 0.f, 1.f ); ::glVertex3f(  size,  size, 0.f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, 0.f, 0.f ); ::glVertex3f(  size, -size, 0.f );
-        ::glEnd();
-
-        ::glPopMatrix();
-    }
-    // moon
-    {
-        Bind_Texture( m_moontexture );
-        glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
-        // fade the moon if it's near the sun in the sky, especially during the day
-        ::glColor4f(
-            mooncolor.r, mooncolor.g, mooncolor.b,
-            std::max<float>(
-                0.f,
-                1.0
-                - 0.5 * Global.fLuminance
-                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) ) );
-
-        auto const moonposition = modelview * glm::vec4( Environment->m_moon.getDirection(), 1.0f );
-        ::glPushMatrix();
-        ::glLoadIdentity(); // macierz jedynkowa
-        ::glTranslatef( moonposition.x, moonposition.y, moonposition.z );
-
-        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
-            0.0175f,
-            0.015f,
-            clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
-        // choose the moon appearance variant, based on current moon phase
-        // NOTE: implementation specific, 8 variants are laid out in 3x3 arrangement
-        // from new moon onwards, top left to right bottom (last spot is left for future use, if any)
-        auto const moonphase = Environment->m_moon.getPhase();
-        float moonu, moonv;
-             if( moonphase <  1.84566f ) { moonv = 1.0f - 0.0f;   moonu = 0.0f; }
-        else if( moonphase <  5.53699f ) { moonv = 1.0f - 0.0f;   moonu = 0.333f; }
-        else if( moonphase <  9.22831f ) { moonv = 1.0f - 0.0f;   moonu = 0.667f; }
-        else if( moonphase < 12.91963f ) { moonv = 1.0f - 0.333f; moonu = 0.0f; }
-        else if( moonphase < 16.61096f ) { moonv = 1.0f - 0.333f; moonu = 0.333f; }
-        else if( moonphase < 20.30228f ) { moonv = 1.0f - 0.333f; moonu = 0.667f; }
-        else if( moonphase < 23.99361f ) { moonv = 1.0f - 0.667f; moonu = 0.0f; }
-        else if( moonphase < 27.68493f ) { moonv = 1.0f - 0.667f; moonu = 0.333f; }
-        else                             { moonv = 1.0f - 0.0f;   moonu = 0.0f; }
-
-        ::glBegin( GL_TRIANGLE_STRIP );
-        ::glMultiTexCoord2f( m_diffusetextureunit, moonu, moonv ); ::glVertex3f( -size, size, 0.0f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, moonu, moonv - 0.333f ); ::glVertex3f( -size, -size, 0.0f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, moonu + 0.333f, moonv ); ::glVertex3f( size, size, 0.0f );
-        ::glMultiTexCoord2f( m_diffusetextureunit, moonu + 0.333f, moonv - 0.333f ); ::glVertex3f( size, -size, 0.0f );
-        ::glEnd();
-
-        ::glPopMatrix();
-    }
-    ::glPopAttrib();
+    shader->bind();
 
     // clouds
     if( Environment->m_clouds.mdCloud ) {
         // setup
         Disable_Lights();
-        ::glEnable( GL_LIGHTING );
-        ::glLightModelfv(
-            GL_LIGHT_MODEL_AMBIENT,
-            glm::value_ptr(
-                interpolate( Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f )
-                * interpolate( 1.f, 0.35f, Global.Overcast / 2.f ) // overcast darkens the clouds
-                * 2.5f // arbitrary adjustment factor
-            ) );
+        //m7t set cloud color
         // render
         Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         Render_Alpha( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         // post-render cleanup
-        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( colors::none ) );
-        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
-        ::glDisable( GL_LIGHTING );
     }
 
     m_sunlight.apply_angle();
@@ -781,7 +608,6 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glPopMatrix();
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_DEPTH_TEST );
-    ::glEnable( GL_LIGHTING );
 
     return true;
 }
@@ -1110,6 +936,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
         }
     }
     // render
+    shader->copy_gl_mvp();
     m_geometry.draw( data.geometry );
     // debug data
     ++m_debugstats.shapes;
@@ -1203,14 +1030,14 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                         // crude way to light the cabin, until we have something more complete in place
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
+                        //m7t set cabin ambient
                     }
 
                     Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
                         // reset the overall ambient
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
+                        //m7t set ambient
                     }
                 }
             }
@@ -1282,7 +1109,7 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                 }
                 if( Dynamic->InteriorLightLevel > 0.f ) {
                     // crude way to light the cabin, until we have something more complete in place
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
+
                 }
                 // render
                 if( true == Alpha ) {
@@ -1300,7 +1127,7 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                 }
                 if( Dynamic->InteriorLightLevel > 0.0f ) {
                     // reset the overall ambient
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
+                    //m7t set ambient
                 }
                 break;
             }
@@ -1409,9 +1236,6 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                 break; }
                         }
 #else
-                        if( true == m_renderspecular ) {
-                            ::glEnable( GL_NORMALIZE );
-                        }
 #endif
                         // material configuration:
                         // textures...
@@ -1422,40 +1246,25 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // również 0
                             Bind_Material( Submodel->m_material );
                         }
+
+                        //m7t set material
+
                         // ...colors...
-                        ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             // specular strength in legacy models is set uniformly to 150, 150, 150 so we scale it down for opaque elements
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_specularopaquescalefactor ) );
-                            ::glEnable( GL_RESCALE_NORMAL );
+
                         }
                         // ...luminance
                         auto const unitstate = m_unitstate;
                         if( Global.fLuminance < Submodel->fLight ) {
                             // zeby swiecilo na kolorowo
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
-                            // disable shadows so they don't obstruct self-lit items
-/*
-                            setup_shadow_color( colors::white );
-*/
-                            switch_units( unitstate.diffuse, false, false );
                         }
 
                         // main draw call
+                        shader->copy_gl_mvp();
                         m_geometry.draw( Submodel->m_geometry );
 
-                        // post-draw reset
-                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
-                        }
-                        if( Global.fLuminance < Submodel->fLight ) {
-                            // restore default (lack of) brightness
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
-/*
-                            setup_shadow_color( m_shadowcolor );
-*/
-                            switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
-                        }
+
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
                             case TSubModel::normalize: {
@@ -1466,9 +1275,6 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                 break; }
                         }
 #else
-                        if( true == m_renderspecular ) {
-                            ::glDisable( GL_NORMALIZE );
-                        }
 #endif
                         break;
                     }
@@ -1510,12 +1316,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                         if( lightlevel > 0.f ) {
                             // material configuration:
-                            ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
                             Bind_Material( null_handle );
-                            ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
-                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
-                            ::glDisable( GL_LIGHTING );
                             ::glEnable( GL_BLEND );
 
                             ::glPushMatrix();
@@ -1528,6 +1330,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             switch_units( m_unitstate.diffuse, false, false );
 
                             // main draw call
+                            shader->copy_gl_mvp();
                             m_geometry.draw( Submodel->m_geometry );
 
                             // post-draw reset
@@ -1538,7 +1341,6 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                             ::glPopMatrix();
-                            ::glPopAttrib();
                         }
                     }
                     break;
@@ -1556,17 +1358,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 case rendermode::reflections: {
                     if( Global.fLuminance < Submodel->fLight ) {
 
-                        // material configuration:
-                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
-
                         Bind_Material( null_handle );
-                        ::glDisable( GL_LIGHTING );
 
                         // main draw call
+                        shader->copy_gl_mvp();
                         m_geometry.draw( Submodel->m_geometry, gfx::color_streams );
-
-                        // post-draw reset
-                        ::glPopAttrib();
                     }
                     break;
                 }
@@ -1605,6 +1401,8 @@ opengl_renderer::Render( TTrack *Track ) {
     ++m_debugstats.paths;
     ++m_debugstats.drawcalls;
 
+    shader->copy_gl_mvp();
+
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
         case rendermode::reflections: {
@@ -1639,7 +1437,6 @@ opengl_renderer::Render( TTrack *Track ) {
 void
 opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last ) {
 
-    ::glColor3fv( glm::value_ptr( colors::white ) );
     // setup
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
@@ -1650,6 +1447,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
             break;
         }
     }
+
+    shader->copy_gl_mvp();
 
     // first pass, material 1
     for( auto first { First }; first != Last; ++first ) {
@@ -1747,13 +1546,6 @@ opengl_renderer::Render( TMemCell *Memcell ) {
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::color: {
-            ::glPushAttrib( GL_ENABLE_BIT );
-            ::glDisable( GL_TEXTURE_2D );
-            ::glColor3f( 0.36f, 0.75f, 0.35f );
-
-            ::gluSphere( m_quadric, 0.35, 4, 2 );
-
-            ::glPopAttrib();
             break;
         }
         case rendermode::shadows:
@@ -1833,8 +1625,6 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
     // third pass draws the wires;
     // wires use section vbos, but for the time being we want to draw them at the very end
     {
-        ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
-
         auto first{ First };
         while( first != Last ) {
 
@@ -1864,8 +1654,6 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 
             ++first;
         }
-
-        ::glEnable( GL_LIGHTING );
     }
 }
 
@@ -1944,12 +1732,8 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
             0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f,
             1.f, 1.5f ) );
     // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-    ::glColor4fv(
-        glm::value_ptr(
-            glm::vec4{
-                Traction->wire_color() /* * ( DebugModeFlag ? 1.f : clamp( m_sunandviewangle, 0.25f, 1.f ) ) */,
-                linealpha } ) );
     // render
+    shader->copy_gl_mvp();
     m_geometry.draw( Traction->m_geometry );
     // debug data
     ++m_debugstats.traction;
@@ -1986,12 +1770,8 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
         clamp(
             0.5f * linealpha + data.line_width * data.area.radius / 1000.f,
             1.f, 8.f ) );
-    ::glColor4fv(
-        glm::value_ptr(
-            glm::vec4{
-                glm::vec3{ data.lighting.diffuse * m_sunlight.ambient }, // w zaleznosci od koloru swiatla
-                std::min( 1.f, linealpha ) } ) );
     // render
+    shader->copy_gl_mvp();
     m_geometry.draw( data.geometry );
     ++m_debugstats.lines;
     ++m_debugstats.drawcalls;
@@ -2034,15 +1814,10 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
             if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                 // crude way to light the cabin, until we have something more complete in place
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
+                // m7t
             }
 
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-
-            if( Dynamic->InteriorLightLevel > 0.0f ) {
-                // reset the overall ambient
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
-            }
         }
     }
 
@@ -2156,9 +1931,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                                 break; }
                         }
 #else
-                        if( true == m_renderspecular ) {
-                            ::glEnable( GL_NORMALIZE );
-                        }
 #endif
                         // material configuration:
                         // textures...
@@ -2170,37 +1942,16 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // ...colors...
-                        ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
-                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_speculartranslucentscalefactor ) );
-                        }
+                        // m7t set material
                         // ...luminance
                         auto const unitstate = m_unitstate;
                         if( Global.fLuminance < Submodel->fLight ) {
-                            // zeby swiecilo na kolorowo
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
-                            // disable shadows so they don't obstruct self-lit items
-/*
-                            setup_shadow_color( colors::white );
-*/
-                            switch_units( unitstate.diffuse, false, false );
                         }
 
                         // main draw call
+                        shader->copy_gl_mvp();
                         m_geometry.draw( Submodel->m_geometry );
 
-                        // post-draw reset
-                        if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
-                            ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
-                        }
-                        if( Global.fLuminance < Submodel->fLight ) {
-                            // restore default (lack of) brightness
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
-/*
-                            setup_shadow_color( m_shadowcolor );
-*/
-                            switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
-                        }
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
                             case TSubModel::normalize: {
@@ -2211,26 +1962,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                                 break; }
                         }
 #else
-                        if( true == m_renderspecular ) {
-                            ::glDisable( GL_NORMALIZE );
-                        }
 #endif
                         break;
                     }
                     case rendermode::cabshadows: {
-                        // scenery picking and shadow both use enforced colour and no frills
-                        // material configuration:
-                        // textures...
-                        if( Submodel->m_material < 0 ) { // zmienialne skóry
-                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                        }
-                        else {
-                            // również 0
-                            Bind_Material( Submodel->m_material );
-                        }
-                        // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
-                        // post-draw reset
                         break;
                     }
                     default: {
@@ -2266,12 +2001,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     glarelevel = clamp( glarelevel - static_cast<float>(Global.fLuminance), 0.f, 1.f );
 
                     if( glarelevel > 0.0f ) {
-                        // setup
-                        ::glPushAttrib( GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
-
                         Bind_Texture( m_glaretexture );
-                        ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
-                        ::glDisable( GL_LIGHTING );
                         ::glDepthMask( GL_FALSE );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
@@ -2280,30 +2010,14 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
                         ::glRotated( std::atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
                                                                                                                  // disable shadows so they don't obstruct self-lit items
-/*
-                        setup_shadow_color( colors::white );
-*/
                         auto const unitstate = m_unitstate;
                         switch_units( unitstate.diffuse, false, false );
 
                         // main draw call
+                        shader->copy_gl_mvp();
                         m_geometry.draw( m_billboardgeometry );
-/*
-                        // NOTE: we could do simply...
-                        vec3 vertexPosition_worldspace =
-                        particleCenter_wordspace
-                        + CameraRight_worldspace * squareVertices.x * BillboardSize.x
-                        + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
-                        // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
-*/
-                        // post-render cleanup
-/*
-                        setup_shadow_color( m_shadowcolor );
-*/
-                        switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                         ::glPopMatrix();
-                        ::glPopAttrib();
                     }
                 }
             }
@@ -2507,8 +2221,7 @@ opengl_renderer::Update_Lights( light_array &Lights ) {
                 glm::max( glm::vec3{ colors::none }, scenelight.color * glm::vec3{ scenelight.intensity } - glm::vec3{ luminance } ),
                 renderlight->ambient[ 3 ] };
 
-        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, static_cast<GLfloat>( (0.25 * scenelight.count) / std::pow( scenelight.count, 2 ) * (scenelight.owner->DimHeadlights ? 1.25 : 1.0) ) );
-        ::glEnable( renderlight->id );
+        //m7t fill light
 
         renderlight->apply_intensity();
         renderlight->apply_angle();
@@ -2518,7 +2231,6 @@ opengl_renderer::Update_Lights( light_array &Lights ) {
 
     while( renderlight != m_lights.end() ) {
         // if we went through all scene lights and there's still opengl lights remaining, kill these
-        ::glDisable( renderlight->id );
         ++renderlight;
     }
 }
@@ -2528,7 +2240,6 @@ opengl_renderer::Disable_Lights() {
 
     for( size_t idx = 0; idx < m_lights.size() + 1; ++idx ) {
 
-        ::glDisable( GL_LIGHT0 + (int)idx );
     }
 }
 
@@ -2542,12 +2253,20 @@ opengl_renderer::Init_caps() {
         + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
         + " OpenGL Version: " + oglversion );
 
-    if( !GLEW_VERSION_1_5 ) {
-        ErrorLog( "Requires openGL >= 1.5" );
+    if( !GLEW_VERSION_3_3 ) {
+        ErrorLog( "Requires openGL >= 3.3" );
         return false;
     }
 
-    WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
+    GLint extCount = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &extCount);
+
+    WriteLog("Supported extensions: ");
+    for (int i = 0; i < extCount; i++)
+    {
+        const char *ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
+        WriteLog(ext);
+    }
 
     if( GLEW_EXT_framebuffer_object ) {
         m_framebuffersupport = true;

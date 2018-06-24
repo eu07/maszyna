@@ -6,8 +6,8 @@ set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("." "Console" "McZapkie")
-file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
+include_directories("." "Console" "McZapkie" "gl")
+file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h" "gl/*.h")
 
 set(SOURCES
 "Texture.cpp"
@@ -54,7 +54,6 @@ set(SOURCES
 "skydome.cpp"
 "sound.cpp"
 "Spring.cpp"
-"shader.cpp"
 "frustum.cpp"
 "uilayer.cpp"
 "openglmatrixstack.cpp"
@@ -81,6 +80,8 @@ set(SOURCES
 "light.cpp"
 "uitranscripts.cpp"
 "station.cpp"
+"gl/shader.cpp"
+"gl/shader_mvp.cpp"
 )
 
 set (PREFIX "")

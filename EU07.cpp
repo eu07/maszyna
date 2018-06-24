@@ -300,6 +300,10 @@ int main(int argc, char *argv[])
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
 
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+
     glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
     glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);

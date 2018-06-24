@@ -117,6 +117,14 @@ void CSkyDome::Update( glm::vec3 const &Sun ) {
 // render skydome to screen
 void CSkyDome::Render() {
 
+    if (!m_shader)
+    {
+        gl::shader vert("shaders/vbocolor.vert");
+        gl::shader frag("shaders/color.frag");
+        m_shader = std::make_unique<gl::program_mvp>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
+        m_shader->init();
+    }
+
     if( m_vertexbuffer == -1 ) {
         // build the buffers
         ::glGenBuffers( 1, &m_vertexbuffer );
@@ -132,21 +140,23 @@ void CSkyDome::Render() {
         ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
         // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
-    // begin
-    ::glEnableClientState( GL_VERTEX_ARRAY );
-    ::glEnableClientState( GL_COLOR_ARRAY );
-    // positions
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-    ::glVertexPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
-    // colours
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-    ::glColorPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
-    // indices
-    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
+
+    m_shader->bind();
+    m_shader->copy_gl_mvp();
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexbuffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, m_coloursbuffer);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    glEnableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer);
     ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
-    // cleanup
-    ::glDisableClientState( GL_COLOR_ARRAY );
-    ::glDisableClientState( GL_VERTEX_ARRAY );
+
+    glUseProgram(0);
 }
 
 bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
