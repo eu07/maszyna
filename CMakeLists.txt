@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-include(PrecompiledHeader)
-#include(cotire)
+#include(PrecompiledHeader)
+include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
@@ -129,7 +129,10 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+cotire(${PROJECT_NAME})
+#add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
