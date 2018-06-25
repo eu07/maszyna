@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 #include "light.h"
 #include "gl/shader_mvp.h"
+#include "gl/ubo.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -398,6 +399,10 @@ private:
 	GLuint64 m_gllasttime = 0;
 
     std::unique_ptr<gl::program_mvp> shader;
+    std::unique_ptr<gl::ubo> scene_ubo;
+    std::unique_ptr<gl::ubo> model_ubo;
+    gl::scene_ubs scene_ubs;
+    gl::model_ubs model_ubs;
 };
 
 extern opengl_renderer GfxRenderer;

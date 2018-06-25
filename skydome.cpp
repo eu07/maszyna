@@ -148,7 +148,6 @@ void CSkyDome::Render() {
     }
 
     m_shader->bind();
-    m_shader->copy_gl_mvp();
     m_vao->bind();
 
     glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );

@@ -162,6 +162,9 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     shader = std::make_unique<gl::program_mvp>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
     shader->init();
 
+    scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
+    model_ubo = std::make_unique<gl::ubo>(sizeof(gl::model_ubs), 1);
+
     return true;
 }
 
@@ -574,6 +577,12 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
 
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
+
     // skydome
     Environment->m_skydome.Render();
     // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
@@ -928,7 +937,12 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
         }
     }
     // render
-    shader->copy_gl_mvp();
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
+
     m_geometry.draw( data.geometry );
     // debug data
     ++m_debugstats.shapes;
@@ -1253,7 +1267,12 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
 
                         // main draw call
-                        shader->copy_gl_mvp();
+                        scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+                        model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+                        scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+                        model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
+
                         m_geometry.draw( Submodel->m_geometry );
 
 
@@ -1322,7 +1341,12 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             switch_units( m_unitstate.diffuse, false, false );
 
                             // main draw call
-                            shader->copy_gl_mvp();
+                            scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+                            model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+                            scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+                            model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
+
                             m_geometry.draw( Submodel->m_geometry );
 
                             // post-draw reset
@@ -1353,7 +1377,12 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         Bind_Material( null_handle );
 
                         // main draw call
-                        shader->copy_gl_mvp();
+                        scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+                        model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+                        scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+                        model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
+
                         m_geometry.draw( Submodel->m_geometry, gfx::color_streams );
                     }
                     break;
@@ -1393,7 +1422,11 @@ opengl_renderer::Render( TTrack *Track ) {
     ++m_debugstats.paths;
     ++m_debugstats.drawcalls;
 
-    shader->copy_gl_mvp();
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
@@ -1440,7 +1473,11 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
         }
     }
 
-    shader->copy_gl_mvp();
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
 
     // first pass, material 1
     for( auto first { First }; first != Last; ++first ) {
@@ -1725,7 +1762,11 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
             1.f, 1.5f ) );
     // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
     // render
-    shader->copy_gl_mvp();
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
     m_geometry.draw( Traction->m_geometry );
     // debug data
     ++m_debugstats.traction;
@@ -1763,7 +1804,11 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
             0.5f * linealpha + data.line_width * data.area.radius / 1000.f,
             1.f, 8.f ) );
     // render
-    shader->copy_gl_mvp();
+    scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+    model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+    scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+    model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
     m_geometry.draw( data.geometry );
     ++m_debugstats.lines;
     ++m_debugstats.drawcalls;
@@ -1941,7 +1986,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         }
 
                         // main draw call
-                        shader->copy_gl_mvp();
+                        scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+                        model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+                        scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+                        model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
                         m_geometry.draw( Submodel->m_geometry );
 
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
@@ -2006,7 +2055,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         switch_units( unitstate.diffuse, false, false );
 
                         // main draw call
-                        shader->copy_gl_mvp();
+                        scene_ubs.set(OpenGLMatrices.data(GL_PROJECTION));
+                        model_ubs.set(OpenGLMatrices.data(GL_MODELVIEW));
+
+                        scene_ubo->update(&scene_ubs, 0, sizeof(scene_ubs));
+                        model_ubo->update(&model_ubs, 0, sizeof(model_ubs));
                         m_geometry.draw( m_billboardgeometry );
 
                         ::glPopMatrix();
