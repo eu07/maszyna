@@ -143,13 +143,14 @@ void CSkyDome::Render() {
         ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
         ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
         // NOTE: vertex and index source data is superfluous past this point, but, eh
+
+        m_vao->unbind();
     }
 
     m_shader->bind();
     m_shader->copy_gl_mvp();
     m_vao->bind();
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer);
     glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
 }
 

@@ -100,9 +100,9 @@ geometry_bank::append( gfx::vertex_array &Vertices, gfx::geometry_handle const &
 
 // draws geometry stored in specified chunk
 void
-geometry_bank::draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
+geometry_bank::draw( gfx::geometry_handle const &Geometry, unsigned int const Streams ) {
     // template method implementation
-    draw_( Geometry, Units, Streams );
+    draw_( Geometry, Streams );
 }
 
 // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
@@ -145,7 +145,7 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
+opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams ) {
 
     if( m_buffer == 0 ) {
         // if there's no buffer, we'll have to make one
@@ -206,6 +206,7 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
             m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        m_vao->unbind();
     }
 
     // actual draw procedure starts here
@@ -247,75 +248,6 @@ opengl_vbogeometrybank::delete_buffer() {
         // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
         // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
     }
-}
-
-// opengl display list based variant of the geometry bank
-
-// create() subclass details
-void
-opengl_dlgeometrybank::create_( gfx::geometry_handle const &Geometry ) {
-
-    m_chunkrecords.emplace_back( chunk_record() );
-}
-
-// replace() subclass details
-void
-opengl_dlgeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
-
-    delete_list( Geometry );
-}
-
-// draw() subclass details
-void
-opengl_dlgeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
-
-    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
-    if( chunkrecord.streams != Streams ) {
-        delete_list( Geometry );
-    }
-    if( chunkrecord.list == 0 ) {
-        // we don't have a list ready, so compile one
-        chunkrecord.streams = Streams;
-        chunkrecord.list = ::glGenLists( 1 );
-        auto const &chunk = gfx::geometry_bank::chunk( Geometry );
-        ::glNewList( chunkrecord.list, GL_COMPILE );
-
-        ::glBegin( chunk.type );
-        for( auto const &vertex : chunk.vertices ) {
-                 if( Streams & gfx::stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
-            else if( Streams & gfx::stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
-            if( Streams & gfx::stream::texture )     { for( auto unit : Units.texture ) { ::glMultiTexCoord2fv( unit, glm::value_ptr( vertex.texture ) ); } }
-            if( Streams & gfx::stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
-        }
-        ::glEnd();
-        ::glEndList();
-    }
-    // with the list done we can just play it
-    ::glCallList( chunkrecord.list );
-}
-
-// release () subclass details
-void
-opengl_dlgeometrybank::release_() {
-
-    for( auto &chunkrecord : m_chunkrecords ) {
-        if( chunkrecord.list != 0 ) {
-            ::glDeleteLists( chunkrecord.list, 1 );
-            chunkrecord.list = 0;
-        }
-        chunkrecord.streams = gfx::stream::none;
-    }
-}
-
-void
-opengl_dlgeometrybank::delete_list( gfx::geometry_handle const &Geometry ) {
-    // NOTE: given it's our own internal method we trust it to be called with valid parameters
-    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
-    if( chunkrecord.list != 0 ) {
-        ::glDeleteLists( chunkrecord.list, 1 );
-        chunkrecord.list = 0;
-    }
-    chunkrecord.streams = gfx::stream::none;
 }
 
 // geometry bank manager, holds collection of geometry banks
@@ -368,7 +300,7 @@ geometrybank_manager::draw( gfx::geometry_handle const &Geometry, unsigned int c
     auto &bankrecord = bank( Geometry );
 
     bankrecord.second = m_garbagecollector.timestamp();
-    bankrecord.first->draw( Geometry, m_units, Streams );
+    bankrecord.first->draw( Geometry, Streams );
 }
 
 // provides direct access to vertex data of specfied chunk

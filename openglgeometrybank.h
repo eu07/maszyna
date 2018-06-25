@@ -46,12 +46,6 @@ enum stream {
 
 unsigned int const basic_streams { stream::position | stream::normal | stream::texture };
 unsigned int const color_streams { stream::position | stream::color | stream::texture };
-
-struct stream_units {
-
-    std::vector<GLint> texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
-};
-
 typedef std::vector<basic_vertex> vertex_array;
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
@@ -106,11 +100,11 @@ public:
         append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams = basic_streams );
+        draw( gfx::geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last, gfx::stream_units const &Units, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Units, Streams ); ++First; } }
+        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Streams ); ++First; } }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void
         release();
@@ -152,7 +146,7 @@ private:
     // replace() subclass details
     virtual void replace_( gfx::geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) = 0;
+    virtual void draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams ) = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -191,7 +185,7 @@ private:
         replace_( gfx::geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams );
     // release() subclass details
     void
         release_();
@@ -202,48 +196,6 @@ private:
     GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
     std::unique_ptr<gl::vao> m_vao;
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
-    chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
-
-};
-
-// opengl display list based variant of the geometry bank
-
-class opengl_dlgeometrybank : public geometry_bank {
-
-public:
-// constructors:
-    opengl_dlgeometrybank() = default;
-// destructor:
-    ~opengl_dlgeometrybank() {
-        for( auto &chunkrecord : m_chunkrecords ) {
-            ::glDeleteLists( chunkrecord.list, 1 ); } }
-
-private:
-// types:
-    struct chunk_record {
-        GLuint list { 0 }; // display list associated with the chunk
-        unsigned int streams { 0 }; // stream combination used to generate the display list
-    };
-
-    typedef std::vector<chunk_record> chunkrecord_sequence;
-
-// methods:
-    // create() subclass details
-    void
-        create_( gfx::geometry_handle const &Geometry );
-    // replace() subclass details
-    void
-        replace_( gfx::geometry_handle const &Geometry );
-    // draw() subclass details
-    void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
-    // release () subclass details
-    void
-        release_();
-    void
-        delete_list( gfx::geometry_handle const &Geometry );
-
-// members:
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 
 };
@@ -282,9 +234,6 @@ public:
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         vertices( gfx::geometry_handle const &Geometry ) const;
-    // sets target texture unit for the texture data stream
-    gfx::stream_units &
-        units() { return m_units; }
 
 private:
 // types:
@@ -297,7 +246,6 @@ private:
     // members:
     geometrybanktimepointpair_sequence m_geometrybanks;
     garbage_collector<geometrybanktimepointpair_sequence> m_garbagecollector { m_geometrybanks, 60, 120, "geometry buffer" };
-    gfx::stream_units m_units;
 
 // methods
     inline

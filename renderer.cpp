@@ -100,10 +100,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     glFrontFace( GL_CCW );
     glEnable( GL_CULL_FACE );
 
-    m_geometry.units().texture = (
-        Global.BasicRenderer ?
-            std::vector<GLint>{ m_diffusetextureunit } :
-            std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     UILayer.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
