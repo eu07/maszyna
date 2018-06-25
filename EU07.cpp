@@ -365,8 +365,15 @@ int main(int argc, char *argv[])
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
 
+    if (Global.captureonstart)
+    {
+        Global.ControlPicking = false;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
+    }
+    else
+        Global.ControlPicking = true;
+
 	try {
-		Global.ControlPicking = true;
 
 		if ((false == GfxRenderer.Init(window))
 			|| (false == UILayer.init(window)))
@@ -421,9 +428,6 @@ int main(int argc, char *argv[])
 #ifdef _WIN32
     Console::On(); // włączenie konsoli
 #endif
-
-	Global.ControlPicking = false;
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
 
     try {
         while( ( false == glfwWindowShouldClose( window ) )

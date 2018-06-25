@@ -669,6 +669,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> compress_tex;
 		}
+        else if (token == "captureonstart") {
+            Parser.getTokens( 1 );
+            Parser >> captureonstart;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
