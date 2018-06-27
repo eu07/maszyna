@@ -230,7 +230,7 @@ enum class command_mode {
 struct command_description {
     std::string name;
     command_target target;
-	command_mode mode = command_mode::oneoff;
+	command_mode mode;
 };
 
 struct command_data {
