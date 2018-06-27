@@ -440,10 +440,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         if( false == simulation::Memory.insert( memorycell ) ) {
             ErrorLog( "Bad scenario: memory memorycell with duplicate name \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
-/*
-        // TODO: implement this
-        simulation::Region.insert_memorycell( memorycell, Scratchpad );
-*/
+        simulation::Region->insert_memorycell( memorycell, Scratchpad );
     }
     else if( nodedata.type == "eventlauncher" ) {
 

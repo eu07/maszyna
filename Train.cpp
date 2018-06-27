@@ -6355,6 +6355,7 @@ void TTrain::clear_cab_controls()
     ggRadioTest.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
+    ggTrainHeatingButton.Clear();
     ggDepartureSignalButton.Clear();
     ggCompressorButton.Clear();
     ggConverterButton.Clear();

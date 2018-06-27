@@ -550,7 +550,7 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
 
     // Ra 2F1I: to by można pomijać dla modeli bez animacji, których jest większość
     TAnimContainer *pCurrent;
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
+    for (pCurrent = pRoot; pCurrent != nullptr; pCurrent = pCurrent->pNext)
         if (!pCurrent->evDone) // jeśli jest bez eventu
             pCurrent->UpdateModel(); // przeliczenie animacji każdego submodelu
     // if () //tylko dla modeli z IK !!!!

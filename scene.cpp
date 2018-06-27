@@ -360,6 +360,7 @@ basic_cell::insert( sound_source *Sound ) {
     m_active = true;
 
     m_sounds.emplace_back( Sound );
+    // NOTE: sound sources are virtual 'points' hence they don't ever expand cell range
 }
 
 // adds provided sound instance to the cell
@@ -371,6 +372,16 @@ basic_cell::insert( TEventLauncher *Launcher ) {
     m_eventlaunchers.emplace_back( Launcher );
     // re-calculate cell bounding area, in case launcher range extends outside the cell's boundaries
     enclose_area( Launcher );
+}
+
+// adds provided memory cell to the cell
+void
+basic_cell::insert( TMemCell *Memorycell ) {
+
+    m_active = true;
+
+    m_memorycells.emplace_back( Memorycell );
+    // NOTE: memory cells are virtual 'points' hence they don't ever expand cell range
 }
 
 // registers provided path in the lookup directory of the cell
@@ -1132,7 +1143,6 @@ basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
 // inserts provided track in the region
 void
 basic_region::insert_path( TTrack *Path, scratch_data &Scratchpad ) {
-
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     auto location = Path->location();
 
@@ -1154,7 +1164,6 @@ basic_region::insert_path( TTrack *Path, scratch_data &Scratchpad ) {
 // inserts provided track in the region
 void
 basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
-
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     auto location = Traction->location();
 
@@ -1176,7 +1185,6 @@ basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
 // inserts provided instance of 3d model in the region
 void
 basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) {
-
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     auto location = Instance->location();
 
@@ -1209,7 +1217,6 @@ basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
 // inserts provided event launcher in the region
 void
 basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad ) {
-
     // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
     auto location = Launcher->location();
 
@@ -1220,6 +1227,22 @@ basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpa
     else {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: event launcher \"" + Launcher->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
+    }
+}
+
+// inserts provided memory cell in the region
+void
+basic_region::insert_memorycell( TMemCell *Memorycell, scratch_data &Scratchpad ) {
+    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
+    auto location = Memorycell->location();
+
+    if( point_inside( location ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( location ).insert( Memorycell );
+    }
+    else {
+        // tracks are guaranteed to hava a name so we can skip the check
+        ErrorLog( "Bad scenario: memory cell \"" + Memorycell->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
 }
 

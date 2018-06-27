@@ -237,15 +237,14 @@ void TWorld::TrainDelete(TDynamicObject *d)
         if (Train)
             if (Train->Dynamic() != d)
                 return; // nie tego usuwać
-#ifdef EU07_SCENERY_EDITOR
-    if( ( Train->DynamicObject )
-     && ( Train->DynamicObject->Mechanik ) ) {
+/*
+    if( ( Train->Dynamic() )
+     && ( Train->Dynamic()->Mechanik ) ) {
         // likwidacja kabiny wymaga przejęcia przez AI
-        Train->DynamicObject->Mechanik->TakeControl( true );
+        Train->Dynamic()->Mechanik->TakeControl( true );
     }
-#endif
-    delete Train; // i nie ma czym sterować
-    Train = NULL;
+*/
+    SafeDelete( Train ); // i nie ma czym sterować
     Controlled = NULL; // tego też już nie ma
     mvControlled = NULL;
 };

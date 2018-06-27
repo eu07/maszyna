@@ -114,6 +114,9 @@ public:
     // adds provided event launcher to the cell
     void
         insert( TEventLauncher *Launcher );
+    // adds provided memory cell to the cell
+    void
+        insert( TMemCell *Memorycell );
     // registers provided path in the lookup directory of the cell
     void
         register_end( TTrack *Path );
@@ -152,6 +155,7 @@ private:
     using instance_sequence = std::vector<TAnimModel *>;
     using sound_sequence = std::vector<sound_source *>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
+    using memorycell_sequence = std::vector<TMemCell *>;
 // methods
     void
         enclose_area( scene::basic_node *Node );
@@ -168,6 +172,7 @@ private:
     traction_sequence m_traction;
     sound_sequence m_sounds;
     eventlauncher_sequence m_eventlaunchers;
+    memorycell_sequence m_memorycells;
     // search helpers
     struct lookup_data {
         path_sequence paths;
@@ -329,6 +334,9 @@ public:
     // inserts provided event launcher in the region
     void
         insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );
+    // inserts provided memory cell in the region
+    void
+        insert_memorycell( TMemCell *Memorycell, scratch_data &Scratchpad );
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );

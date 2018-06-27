@@ -289,7 +289,7 @@ private:
     bool
         Render_cab( TDynamicObject const *Dynamic, bool const Alpha = false );
     void
-        Render( TMemCell *Memcell );
+        Render( TMemCell const *Memcell );
     void
         Render_Alpha( scene::basic_region *Region );
     void

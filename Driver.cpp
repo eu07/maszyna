@@ -872,7 +872,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 							auto L = 0.0;
 							auto Par1 = sSpeedTable[i].evEvent->ValueGet(1);
 							auto Par2 = sSpeedTable[i].evEvent->ValueGet(2);
-							if ((Par2 > 0) || (fLength < -Par2)) { //użyj tego W4
+							if ((Par2 >= 0) || (fLength < -Par2)) { //użyj tego W4
 								if (Par1 < 0) {
                                     L = -Par1;
                                 }
@@ -2732,65 +2732,69 @@ bool TController::IncSpeed()
         if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
             if ((mvControlling->MainCtrlPos == 0) ||
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
-                // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe
-                // (zgaśnie DelayCtrlFlag)
-				if (Ready || (iDrivigFlags & movePress))
-				{
-					bool scndctrl = ((mvOccupied->Vel <= 30) ||
-						(mvControlling->Imax > mvControlling->ImaxLo) ||
-						(fVoltage + fVoltage <
-							mvControlling->EnginePowerSource.CollectorParameters.MinV +
-							mvControlling->EnginePowerSource.CollectorParameters.MaxV) ||
-							(mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo));
-					scndctrl = ((scndctrl) && (mvControlling->MainCtrlPos > 1) && (mvControlling->RList[mvControlling->MainCtrlActualPos].R < 0.01)&& (mvControlling->ScndCtrlPos != mvControlling->ScndCtrlPosNo));
-					double Vs = 99999;
-					if((mvControlling->MainCtrlPos != mvControlling->MainCtrlPosNo)||(mvControlling->ScndCtrlPos!=mvControlling->ScndCtrlPosNo))
-						Vs = ESMVelocity(!scndctrl);
+                // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
+				if (Ready || (iDrivigFlags & movePress)) {
+                    // use series mode to build up speed, when high threshold is set for motor overload relay or if the power station is heavily burdened
+                    auto const useseriesmodevoltage { 0.85 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
+                    auto const useseriesmode = (
+                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) )
+                     || ( mvControlling->Imax > mvControlling->ImaxLo )
+                     || ( fVoltage < useseriesmodevoltage ) );
 
-					if ((fabs(mvControlling->Im) <
-						(fReady < 0.4 ? mvControlling->Imin : mvControlling->IminLo))||(mvControlling->Vel>Vs))
-					{ // Ra: wywalał nadmiarowy, bo Im może być ujemne; jak nie odhamowany, to nie
-						// przesadzać z prądem
-						if ((mvOccupied->Vel <= 30) ||
-							(mvControlling->Imax > mvControlling->ImaxLo) ||
-							(fVoltage + fVoltage <
-								mvControlling->EnginePowerSource.CollectorParameters.MinV +
-								mvControlling->EnginePowerSource.CollectorParameters.MaxV))
-						{ // bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu
-							// pod górę albo przy niskim napięciu
-							if (mvControlling->MainCtrlPos ?
-								mvControlling->RList[mvControlling->MainCtrlPos].R > 0.0 :
-							true) // oporowa
-							{
-								OK = (mvControlling->DelayCtrlFlag ?
-									true :
-									mvControlling->IncMainCtrl(1)); // kręcimy nastawnik jazdy
-								if ((OK) &&
-									(mvControlling->MainCtrlPos ==
-										1)) // czekaj na 1 pozycji, zanim się nie włączą liniowe
-									iDrivigFlags |= moveIncSpeed;
-								else
-									iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi czekania
-							}
-							else // jeśli bezoporowa (z wyjątekiem 0)
-								OK = false; // to dać bocznik
-						}
-						else
-						{ // przekroczone 30km/h, można wejść na jazdę równoległą
-							if (mvControlling->ScndCtrlPos) // jeśli ustawiony bocznik
-								if (mvControlling->MainCtrlPos <
-									mvControlling->MainCtrlPosNo - 1) // a nie jest ostatnia pozycja
-									mvControlling->DecScndCtrl(2); // to bocznik na zero po chamsku
-							// (ktoś miał to poprawić...)
-							OK = mvControlling->IncMainCtrl(1);
-						}
-						if ((mvControlling->MainCtrlPos > 2) &&
-							(mvControlling->Im == 0)) // brak prądu na dalszych pozycjach
-							Need_TryAgain = true; // nie załączona lokomotywa albo wywalił
-						// nadmiarowy
-						else if (!OK) // nie da się wrzucić kolejnej pozycji
-							OK = mvControlling->IncScndCtrl(1); // to dać bocznik
+                    auto const scndctrl = (
+                        ( mvControlling->StLinFlag )
+                     && ( mvControlling->RList[ mvControlling->MainCtrlActualPos ].R < 0.01 )
+                     && ( useseriesmode ?
+                            mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn == 1 :
+                            mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn > 1 ) );
+
+					double Vs = 99999;
+                    if( scndctrl ?
+                        ( mvControlling->ScndCtrlPos < mvControlling->ScndCtrlPosNo ) :
+                        ( mvControlling->MainCtrlPos < mvControlling->MainCtrlPosNo ) ) {
+                        Vs = ESMVelocity( !scndctrl );
+                    }
+
+                    if( ( std::abs( mvControlling->Im ) < ( fReady < 0.4 ? mvControlling->Imin : mvControlling->IminLo ) )
+                     || ( mvControlling->Vel > Vs ) ) {
+                        // Ra: wywalał nadmiarowy, bo Im może być ujemne; jak nie odhamowany, to nie przesadzać z prądem
+                        if( scndctrl ) {
+                            // to dać bocznik
+                            // engage the shuntfield only if there's sufficient power margin to draw from
+                            OK = (
+                                fVoltage > useseriesmodevoltage + 0.0125 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ?
+                                    mvControlling->IncScndCtrl( 1 ) :
+                                    false );
+                        }
+                        else {
+                            // jeśli ustawiony bocznik to bocznik na zero po chamsku
+                            if( mvControlling->ScndCtrlPos ) {
+                                mvControlling->DecScndCtrl( 2 );
+                            }
+                            // kręcimy nastawnik jazdy
+                            OK = (
+                                mvControlling->DelayCtrlFlag ?
+                                    true :
+                                    mvControlling->IncMainCtrl( 1 ) );
+                            // czekaj na 1 pozycji, zanim się nie włączą liniowe
+                            if( true == mvControlling->StLinFlag ) {
+                                iDrivigFlags |= moveIncSpeed;
+                            }
+                            else {
+                                iDrivigFlags &= ~moveIncSpeed;
+                            }
+
+                            if( ( mvControlling->Im == 0 )
+                             && ( mvControlling->MainCtrlPos > 2 ) ) {
+                                // brak prądu na dalszych pozycjach
+                                // nie załączona lokomotywa albo wywalił nadmiarowy
+                                Need_TryAgain = true;
+                            }
+                        }
 					}
+                    else {
+                        OK = false;
+                    }
 				}
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
@@ -2976,11 +2980,8 @@ void TController::SpeedSet()
         break;
     case ElectricSeriesMotor:
         if( ( false == mvControlling->StLinFlag )
-         && ( false == mvControlling->DelayCtrlFlag )
-         && ( 0 == ( iDrivigFlags & moveIncSpeed ) ) ) // styczniki liniowe rozłączone    yBARC
-        {
-            //    if (iDrivigFlags&moveIncSpeed) {} //jeśli czeka na załączenie liniowych
-            //    else
+         && ( false == mvControlling->DelayCtrlFlag ) ) {
+            // styczniki liniowe rozłączone    yBARC
             while( DecSpeed() )
                 ; // zerowanie napędu
         }
@@ -3850,6 +3851,28 @@ TController::UpdateSituation(double dt) {
                                 // czy jest napięcie zasilające na przednim?
                                 mvControlling->PantRear( false ); // opuszcza od sprzęgu 1
                             }
+                        }
+                    }
+                }
+                if( fVoltage < 0.8 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ) {
+                    // if the power station is heavily burdened try to reduce the load
+                    switch( mvControlling->EngineType ) {
+
+                        case ElectricSeriesMotor: {
+                            if( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) {
+                                // limit yourself to series mode
+                                if( mvControlling->ScndCtrlPos ) {
+                                    mvControlling->DecScndCtrl( 2 );
+                                }
+                                while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 )
+                                    && ( mvControlling->DecMainCtrl( 1 ) ) ) {
+                                    ; // all work is performed in the header
+                                }
+                            }
+                            break;
+                        }
+                        default: {
+                            break;
                         }
                     }
                 }
