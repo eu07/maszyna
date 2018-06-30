@@ -2733,19 +2733,25 @@ bool TController::IncSpeed()
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
-                    // use series mode to build up speed, when high threshold is set for motor overload relay or if the power station is heavily burdened
-                    auto const useseriesmodevoltage { 0.85 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
+                    // use series mode:
+                    // to build up speed to 30/40 km/h for passenger/cargo train,
+                    // if high threshold is set for motor overload relay,
+                    // if the power station is heavily burdened
+                    auto const useseriesmodevoltage { 0.80 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
                     auto const useseriesmode = (
                         ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) )
                      || ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage ) );
-
+                    // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
+                    // (if there's only one parallel mode configuration it'll be used regardless of current speed)
                     auto const scndctrl = (
                         ( mvControlling->StLinFlag )
                      && ( mvControlling->RList[ mvControlling->MainCtrlActualPos ].R < 0.01 )
                      && ( useseriesmode ?
                             mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn == 1 :
-                            mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn > 1 ) );
+                            ( ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 55 : 45 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) ) ?
+                                mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn > 1 :
+                                mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );
 
 					double Vs = 99999;
                     if( scndctrl ?
@@ -3853,7 +3859,7 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                if( fVoltage < 0.8 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ) {
+                if( fVoltage < 0.75 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ) {
                     // if the power station is heavily burdened try to reduce the load
                     switch( mvControlling->EngineType ) {
 

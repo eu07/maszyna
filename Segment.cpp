@@ -36,11 +36,6 @@ TSegment::TSegment(TTrack *owner) :
                    pOwner( owner )
 {}
 
-TSegment::~TSegment()
-{
-    SafeDeleteArray(fTsBuffer);
-}
-
 bool TSegment::Init(Math3D::vector3 NewPoint1, Math3D::vector3 NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
     Math3D::vector3 dir;
@@ -140,8 +135,7 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
 */
     fStep = fLength / iSegCount; // update step to equalize size of individual pieces
 
-    SafeDeleteArray( fTsBuffer );
-    fTsBuffer = new double[ iSegCount + 1 ];
+    fTsBuffer.resize( iSegCount + 1 );
     fTsBuffer[ 0 ] = 0.0;
     for( int i = 1; i < iSegCount; ++i ) {
         fTsBuffer[ i ] = GetTFromS( i * fStep );
@@ -213,7 +207,7 @@ double TSegment::GetTFromS(double const s) const
 
 	do {
         double fDifference = RombergIntegral(0, fTime) - s;
-		if( ( fDifference > 0 ? fDifference : -fDifference ) < fTolerance ) {
+		if( std::abs( fDifference ) < fTolerance ) {
 			return fTime;
 		}
 
@@ -386,7 +380,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
     // podany jest przekrój końcowy
     // podsypka toru jest robiona za pomocą 6 punktów, szyna 12, drogi i rzeki na 3+2+3
 
-    if( !fTsBuffer )
+    if( fTsBuffer.empty() )
         return false; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
 
     glm::vec3 pos1, pos2, dir, parallel1, parallel2, pt, norm;

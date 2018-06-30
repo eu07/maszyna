@@ -1149,40 +1149,42 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     hvc = Couplers[ side::front ].power_high.voltage + Couplers[ side::rear ].power_high.voltage;
 #endif
 
-    if( ( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) < 1.0 )
-     && ( hvc > 1.0 ) ) {
-        // bez napiecia, ale jest cos na sprzegach:
-        // przekazywanie pradow
-        for( int side = 0; side < 2; ++side ) {
+    if( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) < 1.0 ) {
+        // bez napiecia...
+        if( hvc != 0.0 ) {
+            // ...ale jest cos na sprzegach:
+            // przekazywanie pradow
+            for( int side = 0; side < 2; ++side ) {
 
-            Couplers[ side ].power_high.local = false; // power, if any, will be from external source
+                Couplers[ side ].power_high.local = false; // power, if any, will be from external source
 
-            if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-             || ( ( Heating )
-               && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+                if( ( Couplers[ side ].CouplingFlag & ctrain_power )
+                 || ( ( Heating )
+                   && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
 #ifdef EU07_USE_OLD_HVCOUPLERS
-                auto const oppositeside = ( Couplers[side].ConnectedNr == side::front ? side::rear : side::front );
-                HVCouplers[ side ][ hvcoupler::current ] =
-					Couplers[side].Connected->HVCouplers[oppositeside][hvcoupler::current] +
-					Itot * HVCouplers[side][hvcoupler::voltage] / hvc; // obciążenie rozkladane stosownie do napiec
+                    auto const oppositeside = ( Couplers[side].ConnectedNr == side::front ? side::rear : side::front );
+                    HVCouplers[ side ][ hvcoupler::current ] =
+					    Couplers[side].Connected->HVCouplers[oppositeside][hvcoupler::current] +
+					    Itot * HVCouplers[side][hvcoupler::voltage] / hvc; // obciążenie rozkladane stosownie do napiec
 #else
-                auto const &connectedsothercoupler =
-                    Couplers[ side ].Connected->Couplers[
-                        ( Couplers[ side ].ConnectedNr == side::front ?
-                            side::rear :
-                            side::front ) ];
-                Couplers[ side ].power_high.current =
-                    connectedsothercoupler.power_high.current
-                    + Itot * Couplers[ side ].power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
+                    auto const &connectedsothercoupler =
+                        Couplers[ side ].Connected->Couplers[
+                            ( Couplers[ side ].ConnectedNr == side::front ?
+                                side::rear :
+                                side::front ) ];
+                    Couplers[ side ].power_high.current =
+                        connectedsothercoupler.power_high.current
+                        + Itot * Couplers[ side ].power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
 #endif
-            }
-			else {
+                }
+			    else {
 #ifdef EU07_USE_OLD_HVCOUPLERS
-                // pierwszy pojazd
-				HVCouplers[side][hvcoupler::current] = Itot * HVCouplers[side][hvcoupler::voltage] / hvc;
+                    // pierwszy pojazd
+				    HVCouplers[side][hvcoupler::current] = Itot * HVCouplers[side][hvcoupler::voltage] / hvc;
 #else
-                Couplers[ side ].power_high.current = Itot * Couplers[ side ].power_high.voltage / hvc;
+                    Couplers[ side ].power_high.current = Itot * Couplers[ side ].power_high.voltage / hvc;
 #endif
+                }
             }
         }
 	}
