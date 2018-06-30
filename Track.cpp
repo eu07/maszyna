@@ -924,6 +924,25 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
     return false;
 };
 
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner ) {
+
+    for( auto const &event : Events ) {
+        if( event.second != nullptr ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
+
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit ) {
+
+    for( auto const &event : Events ) {
+        if( ( event.second != nullptr )
+         && ( event.second->fDelay <= Delaylimit) ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
+
 std::string TTrack::IsolatedName()
 { // podaje nazwę odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeń
     if (pIsolated)
@@ -1191,7 +1210,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                  { szyna[ i ].texture.x,
                    szyna[ i ].texture.y } };
 
-            if( false == iTrapezoid ) { continue; }
+            if( iTrapezoid == 0 ) { continue; }
             // trapez albo przechyłki, to oddzielne punkty na końcu
 
             rpts1[ 12 + i ] = {

@@ -1826,15 +1826,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // tracks
                 // TODO: update after path node refactoring
                 Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
-#ifdef EU07_SCENERY_EDITOR
-                // TODO: re-implement
-                // memcells
-                if( EditorModeFlag ) {
-                    for( auto const memcell : Groundsubcell->m_memcells ) {
-                        Render( memcell );
-                    }
-                }
-#endif
 #ifdef EU07_USE_DEBUG_CULLING
                 // debug
                 ::glLineWidth( 2.f );
@@ -1904,16 +1895,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( path );
                 }
-#ifdef EU07_SCENERY_EDITOR
-                // memcells
-                // TODO: re-implement
-                if( EditorModeFlag ) {
-                    for( auto const memcell : Groundsubcell->m_memcells ) {
-                        ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
-                        Render( memcell );
-                    }
-                }
-#endif
+
                 // post-render cleanup
                 ::glPopMatrix();
 
@@ -1944,6 +1926,17 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                         Render( dynamic );
                     }
                 }
+                // memcells
+                if( ( EditorModeFlag )
+                 && ( DebugModeFlag ) ) {
+                    ::glPushAttrib( GL_ENABLE_BIT );
+                    ::glDisable( GL_TEXTURE_2D );
+                    ::glColor3f( 0.36f, 0.75f, 0.35f );
+                    for( auto const *memorycell : cell->m_memorycells ) {
+                        Render( memorycell );
+                    }
+                    ::glPopAttrib();
+                }
                 break;
             }
             case rendermode::pickscenery: {
@@ -1952,6 +1945,14 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 for( auto *instance : cell->m_instancesopaque ) {
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( instance );
+                }
+                // memcells
+                if( ( EditorModeFlag )
+                 && ( DebugModeFlag ) ) {
+                    for( auto const *memorycell : cell->m_memorycells ) {
+                        ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
+                        Render( memorycell );
+                    }
                 }
                 // vehicles aren't included in scenery picking for the time being
                 break;
@@ -2774,25 +2775,22 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
 }
 
 void
-opengl_renderer::Render( TMemCell *Memcell ) {
+opengl_renderer::Render( TMemCell const *Memcell ) {
 
     ::glPushMatrix();
     auto const position = Memcell->location() - m_renderpass.camera.position();
     ::glTranslated( position.x, position.y + 0.5, position.z );
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::color: {
-            ::glPushAttrib( GL_ENABLE_BIT );
-            ::glDisable( GL_TEXTURE_2D );
-            ::glColor3f( 0.36f, 0.75f, 0.35f );
-
+        case rendermode::color:
+        case rendermode::shadows: {
             ::gluSphere( m_quadric, 0.35, 4, 2 );
-
-            ::glPopAttrib();
             break;
         }
-        case rendermode::shadows:
         case rendermode::pickscenery: {
+            // add the node to the pick list
+            m_picksceneryitems.emplace_back( Memcell );
+
             ::gluSphere( m_quadric, 0.35, 4, 2 );
             break;
         }

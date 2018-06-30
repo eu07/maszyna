@@ -74,6 +74,12 @@ simulation_time::init() {
 	m_time.wMinute = tms->tm_min;
 	m_time.wSecond = tms->tm_sec;
 	m_time.wMilliseconds = ts.tv_nsec / 1000000;
+
+/*
+    time_t local = mktime(localtime(&ts.tv_sec));
+    time_t utc = mktime(gmtime(&ts.tv_sec));
+    m_timezonebias = (double)(local - utc) / 3600.0f;
+*/
 #elif _WIN32
     ::GetLocalTime( &m_time );
 #endif
@@ -92,6 +98,30 @@ simulation_time::init() {
     }
 
     m_yearday = year_day( m_time.wDay, m_time.wMonth, m_time.wYear );
+
+    // calculate time zone bias
+    // retrieve relevant time zone info from system registry (or fall back on supplied default)
+    // TODO: select timezone matching defined geographic location and/or country
+    struct registry_time_zone_info {
+        long Bias;
+        long StandardBias;
+        long DaylightBias;
+        SYSTEMTIME StandardDate;
+        SYSTEMTIME DaylightDate;
+    } timezoneinfo = { -60, 0, -60, { 0, 10, 0, 5, 3, 0, 0, 0 }, { 0, 3, 0, 5, 2, 0, 0, 0 } };
+
+    auto zonebias { timezoneinfo.Bias };
+    if( m_yearday < year_day( timezoneinfo.DaylightDate.wDay, timezoneinfo.DaylightDate.wMonth, m_time.wYear ) ) {
+        zonebias += timezoneinfo.StandardBias;
+    }
+    else if( m_yearday < year_day( timezoneinfo.StandardDate.wDay, timezoneinfo.StandardDate.wMonth, m_time.wYear ) ) {
+        zonebias += timezoneinfo.DaylightBias;
+    }
+    else {
+        zonebias += timezoneinfo.StandardBias;
+    }
+
+    m_timezonebias = ( zonebias / 60.0 );
 }
 
 void
@@ -216,15 +246,14 @@ void TWorld::TrainDelete(TDynamicObject *d)
         if (Train)
             if (Train->Dynamic() != d)
                 return; // nie tego usuwać
-#ifdef EU07_SCENERY_EDITOR
-    if( ( Train->DynamicObject )
-     && ( Train->DynamicObject->Mechanik ) ) {
+/*
+    if( ( Train->Dynamic() )
+     && ( Train->Dynamic()->Mechanik ) ) {
         // likwidacja kabiny wymaga przejęcia przez AI
-        Train->DynamicObject->Mechanik->TakeControl( true );
+        Train->Dynamic()->Mechanik->TakeControl( true );
     }
-#endif
-    delete Train; // i nie ma czym sterować
-    Train = NULL;
+*/
+    SafeDelete( Train ); // i nie ma czym sterować
     Controlled = NULL; // tego też już nie ma
     mvControlled = NULL;
 };

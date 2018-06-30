@@ -155,6 +155,7 @@ public:
 	static float fSquareDist;
 	static TModel3d *pRoot;
 	static std::string *pasText; // tekst dla wyświetlacza (!!!! do przemyślenia)
+    TSubModel() = default;
 	~TSubModel();
 	int Load(cParser &Parser, TModel3d *Model, /*int Pos,*/ bool dynamic);
 	void ChildAdd(TSubModel *SubModel);

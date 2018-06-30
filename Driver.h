@@ -131,6 +131,7 @@ class TSpeedPos
     // zwrotnicy,32-minięty,64=koniec,128=łuk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysłana komenda,0x2000=W5
     // 0x4000=semafor,0x10000=zatkanie
+	bool bMoved{ false }; // czy przesunięty (dotyczy punktu zatrzymania w peronie)
     Math3D::vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {

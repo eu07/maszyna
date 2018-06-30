@@ -266,6 +266,8 @@ typedef geometry_handle geometrybank_handle;
 class geometrybank_manager {
 
 public:
+// constructors
+    geometrybank_manager() = default;
 // methods:
     // performs a resource sweep
     void update();

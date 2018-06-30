@@ -17,5 +17,5 @@ public:
 
     void interpret(std::string file);
 
-    typedef void (*eventhandler_t)(TEvent*, TDynamicObject*);
+    typedef void (*eventhandler_t)(TEvent*, const TDynamicObject*);
 };

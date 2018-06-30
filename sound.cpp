@@ -467,7 +467,7 @@ float
 sound_source::compute_combined_point() const {
 
     return (
-        m_properties.pitch < 1.1f ?
+        m_properties.pitch <= 1.f ?
             // most sounds use 0-1 value range, we clamp these to 0-99 to allow more intuitive sound definition in .mmd files
             clamp( m_properties.pitch, 0.f, 0.99f ) :
             std::max( 0.f, m_properties.pitch )

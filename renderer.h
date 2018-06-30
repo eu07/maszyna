@@ -52,6 +52,8 @@ struct opengl_technique {
 class opengl_camera {
 
 public:
+// constructors
+    opengl_camera() = default;
 // methods:
     inline
     void
@@ -113,10 +115,10 @@ class opengl_renderer {
 
 public:
 // types
-
+// constructors
+    opengl_renderer() = default;
 // destructor
     ~opengl_renderer() { gluDeleteQuadric( m_quadric ); }
-
 // methods
     bool
         Init( GLFWwindow *Window );
@@ -287,7 +289,7 @@ private:
     bool
         Render_cab( TDynamicObject const *Dynamic, bool const Alpha = false );
     void
-        Render( TMemCell *Memcell );
+        Render( TMemCell const *Memcell );
     void
         Render_Alpha( scene::basic_region *Region );
     void

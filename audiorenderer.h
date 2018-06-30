@@ -53,7 +53,8 @@ struct openal_source {
     bool is_looping { false };
     sound_properties properties;
     sync_state sync { sync_state::good };
-
+// constructors
+    openal_source() = default;
 // methods
     template <class Iterator_>
     openal_source &
@@ -102,6 +103,8 @@ class openal_renderer {
     friend class opengl_renderer;
 
 public:
+// constructors
+    openal_renderer() = default;
 // destructor
     ~openal_renderer();
 // methods

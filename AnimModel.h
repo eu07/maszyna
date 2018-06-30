@@ -125,6 +125,7 @@ class TAnimAdvanced
 class TAnimModel : public scene::basic_node {
 
     friend class opengl_renderer;
+    friend class ui_layer;
 
 public:
 // constructors
@@ -151,7 +152,7 @@ public:
             return &m_materialdata; }
     inline
     TModel3d *
-        Model() {
+        Model() const {
             return pModel; }
 // members
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania

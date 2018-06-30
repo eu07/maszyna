@@ -127,6 +127,8 @@ private:
 class TTrack : public scene::basic_node {
 
     friend class opengl_renderer;
+    // NOTE: temporary arrangement
+    friend class ui_layer;
 
 private:
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
@@ -247,6 +249,8 @@ public:
     void Load(cParser *parser, Math3D::vector3 pOrigin);
     bool AssignEvents();
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
+    void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner );
+    void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit );
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);

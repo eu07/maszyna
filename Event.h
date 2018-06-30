@@ -105,7 +105,7 @@ public:
     TEventType Type = tp_Unknown;
     double fStartTime = 0.0;
     double fDelay = 0.0;
-    TDynamicObject *Activator = nullptr;
+    TDynamicObject const *Activator = nullptr;
     TParam Params[13]; // McZapkie-070502 //Ra: zamienić to na union/struct
 
     unsigned int iFlags = 0; // zamiast Params[8] z flagami warunku
@@ -122,6 +122,8 @@ private:
 class event_manager {
 
 public:
+// constructors
+    event_manager() = default;
 // destructor
     ~event_manager();
 // methods
@@ -147,7 +149,7 @@ public:
         FindEvent( std::string const &Name );
     // legacy method, inserts specified event in the event query
     bool
-        AddToQuery( TEvent *Event, TDynamicObject *Owner, double delay = 0.0 );
+        AddToQuery( TEvent *Event, TDynamicObject const *Owner, double delay = 0.0 );
     // legacy method, executes queued events
     bool
         CheckQuery();

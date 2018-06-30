@@ -759,4 +759,11 @@ basic_node::radius_() {
 }
 
 } // scene
+
+namespace editor {
+
+scene::basic_node const *Node { nullptr }; // temporary helper, currently selected scene node
+
+} // editor
+
 //---------------------------------------------------------------------------

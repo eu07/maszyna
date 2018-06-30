@@ -20,24 +20,16 @@ cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
 void
 cSun::init() {
 
+    m_observer.timezone = -1.0 * simulation::Time.zone_bias();
+
     sunsphere = gluNewQuadric();
     gluQuadricNormals( sunsphere, GLU_SMOOTH );
-
-#ifdef _WIN32
-	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
-	::GetTimeZoneInformation( &timezoneinfo );
-	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
-#elif __linux__
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    time_t local = mktime(localtime(&ts.tv_sec));
-    time_t utc = mktime(gmtime(&ts.tv_sec));
-	m_observer.timezone = (local - utc) / 3600.0f;
-#endif
 }
 
 void
 cSun::update() {
+
+    m_observer.temp = Global.AirTemperature;
 
     move();
     glm::vec3 position( 0.f, 0.f, -1.f );
@@ -131,7 +123,7 @@ void cSun::move() {
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
     if( m_observer.second >= 0 ) { localtime.wSecond = m_observer.second; }
 
-    double ut =
+    double localut =
         localtime.wHour
         + localtime.wMinute / 60.0 // too low resolution, noticeable skips
         + localtime.wSecond / 3600.0; // good enough in normal circumstances
@@ -144,11 +136,10 @@ void cSun::move() {
         + 275 * localtime.wMonth / 9
         + localtime.wDay
         - 730530
-        + ( ut / 24.0 );
+        + ( localut / 24.0 );
 
     // Universal Coordinated (Greenwich standard) time
-    m_observer.utime = ut * 3600.0;
-    m_observer.utime = m_observer.utime / 3600.0 - m_observer.timezone;
+    m_observer.utime = localut - m_observer.timezone;
     // perihelion longitude
     m_body.phlong = 282.9404 + 4.70935e-5 * daynumber; // w
     // orbit eccentricity

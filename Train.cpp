@@ -924,7 +924,12 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
 }
 
 void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &Command ) {
-    
+
+    Train->mvControlled->LocalBrakePosA = (
+        clamp(
+            reinterpret_cast<double const &>( Command.param1 ),
+            0.0, 1.0 ) );
+/*
     Train->mvControlled->LocalBrakePos = (
         std::round(
             interpolate<double>(
@@ -933,6 +938,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
                 clamp(
                     reinterpret_cast<double const &>( Command.param1 ),
                     0.0, 1.0 ) ) ) );
+*/
 }
 
 void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command ) {
@@ -5174,7 +5180,8 @@ bool TTrain::Update( double const Deltatime )
             }
             else
 #endif
-            ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
+            // standardowa prodedura z kranem powiązanym z klawiaturą
+            ggLocalBrake.UpdateValue( std::max<double>( mvOccupied->LocalBrakePos, mvOccupied->LocalBrakePosA * LocalBrakePosNo ) );
             ggLocalBrake.Update();
         }
         if (ggManualBrake.SubModel != nullptr) {
@@ -5650,7 +5657,7 @@ TTrain::update_sounds( double const Deltatime ) {
         m_radiostop.stop();
     }
 
-    if( fTachoCount > 3.f ) {
+    if( fTachoCount >= 3.f ) {
         auto const frequency { (
             true == dsbHasler.is_combined() ?
                 fTachoVelocity * 0.01 :
@@ -6355,6 +6362,7 @@ void TTrain::clear_cab_controls()
     ggRadioTest.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
+    ggTrainHeatingButton.Clear();
     ggDepartureSignalButton.Clear();
     ggCompressorButton.Clear();
     ggConverterButton.Clear();

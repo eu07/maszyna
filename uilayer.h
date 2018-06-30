@@ -9,8 +9,8 @@ struct ui_panel {
 
     struct text_line {
 
-        glm::vec4 color;
         std::string data;
+        glm::vec4 color;
 
         text_line( std::string const &Data, glm::vec4 const &Color):
             data(Data), color(Color)
@@ -33,7 +33,7 @@ public:
 // parameters:
 
 // constructors:
-
+    ui_layer() = default;
 // destructor:
     ~ui_layer();
 
