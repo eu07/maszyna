@@ -567,20 +567,42 @@ void TAnimModel::RaPrepare()
     for (int i = 0; i < iNumLights; ++i)
     {
         auto const lightmode { static_cast<int>( lsLights[ i ] ) };
-        switch (lightmode)
-        {
-        case ls_Blink: // migotanie
-            state = ( fBlinkTimer < fOnTime );
-            break;
-        case ls_Dark: // zapalone, gdy ciemno
-            state = (
-                Global.fLuminance <= (
-                    lsLights[i] == 3.f ?
-                        DefaultDarkThresholdLevel :
-                        ( lsLights[i] - 3.f ) ) );
-            break;
-        default: // zapalony albo zgaszony
-            state = (lightmode == ls_On);
+        switch( lightmode ) {
+            case ls_On:
+            case ls_Off: {
+                // zapalony albo zgaszony
+                state = ( lightmode == ls_On );
+                break;
+            }
+            case ls_Blink: {
+                // migotanie
+                state = ( fBlinkTimer < fOnTime );
+                break;
+            }
+            case ls_Dark: {
+                // zapalone, gdy ciemno
+                state = (
+                    Global.fLuminance <= (
+                        lsLights[ i ] == static_cast<float>( ls_Dark ) ?
+                            DefaultDarkThresholdLevel :
+                            ( lsLights[ i ] - static_cast<float>( ls_Dark ) ) ) );
+                break;
+            }
+            case ls_Home: {
+                // like ls_dark but off late at night
+                auto const simulationhour { simulation::Time.data().wHour };
+                state = (
+                    Global.fLuminance <= (
+                        lsLights[ i ] == static_cast<float>( ls_Home ) ?
+                            DefaultDarkThresholdLevel :
+                            ( lsLights[ i ] - static_cast<float>( ls_Home ) ) ) );
+                // force the lights off between 1-5am
+                state = state && (( simulationhour < 1 ) || ( simulationhour >= 5 ));
+                break;
+            }
+            default: {
+                break;
+            }
         }
         if (LightsOn[i])
             LightsOn[i]->iVisible = state;
@@ -757,31 +779,6 @@ void TAnimModel::LightSet(int const n, float const v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
     lsLights[ n ] = v;
-    switch( static_cast<int>( lsLights[ n ] ) ) {
-        // interpretacja ułamka zależnie od typu
-        case ls_Off: {
-            // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
-            break;
-        }
-        case ls_On: {
-            // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
-            break;
-        }
-        case ls_Blink: {
-            // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
-            break;
-        }
-        case ls_Dark: {
-            // zapalenie świateł zależne od oświetlenia scenerii
-/*
-            if( v == 3.f ) {
-                // standardowy próg zaplania
-                lsLights[ n ] = 3.f + DefaultDarkThresholdLevel;
-            } 
-*/
-            break;
-        }
-    }
 };
 
 void TAnimModel::AnimUpdate(double dt)

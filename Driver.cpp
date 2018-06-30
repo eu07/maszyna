@@ -1990,7 +1990,6 @@ bool TController::CheckVehicles(TOrders user)
             }
             d = p->DirectionSet(d ? 1 : -1); // zwraca położenie następnego (1=zgodny,0=odwrócony -
             // względem czoła składu)
-            p->fScanDist = 300.0; // odległość skanowania w poszukiwaniu innych pojazdów
             p->ctOwner = this; // dominator oznacza swoje terytorium
             p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
         }
@@ -2005,13 +2004,22 @@ bool TController::CheckVehicles(TOrders user)
             }
             else if (OrderCurrentGet() & (Shunt | Connect))
             {
-                Lights(
-                    light::headlight_right,
-                    ( pVehicles[ 1 ]->MoverParameters->CabNo ) ?
-                        1 :
-                        0 ); //światła manewrowe (Tb1) na pojeździe z napędem
-                if (OrderCurrentGet() & Connect) // jeśli łączenie, skanować dalej
-                    pVehicles[0]->fScanDist = 5000.0; // odległość skanowania w poszukiwaniu innych pojazdów
+                // HACK: the 'front' and 'rear' of the consist is determined by current consist direction
+                // since direction shouldn't affect Tb1 light configuration, we 'counter' this behaviour by virtually swapping end vehicles
+                if( mvOccupied->ActiveDir > 0 ) {
+                    Lights(
+                        light::headlight_right,
+                        ( pVehicles[ 1 ]->MoverParameters->CabNo != 0 ?
+                            light::headlight_left :
+                            0 ) ); //światła manewrowe (Tb1) na pojeździe z napędem
+                }
+                else {
+                    Lights(
+                        ( pVehicles[ 1 ]->MoverParameters->CabNo != 0 ?
+                            light::headlight_left :
+                            0 ),
+                        light::headlight_right ); //światła manewrowe (Tb1) na pojeździe z napędem
+                }
             }
             else if( OrderCurrentGet() == Disconnect ) {
                 if( mvOccupied->ActiveDir > 0 ) {
@@ -2746,11 +2754,11 @@ bool TController::IncSpeed()
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
                     auto const scndctrl = (
                         ( mvControlling->StLinFlag )
-                     && ( mvControlling->RList[ mvControlling->MainCtrlActualPos ].R < 0.01 )
+                     && ( mvControlling->RList[ mvControlling->MainCtrlPos ].R < 0.01 )
                      && ( useseriesmode ?
-                            mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn == 1 :
+                            mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 :
                             ( ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 55 : 45 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) ) ?
-                                mvControlling->RList[ mvControlling->MainCtrlActualPos ].Bn > 1 :
+                                mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 :
                                 mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );
 
 					double Vs = 99999;
@@ -4609,7 +4617,7 @@ TController::UpdateSituation(double dt) {
                             { // jeśli tamten porusza się z niewielką prędkością albo stoi
                                 if( OrderCurrentGet() & Connect ) {
                                     // jeśli spinanie, to jechać dalej
-                                    AccPreferred = std::min( 0.25, AccPreferred ); // nie hamuj
+                                    AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
                                     VelDesired =
                                         min_speed(
                                             VelDesired,
@@ -4661,7 +4669,7 @@ TController::UpdateSituation(double dt) {
                                 VelDesired =
                                     min_speed(
                                         VelDesired,
-                                        ( vehicle->fTrackBlock > 150.0 ?
+                                        ( vehicle->fTrackBlock > 100.0 ?
                                             20.0 :
                                             4.0 ) );
                             }
@@ -4832,7 +4840,11 @@ TController::UpdateSituation(double dt) {
 						}
 						else {
                             // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-                            if( ( std::max( 100.0, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                            auto const slowdowndistance { (
+                                ( OrderCurrentGet() & Connect ) == 0 ?
+                                    100.0 :
+                                    25.0 ) };
+                            if( ( std::max( slowdowndistance, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
                                 // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
                                 // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
                                 auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
