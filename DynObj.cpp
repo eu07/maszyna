@@ -1743,7 +1743,6 @@ TDynamicObject::TDynamicObject() {
     smBrakeSet = NULL; // nastawa hamulca (wajcha)
     smLoadSet = NULL; // nastawa ładunku (wajcha)
     smWiper = NULL; // wycieraczka (poniekąd też wajcha)
-    fScanDist = 300.0; // odległość skanowania, zwiększana w trybie łączenia
     ctOwner = NULL; // na początek niczyj
     iOverheadMask = 0; // maska przydzielana przez AI pojazdom posiadającym
     // pantograf, aby wymuszały

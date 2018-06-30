@@ -25,12 +25,12 @@ const int iMaxNumLights = 8;
 float const DefaultDarkThresholdLevel { 0.325f };
 
 // typy stanu świateł
-enum TLightState
-{
+enum TLightState {
     ls_Off = 0, // zgaszone
     ls_On = 1, // zapalone
     ls_Blink = 2, // migające
-    ls_Dark = 3 // Ra: zapalajce się automatycznie, gdy zrobi się ciemno
+    ls_Dark = 3, // Ra: zapalajce się automatycznie, gdy zrobi się ciemno
+    ls_Home = 4 // like ls_dark but off late at night
 };
 
 class TAnimVocaloidFrame

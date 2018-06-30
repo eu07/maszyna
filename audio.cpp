@@ -29,27 +29,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 
     ::alGenBuffers( 1, &id );
     // fetch audio data
-    if( Filename.substr( Filename.rfind( '.' ) ) == ".ogg" ) {
-        // vorbis .ogg audio data file
-        // TBD, TODO: customized vorbis_decode to avoid unnecessary shuffling around of the decoded data
-        int channels, samplerate;
-        std::int16_t *filedata { nullptr };
-        auto const samplecount{ stb_vorbis_decode_filename( Filename.c_str(), &channels, &samplerate, &filedata ) };
-        if( samplecount > 0 ) {
-            rate = samplerate;
-            data.resize( samplecount );
-            std::copy( filedata, filedata + samplecount, std::begin( data ) );
-            free( filedata );
-            if( channels > 1 ) {
-                narrow_to_mono( channels );
-                data.resize( samplecount / channels );
-            }
-        }
-        else {
-            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
-        }
-    }
-    else if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
+    if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
         // .wav audio data file
         auto *file { drwav_open_file( Filename.c_str() ) };
         if( file != nullptr ) {
@@ -93,6 +73,27 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
         // we're done with the disk data
         drflac_close( file );
     }
+    else if( Filename.substr( Filename.rfind( '.' ) ) == ".ogg" ) {
+        // vorbis .ogg audio data file
+        // TBD, TODO: customized vorbis_decode to avoid unnecessary shuffling around of the decoded data
+        int channels, samplerate;
+        std::int16_t *filedata { nullptr };
+        auto const samplecount{ stb_vorbis_decode_filename( Filename.c_str(), &channels, &samplerate, &filedata ) };
+        if( samplecount > 0 ) {
+            rate = samplerate;
+            data.resize( samplecount );
+            std::copy( filedata, filedata + samplecount, std::begin( data ) );
+            free( filedata );
+            if( channels > 1 ) {
+                narrow_to_mono( channels );
+                data.resize( samplecount / channels );
+            }
+        }
+        else {
+            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
+        }
+    }
+
     if( false == data.empty() ) {
         // send the data to openal side
         ::alBufferData( id, AL_FORMAT_MONO16, data.data(), data.size() * sizeof( std::int16_t ), rate );
