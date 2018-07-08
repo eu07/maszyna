@@ -3,6 +3,14 @@
 
 void gl::program_mvp::init()
 {
-    glUniformBlockBinding(*this, 0, glGetUniformBlockIndex(*this, "scene_ubo"));
-    glUniformBlockBinding(*this, 1, glGetUniformBlockIndex(*this, "model_ubo"));
+    GLuint index;
+
+    if ((index = glGetUniformBlockIndex(*this, "scene_ubo")) != GL_INVALID_INDEX)
+        glUniformBlockBinding(*this, 0, index);
+
+    if ((index = glGetUniformBlockIndex(*this, "model_ubo")) != GL_INVALID_INDEX)
+        glUniformBlockBinding(*this, 1, index);
+
+    if ((index = glGetUniformBlockIndex(*this, "light_ubo")) != GL_INVALID_INDEX)
+        glUniformBlockBinding(*this, 2, index);
 }

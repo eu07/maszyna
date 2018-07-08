@@ -105,7 +105,7 @@ struct global_settings {
     bool bWireFrame{ false };
     bool bAdjustScreenFreq{ true };
     float BaseDrawRange{ 2500.f };
-    int DynamicLightCount{ 3 };
+    int DynamicLightCount{ 8 };
     bool ScaleSpecularValues{ true };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
@@ -119,7 +119,6 @@ struct global_settings {
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
     GLint iMaxTextureSize{ 4096 }; // maksymalny rozmiar tekstury
     int iMultisampling{ 2 }; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
-    bool bSmoothTraction{ true }; // wygładzanie drutów starym sposobem
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry
     bool ResourceSweep{ true }; // gfx resource garbage collection
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy

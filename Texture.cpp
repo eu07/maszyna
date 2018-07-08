@@ -775,21 +775,12 @@ opengl_texture::flip_vertical() {
 }
 
 void
-texture_manager::assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse ) {
-
-    m_units[ 0 ].unit = Helper;
-    m_units[ 1 ].unit = Shadows;
-    m_units[ 2 ].unit = Normals;
-    m_units[ 3 ].unit = Diffuse;
-}
-
-void
 texture_manager::unit( GLint const Textureunit ) {
 
     if( m_activeunit == Textureunit ) { return; }
 
     m_activeunit = Textureunit;
-    ::glActiveTexture( Textureunit );
+    ::glActiveTexture( GL_TEXTURE0 + Textureunit );
 }
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
@@ -860,32 +851,32 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
     m_textures[ Texture ].second = m_garbagecollector.timestamp();
 
-    if( Texture == m_units[ Unit ].texture ) {
+    if( Texture == m_units[ Unit ] ) {
         // don't bind again what's already active
         return;
     }
     // TBD, TODO: do binding in texture object, add support for other types than 2d
-    if( m_units[ Unit ].unit == 0 ) { return; }
-    unit( m_units[ Unit ].unit );
+
+    unit(Unit);
     if( Texture != null_handle ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
         ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
-        m_units[ Unit ].texture = Texture;
+        m_units[ Unit ] = Texture;
 #else
         if( true == texture( Texture ).bind() ) {
-            m_units[ Unit ].texture = Texture;
+            m_units[ Unit ] = Texture;
         }
         else {
             // TODO: bind a special 'error' texture on failure
             ::glBindTexture( GL_TEXTURE_2D, 0 );
-            m_units[ Unit ].texture = 0;
+            m_units[ Unit ] = 0;
         }
 #endif
     }
     else {
         ::glBindTexture( GL_TEXTURE_2D, 0 );
-        m_units[ Unit ].texture = 0;
+        m_units[ Unit ] = 0;
     }
     // all done
     return;
@@ -909,7 +900,7 @@ texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
         for( auto &unit : m_units ) {
-            unit.texture = -1;
+            unit = -1;
         }
     }
 }

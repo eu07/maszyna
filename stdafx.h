@@ -66,6 +66,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>
+#include <bitset>
 
 #ifdef EU07_BUILD_STATIC
 #define GLEW_STATIC

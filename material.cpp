@@ -22,11 +22,6 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
         result = true; // once would suffice but, eh
     }
 
-    has_alpha = (
-        texture1 != null_handle ?
-            GfxRenderer.Texture( texture1 ).has_alpha :
-            false );
-
     return result;
 }
 
@@ -34,7 +29,7 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 bool
 opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
     // token can be a key or block end
-    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
+    std::string key = Input.getToken<std::string>( true, "\n\r\t  ,;[]" );
 
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
@@ -55,21 +50,28 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 ; // all work is done in the header
             }
         }
-        else if( key == "texture1:" ) {
-            if( ( texture1 == null_handle )
-             || ( Priority > priority1 ) ) {
+        else if (key.compare(0, 7, "texture") == 0) {
+            key.erase(0, 7);
+            size_t num = std::stoi(key) - 1;
+            if (num < textures.size() &&
+                    (textures[num] == null_handle || Priority > m_priority[num]))
+            {
 				std::replace(value.begin(), value.end(), '\\', '/');
-                texture1 = GfxRenderer.Fetch_Texture( value, Loadnow );
-                priority1 = Priority;
+                textures[num] = GfxRenderer.Fetch_Texture( value, Loadnow );
+                m_priority[num] = Priority;
             }
         }
-        else if( key == "texture2:" ) {
-            if( ( texture2 == null_handle )
-             || ( Priority > priority2 ) ) {
-				std::replace(value.begin(), value.end(), '\\', '/');
-                texture2 = GfxRenderer.Fetch_Texture( value, Loadnow );
-                priority2 = Priority;
-            }
+        else if (key == "shader:" &&
+                (!shader || Priority > m_priority[max_textures]))
+        {
+            shader = GfxRenderer.Fetch_Shader(value);
+            m_priority[max_textures] = Priority;
+        }
+        else if (key == "opacity:" &&
+                Priority > m_priority[max_textures + 1])
+        {
+            opacity = std::stoi(value); //m7t: handle exception
+            m_priority[max_textures + 1] = Priority;
         }
         else if( value == "{" ) {
             // unrecognized or ignored token, but comes with attribute block and potential further nesting
@@ -129,16 +131,26 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
     else {
         // if there's no .mat file, this could be legacy method of referring just to diffuse texture directly, make a material out of it in such case
-        material.texture1 = GfxRenderer.Fetch_Texture( Filename, Loadnow );
-        if( material.texture1 == null_handle ) {
+        material.textures[0] = GfxRenderer.Fetch_Texture( Filename, Loadnow );
+        if( material.textures[0] == null_handle ) {
             // if there's also no texture, give up
             return null_handle;
         }
         // use texture path and name to tell the newly created materials apart
-        filename = GfxRenderer.Texture( material.texture1 ).name;
+        filename = GfxRenderer.Texture( material.textures[0] ).name;
         erase_extension( filename );
         material.name = filename;
-        material.has_alpha = GfxRenderer.Texture( material.texture1 ).has_alpha;
+    }
+
+    if (!material.shader)
+        material.shader = GfxRenderer.Fetch_Shader("default");
+
+    if (std::isnan(material.opacity))
+    {
+        if (material.textures[0] != null_handle)
+            material.opacity = GfxRenderer.Texture( material.textures[0] ).has_alpha ? 0.0f : 1.0f;
+        else
+            material.opacity = 1.0f;
     }
 
     material_handle handle = m_materials.size();

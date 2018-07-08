@@ -32,6 +32,8 @@ struct opengl_light : public basic_light {
 
     GLuint id { (GLuint)-1 };
 
+    float factor;
+
     void
         apply_intensity( float const Factor = 1.0f );
     void
@@ -138,10 +140,10 @@ public:
         Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 );
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0 );
     // adds supplied vertex data at the end of specified chunk
     bool
-        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type );
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         Vertices( gfx::geometry_handle const &Geometry ) const;
@@ -150,6 +152,10 @@ public:
         Fetch_Material( std::string const &Filename, bool const Loadnow = true );
     void
         Bind_Material( material_handle const Material );
+
+    // shader methods
+    std::shared_ptr<gl::program> Fetch_Shader(std::string const &name);
+
     opengl_material const &
         Material( material_handle const Material ) const;
     // texture methods
@@ -159,9 +165,6 @@ public:
         Bind_Texture( texture_handle const Texture );
     opengl_texture const &
         Texture( texture_handle const Texture ) const;
-    // light methods
-    void
-        Disable_Lights();
     // utility methods
     TSubModel const *
         Pick_Control() const { return m_pickcontrolitem; }
@@ -196,13 +199,6 @@ private:
         pickscenery
     };
 
-    enum textureunit {
-        helper = 0,
-        shadows,
-        normals,
-        diffuse
-    };
-
     struct debug_stats {
         int dynamics { 0 };
         int models { 0 };
@@ -225,13 +221,6 @@ private:
         float draw_range { 0.0f };
     };
 
-    struct units_state {
-
-        bool diffuse { false };
-        bool shadows { false };
-        bool reflections { false };
-    };
-
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
@@ -244,18 +233,11 @@ private:
     void
         setup_drawing( bool const Alpha = false );
     void
-        setup_units( bool const Diffuse, bool const Shadows, bool const Reflections );
-    void
         setup_shadow_map( GLuint const Texture, glm::mat4 const &Transformation );
     void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
         setup_environment_light( TEnvironmentType const Environment = e_flat );
-    void
-        switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
-    // helper, texture manager method; activates specified texture unit
-    void
-        select_unit( GLint const Textureunit );
     // runs jobs needed to generate graphics for specified render pass
     void
         Render_pass( rendermode const Mode );
@@ -362,12 +344,6 @@ private:
     int m_environmentupdatetime { 0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
-    int m_helpertextureunit { GL_TEXTURE0 };
-    int m_shadowtextureunit { GL_TEXTURE1 };
-    int m_normaltextureunit { GL_TEXTURE2 };
-    int m_diffusetextureunit{ GL_TEXTURE3 };
-    units_state m_unitstate;
-
     unsigned int m_framestamp; // id of currently rendered gfx frame
     float m_framerate;
     double m_updateaccumulator { 0.0 };
@@ -398,11 +374,23 @@ private:
 	GLuint m_gltimequery = 0;
 	GLuint64 m_gllasttime = 0;
 
-    std::unique_ptr<gl::program_mvp> shader;
+    std::unique_ptr<gl::shader> m_vertex_shader;
+
     std::unique_ptr<gl::ubo> scene_ubo;
     std::unique_ptr<gl::ubo> model_ubo;
+    std::unique_ptr<gl::ubo> light_ubo;
     gl::scene_ubs scene_ubs;
     gl::model_ubs model_ubs;
+    gl::light_ubs light_ubs;
+
+    std::unordered_map<std::string, std::shared_ptr<gl::program>> m_shaders;
+
+    std::unique_ptr<gl::program> m_line_shader;
+    std::unique_ptr<gl::program> m_freespot_shader;
+
+    material_handle m_invalid_material;
+
+    bool m_widelines_supported;
 };
 
 extern opengl_renderer GfxRenderer;

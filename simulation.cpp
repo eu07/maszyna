@@ -370,7 +370,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             // 3d terrain
             if( false == Scratchpad.binary.terrain ) {
                 // if we're loading data from text .scn file convert and import
-                auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
+                auto *instance = deserialize_model( Input, Scratchpad, nodedata );
                 // model import can potentially fail
                 if( instance == nullptr ) { return; }
                 // go through submodels, and import them as shapes

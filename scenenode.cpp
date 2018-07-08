@@ -194,7 +194,7 @@ shape_node::import( cParser &Input, scene::node_data const &Nodedata ) {
     // TBT, TODO: add methods to material manager to access these simpler
     auto const texturehandle = (
         m_data.material != null_handle ?
-            GfxRenderer.Material( m_data.material ).texture1 :
+            GfxRenderer.Material( m_data.material ).textures[0] :
             null_handle );
     auto const &texture = (
         texturehandle ?
@@ -340,7 +340,7 @@ shape_node::convert( TSubModel const *Submodel ) {
     m_data.lighting.diffuse = Submodel->f4Diffuse;
     m_data.lighting.specular = Submodel->f4Specular;
     m_data.material = Submodel->m_material;
-    m_data.translucent = ( true == GfxRenderer.Material( m_data.material ).has_alpha );
+    m_data.translucent = ( true == GfxRenderer.Material( m_data.material ).opacity < 1.0f );
     // NOTE: we set unlimited view range typical for terrain, because we don't expect to convert any other 3d models
     m_data.rangesquared_max = std::numeric_limits<double>::max();
 

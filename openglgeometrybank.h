@@ -26,6 +26,7 @@ struct basic_vertex {
     glm::vec3 position; // 3d space
     glm::vec3 normal; // 3d space
     glm::vec2 texture; // uv space
+    glm::vec4 tangent; // xyz - tangent, w - handedness
 
     basic_vertex() = default;
     basic_vertex( glm::vec3 Position,  glm::vec3 Normal,  glm::vec2 Texture ) :
@@ -35,18 +36,9 @@ struct basic_vertex {
     void deserialize( std::istream& );
 };
 
-// data streams carried in a vertex
-enum stream {
-    none     = 0x0,
-    position = 0x1,
-    normal   = 0x2,
-    color    = 0x4, // currently normal and colour streams are stored in the same slot, and mutually exclusive
-    texture  = 0x8
-};
-
-unsigned int const basic_streams { stream::position | stream::normal | stream::texture };
-unsigned int const color_streams { stream::position | stream::color | stream::texture };
 typedef std::vector<basic_vertex> vertex_array;
+
+void calculate_tangent(vertex_array &vertices, int type);
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
@@ -100,11 +92,11 @@ public:
         append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( gfx::geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
+        draw( gfx::geometry_handle const &Geometry );
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Streams ); ++First; } }
+        draw( Iterator_ First, Iterator_ Last ) { while( First != Last ) { draw( *First ); ++First; } }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void
         release();
@@ -146,7 +138,7 @@ private:
     // replace() subclass details
     virtual void replace_( gfx::geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams ) = 0;
+    virtual void draw_( gfx::geometry_handle const &Geometry ) = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -185,7 +177,7 @@ private:
         replace_( gfx::geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry );
     // release() subclass details
     void
         release_();
@@ -224,12 +216,12 @@ public:
         append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( gfx::geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
+        draw( gfx::geometry_handle const &Geometry);
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) {
+        draw( Iterator_ First, Iterator_ Last ) {
             while( First != Last ) { 
-                draw( *First, Streams );
+                draw( *First );
                 ++First; } }
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &

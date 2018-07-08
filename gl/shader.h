@@ -14,6 +14,10 @@ namespace gl
     public:
         shader(const std::string &filename);
         ~shader();
+
+    private:
+        void expand_includes(std::string &str);
+        std::string read_file(const std::string &filename);
     };
 
     class program : public object, public bindable<program>

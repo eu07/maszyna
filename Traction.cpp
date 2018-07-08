@@ -566,37 +566,21 @@ TTraction::wire_color() const {
         switch( PowerState ) {
 
             case 1: {
-                // czerwone z podłączonym zasilaniem 1
-//                color.r = 1.0f;
-//                color.g = 0.0f;
-//                color.b = 0.0f;
                 // cyan
                 color = glm::vec3 { 0.f, 174.f / 255.f, 239.f / 255.f };
                 break;
             }
             case 2: {
-                // zielone z podłączonym zasilaniem 2
-//                color.r = 0.0f;
-//                color.g = 1.0f;
-//                color.b = 0.0f;
                 // yellow
                 color = glm::vec3 { 240.f / 255.f, 228.f / 255.f, 0.f };
                 break;
             }
             case 3: {
-                //żółte z podłączonym zasilaniem z obu stron
-//                color.r = 1.0f;
-//                color.g = 1.0f;
-//                color.b = 0.0f;
                 // green
                 color = glm::vec3 { 0.f, 239.f / 255.f, 118.f / 255.f };
                 break;
             }
             case 4: {
-                // niebieskie z podłączonym zasilaniem
-//                color.r = 0.5f;
-//                color.g = 0.5f;
-//                color.b = 1.0f;
                 // white for powered, red for ends
                 color = (
                     psPowered != nullptr ?
@@ -611,46 +595,6 @@ TTraction::wire_color() const {
             color.g *= 0.6f;
             color.b *= 0.6f;
         }
-/*
-        switch( iTries ) {
-            case 0: {
-                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
-                break;
-            }
-            case 1: {
-                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
-                break;
-            }
-            case 5: {
-                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
-                break;
-            }
-            default: {
-                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
-                break;
-            }
-        }
-*/
-/*
-        switch( iLast ) {
-            case 0: {
-                color = glm::vec3{ 240.f / 255.f, 228.f / 255.f, 0.f }; // yellow
-                break;
-            }
-            case 1: {
-                color = glm::vec3{ 239.f / 255.f, 128.f / 255.f, 128.f / 255.f }; // red
-                break;
-            }
-            case 2: {
-                color = glm::vec3{ 0.f / 255.f, 239.f / 255.f, 118.f / 255.f }; // green
-                break;
-            }
-            default: {
-                color = glm::vec3{ 239.f / 255.f, 239.f / 255.f, 239.f / 255.f };
-                break;
-            }
-        }
-*/
     }
     return color;
 }

@@ -349,12 +349,6 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> shadowtune.depth
                 >> shadowtune.distance;
         }
-        else if (token == "smoothtraction")
-        {
-            // podwójna jasność ambient
-            Parser.getTokens();
-            Parser >> bSmoothTraction;
-        }
         else if( token == "splinefidelity" ) {
             // segment size during spline->geometry conversion
             float splinefidelity;
@@ -679,10 +673,6 @@ global_settings::ConfigParse(cParser &Parser) {
     { // tutaj wyłączenie, bo mogą nie być zdefiniowane w INI
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
-    }
-    if (iMultisampling)
-    { // antyaliasing całoekranowy wyłącza rozmywanie drutów
-        bSmoothTraction = false;
     }
     if (iMultiplayer > 0)
     {

@@ -1361,7 +1361,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                 }
                 if( ( Bank == 0 ) && ( false == Geometry2.empty() ) ) {
                     // special variant, replace existing data for a turntable track
-                    GfxRenderer.Replace( vertices, Geometry2[ 0 ] );
+                    GfxRenderer.Replace( vertices, Geometry2[ 0 ], GL_TRIANGLE_STRIP );
                 }
             }
             if (m_material1)
@@ -1377,10 +1377,10 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                 if( ( Bank == 0 ) && ( false == Geometry1.empty() ) ) {
                     // special variant, replace existing data for a turntable track
                     Segment->RenderLoft( vertices, m_origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    GfxRenderer.Replace( vertices, Geometry1[ 0 ] );
+                    GfxRenderer.Replace( vertices, Geometry1[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear(); // reuse the scratchpad
                     Segment->RenderLoft( vertices, m_origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    GfxRenderer.Replace( vertices, Geometry1[ 1 ] );
+                    GfxRenderer.Replace( vertices, Geometry1[ 1 ], GL_TRIANGLE_STRIP );
                 }
             }
             break;
@@ -2478,13 +2478,13 @@ TTrack * TTrack::RaAnimate()
                 if( m_material1 ) {
                     // left blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, SwitchExtension->fOffset2 );
-                    GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
+                    GfxRenderer.Replace( vertices, Geometry1[ 2 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // right blade
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -fMaxOffset + SwitchExtension->fOffset1 );
-                    GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
+                    GfxRenderer.Replace( vertices, Geometry2[ 2 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
             }
@@ -2492,13 +2492,13 @@ TTrack * TTrack::RaAnimate()
                 if( m_material1 ) {
                     // right blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, -nnumPts, fTexLength, 1.0, 0, bladelength, -SwitchExtension->fOffset2 );
-                    GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
+                    GfxRenderer.Replace( vertices, Geometry1[ 2 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
                 if( m_material2 ) {
                     // left blade
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, -nnumPts, fTexLength, 1.0, 0, bladelength, fMaxOffset - SwitchExtension->fOffset1 );
-                    GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
+                    GfxRenderer.Replace( vertices, Geometry2[ 2 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
             }

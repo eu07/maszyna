@@ -81,8 +81,6 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
-    void
-        assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse );
     // activates specified texture unit
     void
         unit( GLint const Textureunit );
@@ -112,11 +110,6 @@ private:
 
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
-    struct texture_unit {
-        GLint unit { 0 };
-        texture_handle texture { null_handle }; // current (most recently bound) texture
-    };
-
 // methods:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
@@ -132,7 +125,7 @@ private:
     texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
-    std::array<texture_unit, 4> m_units;
+    std::array<texture_handle, 4> m_units;
     GLint m_activeunit { 0 };
 };
 

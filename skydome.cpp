@@ -119,8 +119,8 @@ void CSkyDome::Render() {
 
     if (!m_shader)
     {
-        gl::shader vert("shaders/vbocolor.vert");
-        gl::shader frag("shaders/color.frag");
+        gl::shader vert("vbocolor.vert");
+        gl::shader frag("color.frag");
         m_shader = std::make_unique<gl::program_mvp>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
         m_shader->init();
     }

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include "shader.h"
+#include "glsl_common.h"
 
 inline bool strcend(std::string const &value, std::string const &ending)
 {
@@ -11,17 +12,51 @@ inline bool strcend(std::string const &value, std::string const &ending)
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-gl::shader::shader(const std::string &filename)
+std::string gl::shader::read_file(const std::string &filename)
 {
     std::stringstream stream;
     std::ifstream f;
     f.exceptions(std::ifstream::badbit);
 
-    f.open(filename);
+    f.open("shaders/" + filename);
     stream << f.rdbuf();
     f.close();
 
     std::string str = stream.str();
+
+    return str;
+}
+
+void gl::shader::expand_includes(std::string &str)
+{
+    size_t start_pos = 0;
+
+    std::string magic = "#include";
+    while ((start_pos = str.find(magic, start_pos)) != str.npos)
+    {
+        size_t fp = str.find('<', start_pos);
+        size_t fe = str.find('>', start_pos);
+        if (fp == str.npos || fe == str.npos)
+            return;
+
+        std::string filename = str.substr(fp + 1, fe - fp - 1);
+        std::string content;
+        if (filename != "common")
+            content = read_file(filename);
+        else
+            content = glsl_common;
+
+        str.replace(start_pos, fe - start_pos + 1, content);
+    }
+}
+
+gl::shader::shader(const std::string &filename)
+{
+    std::string str = read_file(filename);
+    expand_includes(str);
+
+    std::cout << (str) << std::endl;;
+
     const GLchar *cstr = str.c_str();
 
     if (!cstr[0])
@@ -58,7 +93,19 @@ gl::shader::~shader()
 void gl::program::init()
 {
     bind();
-    glUniform1i(glGetUniformLocation(*this, "tex"), 3);
+
+    int i = 0;
+    GLuint loc;
+    while (true)
+    {
+        std::string name = "tex" + std::to_string(i + 1);
+        loc = glGetUniformLocation(*this, name.c_str());
+        if (loc != -1)
+            glUniform1i(loc, i);
+        else
+            break;
+        i++;
+    }
 }
 
 gl::program::program()

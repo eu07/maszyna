@@ -84,6 +84,8 @@ set(SOURCES
 "gl/shader_mvp.cpp"
 "gl/vao.cpp"
 "gl/ubo.cpp"
+"gl/framebuffer.cpp"
+"gl/renderbuffer.cpp"
 )
 
 set (PREFIX "")

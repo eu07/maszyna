@@ -5,8 +5,7 @@ in vec3 v_color;
 
 out vec3 f_color;
 
-uniform mat4 modelview;
-uniform mat4 projection;
+#include <common>
 
 void main()
 {

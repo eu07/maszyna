@@ -46,6 +46,104 @@ basic_vertex::deserialize( std::istream &s ) {
     texture.y = sn_utils::ld_float32( s );
 }
 
+// based on
+// Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
+// Terathon Software, 2001. http://terathon.com/code/tangent.html
+void calculate_tangent(vertex_array &vertices, int type)
+{
+    size_t vertex_count = vertices.size();
+
+    if (!vertex_count || vertices[0].tangent.w != 0.0f)
+        return;
+
+    size_t triangle_count;
+    if (type == GL_TRIANGLES)
+        triangle_count = vertex_count / 3;
+    else if (type == GL_TRIANGLE_STRIP)
+        triangle_count = vertex_count - 2;
+    else if (type == GL_TRIANGLE_FAN)
+        triangle_count = vertex_count - 2;
+    else
+        return;
+
+    std::vector<glm::vec3> tan(vertex_count * 2);
+
+    for (size_t a = 0; a < triangle_count; a++)
+    {
+        size_t i1, i2, i3;
+        if (type == GL_TRIANGLES)
+        {
+            i1 = a * 3;
+            i2 = a * 3 + 1;
+            i3 = a * 3 + 2;
+        }
+        else if (type == GL_TRIANGLE_STRIP)
+        {
+            if (a % 2 == 0)
+            {
+                i1 = a;
+                i2 = a + 1;
+            }
+            else
+            {
+                i1 = a + 1;
+                i2 = a;
+            }
+            i3 = a + 2;
+        }
+        else if (type == GL_TRIANGLE_FAN)
+        {
+            i1 = 0;
+            i2 = a + 1;
+            i3 = a + 2;
+        }
+
+        const glm::vec3 &v1 = vertices[i1].position;
+        const glm::vec3 &v2 = vertices[i2].position;
+        const glm::vec3 &v3 = vertices[i3].position;
+
+        const glm::vec2 &w1 = vertices[i1].texture;
+        const glm::vec2 &w2 = vertices[i2].texture;
+        const glm::vec2 &w3 = vertices[i3].texture;
+
+        float x1 = v2.x - v1.x;
+        float x2 = v3.x - v1.x;
+        float y1 = v2.y - v1.y;
+        float y2 = v3.y - v1.y;
+        float z1 = v2.z - v1.z;
+        float z2 = v3.z - v1.z;
+
+        float s1 = w2.x - w1.x;
+        float s2 = w3.x - w1.x;
+        float t1 = w2.y - w1.y;
+        float t2 = w3.y - w1.y;
+
+        float r = 1.0F / (s1 * t2 - s2 * t1);
+        glm::vec3 sdir((t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r,
+            (t2 * z1 - t1 * z2) * r);
+        glm::vec3 tdir((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
+            (s1 * z2 - s2 * z1) * r);
+
+        tan[i1] += sdir;
+        tan[i2] += sdir;
+        tan[i3] += sdir;
+
+        tan[vertex_count + i1] += tdir;
+        tan[vertex_count + i2] += tdir;
+        tan[vertex_count + i3] += tdir;
+    }
+
+    for (size_t a = 0; a < vertex_count; a++)
+    {
+        const glm::vec3 &n = vertices[a].normal;
+        const glm::vec3 &t = tan[a];
+        const glm::vec3 &t2 = tan[vertex_count + a];
+
+        vertices[a].tangent = glm::vec4(glm::normalize((t - n * glm::dot(n, t))),
+            (glm::dot(glm::cross(n, t), t2) < 0.0F) ? -1.0F : 1.0F);
+    }
+}
+
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
 // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
@@ -100,9 +198,9 @@ geometry_bank::append( gfx::vertex_array &Vertices, gfx::geometry_handle const &
 
 // draws geometry stored in specified chunk
 void
-geometry_bank::draw( gfx::geometry_handle const &Geometry, unsigned int const Streams ) {
+geometry_bank::draw( gfx::geometry_handle const &Geometry ) {
     // template method implementation
-    draw_( Geometry, Streams );
+    draw_( Geometry );
 }
 
 // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
@@ -145,7 +243,7 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, unsigned int const Streams ) {
+opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry) {
 
     if( m_buffer == 0 ) {
         // if there's no buffer, we'll have to make one
@@ -193,17 +291,11 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, unsigned in
         m_vao = std::make_unique<gl::vao>();
         glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
 
-        if( Streams & gfx::stream::position )
-            m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
-
-        // NOTE: normal and color streams share the data, making them effectively mutually exclusive
-        if( Streams & gfx::stream::normal )
-            m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
-        else if( Streams & gfx::stream::color )
-            m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
-
-        if( Streams & gfx::stream::texture )
-            m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
+        m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
+        // NOTE: normal and color streams share the data
+        m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
+        m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
+        m_vao->setup_attrib(3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(GL_FLOAT));
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         m_vao->unbind();
@@ -271,7 +363,6 @@ geometrybank_manager::create_bank() {
 // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle
 geometrybank_manager::create_chunk( gfx::vertex_array const &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
-
     auto const newchunkhandle = bank( Geometry ).first->create( Vertices, Type );
 
     if( newchunkhandle.chunk != 0 ) { return { Geometry.bank, newchunkhandle.chunk }; }
@@ -293,14 +384,14 @@ geometrybank_manager::append( gfx::vertex_array &Vertices, gfx::geometry_handle 
 }
 // draws geometry stored in specified chunk
 void
-geometrybank_manager::draw( gfx::geometry_handle const &Geometry, unsigned int const Streams ) {
+geometrybank_manager::draw( gfx::geometry_handle const &Geometry ) {
 
     if( Geometry == null_handle ) { return; }
 
     auto &bankrecord = bank( Geometry );
 
     bankrecord.second = m_garbagecollector.timestamp();
-    bankrecord.first->draw( Geometry, Streams );
+    bankrecord.first->draw( Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk

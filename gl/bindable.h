@@ -16,7 +16,7 @@ namespace gl
             active = this;
             T::bind(*static_cast<T*>(active));
         }
-        void unbind()
+        static void unbind()
         {
             active = nullptr;
             T::bind(0);
