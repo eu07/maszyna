@@ -31,7 +31,6 @@ class TCamera {
     Math3D::vector3 GetDirection();
     bool SetMatrix(glm::dmat4 &Matrix);
     void RaLook();
-    void Stop();
 
     TCameraType Type;
     double Pitch;

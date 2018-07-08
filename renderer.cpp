@@ -449,6 +449,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
         case rendermode::color: {
 
+            m_colorpass = m_renderpass;
+
             if( ( true == Global.RenderShadows )
              && ( false == Global.bWireFrame )
              && ( true == World.InitPerformed() )
@@ -1668,6 +1670,11 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             Update_Lights( simulation::Lights );
 
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
+            if( EditorModeFlag && FreeFlyModeFlag && Global.ControlPicking ) {
+                // when editor mode is active calculate world position of the cursor
+                // at this stage the z-buffer is filled with only ground geometry
+                Update_Mouse_Position();
+            }
             // draw queue is filled while rendering sections
             Render( std::begin( m_cellqueue ), std::end( m_cellqueue ) );
             break;
@@ -1912,7 +1919,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                     ::glPushAttrib( GL_ENABLE_BIT );
                     ::glDisable( GL_TEXTURE_2D );
                     ::glColor3f( 0.36f, 0.75f, 0.35f );
-                    for( auto const *memorycell : cell->m_memorycells ) {
+                    for( auto *memorycell : cell->m_memorycells ) {
                         Render( memorycell );
                     }
                     ::glPopAttrib();
@@ -1929,7 +1936,7 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // memcells
                 if( ( EditorModeFlag )
                  && ( DebugModeFlag ) ) {
-                    for( auto const *memorycell : cell->m_memorycells ) {
+                    for( auto *memorycell : cell->m_memorycells ) {
                         ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                         Render( memorycell );
                     }
@@ -2310,16 +2317,16 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, float c
 }
 
 bool
-opengl_renderer::Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
     if( Angle.y != 0.0 )
-        ::glRotated( Angle.y, 0.0, 1.0, 0.0 );
+        ::glRotatef( Angle.y, 0.f, 1.f, 0.f );
     if( Angle.x != 0.0 )
-        ::glRotated( Angle.x, 1.0, 0.0, 0.0 );
+        ::glRotatef( Angle.x, 1.f, 0.f, 0.f );
     if( Angle.z != 0.0 )
-        ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
+        ::glRotatef( Angle.z, 0.f, 0.f, 1.f );
 
     auto const result = Render( Model, Material, Squaredistance );
 
@@ -2755,7 +2762,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
 }
 
 void
-opengl_renderer::Render( TMemCell const *Memcell ) {
+opengl_renderer::Render( TMemCell *Memcell ) {
 
     ::glPushMatrix();
     auto const position = Memcell->location() - m_renderpass.camera.position();
@@ -3129,16 +3136,16 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, f
 }
 
 bool
-opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
     if( Angle.y != 0.0 )
-        ::glRotated( Angle.y, 0.0, 1.0, 0.0 );
+        ::glRotatef( Angle.y, 0.f, 1.f, 0.f );
     if( Angle.x != 0.0 )
-        ::glRotated( Angle.x, 1.0, 0.0, 0.0 );
+        ::glRotatef( Angle.x, 1.f, 0.f, 0.f );
     if( Angle.z != 0.0 )
-        ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
+        ::glRotatef( Angle.z, 0.f, 0.f, 1.f );
 
     auto const result = Render_Alpha( Model, Material, Squaredistance ); // position is effectively camera offset
 
@@ -3379,7 +3386,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
 
 // utility methods
-TSubModel const *
+TSubModel *
 opengl_renderer::Update_Pick_Control() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3412,7 +3419,7 @@ opengl_renderer::Update_Pick_Control() {
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
     auto const controlindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-    TSubModel const *control { nullptr };
+    TSubModel *control { nullptr };
     if( ( controlindex > 0 )
      && ( controlindex <= m_pickcontrolsitems.size() ) ) {
         control = m_pickcontrolsitems[ controlindex - 1 ];
@@ -3426,7 +3433,7 @@ opengl_renderer::Update_Pick_Control() {
     return control;
 }
 
-scene::basic_node const *
+scene::basic_node *
 opengl_renderer::Update_Pick_Node() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3461,7 +3468,7 @@ opengl_renderer::Update_Pick_Node() {
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
     auto const nodeindex = pick_index( glm::ivec3{ pickreadout[ 2 ], pickreadout[ 1 ], pickreadout[ 0 ] } );
-    scene::basic_node const *node { nullptr };
+    scene::basic_node *node { nullptr };
     if( ( nodeindex > 0 )
      && ( nodeindex <= m_picksceneryitems.size() ) ) {
         node = m_picksceneryitems[ nodeindex - 1 ];
@@ -3473,6 +3480,29 @@ opengl_renderer::Update_Pick_Node() {
 #endif
     m_picksceneryitem = node;
     return node;
+}
+
+// converts provided screen coordinates to world coordinates of most recent color pass
+glm::dvec3
+opengl_renderer::Update_Mouse_Position() {
+
+    glm::dvec2 mousepos;
+    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+    mousepos.x = clamp<int>( mousepos.x, 0, Global.iWindowWidth - 1 );
+    mousepos.y = clamp<int>( Global.iWindowHeight - clamp<int>( mousepos.y, 0, Global.iWindowHeight ), 0, Global.iWindowHeight - 1 ) ;
+    GLfloat pointdepth;
+    ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
+
+    if( pointdepth < 1.0 ) {
+        m_worldmousecoordinates =
+            glm::unProject(
+                glm::vec3{ mousepos, pointdepth },
+                glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
+                m_colorpass.camera.projection(),
+                glm::vec4{ 0, 0, Global.iWindowWidth, Global.iWindowHeight } );
+    }
+
+    return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
 }
 
 void

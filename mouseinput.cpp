@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "globals.h"
 #include "timer.h"
+#include "simulation.h"
 #include "world.h"
 #include "train.h"
 #include "renderer.h"
@@ -74,33 +75,21 @@ mouse_input::button( int const Button, int const Action ) {
     if( false == Global.ControlPicking ) { return; }
 
     if( true == FreeFlyModeFlag ) {
-        // world editor controls
-        // TODO: separate behaviour when the scenery editor is active and in 'regular' free fly mode
-        if( Action == GLFW_RELEASE ) {
-            // if it's the right mouse button that got released we were potentially in view panning mode; stop it
-            if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-                m_pickmodepanning = false;
+        // freefly mode
+        // left mouse button launches on_click event associated with to the node
+        if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
+            if( Action == GLFW_PRESS ) {
+                auto const *node { GfxRenderer.Update_Pick_Node() };
+                if( ( node == nullptr )
+                 || ( typeid( *node ) != typeid( TAnimModel ) ) ) {
+                    return;
+                }
+                simulation::Region->on_click( static_cast<TAnimModel const *>( node ) );
             }
         }
-        else {
-            // button press
-            if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
-                // the left button selects scene node
-                // further behaviour can vary depending on whether we're in editor mode
-                auto const *node { GfxRenderer.Update_Pick_Node() };
-                if( true == EditorModeFlag ) {
-                    // NOTE: until we have proper editor object in place we set the current node manually
-                    editor::Node = node;
-                }
-                else {
-                    // launch on_click event associated with to the node
-                    // TODO: implement
-                }
-            }
-            if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-                // the right button activates mouse panning mode
-                m_pickmodepanning = true;
-            }
+        // right button controls panning
+        if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+            m_pickmodepanning = ( Action == GLFW_PRESS );
         }
     }
     else {
@@ -130,60 +119,57 @@ mouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto train = World.train();
-            if( train != nullptr ) {
-                auto lookup = m_mousecommands.find( train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
-                if( lookup != m_mousecommands.end() ) {
-                    mousecommand = (
-                        Button == GLFW_MOUSE_BUTTON_LEFT ?
-                            lookup->second.left :
-                            lookup->second.right
-                        );
-                    if( mousecommand != user_command::none ) {
-                        // check manually for commands which have 'fast' variants launched with shift modifier
-                        if( Global.shiftState ) {
-                            switch( mousecommand ) {
-                                case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
-                                case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
-                                case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
-                                case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
-                                case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
-                                case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
-                                default: { break; }
-                            }
-                        }
-                        // NOTE: basic keyboard controls don't have any parameters
-                        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-                        // TODO: pass correct entity id once the missing systems are in place
-                        m_relay.post( mousecommand, 0, 0, Action, 0 );
-                        m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-
-                        switch( mousecommand ) {
-                            case user_command::mastercontrollerincrease:
-                            case user_command::mastercontrollerdecrease:
-                            case user_command::secondcontrollerincrease:
-                            case user_command::secondcontrollerdecrease:
-                            case user_command::trainbrakeincrease:
-                            case user_command::trainbrakedecrease:
-                            case user_command::independentbrakeincrease:
-                            case user_command::independentbrakedecrease: {
-                                // these commands trigger varying repeat rate mode,
-                                // which scales the rate based on the distance of the cursor from its point when the command was first issued
-                                m_commandstartcursor = m_cursorposition;
-                                m_varyingpollrate = true;
-                                break;
-                            }
-                            default: {
-                                break;
-                            }
-                        }
+            auto const lookup = m_mousecommands.find( World.train()->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            if( lookup != m_mousecommands.end() ) {
+                // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
+                mousecommand = (
+                    Button == GLFW_MOUSE_BUTTON_LEFT ?
+                        lookup->second.left :
+                        lookup->second.right
+                    );
+                if( mousecommand == user_command::none ) { return; }
+                // check manually for commands which have 'fast' variants launched with shift modifier
+                if( Global.shiftState ) {
+                    switch( mousecommand ) {
+                        case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
+                        case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
+                        case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
+                        case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
+                        case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
+                        case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
+                        default: { break; }
                     }
                 }
-                else {
-                    // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-                    if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-                        m_pickmodepanning = true;
+                // NOTE: basic keyboard controls don't have any parameters
+                // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+                // TODO: pass correct entity id once the missing systems are in place
+                m_relay.post( mousecommand, 0, 0, Action, 0 );
+                m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
+
+                switch( mousecommand ) {
+                    case user_command::mastercontrollerincrease:
+                    case user_command::mastercontrollerdecrease:
+                    case user_command::secondcontrollerincrease:
+                    case user_command::secondcontrollerdecrease:
+                    case user_command::trainbrakeincrease:
+                    case user_command::trainbrakedecrease:
+                    case user_command::independentbrakeincrease:
+                    case user_command::independentbrakedecrease: {
+                        // these commands trigger varying repeat rate mode,
+                        // which scales the rate based on the distance of the cursor from its point when the command was first issued
+                        m_varyingpollrateorigin = m_cursorposition;
+                        m_varyingpollrate = true;
+                        break;
                     }
+                    default: {
+                        break;
+                    }
+                }
+            }
+            else {
+                // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+                if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                    m_pickmodepanning = true;
                 }
             }
         }
@@ -197,7 +183,7 @@ mouse_input::poll() {
 
     auto updaterate { m_updaterate };
     if( m_varyingpollrate ) {
-        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global.iWindowHeight ) );
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_varyingpollrateorigin ) / std::max( 1, Global.iWindowHeight ) );
     }
 
     while( m_updateaccumulator > updaterate ) {

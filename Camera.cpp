@@ -237,9 +237,3 @@ void TCamera::RaLook()
         m_rotationoffsets.x = 0.0;
     }
 };
-
-void TCamera::Stop()
-{ // wyłącznie bezwładnego ruchu po powrocie do kabiny
-    Type = tp_Follow;
-    Velocity = Math3D::vector3(0, 0, 0);
-};

@@ -620,13 +620,13 @@ state_manager::deserialize_path( cParser &Input, scene::scratch_data &Scratchpad
 
     // TODO: refactor track and wrapper classes and their de/serialization. do offset and rotation after deserialization is done
     auto *track = new TTrack( Nodedata );
-    Math3D::vector3 offset = (
+    auto const offset { (
         Scratchpad.location.offset.empty() ?
-        Math3D::vector3() :
-        Math3D::vector3(
-            Scratchpad.location.offset.top().x,
-            Scratchpad.location.offset.top().y,
-            Scratchpad.location.offset.top().z ) );
+            glm::dvec3 { 0.0 } :
+            glm::dvec3 {
+                Scratchpad.location.offset.top().x,
+                Scratchpad.location.offset.top().y,
+                Scratchpad.location.offset.top().z } ) };
     track->Load( &Input, offset );
 
     return track;
@@ -707,7 +707,7 @@ state_manager::deserialize_model( cParser &Input, scene::scratch_data &Scratchpa
         >> rotation.y;
 
     auto *instance = new TAnimModel( Nodedata );
-    instance->RaAnglesSet( Scratchpad.location.rotation + rotation ); // dostosowanie do pochylania linii
+    instance->Angles( Scratchpad.location.rotation + rotation ); // dostosowanie do pochylania linii
 
     if( instance->Load( &Input, false ) ) {
         instance->location( transform( location, Scratchpad ) );

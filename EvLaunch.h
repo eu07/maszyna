@@ -24,6 +24,7 @@ public:
 
 // methods
     bool Load( cParser *parser );
+    bool check_activation();
     // checks conditions associated with the event. returns: true if the conditions are met
     bool check_conditions();
     bool IsGlobal() const;

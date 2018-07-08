@@ -18,23 +18,8 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-// helper, restores content of a 3d vector from provided input stream
-// TODO: review and clean up the helper routines, there's likely some redundant ones
-Math3D::vector3 LoadPoint( cParser &Input ) {
-    // pobranie współrzędnych punktu
-    Input.getTokens( 3 );
-    Math3D::vector3 point;
-    Input
-        >> point.x
-        >> point.y
-        >> point.z;
-
-    return point;
-}
-
-
 void
-segment_data::deserialize( cParser &Input, Math3D::vector3 const &Offset ) {
+segment_data::deserialize( cParser &Input, glm::dvec3 const &Offset ) {
 
     points[ segment_data::point::start ] = LoadPoint( Input ) + Offset;
     Input.getTokens();

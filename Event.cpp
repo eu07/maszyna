@@ -894,7 +894,7 @@ event_manager::update() {
     // test list of global events for possible new additions to the queue
     for( auto *launcher : m_launcherqueue ) {
 
-        if( true == launcher->check_conditions() ) {
+        if( true == ( launcher->check_activation() && launcher->check_conditions() ) ) {
             // NOTE: we're presuming global events aren't going to use event2
             WriteLog( "Eventlauncher " + launcher->name() );
             if( launcher->Event1 ) {

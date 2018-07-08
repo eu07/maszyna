@@ -22,6 +22,19 @@ namespace scene {
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
 
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_cell::on_click( TAnimModel const *Instance ) {
+
+    for( auto *launcher : m_eventlaunchers ) {
+        if( ( launcher->name() == Instance->name() )
+         && ( glm::length2( launcher->location() - Instance->location() ) < launcher->dRadius )
+         && ( true == launcher->check_conditions() ) ) {
+            launch_event( launcher );
+        }
+    }
+}
+
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
 void
 basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
@@ -105,17 +118,10 @@ basic_cell::update_events() {
 
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
-        if( ( true == launcher->check_conditions() )
+        if( ( true == ( launcher->check_activation() && launcher->check_conditions() ) )
          && ( SquareMagnitude( launcher->location() - Global.pCameraPosition ) < launcher->dRadius ) ) {
 
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( ( true == Global.shiftState )
-             && ( launcher->Event2 != nullptr ) ) {
-                simulation::Events.AddToQuery( launcher->Event2, nullptr );
-            }
-            else if( launcher->Event1 ) {
-                simulation::Events.AddToQuery( launcher->Event1, nullptr );
-            }
+            launch_event( launcher );
         }
     }
 }
@@ -384,6 +390,38 @@ basic_cell::insert( TMemCell *Memorycell ) {
     // NOTE: memory cells are virtual 'points' hence they don't ever expand cell range
 }
 
+// removes provided model instance from the cell
+void
+basic_cell::erase( TAnimModel *Instance ) {
+
+    auto const flags = Instance->Flags();
+    auto alpha =
+        ( Instance->Material() != nullptr ?
+            Instance->Material()->textures_alpha :
+            0x30300030 );
+
+    if( alpha & flags & 0x2F2F002F ) {
+        // instance has translucent pieces
+        m_instancetranslucent.erase(
+            std::remove_if(
+                std::begin( m_instancetranslucent ), std::end( m_instancetranslucent ),
+                [=]( TAnimModel *instance ) {
+                    return instance == Instance; } ),
+            std::end( m_instancetranslucent ) );
+    }
+    alpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
+    if( alpha & flags & 0x1F1F001F ) {
+        // instance has opaque pieces
+        m_instancesopaque.erase(
+            std::remove_if(
+                std::begin( m_instancesopaque ), std::end( m_instancesopaque ),
+                [=]( TAnimModel *instance ) {
+                    return instance == Instance; } ),
+            std::end( m_instancesopaque ) );
+    }
+    // TODO: update cell bounding area
+}
+
 // registers provided path in the lookup directory of the cell
 void
 basic_cell::register_end( TTrack *Path ) {
@@ -549,6 +587,20 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
     m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
+// executes event assigned to specified launcher
+void
+basic_cell::launch_event( TEventLauncher *Launcher ) {
+
+    WriteLog( "Eventlauncher " + Launcher->name() );
+    if( ( true == Global.shiftState )
+     && ( Launcher->Event2 != nullptr ) ) {
+        simulation::Events.AddToQuery( Launcher->Event2, nullptr );
+    }
+    else if( Launcher->Event1 ) {
+        simulation::Events.AddToQuery( Launcher->Event1, nullptr );
+    }
+}
+
 // adjusts cell bounding area to enclose specified node
 void
 basic_cell::enclose_area( scene::basic_node *Node ) {
@@ -559,6 +611,13 @@ basic_cell::enclose_area( scene::basic_node *Node ) {
 }
 
 
+
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_section::on_click( TAnimModel const *Instance ) {
+
+    cell( Instance->location() ).on_click( Instance );
+}
 
 // legacy method, finds and assigns traction piece(s) to pantographs of provided vehicle
 void
@@ -854,6 +913,19 @@ basic_region::basic_region() {
 basic_region::~basic_region() {
 
     for( auto *section : m_sections ) { if( section != nullptr ) { delete section; } }
+}
+
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_region::on_click( TAnimModel const *Instance ) {
+
+    if( Instance->name().empty() || ( Instance->name() == "none" ) ) { return; }
+
+    auto const location { Instance->location() };
+
+    if( point_inside( location ) ) {
+        section( location ).on_click( Instance );
+    }
 }
 
 // legacy method, polls event launchers around camera
@@ -1185,8 +1257,8 @@ basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
 // inserts provided instance of 3d model in the region
 void
 basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Instance->location();
+
+    auto const location { Instance->location() };
 
     if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
@@ -1195,6 +1267,18 @@ basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) 
     else {
         // tracks are guaranteed to hava a name so we can skip the check
         ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
+    }
+}
+
+// removes specified instance of 3d model from the region
+void
+basic_region::erase_instance( TAnimModel *Instance ) {
+
+    auto const location { Instance->location() };
+
+    if( point_inside( location ) ) {
+        // NOTE: nodes placed outside of region boundaries are discarded
+        section( location ).erase( Instance );
     }
 }
 

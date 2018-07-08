@@ -22,9 +22,9 @@ public:
     bool
         init();
     void
-        move( double const Mousex, double const Mousey );
-    void
         button( int const Button, int const Action );
+    void
+        move( double const Mousex, double const Mousey );
     void
         poll();
 
@@ -52,8 +52,8 @@ private:
     double m_updateaccumulator { 0.0 };
     bool m_pickmodepanning { false }; // indicates mouse is in view panning mode
     glm::dvec2 m_cursorposition; // stored last cursor position, used for panning
-    glm::dvec2 m_commandstartcursor; // helper, cursor position when the command was initiated
     bool m_varyingpollrate { false }; // indicates rate of command repeats is affected by the cursor position
+    glm::dvec2 m_varyingpollrateorigin; // helper, cursor position when the command was initiated
 };
 
 //---------------------------------------------------------------------------

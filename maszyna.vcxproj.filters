@@ -240,6 +240,12 @@
     <ClCompile Include="station.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="stb_vorbis.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sceneeditor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -465,6 +471,9 @@
       <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="station.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sceneeditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

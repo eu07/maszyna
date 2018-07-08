@@ -22,6 +22,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 #include "World.h"
 #include "simulation.h"
+#include "sceneeditor.h"
 #include "Globals.h"
 #include "timer.h"
 #include "Logs.h"
@@ -127,23 +128,25 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
-    input::Mouse.move( x, y );
-
-    if( true == Global.ControlPicking ) {
-        glfwSetCursorPos( window, x, y );
-    }
-    else {
+    if( false == Global.ControlPicking ) {
         glfwSetCursorPos( window, 0, 0 );
     }
+
+    // give the potential event recipient a shot at it, in the virtual z order
+    if( true == scene::Editor.on_mouse_move( x, y ) ) { return; }
+    input::Mouse.move( x, y );
 }
 
 void mouse_button_callback( GLFWwindow* window, int button, int action, int mods ) {
 
-    if( ( button == GLFW_MOUSE_BUTTON_LEFT )
-     || ( button == GLFW_MOUSE_BUTTON_RIGHT ) ) {
+    if( ( button != GLFW_MOUSE_BUTTON_LEFT )
+     && ( button != GLFW_MOUSE_BUTTON_RIGHT ) ) {
         // we don't care about other mouse buttons at the moment
-        input::Mouse.button( button, action );
+        return;
     }
+    // give the potential event recipient a shot at it, in the virtual z order
+    if( true == scene::Editor.on_mouse_button( button, action ) ) { return; }
+    input::Mouse.button( button, action );
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods ) {

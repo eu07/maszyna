@@ -419,7 +419,7 @@ TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedat
 
 TAnimModel::~TAnimModel()
 {
-    delete pAdvanced; // nie ma zaawansowanej animacji
+    SafeDelete(pAdvanced); // nie ma zaawansowanej animacji
     SafeDelete(pRoot);
 }
 
@@ -630,10 +630,6 @@ int TAnimModel::Flags()
 
 //---------------------------------------------------------------------------
 
-bool TAnimModel::TerrainLoaded()
-{ // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
-    return (this ? pModel != NULL : false);
-};
 int TAnimModel::TerrainCount()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
     return pModel ? pModel->TerrainCount() : 0;

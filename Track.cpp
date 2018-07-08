@@ -343,7 +343,7 @@ void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
+void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
 { // pobranie obiektu trajektorii ruchu
     Math3D::vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
 	double a1, a2, r1, r2, r3, r4;
@@ -862,7 +862,7 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             }
 
     // calculate path location
-    m_area.center = ( glm::dvec3{ (
+    location( { (
         CurrentSegment()->FastGetPoint_0()
         + CurrentSegment()->FastGetPoint( 0.5 )
         + CurrentSegment()->FastGetPoint_1() )

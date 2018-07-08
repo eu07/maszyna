@@ -2,17 +2,14 @@
 
 #include "stdafx.h"
 #include "uilayer.h"
-#include "uitranscripts.h"
 
 #include "globals.h"
 #include "translation.h"
 #include "simulation.h"
 #include "mtable.h"
 #include "train.h"
-#include "dynobj.h"
-#include "model3d.h"
+#include "sceneeditor.h"
 #include "renderer.h"
-#include "timer.h"
 #include "utilities.h"
 #include "logs.h"
 
@@ -710,12 +707,16 @@ ui_layer::update() {
 
         case( GLFW_KEY_F11 ): {
             // scenario inspector
-            auto const *node { editor::Node };
+            auto const *node { scene::Editor.node() };
 
-            if( node == nullptr ) { break; }
+            if( node == nullptr ) {
+                auto const mouseposition { Global.pCamera->Pos + GfxRenderer.Mouse_Position() };
+                uitextline1 = "mouse location: [" + to_string( mouseposition.x, 2 ) + ", " + to_string( mouseposition.y, 2 ) + ", " + to_string( mouseposition.z, 2 ) + "]";
+                break;
+            }
 
             uitextline1 =
-                "Node name: " + node->name()
+                "node name: " + node->name()
                 + "; location: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
                 + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ Global.pCameraPosition.x, 0.0, Global.pCameraPosition.z } ), 1 ) + " m)";
             // subclass-specific data
@@ -724,7 +725,7 @@ ui_layer::update() {
 
                 auto const *subnode = static_cast<TAnimModel const *>( node );
 
-                uitextline2 = "angle: " + to_string( clamp_circular( subnode->vAngle.y, 360.0 ), 2 ) + " deg";
+                uitextline2 = "angle: " + to_string( clamp_circular( subnode->vAngle.y, 360.f ), 2 ) + " deg";
                 uitextline2 += "; lights: ";
                 if( subnode->iNumLights > 0 ) {
                     uitextline2 += '[';
