@@ -5085,6 +5085,20 @@ bool TTrain::Update( double const Deltatime )
         // McZapkie-080602: obroty (albo translacje) regulatorow
         if (ggMainCtrl.SubModel) {
 
+#ifdef _WIN32
+			if ((DynamicObject->Mechanik != nullptr)
+				&& (false == DynamicObject->Mechanik->AIControllFlag) // nie blokujemy AI
+				&& (Global.iFeedbackMode == 4)
+				&& (Global.fCalibrateIn[2][1] != 0.0)) {
+				auto const b = clamp<double>(
+					Console::AnalogCalibrateGet(2) * mvOccupied->MainCtrlPosNo,
+					0.0,
+					mvOccupied->MainCtrlPosNo);
+				while (mvOccupied->MainCtrlPos < b) { mvOccupied->MainCtrlPos = b - 1; mvOccupied->IncMainCtrl(1); }
+				while (mvOccupied->MainCtrlPos > b) { mvOccupied->MainCtrlPos = b + 1; mvOccupied->DecMainCtrl(1); }
+			}
+#endif
+
             if( mvControlled->CoupledCtrl ) {
                 ggMainCtrl.UpdateValue(
                     double( mvControlled->MainCtrlPos + mvControlled->ScndCtrlPos ),
@@ -5172,7 +5186,7 @@ bool TTrain::Update( double const Deltatime )
                 auto const b = clamp<double>(
                     Console::AnalogCalibrateGet( 1 ) * 10.0,
                     0.0,
-                    ManualBrakePosNo );
+                    LocalBrakePosNo );
                 ggLocalBrake.UpdateValue( b ); // przesów bez zaokrąglenia
                 mvOccupied->LocalBrakePos = int( 1.09 * b ); // sposób zaokrąglania jest do ustalenia
             }
