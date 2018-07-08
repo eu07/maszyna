@@ -3067,6 +3067,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                                                   (MoverParameters->LocalBrakeRatio() < 0.01);
             }
             auto Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
+				Fzad = amax * masa; //pętla bezpieczeństwa - pełne służbowe
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
             {
@@ -3097,6 +3100,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
+			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
+				FzadED = 0; //pętla bezpieczeństwa - bez ED
             auto const FzadPN = Fzad - FrED;
             //np = 0;
             // BUG: likely memory leak, allocation per inner loop, deleted only once outside
