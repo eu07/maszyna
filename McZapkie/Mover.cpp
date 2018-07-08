@@ -5034,7 +5034,8 @@ double TMoverParameters::TractionForce( double dt ) {
                     {
                         PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
                                    (eimc[eimc_p_Fh] *
-                                    Max0R(Max0R(dtrans,0.01) / MaxBrakePress[0], AnPos) /*dizel_fill*/);
+                                    Max0R(dtrans,Max0R(0.01,Hamulec->GetEDBCP())) / MaxBrakePress[0]);
+						PosRatio = clamp(PosRatio, 0.0, 1.0);
                     }
 					else
 					{
