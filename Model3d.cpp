@@ -346,7 +346,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             iFlags |=
                 ( ( ( Opacity < 1.0 )
                  && ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
+                   && ( GfxRenderer.Material( m_material ).opacity < 1.0f ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
@@ -1682,7 +1682,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
                 iFlags |= (
                     ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
+                   && ( GfxRenderer.Material( m_material ).opacity < 1.0f ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }

@@ -4587,7 +4587,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 else {
                     m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
                 }
-                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
+                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).opacity < 1.0f ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha = 0x31310031;
                 }
@@ -4597,17 +4597,17 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
                 if( ( m_materialdata.replacable_skins[ 2 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).has_alpha ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).opacity < 1.0f ) ) {
                     // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x02020002;
                 }
                 if( ( m_materialdata.replacable_skins[ 3 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).has_alpha ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).opacity < 1.0f ) ) {
                     // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x04040004;
                 }
                 if( ( m_materialdata.replacable_skins[ 4 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).has_alpha ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).opacity < 1.0f ) ) {
                     // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x08080008;
                 }

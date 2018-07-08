@@ -23,7 +23,7 @@ namespace gl
     // structs must match with GLSL
     // ordered to minimize padding
 
-    _Pragma("pack(push, 1)")
+#pragma pack(push, 1)
 
     struct scene_ubs
     {
@@ -96,5 +96,5 @@ namespace gl
 
     static_assert(sizeof(light_ubs) == 32 + sizeof(light_element_ubs) * MAX_LIGHTS, "bad size of ubs");
 
-    _Pragma("pack(pop)")
+#pragma pack(pop)
 }
