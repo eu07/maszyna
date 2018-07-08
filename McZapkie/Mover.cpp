@@ -5029,25 +5029,34 @@ double TMoverParameters::TractionForce( double dt ) {
                 dtrans = Hamulec->GetEDBCP() * eimc[eimc_p_abed]; // stala napedu
                 if ((DynamicBrakeFlag))
                 {
+					// ustalanie współczynnika blendingu do luzowania hamulca PN
                     if (eimv[eimv_Fmax] * Sign(V) * DirAbsolute < -1)
                     {
                         PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
                                    (eimc[eimc_p_Fh] *
                                     Max0R(Max0R(dtrans,0.01) / MaxBrakePress[0], AnPos) /*dizel_fill*/);
                     }
-                    else
-                        PosRatio = 0;
-                    PosRatio = Round(20.0 * PosRatio) / 20.0;
+					else
+					{
+						PosRatio = 0;
+					}
+                    PosRatio = Round(20.0 * PosRatio) / 20.0; //stopniowanie PN/ED
                     if (PosRatio < 19.5 / 20.0)
-                        PosRatio *= 0.9;
-                    //           if PosRatio<0 then
-                    //             PosRatio:=2+PosRatio-2;
-                    Hamulec->SetED(Max0R(0.0, std::min(PosRatio, 1.0)));
-                    //           (Hamulec as TLSt).SetLBP(LocBrakePress*(1-PosRatio));
-                    PosRatio = -std::max(std::min(dtrans * 1.0 / MaxBrakePress[0], 1.0), AnPos) *
-                               std::max(0.0, std::min(1.0, (Vel - eimc[eimc_p_Vh0]) /
-                                                     (eimc[eimc_p_Vh1] - eimc[eimc_p_Vh0])));
-                    eimv[eimv_Fzad] = -std::max(LocalBrakeRatio(), dtrans / MaxBrakePress[0]);
+                        PosRatio *= 0.9; 
+                    Hamulec->SetED(Max0R(0.0, std::min(PosRatio, 1.0))); //ustalenie stopnia zmniejszenia ciśnienia
+					// ustalanie siły hamowania ED
+					if ((Hamulec->GetEDBCP() > 0.25) && (eimc[eimc_p_abed] < 0.001)) //jeśli PN wyłącza ED
+					{
+						PosRatio = 0;
+						eimv[eimv_Fzad] = 0;
+					}
+					else
+					{
+						PosRatio = -std::max(std::min(dtrans * 1.0 / MaxBrakePress[0], 1.0), AnPos) *
+							std::max(0.0, std::min(1.0, (Vel - eimc[eimc_p_Vh0]) /
+							(eimc[eimc_p_Vh1] - eimc[eimc_p_Vh0])));
+						eimv[eimv_Fzad] = -std::max(LocalBrakeRatio(), dtrans / MaxBrakePress[0]);
+					}
                     tmp = 5;
                 }
                 else
