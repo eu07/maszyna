@@ -1670,7 +1670,7 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             Update_Lights( simulation::Lights );
 
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
-            if( EditorModeFlag && FreeFlyModeFlag && Global.ControlPicking ) {
+            if( EditorModeFlag && FreeFlyModeFlag ) {
                 // when editor mode is active calculate world position of the cursor
                 // at this stage the z-buffer is filled with only ground geometry
                 Update_Mouse_Position();

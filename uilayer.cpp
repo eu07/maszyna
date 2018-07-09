@@ -105,6 +105,13 @@ ui_layer::on_key( int const Key, int const Action ) {
             }
 
             if( Action == GLFW_RELEASE ) { return true; } // recognized, but ignored
+
+            EditorModeFlag = ( Key == GLFW_KEY_F11 );
+            if( ( true == EditorModeFlag )
+             && ( false == Global.ControlPicking ) ) {
+                glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                Global.ControlPicking = true;
+            }
         }
 
         default: { // everything else
@@ -242,8 +249,6 @@ ui_layer::update() {
                 scenerynode->name() :
                 "" ) );
     }
-
-    EditorModeFlag = ( Global.iTextMode == GLFW_KEY_F11 );
 
     switch( Global.iTextMode ) {
 

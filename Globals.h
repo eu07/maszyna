@@ -23,6 +23,7 @@ struct global_settings {
     GLFWwindow *window{ nullptr };
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
+    bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TWorld *pWorld{ nullptr }; // wskaźnik na świat do usuwania pojazdów

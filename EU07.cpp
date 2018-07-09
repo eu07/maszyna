@@ -153,9 +153,11 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
     Global.shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global.ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
+    Global.altState = ( mods & GLFW_MOD_ALT ) ? true : false;
 
     // give the ui first shot at the input processing...
     if( true == UILayer.on_key( key, action ) ) { return; }
+    if( true == scene::Editor.on_key( key, action ) ) { return; }
     // ...if the input is left untouched, pass it on
     input::Keyboard.key( key, action );
 

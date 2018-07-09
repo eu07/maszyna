@@ -422,6 +422,18 @@ basic_cell::erase( TAnimModel *Instance ) {
     // TODO: update cell bounding area
 }
 
+// removes provided memory cell from the cell
+void
+basic_cell::erase( TMemCell *Memorycell ) {
+
+    m_memorycells.erase(
+        std::remove_if(
+            std::begin( m_memorycells ), std::end( m_memorycells ),
+            [=]( TMemCell *memorycell ) {
+                return memorycell == Memorycell; } ),
+        std::end( m_memorycells ) );
+}
+
 // registers provided path in the lookup directory of the cell
 void
 basic_cell::register_end( TTrack *Path ) {
@@ -1279,6 +1291,17 @@ basic_region::erase_instance( TAnimModel *Instance ) {
     if( point_inside( location ) ) {
         // NOTE: nodes placed outside of region boundaries are discarded
         section( location ).erase( Instance );
+    }
+}
+
+// removes specified memory cell from the region
+void
+basic_region::erase_memorycell( TMemCell *Memorycell ) {
+
+    auto const location { Memorycell->location() };
+
+    if( point_inside( location ) ) {
+        section( location ).erase( Memorycell );
     }
 }
 

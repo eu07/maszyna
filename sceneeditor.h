@@ -18,6 +18,8 @@ class basic_editor {
 public:
 // methods
     bool
+        on_key( int const Key, int const Action );
+    bool
         on_mouse_button( int const Button, int const Action );
     bool
         on_mouse_move( double const Mousex, double const Mousey );
@@ -43,6 +45,8 @@ private:
         mode_translation() const;
     bool
         mode_translation_vertical() const;
+    bool
+        mode_snap() const;
     void
         translate( glm::dvec3 const &Location );
     void
@@ -51,6 +55,10 @@ private:
         translate_instance( TAnimModel *Instance, glm::dvec3 const &Location );
     void
         translate_instance( TAnimModel *Instance, float const Offset );
+    void
+        translate_memorycell( TMemCell *Memorycell, glm::dvec3 const &Location );
+    void
+        translate_memorycell( TMemCell *Memorycell, float const Offset );
     void
         rotate( glm::vec3 const &Angle );
     void

@@ -129,6 +129,9 @@ public:
     // removes provided model instance from the cell
     void
         erase( TAnimModel *Instance );
+    // removes provided memory cell from the cell
+    void
+        erase( TMemCell *Memorycell );
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) const;
@@ -361,6 +364,9 @@ public:
     // removes specified instance of 3d model from the region
     void
         erase_instance( TAnimModel *Instance );
+    // removes specified memory cell from the region
+    void
+        erase_memorycell( TMemCell *Memorycell );
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );

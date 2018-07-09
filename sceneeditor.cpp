@@ -19,12 +19,25 @@ namespace scene {
 basic_editor Editor;
 
 bool
+basic_editor::on_key( int const Key, int const Action ) {
+
+    if( false == EditorModeFlag ) { return false; }
+
+    if( ( Key == GLFW_KEY_LEFT_ALT )
+     || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
+        // intercept these while in editor mode
+        return true;
+    }
+
+    return false;
+}
+
+bool
 basic_editor::on_mouse_button( int const Button, int const Action ) {
 
-    if( false == EditorModeFlag )        { return false; }
-    // TBD: automatically activate and enforce picking mode and/or freefly mode when editor is active?
-    if( false == FreeFlyModeFlag )       { return false; }
-    if( false == Global.ControlPicking ) { return false; }
+    if( false == EditorModeFlag )  { return false; }
+    // TBD: automatically activate and enforce freefly mode when editor is active?
+    if( false == FreeFlyModeFlag ) { return false; }
 
     if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
 
@@ -89,12 +102,17 @@ basic_editor::translate( glm::dvec3 const &Location ) {
     auto *node { m_node }; // placeholder for operations on multiple nodes
 
     auto location { Location };
+    if( false == mode_snap() ) {
+        location.y = node->location().y;
+    }
 
     if( typeid( *node ) == typeid( TAnimModel ) ) {
-        // TBD, TODO: don't modify y coordinate if snap-to-ground mode is active?
-//        location.y = node->location().y;
         translate_instance( static_cast<TAnimModel *>( node ), location );
     }
+    else if( typeid( *node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( node ), location );
+    }
+
 }
 
 void
@@ -109,6 +127,9 @@ basic_editor::translate( float const Offset ) {
 
     if( typeid( *node ) == typeid( TAnimModel ) ) {
         translate_instance( static_cast<TAnimModel *>( node ), offset );
+    }
+    else if( typeid( *node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( node ), offset );
     }
 }
 
@@ -129,6 +150,22 @@ basic_editor::translate_instance( TAnimModel *Instance, float const Offset ) {
 }
 
 void
+basic_editor::translate_memorycell( TMemCell *Memorycell, glm::dvec3 const &Location ) {
+
+    simulation::Region->erase_memorycell( Memorycell );
+    Memorycell->location( Location );
+    simulation::Region->insert_memorycell( Memorycell, scene::scratch_data() );
+}
+
+void
+basic_editor::translate_memorycell( TMemCell *Memorycell, float const Offset ) {
+
+    auto location { Memorycell->location() };
+    location.y += Offset;
+    Memorycell->location( location );
+}
+
+void
 basic_editor::rotate( glm::vec3 const &Angle ) {
 
     auto *node { m_node }; // placeholder for operations on multiple nodes
@@ -144,6 +181,10 @@ basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
     // adjust node data
     glm::vec3 angle = glm::dvec3 { Instance->Angles() };
     angle.y = clamp_circular( angle.y + Angle.y, 360.f );
+    if( mode_snap() ) {
+        auto const quantizationstep { 15.f };
+        angle.y = quantizationstep * std::round( angle.y * ( 1.f / quantizationstep ) );
+    }
     Instance->Angles( angle );
     // update scene
 }
@@ -151,13 +192,19 @@ basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
 bool
 basic_editor::mode_translation() const {
 
-    return ( false == Global.ctrlState );
+    return ( false == Global.altState );
 }
 
 bool
 basic_editor::mode_translation_vertical() const {
 
     return ( true == Global.shiftState );
+}
+
+bool
+basic_editor::mode_snap() const {
+
+    return ( true == Global.ctrlState );
 }
 
 } // scene
