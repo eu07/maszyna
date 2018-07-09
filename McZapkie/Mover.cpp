@@ -6022,6 +6022,12 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 				else
 					dizel_EngageSwitch(0.66);
 				break;
+			case 5:
+				if (Vel>dizel_minVelfullengage)
+					dizel_EngageSwitch(1.0);
+				else
+					dizel_EngageSwitch(0.35*(1+RList[MainCtrlPos].R)*RList[MainCtrlPos].R);
+				break;
             default:
 				if (hydro_TC && hydro_TC_Fill>0.01)
 					dizel_EngageSwitch(1.0);
@@ -6172,6 +6178,12 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 					nreg = dizel_nmax;
 				else
 					nreg = dizel_nmin * 0.75 + dizel_nmax * 0.25;
+				break;
+			case 5:
+				if (Vel > dizel_minVelfullengage)
+					nreg = dizel_nmax;
+				else
+					nreg = dizel_nmin + 0.8 * (dizel_nmax - dizel_nmin) * RList[mcp].R;
 				break;
             default:
                 realfill = 0; // sluczaj
