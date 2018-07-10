@@ -207,23 +207,21 @@ opengl_renderer::Render() {
     }
     // generate new frame
     m_renderpass.draw_mode = rendermode::none; // force setup anew
-    m_debugtimestext.clear();
     m_debugstats = debug_stats();
+
     Render_pass( rendermode::color );
     Timer::subsystem.gfx_color.stop();
-
-    Timer::subsystem.gfx_swap.start();
-    glfwSwapBuffers( m_window );
-    Timer::subsystem.gfx_swap.stop();
 
     if (gl_time_ready)
         glEndQuery(GL_TIME_ELAPSED);
 
     m_drawcount = m_cellqueue.size();
+    m_debugtimestext.clear();
     m_debugtimestext
-        += "cpu: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors) "
-        += "cpu swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms "
-        += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms frame total) ";
+        += "cpu: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n"
+        += "cpu swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
+        += "uilayer: " + to_string(Timer::subsystem.gfx_gui.average(), 2) + "ms\n"
+        += "mainloop total: " + to_string(Timer::subsystem.mainloop_total.average(), 2) + "ms\n";
 
 	if (m_gllasttime)
 		m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
@@ -237,6 +235,13 @@ opengl_renderer::Render() {
     ++m_framestamp;
 
     return true; // for now always succeed
+}
+
+void opengl_renderer::SwapBuffers()
+{
+    Timer::subsystem.gfx_swap.start();
+    glfwSwapBuffers( m_window );
+    Timer::subsystem.gfx_swap.stop();
 }
 
 // runs jobs needed to generate graphics for specified render pass

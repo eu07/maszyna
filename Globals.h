@@ -93,7 +93,6 @@ struct global_settings {
     // ui
     int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
-    int iScreenMode[ 12 ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // numer ekranu wyświetlacza tekstowego
     glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
@@ -124,7 +123,6 @@ struct global_settings {
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
-    bool bGlutFont{ false }; // czy tekst generowany przez GLUT32.DLL
     double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
     double fFpsDeviation{ 5.0 }; // odchylenie standardowe FPS
     double fFpsMin{ 30.0 }; // dolna granica FPS, przy której promień scenerii będzie zmniejszany

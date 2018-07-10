@@ -378,12 +378,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iMultisampling;
         }
-        else if (token == "glutfont")
-        {
-            // tekst generowany przez GLUT
-            Parser.getTokens();
-            Parser >> bGlutFont;
-        }
         else if (token == "latitude")
         {
             // szerokość geograficzna

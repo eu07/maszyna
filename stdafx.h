@@ -106,3 +106,5 @@
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 #endif
+
+#include "imgui/imgui.h"

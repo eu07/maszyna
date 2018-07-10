@@ -66,6 +66,8 @@ std::unique_ptr<uart_input> uart;
 std::unique_ptr<motiontelemetry> motiontelemetry;
 }
 
+bool take_screenshot = false;
+
 void screenshot_save_thread( char *img )
 {
 	png_image png;
@@ -134,6 +136,8 @@ void cursor_pos_callback(GLFWwindow *window, double x, double y)
 }
 
 void mouse_button_callback( GLFWwindow* window, int button, int action, int mods ) {
+    if (UILayer.mouse_button_callback(button, action, mods))
+        return;
 
     if( ( button == GLFW_MOUSE_BUTTON_LEFT )
      || ( button == GLFW_MOUSE_BUTTON_RIGHT ) ) {
@@ -143,6 +147,8 @@ void mouse_button_callback( GLFWwindow* window, int button, int action, int mods
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods ) {
+    if (UILayer.key_callback(key, scancode, action, mods))
+        return;
 
     Global.shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global.ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
@@ -191,12 +197,18 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
         switch( key )
         {
             case GLFW_KEY_PRINT_SCREEN: {
-                make_screenshot();
+                take_screenshot = true;
                 break;
             }
             default: { break; }
         }
     }
+}
+
+void char_callback(GLFWwindow *window, unsigned int c)
+{
+    if (UILayer.char_callback(c))
+        return;
 }
 
 void focus_callback( GLFWwindow *window, int focus )
@@ -209,6 +221,8 @@ void focus_callback( GLFWwindow *window, int focus )
 }
 
 void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
+    if (UILayer.scroll_callback(xoffset, yoffset))
+        return;
 
     if( Global.ctrlState ) {
         // ctrl + scroll wheel adjusts fov in debug mode
@@ -344,6 +358,7 @@ int main(int argc, char *argv[])
     glfwSetMouseButtonCallback( window, mouse_button_callback );
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback( window, scroll_callback );
+    glfwSetCharCallback(window, char_callback);
     glfwSetWindowFocusCallback(window, focus_callback);
     {
         int width, height;
@@ -374,9 +389,7 @@ int main(int argc, char *argv[])
         Global.ControlPicking = true;
 
 	try {
-
-		if ((false == GfxRenderer.Init(window))
-			|| (false == UILayer.init(window)))
+        if (!UILayer.init(window) || !GfxRenderer.Init(window))
 			return -1;
 
     if( Global.bSoundEnabled ) {
@@ -430,18 +443,39 @@ int main(int argc, char *argv[])
 #endif
 
     try {
-        while( ( false == glfwWindowShouldClose( window ) )
-            && ( true == World.Update() )
-            && ( true == GfxRenderer.Render() ) ) {
+        while (!glfwWindowShouldClose( window )) {
+            Timer::subsystem.mainloop_total.start();
+
+            glfwPollEvents();
+
+            if (take_screenshot)
+            {
+                make_screenshot();
+                take_screenshot = false;
+            }
+
+            if (!World.Update())
+                break;
+            if (!GfxRenderer.Render())
+                break;
+
 			if (input::motiontelemetry)
 				input::motiontelemetry->update();
-            glfwPollEvents();
             input::Keyboard.poll();
 			simulation::Commands.update();
-            if( true == Global.InputMouse )   { input::Mouse.poll(); }
-            if( true == Global.InputGamepad ) { input::Gamepad.poll(); }
-            if( input::uart != nullptr )      { input::uart->poll(); }
+            if (Global.InputMouse)
+                input::Mouse.poll();
+            if (Global.InputGamepad)
+                input::Gamepad.poll();
+            if (input::uart)
+                input::uart->poll();
+
+            GfxRenderer.SwapBuffers();
+
+            Timer::subsystem.mainloop_total.stop();
         }
+
+        UILayer.cleanup();
 	}
 	catch (std::runtime_error e)
     {

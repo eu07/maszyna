@@ -127,6 +127,7 @@ public:
     // main draw call. returns false on error
     bool
         Render();
+    void SwapBuffers();
     inline
     float
         Framerate() { return m_framerate; }

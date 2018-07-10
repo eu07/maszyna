@@ -136,6 +136,7 @@ state_manager::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
             glfwPollEvents();
             UILayer.set_progress( Input.getProgress(), Input.getFullProgress() );
             GfxRenderer.Render();
+            GfxRenderer.SwapBuffers();
         }
 
         token = Input.getToken<std::string>();

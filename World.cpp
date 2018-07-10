@@ -246,6 +246,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
 
     GfxRenderer.Render();
+    GfxRenderer.SwapBuffers();
 
     WriteLog( "World setup..." );
     if( false == simulation::State.deserialize( Global.SceneryFile ) ) { return false; }
@@ -320,7 +321,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
     UILayer.set_progress();
     UILayer.set_progress( "" );
     UILayer.set_background( "" );
-	ui_log->enabled = false;
 
     Timer::ResetTimers();
 
@@ -544,28 +544,7 @@ void TWorld::OnKeyDown(int cKey) {
         return; // nie są przekazywane do pojazdu wcale
     }
 
-    if ((Global.iTextMode == GLFW_KEY_F12) ? (cKey >= '0') && (cKey <= '9') : false)
-    { // tryb konfiguracji debugmode (przestawianie kamery już wyłączone
-        if (!Global.shiftState) // bez [Shift]
-        {
-            if (cKey == GLFW_KEY_1)
-                Global.iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
-#ifdef _WIN32
-            else if (cKey == GLFW_KEY_2)
-            { // włącz/wyłącz okno konsoli
-                Global.iWriteLogEnabled ^= 2;
-                if ((Global.iWriteLogEnabled & 2) == 0) // nie było okienka
-                { // otwarcie okna
-                    AllocConsole(); // jeśli konsola już jest, to zwróci błąd; uwalniać nie ma po
-                    // co, bo się odłączy
-                    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
-                }
-            }
-#endif
-            // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
-        }
-    }
-    else if( cKey == GLFW_KEY_ESCAPE ) {
+    if( cKey == GLFW_KEY_ESCAPE ) {
         // toggle pause
         if( Global.iPause & 1 ) // jeśli pauza startowa
             Global.iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
@@ -895,7 +874,6 @@ bool TWorld::Update() {
 #ifdef _WIN32
         Console::Update(); // to i tak trzeba wywoływać
 #endif
-        UILayer.update();
         // decelerate camera
         Camera.Velocity *= 0.65;
         if( std::abs( Camera.Velocity.x ) < 0.01 ) { Camera.Velocity.x = 0.0; }
