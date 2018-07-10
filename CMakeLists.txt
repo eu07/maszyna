@@ -86,6 +86,7 @@ set(SOURCES
 "gl/ubo.cpp"
 "gl/framebuffer.cpp"
 "gl/renderbuffer.cpp"
+"gl/postfx.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

@@ -55,8 +55,6 @@ gl::shader::shader(const std::string &filename)
     std::string str = read_file(filename);
     expand_includes(str);
 
-    std::cout << (str) << std::endl;;
-
     const GLchar *cstr = str.c_str();
 
     if (!cstr[0])

@@ -277,17 +277,17 @@ opengl_texture::load_DDS() {
     {
     case FOURCC_DXT1:
         // DXT1's compression ratio is 8:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
         break;
 
     case FOURCC_DXT3:
         // DXT3's compression ratio is 4:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
         break;
 
     case FOURCC_DXT5:
         // DXT5's compression ratio is 4:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
         break;
 
     default:
@@ -299,7 +299,7 @@ opengl_texture::load_DDS() {
     data_height = ddsd.dwHeight;
     data_mapcount = ddsd.dwMipMapCount;
 
-    int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
+    int blockSize = ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
     while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
@@ -584,8 +584,9 @@ opengl_texture::bind() {
 bool
 opengl_texture::create() {
 
-    if( data_state != resource_state::good ) {
+    if( data_state != resource_state::good && !is_rendertarget ) {
         // don't bother until we have useful texture data
+        // and it isn't rendertarget texture without loaded data
         return false;
     }
 
@@ -611,55 +612,64 @@ opengl_texture::create() {
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
 
-        set_filtering();
-
         // upload texture data
         int dataoffset = 0,
             datasize = 0,
             datawidth = data_width,
             dataheight = data_height;
-        for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
-
-            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
-                // compressed dds formats
-                int const datablocksize =
-                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
-                    8 :
-                    16 );
-
-                datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
-
-                ::glCompressedTexImage2D(
-                    GL_TEXTURE_2D, maplevel, data_format,
-                    datawidth, dataheight, 0,
-                    datasize, (GLubyte *)&data[ dataoffset ] );
-
-                dataoffset += datasize;
-                datawidth = std::max( datawidth / 2, 1 );
-                dataheight = std::max( dataheight / 2, 1 );
-            }
-            else {
-                // uncompressed texture data. have the gfx card do the compression as it sees fit
-                ::glTexImage2D(
-                    GL_TEXTURE_2D, 0,
-					Global.compress_tex ? GL_COMPRESSED_RGBA : GL_RGBA,
-                    data_width, data_height, 0,
-                    data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
-            }
+        if (is_rendertarget)
+        {
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            glTexImage2D(GL_TEXTURE_2D, 0, data_format, data_width, data_height, 0, data_components, data_type, nullptr);
         }
+        else
+        {
+            set_filtering();
 
-        if( data_mapcount == 1 ) {
-            // fill missing mipmaps if needed
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
+            for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-        if( ( true == Global.ResourceMove )
-         || ( false == Global.ResourceSweep ) ) {
-            // if garbage collection is disabled we don't expect having to upload the texture more than once
-            data = std::vector<char>();
-            data_state = resource_state::none;
+                if( ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT )
+                    || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT )
+                    || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT ) ) {
+                    // compressed dds formats
+                    int const datablocksize =
+                        ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ?
+                        8 :
+                        16 );
+
+                    datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
+
+                    ::glCompressedTexImage2D(
+                        GL_TEXTURE_2D, maplevel, data_format,
+                        datawidth, dataheight, 0,
+                        datasize, (GLubyte *)&data[ dataoffset ] );
+
+                    dataoffset += datasize;
+                    datawidth = std::max( datawidth / 2, 1 );
+                    dataheight = std::max( dataheight / 2, 1 );
+                }
+                else {
+                    // uncompressed texture data. have the gfx card do the compression as it sees fit
+                    ::glTexImage2D(
+                        GL_TEXTURE_2D, 0,
+                        Global.compress_tex ? GL_COMPRESSED_SRGB_ALPHA : GL_SRGB_ALPHA,
+                        data_width, data_height, 0,
+                        data_format, data_type, (GLubyte *)&data[ 0 ] );
+                }
+            }
+
+            if( data_mapcount == 1 ) {
+                // fill missing mipmaps if needed
+                glGenerateMipmap(GL_TEXTURE_2D);
+            }
+
+            if( ( true == Global.ResourceMove )
+             || ( false == Global.ResourceSweep ) ) {
+                // if garbage collection is disabled we don't expect having to upload the texture more than once
+                data = std::vector<char>();
+                data_state = resource_state::none;
+            }
         }
         is_ready = true;
     }
@@ -673,7 +683,7 @@ opengl_texture::release() {
 
     if( id == -1 ) { return; }
 
-    if( true == Global.ResourceMove ) {
+    if( true == Global.ResourceMove && !is_rendertarget ) {
         // if resource move is enabled we don't keep a cpu side copy after upload
         // so need to re-acquire the data before release
         // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
@@ -694,6 +704,7 @@ opengl_texture::release() {
             // for whatever reason texture didn't get compressed during upload
             // fallback on plain rgba storage...
             data_format = GL_RGBA;
+            data_type = GL_UNSIGNED_BYTE;
             data.resize( data_width * data_height * 4 );
             // ...fetch the data...
             ::glGetTexImage( GL_TEXTURE_2D, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
@@ -708,6 +719,18 @@ opengl_texture::release() {
     is_ready = false;
 
     return;
+}
+
+void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height)
+{
+    data_width = width;
+    data_height = height;
+    data_format = format;
+    data_components = components;
+    data_type = type;
+    data_mapcount = 1;
+    is_rendertarget = true;
+    create();
 }
 
 void
@@ -899,9 +922,14 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        for( auto &unit : m_units ) {
-            unit = -1;
-        }
+        reset_unit_cache();
+    }
+}
+
+void texture_manager::reset_unit_cache()
+{
+    for( auto &unit : m_units ) {
+        unit = -1;
     }
 }
 
@@ -986,7 +1014,7 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
     return (
         FileExists(
             filenames,
-            { ".dds", ".tga", ".bmp", ".ext" } ) );
+            { ".dds", ".tga", ".png", ".bmp", ".ext" } ) );
 }
 
 //---------------------------------------------------------------------------

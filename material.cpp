@@ -54,24 +54,46 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             key.erase(0, 7);
             size_t num = std::stoi(key) - 1;
             if (num < textures.size() &&
-                    (textures[num] == null_handle || Priority > m_priority[num]))
+                    (textures[num] == null_handle || Priority > m_texture_priority[num]))
             {
 				std::replace(value.begin(), value.end(), '\\', '/');
                 textures[num] = GfxRenderer.Fetch_Texture( value, Loadnow );
-                m_priority[num] = Priority;
+                m_texture_priority[num] = Priority;
+            }
+        }
+        else if (key.compare(0, 7, "param") == 0) {
+            key.erase(0, 5);
+            size_t num = std::stoi(key) - 1;
+            if (num < params.size() &&
+                    (Priority > m_param_priority[num]))
+            {
+                std::istringstream stream(value);
+
+                stream >> params[num].r;
+                stream >> params[num].g;
+                stream >> params[num].b;
+                stream >> params[num].a;
+
+                m_param_priority[num] = Priority;
             }
         }
         else if (key == "shader:" &&
-                (!shader || Priority > m_priority[max_textures]))
+                (!shader || Priority > m_shader_priority))
         {
             shader = GfxRenderer.Fetch_Shader(value);
-            m_priority[max_textures] = Priority;
+            m_shader_priority = Priority;
         }
         else if (key == "opacity:" &&
-                Priority > m_priority[max_textures + 1])
+                Priority > m_opacity_priority)
         {
             opacity = std::stoi(value); //m7t: handle exception
-            m_priority[max_textures + 1] = Priority;
+            m_opacity_priority = Priority;
+        }
+        else if (key == "selfillum:" &&
+                Priority > m_selfillum_priority)
+        {
+            selfillum = std::stoi(value); //m7t: handle exception
+            m_selfillum_priority = Priority;
         }
         else if( value == "{" ) {
             // unrecognized or ignored token, but comes with attribute block and potential further nesting

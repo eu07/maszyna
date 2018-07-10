@@ -21,6 +21,9 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "gl/shader_mvp.h"
 #include "gl/ubo.h"
+#include "gl/framebuffer.h"
+#include "gl/renderbuffer.h"
+#include "gl/postfx.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -163,8 +166,8 @@ public:
     texture_handle
         Fetch_Texture( std::string const &Filename, bool const Loadnow = true );
     void
-        Bind_Texture( texture_handle const Texture );
-    opengl_texture const &
+        Bind_Texture( size_t Unit, texture_handle const Texture );
+    opengl_texture &
         Texture( texture_handle const Texture ) const;
     // utility methods
     TSubModel const *
@@ -388,6 +391,11 @@ private:
 
     std::unique_ptr<gl::program> m_line_shader;
     std::unique_ptr<gl::program> m_freespot_shader;
+
+    std::unique_ptr<gl::framebuffer> m_main_fb;
+    std::unique_ptr<opengl_texture> m_main_tex;
+    std::unique_ptr<gl::renderbuffer> m_main_rb;
+    std::unique_ptr<gl::postfx> m_pfx;
 
     material_handle m_invalid_material;
 

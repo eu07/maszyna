@@ -12,20 +12,23 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "Texture.h"
 #include "gl/shader.h"
+#include "gl/ubo.h"
 
 typedef int material_handle;
 
 // a collection of parameters for the rendering setup.
 // for modern opengl this translates to set of attributes for shaders
 struct opengl_material {
-    static const size_t max_textures = 2;
+    static const size_t MAX_TEXTURES = 4;
 
     // primary texture, typically diffuse+apha
     // secondary texture, typically normal+reflection
-    std::array<texture_handle, max_textures> textures = { null_handle };
+    std::array<texture_handle, MAX_TEXTURES> textures = { null_handle };
+    std::array<glm::vec4, gl::MAX_PARAMS> params = { glm::vec4() };
 
     std::shared_ptr<gl::program> shader;
     float opacity = std::numeric_limits<float>::quiet_NaN();
+    float selfillum = std::numeric_limits<float>::quiet_NaN();
 
     std::string name;
 
@@ -44,7 +47,11 @@ private:
 
 // members
     // priorities for textures, shader, opacity
-    std::array<int, max_textures + 2> m_priority = { -1 };
+    int m_shader_priority = -1;
+    int m_opacity_priority = -1;
+    int m_selfillum_priority = -1;
+    std::array<int, MAX_TEXTURES> m_texture_priority = { -1 };
+    std::array<int, gl::MAX_PARAMS> m_param_priority = { -1 };
 };
 
 class material_manager {

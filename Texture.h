@@ -40,6 +40,9 @@ struct opengl_texture {
     int
         height() const {
             return data_height; }
+
+    void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height);
+
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
@@ -60,6 +63,7 @@ private:
     void flip_vertical();
 
 // members
+    bool is_rendertarget; // is used as postfx rendertarget, without loaded data
     std::vector<char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
@@ -67,6 +71,8 @@ private:
         data_mapcount{ 0 };
     GLint data_format{ 0 },
         data_components{ 0 };
+
+    GLint data_type = GL_UNSIGNED_BYTE;
 /*
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
@@ -96,6 +102,7 @@ public:
     // performs a resource sweep
     void
         update();
+    void reset_unit_cache();
     // debug performance string
     std::string
         info() const;

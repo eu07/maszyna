@@ -59,7 +59,7 @@ TextureTest( std::string const &Name ) {
     auto const lookup {
         FileExists(
             { Global.asCurrentTexturePath + Name, Name, szTexturePath + Name },
-            { ".mat", ".dds", ".tga", ".bmp" } ) };
+            { ".mat", ".dds", ".tga", ".png", ".bmp" } ) };
 
     return ( lookup.first + lookup.second );
 }

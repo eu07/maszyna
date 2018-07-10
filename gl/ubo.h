@@ -1,3 +1,5 @@
+#pragma once
+
 #include "object.h"
 #include "bindable.h"
 
@@ -16,7 +18,11 @@ namespace gl
         using bindable::bind;
         static void bind(GLuint i);
 
-        void update(void *data, int offset, int size);
+        void update(const uint8_t *data, int offset, int size);
+        template <typename T> void update(const T &data, size_t offset = 0)
+        {
+            update(reinterpret_cast<const uint8_t*>(&data), offset, sizeof(data));
+        }
     };
 
     // layout std140
