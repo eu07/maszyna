@@ -104,6 +104,8 @@ void gl::program::init()
             break;
         i++;
     }
+
+    glUniform1i(glGetUniformLocation(*this, "shadowmap"), 10); //m7t: do something better
 }
 
 gl::program::program()

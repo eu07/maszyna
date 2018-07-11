@@ -31,7 +31,8 @@ void gl::framebuffer::attach(const renderbuffer &rb, GLenum location)
 bool gl::framebuffer::is_complete()
 {
     bind();
-    return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    return status == GL_FRAMEBUFFER_COMPLETE;
 }
 
 void gl::framebuffer::clear()

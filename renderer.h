@@ -237,7 +237,7 @@ private:
     void
         setup_drawing( bool const Alpha = false );
     void
-        setup_shadow_map( GLuint const Texture, glm::mat4 const &Transformation );
+        setup_shadow_map(opengl_texture &tex);
     void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
@@ -396,6 +396,10 @@ private:
     std::unique_ptr<opengl_texture> m_main_tex;
     std::unique_ptr<gl::renderbuffer> m_main_rb;
     std::unique_ptr<gl::postfx> m_pfx;
+
+    std::unique_ptr<gl::framebuffer> m_shadow_fb;
+    std::unique_ptr<opengl_texture> m_shadow_tex;
+    std::unique_ptr<gl::program> m_shadow_shader;
 
     material_handle m_invalid_material;
 
