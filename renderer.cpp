@@ -284,6 +284,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             glDebug("rendermode::color");
 
             {
+				/*
                 glDebug("render shadowmap start");
                 Timer::subsystem.gfx_shadows.start();
 
@@ -301,6 +302,7 @@ glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
 
                 Timer::subsystem.gfx_shadows.stop();
                 glDebug("render shadowmap end");
+				*/
             }
 
             m_main_fb->bind();

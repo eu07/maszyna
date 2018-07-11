@@ -163,7 +163,7 @@ set_target_properties( ${PROJECT_NAME}
 	DEBUG_POSTFIX "_d"
 )
 
-cmake_policy(SET CMP0072 NEW)
+#cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})

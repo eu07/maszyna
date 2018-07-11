@@ -248,10 +248,10 @@ int main(int argc, char *argv[])
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
     // floating point operation errors
-    auto state = _clearfp();
-    state = _control87( 0, 0 );
+    //auto state = _clearfp();
+    //state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
-    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+    //state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
 #endif
 #ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );

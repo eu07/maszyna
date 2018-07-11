@@ -107,4 +107,11 @@
 #define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 #endif
 
+#ifdef DBG_NEW
+#pragma push_macro("new")
+#undef new
 #include "imgui/imgui.h"
+#pragma pop_macro("new")
+#else
+#include "imgui/imgui.h"
+#endif
