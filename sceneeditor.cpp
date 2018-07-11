@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "globals.h"
 #include "simulation.h"
+#include "uilayer.h"
 #include "renderer.h"
 
 namespace scene {
@@ -46,7 +47,7 @@ basic_editor::on_mouse_button( int const Button, int const Action ) {
             m_node = GfxRenderer.Update_Pick_Node();
             m_nodesnapshot = { m_node };
             if( m_node ) {
-                glfwSetInputMode( Global.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                UILayer.set_cursor( GLFW_CURSOR_DISABLED );
             }
         }
         else {
@@ -54,7 +55,7 @@ basic_editor::on_mouse_button( int const Button, int const Action ) {
             // TODO: record the current undo step on the undo stack
             m_nodesnapshot = { m_node };
             if( m_node ) {
-                glfwSetInputMode( Global.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                UILayer.set_cursor( GLFW_CURSOR_NORMAL );
             }
         }
 
@@ -136,9 +137,9 @@ basic_editor::translate( float const Offset ) {
 void
 basic_editor::translate_instance( TAnimModel *Instance, glm::dvec3 const &Location ) {
 
-    simulation::Region->erase_instance( Instance );
+    simulation::Region->erase( Instance );
     Instance->location( Location );
-    simulation::Region->insert_instance( Instance, scene::scratch_data() );
+    simulation::Region->insert( Instance );
 }
 
 void
@@ -152,9 +153,9 @@ basic_editor::translate_instance( TAnimModel *Instance, float const Offset ) {
 void
 basic_editor::translate_memorycell( TMemCell *Memorycell, glm::dvec3 const &Location ) {
 
-    simulation::Region->erase_memorycell( Memorycell );
+    simulation::Region->erase( Memorycell );
     Memorycell->location( Location );
-    simulation::Region->insert_memorycell( Memorycell, scene::scratch_data() );
+    simulation::Region->insert( Memorycell );
 }
 
 void
@@ -182,8 +183,8 @@ basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
     glm::vec3 angle = glm::dvec3 { Instance->Angles() };
     angle.y = clamp_circular( angle.y + Angle.y, 360.f );
     if( mode_snap() ) {
-        auto const quantizationstep { 15.f };
-        angle.y = quantizationstep * std::round( angle.y * ( 1.f / quantizationstep ) );
+        // TBD, TODO: adjustable quantization step
+        angle.y = quantize( angle.y, 15.f );
     }
     Instance->Angles( angle );
     // update scene

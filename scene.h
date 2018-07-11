@@ -339,34 +339,35 @@ public:
         RadioStop( glm::dvec3 const &Location );
     // inserts provided shape in the region
     void
-        insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
+        insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
     // inserts provided lines in the region
     void
-        insert_lines( lines_node Lines, scratch_data &Scratchpad );
-    // inserts provided track in the region
+        insert( lines_node Lines, scratch_data &Scratchpad );
+    // inserts provided node in the region
+    template <class Type_>
     void
-        insert_path( TTrack *Path, scratch_data &Scratchpad );
-    // inserts provided track in the region
+        insert( Type_ *Node ) {
+            auto const location { Node->location() };
+            if( false == point_inside( location ) ) {
+                // NOTE: nodes placed outside of region boundaries are discarded
+                // TBD, TODO: clamp coordinates to region boundaries?
+                return; }
+            section( location ).insert( Node ); }
+    // inserts provided node in the region and registers its ends in lookup directory
+    template <class Type_>
     void
-        insert_traction( TTraction *Traction, scratch_data &Scratchpad );
-    // inserts provided instance of 3d model in the region
+        insert_and_register( Type_ *Node ) {
+            insert( Node );
+            for( auto const &point : Node->endpoints() ) {
+                if( point_inside( point ) ) {
+                    section( point ).register_node( Node, point ); } } }
+    // removes specified node from the region
+    template <class Type_>
     void
-        insert_instance( TAnimModel *Instance, scratch_data &Scratchpad );
-    // inserts provided sound in the region
-    void
-        insert_sound( sound_source *Sound, scratch_data &Scratchpad );
-    // inserts provided event launcher in the region
-    void
-        insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );
-    // inserts provided memory cell in the region
-    void
-        insert_memorycell( TMemCell *Memorycell, scratch_data &Scratchpad );
-    // removes specified instance of 3d model from the region
-    void
-        erase_instance( TAnimModel *Instance );
-    // removes specified memory cell from the region
-    void
-        erase_memorycell( TMemCell *Memorycell );
+        erase( Type_ *Node ) {
+            auto const location{ Node->location() };
+            if( point_inside( location ) ) {
+                section( location ).erase( Node ); } }
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
@@ -393,12 +394,6 @@ private:
     };
 
 // methods
-    // registers specified end point of the provided path in the lookup directory of the region
-    void
-        register_path( TTrack *Path, glm::dvec3 const &Point );
-    // registers specified end point of the provided traction piece in the lookup directory of the region
-    void
-        register_traction( TTraction *Traction, glm::dvec3 const &Point );
     // checks whether specified point is within boundaries of the region
     bool
         point_inside( glm::dvec3 const &Location );

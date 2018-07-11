@@ -26,6 +26,12 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "Console.h"
 
+namespace input {
+
+extern user_command command;
+
+}
+
 void
 control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {
 
@@ -922,7 +928,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
 
     Train->mvControlled->LocalBrakePosA = (
         clamp(
-            reinterpret_cast<double const &>( Command.param1 ),
+            Command.param1,
             0.0, 1.0 ) );
 /*
     Train->mvControlled->LocalBrakePos = (
@@ -931,7 +937,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
                 0.0,
                 LocalBrakePosNo,
                 clamp(
-                    reinterpret_cast<double const &>( Command.param1 ),
+                    Command.param1,
                     0.0, 1.0 ) ) ) );
 */
 }
@@ -1003,26 +1009,16 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             Train->set_train_brake( Train->mvOccupied->BrakeCtrlPos - Global.fBrakeStep );
         }
     }
-    else {
-        // release
-        if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
-         && ( Train->mvOccupied->BrakeHandle == FVel6 )
-         && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global.iFeedbackMode < 3 ) ) {
-            // Odskakiwanie hamulce EP
-            Train->set_train_brake( 0 );
-        }
-    }
 }
 
 void TTrain::OnCommand_trainbrakeset( TTrain *Train, command_data const &Command ) {
 
-    Train->mvControlled->BrakeLevelSet(
+    Train->mvOccupied->BrakeLevelSet(
         interpolate(
-            Train->mvControlled->Handle->GetPos( bh_MIN ),
-            Train->mvControlled->Handle->GetPos( bh_MAX ),
+            Train->mvOccupied->Handle->GetPos( bh_MIN ),
+            Train->mvOccupied->Handle->GetPos( bh_MAX ),
             clamp(
-                reinterpret_cast<double const &>( Command.param1 ),
+                Command.param1,
                 0.0, 1.0 ) ) );
 }
 
@@ -4334,18 +4330,35 @@ bool TTrain::Update( double const Deltatime )
     { // Ra: TODO: odczyty klawiatury/pulpitu nie powinny być uzależnione od istnienia modelu kabiny
 
         if( ( DynamicObject->Mechanik != nullptr )
-         && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
-         && ( ( mvOccupied->TrainType == dt_ET40 )
-           || ( mvOccupied->TrainType == dt_EP05 ) ) ) {
-            // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie będzie to działać dobrze...
-            // TODO: remove direct keyboard check, use deltatime to stabilize speed
-            if( ( glfwGetKey( Global.window, GLFW_KEY_KP_ADD ) != GLFW_TRUE )
-             && ( mvOccupied->MainCtrlPos > mvOccupied->MainCtrlActualPos ) ) {
-                mvOccupied->DecMainCtrl( 1 );
+         && ( false == DynamicObject->Mechanik->AIControllFlag ) ) {
+            // nie blokujemy AI
+            if( ( mvOccupied->TrainType == dt_ET40 )
+             || ( mvOccupied->TrainType == dt_EP05 ) ) {
+                   // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie będzie to działać dobrze...
+                   // TODO: use deltatime to stabilize speed
+                if( false == (
+                    ( input::command == user_command::mastercontrollerset )
+                 || ( input::command == user_command::mastercontrollerincrease )
+                 || ( input::command == user_command::mastercontrollerdecrease ) ) ) {
+                    if( mvOccupied->MainCtrlPos > mvOccupied->MainCtrlActualPos ) {
+                        mvOccupied->DecMainCtrl( 1 );
+                    }
+                    else if( mvOccupied->MainCtrlPos < mvOccupied->MainCtrlActualPos ) {
+                        // Ra 15-01: a to nie miało być tylko cofanie?
+                        mvOccupied->IncMainCtrl( 1 );
+                    }
+                }
             }
-            if( ( glfwGetKey( Global.window, GLFW_KEY_KP_SUBTRACT ) != GLFW_TRUE )
-             && ( mvOccupied->MainCtrlPos < mvOccupied->MainCtrlActualPos ) ) {
-                mvOccupied->IncMainCtrl( 1 ); // Ra 15-01: a to nie miało być tylko cofanie?
+
+            if( ( mvOccupied->BrakeHandle == FVel6 )
+             && ( mvOccupied->fBrakeCtrlPos < 0.0 )
+             && ( Global.iFeedbackMode < 3 ) ) {
+                // Odskakiwanie hamulce EP
+                if( false == (
+                    ( input::command == user_command::trainbrakeset )
+                 || ( input::command == user_command::trainbrakedecrease ) ) ) {
+                    set_train_brake( 0 );
+                }
             }
         }
 

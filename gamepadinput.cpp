@@ -198,8 +198,8 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
         double const turny = -Rightstick.y * 10.0 * deltatime;
         m_relay.post(
             user_command::viewturn,
-            reinterpret_cast<std::uint64_t const &>( turnx ),
-            reinterpret_cast<std::uint64_t const &>( turny ),
+            turnx,
+            turny,
             GLFW_PRESS,
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
@@ -211,12 +211,10 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
 
         if( (   Leftstick.x != 0.0 ||   Leftstick.y != 0.0 )
          || ( m_leftstick.x != 0.0 || m_leftstick.y != 0.0 ) ) {
-            double const movex = static_cast<double>( Leftstick.x );
-            double const movez = static_cast<double>( Leftstick.y );
             m_relay.post(
                 user_command::movehorizontal,
-                reinterpret_cast<std::uint64_t const &>( movex ),
-                reinterpret_cast<std::uint64_t const &>( movez ),
+                Leftstick.x,
+                Leftstick.y,
                 GLFW_PRESS,
                 0 );
         }

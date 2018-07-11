@@ -208,7 +208,7 @@ void uart_input::poll()
             double const position { (float)( ( (uint16_t)buffer[ 8 ] | ( (uint16_t)buffer[ 9 ] << 8 ) ) - conf.mainbrakemin ) / ( conf.mainbrakemax - conf.mainbrakemin ) };
             relay.post(
                 user_command::trainbrakeset,
-                reinterpret_cast<std::uint64_t const &>( position ),
+                position,
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
@@ -219,7 +219,7 @@ void uart_input::poll()
             double const position { (float)( ( (uint16_t)buffer[ 10 ] | ( (uint16_t)buffer[ 11 ] << 8 ) ) - conf.localbrakemin ) / ( conf.localbrakemax - conf.localbrakemin ) };
             relay.post(
                 user_command::independentbrakeset,
-                reinterpret_cast<std::uint64_t const &>( position ),
+                position,
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place

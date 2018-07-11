@@ -648,6 +648,8 @@ private:
     inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };
     inline TMoverParameters const *Controlled() const { return mvControlled; };
+    inline TMoverParameters *Occupied() { return mvOccupied; };
+    inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
 
 };

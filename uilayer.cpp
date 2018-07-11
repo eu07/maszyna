@@ -109,7 +109,7 @@ ui_layer::on_key( int const Key, int const Action ) {
             EditorModeFlag = ( Key == GLFW_KEY_F11 );
             if( ( true == EditorModeFlag )
              && ( false == Global.ControlPicking ) ) {
-                glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                set_cursor( GLFW_CURSOR_NORMAL );
                 Global.ControlPicking = true;
             }
         }
@@ -1114,6 +1114,13 @@ ui_layer::render() {
 }
 
 void
+ui_layer::set_cursor( int const Mode ) {
+
+    glfwSetInputMode( m_window, GLFW_CURSOR, Mode );
+    m_cursorvisible = ( Mode != GLFW_CURSOR_DISABLED );
+}
+
+void
 ui_layer::set_progress( float const Progress, float const Subtaskprogress ) {
 
     m_progress = Progress * 0.01f;
@@ -1214,6 +1221,7 @@ void
 ui_layer::render_tooltip() {
 
     if( m_tooltip.empty() ) { return; }
+    if( false == m_cursorvisible ) { return; }
 
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );

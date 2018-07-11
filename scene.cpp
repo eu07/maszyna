@@ -1118,7 +1118,7 @@ basic_region::RadioStop( glm::dvec3 const &Location ) {
 }
 
 void
-basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
+basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
 
     // shape might need to be split into smaller pieces, so we create list of nodes instead of just single one
     // using deque so we can do single pass iterating and addding generated pieces without invalidating anything
@@ -1182,7 +1182,7 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool con
 
 // inserts provided lines in the region
 void
-basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
+basic_region::insert( lines_node Lines, scratch_data &Scratchpad ) {
 
     if( Lines.m_data.vertices.empty() ) { return; }
     // transform point coordinates if needed
@@ -1221,135 +1221,6 @@ basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
                     "" :
                     " \"" + Lines.m_name + "\"" )
             + " placed in location outside region bounds (" + to_string( Lines.m_data.area.center ) + ")" );
-    }
-}
-
-// inserts provided track in the region
-void
-basic_region::insert_path( TTrack *Path, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Path->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Path );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: track node \"" + Path->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-    // also register path ends in appropriate sections, for path merging lookups
-    // TODO: clean this up during track refactoring
-    for( auto &point : Path->endpoints() ) {
-        register_path( Path, point );
-    }
-}
-
-// inserts provided track in the region
-void
-basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Traction->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Traction );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: traction node \"" + Traction->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-    // also register traction ends in appropriate sections, for path merging lookups
-    // TODO: clean this up during track refactoring
-    for( auto &point : Traction->endpoints() ) {
-        register_traction( Traction, point );
-    }
-}
-
-// inserts provided instance of 3d model in the region
-void
-basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) {
-
-    auto const location { Instance->location() };
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Instance );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-}
-
-// removes specified instance of 3d model from the region
-void
-basic_region::erase_instance( TAnimModel *Instance ) {
-
-    auto const location { Instance->location() };
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).erase( Instance );
-    }
-}
-
-// removes specified memory cell from the region
-void
-basic_region::erase_memorycell( TMemCell *Memorycell ) {
-
-    auto const location { Memorycell->location() };
-
-    if( point_inside( location ) ) {
-        section( location ).erase( Memorycell );
-    }
-}
-
-// inserts provided sound in the region
-void
-basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Sound->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Sound );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: sound node \"" + Sound->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-}
-
-// inserts provided event launcher in the region
-void
-basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Launcher->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Launcher );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: event launcher \"" + Launcher->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-}
-
-// inserts provided memory cell in the region
-void
-basic_region::insert_memorycell( TMemCell *Memorycell, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Memorycell->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Memorycell );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: memory cell \"" + Memorycell->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
 }
 
@@ -1461,24 +1332,6 @@ basic_region::sections( glm::dvec3 const &Point, float const Radius ) {
         }
     }
     return m_scratchpad.sections;
-}
-
-// registers specified path in the lookup directory of a cell enclosing specified point
-void
-basic_region::register_path( TTrack *Path, glm::dvec3 const &Point ) {
-
-    if( point_inside( Point ) ) {
-        section( Point ).register_node( Path, Point );
-    }
-}
-
-// registers specified end point of the provided traction piece in the lookup directory of the region
-void
-basic_region::register_traction( TTraction *Traction, glm::dvec3 const &Point ) {
-
-    if( point_inside( Point ) ) {
-        section( Point ).register_node( Traction, Point );
-    }
 }
 
 // checks whether specified point is within boundaries of the region

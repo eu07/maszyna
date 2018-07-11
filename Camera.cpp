@@ -67,8 +67,8 @@ TCamera::OnCommand( command_data const &Command ) {
         case user_command::viewturn: {
 
             OnCursorMove(
-                reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global.fMouseXScale / Global.ZoomFactor,
-                reinterpret_cast<double const &>( Command.param2 ) *  0.01  * Global.fMouseYScale / Global.ZoomFactor );
+                Command.param1 *  0.005 * Global.fMouseXScale / Global.ZoomFactor,
+                Command.param2 *  0.01  * Global.fMouseYScale / Global.ZoomFactor );
             break;
         }
 
@@ -86,7 +86,7 @@ TCamera::OnCommand( command_data const &Command ) {
                     1.0 );
 
             // left-right
-            auto const movexparam { reinterpret_cast<double const &>( Command.param1 ) };
+            auto const movexparam { Command.param1 };
             // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
             auto const movex { walkspeed + ( std::max( 0.0, std::abs( movexparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
 
@@ -96,7 +96,7 @@ TCamera::OnCommand( command_data const &Command ) {
                 0.0 );
 
             // forward-back
-            double const movezparam { reinterpret_cast<double const &>( Command.param2 ) };
+            double const movezparam { Command.param2 };
             auto const movez { walkspeed + ( std::max( 0.0, std::abs( movezparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
             // NOTE: z-axis is flipped given world coordinate system
             m_moverate.z = (
@@ -121,7 +121,7 @@ TCamera::OnCommand( command_data const &Command ) {
                     1.0 );
 
             // up-down
-            auto const moveyparam { reinterpret_cast<double const &>( Command.param1 ) };
+            auto const moveyparam { Command.param1 };
             // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
             auto const movey { walkspeed + ( std::max( 0.0, std::abs( moveyparam ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed ) };
 

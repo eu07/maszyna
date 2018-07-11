@@ -161,6 +161,10 @@ keyboard_input::key( int const Key, int const Action ) {
     // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
     // TODO: pass correct entity id once the missing systems are in place
     m_relay.post( lookup->second, 0, 0, Action, 0 );
+    m_command = (
+        Action == GLFW_RELEASE ?
+            user_command::none :
+            lookup->second );
 
     return true;
 }
@@ -600,14 +604,12 @@ keyboard_input::poll() {
 
     if( (   movementhorizontal.x != 0.f ||   movementhorizontal.y != 0.f )
      || ( m_movementhorizontal.x != 0.f || m_movementhorizontal.y != 0.f ) ) {
-        double const movexparam = static_cast<double>( movementhorizontal.x );
-        double const movezparam = static_cast<double>( movementhorizontal.y );
         m_relay.post(
             ( true == Global.ctrlState ?
                 user_command::movehorizontalfast :
                 user_command::movehorizontal ),
-            reinterpret_cast<std::uint64_t const &>( movexparam ),
-            reinterpret_cast<std::uint64_t const &>( movezparam ),
+            movementhorizontal.x,
+            movementhorizontal.y,
             GLFW_PRESS,
             0 );
     }
@@ -623,12 +625,11 @@ keyboard_input::poll() {
 
     if( (   movementvertical != 0.f )
      || ( m_movementvertical != 0.f ) ) {
-        double const moveyparam = static_cast<double>( movementvertical );
         m_relay.post(
             ( true == Global.ctrlState ?
                 user_command::moveverticalfast :
                 user_command::movevertical ),
-            reinterpret_cast<std::uint64_t const &>( moveyparam ),
+            movementvertical,
             0,
             GLFW_PRESS,
             0 );

@@ -231,8 +231,8 @@ struct command_data {
 
     user_command command;
     int action; // press, repeat or release
-    std::uint64_t param1;
-    std::uint64_t param2;
+    double param1;
+    double param2;
     double time_delta;
 };
 
@@ -282,7 +282,7 @@ public:
     // posts specified command for the specified recipient
     // TODO: replace uint16_t with recipient handle, based on item id
     void
-        post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
+        post( user_command const Command, double const Param1, double const Param2,
             int const Action, std::uint16_t const Recipient ) const;
 private:
 // types

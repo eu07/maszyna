@@ -28,6 +28,10 @@ public:
         key( int const Key, int const Action );
     void
         poll();
+    inline
+    user_command const
+        command() const {
+            return m_command; }
 
 private:
 // types
@@ -65,6 +69,7 @@ private:
 
 // members
     commandsetup_sequence m_commands;
+    user_command m_command; // last, if any, issued command
     usercommand_map m_bindings;
     command_relay m_relay;
     bool m_shift{ false };

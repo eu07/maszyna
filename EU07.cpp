@@ -72,6 +72,7 @@ mouse_input Mouse;
 gamepad_input Gamepad;
 glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
 std::unique_ptr<uart_input> uart;
+user_command command; // currently issued control command, if any
 
 }
 
@@ -170,13 +171,13 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
             if( Global.ControlPicking ) {
                 // switch off
                 glfwGetCursorPos( window, &input::mouse_pickmodepos.x, &input::mouse_pickmodepos.y );
-                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                UILayer.set_cursor( GLFW_CURSOR_DISABLED );
                 glfwSetCursorPos( window, 0, 0 );
             }
             else {
                 // enter picking mode
-                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
                 glfwSetCursorPos( window, input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
+                UILayer.set_cursor( GLFW_CURSOR_NORMAL );
             }
             // actually toggle the mode
             Global.ControlPicking = !Global.ControlPicking;
@@ -461,6 +462,11 @@ int main(int argc, char *argv[])
             if( true == Global.InputMouse )   { input::Mouse.poll(); }
             if( true == Global.InputGamepad ) { input::Gamepad.poll(); }
             if( input::uart != nullptr )      { input::uart->poll(); }
+            // TODO: wrap current command in object, include other input sources
+            input::command = (
+                input::Mouse.command() != user_command::none ?
+                    input::Mouse.command() :
+                    input::Keyboard.command() );
         }
     }
     catch( std::bad_alloc const &Error ) {

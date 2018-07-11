@@ -327,7 +327,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             delete pathnode;
 */
         }
-        simulation::Region->insert_path( path, Scratchpad );
+        simulation::Region->insert_and_register( path );
     }
     else if( nodedata.type == "traction" ) {
 
@@ -338,7 +338,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         if( false == simulation::Traction.insert( traction ) ) {
             ErrorLog( "Bad scenario: traction piece with duplicate name \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
-        simulation::Region->insert_traction( traction, Scratchpad );
+        simulation::Region->insert_and_register( traction );
     }
     else if( nodedata.type == "tractionpowersource" ) {
 
@@ -367,14 +367,14 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
                 auto const cellcount = instance->TerrainCount() + 1; // zliczenie submodeli
                 for( auto i = 1; i < cellcount; ++i ) {
                     auto *submodel = instance->TerrainSquare( i - 1 );
-                    simulation::Region->insert_shape(
+                    simulation::Region->insert(
                         scene::shape_node().convert( submodel ),
                         Scratchpad,
                         false );
                     // if there's more than one group of triangles in the cell they're held as children of the primary submodel
                     submodel = submodel->ChildGet();
                     while( submodel != nullptr ) {
-                        simulation::Region->insert_shape(
+                        simulation::Region->insert(
                             scene::shape_node().convert( submodel ),
                             Scratchpad,
                             false );
@@ -398,7 +398,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             if( false == simulation::Instances.insert( instance ) ) {
                 ErrorLog( "Bad scenario: 3d model instance with duplicate name \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
             }
-            simulation::Region->insert_instance( instance, Scratchpad );
+            simulation::Region->insert( instance );
         }
     }
     else if( ( nodedata.type == "triangles" )
@@ -407,7 +407,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         if( false == Scratchpad.binary.terrain ) {
 
-            simulation::Region->insert_shape(
+            simulation::Region->insert(
                 scene::shape_node().import(
                     Input, nodedata ),
                 Scratchpad,
@@ -424,7 +424,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
 
         if( false == Scratchpad.binary.terrain ) {
 
-            simulation::Region->insert_lines(
+            simulation::Region->insert(
                 scene::lines_node().import(
                     Input, nodedata ),
                 Scratchpad );
@@ -440,7 +440,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         if( false == simulation::Memory.insert( memorycell ) ) {
             ErrorLog( "Bad scenario: memory memorycell with duplicate name \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
-        simulation::Region->insert_memorycell( memorycell, Scratchpad );
+        simulation::Region->insert( memorycell );
     }
     else if( nodedata.type == "eventlauncher" ) {
 
@@ -454,7 +454,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
             simulation::Events.queue( eventlauncher );
         }
         else {
-            simulation::Region->insert_launcher( eventlauncher, Scratchpad );
+            simulation::Region->insert( eventlauncher );
         }
     }
     else if( nodedata.type == "sound" ) {
@@ -463,7 +463,7 @@ state_manager::deserialize_node( cParser &Input, scene::scratch_data &Scratchpad
         if( false == simulation::Sounds.insert( sound ) ) {
             ErrorLog( "Bad scenario: sound node with duplicate name \"" + sound->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
-        simulation::Region->insert_sound( sound, Scratchpad );
+        simulation::Region->insert( sound );
     }
 
 }
