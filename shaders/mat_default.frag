@@ -3,10 +3,23 @@
 in vec3 f_normal;
 in vec2 f_coord;
 in vec3 f_pos;
+in vec4 f_light_pos;
 
 #include <common>
 
 uniform sampler2D tex1;
+uniform sampler2DShadow shadowmap;
+
+float calc_shadow()
+{
+	vec3 coords = f_light_pos.xyz;
+	//float bias = clamp(0.0025*tan(acos(clamp(dot(f_normal, -lights[0].dir), 0.0, 1.0))), 0, 0.01);
+	float bias = 0.0f;
+	
+	float shadow = texture(shadowmap, vec3(coords.xy, coords.z - bias));
+	
+	return shadow;
+}
 
 vec3 apply_fog(vec3 color)
 {
@@ -61,6 +74,7 @@ float calc_dir_light(light_s light)
 
 void main()
 {
+	float shadow = calc_shadow();
 	vec3 result = ambient * 0.3 + param[0].rgb * emission;
 	for (uint i = 0U; i < lights_count; i++)
 	{
@@ -74,6 +88,8 @@ void main()
 		else if (light.type == LIGHT_DIR)
 			part = calc_dir_light(light);
 
+		if (i == 0U)
+			part *= shadow;
 		result += light.color * part;
 	}
 

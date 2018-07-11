@@ -47,11 +47,11 @@ void main()
 	vec3 hdr_color = texture(tex1, texcoord).xyz;
 
 	vec3 mapped;
-	if (texcoord.x < 0.33f)
-		mapped = reinhard(hdr_color);
-	else if (texcoord.x < 0.66f)
-		mapped = filmic(hdr_color);
-	else
+	//if (texcoord.x < 0.33f)
+	//	mapped = reinhard(hdr_color);
+	//else if (texcoord.x < 0.66f)
+	//	mapped = filmic(hdr_color);
+	//else
 		mapped = ACESFilm(hdr_color);
 	gl_FragColor = vec4(mapped, 1.0);
 }  

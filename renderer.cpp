@@ -193,8 +193,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     m_shadow_fb = std::make_unique<gl::framebuffer>();
     m_shadow_tex = std::make_unique<opengl_texture>();
-    m_shadow_tex->alloc_rendertarget(GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, m_shadowbuffersize, m_shadowbuffersize);
-    m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
+    m_shadow_tex->alloc_rendertarget(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, m_shadowbuffersize, m_shadowbuffersize);
+	m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
 
     if (!m_shadow_fb->is_complete())
         return false;
@@ -284,29 +284,17 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             glDebug("rendermode::color");
 
             {
-				/*
                 glDebug("render shadowmap start");
                 Timer::subsystem.gfx_shadows.start();
 
                 Render_pass(rendermode::shadows);
                 setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
-                m_shadowtexturematrix =
-                    glm::mat4 { 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f, 1.0f } // bias from [-1, 1] to [0, 1]
-                    * m_shadowpass.camera.projection()
-                    // during colour pass coordinates are moved from camera-centric to light-centric, essentially the difference between these two origins
-                    * glm::translate(
-                        glm::mat4{ glm::mat3{ m_shadowpass.camera.modelview() } },
-glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
-
-                scene_ubs.lightview = m_shadowtexturematrix;
 
                 Timer::subsystem.gfx_shadows.stop();
                 glDebug("render shadowmap end");
-				*/
             }
 
             m_main_fb->bind();
-            glEnable(GL_FRAMEBUFFER_SRGB);
 
             if( ( true == m_environmentcubetexturesupport )
              && ( true == World.InitPerformed() ) ) {
@@ -316,7 +304,7 @@ glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
                 }
             }
 
-            ::glViewport( 0, 0, Global.iWindowWidth, Global.iWindowHeight );
+            glViewport( 0, 0, 1280, 720 );
 
             if( World.InitPerformed() ) {
                 auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
@@ -339,6 +327,19 @@ glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
                 scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
                 scene_ubo->update(scene_ubs);
                 Render( &World.Environment );
+
+				{
+					glm::mat4 coordmove(
+						0.5, 0.0, 0.0, 0.0,
+						0.0, 0.5, 0.0, 0.0,
+						0.0, 0.0, 0.5, 0.0,
+						0.5, 0.5, 0.5, 1.0);
+					glm::mat4 depthproj = m_shadowpass.camera.projection();
+					glm::mat4 depthcam = m_shadowpass.camera.modelview();
+					glm::mat4 worldcam = m_renderpass.camera.modelview();
+
+					scene_ubs.lightview = coordmove * depthproj * depthcam * glm::inverse(worldcam);
+				}
 
                 scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
                 scene_ubo->update(scene_ubs);
@@ -399,6 +400,8 @@ glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
                 glDebug("color pass done");
             }
 
+			glEnable(GL_FRAMEBUFFER_SRGB);
+			glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
             m_pfx->apply(*m_main_tex, nullptr);
             m_textures.reset_unit_cache();
             glDisable(GL_FRAMEBUFFER_SRGB);
@@ -417,11 +420,19 @@ glm::vec3{ m_renderpass.camera.position() - m_shadowpass.camera.position() } );
             //glEnable(GL_POLYGON_OFFSET_FILL);
             //glPolygonOffset(1.0f, 1.0f);
 
+			glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
             m_shadow_fb->bind();
-            glClear(GL_DEPTH_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             setup_matrices();
             setup_drawing(false);
+
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+
+			scene_ubs.time = Timer::GetTime();
+			scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
+			scene_ubo->update(scene_ubs);
             Render(simulation::Region);
             m_shadowpass = m_renderpass;
 

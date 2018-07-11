@@ -1,8 +1,8 @@
 #version 330
 
-in vec3 v_vert;
-in vec3 v_normal;
-in vec2 v_coord;
+layout(location = 0) in vec3 v_vert;
+layout(location = 1) in vec3 v_normal;
+layout(location = 2) in vec2 v_coord;
 
 #include <common>
 
