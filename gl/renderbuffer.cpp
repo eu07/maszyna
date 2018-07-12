@@ -17,8 +17,11 @@ void gl::renderbuffer::bind(GLuint id)
     glBindRenderbuffer(GL_RENDERBUFFER, id);
 }
 
-void gl::renderbuffer::alloc(GLuint format, int width, int height)
+void gl::renderbuffer::alloc(GLuint format, int width, int height, int samples)
 {
     bind();
-    glRenderbufferStorage(GL_RENDERBUFFER, format, width, height);
+	if (samples == 1)
+		glRenderbufferStorage(GL_RENDERBUFFER, format, width, height);
+	else
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, format, width, height);
 }

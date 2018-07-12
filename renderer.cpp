@@ -185,15 +185,25 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     m_invalid_material = Fetch_Material("invalid");
 
-    m_main_fb = std::make_unique<gl::framebuffer>();
-    m_main_tex = std::make_unique<opengl_texture>();
-    m_main_rb = std::make_unique<gl::renderbuffer>();
+	int samples = 1 << Global.iMultisampling;
+	m_msaa_rbc = std::make_unique<gl::renderbuffer>();
+	m_msaa_rbc->alloc(GL_RGB16F, 1280, 720, samples);
 
-    m_main_rb->alloc(GL_DEPTH_COMPONENT24, 1280, 720);
+	m_msaa_rbd = std::make_unique<gl::renderbuffer>();
+	m_msaa_rbd->alloc(GL_DEPTH_COMPONENT24, 1280, 720, samples);
+
+	m_msaa_fb = std::make_unique<gl::framebuffer>();
+	m_msaa_fb->attach(*m_msaa_rbc, GL_COLOR_ATTACHMENT0);
+	m_msaa_fb->attach(*m_msaa_rbd, GL_DEPTH_ATTACHMENT);
+
+	if (!m_msaa_fb->is_complete())
+		return false;
+
+    m_main_tex = std::make_unique<opengl_texture>();
     m_main_tex->alloc_rendertarget(GL_RGB16F, GL_RGB, GL_FLOAT, 1280, 720);
 
+	m_main_fb = std::make_unique<gl::framebuffer>();
     m_main_fb->attach(*m_main_tex, GL_COLOR_ATTACHMENT0);
-    m_main_fb->attach(*m_main_rb, GL_DEPTH_ATTACHMENT);
     if (!m_main_fb->is_complete())
         return false;
 
@@ -312,7 +322,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 glDebug("render shadowmap end");
             }
 
-            m_main_fb->bind();
+            m_msaa_fb->bind();
 
 /*
             if( ( true == m_environmentcubetexturesupport )
@@ -325,6 +335,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 */
 
             glViewport( 0, 0, 1280, 720 );
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
 
             if( World.InitPerformed() ) {
                 auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
@@ -333,7 +345,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             else {
                 ::glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
             }
-            ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            m_msaa_fb->clear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
             if( World.InitPerformed() ) {
                 // setup
@@ -404,6 +416,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             }
 
+			m_main_fb->clear(GL_COLOR_BUFFER_BIT);
+			m_msaa_fb->blit_to(*m_main_fb.get(), 1280, 720, GL_COLOR_BUFFER_BIT);
+
 			glEnable(GL_FRAMEBUFFER_SRGB);
 			glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
             m_pfx->apply(*m_main_tex, nullptr);
@@ -427,15 +442,15 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             //glEnable(GL_POLYGON_OFFSET_FILL);
             //glPolygonOffset(1.0f, 1.0f);
 
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+
 			glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
             m_shadow_fb->bind();
-			m_shadow_fb->clear();
+			m_shadow_fb->clear(GL_DEPTH_BUFFER_BIT);
 
             setup_matrices();
             setup_drawing(false);
-
-			glEnable(GL_DEPTH_TEST);
-			glDepthMask(GL_TRUE);
 
 			scene_ubs.time = Timer::GetTime();
 			scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
@@ -468,7 +483,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
 			glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 			m_pick_fb->bind();
-			m_pick_fb->clear();
+			m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_TRUE);

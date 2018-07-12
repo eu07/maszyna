@@ -19,7 +19,7 @@ void gl::framebuffer::bind(GLuint id)
 void gl::framebuffer::attach(const opengl_texture &tex, GLenum location)
 {
     bind();
-    glFramebufferTexture2D(GL_FRAMEBUFFER, location, GL_TEXTURE_2D, tex.id, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, location, tex.target, tex.id, 0);
 }
 
 void gl::framebuffer::attach(const renderbuffer &rb, GLenum location)
@@ -35,8 +35,21 @@ bool gl::framebuffer::is_complete()
     return status == GL_FRAMEBUFFER_COMPLETE;
 }
 
-void gl::framebuffer::clear()
+void gl::framebuffer::clear(GLbitfield mask)
 {
     bind();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(mask);
+}
+
+void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask)
+{
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, *this);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, other);
+	glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, GL_NEAREST);
+	unbind();
+}
+
+void gl::framebuffer::blit_from(framebuffer &other, int w, int h, GLbitfield mask)
+{
+	other.blit_to(*this, w, h, mask);
 }

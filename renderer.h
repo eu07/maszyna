@@ -390,9 +390,12 @@ private:
     std::unique_ptr<gl::program> m_line_shader;
     std::unique_ptr<gl::program> m_freespot_shader;
 
+	std::unique_ptr<gl::framebuffer> m_msaa_fb;
+	std::unique_ptr<gl::renderbuffer> m_msaa_rbc;
+	std::unique_ptr<gl::renderbuffer> m_msaa_rbd;
+
     std::unique_ptr<gl::framebuffer> m_main_fb;
     std::unique_ptr<opengl_texture> m_main_tex;
-    std::unique_ptr<gl::renderbuffer> m_main_rb;
     std::unique_ptr<gl::postfx> m_pfx;
 
     std::unique_ptr<gl::framebuffer> m_shadow_fb;

@@ -577,7 +577,7 @@ opengl_texture::bind() {
      && ( false == create() ) ) {
         return false;
     }
-    ::glBindTexture( GL_TEXTURE_2D, id );
+    ::glBindTexture( target, id );
     return true;
 }
 
@@ -595,7 +595,7 @@ opengl_texture::create() {
     if( id == -1 ) {
 
         ::glGenTextures( 1, &id );
-        ::glBindTexture( GL_TEXTURE_2D, id );
+        ::glBindTexture( target, id );
 
         // analyze specified texture traits
         bool wraps{ true };
@@ -616,22 +616,25 @@ opengl_texture::create() {
             dataheight = data_height;
         if (is_rendertarget)
         {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 			if (data_components == GL_DEPTH_COMPONENT)
 			{
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 				float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
-            glTexImage2D(GL_TEXTURE_2D, 0, data_format, data_width, data_height, 0, data_components, data_type, nullptr);
+			if (target == GL_TEXTURE_2D)
+				glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, data_type, nullptr);
+			else if (target == GL_TEXTURE_2D_MULTISAMPLE)
+				glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
         }
         else
         {
-			::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
-			::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
+			::glTexParameteri(target, GL_TEXTURE_WRAP_S, (wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
+			::glTexParameteri(target, GL_TEXTURE_WRAP_T, (wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
             set_filtering();
 
             for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
@@ -648,7 +651,7 @@ opengl_texture::create() {
                     datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
 
                     ::glCompressedTexImage2D(
-                        GL_TEXTURE_2D, maplevel, data_format,
+						target, maplevel, data_format,
                         datawidth, dataheight, 0,
                         datasize, (GLubyte *)&data[ dataoffset ] );
 
@@ -659,7 +662,7 @@ opengl_texture::create() {
                 else {
                     // uncompressed texture data. have the gfx card do the compression as it sees fit
                     ::glTexImage2D(
-                        GL_TEXTURE_2D, 0,
+						target, 0,
                         Global.compress_tex ? GL_COMPRESSED_SRGB_ALPHA : GL_SRGB_ALPHA,
                         data_width, data_height, 0,
                         data_format, data_type, (GLubyte *)&data[ 0 ] );
@@ -668,7 +671,7 @@ opengl_texture::create() {
 
             if( data_mapcount == 1 ) {
                 // fill missing mipmaps if needed
-                glGenerateMipmap(GL_TEXTURE_2D);
+                glGenerateMipmap(target);
             }
 
             if( ( true == Global.ResourceMove )
@@ -694,18 +697,18 @@ opengl_texture::release() {
         // if resource move is enabled we don't keep a cpu side copy after upload
         // so need to re-acquire the data before release
         // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
-        ::glBindTexture( GL_TEXTURE_2D, id );
+        ::glBindTexture(target, id );
         GLint datasize {};
         GLint iscompressed {};
-        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
+        ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
         if( iscompressed == GL_TRUE ) {
             // texture is compressed on the gpu side
             // query texture details needed to perform the backup...
-            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
-            ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
+            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
+            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
             data.resize( datasize );
             // ...fetch the data...
-            ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+            ::glGetCompressedTexImage(target, 0, &data[ 0 ] );
         }
         else {
             // for whatever reason texture didn't get compressed during upload
@@ -714,7 +717,7 @@ opengl_texture::release() {
             data_type = GL_UNSIGNED_BYTE;
             data.resize( data_width * data_height * 4 );
             // ...fetch the data...
-            ::glGetTexImage( GL_TEXTURE_2D, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
+            ::glGetTexImage(target, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
         }
         // ...and update texture object state
         data_mapcount = 1; // we keep copy of only top mipmap level
@@ -728,7 +731,7 @@ opengl_texture::release() {
     return;
 }
 
-void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height)
+void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int s)
 {
     data_width = width;
     data_height = height;
@@ -737,6 +740,9 @@ void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint ty
     data_type = type;
     data_mapcount = 1;
     is_rendertarget = true;
+	samples = s;
+	if (samples > 1)
+		target = GL_TEXTURE_2D_MULTISAMPLE;
     create();
 }
 
@@ -744,12 +750,12 @@ void
 opengl_texture::set_filtering() const {
 
     // default texture mode
-    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+    ::glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    ::glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
     if( GLEW_EXT_texture_filter_anisotropic ) {
         // anisotropic filtering
-        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
     bool sharpen{ false };
@@ -891,7 +897,7 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
     if( Texture != null_handle ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
-        ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
+        ::glBindTexture( texture(Texture).target, texture(Texture).id );
         m_units[ Unit ] = Texture;
 #else
         if( true == texture( Texture ).bind() ) {
@@ -899,7 +905,7 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
         }
         else {
             // TODO: bind a special 'error' texture on failure
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
+            ::glBindTexture( texture(Texture).target, 0 );
             m_units[ Unit ] = 0;
         }
 #endif

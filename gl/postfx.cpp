@@ -25,7 +25,7 @@ void gl::postfx::apply(opengl_texture &src, framebuffer *dst)
 {
     if (dst)
     {
-        dst->clear();
+        dst->clear(GL_COLOR_BUFFER_BIT);
         dst->bind();
     }
     else
@@ -36,5 +36,6 @@ void gl::postfx::apply(opengl_texture &src, framebuffer *dst)
     glActiveTexture(GL_TEXTURE0);
     src.bind();
     glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

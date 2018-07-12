@@ -41,7 +41,7 @@ struct opengl_texture {
         height() const {
             return data_height; }
 
-    void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height);
+    void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int samples = 1);
 
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
@@ -50,6 +50,8 @@ struct opengl_texture {
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
     std::size_t size{ 0 }; // size of the texture data, in kb
+
+	GLenum target = GL_TEXTURE_2D;
 
 private:
 // methods
@@ -64,6 +66,8 @@ private:
 
 // members
     bool is_rendertarget; // is used as postfx rendertarget, without loaded data
+	int samples;
+
     std::vector<char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },

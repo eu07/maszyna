@@ -11,7 +11,7 @@ namespace gl
         renderbuffer();
         ~renderbuffer();
 
-        void alloc(GLuint format, int width, int height);
+        void alloc(GLuint format, int width, int height, int samples = 1);
 
         static void bind(GLuint id);
         using bindable::bind;
