@@ -284,6 +284,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             glDebug("rendermode::color");
 
             {
+glActiveTexture(GL_TEXTURE10);
+glBindTexture(GL_TEXTURE_2D, 0);
+glActiveTexture(GL_TEXTURE0);
+m_textures.reset_unit_cache();
                 glDebug("render shadowmap start");
                 Timer::subsystem.gfx_shadows.start();
 
@@ -296,6 +300,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             m_main_fb->bind();
 
+/*
             if( ( true == m_environmentcubetexturesupport )
              && ( true == World.InitPerformed() ) ) {
                 // potentially update environmental cube map
@@ -303,6 +308,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
                 }
             }
+*/
 
             glViewport( 0, 0, 1280, 720 );
 
@@ -345,6 +351,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 scene_ubo->update(scene_ubs);
                 // opaque parts...
                 setup_drawing( false );
+                setup_shadow_map(*m_shadow_tex);
 
                 if( false == FreeFlyModeFlag ) {
                     glDebug("render cab opaque");
@@ -363,7 +370,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 glDebug("render opaque region");
 
-                setup_shadow_map(*m_shadow_tex);
                 Render( simulation::Region );
 
                 // ...translucent parts
