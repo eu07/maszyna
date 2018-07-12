@@ -322,6 +322,7 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
+	glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
     if( Global.iMultisampling > 0 ) {
@@ -448,16 +449,16 @@ int main(int argc, char *argv[])
 
             glfwPollEvents();
 
-            if (take_screenshot)
-            {
-                make_screenshot();
-                take_screenshot = false;
-            }
-
             if (!World.Update())
                 break;
             if (!GfxRenderer.Render())
                 break;
+
+			if (take_screenshot)
+			{
+				make_screenshot();
+				take_screenshot = false;
+			}
 
 			if (input::motiontelemetry)
 				input::motiontelemetry->update();

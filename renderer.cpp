@@ -175,6 +175,14 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_shadow_shader = std::unique_ptr<gl::program>(prog);
     }
 
+	{
+		gl::shader vert("pick.vert");
+		gl::shader frag("pick.frag");
+		gl::program *prog = new gl::program_mvp({ vert, frag });
+		prog->init();
+		m_pick_shader = std::unique_ptr<gl::program>(prog);
+	}
+
     m_invalid_material = Fetch_Material("invalid");
 
     m_main_fb = std::make_unique<gl::framebuffer>();
@@ -198,6 +206,14 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     if (!m_shadow_fb->is_complete())
         return false;
+
+	m_pick_tex = std::make_unique<opengl_texture>();
+	m_pick_tex->alloc_rendertarget(GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
+	m_pick_rb = std::make_unique<gl::renderbuffer>();
+	m_pick_rb->alloc(GL_DEPTH_COMPONENT24, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
+	m_pick_fb = std::make_unique<gl::framebuffer>();
+	m_pick_fb->attach(*m_pick_tex, GL_COLOR_ATTACHMENT0);
+	m_pick_fb->attach(*m_pick_rb, GL_DEPTH_ATTACHMENT);
 
     return true;
 }
@@ -284,10 +300,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             glDebug("rendermode::color");
 
             {
-glActiveTexture(GL_TEXTURE10);
-glBindTexture(GL_TEXTURE_2D, 0);
-glActiveTexture(GL_TEXTURE0);
-m_textures.reset_unit_cache();
+				setup_shadow_map(nullptr);
+
                 glDebug("render shadowmap start");
                 Timer::subsystem.gfx_shadows.start();
 
@@ -351,21 +365,13 @@ m_textures.reset_unit_cache();
                 scene_ubo->update(scene_ubs);
                 // opaque parts...
                 setup_drawing( false );
-                setup_shadow_map(*m_shadow_tex);
+
+				setup_shadow_map(m_shadow_tex.get());
 
                 if( false == FreeFlyModeFlag ) {
                     glDebug("render cab opaque");
-                    //setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
-                    // cache shadow colour in case we need to account for cab light
-                    auto const shadowcolor { m_shadowcolor };
-                    auto const *vehicle{ World.Train->Dynamic() };
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
-                    }
+					auto const *vehicle{ World.Train->Dynamic() };
                     Render_cab( vehicle, false );
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( shadowcolor );
-                    }
                 }
 
                 glDebug("render opaque region");
@@ -381,15 +387,8 @@ m_textures.reset_unit_cache();
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     //setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
-                    auto const shadowcolor{ m_shadowcolor };
                     auto const *vehicle{ World.Train->Dynamic() };
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
-                    }
                     Render_cab( vehicle, true );
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( shadowcolor );
-                    }
                 }
 
                 /*
@@ -403,7 +402,6 @@ m_textures.reset_unit_cache();
                 }
                 */
 
-                glDebug("color pass done");
             }
 
 			glEnable(GL_FRAMEBUFFER_SRGB);
@@ -412,7 +410,10 @@ m_textures.reset_unit_cache();
             m_textures.reset_unit_cache();
             glDisable(GL_FRAMEBUFFER_SRGB);
 
+			glDebug("uilayer render");
             UILayer.render();
+
+			glDebug("rendermode::color end");
             break;
         }
 
@@ -428,7 +429,7 @@ m_textures.reset_unit_cache();
 
 			glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
             m_shadow_fb->bind();
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			m_shadow_fb->clear();
 
             setup_matrices();
             setup_drawing(false);
@@ -446,6 +447,8 @@ m_textures.reset_unit_cache();
 
             m_shadow_fb->unbind();
 
+			glDebug("rendermode::end");
+
             break;
         }
 
@@ -458,6 +461,27 @@ m_textures.reset_unit_cache();
         }
 
         case rendermode::pickcontrols: {
+			if (!World.InitPerformed() || !World.Train)
+				break;
+
+			glDebug("rendermode::pickcontrols");
+
+			glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
+			m_pick_fb->bind();
+			m_pick_fb->clear();
+
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+
+			m_pickcontrolsitems.clear();
+			setup_matrices();
+			setup_drawing(false);
+
+			Render_cab(World.Train->Dynamic());
+
+			m_pick_fb->unbind();
+
+			glDebug("rendermode::pickcontrols end");
             break;
         }
 
@@ -607,6 +631,21 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
 
             break;
         }
+		case rendermode::pickcontrols:
+		case rendermode::pickscenery:
+		{
+			// modelview
+			camera.position() = Global.pCameraPosition;
+			World.Camera.SetMatrix(viewmatrix);
+			// projection
+			camera.projection() *=
+				glm::perspective(
+					glm::radians(Global.FieldOfView / Global.ZoomFactor),
+					std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight),
+					0.1f * Global.ZoomFactor,
+					Config.draw_range * Global.fDistanceFactor);
+			break;
+		}
         default: {
             break;
         }
@@ -649,6 +688,8 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
         case rendermode::reflections: {
+			glCullFace(GL_BACK);
+
             // setup fog
             if( Global.fFogEnd > 0 ) {
                 // m7t setup fog ubo
@@ -657,6 +698,10 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
             break;
         }
         case rendermode::shadows:
+		{
+			glCullFace(GL_FRONT);
+			break;
+		}
         case rendermode::cabshadows:
         case rendermode::pickcontrols:
         case rendermode::pickscenery:
@@ -671,15 +716,14 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
 
 // configures shadow texture unit for specified shadow map and conersion matrix
 void
-opengl_renderer::setup_shadow_map( opengl_texture &tex ) {
+opengl_renderer::setup_shadow_map( opengl_texture *tex ) {
     glActiveTexture(GL_TEXTURE10);
-    tex.bind();
+	if (tex)
+		tex->bind();
+	else
+		glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
     m_textures.reset_unit_cache();
-}
-
-void
-opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
 }
 
 void
@@ -940,8 +984,6 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
             break;
         }
         case rendermode::shadows: {
-            // for shadows it is better to cull front faces
-            glCullFace(GL_FRONT);
             break; }
         case rendermode::pickscenery: {
             break;
@@ -1007,8 +1049,6 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            // restore standard face cull mode
-            ::glCullFace( GL_BACK );
             break; }
         default: {
             break; }
@@ -1362,7 +1402,12 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                 break;
             }
             case rendermode::cabshadows:
+				break;
             case rendermode::pickcontrols:
+			{
+				Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
+				break;
+			}
             default: {
                 break;
             }
@@ -1522,7 +1567,18 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     }
                     case rendermode::cabshadows:
                     case rendermode::pickscenery:
+						break;
                     case rendermode::pickcontrols:
+					{
+						m_pick_shader->bind();
+						// control picking applies individual colour for each submodel
+						m_pickcontrolsitems.emplace_back(Submodel);
+						model_ubs.param[0] = glm::vec4(pick_color(m_pickcontrolsitems.size()), 1.0f);
+						model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
+						model_ubo->update(model_ubs);
+						m_geometry.draw(Submodel->m_geometry);
+						break;
+					}
                     default: {
                         break;
                     }
@@ -1687,6 +1743,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
+			glDisable(GL_CULL_FACE);
             break;
         }
         default: {
@@ -2329,7 +2386,34 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 // utility methods
 TSubModel const *
 opengl_renderer::Update_Pick_Control() {
-    return nullptr;
+	Render_pass(rendermode::pickcontrols);
+
+	// determine point to examine
+	glm::dvec2 mousepos;
+	glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
+	mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+
+	glm::ivec2 pickbufferpos;
+	pickbufferpos = glm::ivec2{
+		mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth),
+		mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight) };
+
+	unsigned char pickreadout[3];
+
+	//m7t: ! replace with PBO and wait frame or two to improve performance
+	m_pick_fb->bind();
+	::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
+	m_pick_fb->unbind();
+
+	auto const controlindex = pick_index(glm::ivec3{ pickreadout[0], pickreadout[1], pickreadout[2] });
+	TSubModel const *control{ nullptr };
+	if ((controlindex > 0)
+		&& (controlindex <= m_pickcontrolsitems.size())) {
+		control = m_pickcontrolsitems[controlindex - 1];
+	}
+
+	m_pickcontrolitem = control;
+	return control;
 }
 
 scene::basic_node const *
@@ -2575,20 +2659,6 @@ opengl_renderer::Init_caps() {
 
 glm::vec3
 opengl_renderer::pick_color( std::size_t const Index ) {
-/*
-    // pick colours are set with step of 4 for some slightly easier visual debugging. not strictly needed but, eh
-    int const colourstep = 4;
-    int const componentcapacity = 256 / colourstep;
-    auto const redgreen = std::div( Index, componentcapacity * componentcapacity );
-    auto const greenblue = std::div( redgreen.rem, componentcapacity );
-    auto const blue = Index % componentcapacity;
-    return
-        glm::vec3 {
-           redgreen.quot * colourstep / 255.0f,
-           greenblue.quot * colourstep / 255.0f,
-           greenblue.rem * colourstep / 255.0f };
-*/
-    // alternatively
     return
         glm::vec3{
         ( ( Index & 0xff0000 ) >> 16 ) / 255.0f,
@@ -2599,13 +2669,6 @@ opengl_renderer::pick_color( std::size_t const Index ) {
 
 std::size_t
 opengl_renderer::pick_index( glm::ivec3 const &Color ) {
-/*
-    return (
-          std::floor( Color.b / 4 )
-        + std::floor( Color.g / 4 ) * 64
-        + std::floor( Color.r / 4 ) * 64 * 64 );
-*/
-    // alternatively
     return
             Color.b
         + ( Color.g * 256 )

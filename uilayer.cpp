@@ -1078,14 +1078,9 @@ ui_layer::render_tooltip() {
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
 
-    ImGui::SetNextWindowPos(ImVec2(mousepos.x, mousepos.y));
-    ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin("Tooltip", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                 ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus);
-    ImGui::TextUnformatted(m_tooltip.c_str());
-    ImGui::End();
+	ImGui::BeginTooltip();
+	ImGui::TextUnformatted(m_tooltip.c_str());
+	ImGui::EndTooltip();
 }
 
 void

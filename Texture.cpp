@@ -609,9 +609,6 @@ opengl_texture::create() {
             }
         }
 
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-
         // upload texture data
         int dataoffset = 0,
             datasize = 0,
@@ -619,12 +616,22 @@ opengl_texture::create() {
             dataheight = data_height;
         if (is_rendertarget)
         {
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			if (data_components == GL_DEPTH_COMPONENT)
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+				float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+			}
             glTexImage2D(GL_TEXTURE_2D, 0, data_format, data_width, data_height, 0, data_components, data_type, nullptr);
         }
         else
         {
+			::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
+			::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
             set_filtering();
 
             for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {

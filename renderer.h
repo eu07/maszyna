@@ -237,9 +237,7 @@ private:
     void
         setup_drawing( bool const Alpha = false );
     void
-        setup_shadow_map(opengl_texture &tex);
-    void
-        setup_shadow_color( glm::vec4 const &Shadowcolor );
+        setup_shadow_map(opengl_texture *tex);
     void
         setup_environment_light( TEnvironmentType const Environment = e_flat );
     // runs jobs needed to generate graphics for specified render pass
@@ -400,6 +398,11 @@ private:
     std::unique_ptr<gl::framebuffer> m_shadow_fb;
     std::unique_ptr<opengl_texture> m_shadow_tex;
     std::unique_ptr<gl::program> m_shadow_shader;
+
+	std::unique_ptr<gl::framebuffer> m_pick_fb;
+	std::unique_ptr<opengl_texture> m_pick_tex;
+	std::unique_ptr<gl::renderbuffer> m_pick_rb;
+	std::unique_ptr<gl::program> m_pick_shader;
 
     material_handle m_invalid_material;
 

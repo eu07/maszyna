@@ -12,12 +12,25 @@ uniform sampler2DShadow shadowmap;
 
 float calc_shadow()
 {
-	vec3 coords = f_light_pos.xyz;
-	//float bias = clamp(0.0025*tan(acos(clamp(dot(f_normal, -lights[0].dir), 0.0, 1.0))), 0, 0.01);
-	float bias = 0.0f;
+	vec3 coords = f_light_pos.xyz / f_light_pos.w;
 	
-	float shadow = texture(shadowmap, vec3(coords.xy, coords.z - bias));
+	// do something better
+	float bias = 0.0001f;
 	
+	//sampler PCF
+	//float shadow = texture(shadowmap, vec3(coords.xy, coords.z - bias));
+
+	//sampler PCF + PCF
+	float shadow = 0.0;
+	vec2 texel = 1.0 / textureSize(shadowmap, 0);
+	for (float y = -1.5; y <= 1.5; y += 1.0)
+		for (float x = -1.5; x <= 1.5; x += 1.0)
+			shadow += texture(shadowmap, coords.xyz + vec3(vec2(x, y) * texel, -bias));
+	shadow /= 16.0;
+	
+	if (coords.z > 1.0f)
+		shadow = 1.0f;
+		
 	return shadow;
 }
 
