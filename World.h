@@ -20,52 +20,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "messaging.h"
-#include "station.h"
-
-// wrapper for simulation time
-class simulation_time {
-
-public:
-    simulation_time() { m_time.wHour = 10; m_time.wMinute = 30; }
-    void
-        init();
-    void
-        update( double const Deltatime );
-    SYSTEMTIME &
-        data() { return m_time; }
-    SYSTEMTIME const &
-        data() const { return m_time; }
-    double
-        second() const { return ( m_time.wMilliseconds * 0.001 + m_time.wSecond ); }
-    int
-        year_day() const { return m_yearday; }
-    // helper, calculates day of year from given date
-    int
-        year_day( int Day, int const Month, int const Year ) const;
-    int
-        julian_day() const;
-    double
-        zone_bias() const { return m_timezonebias; }
-
-private:
-    // calculates day and month from given day of year
-    void
-        daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
-
-    SYSTEMTIME m_time;
-    double m_milliseconds{ 0.0 };
-    int m_yearday;
-    char m_monthdaycounts[ 2 ][ 13 ];
-    double m_timezonebias{ 0.0 };
-};
-
-namespace simulation {
-
-extern simulation_time Time;
-
-extern basic_station Station; // temporary object, for station functionality tests
-
-}
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
@@ -126,7 +80,6 @@ TWorld();
 private:
     void Update_Environment();
     void Update_Camera( const double Deltatime );
-    void ResourceSweep();
     // handles vehicle change flag
     void ChangeDynamic();
     void InOutKey( bool const Near = true );
@@ -153,6 +106,8 @@ private:
     bool m_init { false }; // indicates whether initial update of the world was performed
     GLFWwindow *window;
 };
+
+extern TWorld World;
 
 //---------------------------------------------------------------------------
 

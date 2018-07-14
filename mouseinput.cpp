@@ -9,6 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mouseinput.h"
+
+#include "application.h"
 #include "utilities.h"
 #include "globals.h"
 #include "timer.h"
@@ -17,8 +19,6 @@ http://mozilla.org/MPL/2.0/.
 #include "train.h"
 #include "renderer.h"
 #include "uilayer.h"
-
-extern TWorld World;
 
 void
 mouse_slider::bind( user_command const &Command ) {
@@ -82,15 +82,14 @@ mouse_slider::bind( user_command const &Command ) {
         }
     }
     // hide the cursor and place it in accordance with current slider value
-    glfwGetCursorPos( Global.window, &m_cursorposition.x, &m_cursorposition.y );
-    UILayer.set_cursor( GLFW_CURSOR_DISABLED );
+    Application.get_cursor_pos( m_cursorposition.x, m_cursorposition.y );
+    Application.set_cursor( GLFW_CURSOR_DISABLED );
 
     auto const controlsize { Global.iWindowHeight * 0.75 };
     auto const controledge { Global.iWindowHeight * 0.5 + controlsize * 0.5 };
     auto const stepsize { controlsize / m_valuerange };
 
-    glfwSetCursorPos(
-        Global.window,
+    Application.set_cursor_pos(
         Global.iWindowWidth * 0.5,
         ( m_analogue ?
             controledge - ( 1.0 - m_value ) * controlsize :
@@ -101,8 +100,8 @@ void
 mouse_slider::release() {
 
     m_command = user_command::none;
-    glfwSetCursorPos( Global.window, m_cursorposition.x, m_cursorposition.y );
-    UILayer.set_cursor( GLFW_CURSOR_NORMAL );
+    Application.set_cursor_pos( m_cursorposition.x, m_cursorposition.y );
+    Application.set_cursor( GLFW_CURSOR_NORMAL );
 }
 
 void
@@ -525,10 +524,10 @@ mouse_input::default_bindings() {
             user_command::pantographtogglerear,
             user_command::none } },
         { "pantfrontoff_sw:", {
-            user_command::pantographtogglefront,
+            user_command::pantographlowerfront,
             user_command::none } }, // TODO: dedicated lower pantograph commands
         { "pantrearoff_sw:", {
-            user_command::pantographtogglerear,
+            user_command::pantographlowerrear,
             user_command::none } }, // TODO: dedicated lower pantograph commands
         { "pantalloff_sw:", {
             user_command::pantographlowerall,

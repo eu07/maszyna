@@ -50,7 +50,6 @@ LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e)
 HWND Hwnd;
 WNDPROC BaseWindowProc;
 PCOPYDATASTRUCT pDane;
-extern TWorld World;
 
 LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
                          UINT uMsg, // message for this window

@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "simulation.h"
-#include "world.h"
+#include "simulationtime.h"
 #include "camera.h"
 #include "Logs.h"
 #include "MdlMngr.h"

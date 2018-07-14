@@ -257,18 +257,24 @@ int stol_def(const std::string &str, const int &DefaultValue) {
     return result;
 }
 
-std::string ToLower(std::string const &text)
-{
-	std::string lowercase( text );
-	std::transform(text.begin(), text.end(), lowercase.begin(), ::tolower);
+std::string ToLower(std::string const &text) {
+
+    auto lowercase { text };
+	std::transform(
+        std::begin( text ), std::end( text ),
+        std::begin( lowercase ),
+        []( unsigned char c ) { return std::tolower( c ); } );
 	return lowercase;
 }
 
-std::string ToUpper(std::string const &text)
-{
-	std::string uppercase( text );
-	std::transform(text.begin(), text.end(), uppercase.begin(), ::toupper);
-	return uppercase;
+std::string ToUpper(std::string const &text) {
+
+    auto uppercase { text };
+    std::transform(
+        std::begin( text ), std::end( text ),
+        std::begin( uppercase ),
+        []( unsigned char c ) { return std::toupper( c ); } );
+    return uppercase;
 }
 
 // replaces polish letters with basic ascii

@@ -20,6 +20,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"
+#include "simulationtime.h"
 #include "mtable.h"
 #include "sn_utils.h"
 //---------------------------------------------------------------------------

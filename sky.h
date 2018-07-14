@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 
 class TSky {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
     TSky() = default;

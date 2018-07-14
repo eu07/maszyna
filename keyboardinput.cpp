@@ -12,9 +12,6 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "logs.h"
 #include "parser.h"
-#include "world.h"
-
-extern TWorld World;
 
 bool
 keyboard_input::recall_bindings() {

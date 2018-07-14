@@ -60,7 +60,7 @@ struct scratch_data {
 // TBD, TODO: replace with quadtree scheme?
 class basic_cell {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // constructors
@@ -198,7 +198,7 @@ private:
 // basic scene partitioning structure, holds terrain geometry and collection of cells
 class basic_section {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // constructors
@@ -302,7 +302,7 @@ private:
 // top-level of scene spatial structure, holds collection of sections
 class basic_region {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // constructors

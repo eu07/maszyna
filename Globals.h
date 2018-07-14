@@ -20,7 +20,6 @@ struct global_settings {
 // members
     // data items
     // TODO: take these out of the settings
-    GLFWwindow *window{ nullptr };
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };

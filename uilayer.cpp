@@ -6,6 +6,7 @@
 #include "globals.h"
 #include "translation.h"
 #include "simulation.h"
+#include "simulationtime.h"
 #include "mtable.h"
 #include "train.h"
 #include "sceneeditor.h"

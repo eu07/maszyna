@@ -55,10 +55,10 @@ class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
     //m7todo: zrobić normalną serializację
 
-    friend class opengl_renderer;
-    friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
-    friend class TDynamicObject; // temporary etc
-    friend class scene::shape_node; // temporary etc
+    friend opengl_renderer;
+    friend TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
+    friend TDynamicObject; // temporary etc
+    friend scene::shape_node; // temporary etc
 
 public:
     enum normalization {
@@ -218,7 +218,7 @@ public:
 
 class TModel3d
 {
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 private:
 	TSubModel *Root; // drzewo submodeli

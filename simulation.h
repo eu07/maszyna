@@ -25,15 +25,11 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
-class state_manager {
+class state_serializer {
 
 public:
-// types
-
 // methods
-    // legacy method, calculates changes in simulation state over specified time
-    void
-        update( double Deltatime, int Iterationcount );
+    // restores simulation data from specified file. returns: true on success, false otherwise
     bool
         deserialize( std::string const &Scenariofile );
     // stores class data in specified file, in legacy (text) format
@@ -72,7 +68,25 @@ private:
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
+};
 
+class state_manager {
+
+public:
+// methods
+    // legacy method, calculates changes in simulation state over specified time
+    void
+        update( double Deltatime, int Iterationcount );
+    // restores simulation data from specified file. returns: true on success, false otherwise
+    bool
+        deserialize( std::string const &Scenariofile );
+    // stores class data in specified file, in legacy (text) format
+    void
+        export_as_text( std::string const &Scenariofile ) const;
+
+private:
+// members
+    state_serializer m_serializer;
 };
 
 extern state_manager State;

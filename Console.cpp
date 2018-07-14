@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
+#include "application.h"
 #include "LPT.h"
 #include "Logs.h"
 #include "PoKeys55.h"
@@ -247,7 +248,7 @@ void Console::BitsUpdate(int mask)
 
 bool Console::Pressed(int x)
 { // na razie tak - czyta się tylko klawiatura
-	if (glfwGetKey(Global.window, x) == GLFW_TRUE)
+	if (glfwGetKey(Application.window(), x) == GLFW_TRUE)
 		return true;
 	else
 		return false;

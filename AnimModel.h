@@ -47,7 +47,7 @@ class TEvent;
 
 class TAnimContainer
 { // opakowanie submodelu, określające animację egzemplarza - obsługiwane jako lista
-    friend class TAnimModel;
+    friend TAnimModel;
 
   private:
     Math3D::vector3 vRotateAngles; // dla obrotów Eulera
@@ -124,8 +124,8 @@ class TAnimAdvanced
 // opakowanie modelu, określające stan egzemplarza
 class TAnimModel : public scene::basic_node {
 
-    friend class opengl_renderer;
-    friend class ui_layer;
+    friend opengl_renderer;
+    friend ui_layer;
 
 public:
 // constructors

@@ -11,8 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sceneeditor.h"
 
 #include "globals.h"
+#include "application.h"
 #include "simulation.h"
-#include "uilayer.h"
 #include "renderer.h"
 
 namespace scene {
@@ -47,7 +47,7 @@ basic_editor::on_mouse_button( int const Button, int const Action ) {
             m_node = GfxRenderer.Update_Pick_Node();
             m_nodesnapshot = { m_node };
             if( m_node ) {
-                UILayer.set_cursor( GLFW_CURSOR_DISABLED );
+                Application.set_cursor( GLFW_CURSOR_DISABLED );
             }
         }
         else {
@@ -55,7 +55,7 @@ basic_editor::on_mouse_button( int const Button, int const Action ) {
             // TODO: record the current undo step on the undo stack
             m_nodesnapshot = { m_node };
             if( m_node ) {
-                UILayer.set_cursor( GLFW_CURSOR_NORMAL );
+                Application.set_cursor( GLFW_CURSOR_NORMAL );
             }
         }
 

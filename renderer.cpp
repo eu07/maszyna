@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "timer.h"
 #include "simulation.h"
+#include "simulationtime.h"
 #include "world.h"
 #include "train.h"
 #include "dynobj.h"
@@ -24,7 +25,6 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 
 opengl_renderer GfxRenderer;
-extern TWorld World;
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture

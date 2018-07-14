@@ -20,3 +20,9 @@ public:
     double
         update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule, int const Platform );
 };
+
+namespace simulation {
+
+extern basic_station Station; // temporary object, for station functionality tests
+
+} // simulation

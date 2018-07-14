@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "MdlMngr.h"
 #include "simulation.h"
+#include "simulationtime.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"

@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 // Ra: zestaw klas do robienia wskaźników, aby uporządkować nagłówki
 //---------------------------------------------------------------------------
+class opengl_renderer;
 class TTrack; // odcinek trajektorii
 class TEvent;
 class TTrain; // pojazd sterowany
@@ -29,8 +30,9 @@ class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
 class TWorld;
 class TCamera;
-class simulation_time;
+class scenario_time;
 class TMoverParameters;
+class ui_layer;
 
 namespace scene {
 struct node_data;
