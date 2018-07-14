@@ -139,38 +139,41 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
 	model_ubo = std::make_unique<gl::ubo>(sizeof(gl::model_ubs), 1);
 	light_ubo = std::make_unique<gl::ubo>(sizeof(gl::light_ubs), 2);
+
 	memset(&light_ubs, 0, sizeof(light_ubs));
+	memset(&model_ubs, 0, sizeof(model_ubs));
+	memset(&scene_ubs, 0, sizeof(scene_ubs));
+
+	light_ubo->update(light_ubs);
+	model_ubo->update(model_ubs);
+	scene_ubo->update(scene_ubs);
 
 	// m7t: tbd: plug into material system?
 	{
 		gl::shader vert("traction.vert");
 		gl::shader frag("traction.frag");
-		gl::program *prog = new gl::program_mvp({vert, frag});
-		prog->init();
+		gl::program *prog = new gl::program({vert, frag});
 		m_line_shader = std::unique_ptr<gl::program>(prog);
 	}
 
 	{
 		gl::shader vert("freespot.vert");
 		gl::shader frag("freespot.frag");
-		gl::program *prog = new gl::program_mvp({vert, frag});
-		prog->init();
+		gl::program *prog = new gl::program({vert, frag});
 		m_freespot_shader = std::unique_ptr<gl::program>(prog);
 	}
 
 	{
 		gl::shader vert("shadowmap.vert");
 		gl::shader frag("shadowmap.frag");
-		gl::program *prog = new gl::program_mvp({vert, frag});
-		prog->init();
+		gl::program *prog = new gl::program({vert, frag});
 		m_shadow_shader = std::unique_ptr<gl::program>(prog);
 	}
 
 	{
 		gl::shader vert("pick.vert");
 		gl::shader frag("pick.frag");
-		gl::program *prog = new gl::program_mvp({vert, frag});
-		prog->init();
+		gl::program *prog = new gl::program({vert, frag});
 		m_pick_shader = std::unique_ptr<gl::program>(prog);
 	}
 
@@ -285,7 +288,6 @@ void opengl_renderer::SwapBuffers()
 {
 	Timer::subsystem.gfx_swap.start();
 	glfwSwapBuffers(m_window);
-	glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight); // for apitrace
 	Timer::subsystem.gfx_swap.stop();
 }
 
@@ -299,6 +301,11 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 	case rendermode::color:
 	{
 		glDebug("rendermode::color");
+
+		Update_Lights(simulation::Lights);
+		scene_ubs.time = Timer::GetTime();
+		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
+		scene_ubo->update(scene_ubs);
 
 		{
 			setup_shadow_map(nullptr);
@@ -349,7 +356,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 			glDebug("render environment");
 
-			scene_ubs.time = Timer::GetTime();
 			scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 			scene_ubo->update(scene_ubs);
 			Render(&World.Environment);
@@ -363,7 +369,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 				scene_ubs.lightview = coordmove * depthproj * depthcam * glm::inverse(worldcam);
 			}
 
-			scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 			scene_ubo->update(scene_ubs);
 			// opaque parts...
 			setup_drawing(false);
@@ -444,7 +449,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		setup_matrices();
 		setup_drawing(false);
 
-		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 		Render(simulation::Region);
@@ -476,17 +480,18 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glDebug("rendermode::pickcontrols");
 
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
 		glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 		m_pick_fb->bind();
 		m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
 
 		m_pickcontrolsitems.clear();
 		setup_matrices();
 		setup_drawing(false);
 
+		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
+		scene_ubo->update(scene_ubs);
 		Render_cab(World.Train->Dynamic());
 
 		m_pick_fb->unbind();
@@ -497,6 +502,23 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 	case rendermode::pickscenery:
 	{
+		if (!World.InitPerformed())
+			break;
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
+		m_pick_fb->bind();
+		m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		m_picksceneryitems.clear();
+		setup_matrices();
+		setup_drawing(false);
+
+		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
+		scene_ubo->update(scene_ubs);
+		Render(simulation::Region);
+
 		break;
 	}
 
@@ -889,8 +911,7 @@ std::shared_ptr<gl::program> opengl_renderer::Fetch_Shader(const std::string &na
 	if (it == m_shaders.end())
 	{
 		gl::shader fragment("mat_" + name + ".frag");
-		gl::program *program = new gl::program_mvp({fragment, *m_vertex_shader.get()});
-		program->init();
+		gl::program *program = new gl::program({fragment, *m_vertex_shader.get()});
 		m_shaders.insert({name, std::shared_ptr<gl::program>(program)});
 	}
 
@@ -990,9 +1011,6 @@ void opengl_renderer::Render(scene::basic_region *Region)
 	{
 	case rendermode::color:
 	{
-
-		Update_Lights(simulation::Lights);
-
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
 		Render(std::begin(m_cellqueue), std::end(m_cellqueue));
@@ -1035,6 +1053,8 @@ void opengl_renderer::Render(section_sequence::iterator First, section_sequence:
 	}
 	case rendermode::pickscenery:
 	{
+		// non-interactive scenery elements get neutral colour
+		model_ubs.param[0] = colors::none;
 		break;
 	}
 	default:
@@ -1177,6 +1197,26 @@ void opengl_renderer::Render(cell_sequence::iterator First, cell_sequence::itera
 			break;
 		}
 		case rendermode::pickscenery:
+		{
+			// same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
+			// since all shapes of the section share center point we can optimize out a few calls here
+			::glPushMatrix();
+			auto const originoffset{cell->m_area.center - m_renderpass.camera.position()};
+			::glTranslated(originoffset.x, originoffset.y, originoffset.z);
+			// render
+			// opaque non-instanced shapes
+			// non-interactive scenery elements get neutral colour
+			model_ubs.param[0] = colors::none;
+			for (auto const &shape : cell->m_shapesopaque)
+				Render(shape, false);
+			// tracks
+			for (auto *path : cell->m_paths)
+			{
+				model_ubs.param[0] = glm::vec4(pick_color(m_picksceneryitems.size() + 1), 1.0f);
+				Render(path);
+			}
+			break;
+		}
 		case rendermode::reflections:
 		case rendermode::pickcontrols:
 		default:
@@ -1214,6 +1254,17 @@ void opengl_renderer::Render(cell_sequence::iterator First, cell_sequence::itera
 			break;
 		}
 		case rendermode::pickscenery:
+		{
+			// opaque parts of instanced models
+			// same procedure like with regular render, but each node receives custom colour used for picking
+			for (auto *instance : cell->m_instancesopaque)
+			{
+				model_ubs.param[0] = glm::vec4(pick_color(m_picksceneryitems.size() + 1), 1.0f);
+				Render(instance);
+			}
+			// vehicles aren't included in scenery picking for the time being
+			break;
+		}
 		case rendermode::reflections:
 		case rendermode::pickcontrols:
 		default:
@@ -1255,19 +1306,22 @@ void opengl_renderer::Render(scene::shape_node const &Shape, bool const Ignorera
 	}
 
 	// setup
-	Bind_Material(data.material);
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::color:
+		Bind_Material(data.material);
+		break;
 	case rendermode::reflections:
-	// pick modes are painted with custom colours, and shadow pass doesn't use any
+		break;
 	case rendermode::shadows:
+		m_shadow_shader->bind();
+		break;
 	case rendermode::pickscenery:
 	case rendermode::pickcontrols:
-	default:
-	{
+		m_pick_shader->bind();
 		break;
-	}
+	default:
+		break;
 	}
 	// render
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
@@ -1311,6 +1365,8 @@ void opengl_renderer::Render(TAnimModel *Instance)
 	{
 	case rendermode::pickscenery:
 	{
+		// add the node to the pick list
+		m_picksceneryitems.emplace_back(Instance);
 		break;
 	}
 	default:
@@ -1583,6 +1639,9 @@ bool opengl_renderer::Render(TModel3d *Model, material_data const *Material, flo
 
 void opengl_renderer::Render(TSubModel *Submodel)
 {
+	// if (Submodel->m_geometry.bank == 5)
+	//	return;
+
 	glDebug("Render TSubModel");
 
 	if ((Submodel->iVisible) && (TSubModel::fSquareDist >= Submodel->fSquareMinDist) && (TSubModel::fSquareDist < Submodel->fSquareMaxDist))
@@ -1699,7 +1758,13 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				}
 				case rendermode::cabshadows:
 				case rendermode::pickscenery:
+				{
+					m_pick_shader->bind();
+					model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
+					model_ubo->update(model_ubs);
+					m_geometry.draw(Submodel->m_geometry);
 					break;
+				}
 				case rendermode::pickcontrols:
 				{
 					m_pick_shader->bind();
@@ -1842,7 +1907,6 @@ void opengl_renderer::Render(TTrack *Track)
 	++m_debugstats.drawcalls;
 
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
-	model_ubo->update(model_ubs);
 
 	switch (m_renderpass.draw_mode)
 	{
@@ -1853,11 +1917,13 @@ void opengl_renderer::Render(TTrack *Track)
 		if (Track->m_material1 != 0)
 		{
 			Bind_Material(Track->m_material1);
+			model_ubo->update(model_ubs);
 			m_geometry.draw(std::begin(Track->Geometry1), std::end(Track->Geometry1));
 		}
 		if (Track->m_material2 != 0)
 		{
 			Bind_Material(Track->m_material2);
+			model_ubo->update(model_ubs);
 			m_geometry.draw(std::begin(Track->Geometry2), std::end(Track->Geometry2));
 		}
 		setup_environment_light();
@@ -1871,6 +1937,13 @@ void opengl_renderer::Render(TTrack *Track)
 	}
 	case rendermode::pickscenery:
 	{
+		m_picksceneryitems.emplace_back(Track);
+		model_ubs.param[0] = glm::vec4(pick_color(m_picksceneryitems.size() + 1), 1.0f);
+		model_ubo->update(model_ubs);
+		m_pick_shader->bind();
+
+		m_geometry.draw(std::begin(Track->Geometry1), std::end(Track->Geometry1));
+		m_geometry.draw(std::begin(Track->Geometry2), std::end(Track->Geometry2));
 		break;
 	}
 	case rendermode::pickcontrols:
@@ -1901,7 +1974,6 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 	}
 
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
-	model_ubo->update(model_ubs);
 
 	// first pass, material 1
 	for (auto first{First}; first != Last; ++first)
@@ -1931,6 +2003,7 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 				setup_environment_light(track->eEnvironment);
 			}
 			Bind_Material(track->m_material1);
+			model_ubo->update(model_ubs);
 			m_geometry.draw(std::begin(track->Geometry1), std::end(track->Geometry1));
 			if (track->eEnvironment != e_flat)
 			{
@@ -1947,6 +2020,7 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 				continue;
 			}
 			m_shadow_shader->bind();
+			model_ubo->update(model_ubs);
 			m_geometry.draw(std::begin(track->Geometry1), std::end(track->Geometry1));
 			break;
 		}
@@ -1983,6 +2057,7 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 				setup_environment_light(track->eEnvironment);
 			}
 			Bind_Material(track->m_material2);
+			model_ubo->update(model_ubs);
 			m_geometry.draw(std::begin(track->Geometry2), std::end(track->Geometry2));
 			if (track->eEnvironment != e_flat)
 			{
@@ -2218,12 +2293,13 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 	}
 	// setup
 	auto const distance{static_cast<float>(std::sqrt(distancesquared))};
-	auto const linealpha{20.f * Traction->WireThickness / std::max(0.5f * Traction->radius() + 1.f, distance - (0.5f * Traction->radius()))};
+	auto const linealpha = glm::clamp(20.f * Traction->WireThickness / std::max(0.5f * Traction->radius() + 1.f, distance - (0.5f * Traction->radius())), 0.0f, 1.0f);
 	if (m_widelines_supported)
 		glLineWidth(clamp(0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f, 1.f, 1.5f));
-	// McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+
 	// render
 
+	// McZapkie-261102: kolor zalezy od materialu i zasniedzenia
 	model_ubs.param[0] = glm::vec4(Traction->wire_color(), linealpha);
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
 	model_ubo->update(model_ubs);
@@ -2258,9 +2334,9 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 	}
 	// setup
 	auto const distance{static_cast<float>(std::sqrt(distancesquared))};
-	auto const linealpha = (data.line_width > 0.f ? 10.f * data.line_width /
+	auto const linealpha = (data.line_width > 0.f ? glm::clamp(10.f * data.line_width /
 	                                                    std::max(0.5f * data.area.radius + 1.f,
-	                                                             distance - (0.5f * data.area.radius)) :
+	                                                             distance - (0.5f * data.area.radius)), 0.0f, 1.0f) :
 	                                                1.f); // negative width means the lines are always opague
 	if (m_widelines_supported)
 		glLineWidth(clamp(0.5f * linealpha + data.line_width * data.area.radius / 1000.f, 1.f, 8.f));
@@ -2632,12 +2708,37 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
 
 scene::basic_node const *opengl_renderer::Update_Pick_Node()
 {
-	return nullptr;
+	Render_pass(rendermode::pickscenery);
+
+	// determine point to examine
+	glm::dvec2 mousepos;
+	glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
+	mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+
+	glm::ivec2 pickbufferpos;
+	pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+
+	unsigned char pickreadout[3];
+
+	// m7t: ! replace with PBO and wait frame or two to improve performance
+	// (and don't clash with control picking)
+	m_pick_fb->bind();
+	::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
+	m_pick_fb->unbind();
+
+	auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
+	scene::basic_node const *node{nullptr};
+	if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
+	{
+		node = m_picksceneryitems[nodeindex - 1];
+	}
+
+	m_picksceneryitem = node;
+	return node;
 }
 
 void opengl_renderer::Update(double const Deltatime)
 {
-
 	m_updateaccumulator += Deltatime;
 
 	if (m_updateaccumulator < 1.0)

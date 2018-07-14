@@ -302,7 +302,7 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry) {
     }
 
     // actual draw procedure starts here
-    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
         glBindBuffer( GL_ARRAY_BUFFER, m_buffer );

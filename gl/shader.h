@@ -33,6 +33,7 @@ namespace gl
         void attach(const shader &);
         void link();
 
-        virtual void init();
+	private:
+        void init();
 	};
 }

@@ -176,8 +176,6 @@ ui_layer::render() {
 
     render_progress();
 
-    render_tooltip();
-
     //ImGui::ShowDemoWindow();
 
     std::string uitextline1, uitextline2, uitextline3, uitextline4;
@@ -205,6 +203,8 @@ ui_layer::render() {
                 scenerynode->name() :
                 "" ) );
     }
+
+	render_tooltip();
 
     if (m_f1active)
     {

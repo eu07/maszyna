@@ -87,7 +87,7 @@ namespace gl
 
     static_assert(sizeof(light_element_ubs) == 64, "bad size of ubs");
 
-    const size_t MAX_LIGHTS = 16;
+    const size_t MAX_LIGHTS = 4;
 
     struct light_ubs
     {

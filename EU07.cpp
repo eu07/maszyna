@@ -448,6 +448,7 @@ int main(int argc, char *argv[])
 
             if (!World.Update())
                 break;
+
             if (!GfxRenderer.Render())
                 break;
 

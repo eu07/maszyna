@@ -81,7 +81,6 @@ set(SOURCES
 "uitranscripts.cpp"
 "station.cpp"
 "gl/shader.cpp"
-"gl/shader_mvp.cpp"
 "gl/vao.cpp"
 "gl/ubo.cpp"
 "gl/framebuffer.cpp"

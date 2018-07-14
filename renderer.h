@@ -19,11 +19,11 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "scene.h"
 #include "light.h"
-#include "gl/shader_mvp.h"
 #include "gl/ubo.h"
 #include "gl/framebuffer.h"
 #include "gl/renderbuffer.h"
 #include "gl/postfx.h"
+#include "gl/shader.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP

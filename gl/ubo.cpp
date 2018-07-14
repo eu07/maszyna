@@ -5,7 +5,7 @@ gl::ubo::ubo(int size, int index)
 {
     glGenBuffers(1, *this);
     bind();
-    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_STREAM_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, index, *this);
 }
 
