@@ -19,11 +19,9 @@ typedef int material_handle;
 // a collection of parameters for the rendering setup.
 // for modern opengl this translates to set of attributes for shaders
 struct opengl_material {
-    static const size_t MAX_TEXTURES = 4;
-
     // primary texture, typically diffuse+apha
     // secondary texture, typically normal+reflection
-    std::array<texture_handle, MAX_TEXTURES> textures = { null_handle };
+    std::array<texture_handle, gl::MAX_TEXTURES> textures = { null_handle };
     std::array<glm::vec4, gl::MAX_PARAMS> params = { glm::vec4() };
 
     std::shared_ptr<gl::program> shader;
@@ -50,7 +48,7 @@ private:
     int m_shader_priority = -1;
     int m_opacity_priority = -1;
     int m_selfillum_priority = -1;
-    std::array<int, MAX_TEXTURES> m_texture_priority = { -1 };
+    std::array<int, gl::MAX_TEXTURES> m_texture_priority = { -1 };
     std::array<int, gl::MAX_PARAMS> m_param_priority = { -1 };
 };
 

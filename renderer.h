@@ -150,6 +150,7 @@ class opengl_renderer
 	// material methods
 	material_handle Fetch_Material(std::string const &Filename, bool const Loadnow = true);
 	void Bind_Material(material_handle const Material);
+    void Bind_Material_Shadow(material_handle const Material);
 
 	// shader methods
 	std::shared_ptr<gl::program> Fetch_Shader(std::string const &name);
@@ -220,11 +221,12 @@ class opengl_renderer
 	typedef std::vector<opengl_light> opengllight_array;
 
 	// methods
+    std::unique_ptr<gl::program> make_shader(std::string v, std::string f);
 	bool Init_caps();
 	void setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false);
 	void setup_matrices();
 	void setup_drawing(bool const Alpha = false);
-	void setup_shadow_map(opengl_texture *tex);
+    void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
 	// runs jobs needed to generate graphics for specified render pass
 	void Render_pass(rendermode const Mode);
@@ -266,8 +268,8 @@ class opengl_renderer
 	opengllight_array m_lights;
 	/*
 	    float m_sunandviewangle; // cached dot product of sunlight and camera vectors
-	*/
-	gfx::geometry_handle m_billboardgeometry{0, 0};
+    */
+    gfx::geometry_handle m_billboardgeometry{0, 0};
 	texture_handle m_glaretexture{-1};
 	texture_handle m_suntexture{-1};
 	texture_handle m_moontexture{-1};
@@ -346,6 +348,7 @@ class opengl_renderer
 
 	std::unique_ptr<gl::program> m_line_shader;
 	std::unique_ptr<gl::program> m_freespot_shader;
+    std::unique_ptr<gl::program> m_billboard_shader;
 
 	std::unique_ptr<gl::framebuffer> m_msaa_fb;
 	std::unique_ptr<gl::renderbuffer> m_msaa_rbc;
@@ -358,11 +361,15 @@ class opengl_renderer
 	std::unique_ptr<gl::framebuffer> m_shadow_fb;
 	std::unique_ptr<opengl_texture> m_shadow_tex;
 	std::unique_ptr<gl::program> m_shadow_shader;
+    std::unique_ptr<gl::program> m_alpha_shadow_shader;
 
 	std::unique_ptr<gl::framebuffer> m_pick_fb;
 	std::unique_ptr<opengl_texture> m_pick_tex;
 	std::unique_ptr<gl::renderbuffer> m_pick_rb;
 	std::unique_ptr<gl::program> m_pick_shader;
+
+    std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
+    std::unique_ptr<opengl_texture> m_cabshadows_tex;
 
 	material_handle m_invalid_material;
 

@@ -1,7 +1,7 @@
 #version 330 core
 out vec4 FragColor;
   
-in vec2 TexCoords;
+in vec2 f_coords;
 
 uniform sampler2D tex1;
 
@@ -40,7 +40,7 @@ vec3 filmic(vec3 x)
 
 void main()
 {
-	vec2 texcoord = TexCoords;
+	vec2 texcoord = f_coords;
 //	float x = texcoord.x;
 //	texcoord.x += sin(texcoord.y * 4*2*3.14159 + 0) / 100;
 //	texcoord.y += sin(x * 4*2*3.14159 + 0) / 100;

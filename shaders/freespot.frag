@@ -9,5 +9,5 @@ void main()
 	float dist2 = abs(x * x + y * y);
 	if (dist2 > 0.5f * 0.5f)
 		discard;
-	gl_FragColor = param[0] * emission;
+	gl_FragColor = vec4(param[0].rgb * emission, 1.0f);
 }

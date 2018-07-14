@@ -73,6 +73,16 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iWindowHeight;
         }
+        else if (token == "renderwidth")
+        {
+            Parser.getTokens(1, false);
+            Parser >> render_width;
+        }
+        else if (token == "renderheight")
+        {
+            Parser.getTokens(1, false);
+            Parser >> render_height;
+        }
         else if (token == "heightbase")
         {
 

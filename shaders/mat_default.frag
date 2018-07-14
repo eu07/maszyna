@@ -87,8 +87,13 @@ float calc_dir_light(light_s light)
 
 void main()
 {
+	vec4 tex_color = texture(tex1, f_coord);
+
+	if (opacity == 0.0f && tex_color.a < 0.9f)
+		discard;
+
 	float shadow = calc_shadow();
-	vec3 result = ambient * 0.3 + param[0].rgb * emission;
+	vec3 result = ambient * 0.3 + vec3(1.0) * emission;
 	for (uint i = 0U; i < lights_count; i++)
 	{
 		light_s light = lights[i];
@@ -106,7 +111,6 @@ void main()
 		result += light.color * part;
 	}
 
-	vec4 tex_color = texture(tex1, f_coord);
 	vec3 c = apply_fog(result * tex_color.xyz);
 	gl_FragColor = vec4(c, tex_color.w);
 }

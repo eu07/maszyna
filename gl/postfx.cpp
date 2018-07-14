@@ -12,7 +12,7 @@ gl::postfx::postfx(const std::string &s) : postfx(shader("postfx_" + s + ".frag"
 gl::postfx::postfx(const shader &s)
 {
     if (!vertex)
-        vertex = std::make_shared<gl::shader>("postfx.vert");
+        vertex = std::make_shared<gl::shader>("quad.vert");
     if (!vao)
         vao = std::make_shared<gl::vao>();
 

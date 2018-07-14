@@ -105,7 +105,10 @@ void gl::program::init()
         i++;
     }
 
-    glUniform1i(glGetUniformLocation(*this, "shadowmap"), 10); //m7t: do something better
+    //tbd: do something better
+
+    glUniform1i(glGetUniformLocation(*this, "shadowmap"), MAX_TEXTURES + 0);
+    glUniform1i(glGetUniformLocation(*this, "envmap"), MAX_TEXTURES + 1);
 
 	GLuint index;
 

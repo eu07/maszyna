@@ -31,14 +31,17 @@ namespace gl
 
 #pragma pack(push, 1)
 
+    const size_t MAX_TEXTURES = 4;
+
     struct scene_ubs
     {
         glm::mat4 projection;
         glm::mat4 lightview;
         float time;
+        UBS_PAD(12)
     };
 
-    static_assert(sizeof(scene_ubs) == 132, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 144, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 
@@ -51,6 +54,7 @@ namespace gl
         glm::vec3 velocity;
         float opacity;
         float emission;
+        UBS_PAD(12)
 
         void set_modelview(const glm::mat4 &mv)
         {
@@ -59,7 +63,7 @@ namespace gl
         }
     };
 
-    static_assert(sizeof(model_ubs) == 156 + 8 * MAX_PARAMS, "bad size of ubs");
+    static_assert(sizeof(model_ubs) == 144 + 16 * MAX_PARAMS, "bad size of ubs");
 
     struct light_element_ubs
     {
