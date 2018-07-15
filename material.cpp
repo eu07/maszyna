@@ -117,6 +117,15 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
 }
 
+std::unordered_map<gl::shader::components_e, GLint> material_manager::components_mapping =
+{
+    { gl::shader::components_e::R, GL_RED },
+    { gl::shader::components_e::RG, GL_RG },
+    { gl::shader::components_e::RGB, GL_RGB },
+    { gl::shader::components_e::RGBA, GL_RGBA },
+    { gl::shader::components_e::sRGB, GL_SRGB },
+    { gl::shader::components_e::sRGB_A, GL_SRGB_ALPHA }
+};
 
 // create material object from data stored in specified file.
 // NOTE: the deferred load parameter is passed to textures defined by material, the material itself is always loaded immediately
@@ -167,12 +176,18 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     if (!material.shader)
         material.shader = GfxRenderer.Fetch_Shader("default");
 
+    for (gl::shader::texture_entry &entry : material.shader->texture_conf)
+    {
+        material_handle handle = material.textures[entry.id];
+        if (handle)
+            GfxRenderer.Texture(handle).set_components_hint(components_mapping[entry.components]);
+    }
+
     if (std::isnan(material.opacity))
     {
+        material.opacity = 1.0f;
         if (material.textures[0] != null_handle)
             material.opacity = GfxRenderer.Texture( material.textures[0] ).has_alpha ? 0.0f : 1.0f;
-        else
-            material.opacity = 1.0f;
     }
 
     material_handle handle = m_materials.size();

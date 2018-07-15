@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/renderbuffer.h"
 #include "gl/postfx.h"
 #include "gl/shader.h"
+#include "gl/cubemap.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -157,7 +158,7 @@ class opengl_renderer
 
 	opengl_material const &Material(material_handle const Material) const;
 	// texture methods
-	texture_handle Fetch_Texture(std::string const &Filename, bool const Loadnow = true);
+    texture_handle Fetch_Texture(std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA);
 	void Bind_Texture(size_t Unit, texture_handle const Texture);
 	opengl_texture &Texture(texture_handle const Texture) const;
 	// utility methods
@@ -227,6 +228,7 @@ class opengl_renderer
 	void setup_matrices();
 	void setup_drawing(bool const Alpha = false);
     void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
+    void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
 	// runs jobs needed to generate graphics for specified render pass
 	void Render_pass(rendermode const Mode);
@@ -371,7 +373,15 @@ class opengl_renderer
     std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
     std::unique_ptr<opengl_texture> m_cabshadows_tex;
 
+    std::unique_ptr<gl::framebuffer> m_env_fb;
+    std::unique_ptr<gl::renderbuffer> m_env_rb;
+    std::unique_ptr<gl::cubemap> m_env_tex;
+
+    std::unique_ptr<gl::cubemap> m_empty_cubemap;
+
 	material_handle m_invalid_material;
+
+    bool m_blendphase; // m7t: todo: remove kludge!
 
 	bool m_widelines_supported;
 };

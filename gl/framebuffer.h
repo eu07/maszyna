@@ -4,6 +4,7 @@
 #include "bindable.h"
 #include "renderbuffer.h"
 #include "Texture.h"
+#include "cubemap.h"
 
 namespace gl
 {
@@ -14,7 +15,9 @@ namespace gl
         ~framebuffer();
 
         void attach(const opengl_texture &tex, GLenum location);
+        void attach(const cubemap &tex, int face, GLenum location);
         void attach(const renderbuffer &rb, GLenum location);
+        void detach(GLenum location);
         void clear(GLbitfield mask);
 
         bool is_complete();

@@ -49,7 +49,7 @@ opengl_texture::load() {
 
              if( extension == "dds" ) { load_DDS(); }
         else if( extension == "tga" ) { load_TGA(); }
-		else if( extension == "png" ) { load_PNG(); }
+        else if( extension == "png" ) { load_PNG(); }
         else if( extension == "bmp" ) { load_BMP(); }
         else if( extension == "tex" ) { load_TEX(); }
         else { goto fail; }
@@ -107,8 +107,8 @@ void opengl_texture::load_PNG()
 
 	data.resize(PNG_IMAGE_SIZE(png));
 
-	png_image_finish_read(&png, nullptr,
-		(void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
+    png_image_finish_read(&png, nullptr,
+        (void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
 	// we're storing texture data internally with bottom-left origin
 	// so use negative stride
 
@@ -277,17 +277,17 @@ opengl_texture::load_DDS() {
     {
     case FOURCC_DXT1:
         // DXT1's compression ratio is 8:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
 
     case FOURCC_DXT3:
         // DXT3's compression ratio is 4:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
 
     case FOURCC_DXT5:
         // DXT5's compression ratio is 4:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
 
     default:
@@ -299,7 +299,7 @@ opengl_texture::load_DDS() {
     data_height = ddsd.dwHeight;
     data_mapcount = ddsd.dwMipMapCount;
 
-    int blockSize = ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ? 8 : 16 );
+    int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
     while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
@@ -341,11 +341,11 @@ opengl_texture::load_DDS() {
 	// while DDS stores it with top-left origin. we need to flip it.
 	if (Global.dds_upper_origin)
 	{
-		char *mipmap = (char*)&data[0];
-	    int mapcount = data_mapcount,
-	        width = data_width,
-	        height = data_height;
-	    while (mapcount)
+        char *mipmap = (char*)&data[0];
+        int mapcount = data_mapcount,
+            width = data_width,
+            height = data_height;
+        while (mapcount)
 		{
 			if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
 				flip_s3tc::flip_dxt1_image(mipmap, width, height);
@@ -354,11 +354,11 @@ opengl_texture::load_DDS() {
 			else if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT5)
 				flip_s3tc::flip_dxt45_image(mipmap, width, height);
 
-	        mipmap += ( ( width + 3 ) / 4 ) * ( ( height + 3 ) / 4 ) * blockSize;
-	        width = std::max( width / 2, 4 );
-	        height = std::max( height / 2, 4 );
-	        --mapcount;
-	    }
+            mipmap += ( ( width + 3 ) / 4 ) * ( ( height + 3 ) / 4 ) * blockSize;
+            width = std::max( width / 2, 4 );
+            height = std::max( height / 2, 4 );
+            --mapcount;
+        }
 	}
 
     data_components =
@@ -525,7 +525,7 @@ opengl_texture::load_TGA() {
                     buffer[ 1 ] = buffer[ 0 ];
                     buffer[ 2 ] = buffer[ 0 ];
                 }
-                // copy the color into the image data as many times as dictated 
+                // copy the color into the image data as many times as dictated
                 for( int i = 0; i <= chunkheader; ++i ) {
 
                     ( *datapointer ) = ( *bufferpointer );
@@ -581,6 +581,78 @@ opengl_texture::bind() {
     return true;
 }
 
+std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
+{
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 16 },
+};
+
+std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
+{
+    { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA },
+    { GL_SRGB, GL_COMPRESSED_SRGB },
+    { GL_RGBA, GL_COMPRESSED_RGBA },
+    { GL_RGB, GL_COMPRESSED_RGB },
+    { GL_RG, GL_COMPRESSED_RG },
+    { GL_RED, GL_COMPRESSED_RED },
+};
+
+std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
+{
+    // image have,                         material wants, gl internalformat
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT } } },
+    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB_ALPHA },
+                                          { GL_SRGB,       GL_SRGB },
+                                          { GL_RGBA,       GL_RGBA },
+                                          { GL_RGB,        GL_RGB },
+                                          { GL_RG,         GL_RG },
+                                          { GL_RED,        GL_RED } } },
+    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB }, // bad
+                                          { GL_SRGB,       GL_SRGB },
+                                          { GL_RGBA,       GL_RGB }, // bad
+                                          { GL_RGB,        GL_RGB },
+                                          { GL_RG,         GL_RG },
+                                          { GL_RED,        GL_RED } } },
+    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB }, // bad
+                                          { GL_SRGB,       GL_SRGB }, // bad
+                                          { GL_RGBA,       GL_RG }, // bad
+                                          { GL_RGB,        GL_RG }, // bad
+                                          { GL_RG,         GL_RG },
+                                          { GL_RED,        GL_RED } } },
+    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB }, // bad
+                                          { GL_SRGB,       GL_SRGB }, // bad
+                                          { GL_RGBA,       GL_RED }, // bad
+                                          { GL_RGB,        GL_RED },  // bad
+                                          { GL_RG,         GL_RED }, // bad
+                                          { GL_RED,        GL_RED } } },
+};
+
+void opengl_texture::set_components_hint(GLint hint)
+{
+    components_hint = hint;
+}
+
 bool
 opengl_texture::create() {
 
@@ -618,12 +690,12 @@ opengl_texture::create() {
         {
             glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 			if (data_components == GL_DEPTH_COMPONENT)
-			{
+            {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-				float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
 			if (target == GL_TEXTURE_2D)
@@ -637,21 +709,32 @@ opengl_texture::create() {
 			::glTexParameteri(target, GL_TEXTURE_WRAP_T, (wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
             set_filtering();
 
+            // data_format and data_type specifies how image is laid out in memory
+            // data_components specifies what useful channels image contains
+            // components_hint specifies what format we want to load
+
+            // now map that mess into opengl internal format
+
+            GLint components = data_components;
+            auto f_it = precompressed_formats.find(data_format);
+            if (f_it != precompressed_formats.end())
+                components = data_format;
+
+            GLint internal_format = mapping[components][components_hint];
+
+            auto blocksize_it = precompressed_formats.find(internal_format);
+
             for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-                if( ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT )
-                    || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT )
-                    || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT ) ) {
+                if (blocksize_it != precompressed_formats.end())
+                {
                     // compressed dds formats
-                    int const datablocksize =
-                        ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ?
-                        8 :
-                        16 );
+                    const int datablocksize = blocksize_it->second;
 
                     datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
 
                     ::glCompressedTexImage2D(
-						target, maplevel, data_format,
+                        target, maplevel, internal_format,
                         datawidth, dataheight, 0,
                         datasize, (GLubyte *)&data[ dataoffset ] );
 
@@ -660,10 +743,12 @@ opengl_texture::create() {
                     dataheight = std::max( dataheight / 2, 1 );
                 }
                 else {
+                    GLint compressed_format = drivercompressed_formats[internal_format];
+
                     // uncompressed texture data. have the gfx card do the compression as it sees fit
                     ::glTexImage2D(
-						target, 0,
-                        Global.compress_tex ? GL_COMPRESSED_SRGB_ALPHA : GL_SRGB_ALPHA,
+                        target, 0,
+                        Global.compress_tex ? compressed_format : internal_format,
                         data_width, data_height, 0,
                         data_format, data_type, (GLubyte *)&data[ 0 ] );
                 }
@@ -752,11 +837,7 @@ opengl_texture::set_filtering() const {
     // default texture mode
     ::glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-
-    if( GLEW_EXT_texture_filter_anisotropic ) {
-        // anisotropic filtering
-        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
-    }
+    ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, Global.AnisotropicFiltering );
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {
@@ -821,7 +902,7 @@ texture_manager::unit( GLint const Textureunit ) {
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
-texture_manager::create( std::string Filename, bool const Loadnow ) {
+texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -863,6 +944,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
         traits += '#';
     }
     texture->traits = traits;
+    texture->components_hint = fh;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( disklookup.first, textureindex );

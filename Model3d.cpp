@@ -309,27 +309,27 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         else if (material.find("replacableskin") != material.npos)
         { // McZapkie-060702: zmienialne skory modelu
             m_material = -1;
-            iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
+            iFlags |= (Opacity == 1.0f) ? 1 : 0x10; // zmienna tekstura 1
         }
         else if (material == "-1")
         {
             m_material = -1;
-            iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
+            iFlags |= (Opacity == 1.0f) ? 1 : 0x10; // zmienna tekstura 1
         }
         else if (material == "-2")
         {
             m_material = -2;
-            iFlags |= (Opacity < 1.0) ? 2 : 0x10; // zmienna tekstura 2
+            iFlags |= (Opacity == 1.0f) ? 2 : 0x10; // zmienna tekstura 2
         }
         else if (material == "-3")
         {
             m_material = -3;
-            iFlags |= (Opacity < 1.0) ? 4 : 0x10; // zmienna tekstura 3
+            iFlags |= (Opacity == 1.0f) ? 4 : 0x10; // zmienna tekstura 3
         }
         else if (material == "-4")
         {
             m_material = -4;
-            iFlags |= (Opacity < 1.0) ? 8 : 0x10; // zmienna tekstura 4
+            iFlags |= (Opacity == 1.0f) ? 8 : 0x10; // zmienna tekstura 4
         }
         else {
             Name_Material(material);
@@ -344,12 +344,17 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
             iFlags |=
-                ( ( ( Opacity < 1.0 )
+                ( ( ( Opacity == 0.0f )
                  && ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).opacity < 1.0f ) ) ) ?
+                   && ( GfxRenderer.Material( m_material ).opacity == 0.0f ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
+    }
+    else if (eType == TP_STARS)
+    {
+        m_material = GfxRenderer.Fetch_Material( "stars" );
+        iFlags |= 0x10;
     }
     else
         iFlags |= 0x10;
@@ -1682,7 +1687,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
                 iFlags |= (
                     ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).opacity < 1.0f ) ) ?
+                   && ( GfxRenderer.Material( m_material ).opacity == 0.0f ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }

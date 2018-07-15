@@ -92,16 +92,8 @@ void main()
 {
 	vec4 tex_color = texture(tex1, f_coord);
 
-	if (opacity == 0.0f)
-	{
-		//blending
-	}
-	else
-	{
-		//test
-		if (tex_color.a < 0.5f)
-			discard;
-	}
+	if (opacity == 0.0f && tex_color.a < 0.9f)
+		discard;
 
 	float shadow = calc_shadow();
 	vec3 result = ambient * 0.3 + vec3(1.0) * emission;
@@ -122,6 +114,10 @@ void main()
 		result += light.color * part;
 	}
 
+	vec3 R = reflect(f_pos, normalize(f_normal));
+	vec3 r = texture(envmap, R).rgb;
+	r *= vec3(1.0, 0.84, 0.2);
+
 	vec3 c = apply_fog(result * tex_color.xyz);
-	gl_FragColor = vec4(c, tex_color.w);
+	gl_FragColor = vec4(c * 0.05 + r * 0.95, tex_color.w);
 }

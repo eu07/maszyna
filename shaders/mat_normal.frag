@@ -6,7 +6,10 @@ in vec3 f_pos;
 in mat3 f_tbn;
 in vec4 f_tangent;
 
+#texture (tex1, 0, sRGB_A)
 uniform sampler2D tex1;
+
+#texture (tex2, 1, RGB)
 uniform sampler2D tex2;
 
 #include <common>

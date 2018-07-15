@@ -86,6 +86,7 @@ set(SOURCES
 "gl/framebuffer.cpp"
 "gl/renderbuffer.cpp"
 "gl/postfx.cpp"
+"gl/cubemap.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

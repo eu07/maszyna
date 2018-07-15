@@ -3,6 +3,7 @@ out vec4 FragColor;
   
 in vec2 f_coords;
 
+#texture (tex1, 0, RGB)
 uniform sampler2D tex1;
 
 vec3 reinhard(vec3 x)

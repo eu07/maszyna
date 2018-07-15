@@ -50,10 +50,62 @@ void gl::shader::expand_includes(std::string &str)
     }
 }
 
+std::unordered_map<std::string, gl::shader::components_e> gl::shader::components_mapping =
+{
+    { "R", components_e::R },
+    { "RG", components_e::RG },
+    { "RGB", components_e::RGB },
+    { "RGBA", components_e::RGBA },
+    { "sRGB", components_e::sRGB },
+    { "sRGB_A", components_e::sRGB_A }
+};
+
+void gl::shader::parse_config(std::string &str)
+{
+    size_t start_pos = 0;
+
+    std::string magic = "#texture";
+    while ((start_pos = str.find(magic, start_pos)) != str.npos)
+    {
+        size_t fp = str.find('(', start_pos);
+        size_t fe = str.find(')', start_pos);
+        if (fp == str.npos || fe == str.npos)
+            return;
+
+        std::istringstream ss(str.substr(fp + 1, fe - fp - 1));
+        std::string token;
+
+        texture_entry conf;
+
+        size_t arg = 0;
+        while (std::getline(ss, token, ','))
+        {
+            std::istringstream token_ss(token);
+            if (arg == 0)
+                token_ss >> conf.name;
+            else if (arg == 1)
+                token_ss >> conf.id;
+            else if (arg == 2)
+            {
+                std::string comp;
+                token_ss >> comp;
+                conf.components = components_mapping[comp];
+            }
+            arg++;
+        }
+
+        if (arg == 3)
+            texture_conf.push_back(conf);
+
+        str.erase(start_pos, fe - start_pos + 1);
+    }
+}
+
 gl::shader::shader(const std::string &filename)
 {
     std::string str = read_file(filename);
     expand_includes(str);
+    parse_config(str);
 
     const GLchar *cstr = str.c_str();
 
@@ -92,20 +144,11 @@ void gl::program::init()
 {
     bind();
 
-    int i = 0;
-    GLuint loc;
-    while (true)
+    for (shader::texture_entry &e : texture_conf)
     {
-        std::string name = "tex" + std::to_string(i + 1);
-        loc = glGetUniformLocation(*this, name.c_str());
-        if (loc != -1)
-            glUniform1i(loc, i);
-        else
-            break;
-        i++;
+        GLuint loc = glGetUniformLocation(*this, e.name.c_str());
+        glUniform1i(loc, e.id);
     }
-
-    //tbd: do something better
 
     glUniform1i(glGetUniformLocation(*this, "shadowmap"), MAX_TEXTURES + 0);
     glUniform1i(glGetUniformLocation(*this, "envmap"), MAX_TEXTURES + 1);
@@ -136,6 +179,7 @@ gl::program::program(std::vector<std::reference_wrapper<const gl::shader>> shade
 
 void gl::program::attach(const gl::shader &s)
 {
+    std::copy(s.texture_conf.begin(), s.texture_conf.end(), std::back_inserter(texture_conf));
     glAttachShader(*this, *s);
 }
 

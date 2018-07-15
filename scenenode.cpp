@@ -340,7 +340,7 @@ shape_node::convert( TSubModel const *Submodel ) {
     m_data.lighting.diffuse = Submodel->f4Diffuse;
     m_data.lighting.specular = Submodel->f4Specular;
     m_data.material = Submodel->m_material;
-    m_data.translucent = ( true == GfxRenderer.Material( m_data.material ).opacity < 1.0f );
+    m_data.translucent = ( GfxRenderer.Material( m_data.material ).opacity == 0.0f );
     // NOTE: we set unlimited view range typical for terrain, because we don't expect to convert any other 3d models
     m_data.rangesquared_max = std::numeric_limits<double>::max();
 

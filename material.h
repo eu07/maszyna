@@ -61,6 +61,8 @@ public:
         create( std::string const &Filename, bool const Loadnow );
     opengl_material const &
         material( material_handle const Material ) const { return m_materials[ Material ]; }
+    opengl_material &
+        material( material_handle const Material ) { return m_materials[ Material ]; }
 
 private:
 // types
@@ -77,6 +79,7 @@ private:
     material_sequence m_materials;
     index_map m_materialmappings;
 
+    static std::unordered_map<gl::shader::components_e, GLint> components_mapping;
 };
 
 //---------------------------------------------------------------------------

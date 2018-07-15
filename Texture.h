@@ -42,6 +42,7 @@ struct opengl_texture {
             return data_height; }
 
     void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int samples = 1);
+    void set_components_hint(GLint hint);
 
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
@@ -50,6 +51,7 @@ struct opengl_texture {
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
     std::size_t size{ 0 }; // size of the texture data, in kb
+    GLint components_hint; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
 
@@ -81,6 +83,10 @@ private:
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
 */
+
+    static std::unordered_map<GLint, int> precompressed_formats;
+    static std::unordered_map<GLint, GLint> drivercompressed_formats;
+    static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
 };
 
 typedef int texture_handle;
@@ -96,7 +102,7 @@ public:
         unit( GLint const Textureunit );
     // creates texture object out of data stored in specified file
     texture_handle
-        create( std::string Filename, bool const Loadnow = true );
+        create( std::string Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA );
     // binds specified texture to specified texture unit
     void
         bind( std::size_t const Unit, texture_handle const Texture );

@@ -22,10 +22,22 @@ void gl::framebuffer::attach(const opengl_texture &tex, GLenum location)
     glFramebufferTexture2D(GL_FRAMEBUFFER, location, tex.target, tex.id, 0);
 }
 
+void gl::framebuffer::attach(const cubemap &tex, int face, GLenum location)
+{
+    bind();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, location, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, *tex, 0);
+}
+
 void gl::framebuffer::attach(const renderbuffer &rb, GLenum location)
 {
     bind();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, location, GL_RENDERBUFFER, *rb);
+}
+
+void gl::framebuffer::detach(GLenum location)
+{
+    bind();
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, location, GL_RENDERBUFFER, 0);
 }
 
 bool gl::framebuffer::is_complete()

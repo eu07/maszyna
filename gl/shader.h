@@ -15,9 +15,31 @@ namespace gl
         shader(const std::string &filename);
         ~shader();
 
+        enum class components_e
+        {
+            R,
+            RG,
+            RGB,
+            RGBA,
+            sRGB,
+            sRGB_A
+        };
+
+        struct texture_entry
+        {
+            std::string name;
+            size_t id;
+            components_e components;
+        };
+
+        std::vector<texture_entry> texture_conf;
+
     private:
         void expand_includes(std::string &str);
+        void parse_config(std::string &str);
         std::string read_file(const std::string &filename);
+
+        static std::unordered_map<std::string, components_e> components_mapping;
     };
 
     class program : public object, public bindable<program>
@@ -32,6 +54,8 @@ namespace gl
 
         void attach(const shader &);
         void link();
+
+        std::vector<shader::texture_entry> texture_conf;
 
 	private:
         void init();
