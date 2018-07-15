@@ -3,7 +3,7 @@
 #include "object.h"
 #include "bindable.h"
 
-#define UBS_PAD(x) uint64_t : x * 4; uint64_t : x * 4;
+#define UBS_PAD(x) uint8_t PAD[x]
 
 namespace gl
 {
@@ -38,7 +38,7 @@ namespace gl
         glm::mat4 projection;
         glm::mat4 lightview;
         float time;
-        UBS_PAD(12)
+        UBS_PAD(12);
     };
 
     static_assert(sizeof(scene_ubs) == 144, "bad size of ubs");
@@ -54,7 +54,7 @@ namespace gl
         glm::vec3 velocity;
         float opacity;
         float emission;
-        UBS_PAD(12)
+        UBS_PAD(12);
 
         void set_modelview(const glm::mat4 &mv)
         {

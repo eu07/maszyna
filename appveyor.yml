@@ -41,6 +41,9 @@ artifacts:
   name: binaries_x86
 - path: builds/eu07_x64_bin.zip
   name: binaries_x64
+- path: shaders
+  name: shaders
+  type: zip
 - path: builds/eu07_x86_pdb.zip
   name: symbols_x86
 - path: builds/eu07_x64_pdb.zip

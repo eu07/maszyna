@@ -103,6 +103,8 @@ void main()
 			discard;
 	}
 
+	vec3 envcolor = texture(envmap, reflect(f_pos, normalize(f_normal))).rgb;
+
 	float shadow = calc_shadow();
 	vec3 result = ambient * 0.3 + vec3(1.0) * emission;
 	for (uint i = 0U; i < lights_count; i++)
@@ -119,7 +121,7 @@ void main()
 
 		if (i == 0U)
 			part *= shadow;
-		result += light.color * part;
+		result += light.color * part * envcolor;
 	}
 
 	vec3 c = apply_fog(result * tex_color.xyz);

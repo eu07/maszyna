@@ -832,12 +832,12 @@ void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint ty
 }
 
 void
-opengl_texture::set_filtering() const {
-
+opengl_texture::set_filtering() const
+{
     // default texture mode
     ::glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, Global.AnisotropicFiltering );
+    ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {
