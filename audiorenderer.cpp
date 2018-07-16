@@ -21,6 +21,20 @@ namespace audio {
 openal_renderer renderer;
 
 float const EU07_SOUND_CUTOFFRANGE { 3000.f }; // 2750 m = max expected emitter spawn range, plus safety margin
+float const EU07_SOUND_VELOCITYLIMIT { 250 / 3.6f }; // 343 m/sec ~= speed of sound; arbitrary limit of 250 km/h
+
+// potentially clamps length of provided vector to 343 meters
+// TBD: make a generic method for utilities out of this
+glm::vec3
+limit_velocity( glm::vec3 const &Velocity ) {
+
+    auto const ratio { glm::length( Velocity ) / EU07_SOUND_VELOCITYLIMIT };
+
+    return (
+        ratio > 1.f ?
+            Velocity / ratio :
+            Velocity );
+}
 
 // starts playback of queued buffers
 void
@@ -97,7 +111,7 @@ openal_source::sync_with( sound_properties const &State ) {
      && ( sound_range >= 0 )
      && ( properties.location != glm::dvec3() ) ) {
         // after sound position was initialized we can start velocity calculations
-        sound_velocity = ( State.location - properties.location ) / update_deltatime;
+        sound_velocity = limit_velocity( ( State.location - properties.location ) / update_deltatime );
     }
     // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
@@ -311,7 +325,7 @@ openal_renderer::update( double const Deltatime ) {
         m_listenerposition = listenerposition;
         m_listenervelocity = (
             glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
-                listenermovement / Deltatime :
+                limit_velocity( listenermovement / Deltatime ) :
                 glm::vec3() );
         ::alListenerfv( AL_VELOCITY, reinterpret_cast<ALfloat const *>( glm::value_ptr( m_listenervelocity ) ) );
     }

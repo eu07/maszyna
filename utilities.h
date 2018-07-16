@@ -307,8 +307,6 @@ nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend,
     return c1 / c2;
 }
 
-class cParser;
-
-glm::dvec3 LoadPoint( cParser &Input );
+glm::dvec3 LoadPoint( class cParser &Input );
 
 //---------------------------------------------------------------------------

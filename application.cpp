@@ -207,6 +207,8 @@ eu07_application::init( int Argc, char *Argv[] ) {
 int
 eu07_application::run() {
 
+    // HACK: prevent mouse capture before simulation starts
+    Global.ControlPicking = true;
     // TODO: move input sources and their initializations to the application mode member
     input::Keyboard.init();
     input::Mouse.init();
@@ -238,6 +240,7 @@ eu07_application::run() {
 
     set_cursor( GLFW_CURSOR_DISABLED );
     set_cursor_pos( 0, 0 );
+    Global.ControlPicking = false;
 
     // main application loop
     // TODO: split into parts and delegate these to application mode member
@@ -390,12 +393,12 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
         }
         else if( token == "-s" ) {
             if( i + 1 < Argc ) {
-                Global.SceneryFile = Argv[ ++i ];
+                Global.SceneryFile = ToLower( Argv[ ++i ] );
             }
         }
         else if( token == "-v" ) {
             if( i + 1 < Argc ) {
-                Global.asHumanCtrlVehicle = Argv[ ++i ];
+                Global.asHumanCtrlVehicle = ToLower( Argv[ ++i ] );
             }
         }
         else {

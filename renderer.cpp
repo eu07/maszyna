@@ -2350,7 +2350,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
             ::glPushMatrix();
             if( Submodel->fMatrix )
                 ::glMultMatrixf( Submodel->fMatrix->readArray() );
-            if( Submodel->b_Anim )
+            if( Submodel->b_Anim != TAnimType::at_None )
                 Submodel->RaAnimation( Submodel->b_Anim );
         }
 
@@ -3169,7 +3169,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
             ::glPushMatrix();
             if( Submodel->fMatrix )
                 ::glMultMatrixf( Submodel->fMatrix->readArray() );
-            if( Submodel->b_aAnim )
+            if( Submodel->b_aAnim != TAnimType::at_None )
                 Submodel->RaAnimation( Submodel->b_aAnim );
         }
 

@@ -156,13 +156,13 @@ enum coupling {
     uic = 0x100
 };
 // possible effect ranges for control commands; exclusive
-enum range {
+enum class range_t {
     local,
     unit,
     consist
 };
 // start method for devices; exclusive
-enum start {
+enum class start_t {
     manual,
     automatic,
     manualwithautofallback,
@@ -180,7 +180,7 @@ enum light {
 };
 
 // door operation methods; exclusive
-enum control {
+enum control_t {
     passenger, // local, opened/closed for duration of loading
     driver, // remote, operated by the driver
     autonomous, // local, closed when vehicle moves and/or after timeout
@@ -351,13 +351,13 @@ struct TTractionParam
 /*powyzsze parametry zwiazane sa z torem po ktorym aktualnie pojazd jedzie*/
 
 /*typy hamulcow zespolonych*/
-enum TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
+enum class TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 /*podtypy hamulcow zespolonych*/
-enum TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
-enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P };
+enum class TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
+enum class TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
+enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P };
 /*typy hamulcow indywidualnych*/
-enum TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
+enum class TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
 /*dla osob/towar: opoznienie hamowania/odhamowania*/
 typedef double TBrakeDelayTable[4];
 
@@ -366,17 +366,17 @@ struct TBrakePressure
 	double PipePressureVal = 0.0;
 	double BrakePressureVal = 0.0;
 	double FlowSpeedVal = 0.0;
-	TBrakeSystem BrakeType = Pneumatic;
+	TBrakeSystem BrakeType = TBrakeSystem::Pneumatic;
 };
 
 typedef std::map<int,TBrakePressure> TBrakePressureTable;
 
 /*typy napedow*/
-enum TEngineTypes { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric };
+enum class TEngineType { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric };
 /*postac dostarczanej energii*/
-enum TPowerType { NoPower, BioPower, MechPower, ElectricPower, SteamPower };
+enum class TPowerType { NoPower, BioPower, MechPower, ElectricPower, SteamPower };
 /*rodzaj paliwa*/
-enum TFuelType { Undefined, Coal, Oil };
+enum class TFuelType { Undefined, Coal, Oil };
 /*rodzaj rusztu*/
 struct TGrateType {
 	TFuelType FuelType;
@@ -425,7 +425,7 @@ struct TCurrentCollector {
     //}
 };
 /*typy źródeł mocy*/
-enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
+enum class TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
 
 
 struct _mover__1
@@ -481,7 +481,7 @@ struct TPowerParameters
 		};
 		struct
 		{
-			TEngineTypes GeneratorEngine;
+			TEngineType GeneratorEngine;
 		};
 		struct
 		{
@@ -498,9 +498,9 @@ struct TPowerParameters
         MaxVoltage = 0.0;
         MaxCurrent = 0.0;
         IntR = 0.001;
-        SourceType = NotDefined;
-        PowerType = NoPower;
-        RPowerCable.PowerTrans = NoPower;
+        SourceType = TPowerSource::NotDefined;
+        PowerType = TPowerType::NoPower;
+        RPowerCable.PowerTrans = TPowerType::NoPower;
     }
 };
 
@@ -584,7 +584,7 @@ struct TTransmision
 	double Ratio = 1.0;
 };
 
-enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
+enum class TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 
 struct power_coupling {
     double current{ 0.0 };
@@ -601,7 +601,7 @@ struct TCoupling {
     double FmaxB = 1000.0;
     double DmaxC = 0.1;
     double FmaxC = 1000.0;
-	TCouplerType CouplerType = NoCoupler;     /*typ sprzegu*/
+	TCouplerType CouplerType = TCouplerType::NoCoupler;     /*typ sprzegu*/
 								  /*zmienne*/
 	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
 	int AllowedFlag = 3;       //Ra: znaczenie jak wyżej, maska dostępnych
@@ -625,7 +625,7 @@ struct fuel_pump {
 
     bool is_enabled { false }; // device is allowed/requested to operate
     bool is_active { false }; // device is working
-    start start_type { start::manual };
+    start_t start_type { start_t::manual };
 };
 
 // basic approximation of a fuel pump
@@ -634,7 +634,7 @@ struct oil_pump {
 
     bool is_enabled { false }; // device is allowed/requested to operate
     bool is_active { false }; // device is working
-    start start_type { start::manual };
+    start_t start_type { start_t::manual };
     float resource_amount { 1.f };
     float pressure_minimum { 0.f }; // lowest acceptable working pressure
     float pressure_maximum { 0.65f }; // oil pressure at maximum engine revolutions
@@ -647,7 +647,7 @@ struct water_pump {
     bool breaker { true }; // device is allowed to operate
     bool is_enabled { false }; // device is requested to operate
     bool is_active { false }; // device is working
-    start start_type { start::manual };
+    start_t start_type { start_t::manual };
 };
 
 struct water_heater {
@@ -728,7 +728,7 @@ public:
 	std::string TypeName;         /*nazwa serii/typu*/
 								  //TrainType: string;       {typ: EZT/elektrowoz - Winger 040304}
 	int TrainType = 0; /*Ra: powinno być szybciej niż string*/
-	TEngineTypes EngineType = None;               /*typ napedu*/
+	TEngineType EngineType = TEngineType::None;               /*typ napedu*/
 	TPowerParameters EnginePowerSource;    /*zrodlo mocy dla silnikow*/
 	TPowerParameters SystemPowerSource;    /*zrodlo mocy dla systemow sterowania/przetwornic/sprezarek*/
 	TPowerParameters HeatingPowerSource;   /*zrodlo mocy dla ogrzewania*/
@@ -766,11 +766,11 @@ public:
 									  /*hamulce:*/
 	int NBpA = 0;              /*ilosc el. ciernych na os: 0 1 2 lub 4*/
 	int SandCapacity = 0;    /*zasobnik piasku [kg]*/
-	TBrakeSystem BrakeSystem = Individual;/*rodzaj hamulca zespolonego*/
-	TBrakeSubSystem BrakeSubsystem = ss_None ;
-	TBrakeValve BrakeValve = NoValve;
-	TBrakeHandle BrakeHandle = NoHandle;
-	TBrakeHandle BrakeLocHandle = NoHandle;
+	TBrakeSystem BrakeSystem = TBrakeSystem::Individual;/*rodzaj hamulca zespolonego*/
+	TBrakeSubSystem BrakeSubsystem = TBrakeSubSystem::ss_None ;
+	TBrakeValve BrakeValve = TBrakeValve::NoValve;
+	TBrakeHandle BrakeHandle = TBrakeHandle::NoHandle;
+	TBrakeHandle BrakeLocHandle = TBrakeHandle::NoHandle;
 	double MBPM = 1.0; /*masa najwiekszego cisnienia*/
 
 	std::shared_ptr<TBrake> Hamulec;
@@ -779,7 +779,7 @@ public:
 	std::shared_ptr<TReservoir> Pipe;
 	std::shared_ptr<TReservoir> Pipe2;
 
-	TLocalBrake LocalBrake = NoBrake;  /*rodzaj hamulca indywidualnego*/
+	TLocalBrake LocalBrake = TLocalBrake::NoBrake;  /*rodzaj hamulca indywidualnego*/
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/
 	TBrakePressure BrakePressureActual; //wartości ważone dla aktualnej pozycji kranu
 	int ASBType = 0;            /*0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat*/
@@ -1006,9 +1006,9 @@ public:
 	bool CompressorAllow = false;            /*! zezwolenie na uruchomienie sprezarki  NBMX*/
     bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
-    start CompressorStart{ start::manual }; // whether the compressor is started manually, or another way
+    start_t CompressorStart{ start_t::manual }; // whether the compressor is started manually, or another way
     // TODO converter parameters, for when we start cleaning up mover parameters
-    start ConverterStart{ start::manual }; // whether converter is started manually, or by other means
+    start_t ConverterStart{ start_t::manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
     double ConverterStartDelayTimer{ 0.0 }; // helper, for tracking whether converter start delay passed
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
@@ -1024,7 +1024,6 @@ public:
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
 	double BrakeCtrlPos2 = 0.0;                 /*nastawa hamulca zespolonego - kapturek dla FV4a*/
-	int LocalBrakePos = 0;                 /*nastawa hamulca indywidualnego*/
 	int ManualBrakePos = 0;                 /*nastawa hamulca recznego*/
 	double LocalBrakePosA = 0.0;
 /*
@@ -1250,7 +1249,7 @@ public:
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
-    bool Sandbox( bool const State, int const Notify = range::consist );/*wlacza/wylacza sypanie piasku*/
+    bool Sandbox( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
 	void SSReset(void);
@@ -1263,11 +1262,9 @@ public:
 	/*! stopnie hamowania - hamulec zasadniczy*/
 	bool IncBrakeLevelOld(void);
 	bool DecBrakeLevelOld(void);
-	bool IncLocalBrakeLevel(int CtrlSpeed);
-	bool DecLocalBrakeLevel(int CtrlSpeed);
+	bool IncLocalBrakeLevel(float const CtrlSpeed);
+	bool DecLocalBrakeLevel(float const CtrlSpeed);
 	/*! ABu 010205: - skrajne polozenia ham. pomocniczego*/
-	bool IncLocalBrakeLevelFAST(void);
-	bool DecLocalBrakeLevelFAST(void);
 	bool IncManualBrakeLevel(int CtrlSpeed);
 	bool DecManualBrakeLevel(int CtrlSpeed);
 	bool DynamicBrakeSwitch(bool Switch);
@@ -1309,16 +1306,16 @@ public:
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
-    bool WaterPumpBreakerSwitch( bool State, int const Notify = range::consist ); // water pump breaker state toggle
-    bool WaterPumpSwitch( bool State, int const Notify = range::consist ); // water pump state toggle
-    bool WaterHeaterBreakerSwitch( bool State, int const Notify = range::consist ); // water heater breaker state toggle
-    bool WaterHeaterSwitch( bool State, int const Notify = range::consist ); // water heater state toggle
-    bool WaterCircuitsLinkSwitch( bool State, int const Notify = range::consist ); // water circuits link state toggle
-    bool FuelPumpSwitch( bool State, int const Notify = range::consist ); // fuel pump state toggle
-    bool OilPumpSwitch( bool State, int const Notify = range::consist ); // oil pump state toggle
-    bool MainSwitch( bool const State, int const Notify = range::consist );/*! wylacznik glowny*/
-    bool ConverterSwitch( bool State, int const Notify = range::consist );/*! wl/wyl przetwornicy*/
-    bool CompressorSwitch( bool State, int const Notify = range::consist );/*! wl/wyl sprezarki*/
+    bool WaterPumpBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water pump breaker state toggle
+    bool WaterPumpSwitch( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
+    bool WaterHeaterBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water heater breaker state toggle
+    bool WaterHeaterSwitch( bool State, range_t const Notify = range_t::consist ); // water heater state toggle
+    bool WaterCircuitsLinkSwitch( bool State, range_t const Notify = range_t::consist ); // water circuits link state toggle
+    bool FuelPumpSwitch( bool State, range_t const Notify = range_t::consist ); // fuel pump state toggle
+    bool OilPumpSwitch( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
+    bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
+    bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
+    bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck( double const Timestep ); // przetwornica
@@ -1348,8 +1345,8 @@ public:
 	bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
 
 	bool ResistorsFlagCheck(void); //sprawdzenie kontrolki oporow rozruchowych NBMX
-    bool PantFront( bool const State, int const Notify = range::consist ); //obsluga pantografou przedniego
-    bool PantRear( bool const State, int const Notify = range::consist ); //obsluga pantografu tylnego
+    bool PantFront( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografou przedniego
+    bool PantRear( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografu tylnego
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);
@@ -1364,10 +1361,10 @@ public:
 
 	/* funckje dla wagonow*/
 	bool LoadingDone(double LSpeed, std::string LoadInit);
-	bool DoorLeft(bool State, int const Notify = range::consist ); //obsluga drzwi lewych
-	bool DoorRight(bool State, int const Notify = range::consist ); //obsluga drzwi prawych
+	bool DoorLeft(bool State, range_t const Notify = range_t::consist ); //obsluga drzwi lewych
+	bool DoorRight(bool State, range_t const Notify = range_t::consist ); //obsluga drzwi prawych
 	bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
-    bool signal_departure( bool const State, int const Notify = range::consist ); // toggles departure warning
+    bool signal_departure( bool const State, range_t const Notify = range_t::consist ); // toggles departure warning
     void update_autonomous_doors( double const Deltatime ); // automatic door controller update
 
     /* funkcje dla samochodow*/
@@ -1403,7 +1400,7 @@ private:
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );
     TPowerSource LoadFIZ_SourceDecode( std::string const &Source );
-    TEngineTypes LoadFIZ_EngineDecode( std::string const &Engine );
+    TEngineType LoadFIZ_EngineDecode( std::string const &Engine );
     bool readMPT0( std::string const &line );
     bool readMPT( std::string const &line );                                             //Q 20160717
     bool readMPTElectricSeries( std::string const &line );

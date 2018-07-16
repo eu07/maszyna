@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "command.h"
 
 //---------------------------------------------------------------------------
-enum TCameraType
+enum class TCameraType
 { // tryby pracy kamery
     tp_Follow, // jazda z pojazdem
     tp_Free, // stoi na scenerii

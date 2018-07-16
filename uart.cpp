@@ -95,7 +95,7 @@ uart_input::recall_bindings() {
 
                 auto const bindingtype { typelookup->second };
                 std::array<user_command, 2> bindingcommands { user_command::none, user_command::none };
-                auto const commandcount { ( bindingtype == toggle ? 2 : 1 ) };
+                auto const commandcount { ( bindingtype == input_type_t::toggle ? 2 : 1 ) };
                 for( int commandidx = 0; commandidx < commandcount; ++commandidx ) {
                     // grab command(s) associated with the input pin
                     auto const bindingcommandname { entryparser.getToken<std::string>() };
@@ -166,14 +166,14 @@ void uart_input::poll()
 
             auto const type { std::get<input_type_t>( entry ) };
             auto const action { (
-                type != impulse ?
+                type != input_type_t::impulse ?
                     GLFW_PRESS :
                     ( true == state ?
                         GLFW_PRESS :
                         GLFW_RELEASE ) ) };
 
             auto const command { (
-                type != toggle ?
+                type != input_type_t::toggle ?
                     std::get<2>( entry ) :
                     ( true == state ?
                         std::get<2>( entry ) :

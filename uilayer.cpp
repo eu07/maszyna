@@ -276,7 +276,7 @@ ui_layer::update() {
                 else if( mover->ActiveDir < 0 ) { uitextline2 += " R"; }
                 else                            { uitextline2 += " N"; }
 
-                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos ) + ( mover->SlippingWheels ? " !" : "  " );
+                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + to_string( mover->LocalBrakePosA * LocalBrakePosNo, 0 ) + ( mover->SlippingWheels ? " !" : "  " );
 
                 uitextline4 = (
                     true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
@@ -472,7 +472,7 @@ ui_layer::update() {
                 uitextline2 += ( vehicle->MoverParameters->OilPump.is_active ? "O" : ( vehicle->MoverParameters->OilPump.is_enabled ? "o" : "." ) );
                 uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline2 += ( vehicle->MoverParameters->CompressorFlag ? "C" : ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorStart == start::automatic ) ? "c" : "." ) ) );
+                uitextline2 += ( vehicle->MoverParameters->CompressorFlag ? "C" : ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorStart == start_t::automatic ) ? "c" : "." ) ) );
                 uitextline2 += ( vehicle->MoverParameters->CompressorGovernorLock ? "!" : "." );
 
                 auto const train { Global.pWorld->train() };
@@ -876,9 +876,9 @@ ui_layer::update() {
 
                 uitextline2 =
                     "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
-                    + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
+                    + "; HamP=" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-                    + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == DieselElectric ) ?
+                    + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == TEngineType::DieselElectric ) ?
                         "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
                         "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
                     + "; I=" +
@@ -943,7 +943,7 @@ ui_layer::update() {
                     uitextline3 += " Vtrack " + to_string( vehicle->MoverParameters->RunningTrack.Velmax, 2 );
                 }
 
-                if( ( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                if( ( vehicle->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
                     || ( vehicle->MoverParameters->TrainType == dt_EZT ) ) {
                     uitextline3 +=
                         "; pant. " + to_string( vehicle->MoverParameters->PantPress, 2 )
@@ -971,7 +971,7 @@ ui_layer::update() {
                 }
 
                 // induction motor data
-                if( vehicle->MoverParameters->EngineType == ElectricInductionMotor ) {
+                if( vehicle->MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) {
 
                     UITable->text_lines.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
                     for( int i = 0; i <= 20; ++i ) {
@@ -994,7 +994,7 @@ ui_layer::update() {
                         UITable->text_lines.emplace_back( parameters, Global.UITextColor );
                     }
                 }
-				if (vehicle->MoverParameters->EngineType == DieselEngine) {
+				if (vehicle->MoverParameters->EngineType == TEngineType::DieselEngine) {
 					std::string parameters = "param       value";
 					UITable->text_lines.emplace_back(parameters, Global.UITextColor);
 					parameters = "efill: " + to_string(vehicle->MoverParameters->dizel_fill, 2, 9);

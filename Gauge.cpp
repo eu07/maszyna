@@ -45,7 +45,7 @@ void TGauge::Init(TSubModel *Submodel, TGaugeType Type, float Scale, float Offse
         return;
     }
 
-    if( m_type == gt_Digital ) {
+    if( m_type == TGaugeType::gt_Digital ) {
 
         TSubModel *sm = SubModel->ChildGet();
         do {
@@ -148,18 +148,18 @@ bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, 
     }
 
     std::map<std::string, TGaugeType> gaugetypes {
-        { "rot", gt_Rotate },
-        { "rotvar", gt_Rotate },
-        { "mov", gt_Move },
-        { "movvar", gt_Move },
-        { "wip", gt_Wiper },
-        { "dgt", gt_Digital }
+        { "rot", TGaugeType::gt_Rotate },
+        { "rotvar", TGaugeType::gt_Rotate },
+        { "mov", TGaugeType::gt_Move },
+        { "movvar", TGaugeType::gt_Move },
+        { "wip", TGaugeType::gt_Wiper },
+        { "dgt", TGaugeType::gt_Digital }
     };
     auto lookup = gaugetypes.find( gaugetypename );
     auto const type = (
         lookup != gaugetypes.end() ?
             lookup->second :
-            gt_Unknown );
+            TGaugeType::gt_Unknown );
 
     Init( submodel, type, scale, offset, friction, 0, endvalue, endscale, interpolatescale );
 
@@ -228,16 +228,16 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
     if( ( currentvalue < fNewDesired )
      && ( false == m_soundfxincrease.empty() ) ) {
         // shift up
-        m_soundfxincrease.play();
+        m_soundfxincrease.play( sound_flags::exclusive );
     }
     else if( ( currentvalue > fNewDesired )
           && ( false == m_soundfxdecrease.empty() ) ) {
         // shift down
-        m_soundfxdecrease.play();
+        m_soundfxdecrease.play( sound_flags::exclusive );
     }
     else if( Fallbacksound != nullptr ) {
         // ...and if that fails too, try the provided fallback sound from legacy system
-        Fallbacksound->play();
+        Fallbacksound->play( sound_flags::exclusive );
     }
 };
 
@@ -276,15 +276,15 @@ void TGauge::Update() {
     if( SubModel )
     { // warunek na wszelki wypadek, gdyby się submodel nie podłączył
         switch (m_type) {
-            case gt_Rotate: {
+            case TGaugeType::gt_Rotate: {
                 SubModel->SetRotate( float3( 0, 1, 0 ), GetScaledValue() * 360.0 );
                 break;
             }
-            case gt_Move: {
+            case TGaugeType::gt_Move: {
                 SubModel->SetTranslate( float3( 0, 0, GetScaledValue() ) );
                 break;
             }
-            case gt_Wiper: {
+            case TGaugeType::gt_Wiper: {
                 auto const scaledvalue { GetScaledValue() };
                 SubModel->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
                 auto *sm = SubModel->ChildGet();
@@ -296,7 +296,7 @@ void TGauge::Update() {
                 }
                 break;
             }
-            case gt_Digital: {
+            case TGaugeType::gt_Digital: {
                 // Ra 2014-07: licznik cyfrowy
                 auto *sm = SubModel->ChildGet();
 /*  			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochę bez sensu

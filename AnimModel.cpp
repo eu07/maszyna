@@ -361,13 +361,14 @@ void TAnimContainer::UpdateModelIK()
 { // odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
     if (pSubModel) // pozbyć się tego - sprawdzać wcześniej
     {
-        if (pSubModel->b_Anim & at_IK)
+        if ((pSubModel->b_Anim == TAnimType::at_IK)
+          ||(pSubModel->b_Anim == TAnimType::at_IK22))
         { // odwrotna kinematyka
             float3 d, k;
             TSubModel *ch = pSubModel->ChildGet();
             switch (pSubModel->b_Anim)
             {
-            case at_IK11: // stopa: ustawić w kierunku czubka (pierwszy potomny)
+            case TAnimType::at_IK11: // stopa: ustawić w kierunku czubka (pierwszy potomny)
                 d = ch->Translation1Get(); // wektor względem aktualnego układu (nie uwzględnia
                 // obrotu)
                 k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
@@ -377,7 +378,7 @@ void TAnimContainer::UpdateModelIK()
                 // WriteLog("--> "+AnsiString(k.x)+" "+AnsiString(k.y)+" "+AnsiString(k.z));
                 // Ra: to już jest dobrze, może być inna ćwiartka i znak
                 break;
-            case at_IK22: // udo: ustawić w kierunku pierwszej potomnej pierwszej potomnej (kostki)
+            case TAnimType::at_IK22: // udo: ustawić w kierunku pierwszej potomnej pierwszej potomnej (kostki)
                 // pozycję kostki należy określić względem kości centralnej (+biodro może być
                 // pochylone)
                 // potem wyliczyć ewentualne odchylenie w tej i następnej

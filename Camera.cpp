@@ -27,7 +27,7 @@ void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle) {
     Roll = NAngle.z;
     Pos = NPos;
 
-    Type = (Global.bFreeFly ? tp_Free : tp_Follow);
+    Type = (Global.bFreeFly ? TCameraType::tp_Free : TCameraType::tp_Follow);
 };
 
 void TCamera::Reset() {
@@ -76,12 +76,12 @@ TCamera::OnCommand( command_data const &Command ) {
         case user_command::movehorizontalfast: {
 
             auto const movespeed = (
-                Type == tp_Free ?   runspeed :
-                Type == tp_Follow ? walkspeed :
+                Type == TCameraType::tp_Free ?   runspeed :
+                Type == TCameraType::tp_Follow ? walkspeed :
                 0.0 );
 
             auto const speedmultiplier = (
-                ( ( Type == tp_Free ) && ( Command.command == user_command::movehorizontalfast ) ) ?
+                ( ( Type == TCameraType::tp_Free ) && ( Command.command == user_command::movehorizontalfast ) ) ?
                     30.0 :
                     1.0 );
 
@@ -111,12 +111,12 @@ TCamera::OnCommand( command_data const &Command ) {
         case user_command::moveverticalfast: {
 
             auto const movespeed = (
-                Type == tp_Free ?   runspeed * 0.5 :
-                Type == tp_Follow ? walkspeed :
+                Type == TCameraType::tp_Free ?   runspeed * 0.5 :
+                Type == TCameraType::tp_Follow ? walkspeed :
                 0.0 );
 
             auto const speedmultiplier = (
-                ( ( Type == tp_Free ) && ( Command.command == user_command::moveverticalfast ) ) ?
+                ( ( Type == TCameraType::tp_Free ) && ( Command.command == user_command::moveverticalfast ) ) ?
                     10.0 :
                     1.0 );
 
@@ -145,8 +145,8 @@ TCamera::OnCommand( command_data const &Command ) {
 
 void TCamera::Update()
 {
-    if( FreeFlyModeFlag == true ) { Type = tp_Free; }
-    else                          { Type = tp_Follow; }
+    if( FreeFlyModeFlag == true ) { Type = TCameraType::tp_Free; }
+    else                          { Type = TCameraType::tp_Follow; }
 
     // check for sent user commands
     // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
@@ -162,7 +162,7 @@ void TCamera::Update()
     auto const deltatime { Timer::GetDeltaRenderTime() }; // czas bez pauzy
 
     // update position
-    if( ( Type == tp_Free )
+    if( ( Type == TCameraType::tp_Free )
      || ( false == Global.ctrlState )
      || ( true == DebugCameraFlag ) ) {
         // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
@@ -172,7 +172,7 @@ void TCamera::Update()
         Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -std::abs( m_moverate.y ), std::abs( m_moverate.y ) );
     }
 
-    if( ( Type == tp_Free )
+    if( ( Type == TCameraType::tp_Free )
      || ( true == DebugCameraFlag ) ) {
         // free movement position update is handled here, movement while in vehicle is handled by train update
         Math3D::vector3 Vec = Velocity;
@@ -193,7 +193,7 @@ void TCamera::Update()
 
     Pitch -= rotationfactor * m_rotationoffsets.x;
     m_rotationoffsets.x *= ( 1.0 - rotationfactor );
-    if( Type == tp_Follow ) {
+    if( Type == TCameraType::tp_Follow ) {
         // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
         Pitch = clamp( Pitch, -M_PI_4, M_PI_4 );
     }
@@ -210,7 +210,7 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
     Matrix = glm::rotate( Matrix, -Pitch, glm::dvec3( 1.0, 0.0, 0.0 ) );
     Matrix = glm::rotate( Matrix, -Yaw, glm::dvec3( 0.0, 1.0, 0.0 ) ); // w zewnętrznym widoku: kierunek patrzenia
 
-    if( ( Type == tp_Follow ) && ( false == DebugCameraFlag ) ) {
+    if( ( Type == TCameraType::tp_Follow ) && ( false == DebugCameraFlag ) ) {
 
         Matrix *= glm::lookAt(
             glm::dvec3{ Pos },

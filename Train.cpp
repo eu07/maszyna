@@ -600,7 +600,7 @@ bool TTrain::is_eztoer() const {
 
     return
         ( ( mvControlled->TrainType == dt_EZT )
-       && ( mvOccupied->BrakeSubsystem == ss_ESt )
+       && ( mvOccupied->BrakeSubsystem == TBrakeSubSystem::ss_ESt )
        && ( mvControlled->Battery == true )
        && ( mvControlled->EpFuse == true )
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
@@ -769,7 +769,7 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( ( Train->mvControlled->EngineType == DieselElectric )
+        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
          && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos + 0.025,
@@ -785,7 +785,7 @@ void TTrain::OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( ( Train->mvControlled->EngineType == DieselElectric )
+        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
          && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = 1.0;
         }
@@ -837,7 +837,7 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( ( Train->mvControlled->EngineType == DieselElectric )
+        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
          && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos - 0.025,
@@ -853,7 +853,7 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        if( ( Train->mvControlled->EngineType == DieselElectric )
+        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
          && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = 0.0;
         }
@@ -882,7 +882,7 @@ void TTrain::OnCommand_independentbrakeincrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( Train->mvOccupied->LocalBrake != ManualBrake ) {
+        if( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
             Train->mvOccupied->IncLocalBrakeLevel( 1 );
         }
     }
@@ -892,8 +892,8 @@ void TTrain::OnCommand_independentbrakeincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( Train->mvOccupied->LocalBrake != ManualBrake ) {
-            Train->mvOccupied->IncLocalBrakeLevel( 2 );
+        if( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
+            Train->mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
         }
     }
 }
@@ -902,10 +902,10 @@ void TTrain::OnCommand_independentbrakedecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( ( Train->mvOccupied->LocalBrake != ManualBrake )
+        if( ( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake )
             // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
             // TODO: sort AI out so it doesn't do things it doesn't have equipment for
-         || ( Train->mvOccupied->LocalBrakePos != 0 ) ) {
+         || ( Train->mvOccupied->LocalBrakePosA > 0 ) ) {
             Train->mvOccupied->DecLocalBrakeLevel( 1 );
         }
     }
@@ -915,11 +915,11 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( ( Train->mvOccupied->LocalBrake != ManualBrake )
+        if( ( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake )
             // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
             // TODO: sort AI out so it doesn't do things it doesn't have equipment for
-         || ( Train->mvOccupied->LocalBrakePos != 0 ) ) {
-            Train->mvOccupied->DecLocalBrakeLevel( 2 );
+         || ( Train->mvOccupied->LocalBrakePosA > 0 ) ) {
+            Train->mvOccupied->DecLocalBrakeLevel( LocalBrakePosNo );
         }
     }
 }
@@ -948,9 +948,9 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
         // TODO: check if this set of conditions can be simplified.
         // it'd be more flexible to have an attribute indicating whether bail off position is supported
         if( ( Train->mvControlled->TrainType != dt_EZT )
-         && ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
-           || ( Train->mvControlled->EngineType == DieselElectric )
-           || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
+         && ( ( Train->mvControlled->EngineType == TEngineType::ElectricSeriesMotor )
+           || ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
+           || ( Train->mvControlled->EngineType == TEngineType::ElectricInductionMotor ) )
          && ( Train->mvOccupied->BrakeCtrlPosNo > 0 ) ) {
 
             if( Command.action == GLFW_PRESS ) {
@@ -989,7 +989,7 @@ void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Co
 
     if( Command.action != GLFW_RELEASE ) {
 
-        if( Train->mvOccupied->BrakeHandle == FV4a ) {
+        if( Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a ) {
             Train->mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
         }
         else {
@@ -1002,7 +1002,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
 
     if( Command.action != GLFW_RELEASE ) {
         // press or hold
-        if( Train->mvOccupied->BrakeHandle == FV4a ) {
+        if( Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a ) {
             Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
         }
         else {
@@ -1031,7 +1031,7 @@ void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Co
     else {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
-         && ( Train->mvOccupied->BrakeHandle == FVel6 )
+         && ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
          && ( Train->DynamicObject->Controller != AIdriver )
          && ( Global.iFeedbackMode < 3 ) ) {
             // Odskakiwanie hamulce EP
@@ -1062,7 +1062,7 @@ void TTrain::OnCommand_trainbrakeservice( TTrain *Train, command_data const &Com
 
         Train->set_train_brake( (
             Train->mvOccupied->BrakeCtrlPosNo / 2
-            + ( Train->mvOccupied->BrakeHandle == FV4a ?
+            + ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a ?
                 1 :
                 0 ) ) );
     }
@@ -1103,7 +1103,7 @@ void TTrain::OnCommand_trainbrakebasepressureincrease( TTrain *Train, command_da
     if( Command.action != GLFW_RELEASE ) {
 
         switch( Train->mvOccupied->BrakeHandle ) {
-            case FV4a: {
+            case TBrakeHandle::FV4a: {
                 Train->mvOccupied->BrakeCtrlPos2 = clamp( Train->mvOccupied->BrakeCtrlPos2 - 0.01, -1.5, 2.0 );
                 break;
             }
@@ -1120,7 +1120,7 @@ void TTrain::OnCommand_trainbrakebasepressuredecrease( TTrain *Train, command_da
     if( Command.action != GLFW_RELEASE ) {
 
         switch( Train->mvOccupied->BrakeHandle ) {
-            case FV4a: {
+            case TBrakeHandle::FV4a: {
                 Train->mvOccupied->BrakeCtrlPos2 = clamp( Train->mvOccupied->BrakeCtrlPos2 + 0.01, -1.5, 2.0 );
                 break;
             }
@@ -1158,7 +1158,7 @@ void TTrain::OnCommand_manualbrakeincrease( TTrain *Train, command_data const &C
         auto *vehicle { Train->find_nearest_consist_vehicle() };
         if( vehicle == nullptr ) { return; }
 
-        if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+        if( ( vehicle->MoverParameters->LocalBrake == TLocalBrake::ManualBrake )
          || ( vehicle->MoverParameters->MBrake == true ) ) {
 
             vehicle->MoverParameters->IncManualBrakeLevel( 1 );
@@ -1173,7 +1173,7 @@ void TTrain::OnCommand_manualbrakedecrease( TTrain *Train, command_data const &C
         auto *vehicle { Train->find_nearest_consist_vehicle() };
         if( vehicle == nullptr ) { return; }
 
-        if( ( vehicle->MoverParameters->LocalBrake == ManualBrake )
+        if( ( vehicle->MoverParameters->LocalBrake == TLocalBrake::ManualBrake )
          || ( vehicle->MoverParameters->MBrake == true ) ) {
 
             vehicle->MoverParameters->DecManualBrakeLevel( 1 );
@@ -1210,7 +1210,7 @@ void TTrain::OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const
         return;
     }
 
-    if( Train->mvOccupied->BrakeSystem != ElectroPneumatic ) {
+    if( Train->mvOccupied->BrakeSystem != TBrakeSystem::ElectroPneumatic ) {
         // standard behaviour
         if( Command.action == GLFW_PRESS ) {
             // visual feedback
@@ -1229,7 +1229,7 @@ void TTrain::OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const
             // visual feedback
             Train->ggAntiSlipButton.UpdateValue( 1.0, Train->dsbPneumaticSwitch );
 
-            if( ( Train->mvOccupied->BrakeHandle == St113 )
+            if( ( Train->mvOccupied->BrakeHandle == TBrakeHandle::St113 )
              && ( Train->mvControlled->EpFuse == true ) ) {
                 Train->mvOccupied->SwitchEPBrake( 1 );
             }
@@ -2074,8 +2074,8 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
 
         if( Train->m_linebreakerstate == 2 ) {
             // we don't need to start the diesel twice, but the other types (with impulse switch setup) still need to be launched
-            if( ( Train->mvControlled->EngineType != DieselEngine )
-             && ( Train->mvControlled->EngineType != DieselElectric ) ) {
+            if( ( Train->mvControlled->EngineType != TEngineType::DieselEngine )
+             && ( Train->mvControlled->EngineType != TEngineType::DieselElectric ) ) {
                 // try to finalize state change of the line breaker, set the state based on the outcome
                 Train->m_linebreakerstate = (
                     Train->mvControlled->MainSwitch( true ) ?
@@ -2387,7 +2387,7 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_converterenable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->ConverterStart == start::automatic ) {
+    if( Train->mvControlled->ConverterStart == start_t::automatic ) {
         // let the automatic thing do its automatic thing...
         return;
     }
@@ -2421,7 +2421,7 @@ void TTrain::OnCommand_converterenable( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_converterdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->ConverterStart == start::automatic ) {
+    if( Train->mvControlled->ConverterStart == start_t::automatic ) {
         // let the automatic thing do its automatic thing...
         return;
     }
@@ -2461,7 +2461,7 @@ void TTrain::OnCommand_converterdisable( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_convertertogglelocal( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvOccupied->ConverterStart == start::automatic ) {
+    if( Train->mvOccupied->ConverterStart == start_t::automatic ) {
         // let the automatic thing do its automatic thing...
         return;
     }
@@ -3714,7 +3714,7 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 Train->mvOccupied->DoorLeftOpened :
                 Train->mvOccupied->DoorRightOpened ) ) {
             // open
-            if( Train->mvOccupied->DoorOpenCtrl != control::driver ) {
+            if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
                 return;
             }
             if( Train->mvOccupied->ActiveCab == 1 ) {
@@ -3729,7 +3729,7 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
         }
         else {
             // close
-            if( Train->mvOccupied->DoorCloseCtrl != control::driver ) {
+            if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
                 return;
             }
             // TODO: move door opening/closing to the update, so the switch animation doesn't hinge on door working
@@ -3755,7 +3755,7 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 Train->mvOccupied->DoorRightOpened :
                 Train->mvOccupied->DoorLeftOpened ) ) {
             // open
-            if( Train->mvOccupied->DoorOpenCtrl != control::driver ) {
+            if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
                 return;
             }
             if( Train->mvOccupied->ActiveCab == 1 ) {
@@ -3770,7 +3770,7 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
         }
         else {
             // close
-            if( Train->mvOccupied->DoorCloseCtrl != control::driver ) {
+            if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
                 return;
             }
             if( Train->mvOccupied->ActiveCab == 1 ) {
@@ -4107,8 +4107,8 @@ void TTrain::UpdateMechPosition(double dt)
      && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
         Math3D::vector3 shakevector;
-        if( ( mvOccupied->EngineType == DieselElectric )
-         || ( mvOccupied->EngineType == DieselEngine ) ) {
+        if( ( mvOccupied->EngineType == TEngineType::DieselElectric )
+         || ( mvOccupied->EngineType == TEngineType::DieselEngine ) ) {
             if( std::abs( mvOccupied->enrot ) > 0.0 ) {
                 // engine vibration
                 shakevector.x +=
@@ -4258,8 +4258,8 @@ bool TTrain::Update( double const Deltatime )
      || ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) {
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
         if( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
-         || ( ( mvControlled->EngineType != ElectricSeriesMotor )
-           && ( mvControlled->EngineType != ElectricInductionMotor )
+         || ( ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor )
+           && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor )
            && ( true == mvControlled->Battery ) ) ) {
             // prevent the switch from working if there's no power
             // TODO: consider whether it makes sense for diesel engines and such
@@ -4284,8 +4284,8 @@ bool TTrain::Update( double const Deltatime )
     if( m_linebreakerstate == 2 ) {
         // for diesels and/or vehicles with toggle switch setup we complete the engine start here
         if( ( ggMainOnButton.SubModel == nullptr )
-         || ( ( mvControlled->EngineType == DieselEngine )
-           || ( mvControlled->EngineType == DieselElectric ) ) ) {
+         || ( ( mvControlled->EngineType == TEngineType::DieselEngine )
+           || ( mvControlled->EngineType == TEngineType::DieselElectric ) ) ) {
             // try to finalize state change of the line breaker, set the state based on the outcome
             m_linebreakerstate = (
                 mvControlled->MainSwitch( true ) ?
@@ -4350,7 +4350,7 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
 
-            if( ( mvOccupied->BrakeHandle == FVel6 )
+            if( ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
              && ( mvOccupied->fBrakeCtrlPos < 0.0 )
              && ( Global.iFeedbackMode < 3 ) ) {
                 // Odskakiwanie hamulce EP
@@ -4389,8 +4389,8 @@ bool TTrain::Update( double const Deltatime )
         }
 
         // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys
-		if ((mvControlled->EngineType != DieselElectric)
-         && (mvControlled->EngineType != ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
+		if ((mvControlled->EngineType != TEngineType::DieselElectric)
+         && (mvControlled->EngineType != TEngineType::ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
 			fHVoltage = mvControlled->RunningTraction.TractionVoltage; // Winger czy to nie jest zle?
         // *mvControlled->Mains);
         else
@@ -4453,7 +4453,7 @@ bool TTrain::Update( double const Deltatime )
                 asCarName[i] = p->name();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
                 bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
-				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start::automatic));
+				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)
                 {
@@ -4552,12 +4552,12 @@ bool TTrain::Update( double const Deltatime )
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od kierunku
         if( ( mvControlled->Mains )
-         && ( mvControlled->EngineType == ElectricSeriesMotor ) ) {
+         && ( mvControlled->EngineType == TEngineType::ElectricSeriesMotor ) ) {
             if( std::max( mvControlled->GetTrainsetVoltage(), std::fabs( mvControlled->RunningTraction.TractionVoltage ) ) < 0.5 * mvControlled->EnginePowerSource.MaxVoltage ) {
                 // TODO: check whether it should affect entire consist for EMU
                 // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
                 // TODO: potentially move this to the mover module, as there isn't much reason to have this dependent on the operator presence
-                mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range::unit : range::local ) );
+                mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range_t::unit : range_t::local ) );
             }
         }
 
@@ -4579,7 +4579,7 @@ bool TTrain::Update( double const Deltatime )
         {
             fConverterTimer += Deltatime;
             if ((mvControlled->CompressorFlag == true) && (mvControlled->CompressorPower == 1) &&
-                ((mvControlled->EngineType == ElectricSeriesMotor) ||
+                ((mvControlled->EngineType == TEngineType::ElectricSeriesMotor) ||
                  (mvControlled->TrainType == dt_EZT)) &&
                 (DynamicObject->Controller == Humandriver)) // hunter-110212: poprawka dla EZT
             { // hunter-091012: poprawka (zmiana warunku z CompressorPower /rozne od
@@ -4588,7 +4588,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     mvControlled->ConvOvldFlag = true;
                     if (mvControlled->TrainType != dt_EZT)
-                        mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range::unit : range::local ) );
+                        mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range_t::unit : range_t::local ) );
                 }
                 else if( fConverterTimer >= fConverterPrzekaznik ) {
                     // changed switch from always true to take into account state of the compressor switch
@@ -4707,13 +4707,13 @@ bool TTrain::Update( double const Deltatime )
             ggLVoltage.Update();
         }
 
-        if (mvControlled->EngineType == DieselElectric)
+        if (mvControlled->EngineType == TEngineType::DieselElectric)
         { // ustawienie zmiennych dla silnika spalinowego
             fEngine[1] = mvControlled->ShowEngineRotation(1);
             fEngine[2] = mvControlled->ShowEngineRotation(2);
         }
 
-        else if (mvControlled->EngineType == DieselEngine)
+        else if (mvControlled->EngineType == TEngineType::DieselEngine)
         { // albo dla innego spalinowego
             fEngine[1] = mvControlled->ShowEngineRotation(1);
             fEngine[2] = mvControlled->ShowEngineRotation(2);
@@ -5161,7 +5161,7 @@ bool TTrain::Update( double const Deltatime )
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
-				if (mvOccupied->BrakeHandle == FV4a)
+				if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
                 {
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 8.0 - 2.0;
@@ -5169,7 +5169,7 @@ bool TTrain::Update( double const Deltatime )
 					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 					mvOccupied->BrakeLevelSet(b);
 				}
-                if (mvOccupied->BrakeHandle == FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
+                if (mvOccupied->BrakeHandle == TBrakeHandle::FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
                 {
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 7.0 - 1.0;
@@ -5191,23 +5191,23 @@ bool TTrain::Update( double const Deltatime )
 #ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
-             && ( mvOccupied->BrakeLocHandle == FD1 )
+             && ( mvOccupied->BrakeLocHandle == TBrakeHandle::FD1 )
              && ( ( Global.iFeedbackMode == 4 )
                /*|| ( Global.bMWDmasterEnable && Global.bMWDBreakEnable )*/ ) ) {
                 // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
                 // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
                 auto const b = clamp<double>(
-                    Console::AnalogCalibrateGet( 1 ) * 10.0,
+                    Console::AnalogCalibrateGet( 1 ),
                     0.0,
-                    LocalBrakePosNo );
-                ggLocalBrake.UpdateValue( b ); // przesów bez zaokrąglenia
-                mvOccupied->LocalBrakePos = int( 1.09 * b ); // sposób zaokrąglania jest do ustalenia
+                    1.0 );
+                mvOccupied->LocalBrakePosA = b;
+                ggLocalBrake.UpdateValue( b * LocalBrakePosNo );
             }
             else
 #endif
             {
                 // standardowa prodedura z kranem powiązanym z klawiaturą
-                ggLocalBrake.UpdateValue( std::max<double>( mvOccupied->LocalBrakePos, mvOccupied->LocalBrakePosA * LocalBrakePosNo ) );
+                ggLocalBrake.UpdateValue( mvOccupied->LocalBrakePosA * LocalBrakePosNo );
             }
             ggLocalBrake.Update();
         }
@@ -5369,7 +5369,7 @@ bool TTrain::Update( double const Deltatime )
     }
 
     // anti slip system activation, maintained while the control button is down
-    if( mvOccupied->BrakeSystem != ElectroPneumatic ) {
+    if( mvOccupied->BrakeSystem != TBrakeSystem::ElectroPneumatic ) {
         if( ggAntiSlipButton.GetDesiredValue() > 0.95 ) {
             mvControlled->AntiSlippingBrake();
         }
@@ -5475,8 +5475,8 @@ TTrain::update_sounds( double const Deltatime ) {
 
     // McZapkie-280302 - syczenie
     // TODO: softer volume reduction than plain abrupt stop, perhaps as reusable wrapper?
-    if( ( mvOccupied->BrakeHandle == FV4a )
-     || ( mvOccupied->BrakeHandle == FVel6 ) ) {
+    if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
+     || ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 ) ) {
         // upuszczanie z PG
         fPPress = interpolate( fPPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_b ) ), 0.05f );
         volume = (
@@ -7139,9 +7139,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), TGaugeType::gt_Rotate, 1.0/60.0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), TGaugeType::gt_Rotate, 1.0/60.0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), TGaugeType::gt_Rotate, 1.0/12.0);
         }
     }
     else if (Label == "evoltage:")

@@ -201,12 +201,12 @@ void TSpeedPos::CommandCheck()
     double value2 = evEvent->ValueGet(2);
     switch (command)
     {
-    case cm_ShuntVelocity:
+    case TCommandType::cm_ShuntVelocity:
         // prędkość manewrową zapisać, najwyżej AI zignoruje przy analizie tabelki
         fVelNext = value1; // powinno być value2, bo druga określa "za"?
         iFlags |= spShuntSemaphor;
         break;
-    case cm_SetVelocity:
+    case TCommandType::cm_SetVelocity:
         // w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
         // SetVelocity * 0    -> można jechać, ale stanąć przed
         // SetVelocity 0 20   -> stanąć przed, potem można jechać 20 (SBL)
@@ -222,31 +222,31 @@ void TSpeedPos::CommandCheck()
                 iFlags |= spStopOnSBL; // flaga, że ma zatrzymać; na pewno nie zezwoli na manewry
             }
         break;
-    case cm_SectionVelocity:
+    case TCommandType::cm_SectionVelocity:
         // odcinek z ograniczeniem prędkości
         fVelNext = value1;
         fSectionVelocityDist = value2;
         iFlags |= spSectionVel;
         break;
-    case cm_RoadVelocity:
+    case TCommandType::cm_RoadVelocity:
         // prędkość drogowa (od tej pory będzie jako domyślna najwyższa)
         fVelNext = value1;
         iFlags |= spRoadVel;
         break;
-    case cm_PassengerStopPoint:
+    case TCommandType::cm_PassengerStopPoint:
         // nie ma dostępu do rozkładu
         // przystanek, najwyżej AI zignoruje przy analizie tabelki
 //        if ((iFlags & spPassengerStopPoint) == 0)
             fVelNext = 0.0; // TrainParams->IsStop()?0.0:-1.0; //na razie tak
         iFlags |= spPassengerStopPoint; // niestety nie da się w tym miejscu współpracować z rozkładem
         break;
-    case cm_SetProximityVelocity:
+    case TCommandType::cm_SetProximityVelocity:
         // musi zostać gdyż inaczej nie działają manewry
         fVelNext = -1;
         iFlags |= spProximityVelocity;
         // fSectionVelocityDist = value2;
         break;
-    case cm_OutsideStation:
+    case TCommandType::cm_OutsideStation:
         // w trybie manewrowym: skanować od niej wstecz i stanąć po wyjechaniu za sygnalizator i
         // zmienić kierunek
         // w trybie pociągowym: można przyspieszyć do wskazanej prędkości (po zjechaniu z rozjazdów)
@@ -803,7 +803,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double d; // droga
 	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej niż widzi AI
     bool isatpassengerstop { false }; // true if the consist is within acceptable range of w4 post
-    TCommandType go = cm_Unknown;
+    TCommandType go = TCommandType::cm_Unknown;
     eSignNext = NULL;
     // te flagi są ustawiane tutaj, w razie potrzeby
     iDrivigFlags &= ~(moveTrackEnd | moveSwitchFound | moveSemaphorFound | moveSpeedLimitFound);
@@ -1011,8 +1011,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać blisko (z dociąganiem)
                                     sSpeedTable[i].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                                     sSpeedTable[i].fVelNext = -1; // można jechać za W4
-                                    if (go == cm_Unknown) // jeśli nie było komendy wcześniej
-                                        go = cm_Ready; // gotów do odjazdu z W4 (semafor może
+                                    if (go == TCommandType::cm_Unknown) // jeśli nie było komendy wcześniej
+                                        go = TCommandType::cm_Ready; // gotów do odjazdu z W4 (semafor może
                                     // zatrzymać)
                                     if( false == tsGuardSignal.empty() ) {
                                         // jeśli mamy głos kierownika, to odegrać
@@ -1232,12 +1232,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[ i ].iFlags = 0;
                             }
                         }
-                        else if( go == cm_Unknown ) {
+                        else if( go == TCommandType::cm_Unknown ) {
                             // jeśli jeszcze nie ma komendy
                             // komenda jest tylko gdy ma jechać, bo stoi na podstawietabelki
                             if( v != 0.0 ) {
                                 // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
-                                go = cm_ShuntVelocity; // w trybie pociągowym tylko jeśli włącza
+                                go = TCommandType::cm_ShuntVelocity; // w trybie pociągowym tylko jeśli włącza
                                 // tryb manewrowy (v!=0.0)
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo Tm może być
                                 // daleko
@@ -1258,12 +1258,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     }
                     else if( !( sSpeedTable[ i ].iFlags & spSectionVel ) ) {
                         //jeśli jakiś event pasywny ale nie ograniczenie
-                        if( go == cm_Unknown ) {
+                        if( go == TCommandType::cm_Unknown ) {
                             // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
                             if( ( v < 0.0 )
                              || ( v >= 1.0 ) ) {
                                 // bo wartość 0.1 służy do hamowania tylko
-                                go = cm_SetVelocity; // może odjechać
+                                go = TCommandType::cm_SetVelocity; // może odjechać
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo semafor może być daleko
                                 // VelSignal=v; //nie do końca tak, to jest druga prędkość; -1 nie wpisywać...
                                 if( VelSignal == 0.0 ) {
@@ -1295,12 +1295,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 eSignNext = sSpeedTable[ i ].evEvent; // dla informacji
                                 if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
                                     // jeśli ma stać, dostaje komendę od razu
-                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                    go = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
                                 else if( sSpeedTable[ i ].fDist <= fMaxProximityDist ) {
                                     // jeśli ma dociągnąć, to niech dociąga
                                     // (moveStopCloser dotyczy dociągania do W4, nie semafora)
-                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                    go = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
                                 }
                             }
                         }
@@ -1671,7 +1671,7 @@ void TController::Activation()
         TDynamicObject *old = pVehicle, *d = pVehicle; // w tym siedzi AI
         TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci
         // poprzez nadpisanie
-        int brake = mvOccupied->LocalBrakePos;
+        auto const localbrakelevel { mvOccupied->LocalBrakePosA };
         while (mvControlling->MainCtrlPos) // samo zapętlenie DecSpeed() nie wystarcza :/
             DecSpeed(true); // wymuszenie zerowania nastawnika jazdy
         while (mvOccupied->ActiveDir < 0)
@@ -1683,7 +1683,7 @@ void TController::Activation()
         {
             mvControlling->MainSwitch(
                 false); // dezaktywacja czuwaka, jeśli przejście do innego członu
-            mvOccupied->DecLocalBrakeLevel(10); // zwolnienie hamulca w opuszczanym pojeździe
+            mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
             //   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odcięcie na
             //   zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
             mvOccupied->BrakeLevelSet(
@@ -1721,7 +1721,7 @@ void TController::Activation()
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) -
             // silnikowy dla EZT
         }
-        if( mvControlling->EngineType == DieselEngine ) {
+        if( mvControlling->EngineType == TEngineType::DieselEngine ) {
             // dla 2Ls150 - przed ustawieniem kierunku - można zmienić tryb pracy
             if( mvControlling->ShuntModeAllow ) {
                 mvControlling->CurrentSwitch(
@@ -1736,8 +1736,8 @@ void TController::Activation()
         // mvOccupied->ActiveDir=0; //żeby sam ustawił kierunek
         mvOccupied->CabActivisation(); // uruchomienie kabin w członach
         DirectionForward(true); // nawrotnik do przodu
-        if (brake) // hamowanie tylko jeśli był wcześniej zahamowany (bo możliwe, że jedzie!)
-            mvOccupied->IncLocalBrakeLevel(brake); // zahamuj jak wcześniej
+        if (localbrakelevel > 0.0) // hamowanie tylko jeśli był wcześniej zahamowany (bo możliwe, że jedzie!)
+            mvOccupied->LocalBrakePosA = localbrakelevel; // zahamuj jak wcześniej
         CheckVehicles(); // sprawdzenie składu, AI zapali światła
         TableClear(); // resetowanie tabelki skanowania torów
     }
@@ -1984,7 +1984,7 @@ bool TController::CheckVehicles(TOrders user)
                     p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeśli nie było
             if (AIControllFlag) // jeśli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy światła
-            if (p->MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
+            if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
             { // jeśli pojazd posiada pantograf, to przydzielamy mu maskę, którą będzie informował o
                 // jeździe bezprądowej
                 p->iOverheadMask = pantmask;
@@ -2274,7 +2274,7 @@ bool TController::PrepareEngine()
     ReactionTime = PrepareTime;
     iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
 
-    if ( mvControlling->EnginePowerSource.SourceType == CurrentCollector ) {
+    if ( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
         voltfront = true;
         voltrear = true;
     }
@@ -2288,15 +2288,15 @@ bool TController::PrepareEngine()
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch( true );
-        if( ( mvControlling->EngineType == DieselElectric )
-         || ( mvControlling->EngineType == DieselEngine ) ) {
+        if( ( mvControlling->EngineType == TEngineType::DieselElectric )
+         || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) {
             mvControlling->OilPumpSwitch( true );
             workingtemperature = UpdateHeating();
             if( true == workingtemperature ) {
                 mvControlling->FuelPumpSwitch( true );
             }
         }
-        if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
+        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
         { // jeśli silnikowy jest pantografującym
             mvOccupied->PantFront( true );
             mvOccupied->PantRear( true );
@@ -2427,7 +2427,7 @@ bool TController::ReleaseEngine()
     ReactionTime = PrepareTime;
     if (AIControllFlag)
     { // jeśli steruje komputer
-        if (mvOccupied->DoorCloseCtrl == control::driver)
+        if (mvOccupied->DoorCloseCtrl == control_t::driver)
         { // zamykanie drzwi
             if (mvOccupied->DoorLeftOpened)
                 mvOccupied->DoorLeft(false);
@@ -2439,7 +2439,7 @@ bool TController::ReleaseEngine()
             {
                 mvControlling->CompressorSwitch(false);
                 mvControlling->ConverterSwitch(false);
-                if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
+                if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
                 {
                     mvControlling->PantFront(false);
                     mvControlling->PantRear(false);
@@ -2474,15 +2474,15 @@ bool TController::ReleaseEngine()
     { // jeśli się zatrzymał
         iEngineActive = 0;
         eStopReason = stopSleep; // stoimy z powodu wyłączenia
-        eAction = actSleep; //śpi (wygaszony)
+        eAction = TAction::actSleep; //śpi (wygaszony)
         if (AIControllFlag)
         {
-            if( ( mvControlling->EngineType == DieselElectric )
-             || ( mvControlling->EngineType == DieselEngine ) ) {
+            if( ( mvControlling->EngineType == TEngineType::DieselElectric )
+             || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) {
                 // heating/cooling subsystem
                 mvControlling->WaterHeaterSwitch( false );
                 // optionally turn off the water pump as well
-                if( mvControlling->WaterPump.start_type != start::battery ) {
+                if( mvControlling->WaterPump.start_type != start_t::battery ) {
                     mvControlling->WaterPumpSwitch( false );
                 }
                 // fuel and oil subsystems
@@ -2504,8 +2504,8 @@ bool TController::IncBrake()
 { // zwiększenie hamowania
     bool OK = false;
     switch( mvOccupied->BrakeSystem ) {
-        case Individual: {
-            if( mvOccupied->LocalBrake == ManualBrake ) {
+        case TBrakeSystem::Individual: {
+            if( mvOccupied->LocalBrake == TLocalBrake::ManualBrake ) {
                 OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) );
             }
             else {
@@ -2513,7 +2513,7 @@ bool TController::IncBrake()
             }
             break;
         }
-        case Pneumatic: {
+        case TBrakeSystem::Pneumatic: {
             // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
             bool standalone { true };
             if( ( mvOccupied->TrainType == dt_ET41 )
@@ -2577,7 +2577,7 @@ bool TController::IncBrake()
 					}
 					pos_corr = pos_corr / fMass * 2.5;
 
-					if (mvOccupied->BrakeHandle == FV4a)
+					if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
 					{
 						pos_corr += mvOccupied->Handle->GetCP()*0.2;
 						
@@ -2621,9 +2621,9 @@ bool TController::IncBrake()
             }
             break;
         }
-        case ElectroPneumatic: {
-            if( mvOccupied->EngineType == ElectricInductionMotor ) {
-				if (mvOccupied->BrakeHandle == MHZ_EN57) {
+        case TBrakeSystem::ElectroPneumatic: {
+            if( mvOccupied->EngineType == TEngineType::ElectricInductionMotor ) {
+				if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57) {
 					if (mvOccupied->BrakeCtrlPos < mvOccupied->Handle->GetPos(bh_FB))
 						OK = mvOccupied->BrakeLevelAdd(1.0);
 				}
@@ -2652,13 +2652,13 @@ bool TController::DecBrake()
 	double deltaAcc = 0;
     switch (mvOccupied->BrakeSystem)
     {
-    case Individual:
-        if (mvOccupied->LocalBrake == ManualBrake)
+    case TBrakeSystem::Individual:
+        if (mvOccupied->LocalBrake == TLocalBrake::ManualBrake)
             OK = mvOccupied->DecManualBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         else
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
-    case Pneumatic:
+    case TBrakeSystem::Pneumatic:
 		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR-1.0)*fBrake_a1[0]);
 		if (deltaAcc < 0)
 		{
@@ -2672,13 +2672,13 @@ bool TController::DecBrake()
 			}
 		}
         if (!OK)
-            OK = mvOccupied->DecLocalBrakeLevel(2);
+            OK = mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo);
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
         break;
-    case ElectroPneumatic:
-		if (mvOccupied->EngineType == ElectricInductionMotor) {
-			if (mvOccupied->BrakeHandle == MHZ_EN57) {
+    case TBrakeSystem::ElectroPneumatic:
+		if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor) {
+			if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57) {
 				if (mvOccupied->BrakeCtrlPos > mvOccupied->Handle->GetPos(bh_RP))
 					OK = mvOccupied->BrakeLevelAdd(-1.0);
 			}
@@ -2696,7 +2696,7 @@ bool TController::DecBrake()
         else
             OK = false;
         if (!OK)
-            OK = mvOccupied->DecLocalBrakeLevel(2);
+            OK = mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo);
         break;
     }
     return OK;
@@ -2726,12 +2726,12 @@ bool TController::IncSpeed()
         return false; // jak poślizg, to nie przyspieszamy
     switch (mvOccupied->EngineType)
     {
-    case None: // McZapkie-041003: wagon sterowniczy
+    case TEngineType::None: // McZapkie-041003: wagon sterowniczy
         if (mvControlling->MainCtrlPosNo > 0) // jeśli ma czym kręcić
             iDrivigFlags |= moveIncSpeed; // ustawienie flagi jazdy
         return false;
-    case ElectricSeriesMotor:
-        if (mvControlling->EnginePowerSource.SourceType == CurrentCollector) // jeśli pantografujący
+    case TEngineType::ElectricSeriesMotor:
+        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // jeśli pantografujący
         {
             if (fOverhead2 >= 0.0) // a jazda bezprądowa ustawiana eventami (albo opuszczenie)
                 return false; // to nici z ruszania
@@ -2813,8 +2813,8 @@ bool TController::IncSpeed()
 				}
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
-    case Dumb:
-    case DieselElectric:
+    case TEngineType::Dumb:
+    case TEngineType::DieselElectric:
         if (!mvControlling->FuseFlag)
             if (Ready || (iDrivigFlags & movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
@@ -2823,7 +2823,7 @@ bool TController::IncSpeed()
                     OK = mvControlling->IncScndCtrl(1);
             }
         break;
-    case ElectricInductionMotor:
+    case TEngineType::ElectricInductionMotor:
         if (!mvControlling->FuseFlag)
 			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
@@ -2839,7 +2839,7 @@ bool TController::IncSpeed()
 
             }
         break;
-    case WheelsDriven:
+    case TEngineType::WheelsDriven:
         if (!mvControlling->CabNo)
             mvControlling->CabActivisation();
         if (sin(mvControlling->eAngle) > 0)
@@ -2847,7 +2847,7 @@ bool TController::IncSpeed()
         else
             mvControlling->DecMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
         break;
-    case DieselEngine:
+    case TEngineType::DieselEngine:
         if (mvControlling->ShuntModeAllow)
         { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga zerowania kierunku)
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
@@ -2876,29 +2876,29 @@ bool TController::DecSpeed(bool force)
     bool OK = false; // domyślnie false, aby wyszło z pętli while
     switch (mvOccupied->EngineType)
     {
-    case None: // McZapkie-041003: wagon sterowniczy
+    case TEngineType::None: // McZapkie-041003: wagon sterowniczy
         iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi jazdy
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
             if (mvControlling->MainCtrlPosNo > 0) // McZapkie-041003: wagon sterowniczy, np. EZT
                 mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         return false;
-    case ElectricSeriesMotor:
+    case TEngineType::ElectricSeriesMotor:
         OK = mvControlling->DecScndCtrl(2); // najpierw bocznik na zero
         if (!OK)
             OK = mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
-    case Dumb:
-    case DieselElectric:
+    case TEngineType::Dumb:
+    case TEngineType::DieselElectric:
         OK = mvControlling->DecScndCtrl(2);
         if (!OK)
             OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
         break;
-	case ElectricInductionMotor:
+	case TEngineType::ElectricInductionMotor:
 		OK = mvControlling->DecMainCtrl(1);
 		break;
-    case WheelsDriven:
+    case TEngineType::WheelsDriven:
         if (!mvControlling->CabNo)
             mvControlling->CabActivisation();
         if (sin(mvControlling->eAngle) < 0)
@@ -2906,7 +2906,7 @@ bool TController::DecSpeed(bool force)
         else
             mvControlling->DecMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
         break;
-    case DieselEngine:
+    case TEngineType::DieselEngine:
         if ((mvControlling->Vel > mvControlling->dizel_minVelfullengage))
         {
             if (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0)
@@ -2928,7 +2928,7 @@ void TController::SpeedSet()
     // ma dokręcać do bezoporowych i zdejmować pozycje w przypadku przekroczenia prądu
     switch (mvOccupied->EngineType)
     {
-    case None: // McZapkie-041003: wagon sterowniczy
+    case TEngineType::None: // McZapkie-041003: wagon sterowniczy
         if (mvControlling->MainCtrlPosNo > 0)
         { // jeśli ma czym kręcić
             // TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
@@ -2993,7 +2993,7 @@ void TController::SpeedSet()
             }
         }
         break;
-    case ElectricSeriesMotor:
+    case TEngineType::ElectricSeriesMotor:
         if( ( false == mvControlling->StLinFlag )
          && ( false == mvControlling->DelayCtrlFlag ) ) {
             // styczniki liniowe rozłączone    yBARC
@@ -3063,15 +3063,15 @@ void TController::SpeedSet()
                 //    bezoporowej
             }
         break;
-    case Dumb:
-    case DieselElectric:
-    case ElectricInductionMotor:
+    case TEngineType::Dumb:
+    case TEngineType::DieselElectric:
+    case TEngineType::ElectricInductionMotor:
         break;
     // WheelsDriven :
     // begin
     //  OK:=False;
     // end;
-    case DieselEngine:
+    case TEngineType::DieselEngine:
         // Ra 2014-06: "automatyczna" skrzynia biegów...
         if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) // gdy biegi ręczne
             if ((mvControlling->ShuntMode ? mvControlling->AnPos : 1.0) * mvControlling->Vel >
@@ -3128,7 +3128,7 @@ void TController::Doors( bool const Open, int const Side ) {
             // wagony muszą mieć baterię załączoną do otwarcia drzwi...
             vehicle->MoverParameters->BatterySwitch( true );
             // otwieranie drzwi w pojazdach - flaga zezwolenia była by lepsza
-            if( vehicle->MoverParameters->DoorOpenCtrl != control::passenger ) {
+            if( vehicle->MoverParameters->DoorOpenCtrl != control_t::passenger ) {
                 // if the door are controlled by the driver, we let the user operate them...
                 if( true == AIControllFlag ) {
                     // ...unless this user is an ai
@@ -3137,9 +3137,9 @@ void TController::Doors( bool const Open, int const Side ) {
                     auto const lewe = ( vehicle->DirectionGet() > 0 ) ? 1 : 2;
                     auto const prawe = 3 - lewe;
                     if( Side & lewe )
-                        vehicle->MoverParameters->DoorLeft( true, range::local );
+                        vehicle->MoverParameters->DoorLeft( true, range_t::local );
                     if( Side & prawe )
-                        vehicle->MoverParameters->DoorRight( true, range::local );
+                        vehicle->MoverParameters->DoorRight( true, range_t::local );
                 }
             }
             // pojazd podłączony z tyłu (patrząc od czoła)
@@ -3169,9 +3169,9 @@ void TController::Doors( bool const Open, int const Side ) {
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
             while( vehicle != nullptr ) {
                 // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                if( vehicle->MoverParameters->DoorCloseCtrl != control::autonomous ) {
-                    vehicle->MoverParameters->DoorLeft( false, range::local ); // w lokomotywie można by nie zamykać...
-                    vehicle->MoverParameters->DoorRight( false, range::local );
+                if( vehicle->MoverParameters->DoorCloseCtrl != control_t::autonomous ) {
+                    vehicle->MoverParameters->DoorLeft( false, range_t::local ); // w lokomotywie można by nie zamykać...
+                    vehicle->MoverParameters->DoorRight( false, range_t::local );
                 }
                 vehicle = vehicle->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
             }
@@ -3625,8 +3625,8 @@ void TController::PhysicsLog()
             << mvControlling->Im << " "
             << int(mvControlling->MainCtrlPos) << " "
             << int(mvControlling->ScndCtrlPos) << " "
-            << int(mvOccupied->BrakeCtrlPos) << " "
-            << int(mvOccupied->LocalBrakePos) << " "
+            << mvOccupied->fBrakeCtrlPos << " "
+            << mvOccupied->LocalBrakePosA << " "
             << int(mvControlling->ActiveDir) << " "
             << ( mvOccupied->CommandIn.Command.empty() ? "none" : mvOccupied->CommandIn.Command.c_str() ) << " "
             << mvOccupied->CommandIn.Value1 << " "
@@ -3752,14 +3752,14 @@ TController::UpdateSituation(double dt) {
 
         auto const *vehicle { p->MoverParameters };
 
-        if( ( vehicle->EngineType == DieselEngine )
-         || ( vehicle->EngineType == DieselElectric ) ) {
+        if( ( vehicle->EngineType == TEngineType::DieselEngine )
+         || ( vehicle->EngineType == TEngineType::DieselElectric ) ) {
 
             Ready = (
                 ( vehicle->Vel > 0.5 ) // already moving
              || ( false == vehicle->Mains ) // deadweight vehicle
              || ( vehicle->enrot > 0.8 * (
-                    vehicle->EngineType == DieselEngine ?
+                    vehicle->EngineType == TEngineType::DieselEngine ?
                         vehicle->dizel_nmin :
                         vehicle->DElist[ 0 ].RPM / 60.0 ) ) );
         }
@@ -3770,7 +3770,7 @@ TController::UpdateSituation(double dt) {
     // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->DoorCloseCtrl != control::driver )
+     && ( mvOccupied->DoorCloseCtrl != control_t::driver )
      && ( mvControlling->MainCtrlPos > 0 ) ) {
         Doors( false );
     }
@@ -3790,7 +3790,7 @@ TController::UpdateSituation(double dt) {
             }
         }
 
-        if (mvControlling->EnginePowerSource.SourceType == CurrentCollector) {
+        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) {
 
             if( mvOccupied->ScndPipePress > 4.3 ) {
                 // gdy główna sprężarka bezpiecznie nabije ciśnienie to można przestawić kurek na zasilanie pantografów z głównej pneumatyki
@@ -3827,7 +3827,7 @@ TController::UpdateSituation(double dt) {
 */
         }
 
-        if (mvControlling->EnginePowerSource.SourceType == CurrentCollector) {
+        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) {
 
             if( mvOccupied->Vel > 0.05 ) {
                 // is moving
@@ -3873,7 +3873,7 @@ TController::UpdateSituation(double dt) {
                     // if the power station is heavily burdened try to reduce the load
                     switch( mvControlling->EngineType ) {
 
-                        case ElectricSeriesMotor: {
+                        case TEngineType::ElectricSeriesMotor: {
                             if( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) {
                                 // limit yourself to series mode
                                 if( mvControlling->ScndCtrlPos ) {
@@ -4168,7 +4168,7 @@ TController::UpdateSituation(double dt) {
                     // 3. faza odczepiania.
                     SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
                     if ((mvControlling->MainCtrlPos > 0) ||
-                        (mvOccupied->BrakeSystem == ElectroPneumatic)) // jeśli jazda
+                        (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)) // jeśli jazda
                     {
                         WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
                         TDynamicObject *p =
@@ -4223,7 +4223,7 @@ TController::UpdateSituation(double dt) {
                     // powino zostać wyłączone)
                     // WriteLog("Zahamowanie składu");
                     mvOccupied->BrakeLevelSet(
-                        mvOccupied->BrakeSystem == ElectroPneumatic ?
+                        mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
                             1 :
                             3 );
                     double p = mvOccupied->BrakePressureActual.PipePressureVal;
@@ -4232,18 +4232,18 @@ TController::UpdateSituation(double dt) {
                         // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
                         p = 3.9;
                     }
-                    if (mvOccupied->BrakeSystem == ElectroPneumatic ?
+                    if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
                             mvOccupied->BrakePress > 2 :
                             mvOccupied->PipePress < p + 0.1)
                     { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na
                         // pozycji 3, zwyle 0.37)
-                        if (mvOccupied->BrakeSystem == ElectroPneumatic)
+                        if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)
                             mvOccupied->BrakeLevelSet(0); // wyłączenie EP, gdy wystarczy (może
                         // nie być potrzebne, bo na początku
                         // jest)
                         WriteLog("Luzowanie lokomotywy i zmiana kierunku");
                         mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
-                        mvOccupied->DecLocalBrakeLevel(10); // zwolnienie hamulca
+                        mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
                         iDrivigFlags |= movePress; // następnie będzie dociskanie
                         DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
                         CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
@@ -4512,7 +4512,7 @@ TController::UpdateSituation(double dt) {
 
             switch (comm)
             { // ustawienie VelSignal - trochę proteza = do przemyślenia
-            case cm_Ready: // W4 zezwolił na jazdę
+            case TCommandType::cm_Ready: // W4 zezwolił na jazdę
                 // ewentualne doskanowanie trasy za W4, który zezwolił na jazdę
                 TableCheck( routescanrange);
                 TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired); // aktualizacja po skanowaniu
@@ -4520,21 +4520,21 @@ TController::UpdateSituation(double dt) {
                     break; // ale jak coś z przodu zamyka, to ma stać
                 if (iDrivigFlags & moveStopCloser)
                     VelSignal = -1.0; // ma czekać na sygnał z sygnalizatora!
-            case cm_SetVelocity: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
+            case TCommandType::cm_SetVelocity: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     if (fabs(VelSignal) >=
                         1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
                         PutCommand("SetVelocity", VelSignal, VelNext, nullptr); // komenda robi dodatkowe operacje
                 break;
-            case cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
+            case TCommandType::cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
                 if (!(OrderList[OrderPos] &
                         ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
                     PutCommand("ShuntVelocity", VelSignal, VelNext, nullptr);
                 else if (iCoupler) // jeśli jedzie w celu połączenia
                     SetVelocity(VelSignal, VelNext);
                 break;
-            case cm_Command: // komenda z komórki
+            case TCommandType::cm_Command: // komenda z komórki
                 if( !( OrderList[ OrderPos ] & ~( Obey_train | Shunt ) ) ) {
                     // jedzie w dowolnym trybie albo Wait_for_orders
                     if( mvOccupied->Vel < 0.1 ) {
@@ -4557,12 +4557,12 @@ TController::UpdateSituation(double dt) {
                     if( ( OrderList[ OrderPos ] & Connect ) ?
                             ( pVehicles[ 0 ]->fTrackBlock > 2000 || pVehicles[ 0 ]->fTrackBlock > FirstSemaphorDist ) :
                             true ) {
-                        if( ( comm = BackwardScan() ) != cm_Unknown ) {
+                        if( ( comm = BackwardScan() ) != TCommandType::cm_Unknown ) {
                             // jeśli w drugą można jechać
                             // należy sprawdzać odległość od znalezionego sygnalizatora,
                             // aby w przypadku prędkości 0.1 wyciągnąć najpierw skład za sygnalizator
                             // i dopiero wtedy zmienić kierunek jazdy, oczekując podania prędkości >0.5
-                            if( comm == cm_Command ) {
+                            if( comm == TCommandType::cm_Command ) {
                                 // jeśli komenda Shunt to ją odbierz bez przemieszczania się (np. odczep wagony po dopchnięciu do końca toru)
                                 iDrivigFlags |= moveStopHere;
                             }
@@ -5044,9 +5044,9 @@ TController::UpdateSituation(double dt) {
                     PrepareEngine(); // próba ponownego załączenia
                 }
                 // włączanie bezpiecznika
-                if ((mvControlling->EngineType == ElectricSeriesMotor) ||
+                if ((mvControlling->EngineType == TEngineType::ElectricSeriesMotor) ||
                     (mvControlling->TrainType & dt_EZT) ||
-                    (mvControlling->EngineType == DieselElectric))
+                    (mvControlling->EngineType == TEngineType::DieselElectric))
                     if (mvControlling->FuseFlag || Need_TryAgain)
                     {
                         Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
@@ -5079,8 +5079,8 @@ TController::UpdateSituation(double dt) {
                         ReactionTime = 0.25;
                     }
                 }
-                if (mvOccupied->BrakeSystem == Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == FV4a)
+                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
+                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
                     {
                         if( mvOccupied->BrakeCtrlPos == -2 ) {
                             mvOccupied->BrakeLevelSet( 0 );
@@ -5282,7 +5282,7 @@ TController::UpdateSituation(double dt) {
                         if( ( VelDesired == 0.0 )
                          && ( vel > VelDesired )
                          && ( ActualProximityDist <= fMinProximityDist )
-                         && ( mvOccupied->LocalBrakePos == 0 ) ) {
+                         && ( mvOccupied->LocalBrakePosA < 0.01 ) ) {
                             IncBrake();
                         }
                     }
@@ -5335,8 +5335,8 @@ TController::UpdateHeating() {
 
     switch( mvControlling->EngineType ) {
 
-        case DieselElectric:
-        case DieselEngine: {
+        case TEngineType::DieselElectric:
+        case TEngineType::DieselEngine: {
 
             auto const &heat { mvControlling->dizel_heat };
 
@@ -5368,7 +5368,7 @@ TController::UpdateHeating() {
                 mvControlling->WaterHeaterSwitch( false );
                 mvControlling->WaterHeaterBreakerSwitch( false );
                 // optionally turn off the water pump as well
-                if( mvControlling->WaterPump.start_type != start::battery ) {
+                if( mvControlling->WaterPump.start_type != start_t::battery ) {
                     mvControlling->WaterPumpSwitch( false );
                     mvControlling->WaterPumpBreakerSwitch( false );
                 }
@@ -5738,13 +5738,13 @@ TCommandType TController::BackwardScan()
     // zwraca true, jeśli należy odwrócić kierunek jazdy pojazdu
     if( ( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
         // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na rozkazy
-        return cm_Unknown;
+        return TCommandType::cm_Unknown;
     }
     // kierunek jazdy względem sprzęgów pojazdu na czele
     int const startdir = -pVehicles[0]->DirectionGet();
     if( startdir == 0 ) {
         // jeśli kabina i kierunek nie jest określony nie robimy nic
-        return cm_Unknown;
+        return TCommandType::cm_Unknown;
     }
     // szukamy od pierwszej osi w wybranym kierunku
     double scandir = startdir * pVehicles[0]->RaDirectionGet();
@@ -5759,7 +5759,7 @@ TCommandType TController::BackwardScan()
         auto const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
         if( !scantrack ) {
             // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
-            return cm_Unknown;
+            return TCommandType::cm_Unknown;
         }
         else {
             // a jeśli są dalej tory
@@ -5789,7 +5789,7 @@ TCommandType TController::BackwardScan()
 #if LOGBACKSCAN
                         WriteLog(edir + " - ignored as not passed yet");
 #endif
-                        return cm_Unknown; // nic
+                        return TCommandType::cm_Unknown; // nic
                     }
                     vmechmax = e->ValueGet(1); // prędkość przy tym semaforze
                     // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
@@ -5799,7 +5799,7 @@ TCommandType TController::BackwardScan()
                         scandist = 0;
                     }
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if( e->Command() == cm_SetVelocity ) {
+                    if( e->Command() == TCommandType::cm_SetVelocity ) {
                         if( ( vmechmax == 0.0 ) ?
                                 ( OrderCurrentGet() & ( Shunt | Connect ) ) :
                                 ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
@@ -5818,8 +5818,8 @@ TCommandType TController::BackwardScan()
                                 // SetProximityVelocity(scandist,vmechmax,&sl);
                                 return (
                                     vmechmax > 0 ?
-                                        cm_SetVelocity :
-                                        cm_Unknown );
+                                        TCommandType::cm_SetVelocity :
+                                        TCommandType::cm_Unknown );
                             }
                             else {
                                 // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
@@ -5835,15 +5835,15 @@ TCommandType TController::BackwardScan()
 #endif
                                 return (
                                     vmechmax > 0 ?
-                                        cm_SetVelocity :
-                                        cm_Unknown );
+                                        TCommandType::cm_SetVelocity :
+                                        TCommandType::cm_Unknown );
                             }
                         }
                     }
                     if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
-                        if (move ? true : e->Command() == cm_ShuntVelocity)
+                        if (move ? true : e->Command() == TCommandType::cm_ShuntVelocity)
                         { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
                             if ((scandist > fMinProximityDist) ?
                                     (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) :
@@ -5861,8 +5861,8 @@ TCommandType TController::BackwardScan()
 #endif
                                     // SetProximityVelocity(scandist,vmechmax,&sl);
                                     return (iDrivigFlags & moveTrackEnd) ?
-                                               cm_ChangeDirection :
-                                               cm_Unknown; // jeśli jedzie na W5 albo koniec toru,
+                                               TCommandType::cm_ChangeDirection :
+                                               TCommandType::cm_Unknown; // jeśli jedzie na W5 albo koniec toru,
                                     // to można zmienić kierunek
                                 }
                             }
@@ -5880,8 +5880,8 @@ TCommandType TController::BackwardScan()
 #endif
                                     return (
                                         vmechmax > 0 ?
-                                            cm_ShuntVelocity :
-                                            cm_Unknown );
+                                            TCommandType::cm_ShuntVelocity :
+                                            TCommandType::cm_Unknown );
                                 }
                             }
                             if ((vmechmax != 0.0) && (scandist < 100.0)) {
@@ -5892,19 +5892,19 @@ TCommandType TController::BackwardScan()
 #endif
                                 return (
                                     vmechmax > 0 ?
-                                        cm_ShuntVelocity :
-                                        cm_Unknown );
+                                        TCommandType::cm_ShuntVelocity :
+                                        TCommandType::cm_Unknown );
                             }
                         } // if (move?...
                     } // if (OrderCurrentGet()==Shunt)
                     if (!e->bEnabled) // jeśli skanowany
                         if (e->StopCommand()) // a podłączona komórka ma komendę
-                            return cm_Command; // to też się obrócić
+                            return TCommandType::cm_Command; // to też się obrócić
                 } // if (e->Type==tp_GetValues)
             } // if (e)
         } // if (scantrack)
     } // if (scandir!=0.0)
-    return cm_Unknown; // nic
+    return TCommandType::cm_Unknown; // nic
 };
 
 std::string TController::NextStop()

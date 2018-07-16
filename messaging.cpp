@@ -200,7 +200,7 @@ WyslijObsadzone()
             r.fPar[ 16 * i + 4 ] = vehicle->GetPosition().x;
             r.fPar[ 16 * i + 5 ] = vehicle->GetPosition().y;
             r.fPar[ 16 * i + 6 ] = vehicle->GetPosition().z;
-            r.iPar[ 16 * i + 7 ] = vehicle->Mechanik->GetAction();
+            r.iPar[ 16 * i + 7 ] = static_cast<int>( vehicle->Mechanik->GetAction() );
             strcpy( r.cString + 64 * i + 32, vehicle->GetTrack()->IsolatedName().c_str() );
             strcpy( r.cString + 64 * i + 48, vehicle->Mechanik->TrainName().c_str() );
             i++;

@@ -51,7 +51,7 @@ struct stream_units {
     std::vector<GLint> texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
 };
 
-typedef std::vector<basic_vertex> vertex_array;
+using vertex_array = std::vector<basic_vertex>;
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
@@ -130,7 +130,7 @@ protected:
         }
     };
 
-    typedef std::vector<geometry_chunk> geometrychunk_sequence;
+    using geometrychunk_sequence = std::vector<geometry_chunk>;
 
 // methods
     inline
@@ -182,21 +182,21 @@ private:
         bool is_good{ false }; // true if local content of the chunk matches the data on the opengl end
     };
 
-    typedef std::vector<chunk_record> chunkrecord_sequence;
+    using chunkrecord_sequence = std::vector<chunk_record>;
 
 // methods:
     // create() subclass details
     void
-        create_( gfx::geometry_handle const &Geometry );
+        create_( gfx::geometry_handle const &Geometry ) override;
     // replace() subclass details
     void
-        replace_( gfx::geometry_handle const &Geometry );
+        replace_( gfx::geometry_handle const &Geometry ) override;
     // draw() subclass details
     void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) override;
     // release() subclass details
     void
-        release_();
+        release_() override;
     void
         bind_buffer();
     void
@@ -237,21 +237,21 @@ private:
         unsigned int streams { 0 }; // stream combination used to generate the display list
     };
 
-    typedef std::vector<chunk_record> chunkrecord_sequence;
+    using chunkrecord_sequence = std::vector<chunk_record>;
 
 // methods:
     // create() subclass details
     void
-        create_( gfx::geometry_handle const &Geometry );
+        create_( gfx::geometry_handle const &Geometry ) override;
     // replace() subclass details
     void
-        replace_( gfx::geometry_handle const &Geometry );
+        replace_( gfx::geometry_handle const &Geometry ) override;
     // draw() subclass details
     void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams );
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) override;
     // release () subclass details
     void
-        release_();
+        release_() override;
     void
         delete_list( gfx::geometry_handle const &Geometry );
 
@@ -262,7 +262,7 @@ private:
 
 // geometry bank manager, holds collection of geometry banks
 
-typedef geometry_handle geometrybank_handle;
+using geometrybank_handle = geometry_handle;
 
 class geometrybank_manager {
 
@@ -302,11 +302,8 @@ public:
 
 private:
 // types:
-    typedef std::pair<
-        std::shared_ptr<geometry_bank>,
-        resource_timestamp > geometrybanktimepoint_pair;
-
-    typedef std::deque< geometrybanktimepoint_pair > geometrybanktimepointpair_sequence;
+    using geometrybanktimepoint_pair = std::pair< std::shared_ptr<geometry_bank>, resource_timestamp >;
+    using geometrybanktimepointpair_sequence = std::deque< geometrybanktimepoint_pair >;
 
     // members:
     geometrybanktimepointpair_sequence m_geometrybanks;

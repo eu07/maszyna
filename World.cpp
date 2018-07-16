@@ -128,7 +128,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
             Controlled = NULL;
             mvControlled = NULL;
             SafeDelete( Train );
-            Camera.Type = tp_Free;
+            Camera.Type = TCameraType::tp_Free;
         }
     }
     else
@@ -141,7 +141,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         glfwSwapBuffers( window );
         Controlled = NULL;
         mvControlled = NULL;
-        Camera.Type = tp_Free;
+        Camera.Type = TCameraType::tp_Free;
         DebugCamera = Camera;
         Global.DebugCameraPosition = DebugCamera.Pos;
     }
@@ -699,7 +699,7 @@ bool TWorld::Update() {
 
         // fixed step part of the camera update
         if( ( Train != nullptr )
-         && ( Camera.Type == tp_Follow )
+         && ( Camera.Type == TCameraType::tp_Follow )
          && ( false == DebugCameraFlag ) ) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( m_secondaryupdaterate );
@@ -825,7 +825,7 @@ TWorld::Update_Camera( double const Deltatime ) {
     Global.CabWindowOpen = false;
 
     if( ( Train != nullptr )
-     && ( Camera.Type == tp_Follow )
+     && ( Camera.Type == TCameraType::tp_Follow )
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         auto tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
