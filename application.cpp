@@ -250,6 +250,7 @@ eu07_application::run()
         && ( true == GfxRenderer.Render() ) ) {
         glfwPollEvents();
         input::Keyboard.poll();
+		simulation::Commands.update();
 		if (input::motiontelemetry)
 			input::motiontelemetry->update();
 		if (screenshot_queued)

@@ -886,10 +886,10 @@ void TTrain::OnCommand_secondcontrollerset( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_REPEAT ) {
 
         if( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
-            Train->mvOccupied->IncLocalBrakeLevel( 1 );
+            Train->mvOccupied->IncLocalBrakeLevel( Global.brake_speed * Command.time_delta * LocalBrakePosNo );
         }
     }
 }
@@ -906,13 +906,13 @@ void TTrain::OnCommand_independentbrakeincreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_independentbrakedecrease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_REPEAT ) {
 
         if( ( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake )
             // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
             // TODO: sort AI out so it doesn't do things it doesn't have equipment for
          || ( Train->mvOccupied->LocalBrakePosA > 0 ) ) {
-            Train->mvOccupied->DecLocalBrakeLevel( 1 );
+            Train->mvOccupied->DecLocalBrakeLevel( Global.brake_speed * Command.time_delta * LocalBrakePosNo );
         }
     }
 }

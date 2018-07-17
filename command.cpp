@@ -33,9 +33,9 @@ commanddescription_sequence Commands_descriptions = {
     { "secondcontrollerdecreasefast", command_target::vehicle, command_mode::oneoff },
     { "secondcontrollerset", command_target::vehicle, command_mode::oneoff },
     { "mucurrentindicatorothersourceactivate", command_target::vehicle, command_mode::oneoff },
-    { "independentbrakeincrease", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakeincrease", command_target::vehicle, command_mode::continuous },
     { "independentbrakeincreasefast", command_target::vehicle, command_mode::oneoff },
-    { "independentbrakedecrease", command_target::vehicle, command_mode::oneoff },
+    { "independentbrakedecrease", command_target::vehicle, command_mode::continuous },
     { "independentbrakedecreasefast", command_target::vehicle, command_mode::oneoff },
     { "independentbrakeset", command_target::vehicle, command_mode::oneoff },
     { "independentbrakebailoff", command_target::vehicle, command_mode::oneoff },
@@ -234,6 +234,8 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 			m_active_continuous.emplace(Command.command);
 		else if (Command.action == GLFW_RELEASE)
 			m_active_continuous.erase(Command.command);
+		else if (Command.action == GLFW_REPEAT)
+			return;
 	}
 
     auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
