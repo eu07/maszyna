@@ -158,7 +158,7 @@ struct material_data {
 
 class TDynamicObject { // klasa pojazdu
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
     static bool bDynamicRemove; // moved from ground

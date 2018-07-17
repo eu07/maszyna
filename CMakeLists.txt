@@ -81,6 +81,10 @@ set(SOURCES
 "light.cpp"
 "uitranscripts.cpp"
 "station.cpp"
+"application.cpp"
+"simulationtime.cpp"
+"sceneeditor.cpp"
+"screenshot.cpp"
 )
 
 set (PREFIX "")

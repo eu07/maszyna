@@ -263,7 +263,7 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
 }
 
 void
-command_relay::post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2,
+command_relay::post( user_command const Command, double const Param1, double const Param2,
                      int const Action, std::uint16_t const Recipient) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];

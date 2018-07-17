@@ -47,7 +47,7 @@ class TEvent;
 
 class TAnimContainer
 { // opakowanie submodelu, określające animację egzemplarza - obsługiwane jako lista
-    friend class TAnimModel;
+    friend TAnimModel;
 
   private:
     Math3D::vector3 vRotateAngles; // dla obrotów Eulera
@@ -124,8 +124,8 @@ class TAnimAdvanced
 // opakowanie modelu, określające stan egzemplarza
 class TAnimModel : public scene::basic_node {
 
-    friend class opengl_renderer;
-    friend class ui_layer;
+    friend opengl_renderer;
+    friend ui_layer;
 
 public:
 // constructors
@@ -138,11 +138,8 @@ public:
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
-    void RaAnglesSet( glm::vec3 Angles ) {
-        vAngle = { Angles }; };
     void LightSet( int const n, float const v );
     void AnimationVND( void *pData, double a, double b, double c, double d );
-    bool TerrainLoaded();
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
     int Flags();
@@ -154,6 +151,14 @@ public:
     TModel3d *
         Model() const {
             return pModel; }
+    inline
+    void
+        Angles( glm::vec3 const &Angles ) {
+            vAngle = Angles; }
+    inline
+    glm::vec3
+        Angles() const {
+            return vAngle; }
 // members
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
 
@@ -178,7 +183,7 @@ private:
     int iNumLights { 0 };
     TSubModel *LightsOn[ iMaxNumLights ]; // Ra: te wskaźniki powinny być w ramach TModel3d
     TSubModel *LightsOff[ iMaxNumLights ];
-    Math3D::vector3 vAngle; // bazowe obroty egzemplarza względem osi
+    glm::vec3 vAngle; // bazowe obroty egzemplarza względem osi
     material_data m_materialdata;
 
     std::string asText; // tekst dla wyświetlacza znakowego

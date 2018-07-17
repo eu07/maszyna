@@ -20,6 +20,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"
+#include "simulationtime.h"
 #include "mtable.h"
 #include "sn_utils.h"
 #include "World.h"
@@ -110,22 +111,6 @@ int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const 
 float emm1[] = { 1, 1, 1, 0 };
 float emm2[] = { 0, 0, 0, 1 };
 
-inline double readIntAsDouble(cParser &parser, int base = 255)
-{
-	int value = parser.getToken<int>(false);
-	return (static_cast<double>(value) / base);
-};
-
-template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
-{
-    double discard;
-    parser.getTokens(4, false);
-    parser >> discard >> color[0] >> color[1] >> color[2];
-    color[ 0 ] /= 255.0;
-    color[ 1 ] /= 255.0;
-    color[ 2 ] /= 255.0;
-};
-
 inline void readColor(cParser &parser, glm::vec4 &color)
 {
 	int discard;
@@ -195,41 +180,41 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         {
             iFlags |= 0x4000; // jak animacja, to trzeba przechowywać macierz zawsze
             if (type == "seconds_jump")
-                b_Anim = b_aAnim = at_SecondsJump; // sekundy z przeskokiem
+                b_Anim = b_aAnim = TAnimType::at_SecondsJump; // sekundy z przeskokiem
             else if (type == "minutes_jump")
-                b_Anim = b_aAnim = at_MinutesJump; // minuty z przeskokiem
+                b_Anim = b_aAnim = TAnimType::at_MinutesJump; // minuty z przeskokiem
             else if (type == "hours_jump")
-                b_Anim = b_aAnim = at_HoursJump; // godziny z przeskokiem
+                b_Anim = b_aAnim = TAnimType::at_HoursJump; // godziny z przeskokiem
             else if (type == "hours24_jump")
-                b_Anim = b_aAnim = at_Hours24Jump; // godziny z przeskokiem
+                b_Anim = b_aAnim = TAnimType::at_Hours24Jump; // godziny z przeskokiem
             else if (type == "seconds")
-                b_Anim = b_aAnim = at_Seconds; // minuty płynnie
+                b_Anim = b_aAnim = TAnimType::at_Seconds; // minuty płynnie
             else if (type == "minutes")
-                b_Anim = b_aAnim = at_Minutes; // minuty płynnie
+                b_Anim = b_aAnim = TAnimType::at_Minutes; // minuty płynnie
             else if (type == "hours")
-                b_Anim = b_aAnim = at_Hours; // godziny płynnie
+                b_Anim = b_aAnim = TAnimType::at_Hours; // godziny płynnie
             else if (type == "hours24")
-                b_Anim = b_aAnim = at_Hours24; // godziny płynnie
+                b_Anim = b_aAnim = TAnimType::at_Hours24; // godziny płynnie
             else if (type == "billboard")
-                b_Anim = b_aAnim = at_Billboard; // obrót w pionie do kamery
+                b_Anim = b_aAnim = TAnimType::at_Billboard; // obrót w pionie do kamery
             else if (type == "wind")
-                b_Anim = b_aAnim = at_Wind; // ruch pod wpływem wiatru
+                b_Anim = b_aAnim = TAnimType::at_Wind; // ruch pod wpływem wiatru
             else if (type == "sky")
-                b_Anim = b_aAnim = at_Sky; // aniamacja nieba
+                b_Anim = b_aAnim = TAnimType::at_Sky; // aniamacja nieba
             else if (type == "ik")
-                b_Anim = b_aAnim = at_IK; // IK: zadający
+                b_Anim = b_aAnim = TAnimType::at_IK; // IK: zadający
             else if (type == "ik11")
-                b_Anim = b_aAnim = at_IK11; // IK: kierunkowany
+                b_Anim = b_aAnim = TAnimType::at_IK11; // IK: kierunkowany
             else if (type == "ik21")
-                b_Anim = b_aAnim = at_IK21; // IK: kierunkowany
+                b_Anim = b_aAnim = TAnimType::at_IK21; // IK: kierunkowany
             else if (type == "ik22")
-                b_Anim = b_aAnim = at_IK22; // IK: kierunkowany
+                b_Anim = b_aAnim = TAnimType::at_IK22; // IK: kierunkowany
             else if (type == "digital")
-                b_Anim = b_aAnim = at_Digital; // licznik mechaniczny
+                b_Anim = b_aAnim = TAnimType::at_Digital; // licznik mechaniczny
             else if (type == "digiclk")
-                b_Anim = b_aAnim = at_DigiClk; // zegar cyfrowy
+                b_Anim = b_aAnim = TAnimType::at_DigiClk; // zegar cyfrowy
             else
-                b_Anim = b_aAnim = at_Undefined; // nieznana forma animacji
+                b_Anim = b_aAnim = TAnimType::at_Undefined; // nieznana forma animacji
         }
     }
     if (eType < TP_ROTATOR)
@@ -284,19 +269,16 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     else if (eType < TP_ROTATOR)
     {
         std::string discard;
-        parser.getTokens(5, false);
+        parser.getTokens(6, false);
         parser
             >> discard >> bWire
             >> discard >> fWireSize
-            >> discard;
+            >> discard >> Opacity;
         // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
-        Opacity = readIntAsDouble(parser, 100.0f); 
-        if (Opacity > 1.0f)
-            Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
-/*
-        if ((Global.iConvertModels & 1) == 0) // dla zgodności wstecz
-            Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
-*/
+        if( Opacity > 1.f ) {
+            Opacity = std::min( 1.f, Opacity * 0.01f );
+        }
+
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
         std::string material = parser.getToken<std::string>();
@@ -797,8 +779,8 @@ void TSubModel::SetRotate(float3 vNewRotateAxis, float fNewAngle)
 	f_Angle = fNewAngle;
 	if (fNewAngle != 0.0)
 	{
-		b_Anim = at_Rotate;
-		b_aAnim = at_Rotate;
+		b_Anim = TAnimType::at_Rotate;
+		b_aAnim = TAnimType::at_Rotate;
 	}
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
@@ -808,8 +790,8 @@ void TSubModel::SetRotateXYZ(float3 vNewAngles)
   // podane kąty wokół osi
   // lokalnego układu
 	v_Angles = vNewAngles;
-	b_Anim = at_RotateXYZ;
-	b_aAnim = at_RotateXYZ;
+	b_Anim = TAnimType::at_RotateXYZ;
+	b_aAnim = TAnimType::at_RotateXYZ;
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
@@ -820,16 +802,16 @@ void TSubModel::SetRotateXYZ( Math3D::vector3 vNewAngles)
 	v_Angles.x = vNewAngles.x;
 	v_Angles.y = vNewAngles.y;
 	v_Angles.z = vNewAngles.z;
-	b_Anim = at_RotateXYZ;
-	b_aAnim = at_RotateXYZ;
+	b_Anim = TAnimType::at_RotateXYZ;
+	b_aAnim = TAnimType::at_RotateXYZ;
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
 void TSubModel::SetTranslate(float3 vNewTransVector)
 { // przesunięcie submodelu (np. w kabinie)
 	v_TransVector = vNewTransVector;
-	b_Anim = at_Translate;
-	b_aAnim = at_Translate;
+	b_Anim = TAnimType::at_Translate;
+	b_aAnim = TAnimType::at_Translate;
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
@@ -838,8 +820,8 @@ void TSubModel::SetTranslate( Math3D::vector3 vNewTransVector)
 	v_TransVector.x = vNewTransVector.x;
 	v_TransVector.y = vNewTransVector.y;
 	v_TransVector.z = vNewTransVector.z;
-	b_Anim = at_Translate;
-	b_aAnim = at_Translate;
+	b_Anim = TAnimType::at_Translate;
+	b_aAnim = TAnimType::at_Translate;
 	iAnimOwner = iInstance; // zapamiętanie czyja jest animacja
 }
 
@@ -902,17 +884,17 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 { // wykonanie animacji niezależnie od renderowania
 	switch (a)
 	{ // korekcja położenia, jeśli submodel jest animowany
-	case at_Translate: // Ra: było "true"
+    case TAnimType::at_Translate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
 		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
 		break;
-	case at_Rotate: // Ra: było "true"
+	case TAnimType::at_Rotate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
 		m = glm::rotate(m, glm::radians(f_Angle), glm::vec3(v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z));
 		break;
-	case at_RotateXYZ:
+	case TAnimType::at_RotateXYZ:
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
 		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
@@ -920,33 +902,33 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		m = glm::rotate(m, glm::radians(v_Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
-	case at_SecondsJump: // sekundy z przeskokiem
+	case TAnimType::at_SecondsJump: // sekundy z przeskokiem
 		m = glm::rotate(m, glm::radians(simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_MinutesJump: // minuty z przeskokiem
+	case TAnimType::at_MinutesJump: // minuty z przeskokiem
 		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_HoursJump: // godziny skokowo 12h/360°
+	case TAnimType::at_HoursJump: // godziny skokowo 12h/360°
 		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Hours24Jump: // godziny skokowo 24h/360°
+	case TAnimType::at_Hours24Jump: // godziny skokowo 24h/360°
 		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Seconds: // sekundy płynnie
+	case TAnimType::at_Seconds: // sekundy płynnie
 		m = glm::rotate(m, glm::radians((float)simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Minutes: // minuty płynnie
+	case TAnimType::at_Minutes: // minuty płynnie
 		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f + (float)simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Hours: // godziny płynnie 12h/360°
+	case TAnimType::at_Hours: // godziny płynnie 12h/360°
 				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
 		m = glm::rotate(m, glm::radians(2.0f * (float)Global.fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Hours24: // godziny płynnie 24h/360°
+	case TAnimType::at_Hours24: // godziny płynnie 24h/360°
 					 // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
 		m = glm::rotate(m, glm::radians((float)Global.fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Billboard: // obrót w pionie do kamery
+	case TAnimType::at_Billboard: // obrót w pionie do kamery
 	{
         Math3D::matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
@@ -955,18 +937,18 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
-	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
+	case TAnimType::at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
 		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_Sky: // animacja nieba
+	case TAnimType::at_Sky: // animacja nieba
 		m = glm::rotate(m, glm::radians((float)Global.fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
 		m = glm::rotate(m, glm::radians((float)-fmod(Global.fTimeAngleDeg, 360.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
-	case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
+	case TAnimType::at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
 		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 1.0f, 0.0f)); // obrót względem osi pionowej (azymut)
 		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f)); // obrót względem poziomu (deklinacja)
 		break;
-	case at_DigiClk: // animacja zegara cyfrowego
+	case TAnimType::at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
 		TSubModel *sm = ChildGet();
 		do

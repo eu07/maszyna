@@ -52,6 +52,9 @@ public:
 	// draws requested UI elements
 	void
         render();
+    //
+    void
+        set_cursor( int const Mode );
 	// stores operation progress
 	void
         set_progress( float const Progress = 0.0f, float const Subtaskprogress = 0.0f );
@@ -114,6 +117,7 @@ private:
     int tprev; // poprzedni czas
     double VelPrev; // poprzednia prędkość
     double Acc; // przyspieszenie styczne
+    bool m_cursorvisible { false };
 };
 
 extern ui_layer UILayer;

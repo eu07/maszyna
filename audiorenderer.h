@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "uitranscripts.h"
 
+class opengl_renderer;
 class sound_source;
 
 using uint32_sequence = std::vector<std::uint32_t>;
@@ -100,7 +101,7 @@ private:
 
 class openal_renderer {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // constructors

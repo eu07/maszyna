@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "World.h"
 #include "Globals.h"
+#include "simulationtime.h"
 #include "utilities.h"
 
 double TTrainParameters::CheckTrainLatency()
@@ -48,7 +49,7 @@ bool TTrainParameters::IsStop()
         return true; // na ostatnim się zatrzymać zawsze
 }
 
-bool TTrainParameters::UpdateMTable( simulation_time const &Time, std::string const &NewName ) {
+bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
 
     return UpdateMTable( Time.data().wHour, Time.data().wMinute, NewName );
 }

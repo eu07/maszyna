@@ -294,37 +294,37 @@ void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
             if (token.find('#') != std::string::npos)
 				token.erase(token.find('#')); // obcięcie unikatowości
             win1250_to_ascii( token ); // get rid of non-ascii chars
-            Params[6].asCommand = cm_PassengerStopPoint;
+            Params[6].asCommand = TCommandType::cm_PassengerStopPoint;
             // nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
             bEnabled = false;
         }
         else if (token == "SetVelocity")
         {
             bEnabled = false;
-            Params[6].asCommand = cm_SetVelocity;
+            Params[6].asCommand = TCommandType::cm_SetVelocity;
         }
         else if (token == "RoadVelocity")
         {
             bEnabled = false;
-            Params[6].asCommand = cm_RoadVelocity;
+            Params[6].asCommand = TCommandType::cm_RoadVelocity;
         }
         else if (token == "SectionVelocity")
         {
             bEnabled = false;
-            Params[6].asCommand = cm_SectionVelocity;
+            Params[6].asCommand = TCommandType::cm_SectionVelocity;
         }
         else if (token == "ShuntVelocity")
         {
             bEnabled = false;
-            Params[6].asCommand = cm_ShuntVelocity;
+            Params[6].asCommand = TCommandType::cm_ShuntVelocity;
         }
         else if (token == "OutsideStation")
         {
             bEnabled = false; // ma być skanowny, aby AI nie przekraczało W5
-            Params[6].asCommand = cm_OutsideStation;
+            Params[6].asCommand = TCommandType::cm_OutsideStation;
         }
         else
-            Params[6].asCommand = cm_Unknown;
+            Params[6].asCommand = TCommandType::cm_Unknown;
         Params[0].asText = new char[token.size() + 1];
         strcpy(Params[0].asText, token.c_str());
         parser->getTokens();
@@ -814,7 +814,7 @@ TCommandType TEvent::Command()
     case tp_PutValues:
         return Params[6].asCommand; // komenda zakodowana binarnie
     }
-    return cm_Unknown; // inne eventy się nie liczą
+    return TCommandType::cm_Unknown; // inne eventy się nie liczą
 };
 
 double TEvent::ValueGet(int n)
@@ -891,7 +891,7 @@ event_manager::update() {
     // test list of global events for possible new additions to the queue
     for( auto *launcher : m_launcherqueue ) {
 
-        if( true == launcher->check_conditions() ) {
+        if( true == ( launcher->check_activation() && launcher->check_conditions() ) ) {
             // NOTE: we're presuming global events aren't going to use event2
             WriteLog( "Eventlauncher " + launcher->name() );
             if( launcher->Event1 ) {

@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 
 void
-segment_data::deserialize( cParser &Input, Math3D::vector3 const &Offset ) {
+segment_data::deserialize( cParser &Input, glm::dvec3 const &Offset ) {
 
     points[ segment_data::point::start ] = LoadPoint( Input ) + Offset;
     Input.getTokens();

@@ -3,6 +3,11 @@
 #include "Globals.h"
 #include "mtable.h"
 #include "World.h"
+#include "utilities.h"
+#include "simulationtime.h"
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
 
 cMoon::cMoon() {
 

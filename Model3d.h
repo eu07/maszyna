@@ -21,7 +21,7 @@ const int TP_FREESPOTLIGHT = 257;
 const int TP_STARS = 258;
 const int TP_TEXT = 259;
 
-enum TAnimType // rodzaj animacji
+enum class TAnimType // rodzaj animacji
 {
 	at_None, // brak
 	at_Rotate, // obrót względem wektora o kąt
@@ -38,13 +38,13 @@ enum TAnimType // rodzaj animacji
 	at_Billboard, // obrót w pionie do kamery
 	at_Wind, // ruch pod wpływem wiatru
 	at_Sky, // animacja nieba
-	at_IK = 0x100, // odwrotna kinematyka - submodel sterujący (np. staw skokowy)
-	at_IK11 = 0x101, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. stopa)
-	at_IK21 = 0x102, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. podudzie)
-	at_IK22 = 0x103, // odwrotna kinematyka - submodel nadrzędny do nadrzędnego sterowango (np. udo)
-	at_Digital = 0x200, // dziesięciocyfrowy licznik mechaniczny (z cylindrami)
-	at_DigiClk = 0x201, // zegar cyfrowy jako licznik na dziesięciościanach
-	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
+	at_IK, // odwrotna kinematyka - submodel sterujący (np. staw skokowy)
+	at_IK11, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. stopa)
+	at_IK21, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. podudzie)
+	at_IK22, // odwrotna kinematyka - submodel nadrzędny do nadrzędnego sterowango (np. udo)
+	at_Digital, // dziesięciocyfrowy licznik mechaniczny (z cylindrami)
+	at_DigiClk, // zegar cyfrowy jako licznik na dziesięciościanach
+	at_Undefined // animacja chwilowo nieokreślona
 };
 
 namespace scene {
@@ -55,10 +55,12 @@ class TModel3d;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
-    friend class opengl_renderer;
-    friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
-    friend class TDynamicObject; // temporary etc
-    friend class scene::shape_node; // temporary etc
+    //m7todo: zrobić normalną serializację
+
+    friend opengl_renderer;
+    friend TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
+    friend TDynamicObject; // temporary etc
+    friend scene::shape_node; // temporary etc
 
 public:
     enum normalization {
@@ -73,7 +75,7 @@ private:
     int eType{ TP_ROTATOR }; // Ra: modele binarne dają więcej możliwości niż mesh złożony z trójkątów
     int iName{ -1 }; // numer łańcucha z nazwą submodelu, albo -1 gdy anonimowy
 public: // chwilowo
-    TAnimType b_Anim{ at_None };
+    TAnimType b_Anim{ TAnimType::at_None };
 
 private:
     uint32_t iFlags{ 0x0200 }; // bit 9=1: submodel został utworzony a nie ustawiony na wczytany plik
@@ -136,7 +138,7 @@ public: // chwilowo
     gfx::vertex_array Vertices;
     float m_boundingradius { 0 };
     size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
-    TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
+    TAnimType b_aAnim{ TAnimType::at_None }; // kody animacji oddzielnie, bo zerowane
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
     TSubModel *Parent{ nullptr }; // nadrzędny, np. do wymnażania macierzy
@@ -219,7 +221,7 @@ public:
 
 class TModel3d
 {
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 private:
 	TSubModel *Root; // drzewo submodeli

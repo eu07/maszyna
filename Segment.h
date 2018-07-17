@@ -29,7 +29,7 @@ struct segment_data {
 // constructors
     segment_data() = default;
 // methods
-    void deserialize( cParser &Input, Math3D::vector3 const &Offset );
+    void deserialize( cParser &Input, glm::dvec3 const &Offset );
 };
 
 class TSegment

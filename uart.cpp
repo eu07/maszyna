@@ -95,7 +95,7 @@ uart_input::recall_bindings() {
 
                 auto const bindingtype { typelookup->second };
                 std::array<user_command, 2> bindingcommands { user_command::none, user_command::none };
-                auto const commandcount { ( bindingtype == toggle ? 2 : 1 ) };
+                auto const commandcount { ( bindingtype == input_type_t::toggle ? 2 : 1 ) };
                 for( int commandidx = 0; commandidx < commandcount; ++commandidx ) {
                     // grab command(s) associated with the input pin
                     auto const bindingcommandname { entryparser.getToken<std::string>() };
@@ -166,14 +166,14 @@ void uart_input::poll()
 
             auto const type { std::get<input_type_t>( entry ) };
             auto const action { (
-                type != impulse ?
+                type != input_type_t::impulse ?
                     GLFW_PRESS :
                     ( state ?
                         GLFW_PRESS :
                         GLFW_RELEASE ) ) };
 
             auto const command { (
-                type != toggle ?
+                type != input_type_t::toggle ?
                     std::get<2>( entry ) :
                     ( state ?
                         std::get<2>( entry ) :
@@ -208,7 +208,7 @@ void uart_input::poll()
             double const position { (float)( ( (uint16_t)buffer[ 8 ] | ( (uint16_t)buffer[ 9 ] << 8 ) ) - conf.mainbrakemin ) / ( conf.mainbrakemax - conf.mainbrakemin ) };
             relay.post(
                 user_command::trainbrakeset,
-                reinterpret_cast<std::uint64_t const &>( position ),
+                position,
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
@@ -219,7 +219,7 @@ void uart_input::poll()
             double const position { (float)( ( (uint16_t)buffer[ 10 ] | ( (uint16_t)buffer[ 11 ] << 8 ) ) - conf.localbrakemin ) / ( conf.localbrakemax - conf.localbrakemin ) };
             relay.post(
                 user_command::independentbrakeset,
-                reinterpret_cast<std::uint64_t const &>( position ),
+                position,
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place

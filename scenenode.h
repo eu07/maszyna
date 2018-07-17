@@ -316,6 +316,8 @@ public:
     // sends basic content of the class in legacy (text) format to provided stream
     void
         export_as_text( std::ostream &Output ) const;
+    void
+        export_as_text( std::string &Output ) const;
     std::string const &
         name() const;
     void
@@ -380,11 +382,5 @@ basic_node::visible() const {
 }
 
 } // scene
-
-namespace editor {
-
-extern scene::basic_node const *Node; // temporary helper, currently selected scene node
-
-} // editor
 
 //---------------------------------------------------------------------------

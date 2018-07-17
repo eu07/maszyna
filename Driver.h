@@ -73,7 +73,7 @@ enum TStopReason
     stopError // z powodu błędu w obliczeniu drogi hamowania
 };
 
-enum TAction
+enum class TAction : int
 { // przechowanie aktualnego stanu AI od poprzedniego przebłysku świadomości
     actUnknown, // stan nieznany (domyślny na początku)
     actPantUp, // podnieś pantograf (info dla użytkownika)
@@ -223,7 +223,7 @@ private:
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
-    TAction eAction { actUnknown }; // aktualny stan
+    TAction eAction { TAction::actUnknown }; // aktualny stan
   public:
     inline 
     TAction GetAction() {
