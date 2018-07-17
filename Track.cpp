@@ -563,15 +563,21 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
         else if (iCategoryFlag & 2)
             if (m_material1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
-                float w, h;
-                GfxRenderer.Bind_Material(m_material1);
-                glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
-                glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+                float w = 1.0f, h = 1.0f;
+                opengl_material &mat1 = GfxRenderer.Material(m_material1);
+                if (mat1.textures[0] != null_handle)
+                {
+                    w = GfxRenderer.Texture(mat1.textures[0]).width();
+                    h = GfxRenderer.Texture(mat1.textures[0]).height();
+                }
                 if (h != 0.0)
                     fTexRatio1 = w / h; // proporcja boków
-                GfxRenderer.Bind_Material(m_material2);
-                glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
-                glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+                opengl_material &mat2 = GfxRenderer.Material(m_material2);
+                if (mat2.textures[0] != null_handle)
+                {
+                    w = GfxRenderer.Texture(mat2.textures[0]).width();
+                    h = GfxRenderer.Texture(mat2.textures[0]).height();
+                }
                 if (h != 0.0)
                     fTexRatio2 = w / h; // proporcja boków
             }

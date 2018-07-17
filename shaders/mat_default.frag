@@ -92,16 +92,8 @@ void main()
 {
 	vec4 tex_color = texture(tex1, f_coord);
 
-	if (opacity == 0.0f)
-	{
-		//blending
-	}
-	else
-	{
-		//test
-		if (tex_color.a < 0.5f)
-			discard;
-	}
+	if (tex_color.a < opacity)
+		discard;
 
 	vec3 envcolor = texture(envmap, reflect(f_pos, normalize(f_normal))).rgb;
 

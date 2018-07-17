@@ -157,6 +157,7 @@ class opengl_renderer
 	std::shared_ptr<gl::program> Fetch_Shader(std::string const &name);
 
 	opengl_material const &Material(material_handle const Material) const;
+    opengl_material &Material(material_handle const Material);
 	// texture methods
     texture_handle Fetch_Texture(std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA);
 	void Bind_Texture(size_t Unit, texture_handle const Texture);
@@ -381,7 +382,7 @@ class opengl_renderer
 
 	material_handle m_invalid_material;
 
-    bool m_blendphase; // m7t: todo: remove kludge!
+    bool m_blendingenabled;
 
 	bool m_widelines_supported;
 };

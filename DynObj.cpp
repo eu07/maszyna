@@ -4587,27 +4587,31 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 else {
                     m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
                 }
-                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).opacity == 0.0f ) {
+
+                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                    WriteLog("alpha");
                     m_materialdata.textures_alpha = 0x31310031;
                 }
                 else {
                     // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
+                    WriteLog("opaque");
                     m_materialdata.textures_alpha = 0x30300030;
                 }
 
                 if( ( m_materialdata.replacable_skins[ 2 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).opacity == 0.0f ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).get_or_guess_opacity() == 0.0f ) ) {
+                    WriteLog("alpha");
                     // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x02020002;
                 }
                 if( ( m_materialdata.replacable_skins[ 3 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).opacity == 0.0f ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).get_or_guess_opacity() == 0.0f ) ) {
                     // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x04040004;
                 }
                 if( ( m_materialdata.replacable_skins[ 4 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).opacity == 0.0f ) ) {
+                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).get_or_guess_opacity() == 0.0f ) ) {
                     // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x08080008;
                 }

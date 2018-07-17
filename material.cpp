@@ -117,6 +117,23 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
 }
 
+float opengl_material::get_or_guess_opacity()
+{
+    if (!std::isnan(opacity))
+        return opacity;
+
+    if (textures[0] != null_handle)
+    {
+        opengl_texture &tex = GfxRenderer.Texture(textures[0]);
+        if (tex.has_alpha)
+            return 0.0f;
+        else
+            return 0.5f;
+    }
+
+    return 0.0f;
+}
+
 std::unordered_map<gl::shader::components_e, GLint> material_manager::components_mapping =
 {
     { gl::shader::components_e::R, GL_RED },
@@ -181,13 +198,6 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         material_handle handle = material.textures[entry.id];
         if (handle)
             GfxRenderer.Texture(handle).set_components_hint(components_mapping[entry.components]);
-    }
-
-    if (std::isnan(material.opacity))
-    {
-        material.opacity = 1.0f;
-        if (material.textures[0] != null_handle)
-            material.opacity = GfxRenderer.Texture( material.textures[0] ).has_alpha ? 0.0f : 1.0f;
     }
 
     material_handle handle = m_materials.size();

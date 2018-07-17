@@ -36,6 +36,7 @@ struct opengl_material {
 // methods
     bool
         deserialize( cParser &Input, bool const Loadnow );
+    float get_or_guess_opacity();
 
 private:
 // methods

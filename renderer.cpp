@@ -825,15 +825,15 @@ void opengl_renderer::setup_matrices()
 
 void opengl_renderer::setup_drawing(bool const Alpha)
 {
-	if (true == Alpha)
+    if (Alpha)
     {
 		::glEnable(GL_BLEND);
-        m_blendphase = true;
+        m_blendingenabled = true;
     }
     else
     {
         ::glDisable(GL_BLEND);
-        m_blendphase = false;
+        m_blendingenabled = false;
     }
 
 	switch (m_renderpass.draw_mode)
@@ -853,6 +853,7 @@ void opengl_renderer::setup_drawing(bool const Alpha)
 	case rendermode::pickcontrols:
 	case rendermode::pickscenery:
 	{
+        glCullFace(GL_BACK);
 		break;
 	}
 	default:
@@ -1077,10 +1078,11 @@ void opengl_renderer::Bind_Material(material_handle const Material)
 		for (size_t i = 0; i < gl::MAX_PARAMS; i++)
 			model_ubs.param[i] = material.params[i];
 
-        if (m_blendphase)
-            model_ubs.opacity = 0.0f;
+        // if for some reason material don't have opacity set, guess it based on render phase
+        if (std::isnan(material.opacity))
+            model_ubs.opacity = m_blendingenabled ? 0.0f : 0.5f;
         else
-            model_ubs.opacity = 1.0f;
+            model_ubs.opacity = material.opacity;
 
 		material.shader->bind();
 
@@ -1120,6 +1122,12 @@ opengl_material const &opengl_renderer::Material(material_handle const Material)
 	return m_materials.material(Material);
 }
 
+opengl_material &opengl_renderer::Material(material_handle const Material)
+{
+    return m_materials.material(Material);
+}
+
+
 texture_handle opengl_renderer::Fetch_Texture(std::string const &Filename, bool const Loadnow, GLint format_hint)
 {
     return m_textures.create(Filename, Loadnow, format_hint);
@@ -1127,7 +1135,6 @@ texture_handle opengl_renderer::Fetch_Texture(std::string const &Filename, bool 
 
 void opengl_renderer::Bind_Texture(size_t Unit, texture_handle const Texture)
 {
-
 	m_textures.bind(Unit, Texture);
 }
 
