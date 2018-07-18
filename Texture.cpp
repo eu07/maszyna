@@ -1006,10 +1006,8 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
-    mark_as_used(Texture);
-
     if (Texture != null_handle)
-        texture(Texture).bind(Unit);
+        mark_as_used(Texture).bind(Unit);
     else
         opengl_texture::unbind(Unit);
 }
