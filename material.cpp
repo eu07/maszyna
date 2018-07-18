@@ -149,6 +149,8 @@ void opengl_material::finalize(bool Loadnow)
         texture_handle handle = textures[entry.id];
         if (handle)
             GfxRenderer.Texture(handle).set_components_hint((GLint)entry.components);
+        else
+            log_error("missing texture: " + it.first);
     }
 }
 
