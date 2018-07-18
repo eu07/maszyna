@@ -571,15 +571,63 @@ opengl_texture::load_TGA() {
 }
 
 bool
-opengl_texture::bind() {
+opengl_texture::bind(size_t unit) {
 
     if( ( false == is_ready )
      && ( false == create() ) ) {
         return false;
     }
-    ::glBindTexture( target, id );
+
+    if (m_units[unit] == id)
+        return true;
+
+    if (GLEW_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, id);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        glBindTexture(target, id);
+    }
+
+    m_units[unit] = id;
+
     return true;
 }
+
+void opengl_texture::unbind(size_t unit)
+{
+    if (GLEW_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, 0);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        //todo: for other targets
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
+void opengl_texture::reset_unit_cache()
+{
+    for( auto &unit : m_units ) {
+        unit = 0;
+    }
+    m_activeunit = -1;
+}
+
+std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::m_units = { 0 };
+GLint opengl_texture::m_activeunit = -1;
 
 std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
 {
@@ -891,15 +939,6 @@ opengl_texture::flip_vertical() {
     }
 }
 
-void
-texture_manager::unit( GLint const Textureunit ) {
-
-    if( m_activeunit == Textureunit ) { return; }
-
-    m_activeunit = Textureunit;
-    ::glActiveTexture( GL_TEXTURE0 + Textureunit );
-}
-
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
 texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
@@ -969,35 +1008,10 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
     m_textures[ Texture ].second = m_garbagecollector.timestamp();
 
-    if( Texture == m_units[ Unit ] ) {
-        // don't bind again what's already active
-        return;
-    }
-    // TBD, TODO: do binding in texture object, add support for other types than 2d
-
-    unit(Unit);
-    if( Texture != null_handle ) {
-#ifndef EU07_DEFERRED_TEXTURE_UPLOAD
-        // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
-        ::glBindTexture( texture(Texture).target, texture(Texture).id );
-        m_units[ Unit ] = Texture;
-#else
-        if( true == texture( Texture ).bind() ) {
-            m_units[ Unit ] = Texture;
-        }
-        else {
-            // TODO: bind a special 'error' texture on failure
-            ::glBindTexture( texture(Texture).target, 0 );
-            m_units[ Unit ] = 0;
-        }
-#endif
-    }
-    else {
-        ::glBindTexture( GL_TEXTURE_2D, 0 );
-        m_units[ Unit ] = 0;
-    }
-    // all done
-    return;
+    if (Texture != null_handle)
+        texture(Texture).bind(Unit);
+    else
+        opengl_texture::unbind(Unit);
 }
 
 void
@@ -1017,14 +1031,7 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        reset_unit_cache();
-    }
-}
-
-void texture_manager::reset_unit_cache()
-{
-    for( auto &unit : m_units ) {
-        unit = -1;
+        opengl_texture::reset_unit_cache();
     }
 }
 

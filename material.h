@@ -19,10 +19,9 @@ typedef int material_handle;
 // a collection of parameters for the rendering setup.
 // for modern opengl this translates to set of attributes for shaders
 struct opengl_material {
-    // primary texture, typically diffuse+apha
-    // secondary texture, typically normal+reflection
     std::array<texture_handle, gl::MAX_TEXTURES> textures = { null_handle };
-    std::array<glm::vec4, gl::MAX_PARAMS> params = { glm::vec4() };
+    std::array<glm::vec4, gl::MAX_PARAMS> params = { glm::vec4(std::numeric_limits<float>::quiet_NaN()) };
+    std::vector<gl::shader::param_entry> params_state;
 
     std::shared_ptr<gl::program> shader;
     float opacity = std::numeric_limits<float>::quiet_NaN();
@@ -36,21 +35,38 @@ struct opengl_material {
 // methods
     bool
         deserialize( cParser &Input, bool const Loadnow );
+    void finalize(bool Loadnow);
     float get_or_guess_opacity();
 
 private:
 // methods
-    // imports member data pair from the config file, overriding existing parameter values of lower priority
+    // imports member data pair from the config file
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
+        void log_error(const std::string &str);
 
 // members
     // priorities for textures, shader, opacity
     int m_shader_priority = -1;
     int m_opacity_priority = -1;
     int m_selfillum_priority = -1;
-    std::array<int, gl::MAX_TEXTURES> m_texture_priority = { -1 };
-    std::array<int, gl::MAX_PARAMS> m_param_priority = { -1 };
+
+    struct parse_info_s
+    {
+        struct tex_def
+        {
+            std::string name;
+            int priority;
+        };
+        struct param_def
+        {
+            glm::vec4 data;
+            int priority;
+        };
+        std::unordered_map<std::string, tex_def> tex_mapping;
+        std::unordered_map<std::string, param_def> param_mapping;
+    };
+    std::unique_ptr<parse_info_s> parse_info;
 };
 
 class material_manager {
@@ -79,8 +95,6 @@ private:
 // members:
     material_sequence m_materials;
     index_map m_materialmappings;
-
-    static std::unordered_map<gl::shader::components_e, GLint> components_mapping;
 };
 
 //---------------------------------------------------------------------------

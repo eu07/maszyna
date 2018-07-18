@@ -13,9 +13,11 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "Globals.h"
 #include "utilities.h"
+#include "Logs.h"
 
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
+    parse_info = std::make_unique<parse_info_s>();
 
     bool result { false };
     while( true == deserialize_mapping( Input, 0, Loadnow ) ) {
@@ -23,6 +25,112 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
     }
 
     return result;
+}
+
+void opengl_material::log_error(const std::string &str)
+{
+    ErrorLog("bad material: " + name + ": " + str, logtype::material);
+}
+
+void opengl_material::finalize(bool Loadnow)
+{
+    if (!shader)
+    {
+        log_error("shader not specified, assuming \"default\"");
+        shader = GfxRenderer.Fetch_Shader("default");
+    }
+
+    if (parse_info)
+    {
+        for (auto it : parse_info->tex_mapping)
+        {
+            std::string key = it.first;
+            std::string value = it.second.name;
+
+            if (key.size() > 0 && key[0] != '_')
+            {
+                size_t num = std::stoi(key) - 1;
+                if (num < gl::MAX_TEXTURES)
+                    textures[num] = GfxRenderer.Fetch_Texture(value, Loadnow);
+                else
+                    log_error("invalid texture binding: " + std::to_string(num));
+            }
+            else if (key.size() > 2)
+            {
+                key.erase(0, 1);
+                key.pop_back();
+                if (shader->texture_conf.find(key) != shader->texture_conf.end())
+                    textures[shader->texture_conf[key].id] = GfxRenderer.Fetch_Texture(value, Loadnow);
+                else
+                    log_error("unknown texture binding: " + key);
+            }
+            else
+                log_error("unrecognized texture binding: " + key);
+        }
+
+        for (auto it : parse_info->param_mapping)
+        {
+            std::string key = it.first;
+            glm::vec4 value = it.second.data;
+
+            if (key.size() > 1 && key[0] != '_')
+            {
+                size_t num = std::stoi(key) - 1;
+                if (num < gl::MAX_PARAMS)
+                    params[num] = value;
+                else
+                    log_error("invalid param binding: " + std::to_string(num));
+            }
+            else if (key.size() > 2)
+            {
+                key.erase(0, 1);
+                key.pop_back();
+                if (shader->param_conf.find(key) != shader->param_conf.end())
+                {
+                    gl::shader::param_entry entry = shader->param_conf[key];
+                    for (size_t i = 0; i < entry.size; i++)
+                        params[entry.location][entry.offset + i] = value[i];
+                }
+                else
+                    log_error("unknown param binding: " + key);
+            }
+            else
+                log_error("unrecognized param binding: " + key);
+        }
+
+        parse_info.reset();
+    }
+
+    for (auto it : shader->param_conf)
+    {
+        gl::shader::param_entry entry = it.second;
+        if (std::isnan(params[entry.location][entry.offset]))
+        {
+            float value = std::numeric_limits<float>::quiet_NaN();
+            if (entry.defaultparam == gl::shader::defaultparam_e::one)
+                value = 1.0f;
+            else if (entry.defaultparam == gl::shader::defaultparam_e::zero)
+                value = 0.0f;
+            else if (entry.defaultparam == gl::shader::defaultparam_e::required)
+                log_error("unspecified required param: " + it.first);
+            else if (entry.defaultparam != gl::shader::defaultparam_e::nan)
+            {
+                params_state.push_back(entry);
+                continue;
+            }
+
+            for (size_t i = 0; i < entry.size; i++)
+                params[entry.location][entry.offset + i] = value;
+        }
+    }
+
+    for (auto it : shader->texture_conf)
+    {
+        gl::shader::texture_entry &entry = it.second;
+        texture_handle handle = textures[entry.id];
+        if (handle)
+            GfxRenderer.Texture(handle).set_components_hint((GLint)entry.components);
+    }
 }
 
 // imports member data pair from the config file
@@ -52,6 +160,17 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         }
         else if (key.compare(0, 7, "texture") == 0) {
             key.erase(0, 7);
+
+            std::replace(value.begin(), value.end(), '\\', '/');
+            auto it = parse_info->tex_mapping.find(key);
+            if (it == parse_info->tex_mapping.end())
+                parse_info->tex_mapping.emplace(std::make_pair(key, parse_info_s::tex_def({ value, Priority })));
+            else if (Priority > it->second.priority)
+            {
+                parse_info->tex_mapping.erase(it);
+                parse_info->tex_mapping.emplace(std::make_pair(key, parse_info_s::tex_def({ value, Priority })));
+            }
+/*
             size_t num = std::stoi(key) - 1;
             if (num < textures.size() &&
                     (textures[num] == null_handle || Priority > m_texture_priority[num]))
@@ -60,9 +179,28 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 textures[num] = GfxRenderer.Fetch_Texture( value, Loadnow );
                 m_texture_priority[num] = Priority;
             }
+            */
         }
-        else if (key.compare(0, 7, "param") == 0) {
+        else if (key.compare(0, 5, "param") == 0) {
             key.erase(0, 5);
+
+            std::istringstream stream(value);
+            glm::vec4 data;
+            stream >> data.r;
+            stream >> data.g;
+            stream >> data.b;
+            stream >> data.a;
+
+            auto it = parse_info->param_mapping.find(key);
+            if (it == parse_info->param_mapping.end())
+                parse_info->param_mapping.emplace(std::make_pair(key, parse_info_s::param_def({ data, Priority })));
+            else if (Priority > it->second.priority)
+            {
+                parse_info->param_mapping.erase(it);
+                parse_info->param_mapping.emplace(std::make_pair(key, parse_info_s::param_def({ data, Priority })));
+            }
+
+            /*
             size_t num = std::stoi(key) - 1;
             if (num < params.size() &&
                     (Priority > m_param_priority[num]))
@@ -75,13 +213,20 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 stream >> params[num].a;
 
                 m_param_priority[num] = Priority;
-            }
+            }*/
         }
         else if (key == "shader:" &&
                 (!shader || Priority > m_shader_priority))
         {
-            shader = GfxRenderer.Fetch_Shader(value);
-            m_shader_priority = Priority;
+            try
+            {
+                shader = GfxRenderer.Fetch_Shader(value);
+                m_shader_priority = Priority;
+            }
+            catch (gl::shader_exception const &e)
+            {
+                log_error("invalid shader: " + std::string(e.what()));
+            }
         }
         else if (key == "opacity:" &&
                 Priority > m_opacity_priority)
@@ -134,16 +279,6 @@ float opengl_material::get_or_guess_opacity()
     return 0.0f;
 }
 
-std::unordered_map<gl::shader::components_e, GLint> material_manager::components_mapping =
-{
-    { gl::shader::components_e::R, GL_RED },
-    { gl::shader::components_e::RG, GL_RG },
-    { gl::shader::components_e::RGB, GL_RGB },
-    { gl::shader::components_e::RGBA, GL_RGBA },
-    { gl::shader::components_e::sRGB, GL_SRGB },
-    { gl::shader::components_e::sRGB_A, GL_SRGB_ALPHA }
-};
-
 // create material object from data stored in specified file.
 // NOTE: the deferred load parameter is passed to textures defined by material, the material itself is always loaded immediately
 material_handle
@@ -190,19 +325,11 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         material.name = filename;
     }
 
-    if (!material.shader)
-        material.shader = GfxRenderer.Fetch_Shader("default");
-
-    for (gl::shader::texture_entry &entry : material.shader->texture_conf)
-    {
-        material_handle handle = material.textures[entry.id];
-        if (handle)
-            GfxRenderer.Texture(handle).set_components_hint(components_mapping[entry.components]);
-    }
+    material.finalize(Loadnow);
 
     material_handle handle = m_materials.size();
-    m_materials.emplace_back( material );
-    m_materialmappings.emplace( material.name, handle );
+    m_materialmappings.emplace(material.name, handle);
+    m_materials.emplace_back( std::move(material) );
     return handle;
 };
 

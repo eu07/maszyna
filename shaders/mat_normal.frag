@@ -12,6 +12,10 @@ uniform sampler2D tex1;
 #texture (tex2, 1, RGB)
 uniform sampler2D tex2;
 
+#param(color, 0, 0, 1, one)
+#param(color2, 0, 1, 1, zero)
+#param(color3, 0, 2, 1, one)
+
 #include <common>
 
 vec3 apply_fog(vec3 color)

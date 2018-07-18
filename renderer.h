@@ -150,7 +150,7 @@ class opengl_renderer
 	gfx::vertex_array const &Vertices(gfx::geometry_handle const &Geometry) const;
 	// material methods
 	material_handle Fetch_Material(std::string const &Filename, bool const Loadnow = true);
-	void Bind_Material(material_handle const Material);
+    void Bind_Material(material_handle const Material, TSubModel *sm = nullptr);
     void Bind_Material_Shadow(material_handle const Material);
 
 	// shader methods

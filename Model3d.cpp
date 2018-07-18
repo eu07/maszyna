@@ -338,15 +338,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     if (m_material != null_handle)
     {
         opengl_material &mat = GfxRenderer.Material(m_material);
-        // if material don't have opacity set, set legacy submodel opacity
-        if (std::isnan(mat.opacity))
-        {
-            if (iFlags & 0x20) // translucent
-                mat.opacity = 0.0f;
-            else if (iFlags & 0x10) // opaque
-                mat.opacity = 0.5f;
-        }
-        else // but if it does, replace submodel opacity with material one
+        // if material have opacity set, replace submodel opacity with it
+        if (!std::isnan(mat.opacity))
         {
             iFlags &= ~0x30;
             if (mat.opacity == 0.0f)
@@ -1685,12 +1678,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
                 opengl_material &mat = GfxRenderer.Material(m_material);
-                if (std::isnan(mat.opacity))
-                    // if material don't have opacity set, try to guess it
-                    mat.opacity = mat.get_or_guess_opacity();
+                float opacity = mat.opacity;
+
+                // if material don't have opacity set, try to guess it
+                if (std::isnan(opacity))
+                        opacity = mat.get_or_guess_opacity();
 
                 // set phase flag based on material opacity
-                if (mat.opacity == 0.0f)
+                if (opacity == 0.0f)
                     iFlags |= 0x20; // translucent
                 else
                     iFlags |= 0x10; // opaque

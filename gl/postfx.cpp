@@ -33,8 +33,7 @@ void gl::postfx::apply(opengl_texture &src, framebuffer *dst)
 
     program.bind();
     vao->bind();
-    glActiveTexture(GL_TEXTURE0);
-    src.bind();
+    src.bind(0);
     glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

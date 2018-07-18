@@ -136,7 +136,23 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	        {{-size, size, 0.f}, glm::vec3(), {1.f, 1.f}}, {{size, size, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-size, -size, 0.f}, glm::vec3(), {1.f, 0.f}}, {{size, -size, 0.f}, glm::vec3(), {0.f, 0.f}}},
 	    geometrybank, GL_TRIANGLE_STRIP);
 
-    m_vertex_shader = std::make_unique<gl::shader>("vertex.vert");
+    try
+    {
+        m_vertex_shader = std::make_unique<gl::shader>("vertex.vert");
+        m_line_shader = make_shader("traction.vert", "traction.frag");
+        m_freespot_shader = make_shader("freespot.vert", "freespot.frag");
+        m_shadow_shader = make_shader("simpleuv.vert", "shadowmap.frag");
+        m_alpha_shadow_shader = make_shader("simpleuv.vert", "alphashadowmap.frag");
+        m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
+        m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
+        m_invalid_material = Fetch_Material("invalid");
+    }
+    catch (gl::shader_exception const &e)
+    {
+        ErrorLog("invalid shader: " + std::string(e.what()));
+        return false;
+    }
+
 	scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
 	model_ubo = std::make_unique<gl::ubo>(sizeof(gl::model_ubs), 1);
 	light_ubo = std::make_unique<gl::ubo>(sizeof(gl::light_ubs), 2);
@@ -150,15 +166,6 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	light_ubo->update(light_ubs);
 	model_ubo->update(model_ubs);
 	scene_ubo->update(scene_ubs);
-
-    m_line_shader = make_shader("traction.vert", "traction.frag");
-    m_freespot_shader = make_shader("freespot.vert", "freespot.frag");
-    m_shadow_shader = make_shader("simpleuv.vert", "shadowmap.frag");
-    m_alpha_shadow_shader = make_shader("simpleuv.vert", "alphashadowmap.frag");
-    m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
-    m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
-
-	m_invalid_material = Fetch_Material("invalid");
 
 	int samples = 1 << Global.iMultisampling;
     if (samples > 1)
@@ -428,7 +435,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		glEnable(GL_FRAMEBUFFER_SRGB);
 		glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
 		m_pfx->apply(*m_main_tex, nullptr);
-		m_textures.reset_unit_cache();
+        opengl_texture::reset_unit_cache();
 		glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glDebug("uilayer render");
@@ -877,13 +884,10 @@ void opengl_renderer::setup_drawing(bool const Alpha)
 // configures shadow texture unit for specified shadow map and conersion matrix
 void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config conf)
 {
-    glActiveTexture(GL_TEXTURE0 + gl::MAX_TEXTURES + 0);
-	if (tex)
-		tex->bind();
-	else
-		glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-	m_textures.reset_unit_cache();
+    if (tex)
+        tex->bind(gl::MAX_TEXTURES + 0);
+    else
+        opengl_texture::unbind(gl::MAX_TEXTURES + 0);
 
     if (tex)
     {
@@ -900,14 +904,17 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
 void opengl_renderer::setup_env_map(gl::cubemap *tex)
 {
     if (tex)
+    {
         tex->bind(GL_TEXTURE0 + gl::MAX_TEXTURES + 1);
+        glActiveTexture(GL_TEXTURE0);
+    }
     else
     {
         glActiveTexture(GL_TEXTURE0 + gl::MAX_TEXTURES + 1);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glActiveTexture(GL_TEXTURE0);
     }
-    glActiveTexture(GL_TEXTURE0);
-    m_textures.reset_unit_cache();
+    opengl_texture::reset_unit_cache();
 }
 
 void opengl_renderer::setup_environment_light(TEnvironmentType const Environment)
@@ -975,7 +982,8 @@ bool opengl_renderer::Render(world_environment *Environment)
     // celestial bodies
     float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
     glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
-    m_textures.reset_unit_cache();
+
+    opengl_texture::reset_unit_cache();
 
     // m7t: restore celestial bodies
 
@@ -1081,15 +1089,33 @@ std::shared_ptr<gl::program> opengl_renderer::Fetch_Shader(const std::string &na
 	return m_shaders[name];
 }
 
-void opengl_renderer::Bind_Material(material_handle const Material)
+void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *sm)
 {
 	if (Material != null_handle)
 	{
 		auto &material = m_materials.material(Material);
-		for (size_t i = 0; i < gl::MAX_PARAMS; i++)
-			model_ubs.param[i] = material.params[i];
 
-        // if for some reason material don't have opacity set, guess it based on render phase
+        memcpy(&model_ubs.param[0], &material.params[0], sizeof(model_ubs.param));
+
+        for (size_t i = 0; i < material.params_state.size(); i++)
+        {
+            gl::shader::param_entry entry = material.params_state[i];
+
+            glm::vec4 src;
+            if (entry.defaultparam == gl::shader::defaultparam_e::ambient)
+                src = sm->f4Ambient;
+            else if (entry.defaultparam == gl::shader::defaultparam_e::diffuse)
+                src = sm->f4Diffuse;
+            else if (entry.defaultparam == gl::shader::defaultparam_e::specular)
+                src = sm->f4Specular;
+            else
+                continue;
+
+            for (size_t j = 0; j < entry.size; j++)
+                model_ubs.param[entry.location][entry.offset + j] = src[j];
+        }
+
+        // if material don't have opacity set, guess it based on render phase
         if (std::isnan(material.opacity))
             model_ubs.opacity = m_blendingenabled ? 0.0f : 0.5f;
         else
@@ -1097,14 +1123,32 @@ void opengl_renderer::Bind_Material(material_handle const Material)
 
 		material.shader->bind();
 
-		size_t unit = 0;
-		for (auto &tex : material.textures)
-		{
-			if (tex == null_handle)
-				break;
-			m_textures.bind(unit, tex);
-			unit++;
-		}
+        if (GLEW_ARB_multi_bind)
+        {
+            GLuint textures[gl::MAX_TEXTURES] = { 0 };
+            size_t i;
+            for (i = 0; i < gl::MAX_TEXTURES; i++)
+                if (material.textures[i] != null_handle)
+                {
+                    opengl_texture &tex = m_textures.texture(material.textures[i]);
+                    tex.create();
+                    textures[i] = tex.id;
+                }
+                else
+                    break;
+            glBindTextures(0, i, textures);
+        }
+        else
+        {
+            size_t unit = 0;
+            for (auto &tex : material.textures)
+            {
+                if (tex == null_handle)
+                    break;
+                m_textures.bind(unit, tex);
+                unit++;
+            }
+        }
 	}
 	else if (Material != m_invalid_material)
 		Bind_Material(m_invalid_material);
@@ -2838,7 +2882,6 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 
                         m_billboard_shader->bind();
                         Bind_Texture(0, m_glaretexture);
-                        m_textures.reset_unit_cache();
                         model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), glarelevel);
 
                         // main draw call
@@ -3200,6 +3243,13 @@ bool opengl_renderer::Init_caps()
 		const char *ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
 		WriteLog(ext);
 	}
+    WriteLog("--------");
+
+    if (GLEW_ARB_multi_bind)
+        WriteLog("ARB_multi_bind supported!");
+
+    if (GLEW_ARB_direct_state_access)
+        WriteLog("ARB_direct_state_access supported!");
 
 	// ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
 	{

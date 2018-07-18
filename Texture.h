@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "winheaders.h"
 #include <string>
 #include "ResourceManager.h"
+#include "gl/ubo.h"
 
 struct opengl_texture {
 	static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
@@ -26,7 +27,8 @@ struct opengl_texture {
     void
         load();
     bool
-        bind();
+        bind(size_t unit);
+    static void unbind(size_t unit);
     bool
         create();
     // releases resources allocated on the opengl end, storing local copy if requested
@@ -43,6 +45,7 @@ struct opengl_texture {
 
     void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int samples = 1);
     void set_components_hint(GLint hint);
+    static void reset_unit_cache();
 
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
@@ -87,6 +90,9 @@ private:
     static std::unordered_map<GLint, int> precompressed_formats;
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
+
+    static std::array<GLuint, gl::MAX_TEXTURES + 2> m_units;
+    static GLint m_activeunit;
 };
 
 typedef int texture_handle;
@@ -97,9 +103,6 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
-    // activates specified texture unit
-    void
-        unit( GLint const Textureunit );
     // creates texture object out of data stored in specified file
     texture_handle
         create( std::string Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA );
@@ -112,7 +115,6 @@ public:
     // performs a resource sweep
     void
         update();
-    void reset_unit_cache();
     // debug performance string
     std::string
         info() const;
@@ -142,8 +144,6 @@ private:
     texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
-    std::array<texture_handle, 4> m_units;
-    GLint m_activeunit { 0 };
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average
