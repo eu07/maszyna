@@ -1101,15 +1101,17 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
         {
             gl::shader::param_entry entry = material.params_state[i];
 
-            glm::vec4 src;
-            if (entry.defaultparam == gl::shader::defaultparam_e::ambient)
-                src = sm->f4Ambient;
-            else if (entry.defaultparam == gl::shader::defaultparam_e::diffuse)
-                src = sm->f4Diffuse;
-            else if (entry.defaultparam == gl::shader::defaultparam_e::specular)
-                src = sm->f4Specular;
-            else
-                continue;
+            glm::vec4 src(1.0f);
+
+            if (sm)
+            {
+                if (entry.defaultparam == gl::shader::defaultparam_e::ambient)
+                    src = sm->f4Ambient;
+                else if (entry.defaultparam == gl::shader::defaultparam_e::diffuse)
+                    src = sm->f4Diffuse;
+                else if (entry.defaultparam == gl::shader::defaultparam_e::specular)
+                    src = sm->f4Specular;
+            }
 
             for (size_t j = 0; j < entry.size; j++)
                 model_ubs.param[entry.location][entry.offset + j] = src[j];
@@ -1125,18 +1127,24 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
 
         if (GLEW_ARB_multi_bind)
         {
-            GLuint textures[gl::MAX_TEXTURES] = { 0 };
+            GLuint lastdiff = 0;
             size_t i;
             for (i = 0; i < gl::MAX_TEXTURES; i++)
                 if (material.textures[i] != null_handle)
                 {
-                    opengl_texture &tex = m_textures.texture(material.textures[i]);
+                    opengl_texture &tex = m_textures.mark_as_used(material.textures[i]);
                     tex.create();
-                    textures[i] = tex.id;
+                    if (opengl_texture::units[i] != tex.id)
+                    {
+                        opengl_texture::units[i] = tex.id;
+                        lastdiff = i + 1;
+                    }
                 }
                 else
                     break;
-            glBindTextures(0, i, textures);
+
+            if (lastdiff)
+                glBindTextures(0, lastdiff, &opengl_texture::units[0]);
         }
         else
         {
@@ -1937,12 +1945,12 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					// textures...
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
-						Bind_Material(Submodel->ReplacableSkinId[-Submodel->m_material]);
+                        Bind_Material(Submodel->ReplacableSkinId[-Submodel->m_material], Submodel);
 					}
 					else
 					{
 						// również 0
-						Bind_Material(Submodel->m_material);
+                        Bind_Material(Submodel->m_material, Submodel);
                     }
 
 					// ...colors...
@@ -2106,7 +2114,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 			{
 				if (Global.fLuminance < Submodel->fLight)
 				{
-                    Bind_Material(Submodel->m_material);
+                    Bind_Material(Submodel->m_material, Submodel);
 
 					// main draw call
 					model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
@@ -2781,11 +2789,11 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 					// textures...
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
-						Bind_Material(Submodel->ReplacableSkinId[-Submodel->m_material]);
+                        Bind_Material(Submodel->ReplacableSkinId[-Submodel->m_material], Submodel);
 					}
 					else
 					{
-						Bind_Material(Submodel->m_material);
+                        Bind_Material(Submodel->m_material, Submodel);
                     }
 					// ...luminance
 

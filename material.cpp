@@ -15,6 +15,12 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "Logs.h"
 
+opengl_material::opengl_material()
+{
+    for (size_t i = 0; i < params.size(); i++)
+        params[i] = glm::vec4(std::numeric_limits<float>::quiet_NaN());
+}
+
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
     parse_info = std::make_unique<parse_info_s>();
@@ -34,12 +40,6 @@ void opengl_material::log_error(const std::string &str)
 
 void opengl_material::finalize(bool Loadnow)
 {
-    if (!shader)
-    {
-        log_error("shader not specified, assuming \"default\"");
-        shader = GfxRenderer.Fetch_Shader("default");
-    }
-
     if (parse_info)
     {
         for (auto it : parse_info->tex_mapping)
@@ -59,13 +59,32 @@ void opengl_material::finalize(bool Loadnow)
             {
                 key.erase(0, 1);
                 key.pop_back();
-                if (shader->texture_conf.find(key) != shader->texture_conf.end())
+                if (shader && shader->texture_conf.find(key) != shader->texture_conf.end())
                     textures[shader->texture_conf[key].id] = GfxRenderer.Fetch_Texture(value, Loadnow);
                 else
                     log_error("unknown texture binding: " + key);
             }
             else
                 log_error("unrecognized texture binding: " + key);
+        }
+
+        if (!shader)
+        {
+            if (textures[0] == null_handle)
+            {
+                log_error("shader not specified, assuming \"default_0\"");
+                shader = GfxRenderer.Fetch_Shader("default_0");
+            }
+            else if (textures[1] == null_handle)
+            {
+                log_error("shader not specified, assuming \"default_1\"");
+                shader = GfxRenderer.Fetch_Shader("default_1");
+            }
+            else if (textures[2] == null_handle)
+            {
+                log_error("shader not specified, assuming \"default_2\"");
+                shader = GfxRenderer.Fetch_Shader("default_2");
+            }
         }
 
         for (auto it : parse_info->param_mapping)
@@ -319,6 +338,10 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
             // if there's also no texture, give up
             return null_handle;
         }
+
+        // material would attach default shader anyway, but it would spit to error log
+        material.shader = GfxRenderer.Fetch_Shader("default_1");
+
         // use texture path and name to tell the newly created materials apart
         filename = GfxRenderer.Texture( material.textures[0] ).name;
         erase_extension( filename );

@@ -285,7 +285,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 		std::replace(material.begin(), material.end(), '\\', '/');
         if (material == "none")
         { // rysowanie podanym kolorem
-            m_material = null_handle;
+            Name_Material("colored");
+            m_material = GfxRenderer.Fetch_Material(m_materialname);
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
         else if (material.find("replacableskin") != material.npos)
@@ -338,6 +339,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     if (m_material != null_handle)
     {
         opengl_material &mat = GfxRenderer.Material(m_material);
+
         // if material have opacity set, replace submodel opacity with it
         if (!std::isnan(mat.opacity))
         {
@@ -347,6 +349,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             else
                 iFlags |= 0x10; // opaque
         }
+
+        // and same thing with selfillum
+        if (!std::isnan(mat.selfillum))
+            fLight = mat.selfillum;
     }
 
     // visibility range
@@ -1690,6 +1696,15 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 else
                     iFlags |= 0x10; // opaque
             }
+
+            if (m_material != null_handle)
+            {
+                opengl_material &mat = GfxRenderer.Material(m_material);
+
+                // replace submodel selfillum with material one
+                if (!std::isnan(mat.selfillum))
+                    fLight = mat.selfillum;
+            }
         }
         else {
             ErrorLog( "Bad model: reference to nonexistent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ), logtype::model );
@@ -1697,7 +1712,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         }
     }
 	else
-		m_material = iTexture;
+    {
+        if (iTexture == 0)
+            m_material = GfxRenderer.Fetch_Material("colored");
+        else
+            m_material = iTexture;
+    }
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 

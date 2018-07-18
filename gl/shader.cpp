@@ -104,11 +104,7 @@ void gl::shader::parse_texture_entries(std::string &str)
             if (arg == 0)
                 token_ss >> name;
             else if (arg == 1)
-            {
                 token_ss >> conf.id;
-                if (conf.id >= gl::MAX_TEXTURES)
-                    log_error("invalid texture binding: " + std::to_string(conf.id));
-            }
             else if (arg == 2)
             {
                 std::string comp;
@@ -122,7 +118,14 @@ void gl::shader::parse_texture_entries(std::string &str)
         }
 
         if (arg == 3)
-            texture_conf.emplace(std::make_pair(name, conf));
+        {
+            if (name.empty())
+                log_error("empty name");
+            else if (conf.id >= gl::MAX_TEXTURES)
+                log_error("invalid texture binding: " + std::to_string(conf.id));
+            else
+                texture_conf.emplace(std::make_pair(name, conf));
+        }
         else
             log_error("invalid argument count to #texture");
 
@@ -155,11 +158,7 @@ void gl::shader::parse_param_entries(std::string &str)
             if (arg == 0)
                 token_ss >> name;
             else if (arg == 1)
-            {
                 token_ss >> conf.location;
-                if (conf.location >= gl::MAX_PARAMS)
-                    log_error("invalid param binding: " + std::to_string(conf.location));
-            }
             else if (arg == 2)
                 token_ss >> conf.offset;
             else if (arg == 3)
@@ -176,7 +175,18 @@ void gl::shader::parse_param_entries(std::string &str)
         }
 
         if (arg == 5)
-            param_conf.emplace(std::make_pair(name, conf));
+        {
+            if (name.empty())
+                log_error("empty name");
+            else if (conf.location >= gl::MAX_PARAMS)
+                log_error("invalid param binding: " + std::to_string(conf.location));
+            else if (conf.offset > 3)
+                log_error("invalid offset: " + std::to_string(conf.offset));
+            else if (conf.offset + conf.size > 4)
+                log_error("invalid size: " + std::to_string(conf.size));
+            else
+                param_conf.emplace(std::make_pair(name, conf));
+        }
         else
             log_error("invalid argument count to #param");
 

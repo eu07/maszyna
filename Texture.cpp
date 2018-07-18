@@ -578,7 +578,7 @@ opengl_texture::bind(size_t unit) {
         return false;
     }
 
-    if (m_units[unit] == id)
+    if (units[unit] == id)
         return true;
 
     if (GLEW_ARB_direct_state_access)
@@ -595,7 +595,7 @@ opengl_texture::bind(size_t unit) {
         glBindTexture(target, id);
     }
 
-    m_units[unit] = id;
+    units[unit] = id;
 
     return true;
 }
@@ -620,13 +620,13 @@ void opengl_texture::unbind(size_t unit)
 
 void opengl_texture::reset_unit_cache()
 {
-    for( auto &unit : m_units ) {
+    for( auto &unit : units ) {
         unit = 0;
     }
     m_activeunit = -1;
 }
 
-std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::m_units = { 0 };
+std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
 GLint opengl_texture::m_activeunit = -1;
 
 std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
@@ -1006,12 +1006,19 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
-    m_textures[ Texture ].second = m_garbagecollector.timestamp();
+    mark_as_used(Texture);
 
     if (Texture != null_handle)
         texture(Texture).bind(Unit);
     else
         opengl_texture::unbind(Unit);
+}
+
+opengl_texture &texture_manager::mark_as_used(const texture_handle Texture)
+{
+    auto &pair = m_textures[ Texture ];
+    pair.second = m_garbagecollector.timestamp();
+    return *pair.first;
 }
 
 void

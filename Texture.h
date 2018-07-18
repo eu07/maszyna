@@ -57,6 +57,7 @@ struct opengl_texture {
     GLint components_hint; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
+    static std::array<GLuint, gl::MAX_TEXTURES + 2> units;
 
 private:
 // methods
@@ -91,7 +92,6 @@ private:
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
 
-    static std::array<GLuint, gl::MAX_TEXTURES + 2> m_units;
     static GLint m_activeunit;
 };
 
@@ -109,6 +109,7 @@ public:
     // binds specified texture to specified texture unit
     void
         bind( std::size_t const Unit, texture_handle const Texture );
+    opengl_texture& mark_as_used(texture_handle const Texture);
     // provides direct access to specified texture object
     opengl_texture &
         texture( texture_handle const Texture ) const { return *(m_textures[ Texture ].first); }

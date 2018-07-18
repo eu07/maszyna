@@ -20,7 +20,7 @@ typedef int material_handle;
 // for modern opengl this translates to set of attributes for shaders
 struct opengl_material {
     std::array<texture_handle, gl::MAX_TEXTURES> textures = { null_handle };
-    std::array<glm::vec4, gl::MAX_PARAMS> params = { glm::vec4(std::numeric_limits<float>::quiet_NaN()) };
+    std::array<glm::vec4, gl::MAX_PARAMS> params;
     std::vector<gl::shader::param_entry> params_state;
 
     std::shared_ptr<gl::program> shader;
@@ -30,7 +30,7 @@ struct opengl_material {
     std::string name;
 
 // constructors
-    opengl_material() = default;
+    opengl_material();
 
 // methods
     bool

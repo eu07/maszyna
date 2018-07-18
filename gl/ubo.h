@@ -31,7 +31,7 @@ namespace gl
 
 #pragma pack(push, 1)
 
-    const size_t MAX_TEXTURES = 4;
+    const size_t MAX_TEXTURES = 8;
 
     struct scene_ubs
     {
@@ -91,7 +91,7 @@ namespace gl
 
     static_assert(sizeof(light_element_ubs) == 64, "bad size of ubs");
 
-    const size_t MAX_LIGHTS = 4;
+    const size_t MAX_LIGHTS = 8;
 
     struct light_ubs
     {

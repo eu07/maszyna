@@ -7,7 +7,11 @@ in vec4 f_light_pos;
 
 #include <common>
 
-#texture (tex1, 0, sRGB_A)
+#param (color, 0, 0, 4, diffuse)
+#param (diffuse, 1, 0, 1, one)
+#param (specular, 1, 1, 1, specular)
+
+#texture (diffuse, 0, sRGB_A)
 uniform sampler2D tex1;
 
 uniform sampler2DShadow shadowmap;
@@ -56,6 +60,7 @@ float calc_light(vec3 light_dir)
 	float diffuse_v = max(dot(normal, light_dir), 0.0);
 	float specular_v = pow(max(dot(normal, halfway_dir), 0.0), 15.0);
 	
+	//return specular_v * param[1].y + diffuse_v * param[1].x;
 	return specular_v + diffuse_v;
 }
 
@@ -113,7 +118,7 @@ void main()
 
 		if (i == 0U)
 			part *= shadow;
-		result += light.color * part * envcolor;
+		result += light.color * part;// * envcolor;
 	}
 
 	vec3 c = apply_fog(result * tex_color.xyz);
