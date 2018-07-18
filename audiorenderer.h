@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "uitranscripts.h"
 
+class opengl_renderer;
 class sound_source;
 
 using uint32_sequence = std::vector<std::uint32_t>;
@@ -53,7 +54,8 @@ struct openal_source {
     bool is_looping { false };
     sound_properties properties;
     sync_state sync { sync_state::good };
-
+// constructors
+    openal_source() = default;
 // methods
     template <class Iterator_>
     openal_source &
@@ -99,9 +101,11 @@ private:
 
 class openal_renderer {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
+// constructors
+    openal_renderer() = default;
 // destructor
     ~openal_renderer();
 // methods

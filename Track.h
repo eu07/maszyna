@@ -126,7 +126,9 @@ private:
 // trajektoria ruchu - opakowanie
 class TTrack : public scene::basic_node {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
+    // NOTE: temporary arrangement
+    friend ui_layer;
 
 private:
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
@@ -168,20 +170,7 @@ public:
         m_events1,
         m_events2;
     bool m_events { false }; // Ra: flaga informująca o obecności eventów
-/*
-    TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
-    TEvent *evEventall1 = nullptr;
-    TEvent *evEventall2 = nullptr;
-    TEvent *evEvent0 = nullptr; // McZapkie-280503: wyzwalany tylko gdy headdriver
-    TEvent *evEvent1 = nullptr;
-    TEvent *evEvent2 = nullptr;
-    std::string asEventall0Name; // nazwy eventów
-	std::string asEventall1Name;
-	std::string asEventall2Name;
-	std::string asEvent0Name;
-	std::string asEvent1Name;
-	std::string asEvent2Name;
-*/
+
     int iNextDirection = 0; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
     int iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
     TTrackType eType = tt_Normal; // domyślnie zwykły
@@ -244,9 +233,11 @@ public:
             SwitchExtension != nullptr ?
                 SwitchExtension->iRoads - 1 :
                 1 ); }
-    void Load(cParser *parser, Math3D::vector3 pOrigin);
+    void Load(cParser *parser, glm::dvec3 const &pOrigin);
     bool AssignEvents();
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
+    void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner );
+    void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit );
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);

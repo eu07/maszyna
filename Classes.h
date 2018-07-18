@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 // Ra: zestaw klas do robienia wskaźników, aby uporządkować nagłówki
 //---------------------------------------------------------------------------
+class opengl_renderer;
 class TTrack; // odcinek trajektorii
 class TEvent;
 class TTrain; // pojazd sterowany
@@ -29,9 +30,9 @@ class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
 class TWorld;
 class TCamera;
-
-class simulation_time;
+class scenario_time;
 class TMoverParameters;
+class ui_layer;
 
 namespace scene {
 struct node_data;
@@ -45,7 +46,7 @@ class TMtableTime; // czas dla danego posterunku
 
 class TController; // obiekt sterujący pociągiem (AI)
 
-enum TCommandType
+enum class TCommandType
 { // binarne odpowiedniki komend w komórce pamięci
     cm_Unknown, // ciąg nierozpoznany (nie jest komendą)
     cm_Ready, // W4 zezwala na odjazd, ale semafor może zatrzymać

@@ -158,7 +158,7 @@ struct material_data {
 
 class TDynamicObject { // klasa pojazdu
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
     static bool bDynamicRemove; // moved from ground
@@ -335,6 +335,7 @@ private:
         sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
         sound_source engine { sound_placement::engine }; // generally diesel engine
         sound_source engine_ignition { sound_placement::engine }; // moved from cab
+        sound_source engine_shutdown { sound_placement::engine };
         bool engine_state_last { false }; // helper, cached previous state of the engine
         double engine_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         sound_source engine_revving { sound_placement::engine }; // youBy

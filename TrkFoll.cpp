@@ -109,19 +109,9 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 if( ( Owner->Mechanik != nullptr )
                  && ( Owner->Mechanik->Primary() ) ) {
                     // tylko dla jednego członu
-                    for( auto &event : pCurrentTrack->m_events0 ) {
-                        if( ( event.second != nullptr )
-                         && ( event.second->iQueued == 0 ) ) {
-                            simulation::Events.AddToQuery( event.second, Owner );
-                        }
-                    }
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events0, Owner );
                 }
-                for( auto &event : pCurrentTrack->m_events0all ) {
-                    if( ( event.second != nullptr )
-                     && ( event.second->iQueued == 0 ) ) {
-                        simulation::Events.AddToQuery( event.second, Owner );
-                    }
-                }
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events0all, Owner );
             }
             else if (fDistance < 0) {
                 // event1, eventall1
@@ -132,26 +122,14 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                         // tylko dla jednego członu
                         // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
                         if( true == bPrimary ) {
-                            for( auto &event : pCurrentTrack->m_events1 ) {
-                                if( ( event.second != nullptr )
-                                 && ( event.second->iQueued == 0 ) ) {
-                                    // dodanie do kolejki
-                                    simulation::Events.AddToQuery( event.second, Owner );
-                                }
-                            }
+                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
                         }
                     }
                 }
                 if( SetFlag( iEventallFlag, -1 ) ) {
                     // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
                     if( true == bPrimary ) {
-                        for( auto &event : pCurrentTrack->m_events1all ) {
-                            if( ( event.second != nullptr )
-                             && ( event.second->iQueued == 0 ) ) {
-                                // dodanie do kolejki
-                                simulation::Events.AddToQuery( event.second, Owner );
-                            }
-                        }
+                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner );
                     }
                 }
             }
@@ -163,26 +141,14 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                      && ( Owner->Mechanik->Primary() ) ) {
                         // tylko dla jednego członu
                         if( true == bPrimary ) {
-                            for( auto &event : pCurrentTrack->m_events2 ) {
-                                if( ( event.second != nullptr )
-                                 && ( event.second->iQueued == 0 ) ) {
-                                    // dodanie do kolejki
-                                    simulation::Events.AddToQuery( event.second, Owner );
-                                }
-                            }
+                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
                         }
                     }
                 }
                 if( SetFlag( iEventallFlag, -2 ) ) {
                     // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
                     if( true == bPrimary ) {
-                        for( auto &event : pCurrentTrack->m_events2all ) {
-                            if( ( event.second != nullptr )
-                             && ( event.second->iQueued == 0 ) ) {
-                                // dodanie do kolejki
-                                simulation::Events.AddToQuery( event.second, Owner );
-                            }
-                        }
+                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner );
                     }
                 }
             }
@@ -279,34 +245,13 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             { // tylko gdy początkowe ustawienie, dodajemy eventy stania do kolejki
                 if (Owner->MoverParameters->ActiveCab != 0) {
 
-                    for( auto &event : pCurrentTrack->m_events1 ) {
-                        if( ( event.second != nullptr )
-                         && ( event.second->fDelay <= -1.0 ) ) {
-                            simulation::Events.AddToQuery( event.second, Owner );
-                        }
-                    }
-                    for( auto &event : pCurrentTrack->m_events2 ) {
-                        if( ( event.second != nullptr )
-                         && ( event.second->fDelay <= -1.0 ) ) {
-                            simulation::Events.AddToQuery( event.second, Owner );
-                        }
-                    }
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner, -1.0 );
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner, -1.0 );
                 }
-                for( auto &event : pCurrentTrack->m_events1all ) {
-                    if( ( event.second != nullptr )
-                     && ( event.second->fDelay <= -1.0 ) ) {
-                        simulation::Events.AddToQuery( event.second, Owner );
-                    }
-                }
-                for( auto &event : pCurrentTrack->m_events2all ) {
-                    if( ( event.second != nullptr )
-                     && ( event.second->fDelay <= -1.0 ) ) {
-                        simulation::Events.AddToQuery( event.second, Owner );
-                    }
-                }
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner, -1.0 );
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner, -1.0 );
             }
             fCurrentDistance = s;
-            // fDistance=0;
             return ComputatePosition(); // przeliczenie XYZ, true o ile nie wyjechał na NULL
         }
     }

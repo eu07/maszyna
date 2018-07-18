@@ -8,7 +8,7 @@
 
 class cStars {
 
-    friend class opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // types:
@@ -16,7 +16,7 @@ public:
 // methods:
     void init();
 // constructors:
-
+    cStars() = default;
 // deconstructor:
 
 // members:

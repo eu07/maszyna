@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "MdlMngr.h"
 #include "simulation.h"
+#include "simulationtime.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
@@ -361,13 +362,14 @@ void TAnimContainer::UpdateModelIK()
 { // odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
     if (pSubModel) // pozbyć się tego - sprawdzać wcześniej
     {
-        if (pSubModel->b_Anim & at_IK)
+        if ((pSubModel->b_Anim == TAnimType::at_IK)
+          ||(pSubModel->b_Anim == TAnimType::at_IK22))
         { // odwrotna kinematyka
             float3 d, k;
             TSubModel *ch = pSubModel->ChildGet();
             switch (pSubModel->b_Anim)
             {
-            case at_IK11: // stopa: ustawić w kierunku czubka (pierwszy potomny)
+            case TAnimType::at_IK11: // stopa: ustawić w kierunku czubka (pierwszy potomny)
                 d = ch->Translation1Get(); // wektor względem aktualnego układu (nie uwzględnia
                 // obrotu)
                 k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
@@ -377,7 +379,7 @@ void TAnimContainer::UpdateModelIK()
                 // WriteLog("--> "+AnsiString(k.x)+" "+AnsiString(k.y)+" "+AnsiString(k.z));
                 // Ra: to już jest dobrze, może być inna ćwiartka i znak
                 break;
-            case at_IK22: // udo: ustawić w kierunku pierwszej potomnej pierwszej potomnej (kostki)
+            case TAnimType::at_IK22: // udo: ustawić w kierunku pierwszej potomnej pierwszej potomnej (kostki)
                 // pozycję kostki należy określić względem kości centralnej (+biodro może być
                 // pochylone)
                 // potem wyliczyć ewentualne odchylenie w tej i następnej
@@ -420,7 +422,7 @@ TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedat
 
 TAnimModel::~TAnimModel()
 {
-    delete pAdvanced; // nie ma zaawansowanej animacji
+    SafeDelete(pAdvanced); // nie ma zaawansowanej animacji
     SafeDelete(pRoot);
 }
 
@@ -551,7 +553,7 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
 
     // Ra 2F1I: to by można pomijać dla modeli bez animacji, których jest większość
     TAnimContainer *pCurrent;
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
+    for (pCurrent = pRoot; pCurrent != nullptr; pCurrent = pCurrent->pNext)
         if (!pCurrent->evDone) // jeśli jest bez eventu
             pCurrent->UpdateModel(); // przeliczenie animacji każdego submodelu
     // if () //tylko dla modeli z IK !!!!
@@ -567,20 +569,42 @@ void TAnimModel::RaPrepare()
     for (int i = 0; i < iNumLights; ++i)
     {
         auto const lightmode { static_cast<int>( lsLights[ i ] ) };
-        switch (lightmode)
-        {
-        case ls_Blink: // migotanie
-            state = ( fBlinkTimer < fOnTime );
-            break;
-        case ls_Dark: // zapalone, gdy ciemno
-            state = (
-                Global.fLuminance <= (
-                    lsLights[i] == 3.f ?
-                        DefaultDarkThresholdLevel :
-                        ( lsLights[i] - 3.f ) ) );
-            break;
-        default: // zapalony albo zgaszony
-            state = (lightmode == ls_On);
+        switch( lightmode ) {
+            case ls_On:
+            case ls_Off: {
+                // zapalony albo zgaszony
+                state = ( lightmode == ls_On );
+                break;
+            }
+            case ls_Blink: {
+                // migotanie
+                state = ( fBlinkTimer < fOnTime );
+                break;
+            }
+            case ls_Dark: {
+                // zapalone, gdy ciemno
+                state = (
+                    Global.fLuminance <= (
+                        lsLights[ i ] == static_cast<float>( ls_Dark ) ?
+                            DefaultDarkThresholdLevel :
+                            ( lsLights[ i ] - static_cast<float>( ls_Dark ) ) ) );
+                break;
+            }
+            case ls_Home: {
+                // like ls_dark but off late at night
+                auto const simulationhour { simulation::Time.data().wHour };
+                state = (
+                    Global.fLuminance <= (
+                        lsLights[ i ] == static_cast<float>( ls_Home ) ?
+                            DefaultDarkThresholdLevel :
+                            ( lsLights[ i ] - static_cast<float>( ls_Home ) ) ) );
+                // force the lights off between 1-5am
+                state = state && (( simulationhour < 1 ) || ( simulationhour >= 5 ));
+                break;
+            }
+            default: {
+                break;
+            }
         }
         if (LightsOn[i])
             LightsOn[i]->iVisible = state;
@@ -609,10 +633,6 @@ int TAnimModel::Flags()
 
 //---------------------------------------------------------------------------
 
-bool TAnimModel::TerrainLoaded()
-{ // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
-    return (this ? pModel != NULL : false);
-};
 int TAnimModel::TerrainCount()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
     return pModel ? pModel->TerrainCount() : 0;
@@ -757,31 +777,6 @@ void TAnimModel::LightSet(int const n, float const v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
     lsLights[ n ] = v;
-    switch( static_cast<int>( lsLights[ n ] ) ) {
-        // interpretacja ułamka zależnie od typu
-        case ls_Off: {
-            // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
-            break;
-        }
-        case ls_On: {
-            // ustalenie wypełnienia ułamkiem, np. 1.25 => zapalony przez 1/4 okresu
-            break;
-        }
-        case ls_Blink: {
-            // ustalenie częstotliwości migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
-            break;
-        }
-        case ls_Dark: {
-            // zapalenie świateł zależne od oświetlenia scenerii
-/*
-            if( v == 3.f ) {
-                // standardowy próg zaplania
-                lsLights[ n ] = 3.f + DefaultDarkThresholdLevel;
-            } 
-*/
-            break;
-        }
-    }
 };
 
 void TAnimModel::AnimUpdate(double dt)

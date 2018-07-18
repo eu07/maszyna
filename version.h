@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 16.06.2018/2, based on tmj ef5811e6"
+#define VERSION_INFO "M7 17.07.2018/2, based on tmj 3751c8a"

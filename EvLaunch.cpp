@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Console.h"
 #include "World.h"
+#include "simulationtime.h"
 #include "utilities.h"
 
 //---------------------------------------------------------------------------
@@ -137,10 +138,11 @@ bool TEventLauncher::Load(cParser *parser)
     return true;
 }
 
-bool TEventLauncher::check_conditions()
-{ //"renderowanie" wyzwalacza
+bool TEventLauncher::check_activation() {
+
     auto bCond { false };
-    if (iKey != 0) {
+
+    if( iKey != 0 ) {
         if( iKey > 255 ) {
             // key and modifier
             auto const modifier = ( iKey & 0xff00 ) >> 8;
@@ -153,37 +155,45 @@ bool TEventLauncher::check_conditions()
             bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
         }
     }
-    if (DeltaTime > 0)
-    {
-        if (UpdatedTime > DeltaTime)
-        {
+    if( DeltaTime > 0 ) {
+        if( UpdatedTime > DeltaTime ) {
             UpdatedTime = 0; // naliczanie od nowa
             bCond = true;
         }
-        else
-            UpdatedTime += Timer::GetDeltaTime(); // aktualizacja naliczania czasu
+        else {
+            // aktualizacja naliczania czasu
+            UpdatedTime += Timer::GetDeltaTime();
+        }
     }
-    else
-    { // jeśli nie cykliczny, to sprawdzić czas
-        if (simulation::Time.data().wHour == iHour)
-        {
-            if (simulation::Time.data().wMinute == iMinute)
-            { // zgodność czasu uruchomienia
-                if (UpdatedTime < 10)
-                {
+    else {
+        // jeśli nie cykliczny, to sprawdzić czas
+        if( simulation::Time.data().wHour == iHour ) {
+            if( simulation::Time.data().wMinute == iMinute ) {
+                // zgodność czasu uruchomienia
+                if( UpdatedTime < 10 ) {
                     UpdatedTime = 20; // czas do kolejnego wyzwolenia?
                     bCond = true;
                 }
             }
         }
-        else
+        else {
             UpdatedTime = 1;
+        }
     }
-    if (bCond) // jeśli spełniony został warunek
-    {
-        if ((iCheckMask != 0) && MemCell) // sprawdzanie warunku na komórce pamięci
-            bCond = MemCell->Compare(szText, fVal1, fVal2, iCheckMask);
+
+    return bCond;
+}
+
+bool TEventLauncher::check_conditions() {
+
+    auto bCond { true };
+
+    if( ( iCheckMask != 0 )
+     && ( MemCell != nullptr ) ) {
+        // sprawdzanie warunku na komórce pamięci
+        bCond = MemCell->Compare( szText, fVal1, fVal2, iCheckMask );
     }
+
     return bCond; // sprawdzanie dRadius w Ground.cpp
 }
 

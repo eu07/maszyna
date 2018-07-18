@@ -740,6 +740,14 @@ basic_node::export_as_text( std::ostream &Output ) const {
     export_as_text_( Output );
 }
 
+void
+basic_node::export_as_text( std::string &Output ) const {
+
+    std::stringstream converter;
+    export_as_text( converter );
+    Output += converter.str();
+}
+
 float const &
 basic_node::radius() {
 
@@ -759,4 +767,5 @@ basic_node::radius_() {
 }
 
 } // scene
+
 //---------------------------------------------------------------------------

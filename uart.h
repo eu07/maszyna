@@ -48,7 +48,7 @@ public:
 
 private:
 // types
-    enum input_type_t
+    enum class input_type_t
     {
         toggle, // two commands, each mapped to one state; press event on state change
         impulse, // one command; press event when set, release when cleared

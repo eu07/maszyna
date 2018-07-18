@@ -28,6 +28,10 @@ public:
         key( int const Key, int const Action );
     void
         poll();
+    inline
+    user_command const
+        command() const {
+            return m_command; }
 
 private:
 // types
@@ -65,13 +69,14 @@ private:
 
 // members
     commandsetup_sequence m_commands;
+    user_command m_command { user_command::none }; // last, if any, issued command
     usercommand_map m_bindings;
     command_relay m_relay;
-    bool m_shift{ false };
-    bool m_ctrl{ false };
+    bool m_shift { false };
+    bool m_ctrl { false };
     bindings_cache m_bindingscache;
-    glm::vec2 m_movementhorizontal;
-    float m_movementvertical;
+    glm::vec2 m_movementhorizontal { 0.f };
+    float m_movementvertical { 0.f };
     std::array<char, GLFW_KEY_LAST + 1> m_keys;
 };
 

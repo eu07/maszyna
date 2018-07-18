@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "sound.h"
 
-enum TGaugeType {
+enum class TGaugeType {
     // typ ruchu
     gt_Unknown, // na razie nie znany
     gt_Rotate, // obrót
@@ -60,7 +60,7 @@ private:
         GetScaledValue() const;
 
 // members
-    TGaugeType m_type { gt_Unknown }; // typ ruchu
+    TGaugeType m_type { TGaugeType::gt_Unknown }; // typ ruchu
     float m_friction { 0.f }; // hamowanie przy zliżaniu się do zadanej wartości
     float m_targetvalue { 0.f }; // wartość docelowa
     float m_value { 0.f }; // wartość obecna

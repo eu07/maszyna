@@ -80,6 +80,11 @@ set(SOURCES
 "light.cpp"
 "uitranscripts.cpp"
 "station.cpp"
+"application.cpp"
+"simulationtime.cpp"
+"sceneeditor.cpp"
+"screenshot.cpp"
+
 "gl/shader.cpp"
 "gl/vao.cpp"
 "gl/ubo.cpp"

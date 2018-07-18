@@ -73,7 +73,7 @@ enum TStopReason
     stopError // z powodu błędu w obliczeniu drogi hamowania
 };
 
-enum TAction
+enum class TAction : int
 { // przechowanie aktualnego stanu AI od poprzedniego przebłysku świadomości
     actUnknown, // stan nieznany (domyślny na początku)
     actPantUp, // podnieś pantograf (info dla użytkownika)
@@ -131,6 +131,7 @@ class TSpeedPos
     // zwrotnicy,32-minięty,64=koniec,128=łuk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysłana komenda,0x2000=W5
     // 0x4000=semafor,0x10000=zatkanie
+	bool bMoved{ false }; // czy przesunięty (dotyczy punktu zatrzymania w peronie)
     Math3D::vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {
@@ -222,7 +223,7 @@ private:
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
-    TAction eAction { actUnknown }; // aktualny stan
+    TAction eAction { TAction::actUnknown }; // aktualny stan
   public:
     inline 
     TAction GetAction() {

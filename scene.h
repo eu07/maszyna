@@ -61,10 +61,15 @@ struct scratch_data {
 // TBD, TODO: replace with quadtree scheme?
 class basic_cell {
 
-    friend class ::opengl_renderer;
+    friend opengl_renderer;
 
 public:
+// constructors
+    basic_cell() = default;
 // methods
+    // potentially activates event handler with the same name as provided node, and within handler activation range
+    void
+        on_click( TAnimModel const *Instance );
     // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
@@ -113,12 +118,21 @@ public:
     // adds provided event launcher to the cell
     void
         insert( TEventLauncher *Launcher );
+    // adds provided memory cell to the cell
+    void
+        insert( TMemCell *Memorycell );
     // registers provided path in the lookup directory of the cell
     void
         register_end( TTrack *Path );
     // registers provided traction piece in the lookup directory of the cell
     void
         register_end( TTraction *Traction );
+    // removes provided model instance from the cell
+    void
+        erase( TAnimModel *Instance );
+    // removes provided memory cell from the cell
+    void
+        erase( TMemCell *Memorycell );
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler ) const;
@@ -150,7 +164,10 @@ private:
     using instance_sequence = std::vector<TAnimModel *>;
     using sound_sequence = std::vector<sound_source *>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
+    using memorycell_sequence = std::vector<TMemCell *>;
 // methods
+    void
+        launch_event( TEventLauncher *Launcher );
     void
         enclose_area( scene::basic_node *Node );
 // members
@@ -166,6 +183,7 @@ private:
     traction_sequence m_traction;
     sound_sequence m_sounds;
     eventlauncher_sequence m_eventlaunchers;
+    memorycell_sequence m_memorycells;
     // search helpers
     struct lookup_data {
         path_sequence paths;
@@ -180,11 +198,16 @@ private:
 // basic scene partitioning structure, holds terrain geometry and collection of cells
 class basic_section {
 
-    friend class ::opengl_renderer;
+    friend opengl_renderer;
 
 public:
+// constructors
+    basic_section() = default;
 // methods
-// legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+    // potentially activates event handler with the same name as provided node, and within handler activation range
+    void
+        on_click( TAnimModel const *Instance );
+    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
     // legacy method, updates sounds and polls event launchers within radius around specified point
@@ -221,6 +244,13 @@ public:
             m_area.radius = std::max(
                 m_area.radius,
                 static_cast<float>( glm::length( m_area.center - targetcell.area().center ) + targetcell.area().radius ) ); }
+    // erases provided node from the section
+    template <class Type_>
+    void
+        erase( Type_ *Node ) {
+            auto &targetcell { cell( Node->location() ) };
+            // TODO: re-calculate bounding area after removal
+            targetcell.erase( Node ); }
     // registers provided node in the lookup directory of the section enclosing specified point
     template <class Type_>
     void
@@ -272,7 +302,7 @@ private:
 // top-level of scene spatial structure, holds collection of sections
 class basic_region {
 
-    friend class ::opengl_renderer;
+    friend opengl_renderer;
 
 public:
 // constructors
@@ -280,7 +310,10 @@ public:
 // destructor
     ~basic_region();
 // methods
-// legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
+    // potentially activates event handler with the same name as provided node, and within handler activation range
+    void
+        on_click( TAnimModel const *Instance );
+    // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
     void
         update_traction( TDynamicObject *Vehicle, int const Pantographindex );
     // legacy method, polls event launchers around camera
@@ -306,25 +339,35 @@ public:
         RadioStop( glm::dvec3 const &Location );
     // inserts provided shape in the region
     void
-        insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
+        insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
     // inserts provided lines in the region
     void
-        insert_lines( lines_node Lines, scratch_data &Scratchpad );
-    // inserts provided track in the region
+        insert( lines_node Lines, scratch_data &Scratchpad );
+    // inserts provided node in the region
+    template <class Type_>
     void
-        insert_path( TTrack *Path, const scratch_data &Scratchpad );
-    // inserts provided track in the region
+        insert( Type_ *Node ) {
+            auto const location { Node->location() };
+            if( false == point_inside( location ) ) {
+                // NOTE: nodes placed outside of region boundaries are discarded
+                // TBD, TODO: clamp coordinates to region boundaries?
+                return; }
+            section( location ).insert( Node ); }
+    // inserts provided node in the region and registers its ends in lookup directory
+    template <class Type_>
     void
-        insert_traction( TTraction *Traction, scratch_data &Scratchpad );
-    // inserts provided instance of 3d model in the region
+        insert_and_register( Type_ *Node ) {
+            insert( Node );
+            for( auto const &point : Node->endpoints() ) {
+                if( point_inside( point ) ) {
+                    section( point ).register_node( Node, point ); } } }
+    // removes specified node from the region
+    template <class Type_>
     void
-        insert_instance( TAnimModel *Instance, scratch_data &Scratchpad );
-    // inserts provided sound in the region
-    void
-        insert_sound( sound_source *Sound, scratch_data &Scratchpad );
-    // inserts provided event launcher in the region
-    void
-        insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad );
+        erase( Type_ *Node ) {
+            auto const location{ Node->location() };
+            if( point_inside( location ) ) {
+                section( location ).erase( Node ); } }
     // find a vehicle located nearest to specified point, within specified radius. reurns: located vehicle and distance
     std::tuple<TDynamicObject *, float>
         find_vehicle( glm::dvec3 const &Point, float const Radius, bool const Onlycontrolled, bool const Findbycoupler );
@@ -351,12 +394,6 @@ private:
     };
 
 // methods
-    // registers specified end point of the provided path in the lookup directory of the region
-    void
-        register_path( TTrack *Path, glm::dvec3 const &Point );
-    // registers specified end point of the provided traction piece in the lookup directory of the region
-    void
-        register_traction( TTraction *Traction, glm::dvec3 const &Point );
     // checks whether specified point is within boundaries of the region
     bool
         point_inside( glm::dvec3 const &Location );

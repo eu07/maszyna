@@ -13,11 +13,13 @@
 #include "Timer.h"
 #include "utilities.h"
 #include "Logs.h"
+#include "simulationtime.h"
+#include "sceneeditor.h"
+#include "application.h"
 
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
-extern bool take_screenshot;
 ui_layer UILayer;
 
 ui_layer::~ui_layer() {
@@ -77,6 +79,12 @@ bool ui_layer::mouse_button_callback(int button, int action, int mods)
 {
     ImGui_ImplGlfw_MouseButtonCallback(m_window, button, action, mods);
     return imgui_io->WantCaptureMouse;
+}
+
+void ui_layer::set_cursor(const int Mode)
+{
+    glfwSetInputMode( m_window, GLFW_CURSOR, Mode );
+    m_cursorvisible = ( Mode != GLFW_CURSOR_DISABLED );
 }
 
 // potentially processes provided input key. returns: true if key was processed, false otherwise
@@ -150,7 +158,13 @@ ui_layer::on_key( int const Key, int const Action ) {
 
         case GLFW_KEY_F11: {
             // scenario inspector
-            m_f11active = !m_f11active;
+            EditorModeFlag = !EditorModeFlag;
+            if( ( true == EditorModeFlag )
+             && ( false == Global.ControlPicking ) )
+            {
+                set_cursor(GLFW_CURSOR_NORMAL);
+                Global.ControlPicking = true;
+            }
             return true;
         }
 
@@ -233,7 +247,7 @@ ui_layer::render() {
             else if( mover->ActiveDir < 0 ) { uitextline2 += " R"; }
             else                            { uitextline2 += " N"; }
 
-            uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos ) + ( mover->SlippingWheels ? " !" : "  " );
+            uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePosA ) + ( mover->SlippingWheels ? " !" : "  " );
 
             uitextline4 = (
                 true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
@@ -452,7 +466,7 @@ ui_layer::render() {
             uitextline2 += ( vehicle->MoverParameters->OilPump.is_active ? "O" : ( vehicle->MoverParameters->OilPump.is_enabled ? "o" : "." ) );
             uitextline2 += ( false == vehicle->MoverParameters->ConverterAllowLocal ? "-" : ( vehicle->MoverParameters->ConverterAllow ? ( vehicle->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
             uitextline2 += ( vehicle->MoverParameters->ConvOvldFlag ? "!" : "." );
-            uitextline2 += ( vehicle->MoverParameters->CompressorFlag ? "C" : ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorStart == start::automatic ) ? "c" : "." ) ) );
+            uitextline2 += ( vehicle->MoverParameters->CompressorFlag ? "C" : ( false == vehicle->MoverParameters->CompressorAllowLocal ? "-" : ( ( vehicle->MoverParameters->CompressorAllow || vehicle->MoverParameters->CompressorStart == start_t::automatic ) ? "c" : "." ) ) );
             uitextline2 += ( vehicle->MoverParameters->CompressorGovernorLock ? "!" : "." );
 
             auto const train { Global.pWorld->train() };
@@ -695,18 +709,154 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    if (m_f11active)
+    if (EditorModeFlag)
     {
-        // scenario inspector
+        uitextline1 = "";
+        uitextline2 = "";
+        uitextline3 = "";
+        uitextline4 = "";
+
+        auto const *node { scene::Editor.node() };
+
+        if( node == nullptr ) {
+            auto const mouseposition { Global.pCamera->Pos + GfxRenderer.Mouse_Position() };
+            uitextline1 = "mouse location: [" + to_string( mouseposition.x, 2 ) + ", " + to_string( mouseposition.y, 2 ) + ", " + to_string( mouseposition.z, 2 ) + "]";
+        }
+        else
+        {
+            uitextline1 =
+                "node name: " + node->name()
+                + "; location: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
+                + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ Global.pCameraPosition.x, 0.0, Global.pCameraPosition.z } ), 1 ) + " m)";
+            // subclass-specific data
+            // TBD, TODO: specialized data dump method in each node subclass, or data imports in the panel for provided subclass pointer?
+            if( typeid( *node ) == typeid( TAnimModel ) ) {
+
+                auto const *subnode = static_cast<TAnimModel const *>( node );
+
+                uitextline2 = "angle: " + to_string( clamp_circular( subnode->vAngle.y, 360.f ), 2 ) + " deg";
+                uitextline2 += "; lights: ";
+                if( subnode->iNumLights > 0 ) {
+                    uitextline2 += '[';
+                    for( int lightidx = 0; lightidx < subnode->iNumLights; ++lightidx ) {
+                        uitextline2 += to_string( subnode->lsLights[ lightidx ] );
+                        if( lightidx < subnode->iNumLights - 1 ) {
+                            uitextline2 += ", ";
+                        }
+                    }
+                    uitextline2 += ']';
+                }
+                else {
+                    uitextline2 += "none";
+                }
+                    // 3d shape
+                auto modelfile { (
+                    subnode->pModel ?
+                        subnode->pModel->NameGet() :
+                        "none" ) };
+                if( modelfile.find( szModelPath ) == 0 ) {
+                    // don't include 'models/' in the path
+                    modelfile.erase( 0, std::string{ szModelPath }.size() );
+                }
+                // texture
+                auto texturefile { (
+                    subnode->Material()->replacable_skins[ 1 ] != null_handle ?
+                        GfxRenderer.Material( subnode->Material()->replacable_skins[ 1 ] ).name :
+                        "none" ) };
+                if( texturefile.find( szTexturePath ) == 0 ) {
+                    // don't include 'textures/' in the path
+                    texturefile.erase( 0, std::string{ szTexturePath }.size() );
+                }
+                uitextline3 = "mesh: " + modelfile;
+                uitextline4 = "skin: " + texturefile;
+            }
+            else if( typeid( *node ) == typeid( TTrack ) ) {
+
+                auto const *subnode = static_cast<TTrack const *>( node );
+                // basic attributes
+                uitextline2 =
+                    "isolated: " + ( subnode->pIsolated ? subnode->pIsolated->asName : "none" )
+                    + "; velocity: " + to_string( subnode->SwitchExtension ? subnode->SwitchExtension->fVelocity : subnode->fVelocity )
+                    + "; width: " + to_string( subnode->fTrackWidth ) + " m"
+                    + "; friction: " + to_string( subnode->fFriction, 2 )
+                    + "; quality: " + to_string( subnode->iQualityFlag );
+                // textures
+                auto texturefile { (
+                    subnode->m_material1 != null_handle ?
+                        GfxRenderer.Material( subnode->m_material1 ).name :
+                        "none" ) };
+                if( texturefile.find( szTexturePath ) == 0 ) {
+                    texturefile.erase( 0, std::string{ szTexturePath }.size() );
+                }
+                auto texturefile2{ (
+                    subnode->m_material2 != null_handle ?
+                        GfxRenderer.Material( subnode->m_material2 ).name :
+                        "none" ) };
+                if( texturefile2.find( szTexturePath ) == 0 ) {
+                    texturefile2.erase( 0, std::string{ szTexturePath }.size() );
+                }
+                uitextline2 += "; skins: [" + texturefile + ", " + texturefile2 + "]";
+                // paths
+                uitextline3 = "paths: ";
+                for( auto const &path : subnode->m_paths ) {
+                    uitextline3 +=
+                        "["
+                        + to_string( path.points[ segment_data::point::start ].x, 3 ) + ", "
+                        + to_string( path.points[ segment_data::point::start ].y, 3 ) + ", "
+                        + to_string( path.points[ segment_data::point::start ].z, 3 ) + "]->"
+                        + "["
+                        + to_string( path.points[ segment_data::point::end ].x, 3 ) + ", "
+                        + to_string( path.points[ segment_data::point::end ].y, 3 ) + ", "
+                        + to_string( path.points[ segment_data::point::end ].z, 3 ) + "] ";
+                }
+                // events
+                std::vector< std::pair< std::string, TTrack::event_sequence const * > > const eventsequences {
+                    { "ev0", &subnode->m_events0 }, { "ev0all", &subnode->m_events0all },
+                    { "ev1", &subnode->m_events1 }, { "ev1all", &subnode->m_events1all },
+                    { "ev2", &subnode->m_events2 }, { "ev2all", &subnode->m_events2all } };
+
+                for( auto const &eventsequence : eventsequences ) {
+                    if( eventsequence.second->empty() ) { continue; }
+                    uitextline4 += eventsequence.first + ": [";
+                    for( auto const &event : *( eventsequence.second ) ) {
+                        if( uitextline4.back() != '[' ) {
+                            uitextline4 += ", ";
+                        }
+                        if( event.second ) {
+                            uitextline4 += event.second->asName;
+                        }
+                    }
+                    uitextline4 += "] ";
+                }
+
+            }
+            else if( typeid( *node ) == typeid( TMemCell ) ) {
+
+                auto const *subnode = static_cast<TMemCell const *>( node );
+
+                uitextline2 =
+                    "data: [" + subnode->Text() + "]"
+                    + " [" + to_string( subnode->Value1(), 2 ) + "]"
+                    + " [" + to_string( subnode->Value2(), 2 ) + "]";
+                uitextline3 = "track: " + ( subnode->asTrackName.empty() ? "none" : subnode->asTrackName );
+            }
+        }
+        ImGui::SetNextWindowSize(ImVec2(0, 0));
+        ImGui::Begin("Inspector", &EditorModeFlag, ImGuiWindowFlags_NoResize);
+        ImGui::TextUnformatted(uitextline1.c_str());
+        ImGui::TextUnformatted(uitextline2.c_str());
+        ImGui::TextUnformatted(uitextline3.c_str());
+        ImGui::TextUnformatted(uitextline4.c_str());
+        ImGui::End();
+    }
+
+    if (events_active)
+    {
+        ImGui::SetNextWindowSize(ImVec2(0, 0));
+        ImGui::Begin("Events", &events_active, ImGuiWindowFlags_NoResize);
+
         auto const time { Timer::GetTime() };
         auto const *event { simulation::Events.begin() };
-        if (event == nullptr)
-        {
-            m_f11active = false;
-            goto f11_cancel;
-        }
-
-        ImGui::Begin("Inspector", &m_f11active);
 
         auto eventtableindex{ 0 };
         while( ( event != nullptr )) {
@@ -730,8 +880,6 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    f11_cancel:;
-
     auto *vehicle {
         ( FreeFlyModeFlag ?
             std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera->Pos, 20, false, false ) ) :
@@ -753,9 +901,9 @@ ui_layer::render() {
 
         uitextline2 =
             "HamZ=" + to_string( vehicle->MoverParameters->fBrakeCtrlPos, 2 )
-            + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePos ) + "/" + to_string( vehicle->MoverParameters->LocalBrakePosA, 2 )
+            + "; HamP=" + std::to_string( vehicle->MoverParameters->LocalBrakePosA )
             + "; NasJ=" + std::to_string( vehicle->MoverParameters->MainCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->MainCtrlActualPos ) + ")"
-            + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == DieselElectric ) ?
+            + ( ( vehicle->MoverParameters->ShuntMode && vehicle->MoverParameters->EngineType == TEngineType::DieselElectric ) ?
                 "; NasB=" + to_string( vehicle->MoverParameters->AnPos, 2 ) :
                 "; NasB=" + std::to_string( vehicle->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( vehicle->MoverParameters->ScndCtrlActualPos ) + ")" )
             + "; I=" +
@@ -820,7 +968,7 @@ ui_layer::render() {
             uitextline3 += " Vtrack " + to_string( vehicle->MoverParameters->RunningTrack.Velmax, 2 );
         }
 
-        if( ( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+        if( ( vehicle->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
             || ( vehicle->MoverParameters->TrainType == dt_EZT ) ) {
             uitextline3 +=
                 "; pant. " + to_string( vehicle->MoverParameters->PantPress, 2 )
@@ -852,7 +1000,7 @@ ui_layer::render() {
         std::list<std::string> table;
 
         // induction motor data
-        if( vehicle->MoverParameters->EngineType == ElectricInductionMotor ) {
+        if( vehicle->MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) {
 
             table.emplace_back( "      eimc:            eimv:            press:" );
             for( int i = 0; i <= 20; ++i ) {
@@ -875,7 +1023,7 @@ ui_layer::render() {
                 table.emplace_back( parameters);
             }
         }
-        if (vehicle->MoverParameters->EngineType == DieselEngine) {
+        if (vehicle->MoverParameters->EngineType == TEngineType::DieselEngine) {
             std::string parameters = "param       value";
             table.emplace_back(parameters);
             parameters = "efill: " + to_string(vehicle->MoverParameters->dizel_fill, 2, 9);
@@ -993,7 +1141,8 @@ ui_layer::render() {
                 ImGui::MenuItem("Timetable", "F2", &m_f2active);
                 ImGui::MenuItem("Vehicle info", "F3", &m_f3active);
                 ImGui::MenuItem("Renderer stats", "F8", &m_f8active);
-                ImGui::MenuItem("Scenery inspector", "F11", &m_f11active);
+                ImGui::MenuItem("Scenery inspector", "F11", &EditorModeFlag);
+                ImGui::MenuItem("Events", nullptr, &events_active);
                 ImGui::MenuItem("Log", "F12", &log_active);
                 ImGui::EndMenu();
             }
@@ -1008,7 +1157,7 @@ ui_layer::render() {
                     Global.iWriteLogEnabled &= ~1;
 
                 if (ImGui::MenuItem("Screenshot", "PrtScr"))
-                    take_screenshot = true;
+                    Application.queue_screenshot();
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Help"))
@@ -1073,7 +1222,7 @@ ui_layer::render_progress() {
 void
 ui_layer::render_tooltip() {
 
-    if( m_tooltip.empty() ) { return; }
+    if( !m_cursorvisible || m_tooltip.empty() ) { return; }
 
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );

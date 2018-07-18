@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef ConsoleH
 #define ConsoleH
 #include "Globals.h"
+#include "application.h"
 //---------------------------------------------------------------------------
 class TConsoleDevice; // urządzenie podłączalne za pomocą DLL
 class TPoKeys55;
@@ -51,7 +52,7 @@ class Console
 
 	inline static bool Pressed(int x)
 	{ // na razie tak - czyta się tylko klawiatura
-	    if (glfwGetKey(Global.window, x) == GLFW_TRUE)
+	    if (glfwGetKey(Application.window(), x) == GLFW_TRUE)
 	        return true;
 	    else
 	        return false;

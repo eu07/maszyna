@@ -49,37 +49,37 @@ TCommandType TMemCell::CommandCheck()
 { // rozpoznanie komendy
     if( szText == "SetVelocity" ) // najpopularniejsze
     {
-        eCommand = cm_SetVelocity;
+        eCommand = TCommandType::cm_SetVelocity;
         bCommand = false; // ta komenda nie jest wysyłana
     }
     else if( szText == "ShuntVelocity" ) // w tarczach manewrowych
     {
-        eCommand = cm_ShuntVelocity;
+        eCommand = TCommandType::cm_ShuntVelocity;
         bCommand = false; // ta komenda nie jest wysyłana
     }
     else if( szText == "Change_direction" ) // zdarza się
     {
-        eCommand = cm_ChangeDirection;
+        eCommand = TCommandType::cm_ChangeDirection;
         bCommand = true; // do wysłania
     }
     else if( szText == "OutsideStation" ) // zdarza się
     {
-        eCommand = cm_OutsideStation;
+        eCommand = TCommandType::cm_OutsideStation;
         bCommand = false; // tego nie powinno być w komórce
     }
     else if( szText.compare( 0, 19, "PassengerStopPoint:" ) == 0 ) // porównanie początków
     {
-        eCommand = cm_PassengerStopPoint;
+        eCommand = TCommandType::cm_PassengerStopPoint;
         bCommand = false; // tego nie powinno być w komórce
     }
     else if( szText == "SetProximityVelocity" ) // nie powinno tego być
     {
-        eCommand = cm_SetProximityVelocity;
+        eCommand = TCommandType::cm_SetProximityVelocity;
         bCommand = false; // ta komenda nie jest wysyłana
     }
     else
     {
-        eCommand = cm_Unknown; // ciąg nierozpoznany (nie jest komendą)
+        eCommand = TCommandType::cm_Unknown; // ciąg nierozpoznany (nie jest komendą)
         bCommand = true; // do wysłania
     }
     return eCommand;
@@ -139,11 +139,11 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
 
 bool TMemCell::IsVelocity() const
 { // sprawdzenie, czy event odczytu tej komórki ma być do skanowania, czy do kolejkowania
-    if (eCommand == cm_SetVelocity)
+    if (eCommand == TCommandType::cm_SetVelocity)
         return true;
-    if (eCommand == cm_ShuntVelocity)
+    if (eCommand == TCommandType::cm_ShuntVelocity)
         return true;
-    return (eCommand == cm_SetProximityVelocity);
+    return (eCommand == TCommandType::cm_SetProximityVelocity);
 };
 
 void TMemCell::StopCommandSent()

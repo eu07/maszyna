@@ -22,6 +22,19 @@ namespace scene {
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
 
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_cell::on_click( TAnimModel const *Instance ) {
+
+    for( auto *launcher : m_eventlaunchers ) {
+        if( ( launcher->name() == Instance->name() )
+         && ( glm::length2( launcher->location() - Instance->location() ) < launcher->dRadius )
+         && ( true == launcher->check_conditions() ) ) {
+            launch_event( launcher );
+        }
+    }
+}
+
 // legacy method, finds and assigns traction piece to specified pantograph of provided vehicle
 void
 basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex ) {
@@ -105,17 +118,10 @@ basic_cell::update_events() {
 
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
-        if( ( true == launcher->check_conditions() )
+        if( ( true == ( launcher->check_activation() && launcher->check_conditions() ) )
          && ( SquareMagnitude( launcher->location() - Global.pCameraPosition ) < launcher->dRadius ) ) {
 
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( ( true == Global.shiftState )
-             && ( launcher->Event2 != nullptr ) ) {
-                simulation::Events.AddToQuery( launcher->Event2, nullptr );
-            }
-            else if( launcher->Event1 ) {
-                simulation::Events.AddToQuery( launcher->Event1, nullptr );
-            }
+            launch_event( launcher );
         }
     }
 }
@@ -124,7 +130,6 @@ basic_cell::update_events() {
 void
 basic_cell::update_sounds() {
 
-    auto const deltatime = Timer::GetDeltaRenderTime();
     for( auto *sound : m_sounds ) {
         sound->play_event();
     }
@@ -361,6 +366,7 @@ basic_cell::insert( sound_source *Sound ) {
     m_active = true;
 
     m_sounds.emplace_back( Sound );
+    // NOTE: sound sources are virtual 'points' hence they don't ever expand cell range
 }
 
 // adds provided sound instance to the cell
@@ -372,6 +378,60 @@ basic_cell::insert( TEventLauncher *Launcher ) {
     m_eventlaunchers.emplace_back( Launcher );
     // re-calculate cell bounding area, in case launcher range extends outside the cell's boundaries
     enclose_area( Launcher );
+}
+
+// adds provided memory cell to the cell
+void
+basic_cell::insert( TMemCell *Memorycell ) {
+
+    m_active = true;
+
+    m_memorycells.emplace_back( Memorycell );
+    // NOTE: memory cells are virtual 'points' hence they don't ever expand cell range
+}
+
+// removes provided model instance from the cell
+void
+basic_cell::erase( TAnimModel *Instance ) {
+
+    auto const flags = Instance->Flags();
+    auto alpha =
+        ( Instance->Material() != nullptr ?
+            Instance->Material()->textures_alpha :
+            0x30300030 );
+
+    if( alpha & flags & 0x2F2F002F ) {
+        // instance has translucent pieces
+        m_instancetranslucent.erase(
+            std::remove_if(
+                std::begin( m_instancetranslucent ), std::end( m_instancetranslucent ),
+                [=]( TAnimModel *instance ) {
+                    return instance == Instance; } ),
+            std::end( m_instancetranslucent ) );
+    }
+    alpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
+    if( alpha & flags & 0x1F1F001F ) {
+        // instance has opaque pieces
+        m_instancesopaque.erase(
+            std::remove_if(
+                std::begin( m_instancesopaque ), std::end( m_instancesopaque ),
+                [=]( TAnimModel *instance ) {
+                    return instance == Instance; } ),
+            std::end( m_instancesopaque ) );
+    }
+    // TODO: update cell bounding area
+}
+
+// removes provided memory cell from the cell
+void
+basic_cell::erase( TMemCell *Memorycell ) {
+
+    m_memorycells.erase(
+        std::remove_if(
+            std::begin( m_memorycells ), std::end( m_memorycells ),
+            [=]( TMemCell *memorycell ) {
+                return memorycell == Memorycell; } ),
+        std::end( m_memorycells ) );
 }
 
 // registers provided path in the lookup directory of the cell
@@ -539,6 +599,20 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
     m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
+// executes event assigned to specified launcher
+void
+basic_cell::launch_event( TEventLauncher *Launcher ) {
+
+    WriteLog( "Eventlauncher " + Launcher->name() );
+    if( ( true == Global.shiftState )
+     && ( Launcher->Event2 != nullptr ) ) {
+        simulation::Events.AddToQuery( Launcher->Event2, nullptr );
+    }
+    else if( Launcher->Event1 ) {
+        simulation::Events.AddToQuery( Launcher->Event1, nullptr );
+    }
+}
+
 // adjusts cell bounding area to enclose specified node
 void
 basic_cell::enclose_area( scene::basic_node *Node ) {
@@ -549,6 +623,13 @@ basic_cell::enclose_area( scene::basic_node *Node ) {
 }
 
 
+
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_section::on_click( TAnimModel const *Instance ) {
+
+    cell( Instance->location() ).on_click( Instance );
+}
 
 // legacy method, finds and assigns traction piece(s) to pantographs of provided vehicle
 void
@@ -846,6 +927,19 @@ basic_region::~basic_region() {
     for( auto *section : m_sections ) { if( section != nullptr ) { delete section; } }
 }
 
+// potentially activates event handler with the same name as provided node, and within handler activation range
+void
+basic_region::on_click( TAnimModel const *Instance ) {
+
+    if( Instance->name().empty() || ( Instance->name() == "none" ) ) { return; }
+
+    auto const location { Instance->location() };
+
+    if( point_inside( location ) ) {
+        section( location ).on_click( Instance );
+    }
+}
+
 // legacy method, polls event launchers around camera
 void
 basic_region::update_events() {
@@ -1024,7 +1118,7 @@ basic_region::RadioStop( glm::dvec3 const &Location ) {
 }
 
 void
-basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
+basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
 
     // shape might need to be split into smaller pieces, so we create list of nodes instead of just single one
     // using deque so we can do single pass iterating and addding generated pieces without invalidating anything
@@ -1088,7 +1182,7 @@ basic_region::insert_shape( shape_node Shape, scratch_data &Scratchpad, bool con
 
 // inserts provided lines in the region
 void
-basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
+basic_region::insert( lines_node Lines, scratch_data &Scratchpad ) {
 
     if( Lines.m_data.vertices.empty() ) { return; }
     // transform point coordinates if needed
@@ -1127,100 +1221,6 @@ basic_region::insert_lines( lines_node Lines, scratch_data &Scratchpad ) {
                     "" :
                     " \"" + Lines.m_name + "\"" )
             + " placed in location outside region bounds (" + to_string( Lines.m_data.area.center ) + ")" );
-    }
-}
-
-// inserts provided track in the region
-void
-basic_region::insert_path( TTrack *Path, const scratch_data &Scratchpad ) {
-
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Path->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Path );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: track node \"" + Path->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-    // also register path ends in appropriate sections, for path merging lookups
-    // TODO: clean this up during track refactoring
-    for( auto &point : Path->endpoints() ) {
-        register_path( Path, point );
-    }
-}
-
-// inserts provided track in the region
-void
-basic_region::insert_traction( TTraction *Traction, scratch_data &Scratchpad ) {
-
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Traction->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Traction );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: traction node \"" + Traction->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-    // also register traction ends in appropriate sections, for path merging lookups
-    // TODO: clean this up during track refactoring
-    for( auto &point : Traction->endpoints() ) {
-        register_traction( Traction, point );
-    }
-}
-
-// inserts provided instance of 3d model in the region
-void
-basic_region::insert_instance( TAnimModel *Instance, scratch_data &Scratchpad ) {
-
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Instance->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Instance );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: model node \"" + Instance->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-}
-
-// inserts provided sound in the region
-void
-basic_region::insert_sound( sound_source *Sound, scratch_data &Scratchpad ) {
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Sound->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Sound );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: sound node \"" + Sound->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
-    }
-}
-
-// inserts provided event launcher in the region
-void
-basic_region::insert_launcher( TEventLauncher *Launcher, scratch_data &Scratchpad ) {
-
-    // NOTE: bounding area isn't present/filled until track class and wrapper refactoring is done
-    auto location = Launcher->location();
-
-    if( point_inside( location ) ) {
-        // NOTE: nodes placed outside of region boundaries are discarded
-        section( location ).insert( Launcher );
-    }
-    else {
-        // tracks are guaranteed to hava a name so we can skip the check
-        ErrorLog( "Bad scenario: event launcher \"" + Launcher->name() + "\" placed in location outside region bounds (" + to_string( location ) + ")" );
     }
 }
 
@@ -1332,24 +1332,6 @@ basic_region::sections( glm::dvec3 const &Point, float const Radius ) {
         }
     }
     return m_scratchpad.sections;
-}
-
-// registers specified path in the lookup directory of a cell enclosing specified point
-void
-basic_region::register_path( TTrack *Path, glm::dvec3 const &Point ) {
-
-    if( point_inside( Point ) ) {
-        section( Point ).register_node( Path, Point );
-    }
-}
-
-// registers specified end point of the provided traction piece in the lookup directory of the region
-void
-basic_region::register_traction( TTraction *Traction, glm::dvec3 const &Point ) {
-
-    if( point_inside( Point ) ) {
-        section( Point ).register_node( Traction, Point );
-    }
 }
 
 // checks whether specified point is within boundaries of the region

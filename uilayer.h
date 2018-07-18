@@ -43,6 +43,7 @@ public:
         set_background( std::string const &Filename = "" );
     void
         set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
+    void set_cursor(int const Mode);
 
     std::deque<std::string> log;
 
@@ -67,8 +68,10 @@ private:
     bool m_f8active = false;
     bool m_f9active = false;
     bool m_f10active = false;
-    bool m_f11active = false;
+    bool events_active = false;
     bool log_active;
+
+    bool m_cursorvisible;
 
     ImGuiIO *imgui_io;
 

@@ -181,7 +181,7 @@ TTrack * TTrack::Create400m(int what, double dx)
     trk->Segment->Init( Math3D::vector3( -dx, 0, 0 ), Math3D::vector3( -dx, 0, 400 ), 10.0, 0, 0 ); // prosty
     trk->location( glm::dvec3{ -dx, 0, 200 } ); //środek, aby się mogło wyświetlić
     simulation::Paths.insert( trk );
-    simulation::Region->insert_path( trk, scene::scratch_data() );
+    simulation::Region->insert( trk );
     return trk;
 };
 
@@ -275,11 +275,11 @@ TTrack * TTrack::NullCreate(int dir)
     // trzeba jeszcze dodać do odpowiedniego segmentu, aby się renderowały z niego pojazdy
     trk->location( glm::dvec3{ 0.5 * ( p1 + p2 ) } ); //środek, aby się mogło wyświetlić
     simulation::Paths.insert( trk );
-    simulation::Region->insert_path( trk, scene::scratch_data() );
+    simulation::Region->insert( trk );
     if( trk2 ) {
         trk2->location( trk->location() ); // ten sam środek jest
         simulation::Paths.insert( trk2 );
-        simulation::Region->insert_path( trk2, scene::scratch_data() );
+        simulation::Region->insert( trk2 );
     }
     return trk;
 };
@@ -345,7 +345,7 @@ void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
+void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
 { // pobranie obiektu trajektorii ruchu
     Math3D::vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
 	double a1, a2, r1, r2, r3, r4;
@@ -870,11 +870,11 @@ void TTrack::Load(cParser *parser, Math3D::vector3 pOrigin)
             }
 
     // calculate path location
-    m_area.center = ( glm::dvec3{ (
+    location( (
         CurrentSegment()->FastGetPoint_0()
         + CurrentSegment()->FastGetPoint( 0.5 )
         + CurrentSegment()->FastGetPoint_1() )
-        / 3.0 } );
+        / 3.0 );
 }
 
 bool TTrack::AssignEvents() {
@@ -929,6 +929,25 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
     }
     return false;
 };
+
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner ) {
+
+    for( auto const &event : Events ) {
+        if( event.second != nullptr ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
+
+void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit ) {
+
+    for( auto const &event : Events ) {
+        if( ( event.second != nullptr )
+         && ( event.second->fDelay <= Delaylimit) ) {
+            simulation::Events.AddToQuery( event.second, Owner );
+        }
+    }
+}
 
 std::string TTrack::IsolatedName()
 { // podaje nazwę odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeń
@@ -1197,7 +1216,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                  { szyna[ i ].texture.x,
                    szyna[ i ].texture.y } };
 
-            if( false == iTrapezoid ) { continue; }
+            if( iTrapezoid == 0 ) { continue; }
             // trapez albo przechyłki, to oddzielne punkty na końcu
 
             rpts1[ 12 + i ] = {

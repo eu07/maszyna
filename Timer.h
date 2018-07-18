@@ -29,6 +29,9 @@ void UpdateTimers(bool pause);
 class stopwatch {
 
 public:
+// constructors
+    stopwatch() = default;
+// methods
     void
         start() {
             m_start = std::chrono::steady_clock::now(); }
@@ -40,6 +43,7 @@ public:
             return m_accumulator / 20.f;}
 
 private:
+// members
     std::chrono::time_point<std::chrono::steady_clock> m_start { std::chrono::steady_clock::now() };
     float m_accumulator { 1000.f / 30.f * 20.f }; // 20 last samples, initial 'neutral' rate of 30 fps
 };

@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "Logs.h"
 #include "utilities.h"
+#include "simulationtime.h"
 
 opengl_renderer GfxRenderer;
 extern TWorld World;
@@ -335,6 +336,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
+
+        m_colorpass = m_renderpass;
 
 		{
             setup_shadow_map(nullptr, m_renderpass);
@@ -1191,6 +1194,11 @@ void opengl_renderer::Render(scene::basic_region *Region)
 	{
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
+        if( EditorModeFlag && FreeFlyModeFlag ) {
+            // when editor mode is active calculate world position of the cursor
+            // at this stage the z-buffer is filled with only ground geometry
+            Update_Mouse_Position();
+        }
 		Render(std::begin(m_cellqueue), std::end(m_cellqueue));
 		break;
 	}
@@ -1798,9 +1806,9 @@ bool opengl_renderer::Render(TModel3d *Model, material_data const *Material, flo
 	return true;
 }
 
-bool opengl_renderer::Render(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle)
+bool opengl_renderer::Render(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &A)
 {
-
+    Math3D::vector3 Angle(A);
 	::glPushMatrix();
 	::glTranslated(Position.x, Position.y, Position.z);
 	if (Angle.y != 0.0)
@@ -1836,7 +1844,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 			::glPushMatrix();
 			if (Submodel->fMatrix)
 				::glMultMatrixf(Submodel->fMatrix->readArray());
-			if (Submodel->b_Anim)
+            if (Submodel->b_Anim != TAnimType::at_None)
 				Submodel->RaAnimation(Submodel->b_Anim);
 		}
 
@@ -2646,9 +2654,9 @@ bool opengl_renderer::Render_Alpha(TModel3d *Model, material_data const *Materia
 	return true;
 }
 
-bool opengl_renderer::Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle)
+bool opengl_renderer::Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &A)
 {
-
+    Math3D::vector3 Angle(A);
 	::glPushMatrix();
 	::glTranslated(Position.x, Position.y, Position.z);
 	if (Angle.y != 0.0)
@@ -2680,7 +2688,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 			::glPushMatrix();
 			if (Submodel->fMatrix)
 				::glMultMatrixf(Submodel->fMatrix->readArray());
-			if (Submodel->b_aAnim)
+            if (Submodel->b_aAnim != TAnimType::at_None)
 				Submodel->RaAnimation(Submodel->b_aAnim);
 		}
 
@@ -2914,7 +2922,7 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
 	return control;
 }
 
-scene::basic_node const *opengl_renderer::Update_Pick_Node()
+scene::basic_node *opengl_renderer::Update_Pick_Node()
 {
     //m7t: restore picking
     /*
@@ -2947,6 +2955,31 @@ scene::basic_node const *opengl_renderer::Update_Pick_Node()
 	return node;
     */
     return nullptr;
+}
+
+glm::dvec3
+opengl_renderer::Update_Mouse_Position() {
+    // m7t: we need to blit multisampled framebuffer into regular one
+    // and better to use PBO and wait frame or two to improve performance
+/*
+    glm::dvec2 mousepos;
+    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+    mousepos = glm::ivec2{mousepos.x * Global.render_width / std::max(1, Global.iWindowWidth), mousepos.y * Global.render_height / std::max(1, Global.iWindowHeight)};
+    GLfloat pointdepth;
+    ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
+
+    if( pointdepth < 1.0 ) {
+        m_worldmousecoordinates =
+            glm::unProject(
+                glm::vec3{ mousepos, pointdepth },
+                glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
+                m_colorpass.camera.projection(),
+                glm::vec4{ 0, 0, Global.render_width, Global.render_height } );
+    }
+
+    return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
+    */
+    return glm::dvec3();
 }
 
 void opengl_renderer::Update(double const Deltatime)

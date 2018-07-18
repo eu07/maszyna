@@ -969,7 +969,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         }
         
 		if( ( Mechanik != nullptr )
-         && ( Mechanik->GetAction() != actSleep ) ) {
+         && ( Mechanik->GetAction() != TAction::actSleep ) ) {
             // rysowanie figurki mechanika
             btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
             btMechanik2.Turn( MoverParameters->ActiveCab < 0 );
@@ -1745,7 +1745,6 @@ TDynamicObject::TDynamicObject() {
     smBrakeSet = NULL; // nastawa hamulca (wajcha)
     smLoadSet = NULL; // nastawa ładunku (wajcha)
     smWiper = NULL; // wycieraczka (poniekąd też wajcha)
-    fScanDist = 300.0; // odległość skanowania, zwiększana w trybie łączenia
     ctOwner = NULL; // na początek niczyj
     iOverheadMask = 0; // maska przydzielana przez AI pojazdom posiadającym
     // pantograf, aby wymuszały
@@ -1830,7 +1829,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         return 0.0; // zerowa długość to brak pojazdu
     }
     // ustawienie pozycji hamulca
-    MoverParameters->LocalBrakePos = 0;
+    MoverParameters->LocalBrakePosA = 0.0;
     if (driveractive)
     {
         if (Cab == 0)
@@ -2301,7 +2300,7 @@ TDynamicObject::create_controller( std::string const Type, bool const Trainset )
 
     if( asName == Global.asHumanCtrlVehicle ) {
         // jeśli pojazd wybrany do prowadzenia
-        if( MoverParameters->EngineType != Dumb ) {
+        if( MoverParameters->EngineType != TEngineType::Dumb ) {
             // wsadzamy tam sterującego
             Controller = Humandriver;
         }
@@ -2578,16 +2577,16 @@ bool TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
 // initiates load change by specified amounts, with a platform on specified side
 void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int const Platform ) {
 
-    if( ( MoverParameters->DoorOpenCtrl == control::passenger )
-     || ( MoverParameters->DoorOpenCtrl == control::mixed ) ) {
+    if( ( MoverParameters->DoorOpenCtrl == control_t::passenger )
+     || ( MoverParameters->DoorOpenCtrl == control_t::mixed ) ) {
         // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
         auto const lewe = ( DirectionGet() > 0 ) ? 1 : 2;
         auto const prawe = 3 - lewe;
         if( Platform & lewe ) {
-            MoverParameters->DoorLeft( true, range::local );
+            MoverParameters->DoorLeft( true, range_t::local );
         }
         if( Platform & prawe ) {
-            MoverParameters->DoorRight( true, range::local );
+            MoverParameters->DoorRight( true, range_t::local );
         }
     }
     m_exchange.unload_count += Disembark;
@@ -2647,18 +2646,18 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
 
         MoverParameters->LoadStatus = 0;
         // if the exchange is completed (or canceled) close the door, if applicable
-        if( ( MoverParameters->DoorCloseCtrl == control::passenger )
-         || ( MoverParameters->DoorCloseCtrl == control::mixed ) ) {
+        if( ( MoverParameters->DoorCloseCtrl == control_t::passenger )
+         || ( MoverParameters->DoorCloseCtrl == control_t::mixed ) ) {
 
             if( ( MoverParameters->Vel > 2.0 )
              || ( Random() < (
                     // remotely controlled door are more likely to be left open
-                    MoverParameters->DoorCloseCtrl == control::passenger ?
+                    MoverParameters->DoorCloseCtrl == control_t::passenger ?
                         0.75 :
                         0.50 ) ) ) {
 
-                MoverParameters->DoorLeft( false, range::local );
-                MoverParameters->DoorRight( false, range::local );
+                MoverParameters->DoorLeft( false, range_t::local );
+                MoverParameters->DoorRight( false, range_t::local );
             }
         }
     }
@@ -2796,7 +2795,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         return false; // a normalnie powinny mieć bEnabled==false
 
     // McZapkie-260202
-    if ((MoverParameters->EnginePowerSource.SourceType == CurrentCollector) &&
+    if ((MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) &&
         (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
 /*
         if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
@@ -2819,7 +2818,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                         // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
                         if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
                             // TODO: check whether line breaker should be open EMU-wide
-                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range_t::unit : range_t::local ) );
                         }
                     }
                     else {
@@ -2827,7 +2826,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                         // and prevents their activation until pressure switch is set again
                         MoverParameters->PantPressLockActive = true;
                         // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
-                        MoverParameters->ConverterSwitch( false, range::unit );
+                        MoverParameters->ConverterSwitch( false, range_t::unit );
                     }
                     // mark the pressure switch as spent
                     MoverParameters->PantPressSwitchActive = false;
@@ -2925,7 +2924,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // znane napięcia
     // TTractionParam tmpTraction;
     // tmpTraction.TractionVoltage=0;
-    if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
+    if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
     { // dla EZT tylko silnikowy
         // if (Global.bLiveTraction)
         { // Ra 2013-12: to niżej jest chyba trochę bez sensu
@@ -2990,7 +2989,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
         if( ( Mechanik->Primary() )
-         && ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
+         && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
             // jesli glowny i z asynchronami, to niech steruje hamulcem lacznie dla calego pociagu/ezt
 			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
             auto FED { 0.0 };
@@ -3069,6 +3068,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                                                   (MoverParameters->LocalBrakeRatio() < 0.01);
             }
             auto Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
+				Fzad = amax * masa; //pętla bezpieczeństwa - pełne służbowe
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
             {
@@ -3081,9 +3083,10 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
 			if ((Fzad > 1) && (!MEDLogFile.is_open()) && (MoverParameters->Vel > 1))
 			{
-				MEDLogFile.open(std::string("MEDLOGS/" + MoverParameters->Name + "_" + to_string(++MEDLogCount) + ".csv"),
-					std::ios::in | std::ios::out | std::ios::trunc);
-				MEDLogFile << std::string("t\tVel\tMasa\tOsie\tFmaxPN\tFmaxED\tFfulED\tFrED\tFzad\tFzadED\tFzadPN").c_str();
+                MEDLogFile.open(
+                    "MEDLOGS/" + MoverParameters->Name + "_" + to_string( ++MEDLogCount ) + ".csv",
+                    std::ios::in | std::ios::out | std::ios::trunc );
+				MEDLogFile << "t\tVel\tMasa\tOsie\tFmaxPN\tFmaxED\tFfulED\tFrED\tFzad\tFzadED\tFzadPN";
 				for(int k=1;k<=np;k++)
 				{
 					MEDLogFile << "\tBP" << k;
@@ -3094,11 +3097,14 @@ bool TDynamicObject::Update(double dt, double dt1)
 				MEDLogTime = 0;
 			}
             auto FzadED { 0.0 };
-            if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != MHZ_EN57))
-             || ( ( MoverParameters->BrakeHandle == MHZ_EN57 )
+            if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != TBrakeHandle::MHZ_EN57))
+             || ( ( MoverParameters->BrakeHandle == TBrakeHandle::MHZ_EN57 )
                && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
+			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
+				FzadED = 0; //pętla bezpieczeństwa - bez ED
             auto const FzadPN = Fzad - FrED;
             //np = 0;
             // BUG: likely memory leak, allocation per inner loop, deleted only once outside
@@ -3276,10 +3282,10 @@ bool TDynamicObject::Update(double dt, double dt1)
         // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
           && ( Controller == Humandriver )
 */
-          && ( MoverParameters->EngineType != DieselEngine )
-          && ( MoverParameters->EngineType != WheelsDriven ) )
+          && ( MoverParameters->EngineType != TEngineType::DieselEngine )
+          && ( MoverParameters->EngineType != TEngineType::WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) ) ) {
+            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) {
                 // wyłączyć zasilanie
                 // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
@@ -3621,8 +3627,8 @@ bool TDynamicObject::Update(double dt, double dt1)
         }
 */
     }
-    else if (MoverParameters->EnginePowerSource.SourceType == InternalSource)
-        if (MoverParameters->EnginePowerSource.PowerType == SteamPower)
+    else if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::InternalSource)
+        if (MoverParameters->EnginePowerSource.PowerType == TPowerType::SteamPower)
         // if (smPatykird1[0])
         { // Ra: animacja rozrządu parowozu, na razie nieoptymalizowane
             /* //Ra: tymczasowo wyłączone ze względu na porządkowanie animacji
@@ -3982,7 +3988,7 @@ void TDynamicObject::RenderSounds() {
     // NBMX dzwiek przetwornicy
     if( MoverParameters->ConverterFlag ) {
         frequency = (
-            MoverParameters->EngineType == ElectricSeriesMotor ?
+            MoverParameters->EngineType == TEngineType::ElectricSeriesMotor ?
             ( MoverParameters->RunningTraction.TractionVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
             1.0 );
         frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
@@ -4618,7 +4624,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
             }
             if( !MoverParameters->LoadAccepted.empty() ) {
 
-                if( ( MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                if( ( MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
                  && ( asLoadName == "pantstate" ) ) {
                     // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
                     if( MoverParameters->Load == 1 ) {
@@ -5078,7 +5084,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                        (k)
                     */
                     MoverParameters->EnginePowerSource.PowerType =
-                        SteamPower; // Ra: po chamsku, ale z CHK nie działa
+                        TPowerType::SteamPower; // Ra: po chamsku, ale z CHK nie działa
                 }
 
 				else if( token == "animreturnprefix:" ) {
@@ -5274,8 +5280,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_powertrainsounds.engine.owner( this );
 
                     auto const amplitudedivisor = static_cast<float>( (
-                        MoverParameters->EngineType == DieselEngine ? 1 :
-                        MoverParameters->EngineType == DieselElectric ? 1 :
+                        MoverParameters->EngineType == TEngineType::DieselEngine ? 1 :
+                        MoverParameters->EngineType == TEngineType::DieselElectric ? 1 :
                         MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) );
                     m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
 				}
@@ -5681,6 +5687,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     // odpalanie silnika
                     m_powertrainsounds.engine_ignition.deserialize( parser, sound_type::single );
                     m_powertrainsounds.engine_ignition.owner( this );
+                } else if (token == "shutdown:") {
+                    m_powertrainsounds.engine_shutdown.deserialize(parser, sound_type::single);
+                    m_powertrainsounds.engine_shutdown.owner(this);
                 }
                 else if( token == "engageslippery:" ) {
                     // tarcie tarcz sprzegla:
@@ -6387,7 +6396,7 @@ TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
     std::vector<sound_source *> enginesounds = {
         &inverter,
         &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &motor_shuntfield, &rsWentylator,
-        &engine, &engine_ignition, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
+        &engine, &engine_ignition, &engine_shutdown, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
         &transmission, &rsEngageSlippery
     };
     for( auto sound : enginesounds ) {
@@ -6418,19 +6427,21 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
     // engine sounds
     // ignition
-    if( engine_state_last != Vehicle.Mains ) {
-
-        if( true == Vehicle.Mains ) {
+    if (engine_state_last != Vehicle.Mains) {
+        if (Vehicle.Mains) {
            // main circuit/engine activation
            // TODO: separate engine and main circuit
+            engine_shutdown.stop();
             engine_ignition
                 .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
                 .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
                 .play( sound_flags::exclusive );
-        }
-        else {
+        } else {
             // main circuit/engine deactivation
             engine_ignition.stop();
+            engine_shutdown.pitch( engine_shutdown.m_frequencyoffset + engine_shutdown.m_frequencyfactor * 1.f )
+                .gain( engine_shutdown.m_amplitudeoffset + engine_shutdown.m_amplitudefactor * 1.f )
+                .play( sound_flags::exclusive );
         }
         engine_state_last = Vehicle.Mains;
     }
@@ -6439,7 +6450,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
         if( ( std::abs( Vehicle.enrot ) > 0.01 )
             // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
-         || ( Vehicle.EngineType == Dumb ) ) {
+         || ( Vehicle.EngineType == TEngineType::Dumb ) ) {
 
             // frequency calculation
             auto const normalizer { (
@@ -6453,14 +6464,14 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 engine.m_frequencyoffset
                 + engine.m_frequencyfactor * std::abs( Vehicle.enrot ) * normalizer;
 
-            if( Vehicle.EngineType == Dumb ) {
+            if( Vehicle.EngineType == TEngineType::Dumb ) {
                 frequency -= 0.2 * Vehicle.EnginePower / ( 1 + Vehicle.Power * 1000 );
             }
 
             // base volume calculation
             switch( Vehicle.EngineType ) {
                 // TODO: check calculated values
-                case DieselElectric: {
+                case TEngineType::DieselElectric: {
 
                     volume =
                         engine.m_amplitudeoffset
@@ -6469,7 +6480,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                           + 0.75 * ( Vehicle.enrot * 60 ) / ( Vehicle.DElist[ Vehicle.MainCtrlPosNo ].RPM ) );
                     break;
                 }
-                case DieselEngine: {
+                case TEngineType::DieselEngine: {
                     if( Vehicle.enrot > 0.0 ) {
                         volume = (
                             Vehicle.EnginePower > 0 ?
@@ -6489,15 +6500,15 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             if( engine_volume >= 0.05 ) {
 
                 auto enginerevvolume { 0.f };
-                if( ( Vehicle.EngineType == DieselElectric )
-                 || ( Vehicle.EngineType == DieselEngine ) ) {
+                if( ( Vehicle.EngineType == TEngineType::DieselElectric )
+                 || ( Vehicle.EngineType == TEngineType::DieselEngine ) ) {
                     // diesel engine revolutions increase; it can potentially decrease volume of base engine sound
                     if( engine_revs_last != -1.f ) {
                         // calculate potential recent increase of engine revolutions
                         auto const revolutionsperminute { Vehicle.enrot * 60 };
                         auto const revolutionsdifference { revolutionsperminute - engine_revs_last };
                         auto const idlerevolutionsthreshold { 1.01 * (
-                            Vehicle.EngineType == DieselElectric ?
+                            Vehicle.EngineType == TEngineType::DieselElectric ?
                                 Vehicle.DElist[ 0 ].RPM :
                                 Vehicle.dizel_nmin * 60 ) };
 
@@ -6624,13 +6635,13 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
             // base volume calculation
             switch( Vehicle.EngineType ) {
-                case ElectricInductionMotor: {
+                case TEngineType::ElectricInductionMotor: {
                     volume =
                         motor.m_amplitudeoffset
                         + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
                     break;
                 }
-                case ElectricSeriesMotor: {
+                case TEngineType::ElectricSeriesMotor: {
                     volume =
                         motor.m_amplitudeoffset
                         + motor.m_amplitudefactor * ( Vehicle.EnginePower / 1000 + motorrevolutions * 60.0 );
@@ -6644,7 +6655,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 }
             }
 
-            if( Vehicle.EngineType == ElectricSeriesMotor ) {
+            if( Vehicle.EngineType == TEngineType::ElectricSeriesMotor ) {
                 // volume variation
                 if( ( volume < 1.0 )
                  && ( Vehicle.EnginePower < 100 ) ) {
@@ -6695,7 +6706,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         }
     }
     // inverter sounds
-    if( Vehicle.EngineType == ElectricInductionMotor ) {
+    if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
         if( Vehicle.InverterFrequency > 0.1 ) {
 
             volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::abs( Vehicle.dizel_fill ) );
@@ -6722,8 +6733,8 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         rsWentylator.stop();
     }
     // radiator fan sounds
-    if( ( Vehicle.EngineType == DieselEngine )
-     || ( Vehicle.EngineType == DieselElectric ) ) {
+    if( ( Vehicle.EngineType == TEngineType::DieselEngine )
+     || ( Vehicle.EngineType == TEngineType::DieselElectric ) ) {
 
         if( Vehicle.dizel_heat.rpmw > 0.1 ) {
             // NOTE: fan speed tends to max out at ~100 rpm; by default we try to get pitch range of 0.5-1.5 and volume range of 0.5-1.0
@@ -6817,7 +6828,7 @@ vehicle_table::update( double Deltatime, int Iterationcount ) {
     for( auto *vehicle : m_items ) {
         if( false == vehicle->bEnabled ) { continue; }
         // Ra: zmienić warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
-        if( vehicle->MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+        if( vehicle->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
             update_traction( vehicle );
         }
         vehicle->MoverParameters->ComputeConstans();
@@ -6993,16 +7004,22 @@ vehicle_table::erase_disabled() {
             ++vehicleiter;
         }
         else {
-            if( vehicle->MyTrack != nullptr ) {
-                vehicle->MyTrack->RemoveDynamicObject( vehicle );
+            if( ( vehicle->MyTrack != nullptr )
+             && ( true == vehicle->MyTrack->RemoveDynamicObject( vehicle ) ) ) {
+                vehicle->MyTrack = nullptr;
             }
             // clear potential train binding
             Global.pWorld->TrainDelete( vehicle );
             // remove potential entries in the light array
             simulation::Lights.remove( vehicle );
+/*
             // finally get rid of the vehicle and its record themselves
+            // BUG: deleting the vehicle leaves dangling pointers in event->Activator and potentially elsewhere
+            // TBD, TODO: either mark 'dead' vehicles with additional flag, or delete the references as well
             SafeDelete( vehicle );
             vehicleiter = m_items.erase( vehicleiter );
+*/
+            ++vehicleiter; // NOTE: instead of the erase in the disabled section
         }
     }
     // ...and call it a day

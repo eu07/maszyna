@@ -16,7 +16,9 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 
 #include "Globals.h"
+#include "application.h"
 #include "simulation.h"
+#include "simulationtime.h"
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "renderer.h"
@@ -34,12 +36,7 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-namespace simulation {
-
-simulation_time Time;
-
-basic_station Station;
-}
+TWorld World;
 
 #ifdef _WIN32
 extern "C"
@@ -47,152 +44,6 @@ extern "C"
     GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
 #endif
-
-void
-simulation_time::init() {
-
-    char monthdaycounts[ 2 ][ 13 ] = {
-        { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-        { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 } };
-    ::memcpy( m_monthdaycounts, monthdaycounts, sizeof( monthdaycounts ) );
-
-    // potentially adjust scenario clock
-    auto const requestedtime { clamp_circular<int>( m_time.wHour * 60 + m_time.wMinute + Global.ScenarioTimeOffset * 60, 24 * 60 ) };
-    auto const requestedhour { ( requestedtime / 60 ) % 24 };
-    auto const requestedminute { requestedtime % 60 };
-    // cache requested elements, if any
-
-#ifdef __linux__
-	timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	tm *tms = localtime(&ts.tv_sec);
-	m_time.wYear = tms->tm_year;
-	m_time.wMonth = tms->tm_mon;
-	m_time.wDayOfWeek = tms->tm_wday;
-	m_time.wDay = tms->tm_mday;
-	m_time.wHour = tms->tm_hour;
-	m_time.wMinute = tms->tm_min;
-	m_time.wSecond = tms->tm_sec;
-	m_time.wMilliseconds = ts.tv_nsec / 1000000;
-#elif _WIN32
-    ::GetLocalTime( &m_time );
-#endif
-
-    if( Global.fMoveLight > 0.0 ) {
-        // day and month of the year can be overriden by scenario setup
-        daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global.fMoveLight ) );
-    }
-
-    if( requestedhour != -1 ) { m_time.wHour = static_cast<WORD>( clamp( requestedhour, 0, 23 ) ); }
-    if( requestedminute != -1 ) { m_time.wMinute = static_cast<WORD>( clamp( requestedminute, 0, 59 ) ); }
-    // if the time is taken from the local clock leave the seconds intact, otherwise set them to zero
-    if( ( requestedhour != -1 )
-     || ( requestedminute != 1 ) ) {
-        m_time.wSecond = 0;
-    }
-
-    m_yearday = year_day( m_time.wDay, m_time.wMonth, m_time.wYear );
-}
-
-void
-simulation_time::update( double const Deltatime ) {
-
-    m_milliseconds += ( 1000.0 * Deltatime );
-    while( m_milliseconds >= 1000.0 ) {
-
-        ++m_time.wSecond;
-        m_milliseconds -= 1000.0;
-    }
-    m_time.wMilliseconds = std::floor( m_milliseconds );
-    while( m_time.wSecond >= 60 ) {
-
-        ++m_time.wMinute;
-        m_time.wSecond -= 60;
-    }
-    while( m_time.wMinute >= 60 ) {
-
-        ++m_time.wHour;
-        m_time.wMinute -= 60;
-    }
-    while( m_time.wHour >= 24 ) {
-
-        ++m_time.wDay;
-        ++m_time.wDayOfWeek;
-        if( m_time.wDayOfWeek >= 7 ) {
-            m_time.wDayOfWeek -= 7;
-        }
-        m_time.wHour -= 24;
-    }
-    int leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
-    while( m_time.wDay > m_monthdaycounts[ leap ][ m_time.wMonth ] ) {
-
-        m_time.wDay -= m_monthdaycounts[ leap ][ m_time.wMonth ];
-        ++m_time.wMonth;
-        // unlikely but we might've entered a new year
-        if( m_time.wMonth > 12 ) {
-
-            ++m_time.wYear;
-            leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
-            m_time.wMonth -= 12;
-        }
-    }
-}
-
-int
-simulation_time::year_day( int Day, const int Month, const int Year ) const {
-
-    char const daytab[ 2 ][ 13 ] = {
-        { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-        { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-    };
-
-    int leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
-    for( int i = 1; i < Month; ++i )
-        Day += daytab[ leap ][ i ];
-
-    return Day;
-}
-
-void
-simulation_time::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday ) {
-
-    WORD daytab[ 2 ][ 13 ] = {
-        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
-    };
-
-    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
-    WORD idx = 1;
-    while( ( idx < 13 ) && ( Yearday >= daytab[ leap ][ idx ] ) ) {
-
-        ++idx;
-    }
-    Month = idx;
-    Day = Yearday - daytab[ leap ][ idx - 1 ];
-}
-
-int
-simulation_time::julian_day() const {
-
-    int yy = ( m_time.wYear < 0 ? m_time.wYear + 1 : m_time.wYear ) - std::floor( ( 12 - m_time.wMonth ) / 10.f );
-    int mm = m_time.wMonth + 9;
-    if( mm >= 12 ) { mm -= 12; }
-
-    int K1 = std::floor( 365.25 * ( yy + 4712 ) );
-    int K2 = std::floor( 30.6 * mm + 0.5 );
-
-    // for dates in Julian calendar
-    int JD = K1 + K2 + m_time.wDay + 59;
-    // for dates in Gregorian calendar; 2299160 is October 15th, 1582
-    const int gregorianswitchday = 2299160;
-    if( JD > gregorianswitchday ) {
-
-        int K3 = std::floor( std::floor( ( yy * 0.01 ) + 49 ) * 0.75 ) - 38;
-        JD -= K3;
-    }
-
-    return JD;
-}
 
 TWorld::TWorld()
 {
@@ -216,15 +67,14 @@ void TWorld::TrainDelete(TDynamicObject *d)
         if (Train)
             if (Train->Dynamic() != d)
                 return; // nie tego usuwać
-#ifdef EU07_SCENERY_EDITOR
-    if( ( Train->DynamicObject )
-     && ( Train->DynamicObject->Mechanik ) ) {
+/*
+    if( ( Train->Dynamic() )
+     && ( Train->Dynamic()->Mechanik ) ) {
         // likwidacja kabiny wymaga przejęcia przez AI
-        Train->DynamicObject->Mechanik->TakeControl( true );
+        Train->Dynamic()->Mechanik->TakeControl( true );
     }
-#endif
-    delete Train; // i nie ma czym sterować
-    Train = NULL;
+*/
+    SafeDelete( Train ); // i nie ma czym sterować
     Controlled = NULL; // tego też już nie ma
     mvControlled = NULL;
 };
@@ -234,7 +84,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
     auto timestart = std::chrono::system_clock::now();
 
     window = Window;
-    Global.window = Window; // do WM_COPYDATA
     Global.pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
     WriteLog( "\nStarting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
@@ -282,7 +131,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
             Controlled = NULL;
             mvControlled = NULL;
             SafeDelete( Train );
-            Camera.Type = tp_Free;
+            Camera.Type = TCameraType::tp_Free;
         }
     }
     else
@@ -295,7 +144,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
         glfwSwapBuffers( window );
         Controlled = NULL;
         mvControlled = NULL;
-        Camera.Type = tp_Free;
+        Camera.Type = TCameraType::tp_Free;
         DebugCamera = Camera;
         Global.DebugCameraPosition = DebugCamera.Pos;
     }
@@ -835,7 +684,7 @@ bool TWorld::Update() {
 
         // fixed step part of the camera update
         if( ( Train != nullptr )
-         && ( Camera.Type == tp_Follow )
+         && ( Camera.Type == TCameraType::tp_Follow )
          && ( false == DebugCameraFlag ) ) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( m_secondaryupdaterate );
@@ -898,7 +747,6 @@ bool TWorld::Update() {
     audio::renderer.update( Global.iPause ? 0.0 : dt );
 
     GfxRenderer.Update( dt );
-    ResourceSweep();
 
     m_init = true;
   
@@ -963,19 +811,19 @@ TWorld::Update_Camera( double const Deltatime ) {
     Global.CabWindowOpen = false;
 
     if( ( Train != nullptr )
-     && ( Camera.Type == tp_Follow )
+     && ( Camera.Type == TCameraType::tp_Follow )
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         auto tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
 //        double modelrotate = atan2( -tempangle.x, tempangle.z );
 
         if( ( true == Global.ctrlState )
-         && ( ( glfwGetKey( Global.window, GLFW_KEY_LEFT ) == GLFW_TRUE )
-           || ( glfwGetKey( Global.window, GLFW_KEY_RIGHT ) == GLFW_TRUE ) ) ) {
+         && ( ( glfwGetKey( Application.window(), GLFW_KEY_LEFT ) == GLFW_TRUE )
+           || ( glfwGetKey( Application.window(), GLFW_KEY_RIGHT ) == GLFW_TRUE ) ) ) {
             // jeśli lusterko lewe albo prawe (bez rzucania na razie)
             Global.CabWindowOpen = true;
 
-            auto const lr { glfwGetKey( Global.window, GLFW_KEY_LEFT ) == GLFW_TRUE };
+            auto const lr { glfwGetKey( Application.window(), GLFW_KEY_LEFT ) == GLFW_TRUE };
             // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
             Camera.Pos = Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka
             Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
@@ -1041,13 +889,6 @@ void TWorld::Update_Environment() {
 
     Environment.update();
 }
-
-void TWorld::ResourceSweep()
-{
-/*
-    ResourceManager::Sweep( Timer::GetSimulationTime() );
-*/
-};
 
 //---------------------------------------------------------------------------
 void TWorld::OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
@@ -1408,11 +1249,11 @@ TWorld::compute_season( int const Yearday ) const {
     using dayseasonpair = std::pair<int, std::string>;
 
     std::vector<dayseasonpair> seasonsequence {
-        {  65, "winter" },
-        { 158, "spring" },
-        { 252, "summer" },
-        { 341, "autumn" },
-        { 366, "winter" } };
+        {  65, "winter:" },
+        { 158, "spring:" },
+        { 252, "summer:" },
+        { 341, "autumn:" },
+        { 366, "winter:" } };
     auto const lookup =
         std::lower_bound(
             std::begin( seasonsequence ), std::end( seasonsequence ),
@@ -1420,7 +1261,7 @@ TWorld::compute_season( int const Yearday ) const {
             []( dayseasonpair const &Left, const int Right ) {
                 return Left.first < Right; } );
     
-    Global.Season = lookup->second + ":";
+    Global.Season = lookup->second;
     // season can affect the weather so if it changes, re-calculate weather as well
     compute_weather();
 }

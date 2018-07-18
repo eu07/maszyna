@@ -13,6 +13,12 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "mtable.h"
 
+namespace simulation {
+
+basic_station Station;
+
+}
+
 // exchanges load with consist attached to specified vehicle, operating on specified schedule
 double
 basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule, int const Platform ) {

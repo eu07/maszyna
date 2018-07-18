@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
+#include "application.h"
 #include "LPT.h"
 #include "Logs.h"
 #include "PoKeys55.h"

@@ -171,10 +171,15 @@ class opengl_renderer
 	{
 		return m_picksceneryitem;
 	}
+    glm::dvec3 Mouse_Position() const
+    {
+        return m_worldmousecoordinates;
+    }
 	// maintenance methods
 	void Update(double const Deltatime);
 	TSubModel const *Update_Pick_Control();
-	scene::basic_node const *Update_Pick_Node();
+    scene::basic_node *Update_Pick_Node();
+    glm::dvec3 Update_Mouse_Position();
 	// debug methods
 	std::string const &info_times() const;
 	std::string const &info_stats() const;
@@ -242,7 +247,7 @@ class opengl_renderer
 	void Render(scene::shape_node const &Shape, bool const Ignorerange);
 	void Render(TAnimModel *Instance);
 	bool Render(TDynamicObject *Dynamic);
-	bool Render(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle);
+    bool Render(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle);
 	bool Render(TModel3d *Model, material_data const *Material, float const Squaredistance);
 	void Render(TSubModel *Submodel);
 	void Render(TTrack *Track);
@@ -255,7 +260,7 @@ class opengl_renderer
 	void Render_Alpha(TTraction *Traction);
 	void Render_Alpha(scene::lines_node const &Lines);
 	bool Render_Alpha(TDynamicObject *Dynamic);
-	bool Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle);
+    bool Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle);
 	bool Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance);
 	void Render_Alpha(TSubModel *Submodel);
 	void Update_Lights(light_array &Lights);
@@ -326,12 +331,14 @@ class opengl_renderer
 	renderpass_config m_renderpass; // parameters for current render pass
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;
+    renderpass_config m_colorpass; // parametrs of most recent color pass
 	renderpass_config m_shadowpass; // parametrs of most recent shadowmap pass
 	renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
 	std::vector<TSubModel const *> m_pickcontrolsitems;
 	TSubModel const *m_pickcontrolitem{nullptr};
 	std::vector<scene::basic_node const *> m_picksceneryitems;
 	scene::basic_node const *m_picksceneryitem{nullptr};
+    glm::vec3 m_worldmousecoordinates { 0.f };
 #ifdef EU07_USE_DEBUG_CAMERA
 	renderpass_config m_worldcamera; // debug item
 #endif
