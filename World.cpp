@@ -356,15 +356,8 @@ void TWorld::OnKeyDown(int cKey) {
                         // shift + f7 is currently unused
                     }
                     else {
-                        // f7: wireframe toggle
-                        // TODO: pass this to renderer instead of making direct calls
+                        // TODO: pass this to renderer instead of poking in globals
                         Global.bWireFrame = !Global.bWireFrame;
-                        if( true == Global.bWireFrame ) {
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                        }
-                        else {
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                        }
                     }
                 }
                 break;

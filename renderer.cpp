@@ -299,6 +299,8 @@ bool opengl_renderer::Render()
 	m_debugstatstext = "drawcalls: " + to_string(m_debugstats.drawcalls) + "; dyn: " + to_string(m_debugstats.dynamics) + " mod: " + to_string(m_debugstats.models) +
 	                   " sub: " + to_string(m_debugstats.submodels) + "; trk: " + to_string(m_debugstats.paths) + " shp: " + to_string(m_debugstats.shapes) +
 	                   " trc: " + to_string(m_debugstats.traction) + " lin: " + to_string(m_debugstats.lines);
+    if (DebugModeFlag)
+        m_debugtimestext += m_textures.info();
 
 	++m_framestamp;
 
@@ -338,6 +340,11 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubo->update(scene_ubs);
 
         m_colorpass = m_renderpass;
+
+        if (Global.bWireFrame)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		{
             setup_shadow_map(nullptr, m_renderpass);
@@ -417,6 +424,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		m_main_fb->clear(GL_COLOR_BUFFER_BIT);
         m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT);
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glEnable(GL_FRAMEBUFFER_SRGB);
 		glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
 		m_pfx->apply(*m_main_tex, nullptr);
@@ -3032,11 +3040,6 @@ void opengl_renderer::Update(double const Deltatime)
 		// garbage collection
 		m_geometry.update();
 		m_textures.update();
-	}
-
-	if (true == DebugModeFlag)
-	{
-		m_debugtimestext += m_textures.info();
 	}
 
 	if ((true == Global.ControlPicking) && (false == FreeFlyModeFlag))
