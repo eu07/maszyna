@@ -336,7 +336,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     else
         iFlags |= 0x10;
 
-    if (m_material != null_handle)
+    if (m_material > 0)
     {
         opengl_material &mat = GfxRenderer.Material(m_material);
 
@@ -1697,7 +1697,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                     iFlags |= 0x10; // opaque
             }
 
-            if (m_material != null_handle)
+            if (m_material > 0)
             {
                 opengl_material &mat = GfxRenderer.Material(m_material);
 

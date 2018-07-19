@@ -1954,7 +1954,6 @@ void opengl_renderer::Render(TSubModel *Submodel)
 						// specular strength in legacy models is set uniformly to 150, 150, 150 so we scale it down for opaque elements
 					}
 
-					model_ubs.emission = 0;
 					// ...luminance
 					if (Global.fLuminance < Submodel->fLight)
 					{
@@ -1966,6 +1965,8 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					model_ubo->update(model_ubs);
 
 					m_geometry.draw(Submodel->m_geometry);
+
+                    model_ubs.emission = 0.0f;
 
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
 					switch (Submodel->m_normalizenormals)
@@ -2080,10 +2081,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 						m_geometry.draw(Submodel->m_geometry);
 
 						// post-draw reset
-						// re-enable shadows
-						/*
-						                            setup_shadow_color( m_shadowcolor );
-						*/
+                        model_ubs.emission = 0.0f;
 
                         glDisable(GL_BLEND);
 
@@ -2792,7 +2790,6 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
                     }
 					// ...luminance
 
-                    model_ubs.emission = 0.0f;
 					if (Global.fLuminance < Submodel->fLight)
 					{
                         model_ubs.emission = Submodel->f4Emision.a;
@@ -2802,6 +2799,8 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 					model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
 					model_ubo->update(model_ubs);
 					m_geometry.draw(Submodel->m_geometry);
+
+                    model_ubs.emission = 0.0f;
 
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
 					switch (Submodel->m_normalizenormals)

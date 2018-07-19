@@ -641,12 +641,12 @@ std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
 
 std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
 {
-    { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA },
-    { GL_SRGB, GL_COMPRESSED_SRGB },
-    { GL_RGBA, GL_COMPRESSED_RGBA },
-    { GL_RGB, GL_COMPRESSED_RGB },
-    { GL_RG, GL_COMPRESSED_RG },
-    { GL_RED, GL_COMPRESSED_RED },
+    { GL_SRGB8_ALPHA8, GL_COMPRESSED_SRGB_ALPHA },
+    { GL_SRGB8, GL_COMPRESSED_SRGB },
+    { GL_RGBA8, GL_COMPRESSED_RGBA },
+    { GL_RGB8, GL_COMPRESSED_RGB },
+    { GL_RG8, GL_COMPRESSED_RG },
+    { GL_R8, GL_COMPRESSED_RED },
 };
 
 std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
@@ -670,30 +670,30 @@ std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapp
                                           { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
                                           { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
                                           { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT } } },
-    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB_ALPHA },
-                                          { GL_SRGB,       GL_SRGB },
-                                          { GL_RGBA,       GL_RGBA },
-                                          { GL_RGB,        GL_RGB },
-                                          { GL_RG,         GL_RG },
-                                          { GL_RED,        GL_RED } } },
-    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB }, // bad
-                                          { GL_SRGB,       GL_SRGB },
-                                          { GL_RGBA,       GL_RGB }, // bad
-                                          { GL_RGB,        GL_RGB },
-                                          { GL_RG,         GL_RG },
-                                          { GL_RED,        GL_RED } } },
-    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB }, // bad
-                                          { GL_SRGB,       GL_SRGB }, // bad
-                                          { GL_RGBA,       GL_RG }, // bad
-                                          { GL_RGB,        GL_RG }, // bad
-                                          { GL_RG,         GL_RG },
-                                          { GL_RED,        GL_RED } } },
-    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB }, // bad
-                                          { GL_SRGB,       GL_SRGB }, // bad
-                                          { GL_RGBA,       GL_RED }, // bad
-                                          { GL_RGB,        GL_RED },  // bad
-                                          { GL_RG,         GL_RED }, // bad
-                                          { GL_RED,        GL_RED } } },
+    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB8_ALPHA8 },
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGBA8 },
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGB8 }, // bad
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_RG8 }, // bad
+                                          { GL_RGB,        GL_RG8 }, // bad
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_R8 }, // bad
+                                          { GL_RGB,        GL_R8 },  // bad
+                                          { GL_RG,         GL_R8 }, // bad
+                                          { GL_RED,        GL_R8 } } },
 };
 
 void opengl_texture::set_components_hint(GLint hint)
