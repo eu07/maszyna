@@ -50,11 +50,14 @@ bool gl::framebuffer::is_complete()
 void gl::framebuffer::clear(GLbitfield mask)
 {
     bind();
+    if (mask & GL_DEPTH_BUFFER_BIT)
+        glDepthMask(GL_TRUE);
     glClear(mask);
 }
 
 void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask)
 {
+    other.clear(mask);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, *this);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, other);
 	glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, GL_NEAREST);

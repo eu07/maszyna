@@ -29,6 +29,8 @@
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
+#include "application.h"
+#include "Globals.h"
 
 // GLFW
 #include <GLFW/glfw3.h>
@@ -101,15 +103,7 @@ void ImGui_ImplGlfw_CharCallback(GLFWwindow*, unsigned int c)
         io.AddInputCharacter((unsigned short)c);
 }
 
-void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
-{
-    glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
-    glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
-    glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
-    glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
-}
-
-static bool ImGui_ImplGlfw_Init(GLFWwindow* window, bool install_callbacks, GlfwClientApi client_api)
+static bool ImGui_ImplGlfw_Init(GLFWwindow* window, GlfwClientApi client_api)
 {
     g_Window = window;
     g_Time = 0.0;
@@ -157,22 +151,19 @@ static bool ImGui_ImplGlfw_Init(GLFWwindow* window, bool install_callbacks, Glfw
     g_MouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);  // FIXME: GLFW doesn't have this.
     g_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);  // FIXME: GLFW doesn't have this.
     g_MouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-    
-    if (install_callbacks)
-        ImGui_ImplGlfw_InstallCallbacks(window);
 
     g_ClientApi = client_api;
     return true;
 }
 
-bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow* window, bool install_callbacks)
+bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow* window)
 {
-    return ImGui_ImplGlfw_Init(window, install_callbacks, GlfwClientApi_OpenGL);
+    return ImGui_ImplGlfw_Init(window, GlfwClientApi_OpenGL);
 }
 
-bool ImGui_ImplGlfw_InitForVulkan(GLFWwindow* window, bool install_callbacks)
+bool ImGui_ImplGlfw_InitForVulkan(GLFWwindow* window)
 {
-    return ImGui_ImplGlfw_Init(window, install_callbacks, GlfwClientApi_Vulkan);
+    return ImGui_ImplGlfw_Init(window, GlfwClientApi_Vulkan);
 }
 
 void ImGui_ImplGlfw_Shutdown()
@@ -199,18 +190,16 @@ static void ImGui_ImplGlfw_UpdateMousePosAndButtons()
     // Update mouse position
     const ImVec2 mouse_pos_backup = io.MousePos;
     io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
-    if (glfwGetWindowAttrib(g_Window, GLFW_FOCUSED))
+
+    if (io.WantSetMousePos)
     {
-        if (io.WantSetMousePos)
-        {
-            glfwSetCursorPos(g_Window, (double)mouse_pos_backup.x, (double)mouse_pos_backup.y);
-        }
-        else
-        {
-            double mouse_x, mouse_y;
-            glfwGetCursorPos(g_Window, &mouse_x, &mouse_y);
-            io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
-        }
+        glfwSetCursorPos(g_Window, (double)mouse_pos_backup.x, (double)mouse_pos_backup.y);
+    }
+    else
+    {
+        double mouse_x, mouse_y;
+        Application.get_cursor_pos(mouse_x, mouse_y);
+        io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
     }
 }
 
@@ -221,12 +210,14 @@ static void ImGui_ImplGlfw_UpdateMouseCursor()
         return;
 
     ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+    static bool cursorModified = false;
     if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
     {
         // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
         glfwSetInputMode(g_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        cursorModified = true;
     }
-    else
+    else if (cursorModified)
     {
         // Show OS mouse cursor
         // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
@@ -243,8 +234,10 @@ void ImGui_ImplGlfw_NewFrame()
     // Setup display size
     int w, h;
     int display_w, display_h;
-    glfwGetWindowSize(g_Window, &w, &h);
-    glfwGetFramebufferSize(g_Window, &display_w, &display_h);
+    w = Global.iWindowWidth;
+    h = Global.iWindowHeight;
+    display_w = w;
+    display_h = h;
     io.DisplaySize = ImVec2((float)w, (float)h);
     io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
 

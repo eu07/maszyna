@@ -6,6 +6,7 @@ layout(location = 2) in vec2 v_coord;
 layout(location = 3) in vec4 v_tangent;
 
 out vec3 f_normal;
+flat out vec3 f_normal_raw;
 out vec2 f_coord;
 out vec3 f_pos;
 out mat3 f_tbn;
@@ -18,6 +19,7 @@ void main()
 {
 	gl_Position = (projection * modelview) * vec4(v_vert, 1.0f);
 	f_normal = modelviewnormal * v_normal;
+	f_normal_raw = v_normal;
 	f_coord = v_coord;
 	f_tangent = v_tangent;
 	f_pos = vec3(modelview * vec4(v_vert, 1.0f));

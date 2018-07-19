@@ -27,6 +27,7 @@ public:
         set_cursor_pos( double const X, double const Y );
     void
         get_cursor_pos( double &X, double &Y ) const;
+    glm::dvec2 get_cursor_pos() const;
 	void queue_screenshot();
     inline
     GLFWwindow *
@@ -44,7 +45,10 @@ private:
     int  init_audio();
 // members
     GLFWwindow * m_window { nullptr };
-	bool screenshot_queued = false;
+    bool m_screenshot_queued = false;
+
+    friend void cursor_pos_callback( GLFWwindow *window, double x, double y );
+    glm::dvec2 m_cursor_pos;
 };
 
 extern eu07_application Application;

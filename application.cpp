@@ -82,6 +82,9 @@ void cursor_pos_callback( GLFWwindow *window, double x, double y ) {
         glfwSetCursorPos( window, 0, 0 );
     }
 
+    Application.m_cursor_pos.x = x;
+    Application.m_cursor_pos.y = y;
+
     // give the potential event recipient a shot at it, in the virtual z order
     if( true == scene::Editor.on_mouse_move( x, y ) ) { return; }
     input::Mouse.move( x, y );
@@ -192,7 +195,7 @@ void scroll_callback( GLFWwindow* window, double xoffset, double yoffset )
 
 void eu07_application::queue_screenshot()
 {
-	screenshot_queued = true;
+    m_screenshot_queued = true;
 }
 
 int
@@ -267,9 +270,9 @@ eu07_application::run()
 		if (!GfxRenderer.Render())
 			break;
 
-		if (screenshot_queued)
+        if (m_screenshot_queued)
 		{
-			screenshot_queued = false;
+            m_screenshot_queued = false;
 			screenshot_man.make_screenshot();
 		}
 
@@ -328,10 +331,13 @@ eu07_application::set_cursor_pos( double const X, double const Y ) {
 
 void
 eu07_application::get_cursor_pos( double &X, double &Y ) const {
+    X = m_cursor_pos.x;
+    Y = m_cursor_pos.y;
+}
 
-    if( m_window != nullptr ) {
-        glfwGetCursorPos( m_window, &X, &Y );
-    }
+glm::dvec2 eu07_application::get_cursor_pos() const
+{
+    return m_cursor_pos;
 }
 
 // private:

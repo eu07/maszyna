@@ -2,7 +2,7 @@
 
 #include <common>
 
-in vec3 f_normal;
+flat in vec3 f_normal_raw;
 
 void main()
 {
@@ -13,5 +13,5 @@ void main()
 		discard;
 
 	// color data is shared with normals, ugh
-	gl_FragColor = vec4(f_normal, 1.0f);
+	gl_FragColor = vec4(f_normal_raw.bgr, 1.0f);
 }

@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "utilities.h"
 #include "simulationtime.h"
+#include "application.h"
 
 opengl_renderer GfxRenderer;
 extern TWorld World;
@@ -376,8 +377,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		m_msaa_fb->bind();
 
         glViewport(0, 0, Global.render_width, Global.render_height);
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
 
         auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
         ::glClearColor(skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.f); // kolor nieba
@@ -428,7 +428,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
 
-		m_main_fb->clear(GL_COLOR_BUFFER_BIT);
         m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -456,8 +455,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		// glEnable(GL_POLYGON_OFFSET_FILL);
 		// glPolygonOffset(1.0f, 1.0f);
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
 		m_shadow_fb->bind();
@@ -468,7 +466,12 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render(simulation::Region);
+        Render(simulation::Region);
+
+        //setup_drawing(true);
+        //glDepthMask(GL_TRUE);
+        //Render_Alpha(simulation::Region);
+
 		m_shadowpass = m_renderpass;
 
 		// glDisable(GL_POLYGON_OFFSET_FILL);
@@ -489,7 +492,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         // glPolygonOffset(1.0f, 1.0f);
 
         glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
 
         glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
         m_cabshadows_fb->bind();
@@ -523,7 +525,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
         // NOTE: buffer attachment and viewport setup in this mode is handled by the wrapper method
         glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         m_env_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_env_fb->bind();
@@ -562,8 +563,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glDebug("rendermode::pickcontrols");
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
 		glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 		m_pick_fb->bind();
 		m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -587,8 +587,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		if (!World.InitPerformed())
 			break;
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
 		glViewport(0, 0, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 		m_pick_fb->bind();
 		m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -845,12 +844,14 @@ void opengl_renderer::setup_drawing(bool const Alpha)
 {
     if (Alpha)
     {
-		::glEnable(GL_BLEND);
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
         m_blendingenabled = true;
     }
     else
     {
-        ::glDisable(GL_BLEND);
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
         m_blendingenabled = false;
     }
 
@@ -967,8 +968,7 @@ bool opengl_renderer::Render(world_environment *Environment)
 	}
 
 	Bind_Material(null_handle);
-	::glDisable(GL_DEPTH_TEST);
-	::glDepthMask(GL_FALSE);
+    ::glDisable(GL_DEPTH_TEST);
 	::glPushMatrix();
 
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
@@ -1023,8 +1023,7 @@ bool opengl_renderer::Render(world_environment *Environment)
 	m_sunlight.apply_angle();
 	m_sunlight.apply_intensity();
 
-	::glPopMatrix();
-	::glDepthMask(GL_TRUE);
+    ::glPopMatrix();
 	::glEnable(GL_DEPTH_TEST);
 
 	return true;
@@ -1117,13 +1116,10 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
                 model_ubs.param[entry.location][entry.offset + j] = src[j];
         }
 
-        // if material don't have opacity set, guess it based on render phase
         if (std::isnan(material.opacity))
-            model_ubs.opacity = m_blendingenabled ? 0.0f : 0.5f;
+            model_ubs.opacity = m_blendingenabled ? -1.0f : 0.5f;
         else
-            model_ubs.opacity = material.opacity;
-
-		material.shader->bind();
+            model_ubs.opacity = m_blendingenabled ? -1.0f : material.opacity;
 
         if (GLEW_ARB_multi_bind)
         {
@@ -1157,6 +1153,8 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
                 unit++;
             }
         }
+
+        material.shader->bind();
 	}
 	else if (Material != m_invalid_material)
 		Bind_Material(m_invalid_material);
@@ -1566,7 +1564,7 @@ void opengl_renderer::Render(scene::shape_node const &Shape, bool const Ignorera
 		break;
 	}
 	// render
-	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
+    model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
 	model_ubo->update(model_ubs);
 
 	m_geometry.draw(data.geometry);
@@ -2014,7 +2012,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				case rendermode::pickscenery:
 				{
 					m_pick_shader->bind();
-					model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
+                    model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
 					model_ubo->update(model_ubs);
 					m_geometry.draw(Submodel->m_geometry);
 					break;
@@ -2956,8 +2954,7 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
 	Render_pass(rendermode::pickcontrols);
 
 	// determine point to examine
-	glm::dvec2 mousepos;
-	glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
+    glm::dvec2 mousepos = Application.get_cursor_pos();
 	mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 	glm::ivec2 pickbufferpos;

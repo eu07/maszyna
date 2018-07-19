@@ -7,5 +7,6 @@ uniform sampler2D tex1;
 
 void main()
 {
-	gl_FragDepth = gl_FragCoord.z + (1.0 - texture(tex1, f_coord).a);
+	if (texture(tex1, f_coord).a < 0.5f)
+		discard;
 }

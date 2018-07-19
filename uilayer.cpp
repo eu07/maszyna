@@ -38,7 +38,7 @@ ui_layer::init( GLFWwindow *Window ) {
     //imgui_io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     imgui_io->Fonts->AddFontFromFileTTF("DejaVuSansMono.ttf", 13.0f);
 
-    ImGui_ImplGlfw_InitForOpenGL(m_window, false);
+    ImGui_ImplGlfw_InitForOpenGL(m_window);
     ImGui_ImplOpenGL3_Init();
     ImGui::StyleColorsClassic();
 
@@ -1122,8 +1122,7 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+    glm::dvec2 mousepos = Application.get_cursor_pos();
 
     if (((Global.ControlPicking && mousepos.y < 50.0f) || imgui_io->WantCaptureMouse) && m_progress == 0.0f)
     {
@@ -1224,8 +1223,7 @@ ui_layer::render_tooltip() {
 
     if( !m_cursorvisible || m_tooltip.empty() ) { return; }
 
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+    glm::dvec2 mousepos = Application.get_cursor_pos();
 
 	ImGui::BeginTooltip();
 	ImGui::TextUnformatted(m_tooltip.c_str());
