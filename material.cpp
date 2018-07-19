@@ -230,13 +230,13 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if (key == "opacity:" &&
                 Priority > m_opacity_priority)
         {
-            opacity = std::stoi(value); //m7t: handle exception
+            opacity = std::stof(value); //m7t: handle exception
             m_opacity_priority = Priority;
         }
         else if (key == "selfillum:" &&
                 Priority > m_selfillum_priority)
         {
-            selfillum = std::stoi(value); //m7t: handle exception
+            selfillum = std::stof(value); //m7t: handle exception
             m_selfillum_priority = Priority;
         }
         else if( value == "{" ) {
