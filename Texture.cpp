@@ -768,6 +768,9 @@ opengl_texture::create() {
             if (f_it != precompressed_formats.end())
                 components = data_format;
 
+            if (!components_hint)
+                components_hint = GL_SRGB_ALPHA;
+
             GLint internal_format = mapping[components][components_hint];
 
             auto blocksize_it = precompressed_formats.find(internal_format);

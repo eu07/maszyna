@@ -22,7 +22,7 @@ namespace gl
 
         enum class components_e
         {
-            R = GL_R,
+            R = GL_RED,
             RG = GL_RG,
             RGB = GL_RGB,
             RGBA = GL_RGBA,

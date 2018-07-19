@@ -87,6 +87,9 @@ void opengl_material::finalize(bool Loadnow)
             }
         }
 
+        if (!shader)
+            return;
+
         for (auto it : parse_info->param_mapping)
         {
             std::string key = it.first;
@@ -191,16 +194,6 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 parse_info->tex_mapping.erase(it);
                 parse_info->tex_mapping.emplace(std::make_pair(key, parse_info_s::tex_def({ value, Priority })));
             }
-/*
-            size_t num = std::stoi(key) - 1;
-            if (num < textures.size() &&
-                    (textures[num] == null_handle || Priority > m_texture_priority[num]))
-            {
-				std::replace(value.begin(), value.end(), '\\', '/');
-                textures[num] = GfxRenderer.Fetch_Texture( value, Loadnow );
-                m_texture_priority[num] = Priority;
-            }
-            */
         }
         else if (key.compare(0, 5, "param") == 0) {
             key.erase(0, 5);
@@ -220,21 +213,6 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 parse_info->param_mapping.erase(it);
                 parse_info->param_mapping.emplace(std::make_pair(key, parse_info_s::param_def({ data, Priority })));
             }
-
-            /*
-            size_t num = std::stoi(key) - 1;
-            if (num < params.size() &&
-                    (Priority > m_param_priority[num]))
-            {
-                std::istringstream stream(value);
-
-                stream >> params[num].r;
-                stream >> params[num].g;
-                stream >> params[num].b;
-                stream >> params[num].a;
-
-                m_param_priority[num] = Priority;
-            }*/
         }
         else if (key == "shader:" &&
                 (!shader || Priority > m_shader_priority))
@@ -342,7 +320,14 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         }
 
         // material would attach default shader anyway, but it would spit to error log
-        material.shader = GfxRenderer.Fetch_Shader("default_1");
+        try
+        {
+            material.shader = GfxRenderer.Fetch_Shader("default_1");
+        }
+        catch (gl::shader_exception const &e)
+        {
+            ErrorLog("invalid shader: " + std::string(e.what()));
+        }
 
         // use texture path and name to tell the newly created materials apart
         filename = GfxRenderer.Texture( material.textures[0] ).name;
@@ -351,6 +336,9 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     }
 
     material.finalize(Loadnow);
+
+    if (!material.shader)
+        return null_handle;
 
     material_handle handle = m_materials.size();
     m_materialmappings.emplace(material.name, handle);

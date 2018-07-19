@@ -54,7 +54,7 @@ struct opengl_texture {
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
     std::size_t size{ 0 }; // size of the texture data, in kb
-    GLint components_hint; // components that material wants
+    GLint components_hint = 0; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
     static std::array<GLuint, gl::MAX_TEXTURES + 2> units;

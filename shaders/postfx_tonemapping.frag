@@ -44,6 +44,6 @@ void main()
 	vec2 texcoord = f_coords;
 	vec3 hdr_color = texture(tex1, texcoord).xyz;
 
-	vec3 mapped= ACESFilm(hdr_color);
+	vec3 mapped = ACESFilm(hdr_color);
 	gl_FragColor = vec4(mapped, 1.0);
 }  
