@@ -1410,16 +1410,24 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
 
     if( Targetvelocity > 65.f ) { return 1.f; }
     if( Targetvelocity < 5.f ) {
-
+        // HACK: engaged automatic transmission means extra/earlier braking effort is needed for the last leg before full stop
         if( ( mvOccupied->TrainType == dt_DMU )
          && ( mvOccupied->Vel < 40.0 )
          && ( Targetvelocity == 0.f ) ) {
-            // HACK: engaged automatic transmission means extra/earlier braking effort is needed for the last leg before full stop
             return interpolate( 2.f, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
         }
-        else {
-            return 1.f;
+        // HACK: cargo trains or trains going downhill with high braking threshold need more distance to come to a full stop
+        if( ( fBrake_a0[ 0 ] > 0.2 )
+         && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
+           || ( fAccGravity > 0.025 ) ) {
+            return interpolate(
+                1.f, 3.f,
+                clamp(
+                    ( fBrake_a0[ 0 ] - 0.2 ) / 0.2,
+                    0.0, 1.0 ) );
         }
+
+        return 1.f;
     }
     // stretch the braking distance up to 3 times; the lower the speed, the greater the stretch
     return interpolate( 3.f, 1.f, ( Targetvelocity - 5.f ) / 60.f );
@@ -1546,7 +1554,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         // fAccThreshold może podlegać uczeniu się - hamowanie powinno być rejestrowane, a potem analizowane
         // próg opóźnienia dla zadziałania hamulca
         fAccThreshold = (
-            mvOccupied->TrainType == dt_EZT ? -0.6 :
+            mvOccupied->TrainType == dt_EZT ? -0.55 :
             mvOccupied->TrainType == dt_DMU ? -0.45 :
             -0.2 );
     }
@@ -1868,7 +1876,7 @@ void TController::AutoRewident()
 		fBrake_a1[i+1] /= (12*fMass);
 	}
     if( mvOccupied->TrainType == dt_EZT ) {
-		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.6);
+		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.55);
 		fBrakeReaction = 0.25;
 	}
     else if( mvOccupied->TrainType == dt_DMU ) {
@@ -2744,12 +2752,12 @@ bool TController::IncSpeed()
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
                     // use series mode:
-                    // to build up speed to 30/40 km/h for passenger/cargo train,
+                    // to build up speed to 30/40 km/h for passenger/cargo train (less if going uphill, more if downhill)
                     // if high threshold is set for motor overload relay,
                     // if the power station is heavily burdened
                     auto const useseriesmodevoltage { 0.80 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
                     auto const useseriesmode = (
-                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) )
+                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) + ( fAccGravity * 100 ) )
                      || ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
@@ -3731,13 +3739,14 @@ TController::UpdateSituation(double dt) {
         if( ( dy = p->VectorFront().y ) != 0.0 ) {
             // istotne tylko dla pojazdów na pochyleniu
             // ciężar razy składowa styczna grawitacji
-            fAccGravity -= p->DirectionGet() * p->MoverParameters->TotalMassxg * dy;
+            fAccGravity -= p->MoverParameters->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
         }
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
     if( iDirection ) {
         // siłę generują pojazdy na pochyleniu ale działa ona całość składu, więc a=F/m
-        fAccGravity /= iDirection * fMass;
+        fAccGravity *= iDirection;
+        fAccGravity /= fMass;
     }
     if (!Ready) // v367: jeśli wg powyższych warunków skład nie jest odhamowany
         if (fAccGravity < -0.05) // jeśli ma pod górę na tyle, by się stoczyć
@@ -4924,30 +4933,29 @@ TController::UpdateSituation(double dt) {
             // decisions based on current speed
             if( mvOccupied->CategoryFlag == 1 ) {
 
-                if( fAccGravity < 0.025 ) {
-                    // on flats on uphill we can be less careful
-                    if( vel > VelDesired ) {
-                        // jesli jedzie za szybko do AKTUALNEGO
-                        if( VelDesired == 0.0 ) {
-                            // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                            AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
+                // on flats or uphill we can be less careful
+                if( vel > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
+                    }
+                    else {
+                        // slow down, not full stop
+                        if( vel > ( VelDesired + fVelPlus ) ) {
+                            // hamuj tak średnio
+                            AccDesired = std::min( AccDesired, -0.25 );
                         }
                         else {
-                            // slow down, not full stop
-                            if( vel > ( VelDesired + fVelPlus ) ) {
-                                // hamuj tak średnio
-                                AccDesired = std::min( AccDesired, -0.25 );
-                            }
-                            else {
-                                // o 5 km/h to olej (zacznij luzować)
-                                AccDesired = std::min(
-                                    AccDesired, // but don't override decceleration for VelNext 
-                                    std::max( 0.0, AccPreferred ) );
-                            }
+                            // o 5 km/h to olej (zacznij luzować)
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                std::max( 0.0, AccPreferred ) );
                         }
                     }
                 }
-                else {
+
+                if( fAccGravity > 0.025 ) {
                     // going sharply downhill we may need to start braking sooner than usual
                     // try to estimate increase of current velocity before engaged brakes start working
                     auto const speedestimate = vel + ( 1.0 - fBrake_a0[ 0 ] ) * 30.0 * AbsAccS;
@@ -4958,19 +4966,38 @@ TController::UpdateSituation(double dt) {
                             AccDesired = std::min( AccDesired, -0.85 ); // hamuj solidnie
                         }
                         else {
-                            if( speedestimate > ( VelDesired + fVelPlus ) ) {
-                                // if it looks like we'll exceed maximum allowed speed start thinking about slight slowing down
-                                AccDesired = std::min( AccDesired, -0.25 );
-                            }
-                            else {
-                                // close enough to target to stop accelerating
-                                AccDesired = std::min(
-                                    AccDesired, // but don't override decceleration for VelNext 
-                                    interpolate( // ease off as you close to the target velocity
-                                        -0.06, AccPreferred,
-                                        clamp( speedestimate - vel, 0.0, fVelPlus ) / fVelPlus ) );
+                            // if it looks like we'll exceed maximum speed start thinking about slight slowing down
+                            AccDesired = std::min( AccDesired, -0.25 );
+                            // HACK: for cargo trains with high braking threshold ensure we cross that threshold
+                            if( ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
+                               && ( fBrake_a0[ 0 ] > 0.2 ) ) {
+                                AccDesired -= clamp( fBrake_a0[ 0 ] - 0.2, 0.0, 0.15 );
                             }
                         }
+                    }
+                    else {
+                        // stop accelerating when close enough to target speed
+                        AccDesired = std::min(
+                            AccDesired, // but don't override decceleration for VelNext 
+                            interpolate( // ease off as you close to the target velocity
+                                -0.06, AccPreferred,
+                                clamp( VelDesired - speedestimate, 0.0, fVelMinus ) / fVelMinus ) );
+                    }
+                    // final tweaks
+                    if( vel > 0.1 ) {
+                        // going downhill also take into account impact of gravity
+                        AccDesired -= fAccGravity;
+                        // HACK: if the max allowed speed was exceeded something went wrong; brake harder
+                        AccDesired -= 0.15 * clamp( vel - VelDesired, 0.0, 5.0 );
+/*
+                        if( ( vel > VelDesired )
+                         && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
+                         && ( fBrake_a0[ 0 ] > 0.2 ) ) {
+                            AccDesired = clamp(
+                                AccDesired - clamp( fBrake_a0[ 0 ] - 0.2, 0.0, 0.15 ),
+                                -0.9, 0.9 );
+                        }
+*/
                     }
                 }
             }
@@ -5001,14 +5028,7 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
-
-            if( ( mvOccupied->CategoryFlag == 1 )
-             && ( fAccGravity > 0.025 ) ) {
-                // going downhill also take into account impact of gravity
-                AccDesired = clamp( AccDesired - fAccGravity, -0.9, 0.9 );
-            }
-
-
+            AccDesired = clamp( AccDesired, -0.9, 0.9 );
 
             if (AIControllFlag) {
                 // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
@@ -5214,7 +5234,12 @@ TController::UpdateSituation(double dt) {
                 if( mvOccupied->TrainType == dt_EZT ) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT
-                    if( ( AccDesired <= fAccThreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
+                    // HACK: when going downhill be more responsive to desired deceleration
+                    auto const accthreshold { (
+                        fAccGravity < 0.025 ?
+                            fAccThreshold :
+                            std::max( -0.2, fAccThreshold ) ) };
+                    if( ( AccDesired <= accthreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
                      && ( ( AbsAccS > AccDesired )
                        || ( mvOccupied->BrakeCtrlPos < 0 ) ) ) {
                         // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
@@ -5242,7 +5267,7 @@ TController::UpdateSituation(double dt) {
                 } // type & dt_ezt
                 else {
                     // a stara wersja w miarę dobrze działa na składy wagonowe
-                    if( ( ( fAccGravity < -0.05 ) && ( vel < 0.0 ) )
+                    if( ( ( fAccGravity < -0.05 ) && ( vel < -0.1 ) ) // brake if uphill and slipping back
                      || ( ( AccDesired < fAccGravity - 0.1 ) && ( AbsAccS > AccDesired + fBrake_a1[ 0 ] ) ) ) {
                         // u góry ustawia się hamowanie na fAccThreshold
                         if( ( fBrakeTime < 0.0 )

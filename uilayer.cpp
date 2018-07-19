@@ -293,13 +293,18 @@ ui_layer::update() {
                     uitextline2 +=
                         " Speed: " + std::to_string( static_cast<int>( std::floor( mover->Vel ) ) ) + " km/h"
                         + " (limit: " + std::to_string( speedlimit ) + " km/h";
-                    auto const nextspeedlimit { static_cast<int>( std::floor( controlled->Mechanik->VelNext ) ) };
+                    auto const nextspeedlimit { static_cast<int>( std::floor( driver->VelNext ) ) };
                     if( nextspeedlimit != speedlimit ) {
                         uitextline2 +=
                             ", new limit: " + std::to_string( nextspeedlimit ) + " km/h"
-                            + " in " + to_string( controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km";
+                            + " in " + to_string( driver->ActualProximityDist * 0.001, 1 ) + " km";
                     }
                     uitextline2 += ")";
+                    auto const reverser { ( mover->ActiveDir > 0 ? 1 : -1 ) };
+                    auto const grade { controlled->VectorFront().y * 100 * ( controlled->DirectionGet() == reverser ? 1 : -1 ) * reverser };
+                    if( std::abs( grade ) >= 0.25 ) {
+                        uitextline2 += " Grade: " + to_string( grade, 1 ) + "%";
+                    }
                     uitextline3 +=
                         " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
@@ -513,7 +518,7 @@ ui_layer::update() {
                     + ( vehicle->MoverParameters->SlippingWheels ? " (!)" : "" );
 
                 if( vehicle->Mechanik ) {
-                    uitextline2 += "; Ag: " + to_string( vehicle->Mechanik->fAccGravity, 2 );
+                    uitextline2 += "; Ag: " + to_string( vehicle->Mechanik->fAccGravity, 2 ) + " (" + ( vehicle->Mechanik->fAccGravity > 0.01 ? "\\" : ( vehicle->Mechanik->fAccGravity < -0.01 ? "/" : "-" ) ) + ")";
                 }
 
                 uitextline2 +=
