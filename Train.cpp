@@ -4365,7 +4365,8 @@ bool TTrain::Update( double const Deltatime )
                 // Odskakiwanie hamulce EP
                 if( false == (
                     ( input::command == user_command::trainbrakeset )
-                 || ( input::command == user_command::trainbrakedecrease ) ) ) {
+                 || ( input::command == user_command::trainbrakedecrease )
+                 || ( input::command == user_command::trainbrakecharging ) ) ) {
                     set_train_brake( 0 );
                 }
             }

@@ -1421,7 +1421,7 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
          && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
            || ( fAccGravity > 0.025 ) ) {
             return interpolate(
-                1.f, 3.f,
+                1.f, 2.f,
                 clamp(
                     ( fBrake_a0[ 0 ] - 0.2 ) / 0.2,
                     0.0, 1.0 ) );
@@ -2680,7 +2680,7 @@ bool TController::DecBrake()
 			}
 		}
         if (!OK)
-            OK = mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo);
+            OK = mvOccupied->DecLocalBrakeLevel(2);
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
         break;
@@ -2704,7 +2704,7 @@ bool TController::DecBrake()
         else
             OK = false;
         if (!OK)
-            OK = mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo);
+            OK = mvOccupied->DecLocalBrakeLevel(2);
         break;
     }
     return OK;
@@ -2752,12 +2752,12 @@ bool TController::IncSpeed()
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
                     // use series mode:
-                    // to build up speed to 30/40 km/h for passenger/cargo train (less if going uphill, more if downhill)
+                    // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
                     // if high threshold is set for motor overload relay,
                     // if the power station is heavily burdened
                     auto const useseriesmodevoltage { 0.80 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
                     auto const useseriesmode = (
-                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) + ( fAccGravity * 100 ) )
+                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) )
                      || ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
@@ -4301,6 +4301,10 @@ TController::UpdateSituation(double dt) {
                 // additional safety margin for cargo consists
                 fMinProximityDist *= 2.0;
                 fMaxProximityDist *= 2.0;
+                if( fBrake_a0[ 0 ] >= 0.35 ) {
+                    // cargo trains with high braking threshold may require even larger safety margin
+                    fMaxProximityDist += 20.0;
+                }
             }
         }
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
@@ -4335,7 +4339,11 @@ TController::UpdateSituation(double dt) {
             if( mvOccupied->BrakeDelayFlag == bdelay_G ) {
                 // increase distances for cargo trains to take into account slower reaction to brakes
                 fMinProximityDist += 10.0;
-                fMaxProximityDist += 10.0;
+                fMaxProximityDist += 15.0;
+                if( fBrake_a0[ 0 ] >= 0.35 ) {
+                    // cargo trains with high braking threshold may require even larger safety margin
+                    fMaxProximityDist += 20.0;
+                }
             }
         }
         else {
