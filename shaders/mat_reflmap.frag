@@ -10,7 +10,13 @@ in vec4 f_light_pos;
 #param (color, 0, 0, 4, diffuse)
 #param (diffuse, 1, 0, 1, diffuse)
 #param (specular, 1, 1, 1, specular)
-#param (reflection, 1, 2, 1, zero)
+#param (reflection, 1, 2, 1, one)
+
+#texture (diffuse, 0, sRGB_A)
+uniform sampler2D diffuse;
+
+#texture (reflmap, 1, R)
+uniform sampler2D reflmap;
 
 uniform sampler2DShadow shadowmap;
 uniform samplerCube envmap;
@@ -19,7 +25,10 @@ uniform samplerCube envmap;
 
 void main()
 {
-	vec4 tex_color = vec4(param[0].rgb, 1.0f);
+	vec4 tex_color = texture(diffuse, f_coord);
+
+	if (tex_color.a < opacity)
+		discard;
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos, normal);
@@ -31,7 +40,7 @@ void main()
 	{
 		vec2 part = calc_dir_light(lights[0]);
 		vec3 c = (part.x * param[1].x + part.y * param[1].y) * calc_shadow() * lights[0].color;
-		result += mix(c, envcolor, param[1].z);
+		result += mix(c, envcolor, param[1].z * texture(reflmap, f_coord).r);
 	}
 
 	for (uint i = 1U; i < lights_count; i++)

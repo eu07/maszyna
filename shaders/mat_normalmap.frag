@@ -3,6 +3,7 @@
 in vec3 f_normal;
 in vec2 f_coord;
 in vec3 f_pos;
+in mat3 f_tbn;
 in vec4 f_light_pos;
 
 #include <common>
@@ -12,14 +13,24 @@ in vec4 f_light_pos;
 #param (specular, 1, 1, 1, specular)
 #param (reflection, 1, 2, 1, zero)
 
+#texture (diffuse, 0, sRGB_A)
+uniform sampler2D diffuse;
+
+#texture (normalmap, 1, RGB)
+uniform sampler2D normalmap;
+
 uniform sampler2DShadow shadowmap;
 uniform samplerCube envmap;
 
+#define NORMALMAP
 #include <light_common.glsl>
 
 void main()
 {
-	vec4 tex_color = vec4(param[0].rgb, 1.0f);
+	vec4 tex_color = texture(diffuse, f_coord);
+
+	if (tex_color.a < opacity)
+		discard;
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos, normal);

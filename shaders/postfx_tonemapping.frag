@@ -42,17 +42,8 @@ vec3 filmic(vec3 x)
 void main()
 {
 	vec2 texcoord = f_coords;
-//	float x = texcoord.x;
-//	texcoord.x += sin(texcoord.y * 4*2*3.14159 + 0) / 100;
-//	texcoord.y += sin(x * 4*2*3.14159 + 0) / 100;
 	vec3 hdr_color = texture(tex1, texcoord).xyz;
 
-	vec3 mapped;
-	//if (texcoord.x < 0.33f)
-	//	mapped = reinhard(hdr_color);
-	//else if (texcoord.x < 0.66f)
-	//	mapped = filmic(hdr_color);
-	//else
-		mapped = ACESFilm(hdr_color);
+	vec3 mapped= ACESFilm(hdr_color);
 	gl_FragColor = vec4(mapped, 1.0);
 }  

@@ -32,6 +32,7 @@ namespace gl
 #pragma pack(push, 1)
 
     const size_t MAX_TEXTURES = 8;
+    const size_t ENVMAP_SIZE = 1024;
 
     struct scene_ubs
     {

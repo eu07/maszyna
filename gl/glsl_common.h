@@ -5,6 +5,7 @@ namespace gl
     const std::string glsl_common =
     "const uint MAX_LIGHTS = " + std::to_string(MAX_LIGHTS) + "U;\n" +
     "const uint MAX_PARAMS = " + std::to_string(MAX_PARAMS) + "U;\n" +
+    "const uint ENVMAP_SIZE = " + std::to_string(ENVMAP_SIZE) + "U;\n" +
     R"STRING(
     const uint LIGHT_SPOT = 0U;
     const uint LIGHT_POINT = 1U;

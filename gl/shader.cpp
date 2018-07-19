@@ -65,7 +65,7 @@ std::unordered_map<std::string, gl::shader::defaultparam_e> gl::shader::defaultp
 {
     { "required", defaultparam_e::required },
     { "nan", defaultparam_e::nan },
-    { "none", defaultparam_e::zero },
+    { "zero", defaultparam_e::zero },
     { "one", defaultparam_e::one },
     { "ambient", defaultparam_e::ambient },
     { "diffuse", defaultparam_e::diffuse },

@@ -25,7 +25,6 @@ opengl_renderer GfxRenderer;
 extern TWorld World;
 
 int const EU07_PICKBUFFERSIZE{1024}; // size of (square) textures bound with the pick framebuffer
-int const EU07_ENVIRONMENTBUFFERSIZE{256}; // size of (square) environmental cube map texture
 
 void opengl_light::apply_intensity(float const Factor)
 {
@@ -222,9 +221,9 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         return false;
 
     m_env_rb = std::make_unique<gl::renderbuffer>();
-    m_env_rb->alloc(GL_DEPTH_COMPONENT24, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE);
+    m_env_rb->alloc(GL_DEPTH_COMPONENT24, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
     m_env_tex = std::make_unique<gl::cubemap>();
-    m_env_tex->alloc(GL_RGB16F, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE, GL_RGB, GL_FLOAT);
+    m_env_tex->alloc(GL_RGB16F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
     m_empty_cubemap = std::make_unique<gl::cubemap>();
     m_empty_cubemap->alloc(GL_RGB16F, 16, 16, GL_RGB, GL_FLOAT);
 
@@ -451,9 +450,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glDebug("rendermode::shadows");
 
-		// bias (TBD: here or in glsl?)
-		// glEnable(GL_POLYGON_OFFSET_FILL);
-		// glPolygonOffset(1.0f, 1.0f);
+        glPolygonOffset(1.0f, 1.0f);
+        glEnable(GL_POLYGON_OFFSET_FILL);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -474,7 +472,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		m_shadowpass = m_renderpass;
 
-		// glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_POLYGON_OFFSET_FILL);
 
 		m_shadow_fb->unbind();
 
@@ -487,9 +485,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 	{
         glDebug("rendermode::cabshadows");
 
-        // bias (TBD: here or in glsl?)
-        // glEnable(GL_POLYGON_OFFSET_FILL);
-        // glPolygonOffset(1.0f, 1.0f);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -507,7 +504,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         Render_cab(World.Train->Dynamic(), true);
         m_cabshadowpass = m_renderpass;
 
-        // glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_POLYGON_OFFSET_FILL);
 
         m_cabshadows_fb->unbind();
 
@@ -623,7 +620,7 @@ bool opengl_renderer::Render_reflections()
     m_environmentupdatetime = timestamp;
     m_environmentupdatelocation = m_renderpass.camera.position();
 
-    glViewport(0, 0, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE);
+    glViewport(0, 0, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
     for (m_environmentcubetextureface = 0; m_environmentcubetextureface < 6; ++m_environmentcubetextureface)
     {
         m_env_fb->attach(*m_env_tex, m_environmentcubetextureface, GL_COLOR_ATTACHMENT0);
