@@ -113,6 +113,15 @@ ui_layer::on_key( int const Key, int const Action ) {
             if( Action == GLFW_RELEASE ) { return true; } // recognized, but ignored
         }
 
+    case GLFW_KEY_Y:
+        if (quit_active)
+            glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+        break;
+
+    case GLFW_KEY_N:
+        if (quit_active)
+            quit_active = false;
+
         default: { // everything else
             break;
         }
@@ -122,37 +131,37 @@ ui_layer::on_key( int const Key, int const Action ) {
             
         case GLFW_KEY_F1: {
             // basic consist info
-            m_f1active = !m_f1active;
+            basic_info_active = !basic_info_active;
             return true;
         }
 
         case GLFW_KEY_F2: {
             // parametry pojazdu
-            m_f2active = !m_f2active;
+            vehicle_info_active = !vehicle_info_active;
             return true;
         }
 
         case GLFW_KEY_F3: {
             // timetable
-            m_f3active = !m_f3active;
+            timetable_active = !timetable_active;
             return true;
         }
 
         case GLFW_KEY_F8: {
             // renderer debug data
-            m_f8active = !m_f8active;
+            renderer_debug_active = !renderer_debug_active;
             return true;
         }
 
         case GLFW_KEY_F9: {
             // wersja
-            m_f9active = !m_f9active;
+            about_active = !about_active;
             return true;
         }
 
         case GLFW_KEY_F10: {
             // quit
-            m_f10active = !m_f10active;
+            quit_active = !quit_active;
             return true;
         }
 
@@ -220,10 +229,10 @@ ui_layer::render() {
 
 	render_tooltip();
 
-    if (m_f1active)
+    if (basic_info_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Vehicle info", &m_f1active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Vehicle info", &basic_info_active, ImGuiWindowFlags_NoResize);
 
         auto const &time = simulation::Time.data();
         uitextline1 =
@@ -296,7 +305,7 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    if (m_f2active)
+    if (vehicle_info_active)
     {
         // timetable
         auto *vehicle {
@@ -337,7 +346,7 @@ ui_layer::render() {
         }
 
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Timetable", &m_f2active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Timetable", &vehicle_info_active, ImGuiWindowFlags_NoResize);
         ImGui::TextUnformatted(uitextline1.c_str());
         ImGui::TextUnformatted(uitextline2.c_str());
         ImGui::TextUnformatted(uitextline3.c_str());
@@ -412,10 +421,10 @@ ui_layer::render() {
 
     f2_cancel:;
 
-    if (m_f3active)
+    if (timetable_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Vehicle status", &m_f3active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Vehicle status", &timetable_active, ImGuiWindowFlags_NoResize);
 
         uitextline1 = "";
         uitextline2 = "";
@@ -644,10 +653,10 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    if (m_f8active)
+    if (renderer_debug_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Renderer stats", &m_f8active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Renderer stats", &renderer_debug_active, ImGuiWindowFlags_NoResize);
         // gfx renderer data
         uitextline1 =
             "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
@@ -677,10 +686,10 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    if (m_f9active)
+    if (about_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("About", &m_f9active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("About", &about_active, ImGuiWindowFlags_NoResize);
 
         // informacja o wersji
         uitextline1 = "MaSzyna " + Global.asVersion; // informacja o wersji
@@ -696,16 +705,16 @@ ui_layer::render() {
         ImGui::End();
     }
 
-    if (m_f10active)
+    if (quit_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Quit", &m_f10active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Quit", &quit_active, ImGuiWindowFlags_NoResize);
         ImGui::TextUnformatted("Quit simulation?");
         if (ImGui::Button("Yes"))
             glfwSetWindowShouldClose(m_window, GLFW_TRUE);
         ImGui::SameLine();
         if (ImGui::Button("No"))
-            m_f10active = false;
+            quit_active = false;
         ImGui::End();
     }
 
@@ -1131,15 +1140,15 @@ ui_layer::render() {
             if (ImGui::BeginMenu("Scenery"))
             {
                 ImGui::MenuItem("Debug mode", nullptr, &DebugModeFlag);
-                ImGui::MenuItem("Quit", "F10", &m_f10active);
+                ImGui::MenuItem("Quit", "F10", &quit_active);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Window"))
             {
-                ImGui::MenuItem("Basic info", "F1", &m_f1active);
-                ImGui::MenuItem("Timetable", "F2", &m_f2active);
-                ImGui::MenuItem("Vehicle info", "F3", &m_f3active);
-                ImGui::MenuItem("Renderer stats", "F8", &m_f8active);
+                ImGui::MenuItem("Basic info", "F1", &basic_info_active);
+                ImGui::MenuItem("Timetable", "F2", &vehicle_info_active);
+                ImGui::MenuItem("Vehicle info", "F3", &timetable_active);
+                ImGui::MenuItem("Renderer stats", "F8", &renderer_debug_active);
                 ImGui::MenuItem("Scenery inspector", "F11", &EditorModeFlag);
                 ImGui::MenuItem("Events", nullptr, &events_active);
                 ImGui::MenuItem("Log", "F12", &log_active);
@@ -1161,7 +1170,7 @@ ui_layer::render() {
             }
             if (ImGui::BeginMenu("Help"))
             {
-                ImGui::MenuItem("About", "F9", &m_f9active);
+                ImGui::MenuItem("About", "F9", &about_active);
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
