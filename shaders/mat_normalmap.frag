@@ -32,7 +32,7 @@ void main()
 	if (tex_color.a < opacity)
 		discard;
 
-	vec3 normal = normalize(f_normal);
+	vec3 normal = f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0);
 	vec3 refvec = reflect(f_pos, normal);
 	vec3 envcolor = texture(envmap, refvec).rgb;
 

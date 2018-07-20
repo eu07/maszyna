@@ -3146,12 +3146,6 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		return (glm::length2(camera - Left.position) * (1.f - Left.intensity)) < (glm::length2(camera - Right.position) * (1.f - Right.intensity));
 	});
 
-	size_t const count = std::min(m_lights.size(), Lights.data.size());
-	if (count == 0)
-	{
-		return;
-	}
-
 	auto renderlight = m_lights.begin();
 	size_t light_i = 1;
 
