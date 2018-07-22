@@ -88,7 +88,6 @@ double TMoverParameters::Current(double n, double U)
     // w zaleznosci od polozenia nastawnikow MainCtrl i ScndCtrl oraz predkosci obrotowej n
     // a takze wywala bezpiecznik nadmiarowy gdy za duzy prad lub za male napiecie
     // jest takze mozliwosc uszkodzenia silnika wskutek nietypowych parametrow
-    double const ep09resED = 5.8; // TODO: dobrac tak aby sie zgadzalo ze wbudzeniem
 
     double R, MotorCurrent;
     double Rz, Delta, Isf;
@@ -166,7 +165,7 @@ double TMoverParameters::Current(double n, double U)
     {
         // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
         MotorCurrent =
-            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) * n * 2.0 / ep09resED;
+            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) * n * 2.0 / DynamicBrakeRes;
     }
     else if( ( RList[ MainCtrlActualPos ].Bn == 0 )
           || ( false == StLinFlag ) ) {
@@ -4581,16 +4580,16 @@ double TMoverParameters::TractionForce( double dt ) {
             }
             if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
             {
-                if (((Vadd + abs(Im)) > 760) || (Hamulec->GetEDBCP() < 0.25))
+                if (((Vadd + abs(Im)) > TUHEX_Sum + TUHEX_Diff) || (Hamulec->GetEDBCP() < 0.25))
                 {
                     Vadd -= 500.0 * dt;
                     if (Vadd < 1)
                         Vadd = 0;
                 }
-                else if ((DynamicBrakeFlag) && ((Vadd + abs(Im)) < 740))
+                else if ((DynamicBrakeFlag) && ((Vadd + abs(Im)) < TUHEX_Sum - TUHEX_Diff))
                 {
                     Vadd += 70.0 * dt;
-                    Vadd = Min0R(Max0R(Vadd, 60), 400);
+                    Vadd = Min0R(Max0R(Vadd, TUHEX_MinIw), TUHEX_MaxIw);
                 }
                 if (Vadd > 0)
                     Mm = MomentumF(Im, Vadd, 0);
@@ -8088,6 +8087,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             lookup != dynamicbrakes.end() ?
             lookup->second :
             dbrake_none;
+		extract_value(DynamicBrakeAmpmeters, "DBAM", line, "");
     }
 
     extract_value( MainCtrlPosNo, "MCPN", line, "" );
@@ -8479,6 +8479,10 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
     extract_value( ImaxHi, "ImaxHi", Input, "" );
     Imin = IminLo;
     Imax = ImaxLo;
+	extract_value( TUHEX_Sum, "TUHEX_Sum", Input, "" );
+	extract_value( TUHEX_Diff, "TUHEX_Diff", Input, "" );
+	extract_value( TUHEX_MaxIw, "TUHEX_MaxIw", Input, "" );
+	extract_value( TUHEX_MinIw, "TUHEX_MinIw", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
@@ -8506,6 +8510,7 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
     }
     extract_value( RVentMinI, "RVentMinI", Input, "" );
     extract_value( RVentSpeed, "RVentSpeed", Input, "" );
+	extract_value( DynamicBrakeRes, "DynBrakeRes", Input, "");
 }
 
 void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
@@ -9609,7 +9614,7 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
     Bn = RList[MainCtrlActualPos].Bn; // ile równoległych gałęzi silników
 
     if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
-        Bn = 2;
+        Bn = DynamicBrakeAmpmeters;
     if (Power > 0.01)
     {
         if (AmpN > 0) // podać prąd w gałęzi

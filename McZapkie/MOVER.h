@@ -859,6 +859,13 @@ public:
 						//CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
 	bool IsCoupled = false;     /*czy jest sprzezony ale jedzie z tylu*/
 	int DynamicBrakeType = 0; /*patrz dbrake_**/
+	int DynamicBrakeAmpmeters = 2; /*liczba amperomierzy przy hamowaniu ED*/
+	double DynamicBrakeRes = 5.8; /*rezystancja oporników przy hamowaniu ED*/
+	double TUHEX_Sum = 750; /*nastawa sterownika hamowania ED*/
+	double TUHEX_Diff = 10; /*histereza działania sterownika hamowania ED*/
+	double TUHEX_MinIw = 60; /*minimalny prąd wzbudzenia przy hamowaniu ED - wynika z chk silnika*/
+	double TUHEX_MaxIw = 400; /*maksymalny prąd wzbudzenia przy hamowaniu ED - ograniczenie max siły*/
+
 	int RVentType = 0;        /*0 - brak, 1 - jest, 2 - automatycznie wlaczany*/
 	double RVentnmax = 1.0;      /*maks. obroty wentylatorow oporow rozruchowych*/
 	double RVentCutOff = 0.0;      /*rezystancja wylaczania wentylatorow dla RVentType=2*/
