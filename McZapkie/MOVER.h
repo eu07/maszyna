@@ -1025,7 +1025,8 @@ public:
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
 	double BrakeCtrlPos2 = 0.0;                 /*nastawa hamulca zespolonego - kapturek dla FV4a*/
 	int ManualBrakePos = 0;                 /*nastawa hamulca recznego*/
-	double LocalBrakePosA = 0.0;
+	double LocalBrakePosA = 0.0;   /*nastawa hamulca pomocniczego*/
+	double LocalBrakePosAEIM = 0.0;  /*pozycja hamulca pomocniczego ep dla asynchronicznych ezt*/
 /*
 	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
 */

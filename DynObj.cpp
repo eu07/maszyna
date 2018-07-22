@@ -3207,20 +3207,20 @@ bool TDynamicObject::Update(double dt, double dt1)
 					p->MoverParameters->Hamulec->GetFC(
 						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA), VelC) *
 					1000; // sila hamowania pn
-				p->MoverParameters->LocalBrakePosA = (p->MoverParameters->SlippingWheels ? 0 : FzEP[i] / FmaxPoj);
-				if (p->MoverParameters->LocalBrakePosA>0.009)
+				p->MoverParameters->LocalBrakePosAEIM = (p->MoverParameters->SlippingWheels ? 0 : FzEP[i] / FmaxPoj);
+				if (p->MoverParameters->LocalBrakePosAEIM>0.009)
 					if (p->MoverParameters->P2FTrans * p->MoverParameters->BrakeCylMult[0] *
 						p->MoverParameters->MaxBrakePress[0] != 0)
 					{
 						float x = (p->MoverParameters->BrakeSlckAdj / p->MoverParameters->BrakeCylMult[0] +
 							p->MoverParameters->BrakeCylSpring) / (p->MoverParameters->P2FTrans *
 								p->MoverParameters->MaxBrakePress[0]);
-						p->MoverParameters->LocalBrakePosA = x + (1 - x) * p->MoverParameters->LocalBrakePosA;
+						p->MoverParameters->LocalBrakePosAEIM = x + (1 - x) * p->MoverParameters->LocalBrakePosAEIM;
 					}
 					else
-						p->MoverParameters->LocalBrakePosA = p->MoverParameters->LocalBrakePosA;
+						p->MoverParameters->LocalBrakePosAEIM = p->MoverParameters->LocalBrakePosAEIM;
 				else
-					p->MoverParameters->LocalBrakePosA = 0;
+					p->MoverParameters->LocalBrakePosAEIM = 0;
 				++i;
 			}
 

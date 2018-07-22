@@ -3460,8 +3460,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
     if ((BrakeCtrlPosNo > 1) /*&& (ActiveCab != 0)*/)
     // with BrakePressureTable[BrakeCtrlPos] do
     {
-        dpLocalValve = LocHandle->GetPF(LocalBrakePosA, Hamulec->GetBCP(), ScndPipePress, dt, 0);
-
+		if ((EngineType != TEngineType::ElectricInductionMotor))
+			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
+		else
+			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
         if( ( BrakeHandle == TBrakeHandle::FV4a )
          && ( ( PipePress < 2.75 )
            && ( ( Hamulec->GetStatus() & b_rls ) == 0 ) )

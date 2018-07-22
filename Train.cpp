@@ -612,6 +612,28 @@ bool TTrain::is_eztoer() const {
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
 }
 
+// mover master controller to specified position
+void TTrain::set_master_controller( double const Position ) {
+
+    auto positionchange {
+        std::min<int>(
+            Position,
+            ( mvControlled->CoupledCtrl ?
+                mvControlled->MainCtrlPosNo + mvControlled->ScndCtrlPosNo :
+                mvControlled->MainCtrlPosNo ) )
+        - ( mvControlled->CoupledCtrl ?
+                mvControlled->MainCtrlPos + mvControlled->ScndCtrlPos :
+                mvControlled->MainCtrlPos ) };
+    while( ( positionchange < 0 )
+        && ( true == mvControlled->DecMainCtrl( 1 ) ) ) {
+        ++positionchange;
+    }
+    while( ( positionchange > 0 )
+        && ( true == mvControlled->IncMainCtrl( 1 ) ) ) {
+        --positionchange;
+    }
+}
+
 // moves train brake lever to specified position, potentially emits switch sound if conditions are met
 void TTrain::set_train_brake( double const Position ) {
 
@@ -752,22 +774,9 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_mastercontrollerset( TTrain *Train, command_data const &Command ) {
 
-    auto positionchange {
-        std::min<int>(
-            Command.param1,
-            ( Train->mvControlled->CoupledCtrl ?
-                Train->mvControlled->MainCtrlPosNo + Train->mvControlled->ScndCtrlPosNo :
-                Train->mvControlled->MainCtrlPosNo ) )
-        - ( Train->mvControlled->CoupledCtrl ?
-                Train->mvControlled->MainCtrlPos + Train->mvControlled->ScndCtrlPos :
-                Train->mvControlled->MainCtrlPos ) };
-    while( ( positionchange < 0 )
-        && ( true == Train->mvControlled->DecMainCtrl( 1 ) ) ) {
-        ++positionchange;
-    }
-    while( ( positionchange > 0 )
-        && ( true == Train->mvControlled->IncMainCtrl( 1 ) ) ) {
-        --positionchange;
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        Train->set_master_controller( Command.param1 );
     }
 }
 
@@ -4370,7 +4379,8 @@ bool TTrain::Update( double const Deltatime )
                 // Odskakiwanie hamulce EP
                 if( false == (
                     ( input::command == user_command::trainbrakeset )
-                 || ( input::command == user_command::trainbrakedecrease ) ) ) {
+                 || ( input::command == user_command::trainbrakedecrease )
+                 || ( input::command == user_command::trainbrakecharging ) ) ) {
                     set_train_brake( 0 );
                 }
             }
@@ -5113,16 +5123,12 @@ bool TTrain::Update( double const Deltatime )
         if (ggMainCtrl.SubModel) {
 
 #ifdef _WIN32
-			if ((DynamicObject->Mechanik != nullptr)
-				&& (false == DynamicObject->Mechanik->AIControllFlag) // nie blokujemy AI
-				&& (Global.iFeedbackMode == 4)
-				&& (Global.fCalibrateIn[2][1] != 0.0)) {
-				auto const b = clamp<double>(
-					Console::AnalogCalibrateGet(2) * mvOccupied->MainCtrlPosNo,
-					0.0,
-					mvOccupied->MainCtrlPosNo);
-				while (mvOccupied->MainCtrlPos < b) { mvOccupied->MainCtrlPos = b - 1; mvOccupied->IncMainCtrl(1); }
-				while (mvOccupied->MainCtrlPos > b) { mvOccupied->MainCtrlPos = b + 1; mvOccupied->DecMainCtrl(1); }
+            if( ( DynamicObject->Mechanik != nullptr )
+             && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
+             && ( Global.iFeedbackMode == 4 )
+             && ( Global.fCalibrateIn[ 2 ][ 1 ] != 0.0 ) ) {
+
+                set_master_controller( Console::AnalogCalibrateGet( 2 ) * mvOccupied->MainCtrlPosNo );
 			}
 #endif
 
