@@ -6,5 +6,6 @@ in vec3 f_color;
 
 void main()
 {
-	gl_FragColor = vec4(f_color, 1.0f);
+	gl_FragData[0] = vec4(f_color, 1.0f);
+	gl_FragData[1] = vec4(0.0f);
 }

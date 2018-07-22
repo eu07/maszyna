@@ -13,5 +13,6 @@ void main()
 		discard;
 
 	// color data is shared with normals, ugh
-	gl_FragColor = vec4(f_normal_raw.bgr, 1.0f);
+	gl_FragData[0] = vec4(f_normal_raw.bgr, 1.0f);
+	gl_FragData[1] = vec4(0.0f);
 }

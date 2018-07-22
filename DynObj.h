@@ -177,6 +177,8 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
+    glm::dvec3 m_last_movement;
+
 public:
     // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
@@ -604,6 +606,10 @@ private:
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
     void OverheadTrack(float o);
+    glm::dvec3 get_last_movement() const
+    {
+        return m_last_movement;
+    }
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

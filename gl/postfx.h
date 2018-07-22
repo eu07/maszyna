@@ -17,6 +17,9 @@ namespace gl
     public:
         postfx(const std::string &s);
         postfx(const shader &s);
+
+        void attach();
         void apply(opengl_texture &src, framebuffer *dst);
+        void apply(std::vector<opengl_texture*> src, framebuffer *dst);
     };
 }

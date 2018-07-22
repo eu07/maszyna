@@ -55,16 +55,37 @@ void gl::framebuffer::clear(GLbitfield mask)
     glClear(mask);
 }
 
-void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask)
+void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask, GLenum attachment)
 {
-    other.clear(mask);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, *this);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, other);
+    if (mask & GL_COLOR_BUFFER_BIT)
+    {
+        glReadBuffer(attachment);
+        glDrawBuffer(attachment);
+    }
 	glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, GL_NEAREST);
 	unbind();
 }
 
-void gl::framebuffer::blit_from(framebuffer &other, int w, int h, GLbitfield mask)
+void gl::framebuffer::blit_from(framebuffer &other, int w, int h, GLbitfield mask, GLenum attachment)
 {
-	other.blit_to(*this, w, h, mask);
+    other.blit_to(*this, w, h, mask, attachment);
+}
+
+void gl::framebuffer::setup_drawing(int attachments)
+{
+    bind();
+    GLenum a[8] =
+    {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3,
+        GL_COLOR_ATTACHMENT4,
+        GL_COLOR_ATTACHMENT5,
+        GL_COLOR_ATTACHMENT6,
+        GL_COLOR_ATTACHMENT7
+    };
+    glDrawBuffers(std::min(attachments, 8), &a[0]);
 }

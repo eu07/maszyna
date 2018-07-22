@@ -177,6 +177,8 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 
+    float gfx_postfx_motionblur_shutter = 0.01f;
+
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );

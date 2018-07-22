@@ -2,7 +2,7 @@
 
 in vec3 f_normal;
 in vec2 f_coord;
-in vec3 f_pos;
+in vec4 f_pos;
 
 #texture (tex1, 0, sRGB_A)
 uniform sampler2D tex1;
@@ -12,5 +12,6 @@ uniform sampler2D tex1;
 void main()
 {
 	vec4 tex_color = texture(tex1, f_coord);
-	gl_FragColor = tex_color * param[0];
+	gl_FragData[0] = tex_color * param[0];
+	gl_FragData[1] = vec4(0.0f);
 }

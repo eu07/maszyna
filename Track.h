@@ -124,8 +124,8 @@ private:
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack : public scene::basic_node {
-
+class TTrack : public scene::basic_node
+{
     friend opengl_renderer;
     // NOTE: temporary arrangement
     friend ui_layer;

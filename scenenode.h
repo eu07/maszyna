@@ -73,7 +73,8 @@ struct node_data {
 };
 
 // holds unique piece of geometry, covered with single material
-class shape_node {
+class shape_node
+{
 
     friend class basic_region; // region might want to modify node content when it's being inserted
 
@@ -163,8 +164,8 @@ shape_node::data() const {
 
 
 // holds a group of untextured lines
-class lines_node {
-
+class lines_node
+{
     friend class basic_region; // region might want to modify node content when it's being inserted
 
 public:

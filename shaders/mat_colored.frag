@@ -2,8 +2,11 @@
 
 in vec3 f_normal;
 in vec2 f_coord;
-in vec3 f_pos;
+in vec4 f_pos;
 in vec4 f_light_pos;
+
+in vec4 f_clip_pos;
+in vec4 f_clip_future_pos;
 
 #include <common>
 
@@ -22,7 +25,7 @@ void main()
 	vec4 tex_color = vec4(param[0].rgb, 1.0f);
 
 	vec3 normal = normalize(f_normal);
-	vec3 refvec = reflect(f_pos, normal);
+	vec3 refvec = reflect(f_pos.xyz, normal);
 	vec3 envcolor = texture(envmap, refvec).rgb;
 
 	vec3 result = ambient * 0.5 + param[0].rgb * emission;
@@ -49,5 +52,11 @@ void main()
 		result += light.color * (part.x * param[1].x + part.y * param[1].y);
 	}
 
-	gl_FragColor = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
+	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
+	{
+        vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
+        vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;
+        
+        gl_FragData[1] = vec4(a - b, 0.0f, 0.0f);
+	}
 }

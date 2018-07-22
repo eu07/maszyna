@@ -3304,7 +3304,12 @@ bool TDynamicObject::Update(double dt, double dt1)
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
     if( Mechanik )
         Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia
+
+    glm::dvec3 old_pos = vPosition;
     Move(dDOMoveLen);
+
+    m_last_movement = glm::dvec3(vPosition) - old_pos;
+
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
         bDynamicRemove = true; // sprawdzić
@@ -4596,18 +4601,15 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
                 if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    WriteLog("alpha");
                     m_materialdata.textures_alpha = 0x31310031;
                 }
                 else {
                     // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-                    WriteLog("opaque");
                     m_materialdata.textures_alpha = 0x30300030;
                 }
 
                 if( ( m_materialdata.replacable_skins[ 2 ] )
                  && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).get_or_guess_opacity() == 0.0f ) ) {
-                    WriteLog("alpha");
                     // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                     m_materialdata.textures_alpha |= 0x02020002;
                 }

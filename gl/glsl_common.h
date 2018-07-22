@@ -43,7 +43,7 @@ namespace gl
             mat3 modelviewnormal;
             vec4 param[MAX_PARAMS];
 
-            vec3 velocity;
+            mat4 future;
             float opacity;
             float emission;
     };

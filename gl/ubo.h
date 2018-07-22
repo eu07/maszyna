@@ -52,7 +52,7 @@ namespace gl
         glm::mat3x4 modelviewnormal;
         glm::vec4 param[MAX_PARAMS];
 
-        glm::vec3 velocity;
+        glm::mat4 future;
         float opacity;
         float emission;
         UBS_PAD(12);
@@ -64,7 +64,7 @@ namespace gl
         }
     };
 
-    static_assert(sizeof(model_ubs) == 144 + 16 * MAX_PARAMS, "bad size of ubs");
+    static_assert(sizeof(model_ubs) == 196 + 16 * MAX_PARAMS, "bad size of ubs");
 
     struct light_element_ubs
     {

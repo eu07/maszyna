@@ -123,7 +123,6 @@ class opengl_camera
 // bare-bones render controller, in lack of anything better yet
 class opengl_renderer
 {
-
   public:
 	// types
 
@@ -232,7 +231,7 @@ class opengl_renderer
 	bool Init_caps();
 	void setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false);
 	void setup_matrices();
-	void setup_drawing(bool const Alpha = false);
+    void setup_drawing(bool const Alpha = false);
     void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
     void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
@@ -244,7 +243,7 @@ class opengl_renderer
 	void Render(scene::basic_region *Region);
 	void Render(section_sequence::iterator First, section_sequence::iterator Last);
 	void Render(cell_sequence::iterator First, cell_sequence::iterator Last);
-	void Render(scene::shape_node const &Shape, bool const Ignorerange);
+    void Render(scene::shape_node const &Shape, bool const Ignorerange);
 	void Render(TAnimModel *Instance);
 	bool Render(TDynamicObject *Dynamic);
     bool Render(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle);
@@ -258,7 +257,7 @@ class opengl_renderer
 	void Render_Alpha(cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last);
 	void Render_Alpha(TAnimModel *Instance);
 	void Render_Alpha(TTraction *Traction);
-	void Render_Alpha(scene::lines_node const &Lines);
+    void Render_Alpha(scene::lines_node const &Lines);
 	bool Render_Alpha(TDynamicObject *Dynamic);
     bool Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, glm::vec3 const &Angle);
 	bool Render_Alpha(TModel3d *Model, material_data const *Material, float const Squaredistance);
@@ -266,6 +265,9 @@ class opengl_renderer
 	void Update_Lights(light_array &Lights);
 	glm::vec3 pick_color(std::size_t const Index);
 	std::size_t pick_index(glm::ivec3 const &Color);
+
+    void draw(const gfx::geometry_handle &handle);
+    void draw(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
 
 	// members
 	GLFWwindow *m_window{nullptr};
@@ -325,8 +327,7 @@ class opengl_renderer
 	glm::vec4 m_shadowcolor{colors::shadow};
 	//    TEnvironmentType m_environment { e_flat };
 	float m_specularopaquescalefactor{1.f};
-	float m_speculartranslucentscalefactor{1.f};
-	bool m_renderspecular{false}; // controls whether to include specular component in the calculations
+    float m_speculartranslucentscalefactor{1.f};
 
 	renderpass_config m_renderpass; // parameters for current render pass
 	section_sequence m_sectionqueue; // list of sections in current render pass
@@ -362,11 +363,18 @@ class opengl_renderer
 
 	std::unique_ptr<gl::framebuffer> m_msaa_fb;
 	std::unique_ptr<gl::renderbuffer> m_msaa_rbc;
+    std::unique_ptr<gl::renderbuffer> m_msaa_rbv;
 	std::unique_ptr<gl::renderbuffer> m_msaa_rbd;
 
 	std::unique_ptr<gl::framebuffer> m_main_fb;
+    std::unique_ptr<opengl_texture> m_main_texv;
 	std::unique_ptr<opengl_texture> m_main_tex;
-	std::unique_ptr<gl::postfx> m_pfx;
+
+    std::unique_ptr<gl::framebuffer> m_main2_fb;
+    std::unique_ptr<opengl_texture> m_main2_tex;
+
+    std::unique_ptr<gl::postfx> m_pfx_motionblur;
+    std::unique_ptr<gl::postfx> m_pfx_tonemapping;
 
 	std::unique_ptr<gl::framebuffer> m_shadow_fb;
 	std::unique_ptr<opengl_texture> m_shadow_tex;

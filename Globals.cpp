@@ -671,6 +671,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> captureonstart;
         }
+        else if (token == "gfx.postfx.motionblur.shutter")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_postfx_motionblur_shutter;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

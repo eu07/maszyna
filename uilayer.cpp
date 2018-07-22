@@ -1232,8 +1232,6 @@ ui_layer::render_tooltip() {
 
     if( !m_cursorvisible || m_tooltip.empty() ) { return; }
 
-    glm::dvec2 mousepos = Application.get_cursor_pos();
-
 	ImGui::BeginTooltip();
 	ImGui::TextUnformatted(m_tooltip.c_str());
 	ImGui::EndTooltip();
