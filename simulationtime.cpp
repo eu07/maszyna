@@ -194,4 +194,10 @@ scenario_time::julian_day() const {
     return JD;
 }
 
+scenario_time::operator std::string(){
+
+    return to_string( m_time.wHour ) + ":"
+            + ( m_time.wMinute < 10 ? "0" : "" ) + to_string( m_time.wMinute ) + ":"
+            + ( m_time.wSecond < 10 ? "0" : "" ) + to_string( m_time.wSecond );
+};
 //---------------------------------------------------------------------------

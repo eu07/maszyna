@@ -279,12 +279,8 @@ ui_layer::update() {
 
         case( GLFW_KEY_F1 ) : {
             // f1, default mode: current time and timetable excerpt
-            auto const &time = simulation::Time.data();
             uitextline1 =
-                "Time: "
-                + to_string( time.wHour ) + ":"
-                + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
-                + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
+                "Time: " + std::string( simulation::Time );
             if( Global.iPause ) {
                 uitextline1 += " (paused)";
             }

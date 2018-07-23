@@ -9,6 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <string>
+
 #include "winheaders.h"
 
 // wrapper for scenario time
@@ -47,6 +49,8 @@ public:
         zone_bias() const {
             return m_timezonebias; }
 
+    /** Returns std::string in format: `"mm:ss"`. */
+    operator std::string();
 private:
     // calculates day and month from given day of year
     void
