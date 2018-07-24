@@ -743,7 +743,7 @@ opengl_texture::create() {
 			if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
 			if (target == GL_TEXTURE_2D)

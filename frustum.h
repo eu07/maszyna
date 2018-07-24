@@ -12,9 +12,18 @@ http://mozilla.org/MPL/2.0/.
 #include "Float3d.h"
 #include "dumb3d.h"
 
-std::vector<glm::vec4> const ndcfrustumshapepoints {
-    { -1, -1, -1, 1 },{ 1, -1, -1, 1 },{ 1, 1, -1, 1 },{ -1, 1, -1, 1 }, // z-near
-    { -1, -1,  1, 1 },{ 1, -1,  1, 1 },{ 1, 1,  1, 1 },{ -1, 1,  1, 1 } }; // z-far
+std::vector<glm::vec4> const ndcfrustumshapepoints //
+    {
+        {-1, -1, -1, 1}, //
+        { 1, -1, -1, 1}, //
+        { 1,  1, -1, 1}, //
+        {-1,  1, -1, 1}, // z-near
+
+        {-1, -1, 1, 1}, //
+        { 1, -1, 1, 1}, //
+        { 1,  1, 1, 1}, //
+        {-1,  1, 1, 1}, // z-far
+    };
 
 std::vector<std::size_t> const frustumshapepoinstorder { 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7 };
 

@@ -86,16 +86,20 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-	glClearDepth(1.0f);
 	glClearColor(51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f); // initial background Color
 
 	glFrontFace(GL_CCW);
 	glEnable(GL_CULL_FACE);
 
-	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
+
+    glClearDepth(0.0f);
+    glDepthFunc(GL_GEQUAL);
+
+    if (GLEW_ARB_clip_control)
+        glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
 	if (true == Global.ScaleSpecularValues)
 	{
@@ -177,7 +181,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
     m_msaa_rbv->alloc(GL_RG16F, Global.render_width, Global.render_height, samples);
 
 	m_msaa_rbd = std::make_unique<gl::renderbuffer>();
-    m_msaa_rbd->alloc(GL_DEPTH_COMPONENT24, Global.render_width, Global.render_height, samples);
+    m_msaa_rbd->alloc(GL_DEPTH_COMPONENT32F, Global.render_width, Global.render_height, samples);
 
 	m_msaa_fb = std::make_unique<gl::framebuffer>();
 	m_msaa_fb->attach(*m_msaa_rbc, GL_COLOR_ATTACHMENT0);
@@ -230,7 +234,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	m_pick_tex = std::make_unique<opengl_texture>();
 	m_pick_tex->alloc_rendertarget(GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 	m_pick_rb = std::make_unique<gl::renderbuffer>();
-	m_pick_rb->alloc(GL_DEPTH_COMPONENT24, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
+    m_pick_rb->alloc(GL_DEPTH_COMPONENT32F, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
 	m_pick_fb = std::make_unique<gl::framebuffer>();
 	m_pick_fb->attach(*m_pick_tex, GL_COLOR_ATTACHMENT0);
 	m_pick_fb->attach(*m_pick_rb, GL_DEPTH_ATTACHMENT);
@@ -239,7 +243,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         return false;
 
     m_env_rb = std::make_unique<gl::renderbuffer>();
-    m_env_rb->alloc(GL_DEPTH_COMPONENT24, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
+    m_env_rb->alloc(GL_DEPTH_COMPONENT32F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
     m_env_tex = std::make_unique<gl::cubemap>();
     m_env_tex->alloc(GL_RGB16F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
     m_empty_cubemap = std::make_unique<gl::cubemap>();
@@ -276,20 +280,17 @@ bool opengl_renderer::Render()
 	Timer::subsystem.gfx_color.start();
 
 	GLuint gl_time_ready = 0;
-	if (GLEW_ARB_timer_query)
-	{
-		if (m_gltimequery)
-		{
-			glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
-			if (gl_time_ready)
-				glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
-		}
-		else
-		{
-			glGenQueries(1, &m_gltimequery);
-			gl_time_ready = 1;
-		}
-	}
+    if (m_gltimequery)
+    {
+        glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
+        if (gl_time_ready)
+            glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
+    }
+    else
+    {
+        glGenQueries(1, &m_gltimequery);
+        gl_time_ready = 1;
+    }
 
 	if (gl_time_ready)
 		glBeginQuery(GL_TIME_ELAPSED, m_gltimequery);
@@ -338,8 +339,6 @@ void opengl_renderer::SwapBuffers()
 	glfwSwapBuffers(m_window);
 	Timer::subsystem.gfx_swap.stop();
 }
-
-
 
 // runs jobs needed to generate graphics for specified render pass
 void opengl_renderer::Render_pass(rendermode const Mode)
@@ -484,7 +483,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 	}
 
 	case rendermode::shadows:
-	{
+    {
 		if (!World.InitPerformed())
 			break;
 
@@ -506,9 +505,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubo->update(scene_ubs);
         Render(simulation::Region);
 
-        //setup_drawing(true);
-        //glDepthMask(GL_TRUE);
-        //Render_Alpha(simulation::Region);
+        // setup_drawing(true);
+        // glDepthMask(GL_TRUE);
+        // Render_Alpha(simulation::Region);
 
 		m_shadowpass = m_renderpass;
 
@@ -673,6 +672,49 @@ bool opengl_renderer::Render_reflections()
 	return true;
 }
 
+glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, float near, float far)
+{
+    if (GLEW_ARB_clip_control)
+    {
+        const float f = 1.0f / tan(fovy / 2.0f);
+
+        return {
+            f / aspect, 0.0f, 0.0f, 0.0f, //
+            0.0f,       f,    0.0f, 0.0f, //
+            0.0f,       0.0f, 0.0f, -1.0f, //
+            0.0f,       0.0f, near, 0.0f //
+        };
+    }
+    else
+        return glm::mat4( //
+            1.0f, 0.0f, 0.0f, 0.0f, //
+            0.0f, 1.0f, 0.0f, 0.0f, //
+            0.0f, 0.0f, -1.0f, 0.0f, //
+            0.0f, 0.0f, 0.0f, 1.0f //
+        ) * glm::perspective(fovy, aspect, near, far);
+}
+
+glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float near, float far)
+{
+    glm::mat4 proj = glm::ortho(l, r, b, t, near, far);
+    if (GLEW_ARB_clip_control)
+    {
+        return glm::mat4( //
+            1.0f, 0.0f, 0.0f, 0.0f, //
+            0.0f, 1.0f, 0.0f, 0.0f, //
+            0.0f, 0.0f, -0.5f, 0.0f, //
+            0.0f, 0.0f, 0.5f, 1.0f //
+        ) * proj;
+    }
+    else
+        return glm::mat4( //
+            1.0f, 0.0f, 0.0f, 0.0f, //
+            0.0f, 1.0f, 0.0f, 0.0f, //
+            0.0f, 0.0f, -1.0f, 0.0f, //
+            0.0f, 0.0f, 0.0f, 1.0f //
+        ) * proj;
+}
+
 void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug)
 {
 
@@ -745,14 +787,8 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// projection
 		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
 		auto const znear = (Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
-		camera.projection() *=
-		    glm::perspective(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight), znear, zfar);
-		/*
-		            m_sunandviewangle =
-		                glm::dot(
-		                    m_sunlight.direction,
-		                    glm::vec3( 0.f, 0.f, -1.f ) * glm::mat3( viewmatrix ) );
-		*/
+        camera.projection() *=
+            perspective_projection(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight), znear, zfar);
 		break;
 	}
 	case rendermode::shadows:
@@ -785,11 +821,11 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		frustumchunkmax = quantizationstep * glm::ceil(frustumchunkmax * (1.f / quantizationstep));
 		// ...use the dimensions to set up light projection boundaries...
 		// NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
-		camera.projection() *= glm::ortho(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
+        camera.projection() *= ortho_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
 		/*
 		        // fixed ortho projection from old build, for quick quality comparisons
 		        camera.projection() *=
-		            glm::ortho(
+                    ortho_projection(
 		                -Global.shadowtune.width, Global.shadowtune.width,
 		                -Global.shadowtune.width, Global.shadowtune.width,
 		                -Global.shadowtune.depth, Global.shadowtune.depth );
@@ -811,7 +847,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// ...transform coordinate change back to homogenous light space...
 		shadowmapadjustment /= m_shadowbuffersize * 0.5f;
 		// ... and bake the adjustment into the projection matrix
-		camera.projection() = glm::translate(glm::mat4{1.f}, glm::vec3{shadowmapadjustment, 0.f}) * camera.projection();
+        camera.projection() = glm::translate(glm::mat4{1.f}, glm::vec3{shadowmapadjustment, 0.f}) * camera.projection();
 
 		break;
 	}
@@ -824,7 +860,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         viewmatrix *= glm::lookAt(camera.position(), glm::dvec3{Global.pCameraPosition}, glm::dvec3{0.f, 1.f, 0.f});
         // projection
         auto const maphalfsize{Config.draw_range * 0.5f};
-        camera.projection() *= glm::ortho(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
+        camera.projection() *= ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
         /*
                 // adjust the projection to sample complete shadow map texels
                 auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
@@ -842,10 +878,10 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		camera.position() = Global.pCameraPosition;
 		World.Camera.SetMatrix(viewmatrix);
 		// projection
-		camera.projection() *= glm::perspective(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight),
-		                                        0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
-		break;
-	}
+        camera.projection() *= perspective_projection(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight),
+                                                      0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
+        break;
+    }
     case rendermode::reflections:
     {
         // modelview
@@ -855,9 +891,9 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
         // projection
-        camera.projection() *= glm::perspective(glm::radians(90.f), 1.f, 0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
-        break;
-    }
+        camera.projection() *= perspective_projection(glm::radians(90.f), 1.f, 0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
+		break;
+	}
 	default:
 	{
 		break;
@@ -929,12 +965,28 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
 
     if (tex)
     {
-        glm::mat4 coordmove(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+        glm::mat4 coordmove;
+
+        if (GLEW_ARB_clip_control)
+            coordmove = glm::mat4( //
+                0.5, 0.0, 0.0, 0.0, //
+                0.0, 0.5, 0.0, 0.0, //
+                0.0, 0.0, 1.0, 0.0, //
+                0.5, 0.5, 0.0, 1.0 //
+            );
+        else
+            coordmove = glm::mat4( //
+                0.5, 0.0, 0.0, 0.0, //
+                0.0, 0.5, 0.0, 0.0, //
+                0.0, 0.0, 0.5, 0.0, //
+                0.5, 0.5, 0.5, 1.0 //
+            );
         glm::mat4 depthproj = conf.camera.projection();
         glm::mat4 depthcam = conf.camera.modelview();
         glm::mat4 worldcam = m_renderpass.camera.modelview();
 
         scene_ubs.lightview = coordmove * depthproj * depthcam * glm::inverse(worldcam);
+        //scene_ubs.lightview = depthproj * depthcam * glm::inverse(worldcam);
         scene_ubo->update(scene_ubs);
     }
 }
@@ -1225,7 +1277,6 @@ opengl_material &opengl_renderer::Material(material_handle const Material)
     return m_materials.material(Material);
 }
 
-
 texture_handle opengl_renderer::Fetch_Texture(std::string const &Filename, bool const Loadnow, GLint format_hint)
 {
     return m_textures.create(Filename, Loadnow, format_hint);
@@ -1289,7 +1340,8 @@ void opengl_renderer::Render(scene::basic_region *Region)
 	{
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
-        if( EditorModeFlag && FreeFlyModeFlag ) {
+        if (EditorModeFlag && FreeFlyModeFlag)
+        {
             // when editor mode is active calculate world position of the cursor
             // at this stage the z-buffer is filled with only ground geometry
             Update_Mouse_Position();
@@ -1730,8 +1782,8 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			m_sunlight.apply_intensity(Dynamic->fShade);
 		}
 
-        //calc_motion = true;
-        //std::cout << glm::to_string(glm::vec3(Dynamic->get_velocity_vec())) << std::endl;
+        // calc_motion = true;
+        // std::cout << glm::to_string(glm::vec3(Dynamic->get_velocity_vec())) << std::endl;
 
 		// render
 		if (Dynamic->mdLowPolyInt)
@@ -1764,7 +1816,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			Render(Dynamic->mdLoad, Dynamic->Material(), squaredistance);
 
 		// post-render cleanup
-        //calc_motion = false;
+        // calc_motion = false;
 
 		if (Dynamic->fShade > 0.0f)
 		{
@@ -2578,14 +2630,14 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 	}
 	// setup
 	auto const distance{static_cast<float>(std::sqrt(distancesquared))};
-	auto const linealpha = glm::clamp(20.f * Traction->WireThickness / std::max(0.5f * Traction->radius() + 1.f, distance - (0.5f * Traction->radius())), 0.0f, 1.0f);
+    auto const linealpha = 20.f * Traction->WireThickness / std::max(0.5f * Traction->radius() + 1.f, distance - (0.5f * Traction->radius()));
 	if (m_widelines_supported)
 		glLineWidth(clamp(0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f, 1.f, 1.5f));
 
 	// render
 
 	// McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-	model_ubs.param[0] = glm::vec4(Traction->wire_color(), linealpha);
+    model_ubs.param[0] = glm::vec4(Traction->wire_color(), glm::min(1.0f, linealpha));
 
     if (m_renderpass.draw_mode == rendermode::shadows)
         Bind_Material_Shadow(null_handle);
@@ -2621,12 +2673,12 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 	}
 	// setup
 	auto const distance{static_cast<float>(std::sqrt(distancesquared))};
-    auto const linealpha = (data.line_width > 0.f ? glm::clamp(10.f * data.line_width / std::max(0.5f * data.area.radius + 1.f, distance - (0.5f * data.area.radius)), 0.0f, 1.0f) :
-	                                                1.f); // negative width means the lines are always opague
+    auto const linealpha =
+        (data.line_width > 0.f ? 10.f * data.line_width / std::max(0.5f * data.area.radius + 1.f, distance - (0.5f * data.area.radius)) : 1.f); // negative width means the lines are always opague
 	if (m_widelines_supported)
 		glLineWidth(clamp(0.5f * linealpha + data.line_width * data.area.radius / 1000.f, 1.f, 8.f));
 
-	model_ubs.param[0] = glm::vec4(glm::vec3(data.lighting.diffuse * m_sunlight.ambient), linealpha);
+    model_ubs.param[0] = glm::vec4(glm::vec3(data.lighting.diffuse * m_sunlight.ambient), glm::min(1.0f, linealpha));
 
     if (m_renderpass.draw_mode == rendermode::shadows)
         Bind_Material_Shadow(null_handle);
@@ -3008,7 +3060,7 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
 
 scene::basic_node *opengl_renderer::Update_Pick_Node()
 {
-    //m7t: restore picking
+    // m7t: restore picking
     /*
 	Render_pass(rendermode::pickscenery);
 
@@ -3032,7 +3084,7 @@ scene::basic_node *opengl_renderer::Update_Pick_Node()
 	scene::basic_node const *node{nullptr};
 	if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
 	{
-		node = m_picksceneryitems[nodeindex - 1];
+        node = m_picksceneryitems[nodeindex - 1];
 	}
 
 	m_picksceneryitem = node;
@@ -3041,28 +3093,28 @@ scene::basic_node *opengl_renderer::Update_Pick_Node()
     return nullptr;
 }
 
-glm::dvec3
-opengl_renderer::Update_Mouse_Position() {
+glm::dvec3 opengl_renderer::Update_Mouse_Position()
+{
     // m7t: we need to blit multisampled framebuffer into regular one
     // and better to use PBO and wait frame or two to improve performance
-/*
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos = glm::ivec2{mousepos.x * Global.render_width / std::max(1, Global.iWindowWidth), mousepos.y * Global.render_height / std::max(1, Global.iWindowHeight)};
-    GLfloat pointdepth;
-    ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
+    /*
+        glm::dvec2 mousepos;
+        glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+        mousepos = glm::ivec2{mousepos.x * Global.render_width / std::max(1, Global.iWindowWidth), mousepos.y * Global.render_height / std::max(1, Global.iWindowHeight)};
+        GLfloat pointdepth;
+        ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
 
-    if( pointdepth < 1.0 ) {
-        m_worldmousecoordinates =
-            glm::unProject(
-                glm::vec3{ mousepos, pointdepth },
-                glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
-                m_colorpass.camera.projection(),
-                glm::vec4{ 0, 0, Global.render_width, Global.render_height } );
-    }
+        if( pointdepth < 1.0 ) {
+            m_worldmousecoordinates =
+                glm::unProject(
+                    glm::vec3{ mousepos, pointdepth },
+                    glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
+                    m_colorpass.camera.projection(),
+                    glm::vec4{ 0, 0, Global.render_width, Global.render_height } );
+        }
 
-    return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
-    */
+        return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
+        */
     return glm::dvec3();
 }
 
@@ -3276,6 +3328,9 @@ bool opengl_renderer::Init_caps()
         WriteLog("ARB_multi_bind supported!");
 
     if (GLEW_ARB_direct_state_access)
+        WriteLog("ARB_direct_state_access supported!");
+
+    if (GLEW_ARB_clip_control)
         WriteLog("ARB_direct_state_access supported!");
 
 	// ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur

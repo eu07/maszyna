@@ -346,6 +346,9 @@ class opengl_renderer
 	GLuint m_gltimequery = 0;
 	GLuint64 m_gllasttime = 0;
 
+    glm::mat4 perspective_projection(float fov, float aspect, float z_near, float z_far);
+    glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
+
 	std::unique_ptr<gl::shader> m_vertex_shader;
 
 	std::unique_ptr<gl::ubo> scene_ubo;
