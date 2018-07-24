@@ -62,9 +62,9 @@ class opengl_camera
 
   public:
 	// methods:
-	inline void update_frustum()
+    inline void update_frustum(glm::mat4 frustumtest_proj)
 	{
-		update_frustum(m_projection, m_modelview);
+        update_frustum(frustumtest_proj, m_modelview);
 	}
 	void update_frustum(glm::mat4 const &Projection, glm::mat4 const &Modelview);
 	bool visible(scene::bounding_area const &Area) const;
@@ -347,6 +347,7 @@ class opengl_renderer
 	GLuint64 m_gllasttime = 0;
 
     glm::mat4 perspective_projection(float fov, float aspect, float z_near, float z_far);
+    glm::mat4 perpsective_frustumtest_projection(float fov, float aspect, float z_near, float z_far);
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
 
 	std::unique_ptr<gl::shader> m_vertex_shader;

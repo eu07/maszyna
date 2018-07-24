@@ -694,6 +694,21 @@ glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, floa
         ) * glm::perspective(fovy, aspect, near, far);
 }
 
+glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float aspect, float near, float far)
+{
+    if (GLEW_ARB_clip_control)
+    {
+        return glm::mat4( //
+            1.0f, 0.0f, 0.0f, 0.0f, //
+            0.0f, 1.0f, 0.0f, 0.0f, //
+            0.0f, 0.0f, -0.5f, 0.0f, //
+            0.0f, 0.0f, 0.5f, 1.0f //
+        ) * glm::perspective(fovy, aspect, near, far);
+    }
+    else
+        return perspective_projection(fovy, aspect, near, far);
+}
+
 glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float near, float far)
 {
     glm::mat4 proj = glm::ortho(l, r, b, t, near, far);
@@ -766,8 +781,12 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	// setup camera
 	auto &camera = Config.camera;
 
-	camera.projection() = glm::mat4(1.f);
 	glm::dmat4 viewmatrix(1.0);
+
+    glm::mat4 frustumtest_proj;
+
+    float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
+    float const aspect = std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight);
 
 	switch (Mode)
 	{
@@ -787,8 +806,9 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// projection
 		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
 		auto const znear = (Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
-        camera.projection() *=
-            perspective_projection(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight), znear, zfar);
+
+        camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
+        frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, znear, zfar);
 		break;
 	}
 	case rendermode::shadows:
@@ -821,7 +841,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		frustumchunkmax = quantizationstep * glm::ceil(frustumchunkmax * (1.f / quantizationstep));
 		// ...use the dimensions to set up light projection boundaries...
 		// NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
-        camera.projection() *= ortho_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
+        camera.projection() = ortho_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
 		/*
 		        // fixed ortho projection from old build, for quick quality comparisons
 		        camera.projection() *=
@@ -849,6 +869,8 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// ... and bake the adjustment into the projection matrix
         camera.projection() = glm::translate(glm::mat4{1.f}, glm::vec3{shadowmapadjustment, 0.f}) * camera.projection();
 
+        frustumtest_proj = camera.projection();
+
 		break;
 	}
     case rendermode::cabshadows:
@@ -860,7 +882,9 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         viewmatrix *= glm::lookAt(camera.position(), glm::dvec3{Global.pCameraPosition}, glm::dvec3{0.f, 1.f, 0.f});
         // projection
         auto const maphalfsize{Config.draw_range * 0.5f};
-        camera.projection() *= ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
+        camera.projection() = ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
+
+        frustumtest_proj = camera.projection();
         /*
                 // adjust the projection to sample complete shadow map texels
                 auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
@@ -878,8 +902,10 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		camera.position() = Global.pCameraPosition;
 		World.Camera.SetMatrix(viewmatrix);
 		// projection
-        camera.projection() *= perspective_projection(glm::radians(Global.FieldOfView / Global.ZoomFactor), std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight),
-                                                      0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
+        float near = 0.1f * Global.ZoomFactor;
+        float far = Config.draw_range * Global.fDistanceFactor;
+        camera.projection() = perspective_projection(fovy, aspect, near, far);
+        frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, near, far);
         break;
     }
     case rendermode::reflections:
@@ -891,7 +917,10 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
         // projection
-        camera.projection() *= perspective_projection(glm::radians(90.f), 1.f, 0.1f * Global.ZoomFactor, Config.draw_range * Global.fDistanceFactor);
+        float near = 0.1f * Global.ZoomFactor;
+        float far = Config.draw_range * Global.fDistanceFactor;
+        camera.projection() = perspective_projection(glm::radians(90.f), 1.f, near, far);
+        frustumtest_proj = perpsective_frustumtest_projection(glm::radians(90.f), 1.f, near, far);
 		break;
 	}
 	default:
@@ -900,7 +929,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	}
 	}
 	camera.modelview() = viewmatrix;
-	camera.update_frustum();
+    camera.update_frustum(frustumtest_proj);
 }
 
 void opengl_renderer::setup_matrices()
