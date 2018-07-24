@@ -72,17 +72,17 @@ cFrustum::calculate( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
     m_frustum[ side_TOP ][ plane_D ] = clip[ 15 ] - clip[ 13 ];
     normalize_plane( side_TOP );
 
-    m_frustum[ side_FRONT ][ plane_A ] = clip[ 3 ] - clip[ 2 ];
-    m_frustum[ side_FRONT ][ plane_B ] = clip[ 7 ] - clip[ 6 ];
-    m_frustum[ side_FRONT ][ plane_C ] = clip[ 11 ] - clip[ 10 ];
-    m_frustum[ side_FRONT ][ plane_D ] = clip[ 15 ] - clip[ 14 ];
-    normalize_plane( side_FRONT );
-
-    m_frustum[ side_BACK ][ plane_A ] = clip[ 3 ] + clip[ 2 ];
-    m_frustum[ side_BACK ][ plane_B ] = clip[ 7 ] + clip[ 6 ];
-    m_frustum[ side_BACK ][ plane_C ] = clip[ 11 ] + clip[ 10 ];
-    m_frustum[ side_BACK ][ plane_D ] = clip[ 15 ] + clip[ 14 ];
+    m_frustum[ side_BACK ][ plane_A ] = clip[ 3 ] - clip[ 2 ];
+    m_frustum[ side_BACK ][ plane_B ] = clip[ 7 ] - clip[ 6 ];
+    m_frustum[ side_BACK ][ plane_C ] = clip[ 11 ] - clip[ 10 ];
+    m_frustum[ side_BACK ][ plane_D ] = clip[ 15 ] - clip[ 14 ];
     normalize_plane( side_BACK );
+
+    m_frustum[ side_FRONT ][ plane_A ] = clip[ 3 ] + clip[ 2 ];
+    m_frustum[ side_FRONT ][ plane_B ] = clip[ 7 ] + clip[ 6 ];
+    m_frustum[ side_FRONT ][ plane_C ] = clip[ 11 ] + clip[ 10 ];
+    m_frustum[ side_FRONT ][ plane_D ] = clip[ 15 ] + clip[ 14 ];
+    normalize_plane( side_FRONT );
 }
 
 bool

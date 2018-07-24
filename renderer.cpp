@@ -678,6 +678,7 @@ glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, floa
     {
         const float f = 1.0f / tan(fovy / 2.0f);
 
+        // when clip_control available, use projection matrix with 1..0 Z range and infinite zfar
         return glm::mat4( //
             f / aspect, 0.0f, 0.0f, 0.0f, //
             0.0f, f, 0.0f, 0.0f, //
@@ -686,6 +687,8 @@ glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, floa
         );
     }
     else
+        // or use standard matrix but with 1..-1 Z range
+        // (reverse Z don't give any extra precision without clip_control, but it is used anyway for consistency)
         return glm::mat4( //
                    1.0f, 0.0f, 0.0f, 0.0f, //
                    0.0f, 1.0f, 0.0f, 0.0f, //
@@ -697,22 +700,15 @@ glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, floa
 
 glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float aspect, float znear, float zfar)
 {
-    if (GLEW_ARB_clip_control)
-        return glm::mat4( //
-                   1.0f, 0.0f, 0.0f, 0.0f, //
-                   0.0f, 1.0f, 0.0f, 0.0f, //
-                   0.0f, 0.0f, -0.5f, 0.0f, //
-                   0.0f, 0.0f, 0.5f, 1.0f //
-                   ) *
-               glm::perspective(fovy, aspect, znear, zfar);
-    else
-        return perspective_projection(fovy, aspect, znear, zfar);
+    // for frustum calculation, use standard opengl matrix
+    return glm::perspective(fovy, aspect, znear, zfar);
 }
 
 glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float znear, float zfar)
 {
     glm::mat4 proj = glm::ortho(l, r, b, t, znear, zfar);
     if (GLEW_ARB_clip_control)
+        // when clip_control available, use projection matrix with 1..0 Z range
         return glm::mat4( //
                    1.0f, 0.0f, 0.0f, 0.0f, //
                    0.0f, 1.0f, 0.0f, 0.0f, //
@@ -721,6 +717,8 @@ glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, 
                    ) *
                proj;
     else
+        // or use standard matrix but with 1..-1 Z range
+        // (reverse Z don't give any extra precision without clip_control, but it is used anyway for consistency)
         return glm::mat4( //
                    1.0f, 0.0f, 0.0f, 0.0f, //
                    0.0f, 1.0f, 0.0f, 0.0f, //
@@ -728,6 +726,12 @@ glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, 
                    0.0f, 0.0f, 0.0f, 1.0f //
                    ) *
                proj;
+}
+
+glm::mat4 opengl_renderer::ortho_frustumtest_projection(float l, float r, float b, float t, float znear, float zfar)
+{
+    // for frustum calculation, use standard opengl matrix
+    return glm::ortho(l, r, b, t, znear, zfar);
 }
 
 void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug)
@@ -842,6 +846,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// ...use the dimensions to set up light projection boundaries...
 		// NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
         camera.projection() = ortho_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
+        frustumtest_proj = ortho_frustumtest_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
 		/*
 		        // fixed ortho projection from old build, for quick quality comparisons
 		        camera.projection() *=
@@ -869,8 +874,6 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// ... and bake the adjustment into the projection matrix
         camera.projection() = glm::translate(glm::mat4{1.f}, glm::vec3{shadowmapadjustment, 0.f}) * camera.projection();
 
-        frustumtest_proj = camera.projection();
-
 		break;
 	}
     case rendermode::cabshadows:
@@ -883,8 +886,8 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         // projection
         auto const maphalfsize{Config.draw_range * 0.5f};
         camera.projection() = ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
+        frustumtest_proj = ortho_frustumtest_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
 
-        frustumtest_proj = camera.projection();
         /*
                 // adjust the projection to sample complete shadow map texels
                 auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
@@ -997,6 +1000,7 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
         glm::mat4 coordmove;
 
         if (GLEW_ARB_clip_control)
+            // transform 1..-1 NDC xy coordinates to 1..0
             coordmove = glm::mat4( //
                 0.5, 0.0, 0.0, 0.0, //
                 0.0, 0.5, 0.0, 0.0, //
@@ -1004,6 +1008,7 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
                 0.5, 0.5, 0.0, 1.0 //
             );
         else
+            // without clip_control we also need to transform z
             coordmove = glm::mat4( //
                 0.5, 0.0, 0.0, 0.0, //
                 0.0, 0.5, 0.0, 0.0, //

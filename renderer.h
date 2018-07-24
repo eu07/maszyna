@@ -349,6 +349,7 @@ class opengl_renderer
     glm::mat4 perspective_projection(float fov, float aspect, float z_near, float z_far);
     glm::mat4 perpsective_frustumtest_projection(float fov, float aspect, float z_near, float z_far);
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
+    glm::mat4 ortho_frustumtest_projection(float left, float right, float bottom, float top, float z_near, float z_far);
 
 	std::unique_ptr<gl::shader> m_vertex_shader;
 
