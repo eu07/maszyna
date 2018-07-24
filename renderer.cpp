@@ -678,12 +678,12 @@ glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, floa
     {
         const float f = 1.0f / tan(fovy / 2.0f);
 
-        return {
+        return glm::mat4(
             f / aspect, 0.0f, 0.0f, 0.0f, //
             0.0f,       f,    0.0f, 0.0f, //
             0.0f,       0.0f, 0.0f, -1.0f, //
             0.0f,       0.0f, near, 0.0f //
-        };
+        );
     }
     else
         return glm::mat4( //
@@ -986,7 +986,6 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
         glm::mat4 worldcam = m_renderpass.camera.modelview();
 
         scene_ubs.lightview = coordmove * depthproj * depthcam * glm::inverse(worldcam);
-        //scene_ubs.lightview = depthproj * depthcam * glm::inverse(worldcam);
         scene_ubo->update(scene_ubs);
     }
 }
