@@ -672,62 +672,62 @@ bool opengl_renderer::Render_reflections()
 	return true;
 }
 
-glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, float near, float far)
+glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, float znear, float zfar)
 {
     if (GLEW_ARB_clip_control)
     {
         const float f = 1.0f / tan(fovy / 2.0f);
 
-        return glm::mat4(
+        return glm::mat4( //
             f / aspect, 0.0f, 0.0f, 0.0f, //
-            0.0f,       f,    0.0f, 0.0f, //
-            0.0f,       0.0f, 0.0f, -1.0f, //
-            0.0f,       0.0f, near, 0.0f //
+            0.0f, f, 0.0f, 0.0f, //
+            0.0f, 0.0f, 0.0f, -1.0f, //
+            0.0f, 0.0f, znear, 0.0f //
         );
     }
     else
         return glm::mat4( //
-            1.0f, 0.0f, 0.0f, 0.0f, //
-            0.0f, 1.0f, 0.0f, 0.0f, //
-            0.0f, 0.0f, -1.0f, 0.0f, //
-            0.0f, 0.0f, 0.0f, 1.0f //
-        ) * glm::perspective(fovy, aspect, near, far);
+                   1.0f, 0.0f, 0.0f, 0.0f, //
+                   0.0f, 1.0f, 0.0f, 0.0f, //
+                   0.0f, 0.0f, -1.0f, 0.0f, //
+                   0.0f, 0.0f, 0.0f, 1.0f //
+                   ) *
+               glm::perspective(fovy, aspect, znear, zfar);
 }
 
-glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float aspect, float near, float far)
+glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float aspect, float znear, float zfar)
 {
     if (GLEW_ARB_clip_control)
-    {
         return glm::mat4( //
-            1.0f, 0.0f, 0.0f, 0.0f, //
-            0.0f, 1.0f, 0.0f, 0.0f, //
-            0.0f, 0.0f, -0.5f, 0.0f, //
-            0.0f, 0.0f, 0.5f, 1.0f //
-        ) * glm::perspective(fovy, aspect, near, far);
-    }
+                   1.0f, 0.0f, 0.0f, 0.0f, //
+                   0.0f, 1.0f, 0.0f, 0.0f, //
+                   0.0f, 0.0f, -0.5f, 0.0f, //
+                   0.0f, 0.0f, 0.5f, 1.0f //
+                   ) *
+               glm::perspective(fovy, aspect, znear, zfar);
     else
-        return perspective_projection(fovy, aspect, near, far);
+        return perspective_projection(fovy, aspect, znear, zfar);
 }
 
-glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float near, float far)
+glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float znear, float zfar)
 {
-    glm::mat4 proj = glm::ortho(l, r, b, t, near, far);
+    glm::mat4 proj = glm::ortho(l, r, b, t, znear, zfar);
     if (GLEW_ARB_clip_control)
-    {
         return glm::mat4( //
-            1.0f, 0.0f, 0.0f, 0.0f, //
-            0.0f, 1.0f, 0.0f, 0.0f, //
-            0.0f, 0.0f, -0.5f, 0.0f, //
-            0.0f, 0.0f, 0.5f, 1.0f //
-        ) * proj;
-    }
+                   1.0f, 0.0f, 0.0f, 0.0f, //
+                   0.0f, 1.0f, 0.0f, 0.0f, //
+                   0.0f, 0.0f, -0.5f, 0.0f, //
+                   0.0f, 0.0f, 0.5f, 1.0f //
+                   ) *
+               proj;
     else
         return glm::mat4( //
-            1.0f, 0.0f, 0.0f, 0.0f, //
-            0.0f, 1.0f, 0.0f, 0.0f, //
-            0.0f, 0.0f, -1.0f, 0.0f, //
-            0.0f, 0.0f, 0.0f, 1.0f //
-        ) * proj;
+                   1.0f, 0.0f, 0.0f, 0.0f, //
+                   0.0f, 1.0f, 0.0f, 0.0f, //
+                   0.0f, 0.0f, -1.0f, 0.0f, //
+                   0.0f, 0.0f, 0.0f, 1.0f //
+                   ) *
+               proj;
 }
 
 void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug)
@@ -902,10 +902,10 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		camera.position() = Global.pCameraPosition;
 		World.Camera.SetMatrix(viewmatrix);
 		// projection
-        float near = 0.1f * Global.ZoomFactor;
-        float far = Config.draw_range * Global.fDistanceFactor;
-        camera.projection() = perspective_projection(fovy, aspect, near, far);
-        frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, near, far);
+        float znear = 0.1f * Global.ZoomFactor;
+        float zfar = Config.draw_range * Global.fDistanceFactor;
+        camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
+        frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, znear, zfar);
         break;
     }
     case rendermode::reflections:
@@ -917,10 +917,10 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
         // projection
-        float near = 0.1f * Global.ZoomFactor;
-        float far = Config.draw_range * Global.fDistanceFactor;
-        camera.projection() = perspective_projection(glm::radians(90.f), 1.f, near, far);
-        frustumtest_proj = perpsective_frustumtest_projection(glm::radians(90.f), 1.f, near, far);
+        float znear = 0.1f * Global.ZoomFactor;
+        float zfar = Config.draw_range * Global.fDistanceFactor;
+        camera.projection() = perspective_projection(glm::radians(90.f), 1.f, znear, zfar);
+        frustumtest_proj = perpsective_frustumtest_projection(glm::radians(90.f), 1.f, znear, zfar);
 		break;
 	}
 	default:
