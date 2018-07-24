@@ -208,6 +208,7 @@ public:
 		return m_material; }
 	void ParentMatrix(float4x4 *m) const;
 	float MaxY( float4x4 const &m );
+    glm::mat4 future_transform;
 
 	void deserialize(std::istream&);
 	void serialize(std::ostream&,

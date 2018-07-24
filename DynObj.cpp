@@ -418,12 +418,9 @@ void TDynamicObject::SetPneumatic(bool front, bool red)
 
 void TDynamicObject::UpdateAxle(TAnim *pAnim)
 { // animacja osi
-    pAnim->smAnimated->SetRotate(float3(1, 0, 0), *pAnim->dWheelAngle);
-};
-
-void TDynamicObject::UpdateBoogie(TAnim *pAnim)
-{ // animacja wózka
-    pAnim->smAnimated->SetRotate(float3(1, 0, 0), *pAnim->dWheelAngle);
+    size_t wheel_id = pAnim->dWheelAngle;
+    pAnim->smAnimated->SetRotate(float3(1, 0, 0), dWheelAngle[wheel_id]);
+    pAnim->smAnimated->future_transform = glm::rotate((float)glm::radians(m_future_wheels_angle[wheel_id]), glm::vec3(1.0f, 0.0f, 0.0f));
 };
 
 void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
@@ -670,7 +667,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 animation.yUpdate( &animation );
             }
         }
-
+        
         if( ( mdModel != nullptr )
          && ( ObjSqrDist < ( 50 * 50 ) ) ) {
             // gdy bliżej niż 50m
@@ -3308,7 +3305,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     glm::dvec3 old_pos = vPosition;
     Move(dDOMoveLen);
 
-    m_last_movement = glm::dvec3(vPosition) - old_pos;
+    m_future_movement = (glm::dvec3(vPosition) - old_pos) / dt1 * Timer::GetDeltaTime();
 
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
@@ -3405,11 +3402,16 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     if (MoverParameters->Vel != 0)
     { // McZapkie-050402: krecenie kolami:
+        glm::dvec3 old_wheels = glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]);
+
         dWheelAngle[0] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterL; // przednie toczne
         dWheelAngle[1] += MoverParameters->nrot * dt1 * 360.0; // napędne
         dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterT; // tylne toczne
+
+        m_future_wheels_angle = (glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]) - old_wheels) / dt1 * Timer::GetDeltaTime();
+
         if (dWheelAngle[0] > 360.0)
             dWheelAngle[0] -= 360.0; // a w drugą stronę jak się kręcą?
         if (dWheelAngle[1] > 360.0)
@@ -3417,6 +3419,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         if (dWheelAngle[2] > 360.0)
             dWheelAngle[2] -= 360.0;
     }
+
     if (pants) // pantograf może być w wagonie kuchennym albo pojeździe rewizyjnym
     // (np. SR61)
     { // przeliczanie kątów dla pantografów
@@ -3893,6 +3896,11 @@ bool TDynamicObject::Update(double dt, double dt1)
         LoadUpdate(); // zmiana modelu ładunku
 	
 	return true; // Ra: chyba tak?
+}
+
+glm::dvec3 TDynamicObject::get_future_movement() const
+{
+    return m_future_movement;
 }
 
 bool TDynamicObject::FastUpdate(double dt)
@@ -4776,7 +4784,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     }
                     // Ra: ustawianie indeksów osi
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // ilość osi (zabezpieczenie przed błędami w CHK)
-                        pAnimations[i].dWheelAngle = dWheelAngle + 1; // domyślnie wskaźnik na napędzające
+                        pAnimations[i].dWheelAngle = 1; // domyślnie wskaźnik na napędzające
                     i = 0;
                     j = 1;
                     k = 0;
@@ -4789,13 +4797,13 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         { // wersja ze wskaźnikami jest bardziej elastyczna na nietypowe układy
                             if ((k >= 'A') && (k <= 'J')) // 10 chyba maksimum?
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + 1; // obrót osi napędzających
+                                pAnimations[i++].dWheelAngle = 1; // obrót osi napędzających
                                 --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                                 m = 2; // następujące toczne będą miały inną średnicę
                             }
                             else if ((k >= '1') && (k <= '9'))
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi tocznych
+                                pAnimations[i++].dWheelAngle = m; // obrót osi tocznych
                                 --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                             }
                             else

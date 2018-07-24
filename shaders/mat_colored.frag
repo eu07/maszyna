@@ -22,7 +22,7 @@ uniform samplerCube envmap;
 
 void main()
 {
-	vec4 tex_color = vec4(param[0].rgb, 1.0f);
+	vec4 tex_color = vec4(pow(param[0].rgb, vec3(2.2)), 1.0f);
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos.xyz, normal);

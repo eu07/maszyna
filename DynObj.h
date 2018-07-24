@@ -124,7 +124,7 @@ public:
     union
     { // parametry animacji
         TAnimValveGear *pValveGear; // współczynniki do animacji parowozu
-        double *dWheelAngle; // wskaźnik na kąt obrotu osi
+        int dWheelAngle; // wskaźnik na kąt obrotu osi
         float *fParam; // różne parametry dla animacji
         TAnimPant *fParamPants; // różne parametry dla animacji
     };
@@ -177,7 +177,8 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
-    glm::dvec3 m_last_movement;
+    glm::dvec3 m_future_movement;
+    glm::dvec3 m_future_wheels_angle;
 
 public:
     // parametry położenia pojazdu dostępne publicznie
@@ -236,7 +237,6 @@ private:
     void UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
 */
     void UpdateAxle(TAnim *pAnim); // animacja osi
-    void UpdateBoogie(TAnim *pAnim); // animacja wózka
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
     void UpdateDoorRotate(TAnim *pAnim); // animacja drzwi - obrót
     void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - składanie
@@ -606,10 +606,7 @@ private:
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
     void OverheadTrack(float o);
-    glm::dvec3 get_last_movement() const
-    {
-        return m_last_movement;
-    }
+    glm::dvec3 get_future_movement() const;
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

@@ -411,7 +411,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         {
             auto const *vehicle = World.Train->Dynamic();
             glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
-            future = glm::translate(mv, -glm::vec3(vehicle->get_last_movement())) * glm::inverse(mv);
+            future = glm::translate(mv, -glm::vec3(vehicle->get_future_movement())) * glm::inverse(mv);
         }
 
         model_ubs.future = glm::mat4();
@@ -1798,7 +1798,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
     glm::mat4 future_stack = model_ubs.future;
 
     glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
-    model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_last_movement())) * glm::inverse(mv);
+    model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_future_movement())) * glm::inverse(mv);
 
     ::glPushMatrix();
 	::glTranslated(originoffset.x, originoffset.y, originoffset.z);
@@ -2044,13 +2044,20 @@ void opengl_renderer::Render(TSubModel *Submodel)
 		++m_debugstats.submodels;
 		++m_debugstats.drawcalls;
 
+        glm::mat4 future_stack = model_ubs.future;
+
 		if (Submodel->iFlags & 0xC000)
 		{
 			::glPushMatrix();
 			if (Submodel->fMatrix)
 				::glMultMatrixf(Submodel->fMatrix->readArray());
-            if (Submodel->b_Anim != TAnimType::at_None)
-				Submodel->RaAnimation(Submodel->b_Anim);
+            if (Submodel->b_aAnim != TAnimType::at_None)
+            {
+                Submodel->RaAnimation(Submodel->b_aAnim);
+
+                glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
+                model_ubs.future *= (mv * Submodel->future_transform) * glm::inverse(mv);
+            }
 		}
 
 		if (Submodel->eType < TP_ROTATOR)
@@ -2260,7 +2267,10 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				Render(Submodel->Child);
 
 		if (Submodel->iFlags & 0xC000)
+        {
+            model_ubs.future = future_stack;
 			::glPopMatrix();
+        }
 	}
 	/*
 	    if( Submodel->b_Anim < at_SecondsJump )
@@ -2750,7 +2760,7 @@ bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
     glm::mat4 future_stack = model_ubs.future;
 
     glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
-    model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_last_movement())) * glm::inverse(mv);
+    model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_future_movement())) * glm::inverse(mv);
 
 	::glPushMatrix();
 
@@ -2859,13 +2869,20 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 		++m_debugstats.submodels;
 		++m_debugstats.drawcalls;
 
+        glm::mat4 future_stack = model_ubs.future;
+
 		if (Submodel->iFlags & 0xC000)
 		{
 			::glPushMatrix();
 			if (Submodel->fMatrix)
 				::glMultMatrixf(Submodel->fMatrix->readArray());
             if (Submodel->b_aAnim != TAnimType::at_None)
+            {
 				Submodel->RaAnimation(Submodel->b_aAnim);
+
+                glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
+                model_ubs.future *= (mv * Submodel->future_transform) * glm::inverse(mv);
+            }
 		}
 
 		if (Submodel->eType < TP_ROTATOR)
@@ -3050,7 +3067,10 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 		}
 
 		if (Submodel->iFlags & 0xC000)
+        {
+            model_ubs.future = future_stack;
 			::glPopMatrix();
+        }
 	}
 	/*
 	    if( Submodel->b_aAnim < at_SecondsJump )
@@ -3095,34 +3115,34 @@ scene::basic_node *opengl_renderer::Update_Pick_Node()
 {
     // m7t: restore picking
     /*
-	Render_pass(rendermode::pickscenery);
+        Render_pass(rendermode::pickscenery);
 
-	// determine point to examine
-	glm::dvec2 mousepos;
-	glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
-	mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+        // determine point to examine
+        glm::dvec2 mousepos;
+        glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
+        mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-	glm::ivec2 pickbufferpos;
-	pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+        glm::ivec2 pickbufferpos;
+        pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
 
-	unsigned char pickreadout[3];
+        unsigned char pickreadout[3];
 
-	// m7t: ! replace with PBO and wait frame or two to improve performance
-	// (and don't clash with control picking)
-	m_pick_fb->bind();
-	::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
-	m_pick_fb->unbind();
+        // m7t: ! replace with PBO and wait frame or two to improve performance
+        // (and don't clash with control picking)
+        m_pick_fb->bind();
+        ::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
+        m_pick_fb->unbind();
 
-	auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
-	scene::basic_node const *node{nullptr};
-	if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
-	{
-        node = m_picksceneryitems[nodeindex - 1];
-	}
+        auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
+        scene::basic_node const *node{nullptr};
+        if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
+        {
+            node = m_picksceneryitems[nodeindex - 1];
+        }
 
-	m_picksceneryitem = node;
-	return node;
-    */
+        m_picksceneryitem = node;
+        return node;
+        */
     return nullptr;
 }
 
