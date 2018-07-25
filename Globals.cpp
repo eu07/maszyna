@@ -73,16 +73,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iWindowHeight;
         }
-        else if (token == "renderwidth")
-        {
-            Parser.getTokens(1, false);
-            Parser >> render_width;
-        }
-        else if (token == "renderheight")
-        {
-            Parser.getTokens(1, false);
-            Parser >> render_height;
-        }
         else if (token == "heightbase")
         {
 
@@ -338,18 +328,6 @@ global_settings::ConfigParse(cParser &Parser) {
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();
             Parser >> ScaleSpecularValues;
-        }
-        else if( token == "gfxrenderer" ) {
-            // shadow render toggle
-            std::string gfxrenderer;
-            Parser.getTokens();
-            Parser >> gfxrenderer;
-            BasicRenderer = ( gfxrenderer == "simple" );
-        }
-        else if( token == "shadows" ) {
-            // shadow render toggle
-            Parser.getTokens();
-            Parser >> RenderShadows;
         }
         else if( token == "shadowtune" ) {
             Parser.getTokens( 4, false );
@@ -670,6 +648,31 @@ global_settings::ConfigParse(cParser &Parser) {
         else if (token == "captureonstart") {
             Parser.getTokens( 1 );
             Parser >> captureonstart;
+        }
+        else if (token == "gfx.framebuffer.width")
+        {
+            Parser.getTokens(1, false);
+            Parser >> render_width;
+        }
+        else if (token == "gfx.framebuffer.height")
+        {
+            Parser.getTokens(1, false);
+            Parser >> render_height;
+        }
+        else if (token == "gfx.shadowmap.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_shadowmap_enabled;
+        }
+        else if (token == "gfx.envmap.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_envmap_enabled;
+        }
+        else if (token == "gfx.postfx.motionblur.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_postfx_motionblur_enabled;
         }
         else if (token == "gfx.postfx.motionblur.shutter")
         {

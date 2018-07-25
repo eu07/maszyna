@@ -15,8 +15,13 @@ in vec4 f_clip_future_pos;
 #param (specular, 1, 1, 1, specular)
 #param (reflection, 1, 2, 1, zero)
 
+#ifdef SHADOWMAP_ENABLED
 uniform sampler2DShadow shadowmap;
+#endif
+
+#ifdef ENVMAP_ENABLED
 uniform samplerCube envmap;
+#endif
 
 #include <light_common.glsl>
 
@@ -26,7 +31,11 @@ void main()
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos.xyz, normal);
+#ifdef ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
+#else
+    vec3 envcolor = vec3(0.5);
+#endif
 
 	vec3 result = ambient * 0.5 + param[0].rgb * emission;
 
@@ -53,10 +62,12 @@ void main()
 	}
 
 	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
+#ifdef MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;
         
         gl_FragData[1] = vec4(a - b, 0.0f, 0.0f);
 	}
+#endif
 }

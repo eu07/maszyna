@@ -187,7 +187,7 @@ void scroll_callback( GLFWwindow* window, double xoffset, double yoffset )
 
     if( Global.ctrlState ) {
         // ctrl + scroll wheel adjusts fov in debug mode
-        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - yoffset * 20.0 / Global.fFpsAverage ), 15.0f, 75.0f );
+        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - yoffset ), 15.0f, 75.0f );
     }
 }
 

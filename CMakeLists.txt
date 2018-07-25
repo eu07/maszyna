@@ -92,6 +92,7 @@ set(SOURCES
 "gl/renderbuffer.cpp"
 "gl/postfx.cpp"
 "gl/cubemap.cpp"
+"gl/glsl_common.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

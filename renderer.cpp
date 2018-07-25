@@ -75,11 +75,10 @@ void opengl_camera::draw(glm::vec3 const &Offset) const
 
 bool opengl_renderer::Init(GLFWwindow *Window)
 {
+    if (!Init_caps())
+        return false;
 
-	if (false == Init_caps())
-	{
-		return false;
-	}
+    WriteLog("preparing renderer..");
 
 	m_window = Window;
 
@@ -100,6 +99,8 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
     if (GLEW_ARB_clip_control)
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+
+    gl::glsl_common_setup();
 
 	if (true == Global.ScaleSpecularValues)
 	{
@@ -177,32 +178,40 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	m_msaa_rbc = std::make_unique<gl::renderbuffer>();
     m_msaa_rbc->alloc(GL_RGB16F, Global.render_width, Global.render_height, samples);
 
-    m_msaa_rbv = std::make_unique<gl::renderbuffer>();
-    m_msaa_rbv->alloc(GL_RG16F, Global.render_width, Global.render_height, samples);
-
 	m_msaa_rbd = std::make_unique<gl::renderbuffer>();
     m_msaa_rbd->alloc(GL_DEPTH_COMPONENT32F, Global.render_width, Global.render_height, samples);
 
 	m_msaa_fb = std::make_unique<gl::framebuffer>();
 	m_msaa_fb->attach(*m_msaa_rbc, GL_COLOR_ATTACHMENT0);
-    m_msaa_fb->attach(*m_msaa_rbv, GL_COLOR_ATTACHMENT1);
 	m_msaa_fb->attach(*m_msaa_rbd, GL_DEPTH_ATTACHMENT);
 
-	if (!m_msaa_fb->is_complete())
-		return false;
+    if (Global.gfx_postfx_motionblur_enabled)
+    {
+        m_msaa_rbv = std::make_unique<gl::renderbuffer>();
+        m_msaa_rbv->alloc(GL_RG16F, Global.render_width, Global.render_height, samples);
+        m_msaa_fb->attach(*m_msaa_rbv, GL_COLOR_ATTACHMENT1);
 
-	m_main_tex = std::make_unique<opengl_texture>();
-    m_main_tex->alloc_rendertarget(GL_RGB16F, GL_RGB, GL_FLOAT, Global.render_width, Global.render_height);
+        m_main_tex = std::make_unique<opengl_texture>();
+        m_main_tex->alloc_rendertarget(GL_RGB16F, GL_RGB, GL_FLOAT, Global.render_width, Global.render_height);
 
-    m_main_texv = std::make_unique<opengl_texture>();
-    m_main_texv->alloc_rendertarget(GL_RG16F, GL_RG, GL_FLOAT, Global.render_width, Global.render_height);
+        m_main_fb = std::make_unique<gl::framebuffer>();
+        m_main_fb->attach(*m_main_tex, GL_COLOR_ATTACHMENT0);
 
-	m_main_fb = std::make_unique<gl::framebuffer>();
-	m_main_fb->attach(*m_main_tex, GL_COLOR_ATTACHMENT0);
-    m_main_fb->attach(*m_main_texv, GL_COLOR_ATTACHMENT1);
-    m_main_fb->setup_drawing(2);
-	if (!m_main_fb->is_complete())
-		return false;
+        m_main_texv = std::make_unique<opengl_texture>();
+        m_main_texv->alloc_rendertarget(GL_RG16F, GL_RG, GL_FLOAT, Global.render_width, Global.render_height);
+        m_main_fb->attach(*m_main_texv, GL_COLOR_ATTACHMENT1);
+        m_main_fb->setup_drawing(2);
+
+        if (!m_main_fb->is_complete())
+            return false;
+
+        m_pfx_motionblur = std::make_unique<gl::postfx>("motionblur");
+
+        WriteLog("motion blur enabled");
+    }
+
+    if (!m_msaa_fb->is_complete())
+        return false;
 
     m_main2_tex = std::make_unique<opengl_texture>();
     m_main2_tex->alloc_rendertarget(GL_RGB16F, GL_RGB, GL_FLOAT, Global.render_width, Global.render_height);
@@ -213,23 +222,27 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         return false;
 
     m_pfx_tonemapping = std::make_unique<gl::postfx>("tonemapping");
-    m_pfx_motionblur = std::make_unique<gl::postfx>("motionblur");
 
-	m_shadow_fb = std::make_unique<gl::framebuffer>();
-	m_shadow_tex = std::make_unique<opengl_texture>();
-	m_shadow_tex->alloc_rendertarget(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, m_shadowbuffersize, m_shadowbuffersize);
-	m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
+    if (Global.gfx_shadowmap_enabled)
+    {
+        m_shadow_fb = std::make_unique<gl::framebuffer>();
+        m_shadow_tex = std::make_unique<opengl_texture>();
+        m_shadow_tex->alloc_rendertarget(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, m_shadowbuffersize, m_shadowbuffersize);
+        m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
 
-    if (!m_shadow_fb->is_complete())
-        return false;
+        if (!m_shadow_fb->is_complete())
+            return false;
 
-    m_cabshadows_fb = std::make_unique<gl::framebuffer>();
-    m_cabshadows_tex = std::make_unique<opengl_texture>();
-    m_cabshadows_tex->alloc_rendertarget(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, m_shadowbuffersize, m_shadowbuffersize);
-    m_cabshadows_fb->attach(*m_cabshadows_tex, GL_DEPTH_ATTACHMENT);
+        m_cabshadows_fb = std::make_unique<gl::framebuffer>();
+        m_cabshadows_tex = std::make_unique<opengl_texture>();
+        m_cabshadows_tex->alloc_rendertarget(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, m_shadowbuffersize, m_shadowbuffersize);
+        m_cabshadows_fb->attach(*m_cabshadows_tex, GL_DEPTH_ATTACHMENT);
 
-    if (!m_cabshadows_fb->is_complete())
-        return false;
+        if (!m_cabshadows_fb->is_complete())
+            return false;
+
+        WriteLog("shadows enabled");
+    }
 
 	m_pick_tex = std::make_unique<opengl_texture>();
 	m_pick_tex->alloc_rendertarget(GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
@@ -242,24 +255,31 @@ bool opengl_renderer::Init(GLFWwindow *Window)
     if (!m_pick_fb->is_complete())
         return false;
 
-    m_env_rb = std::make_unique<gl::renderbuffer>();
-    m_env_rb->alloc(GL_DEPTH_COMPONENT32F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
-    m_env_tex = std::make_unique<gl::cubemap>();
-    m_env_tex->alloc(GL_RGB16F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
-    m_empty_cubemap = std::make_unique<gl::cubemap>();
-    m_empty_cubemap->alloc(GL_RGB16F, 16, 16, GL_RGB, GL_FLOAT);
-
-    m_env_fb = std::make_unique<gl::framebuffer>();
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    for (int i = 0; i < 6; i++)
+    if (Global.gfx_envmap_enabled)
     {
-        m_env_fb->attach(*m_empty_cubemap, i, GL_COLOR_ATTACHMENT0);
-        m_env_fb->clear(GL_COLOR_BUFFER_BIT);
+        m_env_rb = std::make_unique<gl::renderbuffer>();
+        m_env_rb->alloc(GL_DEPTH_COMPONENT32F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
+        m_env_tex = std::make_unique<gl::cubemap>();
+        m_env_tex->alloc(GL_RGB16F, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
+        m_empty_cubemap = std::make_unique<gl::cubemap>();
+        m_empty_cubemap->alloc(GL_RGB16F, 16, 16, GL_RGB, GL_FLOAT);
+
+        m_env_fb = std::make_unique<gl::framebuffer>();
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        for (int i = 0; i < 6; i++)
+        {
+            m_env_fb->attach(*m_empty_cubemap, i, GL_COLOR_ATTACHMENT0);
+            m_env_fb->clear(GL_COLOR_BUFFER_BIT);
+        }
+
+        m_env_fb->detach(GL_COLOR_ATTACHMENT0);
+        m_env_fb->attach(*m_env_rb, GL_DEPTH_ATTACHMENT);
+
+        WriteLog("envmap enabled");
     }
 
-    m_env_fb->detach(GL_COLOR_ATTACHMENT0);
-    m_env_fb->attach(*m_env_rb, GL_DEPTH_ATTACHMENT);
+    WriteLog("renderer initialization finished!");
 
 	return true;
 }
@@ -372,9 +392,12 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         else
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		{
-            setup_shadow_map(nullptr, m_renderpass);
 
+        setup_shadow_map(nullptr, m_renderpass);
+        setup_env_map(nullptr);
+
+        if (Global.gfx_shadowmap_enabled)
+		{
 			glDebug("render shadowmap start");
 			Timer::subsystem.gfx_shadows.start();
 
@@ -387,16 +410,23 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			glDebug("render shadowmap end");
 		}
 
-        // potentially update environmental cube map
-        if (Render_reflections())
-            setup_pass(m_renderpass, Mode); // restore color pass settings
-        setup_env_map(m_env_tex.get());
+        if (Global.gfx_envmap_enabled)
+        {
+            // potentially update environmental cube map
+            if (Render_reflections())
+                setup_pass(m_renderpass, Mode); // restore color pass settings
+            setup_env_map(m_env_tex.get());
+        }
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // setup
 		m_msaa_fb->bind();
-        m_msaa_fb->setup_drawing(2);
+
+        if (Global.gfx_postfx_motionblur_enabled)
+            m_msaa_fb->setup_drawing(2);
+        else
+            m_msaa_fb->setup_drawing(1);
 
         glViewport(0, 0, Global.render_width, Global.render_height);
         glEnable(GL_DEPTH_TEST);
@@ -428,7 +458,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         if (false == FreeFlyModeFlag)
         {
             glDebug("render cab opaque");
-            setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
+            if (Global.gfx_shadowmap_enabled)
+                setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
 
             auto const *vehicle = World.Train->Dynamic();
             Render_cab(vehicle, false);
@@ -438,7 +469,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
         model_ubs.future = future;
 
-        setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
+        if (Global.gfx_shadowmap_enabled)
+            setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
+
         Render(simulation::Region);
 
         // ...translucent parts
@@ -450,7 +483,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             glDebug("render translucent cab");
             model_ubs.future = glm::mat4();
             // cab render is performed without shadows, due to low resolution and number of models without windows :|
-            setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
+            if (Global.gfx_shadowmap_enabled)
+                setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
             // cache shadow colour in case we need to account for cab light
             auto const *vehicle{World.Train->Dynamic()};
             Render_cab(vehicle, true);
@@ -459,16 +493,23 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
 
-        m_main_fb->clear(GL_COLOR_BUFFER_BIT);
-        m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
-        m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
+        if (Global.gfx_postfx_motionblur_enabled)
+        {
+            m_main_fb->clear(GL_COLOR_BUFFER_BIT);
+            m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+            m_msaa_fb->blit_to(*m_main_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
+
+            model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
+            model_ubo->update(model_ubs);
+            m_pfx_motionblur->apply({m_main_tex.get(), m_main_texv.get()}, m_main2_fb.get());
+        }
+        else
+        {
+            m_main2_fb->clear(GL_COLOR_BUFFER_BIT);
+            m_msaa_fb->blit_to(*m_main2_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+        }
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-        model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
-        model_ubo->update(model_ubs);
-        m_pfx_motionblur->apply({m_main_tex.get(), m_main_texv.get()}, m_main2_fb.get());
-
 		glEnable(GL_FRAMEBUFFER_SRGB);
 		glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
         m_pfx_tonemapping->apply(*m_main2_tex, nullptr);
@@ -3356,26 +3397,33 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 
 bool opengl_renderer::Init_caps()
 {
-	std::string oglversion = ((char *)glGetString(GL_VERSION));
-
-	WriteLog("Gfx Renderer: " + std::string((char *)glGetString(GL_RENDERER)) + " Vendor: " + std::string((char *)glGetString(GL_VENDOR)) + " OpenGL Version: " + oglversion);
+    WriteLog("MaSzyna GL3.3+ Renderer");
+    WriteLog("Renderer: " + std::string((char *)glGetString(GL_RENDERER)));
+    WriteLog("Vendor: " + std::string((char *)glGetString(GL_VENDOR)));
+    WriteLog("GL version: " + std::string((char *)glGetString(GL_VERSION)));
 
 	if (!GLEW_VERSION_3_3)
 	{
-		ErrorLog("Requires openGL >= 3.3");
+        ErrorLog("requires OpenGL >= 3.3!");
 		return false;
 	}
 
 	GLint extCount = 0;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &extCount);
 
-	WriteLog("Supported extensions: ");
+    WriteLog("Supported extensions:");
 	for (int i = 0; i < extCount; i++)
 	{
 		const char *ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
 		WriteLog(ext);
 	}
     WriteLog("--------");
+
+    if (!GLEW_EXT_texture_sRGB)
+        ErrorLog("EXT_texture_sRGB not supported!");
+
+    if (!GLEW_EXT_texture_compression_s3tc)
+        ErrorLog("EXT_texture_compression_s3tc not supported!");
 
     if (GLEW_ARB_multi_bind)
         WriteLog("ARB_multi_bind supported!");
@@ -3384,23 +3432,35 @@ bool opengl_renderer::Init_caps()
         WriteLog("ARB_direct_state_access supported!");
 
     if (GLEW_ARB_clip_control)
-        WriteLog("ARB_direct_state_access supported!");
+        WriteLog("ARB_clip_control supported!");
+
+    glGetError();
+    glLineWidth(2.0f);
+    if (!glGetError())
+    {
+        WriteLog("wide lines supported!");
+        m_widelines_supported = true;
+    }
+    else
+        WriteLog("warning: wide lines not supported");
+
+    WriteLog("--------");
 
 	// ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
 	{
 		GLint texturesize;
 		::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texturesize);
 		Global.iMaxTextureSize = std::min(Global.iMaxTextureSize, texturesize);
-		WriteLog("Texture sizes capped at " + std::to_string(Global.iMaxTextureSize) + " pixels");
+        WriteLog("texture sizes capped at " + std::to_string(Global.iMaxTextureSize) + "px");
 		m_shadowbuffersize = Global.shadowtune.map_size;
 		m_shadowbuffersize = std::min(m_shadowbuffersize, texturesize);
-		WriteLog("Shadows map size capped at " + std::to_string(m_shadowbuffersize) + " pixels");
+        WriteLog("shadows map size capped at " + std::to_string(m_shadowbuffersize) + "px");
 	}
 	Global.DynamicLightCount = std::min(Global.DynamicLightCount, 8);
 
 	if (Global.iMultisampling)
 	{
-		WriteLog("Using multisampling x" + std::to_string(1 << Global.iMultisampling));
+        WriteLog("using multisampling x" + std::to_string(1 << Global.iMultisampling));
 	}
 
     if (Global.render_width == -1)
@@ -3409,16 +3469,6 @@ bool opengl_renderer::Init_caps()
         Global.render_height = Global.iWindowHeight;
 
     WriteLog("rendering at " + std::to_string(Global.render_width) + "x" + std::to_string(Global.render_height));
-
-	glGetError();
-	glLineWidth(2.0f);
-	if (!glGetError())
-    {
-        WriteLog("wide lines supported");
-		m_widelines_supported = true;
-    }
-	else
-		WriteLog("warning: wide lines not supported");
 
 	return true;
 }

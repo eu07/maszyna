@@ -1,5 +1,6 @@
 float calc_shadow()
 {
+#ifdef SHADOWMAP_ENABLED
 	vec3 coords = f_light_pos.xyz / f_light_pos.w;
 	
 	if (coords.z < 0.0f)
@@ -17,6 +18,9 @@ float calc_shadow()
 	shadow /= 16.0;
 		
 	return 1.0 - shadow;
+#else
+    return 1.0;
+#endif
 }
 
 vec3 apply_fog(vec3 color)

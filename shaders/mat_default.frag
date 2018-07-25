@@ -18,8 +18,13 @@ in vec4 f_clip_future_pos;
 #texture (diffuse, 0, sRGB_A)
 uniform sampler2D diffuse;
 
+#ifdef SHADOWMAP_ENABLED
 uniform sampler2DShadow shadowmap;
+#endif
+
+#ifdef ENVMAP_ENABLED
 uniform samplerCube envmap;
+#endif
 
 #include <light_common.glsl>
 
@@ -32,7 +37,11 @@ void main()
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos.xyz, normal);
+#ifdef ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
+#else
+    vec3 envcolor = vec3(0.5);
+#endif
 
 	vec3 result = ambient * 0.5 + param[0].rgb * emission;
 
@@ -60,11 +69,12 @@ void main()
 
 	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
 	
-	
+#ifdef MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;
         
         gl_FragData[1] = vec4(a - b, 0.0f, tex_color.a < 0.9f ? 0.0f : 1.0f);
 	}
+#endif
 }

@@ -25,6 +25,7 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/postfx.h"
 #include "gl/shader.h"
 #include "gl/cubemap.h"
+#include "gl/glsl_common.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -282,35 +283,13 @@ class opengl_renderer
     gfx::geometry_handle m_billboardgeometry{0, 0};
 	texture_handle m_glaretexture{-1};
 	texture_handle m_suntexture{-1};
-	texture_handle m_moontexture{-1};
-	texture_handle m_reflectiontexture{-1};
-	// TODO: refactor framebuffer stuff into an object
-	bool m_framebuffersupport{false};
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-	GLuint m_pickframebuffer{0};
-	GLuint m_picktexture{0};
-	GLuint m_pickdepthbuffer{0};
-#endif
+    texture_handle m_moontexture{-1};
+
 	// main shadowmap resources
 	int m_shadowbuffersize{2048};
-	GLuint m_shadowframebuffer{0};
-	GLuint m_shadowtexture{0};
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-	GLuint m_shadowdebugtexture{0};
-#endif
-#ifdef EU07_USE_DEBUG_CABSHADOWMAP
-	GLuint m_cabshadowdebugtexture{0};
-#endif
 	glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
-	// cab shadowmap resources
-	GLuint m_cabshadowframebuffer{0};
-	GLuint m_cabshadowtexture{0};
 	glm::mat4 m_cabshadowtexturematrix; // conversion from cab-centric world space to light-centric clip space
-	// environment map resources
-	GLuint m_environmentframebuffer{0};
-	GLuint m_environmentcubetexture{0};
-	GLuint m_environmentdepthbuffer{0};
-	bool m_environmentcubetexturesupport{false}; // indicates whether we can use the dynamic environment cube map
+
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
 	int m_environmentupdatetime{0}; // time of the most recent environment map update
 	glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
