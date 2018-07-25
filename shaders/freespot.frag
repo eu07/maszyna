@@ -13,7 +13,7 @@ void main()
 	if (dist2 > 0.5f * 0.5f)
 		discard;
 	gl_FragData[0] = vec4(param[0].rgb * emission, 1.0f);
-#ifdef MOTIONBLUR_ENABLED
+#if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;

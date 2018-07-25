@@ -21,11 +21,11 @@ uniform sampler2D diffuse;
 #texture (reflmap, 1, R)
 uniform sampler2D reflmap;
 
-#ifdef SHADOWMAP_ENABLED
+#if SHADOWMAP_ENABLED
 uniform sampler2DShadow shadowmap;
 #endif
 
-#ifdef ENVMAP_ENABLED
+#if ENVMAP_ENABLED
 uniform samplerCube envmap;
 #endif
 
@@ -40,7 +40,7 @@ void main()
 
 	vec3 normal = normalize(f_normal);
 	vec3 refvec = reflect(f_pos.xyz, normal);
-#ifdef ENVMAP_ENABLED
+#if ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
 #else
     vec3 envcolor = vec3(0.5);
@@ -72,7 +72,7 @@ void main()
 
 	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
 	
-#ifdef MOTIONBLUR_ENABLED
+#if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;

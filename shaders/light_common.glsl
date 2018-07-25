@@ -1,6 +1,6 @@
 float calc_shadow()
 {
-#ifdef SHADOWMAP_ENABLED
+#if SHADOWMAP_ENABLED
 	vec3 coords = f_light_pos.xyz / f_light_pos.w;
 	
 	if (coords.z < 0.0f)
