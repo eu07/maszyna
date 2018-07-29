@@ -234,12 +234,7 @@ ui_layer::render() {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
         ImGui::Begin("Vehicle info", &basic_info_active, ImGuiWindowFlags_NoResize);
 
-        auto const &time = simulation::Time.data();
-        uitextline1 =
-            "Time: "
-            + to_string( time.wHour ) + ":"
-            + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
-            + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
+        uitextline1 = "Time: " + std::string( simulation::Time );
         if( Global.iPause ) {
             uitextline1 += " (paused)";
         }

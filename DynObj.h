@@ -568,12 +568,12 @@ private:
     inline double ABuGetDirection() const { // ABu.
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection()); };
     // zwraca kierunek pojazdu na torze z aktywną osą
-    inline double RaDirectionGet() {
+    inline double RaDirectionGet() const {
         return iAxleFirst ?
             Axle1.GetDirection() :
             Axle0.GetDirection(); };
     // zwraca przesunięcie wózka względem Point1 toru z aktywną osią
-    inline double RaTranslationGet() {
+    inline double RaTranslationGet() const {
         return iAxleFirst ?
             Axle1.GetTranslation() :
             Axle0.GetTranslation(); };

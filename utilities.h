@@ -255,14 +255,14 @@ template <typename Type_>
 Type_
 interpolate( Type_ const &First, Type_ const &Second, float const Factor ) {
 
-    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+    return static_cast<Type_>( ( First * ( 1.0f - Factor ) ) + ( Second * Factor ) );
 }
 
 template <typename Type_>
 Type_
 interpolate( Type_ const &First, Type_ const &Second, double const Factor ) {
 
-    return ( First * ( 1.0 - Factor ) ) + ( Second * Factor );
+    return static_cast<Type_>( ( First * ( 1.0 - Factor ) ) + ( Second * Factor ) );
 }
 
 // tests whether provided points form a degenerate triangle
