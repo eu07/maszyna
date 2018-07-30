@@ -165,7 +165,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
-    auto value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+    auto value { Input.getToken<std::string>( true, "\n\r\t,;" ) };
 
     if( Priority != -1 ) {
         // regular attribute processing mode
