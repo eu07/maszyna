@@ -14,7 +14,7 @@ void map::init()
     m_shader = std::unique_ptr<gl::program>(prog);
 
     m_tex = std::make_unique<opengl_texture>();
-    m_tex->alloc_rendertarget(GL_RGB4, GL_RGB, GL_FLOAT, fb_size, fb_size);
+    m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, GL_FLOAT, fb_size, fb_size);
 
     m_fb = std::make_unique<gl::framebuffer>();
     m_fb->attach(*m_tex, GL_COLOR_ATTACHMENT0);
@@ -22,12 +22,15 @@ void map::init()
     m_fb->setup_drawing(1);
 
     if (!m_fb->is_complete())
+    {
+        ErrorLog("map framebuffer incomplete");
         throw std::runtime_error("map framebuffer incomplete");
+    }
 
     if (Global.iMultisampling)
     {
         m_msaa_rb = std::make_unique<gl::renderbuffer>();
-        m_msaa_rb->alloc(GL_RGB4, fb_size, fb_size, 1 << Global.iMultisampling);
+        m_msaa_rb->alloc(GL_RGB8, fb_size, fb_size, 1 << Global.iMultisampling);
 
         m_msaa_fb = std::make_unique<gl::framebuffer>();
         m_msaa_fb->attach(*m_msaa_rb, GL_COLOR_ATTACHMENT0);
@@ -35,7 +38,10 @@ void map::init()
         m_msaa_fb->setup_drawing(1);
 
         if (!m_msaa_fb->is_complete())
+        {
+            ErrorLog("map multisampling framebuffer incomplete");
             throw std::runtime_error("map multisampling framebuffer incomplete");
+        }
     }
 
     scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
