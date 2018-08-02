@@ -12,9 +12,9 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "parser.h"
 #include "globals.h"
-#include "world.h"
 #include "train.h"
 #include "dynobj.h"
+#include "simulation.h"
 
 // constructors
 sound_source::sound_source( sound_placement const Placement, float const Range ) :
@@ -910,15 +910,15 @@ sound_source::update_soundproofing() {
     int const activecab = (
         Global.CabWindowOpen ? 2 :
         FreeFlyModeFlag ? 0 :
-        ( Global.pWorld->train() ?
-            Global.pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
+        ( simulation::Train ?
+            simulation::Train->Occupied()->ActiveCab :
             0 ) );
     // location-based gain factor:
     std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
         FreeFlyModeFlag ?
             nullptr :
-            ( Global.pWorld->train() ?
-                Global.pWorld->train()->Dynamic() :
+            ( simulation::Train ?
+                simulation::Train->Dynamic() :
                 nullptr ) ) )
         + activecab;
 
@@ -941,7 +941,7 @@ sound_source::update_soundproofing() {
             m_properties.soundproofing = (
                 soundproofingstamp == 0 ?
                     EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
-                    ( Global.pWorld->train()->Dynamic() != m_owner ?
+                    ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
                             EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
@@ -952,7 +952,7 @@ sound_source::update_soundproofing() {
             m_properties.soundproofing = (
                 ( ( soundproofingstamp == 0 ) || ( true == Global.CabWindowOpen ) ) ?
                     EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
-                    ( Global.pWorld->train()->Dynamic() != m_owner ?
+                    ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
                             EU07_SOUNDPROOFING_NONE : // listener in the engine compartment

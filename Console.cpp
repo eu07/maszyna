@@ -89,8 +89,7 @@ Console::Console()
 
 Console::~Console()
 {
-    delete PoKeys55[0];
-    delete PoKeys55[1];
+    Console::Off();
 };
 
 void Console::ModeSet(int m, int h)

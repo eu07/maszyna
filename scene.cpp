@@ -12,6 +12,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "globals.h"
+#include "animmodel.h"
+#include "event.h"
+#include "evlaunch.h"
 #include "timer.h"
 #include "logs.h"
 #include "sn_utils.h"

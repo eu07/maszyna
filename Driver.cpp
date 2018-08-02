@@ -18,11 +18,12 @@ http://mozilla.org/MPL/2.0/.
 #include <direct.h>
 #include "Globals.h"
 #include "Logs.h"
+#include "train.h"
 #include "mtable.h"
 #include "DynObj.h"
 #include "Event.h"
 #include "MemCell.h"
-#include "world.h"
+#include "simulation.h"
 #include "simulationtime.h"
 #include "track.h"
 #include "station.h"
@@ -1725,7 +1726,11 @@ void TController::Activation()
         }
         if (pVehicle != old)
         { // jeśli zmieniony został pojazd prowadzony
-            Global.pWorld->CabChange(old, pVehicle); // ewentualna zmiana kabiny użytkownikowi
+            if( ( simulation::Train )
+             && ( simulation::Train->Dynamic() == old ) ) {
+                // ewentualna zmiana kabiny użytkownikowi
+                Global.changeDynObj = pVehicle; // uruchomienie protezy
+            }
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) -
             // silnikowy dla EZT
         }

@@ -1629,7 +1629,7 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
 }
 
 
-double TMoverParameters::ShowCurrent(int AmpN)
+double TMoverParameters::ShowCurrent(int AmpN) const
 { // Odczyt poboru prądu na podanym amperomierzu
     switch (EngineType)
     {
@@ -4124,7 +4124,7 @@ double TMoverParameters::FrictionForce(double R, int TDamage)
 // Q: 20160713
 // Oblicza przyczepność
 // *************************************************************************************************
-double TMoverParameters::Adhesive(double staticfriction)
+double TMoverParameters::Adhesive(double staticfriction) const 
 {
     double adhesion = 0.0;
 	const double adh_factor = 0.25; //współczynnik określający, jak bardzo spada tarcie przy poślizgu
@@ -6763,7 +6763,7 @@ bool TMoverParameters::ChangeOffsetH(double DeltaOffset)
 // Q: 20160713
 // Testuje zmienną (narazie tylko 0) i na podstawie uszkodzenia zwraca informację tekstową
 // *************************************************************************************************
-std::string TMoverParameters::EngineDescription(int what)
+std::string TMoverParameters::EngineDescription(int what) const
 {
     std::string outstr { "OK" };
     switch (what) {
@@ -9599,7 +9599,7 @@ bool TMoverParameters::RunInternalCommand()
 // Q: 20160714
 // Zwraca wartość natężenia prądu na wybranym amperomierzu. Podfunkcja do ShowCurrent.
 // *************************************************************************************************
-double TMoverParameters::ShowCurrentP(int AmpN)
+double TMoverParameters::ShowCurrentP(int AmpN) const
 {
     int b, Bn;
     bool Grupowy;

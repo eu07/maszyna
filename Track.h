@@ -128,7 +128,7 @@ class TTrack : public scene::basic_node {
 
     friend opengl_renderer;
     // NOTE: temporary arrangement
-    friend ui_layer;
+    friend editor_ui;
 
 private:
     TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów

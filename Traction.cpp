@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "Globals.h"
+#include "tractionpower.h"
 #include "logs.h"
 #include "renderer.h"
 

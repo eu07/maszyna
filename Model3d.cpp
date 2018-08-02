@@ -20,6 +20,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"
+#include "simulation.h"
 #include "simulationtime.h"
 #include "mtable.h"
 #include "sn_utils.h"
@@ -28,7 +29,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 using namespace Mtable;
 
 float TSubModel::fSquareDist = 0.f;
-size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
+std::uintptr_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
@@ -1191,7 +1192,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
 
     if( true == TestFlag( iFlags, 0x0200 ) ) {
         // flip coordinates for t3d file which wasn't yet initialized
-        if( ( false == Global.pWorld->InitPerformed() )
+        if( ( false == simulation::is_ready )
          || ( false == Vertices.empty() ) ) {
             // NOTE, HACK: results require flipping if the model wasn't yet initialized, so we're using crude method to detect possible cases
             // TODO: sort out this mess, either unify offset lookups to take place before (or after) initialization,

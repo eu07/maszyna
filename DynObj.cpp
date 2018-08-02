@@ -16,15 +16,17 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 #include "simulation.h"
-#include "world.h"
 #include "train.h"
+#include "driver.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "logs.h"
 #include "Console.h"
 #include "MdlMngr.h"
+#include "model3d.h"
 #include "renderer.h"
 #include "uitranscripts.h"
+#include "messaging.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
@@ -4305,7 +4307,7 @@ void TDynamicObject::RenderSounds() {
             FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
             // Global.pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
             ctOwner == nullptr ? true : // standalone vehicle, can't be part of user-driven train
-            ctOwner != Global.pWorld->train()->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
+            ctOwner != simulation::Train->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
             Global.CabWindowOpen ? true : // sticking head out we get to hear outer noise
             false ) ) {
 
@@ -6994,8 +6996,11 @@ vehicle_table::erase_disabled() {
              && ( true == vehicle->MyTrack->RemoveDynamicObject( vehicle ) ) ) {
                 vehicle->MyTrack = nullptr;
             }
-            // clear potential train binding
-            Global.pWorld->TrainDelete( vehicle );
+            if( simulation::Train->Dynamic() == vehicle ) {
+                // clear potential train binding
+                // TBD, TODO: manually eject the driver first ?
+                SafeDelete( simulation::Train );
+            }
             // remove potential entries in the light array
             simulation::Lights.remove( vehicle );
 /*

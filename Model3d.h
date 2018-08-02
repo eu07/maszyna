@@ -135,7 +135,7 @@ public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
     gfx::vertex_array Vertices;
     float m_boundingradius { 0 };
-    size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
+    std::uintptr_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ TAnimType::at_None }; // kody animacji oddzielnie, bo zerowane
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)

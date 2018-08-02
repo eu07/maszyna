@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "memcell.h"
 
 #include "simulation.h"
+#include "driver.h"
+#include "event.h"
 #include "logs.h"
 
 //---------------------------------------------------------------------------

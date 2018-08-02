@@ -1,4 +1,12 @@
-﻿
+﻿/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
 #pragma once
 
 #include <string>
@@ -30,29 +38,32 @@ struct ui_panel {
 class ui_layer {
 
 public:
-// parameters:
-
-// constructors:
+// constructors
     ui_layer() = default;
-// destructor:
-    ~ui_layer();
+// destructor
+    virtual ~ui_layer();
 
-// methods:
+// methods
+    static
     bool
         init( GLFWwindow *Window );
     // assign texturing hardware unit
+    static
     void
         set_unit( GLint const Textureunit ) { m_textureunit = Textureunit; }
     // potentially processes provided input key. returns: true if the input was processed, false otherwise
+    virtual
     bool
         on_key( int const Key, int const Action );
     // updates state of UI elements
+    virtual
     void
-        update();
+        update() {}
 	// draws requested UI elements
 	void
         render();
     //
+    static
     void
         set_cursor( int const Mode );
 	// stores operation progress
@@ -70,12 +81,15 @@ public:
     void
         clear_texts() { m_panels.clear(); }
     void
-        push_back( std::shared_ptr<ui_panel> Panel ) { m_panels.emplace_back( Panel ); }
+        push_back( ui_panel *Panel ) { m_panels.emplace_back( Panel ); }
 
-// members:
+protected:
+// members
+    static GLFWwindow *m_window;
+    static bool m_cursorvisible;
 
 private:
-// methods:
+// methods
     // draws background quad with specified earlier texture
     void
         render_background();
@@ -94,11 +108,9 @@ private:
     // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
     void
         quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
-
-// members:
-    GLFWwindow *m_window { nullptr };
-    GLint m_textureunit{ GL_TEXTURE0 };
-    GLuint m_fontbase { (GLuint)-1 }; // numer DL dla znaków w napisach
+// members
+    static GLint m_textureunit;
+    static GLuint m_fontbase; // numer DL dla znaków w napisach
 
     // progress bar config. TODO: put these together into an object
     float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
@@ -108,16 +120,6 @@ private:
 
     texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
     GLuint m_texture { 0 };
-    std::vector<std::shared_ptr<ui_panel> > m_panels;
+    std::vector<ui_panel *> m_panels;
     std::string m_tooltip;
-    // TODO: clean these legacy components up
-    std::shared_ptr<ui_panel> UIHeader; // header ui panel
-    std::shared_ptr<ui_panel> UITable; // schedule or scan table
-    std::shared_ptr<ui_panel> UITranscripts; // voice transcripts
-    int tprev; // poprzedni czas
-    double VelPrev; // poprzednia prędkość
-    double Acc; // przyspieszenie styczne
-    bool m_cursorvisible { false };
 };
-
-extern ui_layer UILayer;

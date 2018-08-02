@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "frustum.h"
 #include "scene.h"
-#include "world.h"
+#include "simulationenvironment.h"
 #include "memcell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER

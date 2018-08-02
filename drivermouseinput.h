@@ -53,6 +53,8 @@ public:
         init();
     void
         button( int const Button, int const Action );
+    int
+        button( int const Button ) const;
     void
         move( double const Mousex, double const Mousey );
     void
@@ -87,6 +89,7 @@ private:
     glm::dvec2 m_cursorposition; // stored last cursor position, used for panning
     bool m_varyingpollrate { false }; // indicates rate of command repeats is affected by the cursor position
     glm::dvec2 m_varyingpollrateorigin; // helper, cursor position when the command was initiated
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_buttons;
 };
 
 //---------------------------------------------------------------------------

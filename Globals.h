@@ -25,8 +25,8 @@ struct global_settings {
     bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
-    TWorld *pWorld{ nullptr }; // wskaźnik na świat do usuwania pojazdów
     TCamera *pCamera{ nullptr }; // parametry kamery
+    TCamera *pDebugCamera{ nullptr };
     Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
     Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
     std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
@@ -64,7 +64,6 @@ struct global_settings {
     unsigned int DisabledLogTypes{ 0 };
     // simulation
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
-    bool bFreeFly{ false };
     bool bEnableTraction{ true };
     float fFriction{ 1.f }; // mnożnik tarcia - KURS90
     bool bLiveTraction{ true };

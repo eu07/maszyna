@@ -21,8 +21,10 @@ http://mozilla.org/MPL/2.0/.
 #include "camera.h"
 #include "Logs.h"
 #include "MdlMngr.h"
+#include "model3d.h"
 #include "Timer.h"
 #include "Driver.h"
+#include "dynobj.h"
 #include "mtable.h"
 #include "Console.h"
 

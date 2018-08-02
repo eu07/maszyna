@@ -13,97 +13,19 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "application.h"
 #include "simulation.h"
+#include "camera.h"
+#include "animmodel.h"
 #include "renderer.h"
 
 namespace scene {
 
-basic_editor Editor;
-
-bool
-basic_editor::on_key( int const Key, int const Action ) {
-
-    if( false == EditorModeFlag ) { return false; }
-
-    if( ( Key == GLFW_KEY_LEFT_ALT )
-     || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
-        // intercept these while in editor mode
-        return true;
-    }
-
-    return false;
-}
-
-bool
-basic_editor::on_mouse_button( int const Button, int const Action ) {
-
-    if( false == EditorModeFlag )  { return false; }
-    // TBD: automatically activate and enforce freefly mode when editor is active?
-    if( false == FreeFlyModeFlag ) { return false; }
-
-    if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
-
-        if( Action == GLFW_PRESS ) {
-
-            m_node = GfxRenderer.Update_Pick_Node();
-            m_nodesnapshot = { m_node };
-            if( m_node ) {
-                Application.set_cursor( GLFW_CURSOR_DISABLED );
-            }
-        }
-        else {
-            // left button release
-            // TODO: record the current undo step on the undo stack
-            m_nodesnapshot = { m_node };
-            if( m_node ) {
-                Application.set_cursor( GLFW_CURSOR_NORMAL );
-            }
-        }
-
-        m_mouseleftbuttondown = ( Action == GLFW_PRESS );
-
-        return ( m_node != nullptr );
-    }
-
-    return false;
-}
-
-bool
-basic_editor::on_mouse_move( double const Mousex, double const Mousey ) {
-
-    auto const mousemove { glm::dvec2{ Mousex, Mousey } - m_mouseposition };
-    m_mouseposition = { Mousex, Mousey };
-
-    if( false == EditorModeFlag ) { return false; }
-    if( false == m_mouseleftbuttondown ) { return false; }
-    if( m_node == nullptr ) { return false; }
-
-    if( mode_translation() ) {
-        // move selected node
-        if( mode_translation_vertical() ) {
-            auto const translation { mousemove.y * -0.01f };
-            translate( translation );
-        }
-        else {
-            auto const mouseworldposition{ Global.pCamera->Pos + GfxRenderer.Mouse_Position() };
-            translate( mouseworldposition );
-        }
-    }
-    else {
-        // rotate selected node
-        auto const rotation { glm::vec3 { mousemove.y, mousemove.x, 0 } * 0.25f };
-        rotate( rotation );
-    }
-
-    return true;
-}
-
 void
-basic_editor::translate( glm::dvec3 const &Location ) {
+basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bool const Snaptoground ) {
 
-    auto *node { m_node }; // placeholder for operations on multiple nodes
+    auto *node { Node }; // placeholder for operations on multiple nodes
 
     auto location { Location };
-    if( false == mode_snap() ) {
+    if( false == Snaptoground ) {
         location.y = node->location().y;
     }
 
@@ -117,14 +39,14 @@ basic_editor::translate( glm::dvec3 const &Location ) {
 }
 
 void
-basic_editor::translate( float const Offset ) {
+basic_editor::translate( scene::basic_node *Node, float const Offset ) {
 
     // NOTE: offset scaling is calculated early so the same multiplier can be applied to potential whole group
-    auto location { m_node->location() };
+    auto location { Node->location() };
     auto const distance { glm::length( location - glm::dvec3{ Global.pCamera->Pos } ) };
     auto const offset { Offset * std::max( 1.0, distance * 0.01 ) };
 
-    auto *node { m_node }; // placeholder for operations on multiple nodes
+    auto *node { Node }; // placeholder for operations on multiple nodes
 
     if( typeid( *node ) == typeid( TAnimModel ) ) {
         translate_instance( static_cast<TAnimModel *>( node ), offset );
@@ -167,45 +89,27 @@ basic_editor::translate_memorycell( TMemCell *Memorycell, float const Offset ) {
 }
 
 void
-basic_editor::rotate( glm::vec3 const &Angle ) {
+basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization ) {
 
-    auto *node { m_node }; // placeholder for operations on multiple nodes
+    auto *node { Node }; // placeholder for operations on multiple nodes
 
     if( typeid( *node ) == typeid( TAnimModel ) ) {
-        rotate_instance( static_cast<TAnimModel *>( node ), Angle );
+        rotate_instance( static_cast<TAnimModel *>( node ), Angle, Quantization );
     }
 }
 
 void
-basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
+basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle, float const Quantization ) {
 
     // adjust node data
     glm::vec3 angle = glm::dvec3 { Instance->Angles() };
     angle.y = clamp_circular( angle.y + Angle.y, 360.f );
-    if( mode_snap() ) {
+    if( Quantization > 0.f ) {
         // TBD, TODO: adjustable quantization step
-        angle.y = quantize( angle.y, 15.f );
+        angle.y = quantize( angle.y, Quantization );
     }
     Instance->Angles( angle );
     // update scene
-}
-
-bool
-basic_editor::mode_translation() const {
-
-    return ( false == Global.altState );
-}
-
-bool
-basic_editor::mode_translation_vertical() const {
-
-    return ( true == Global.shiftState );
-}
-
-bool
-basic_editor::mode_snap() const {
-
-    return ( true == Global.ctrlState );
 }
 
 } // scene

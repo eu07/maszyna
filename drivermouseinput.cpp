@@ -8,15 +8,15 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "mouseinput.h"
+#include "drivermouseinput.h"
 
 #include "application.h"
 #include "utilities.h"
 #include "globals.h"
 #include "timer.h"
 #include "simulation.h"
-#include "world.h"
 #include "train.h"
+#include "animmodel.h"
 #include "renderer.h"
 #include "uilayer.h"
 
@@ -25,7 +25,7 @@ mouse_slider::bind( user_command const &Command ) {
 
     m_command = Command;
 
-    auto const *train { World.train() };
+    auto const *train { simulation::Train };
     TMoverParameters const *vehicle { nullptr };
     switch( m_command ) {
         case user_command::mastercontrollerset:
@@ -184,6 +184,11 @@ mouse_input::move( double Mousex, double Mousey ) {
 void
 mouse_input::button( int const Button, int const Action ) {
 
+    // store key state
+    if( Button >= 0 ) {
+        m_buttons[ Button ] = Action;
+    }
+
     if( false == Global.ControlPicking ) { return; }
 
     if( true == FreeFlyModeFlag ) {
@@ -236,7 +241,7 @@ mouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto const lookup = m_mousecommands.find( World.train()->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            auto const lookup = m_mousecommands.find( simulation::Train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
             if( lookup != m_mousecommands.end() ) {
                 // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
                 mousecommand = (
@@ -299,6 +304,12 @@ mouse_input::button( int const Button, int const Action ) {
             }
         }
     }
+}
+
+int
+mouse_input::button( int const Button ) const {
+
+    return m_buttons[ Button ];
 }
 
 void

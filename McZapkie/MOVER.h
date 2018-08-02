@@ -1294,7 +1294,7 @@ public:
 	void ComputeConstans(void);//ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
 	double ComputeMass(void);
 	void ComputeTotalForce(double dt, double dt1, bool FullVer);
-	double Adhesive(double staticfriction);
+	double Adhesive(double staticfriction) const;
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
 	double BrakeForceR(double ratio, double velocity);
@@ -1327,8 +1327,8 @@ public:
     bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
-    double ShowCurrent( int AmpN ); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
-	double ShowCurrentP(int AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
+    double ShowCurrent( int AmpN ) const; //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
+	double ShowCurrentP(int AmpN) const;  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
 
 								 /*!o pokazuje bezwgl. wartosc obrotow na obrotomierzu jednego z 3 pojazdow*/
 								 /*function ShowEngineRotation(VehN:int): integer; //Ra 2014-06: przeniesione do C++*/
@@ -1374,7 +1374,7 @@ public:
 	/*funkcje ladujace pliki opisujace pojazd*/
 	bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
     bool CheckLocomotiveParameters( bool ReadyFlag, int Dir );
-    std::string EngineDescription( int what );
+    std::string EngineDescription( int what ) const;
 private:
     void LoadFIZ_Param( std::string const &line );
     void LoadFIZ_Load( std::string const &line );

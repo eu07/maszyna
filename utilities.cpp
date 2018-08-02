@@ -281,7 +281,7 @@ std::string ToUpper(std::string const &text) {
 void
 win1250_to_ascii( std::string &Input ) {
 
-    std::unordered_map<char, char> charmap{
+    std::unordered_map<char, char> const charmap {
         { 165, 'A' }, { 198, 'C' }, { 202, 'E' }, { 163, 'L' }, { 209, 'N' }, { 211, 'O' }, { 140, 'S' }, { 143, 'Z' }, { 175, 'Z' },
         { 185, 'a' }, { 230, 'c' }, { 234, 'e' }, { 179, 'l' }, { 241, 'n' }, { 243, 'o' }, { 156, 's' }, { 159, 'z' }, { 191, 'z' }
     };
@@ -293,23 +293,33 @@ win1250_to_ascii( std::string &Input ) {
 }
 
 // Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów
-char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
-                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
-                     "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
-                     "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+char charsetconversiontable[] =
+    "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+    " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+    "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+    "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
-std::string Bezogonkow(std::string str, bool _)
-{ // wycięcie liter z ogonkami, bo OpenGL nie umie wyświetlić
-    for (unsigned int i = 1; i < str.length(); ++i)
-        if (str[i] & 0x80)
-            str[i] = bezogonkowo[str[i] & 0x7F];
-        else if (str[i] < ' ') // znaki sterujące nie są obsługiwane
-            str[i] = ' ';
-        else if (_)
-            if (str[i] == '_') // nazwy stacji nie mogą zawierać spacji
-                str[i] = ' '; // więc trzeba wyświetlać inaczej
-    return str;
-};
+// wycięcie liter z ogonkami
+std::string Bezogonkow(std::string Input, bool const Underscorestospaces) {
+
+    char const extendedcharsetbit { static_cast<char>( 0x80 ) };
+    char const space { ' ' };
+    char const underscore { '_' };
+
+    for( auto &input : Input ) {
+        if( input & extendedcharsetbit ) {
+            input = charsetconversiontable[ input ^ extendedcharsetbit ];
+        }
+        else if( input < space ) {
+            input = space;
+        }
+        else if( Underscorestospaces && ( input == underscore ) ) {
+            input = space;
+        }
+    }
+
+    return Input;
+}
 
 template <>
 bool

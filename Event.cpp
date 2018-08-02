@@ -17,8 +17,16 @@ http://mozilla.org/MPL/2.0/.
 #include "event.h"
 
 #include "simulation.h"
-#include "world.h"
+#include "messaging.h"
 #include "globals.h"
+#include "memcell.h"
+#include "track.h"
+#include "traction.h"
+#include "tractionpower.h"
+#include "sound.h"
+#include "animmodel.h"
+#include "dynobj.h"
+#include "driver.h"
 #include "timer.h"
 #include "logs.h"
 
@@ -1207,7 +1215,7 @@ event_manager::CheckQuery() {
                     }
                     case 1: {
                         if( m_workevent->Params[ 1 ].asdouble > 0.0 ) {
-                            Global.pWorld->radio_message(
+                            simulation::radio_message(
                                 m_workevent->Params[ 9 ].tsTextSound,
                                 static_cast<int>( m_workevent->Params[ 1 ].asdouble ) );
                         }

@@ -18,16 +18,16 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-void TCamera::Init( Math3D::vector3 NPos, Math3D::vector3 NAngle) {
+void TCamera::Init( Math3D::vector3 const &NPos, Math3D::vector3 const &NAngle, TCameraType const NType ) {
 
-    vUp = Math3D::vector3(0, 1, 0);
-    Velocity = Math3D::vector3(0, 0, 0);
+    vUp = { 0, 1, 0 };
+    Velocity = { 0, 0, 0 };
     Pitch = NAngle.x;
     Yaw = NAngle.y;
     Roll = NAngle.z;
     Pos = NPos;
 
-    Type = (Global.bFreeFly ? TCameraType::tp_Free : TCameraType::tp_Follow);
+    Type = NType;
 };
 
 void TCamera::Reset() {

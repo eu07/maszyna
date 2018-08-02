@@ -13,6 +13,10 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "application.h"
 #include "simulation.h"
+#include "simulationtime.h"
+#include "event.h"
+#include "dynobj.h"
+#include "driver.h"
 #include "mtable.h"
 #include "logs.h"
 
@@ -34,6 +38,165 @@ Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam) {
         h = FindWindow(0, ClassName.c_str()); // można by to zapamiętać
     SendMessage(h, Msg, wParam, lParam);
 #endif
+}
+
+void
+OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
+{ // odebranie komunikatu z serwera
+    if (pRozkaz->iSygn == MAKE_ID4('E','U','0','7') )
+        switch (pRozkaz->iComm)
+        {
+        case 0: // odesłanie identyfikatora wersji
+			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " version" + " rcvd");
+            WyslijString(Global.asVersion, 0); // przedsatwienie się
+            break;
+        case 1: // odesłanie identyfikatora wersji
+			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " scenery" + " rcvd");
+            WyslijString(Global.SceneryFile, 1); // nazwa scenerii
+            break;
+        case 2: {
+            // event
+            CommLog( Now() + " " + std::to_string( pRozkaz->iComm ) + " " +
+                std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) + " rcvd" );
+
+            if( Global.iMultiplayer ) {
+                auto *event = simulation::Events.FindEvent( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+                if( event != nullptr ) {
+                    if( ( event->Type == tp_Multiple )
+                     || ( event->Type == tp_Lights )
+                     || ( event->evJoined != 0 ) ) {
+                        // tylko jawne albo niejawne Multiple
+                        simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
+                    }
+                }
+            }
+            break;
+        }
+        case 3: // rozkaz dla AI
+            if (Global.iMultiplayer)
+            {
+                int i = int(pRozkaz->cString[8]); // długość pierwszego łańcucha (z przodu dwa floaty)
+                CommLog(
+                    Now() + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
+                    " rcvd");
+                // nazwa pojazdu jest druga
+                auto *vehicle = simulation::Vehicles.find( { pRozkaz->cString + 11 + i, (unsigned)pRozkaz->cString[ 10 + i ] } );
+                if( ( vehicle != nullptr )
+                 && ( vehicle->Mechanik != nullptr ) ) {
+                    vehicle->Mechanik->PutCommand(
+                        { pRozkaz->cString + 9, static_cast<std::size_t>(i) },
+                        pRozkaz->fPar[0], pRozkaz->fPar[1],
+                        nullptr,
+                        stopExt ); // floaty są z przodu
+                    WriteLog("AI command: " + std::string(pRozkaz->cString + 9, i));
+                }
+            }
+            break;
+        case 4: // badanie zajętości toru
+        {
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+
+            auto *track = simulation::Paths.find( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+            if( ( track != nullptr )
+             && ( track->IsEmpty() ) ) {
+                WyslijWolny( track->name() );
+            }
+        }
+        break;
+        case 5: // ustawienie parametrów
+        {
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " + to_string(*pRozkaz->iPar) + " rcvd");
+            if (*pRozkaz->iPar == 0) // sprawdzenie czasu
+                if (*pRozkaz->iPar & 1) // ustawienie czasu
+                {
+                    double t = pRozkaz->fPar[1];
+                    simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
+                    if (Global.fMoveLight >= 0)
+                        Global.fMoveLight = t; // trzeba by deklinację Słońca przeliczyć
+                    simulation::Time.data().wHour = std::floor(24 * t) - 24.0 * simulation::Time.data().wDay;
+                    simulation::Time.data().wMinute = std::floor(60 * 24 * t) - 60.0 * (24.0 * simulation::Time.data().wDay + simulation::Time.data().wHour);
+                    simulation::Time.data().wSecond = std::floor( 60 * 60 * 24 * t ) - 60.0 * ( 60.0 * ( 24.0 * simulation::Time.data().wDay + simulation::Time.data().wHour ) + simulation::Time.data().wMinute );
+                }
+            if (*pRozkaz->iPar & 2)
+            { // ustawienie flag zapauzowania
+                Global.iPause = pRozkaz->fPar[2]; // zakładamy, że wysyłający wie, co robi
+            }
+        }
+        break;
+        case 6: // pobranie parametrów ruchu pojazdu
+            if (Global.iMultiplayer) {
+                // Ra 2014-12: to ma działać również dla pojazdów bez obsady
+                CommLog(
+                    Now() + " "
+                  + to_string( pRozkaz->iComm ) + " "
+                  + std::string{ pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) }
+                  + " rcvd" );
+                if (pRozkaz->cString[0]) {
+                    // jeśli długość nazwy jest niezerowa szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
+                    auto *vehicle = (
+                        pRozkaz->cString[ 1 ] == '*' ?
+                            simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
+                            simulation::Vehicles.find( std::string{ pRozkaz->cString + 1, (unsigned)pRozkaz->cString[ 0 ] } ) );
+                    if( vehicle != nullptr ) {
+                        WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
+                    }
+                }
+                else {
+                    // dla pustego wysyłamy ramki 6 z nazwami pojazdów AI (jeśli potrzebne wszystkie, to rozpoznać np. "*")
+                    simulation::Vehicles.DynamicList();
+                }
+            }
+            break;
+        case 8: // ponowne wysłanie informacji o zajętych odcinkach toru
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
+            simulation::Paths.TrackBusyList();
+            break;
+        case 9: // ponowne wysłanie informacji o zajętych odcinkach izolowanych
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
+            simulation::Paths.IsolatedBusyList();
+            break;
+        case 10: // badanie zajętości jednego odcinka izolowanego
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+            simulation::Paths.IsolatedBusy( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
+            break;
+        case 11: // ustawienie parametrów ruchu pojazdu
+            //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+            break;
+		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
+            WyslijObsadzone();
+			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+			break;
+		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+                    " rcvd");
+            if( pRozkaz->cString[ 1 ] ) // jeśli długość nazwy jest niezerowa
+            { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
+                auto *lookup = (
+                    pRozkaz->cString[ 2 ] == '*' ?
+                        simulation::Vehicles.find( Global.asHumanCtrlVehicle ) : // nazwa pojazdu użytkownika
+                        simulation::Vehicles.find( std::string( pRozkaz->cString + 2, (unsigned)pRozkaz->cString[ 1 ] ) ) ); // nazwa pojazdu
+                if( lookup == nullptr ) { break; } // nothing found, nothing to do
+                auto *d { lookup };
+                while( d != nullptr ) {
+                    d->Damage( pRozkaz->cString[ 0 ] );
+                    d = d->Next(); // pozostałe też
+                }
+                d = lookup->Prev();
+                while( d != nullptr ) {
+                    d->Damage( pRozkaz->cString[ 0 ] );
+                    d = d->Prev(); // w drugą stronę też
+                }
+                WyslijUszkodzenia( lookup->asName, lookup->MoverParameters->EngDmgFlag ); // zwrot informacji o pojeździe
+            }
+			break;
+        default:
+            break;
+		}
 }
 
 void

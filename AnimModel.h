@@ -125,7 +125,7 @@ class TAnimAdvanced
 class TAnimModel : public scene::basic_node {
 
     friend opengl_renderer;
-    friend ui_layer;
+    friend editor_ui;
 
 public:
 // constructors
