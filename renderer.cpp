@@ -158,9 +158,9 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         return false;
     }
 
-	scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
-	model_ubo = std::make_unique<gl::ubo>(sizeof(gl::model_ubs), 1);
-	light_ubo = std::make_unique<gl::ubo>(sizeof(gl::light_ubs), 2);
+    scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
+    model_ubo = std::make_unique<gl::ubo>(sizeof(gl::model_ubs), 1, GL_STREAM_DRAW);
+    light_ubo = std::make_unique<gl::ubo>(sizeof(gl::light_ubs), 2);
 
     // better initialize with 0 to not crash driver/whole system
     // when we forget
@@ -384,6 +384,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
+        scene_ubo->bind_uniform();
 
         m_colorpass = m_renderpass;
 
@@ -493,6 +494,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
         if (Global.gfx_postfx_motionblur_enabled)
         {
             m_main_fb->clear(GL_COLOR_BUFFER_BIT);
@@ -509,9 +512,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             m_msaa_fb->blit_to(*m_main2_fb.get(), Global.render_width, Global.render_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glEnable(GL_FRAMEBUFFER_SRGB);
-		glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
+        glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
         m_pfx_tonemapping->apply(*m_main2_tex, nullptr);
         opengl_texture::reset_unit_cache();
 		glDisable(GL_FRAMEBUFFER_SRGB);
@@ -1484,7 +1486,7 @@ void opengl_renderer::Render(section_sequence::iterator First, section_sequence:
 			if (false == section->m_shapes.empty())
 			{
 				// since all shapes of the section share center point we can optimize out a few calls here
-				::glPushMatrix();
+                ::glPushMatrix();
 				auto const originoffset{section->m_area.center - m_renderpass.camera.position()};
 				::glTranslated(originoffset.x, originoffset.y, originoffset.z);
 				// render
@@ -1681,6 +1683,11 @@ void opengl_renderer::Render(cell_sequence::iterator First, cell_sequence::itera
 	}
 }
 
+void opengl_renderer::Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end)
+{
+    m_geometry.draw(begin, end);
+}
+
 void opengl_renderer::draw(const gfx::geometry_handle &handle)
 {
     model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
@@ -1694,11 +1701,7 @@ void opengl_renderer::draw(std::vector<gfx::geometrybank_handle>::iterator it, s
     model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
     model_ubo->update(model_ubs);
 
-    while (it != end)
-    {
-        m_geometry.draw(*it);
-        it++;
-    }
+    Draw_Geometry(it, end);
 }
 
 void opengl_renderer::Render(scene::shape_node const &Shape, bool const Ignorerange)

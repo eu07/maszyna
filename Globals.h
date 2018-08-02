@@ -108,7 +108,6 @@ struct global_settings {
     float BaseDrawRange{ 2500.f };
     int DynamicLightCount{ 8 };
     bool ScaleSpecularValues{ true };
-    bool gfx_shadowmap_enabled{ true };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
         float width{ 250.f }; // no longer used
@@ -176,9 +175,12 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 
+    bool gfx_shadowmap_enabled = true;
     bool gfx_envmap_enabled = true;
     bool gfx_postfx_motionblur_enabled = true;
     float gfx_postfx_motionblur_shutter = 0.01f;
+
+    bool map_enabled = true;
 
 // methods
     void LoadIniFile( std::string asFileName );

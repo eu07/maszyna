@@ -679,6 +679,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_postfx_motionblur_shutter;
         }
+        else if (token == "map.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> map_enabled;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

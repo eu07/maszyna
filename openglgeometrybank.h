@@ -94,9 +94,10 @@ public:
     void
         draw( gfx::geometry_handle const &Geometry );
     // draws geometry stored in supplied list of chunks
-    template <typename Iterator_>
-    void
-        draw( Iterator_ First, Iterator_ Last ) { while( First != Last ) { draw( *First ); ++First; } }
+    void draw(std::vector<gfx::geometry_handle>::iterator begin, std::vector<gfx::geometry_handle>::iterator end)
+    {
+        draw_(begin, end);
+    }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void
         release();
@@ -139,6 +140,7 @@ private:
     virtual void replace_( gfx::geometry_handle const &Geometry ) = 0;
     // draw() subclass details
     virtual void draw_( gfx::geometry_handle const &Geometry ) = 0;
+    virtual void draw_(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end) = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -167,6 +169,12 @@ private:
     };
 
     typedef std::vector<chunk_record> chunkrecord_sequence;
+    void setup_buffer();
+
+    // vectors for glMultiDrawArrays in class scope
+    // to don't waste time on reallocating
+    std::vector<GLint> m_offsets;
+    std::vector<GLsizei> m_counts;
 
 // methods:
     // create() subclass details
@@ -178,6 +186,7 @@ private:
     // draw() subclass details
     void
         draw_( gfx::geometry_handle const &Geometry );
+    void draw_(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end);
     // release() subclass details
     void
         release_();
@@ -217,12 +226,7 @@ public:
     // draws geometry stored in specified chunk
     void
         draw( gfx::geometry_handle const &Geometry);
-    template <typename Iterator_>
-    void
-        draw( Iterator_ First, Iterator_ Last ) {
-            while( First != Last ) { 
-                draw( *First );
-                ++First; } }
+    void draw(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end);
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         vertices( gfx::geometry_handle const &Geometry ) const;

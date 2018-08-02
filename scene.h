@@ -151,6 +151,7 @@ public:
     // generates renderable version of held non-instanced geometry in specified geometry bank
     void
         create_geometry( gfx::geometrybank_handle const &Bank );
+    void create_map_geometry(std::vector<gfx::basic_vertex> &Bank);
     // provides access to bounding area data
     bounding_area const &
         area() const {
@@ -274,10 +275,15 @@ public:
     // generates renderable version of held non-instanced geometry
     void
         create_geometry();
+    void create_map_geometry(const gfx::geometrybank_handle handle);
     // provides access to bounding area data
     bounding_area const &
         area() const {
             return m_area; }
+    const gfx::geometrybank_handle get_map_geometry()
+    {
+        return m_map_geometryhandle;
+    }
 
 private:
 // types
@@ -289,6 +295,7 @@ private:
         cell( glm::dvec3 const &Location );
 // members
     // placement and visibility
+
     scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_SECTIONSIZE ) };
     // content
     cell_array m_cells; // partitioning scheme
@@ -297,6 +304,8 @@ private:
     // gfx renderer data
     gfx::geometrybank_handle m_geometrybank;
     bool m_geometrycreated { false };
+
+    gfx::geometrybank_handle m_map_geometryhandle;
 };
 
 // top-level of scene spatial structure, holds collection of sections
@@ -383,6 +392,11 @@ public:
     // finds sections inside specified sphere. returns: list of sections
     std::vector<basic_section *> const &
         sections( glm::dvec3 const &Point, float const Radius );
+    void create_map_geometry();
+    basic_section* get_section(size_t section)
+    {
+        return m_sections[section];
+    }
 
 private:
 // types
@@ -392,6 +406,8 @@ private:
 
         std::vector<basic_section *> sections;
     };
+
+    gfx::geometrybank_handle m_map_geometrybank;
 
 // methods
     // checks whether specified point is within boundaries of the region

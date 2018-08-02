@@ -241,10 +241,8 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
     }
 }
 
-// draw() subclass details
-void
-opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry) {
-
+void opengl_vbogeometrybank::setup_buffer()
+{
     if( m_buffer == 0 ) {
         // if there's no buffer, we'll have to make one
         // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
@@ -300,6 +298,13 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         m_vao->unbind();
     }
+}
+
+// draw() subclass details
+void
+opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry)
+{
+    setup_buffer();
 
     // actual draw procedure starts here
     auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
@@ -319,6 +324,60 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry) {
     // ...render...
     m_vao->bind();
     ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
+}
+
+void opengl_vbogeometrybank::draw_(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end)
+{
+    if (begin == end)
+        return;
+
+    setup_buffer();
+
+    m_offsets.clear();
+    m_counts.clear();
+    GLenum type = 0;
+    bool coalesce = false;
+
+    for (auto it = begin; it != end; it++)
+    {
+        gfx::geometry_handle Geometry = *it;
+        auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
+        auto const &chunk = gfx::geometry_bank::chunk( Geometry );
+        if( false == chunkrecord.is_good ) {
+            glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+            // we may potentially need to upload new buffer data before we can draw it
+            ::glBufferSubData(
+                GL_ARRAY_BUFFER,
+                chunkrecord.offset * sizeof( gfx::basic_vertex ),
+                chunkrecord.size * sizeof( gfx::basic_vertex ),
+                chunk.vertices.data() );
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            chunkrecord.is_good = true;
+        }
+
+        if (!type)
+        {
+            type = chunk.type;
+            if (type == GL_POINTS || type == GL_LINES || type == GL_TRIANGLES)
+                coalesce = true;
+        }
+        else if (type != chunk.type)
+            throw std::logic_error("inconsistent draw types");
+
+        if (coalesce && m_offsets.size() && chunkrecord.offset == m_offsets.back() + m_counts.back())
+            m_counts.back() += chunkrecord.size;
+        else
+        {
+            m_offsets.push_back(chunkrecord.offset);
+            m_counts.push_back(chunkrecord.size);
+        }
+    }
+
+    m_vao->bind();
+    if (m_offsets.size() == 1)
+        glDrawArrays(type, m_offsets.front(), m_counts.front());
+    else
+        glMultiDrawArrays(type, m_offsets.data(), m_counts.data(), m_offsets.size());
 }
 
 // release () subclass details
@@ -392,6 +451,29 @@ geometrybank_manager::draw( gfx::geometry_handle const &Geometry ) {
 
     bankrecord.second = m_garbagecollector.timestamp();
     bankrecord.first->draw( Geometry );
+}
+
+void geometrybank_manager::draw(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end)
+{
+    if (begin == end)
+        return;
+
+    auto &run_bank = bank(*begin);
+    std::vector<gfx::geometry_handle>::iterator run_begin = begin;
+
+    std::vector<gfx::geometry_handle>::iterator it;
+    for (it = begin; it != end; it++)
+    {
+        if (bank(*it) != run_bank)
+        {
+            run_bank.first->draw(run_begin, it);
+            run_bank = bank(*it);
+            run_begin = it;
+        }
+    }
+
+    if (run_begin != it)
+        run_bank.first->draw(run_begin, it);
 }
 
 // provides direct access to vertex data of specfied chunk

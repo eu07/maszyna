@@ -2,6 +2,7 @@
 
 #include <string>
 #include "Texture.h"
+#include "map.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
@@ -74,6 +75,8 @@ private:
     bool m_cursorvisible;
 
     ImGuiIO *imgui_io;
+
+    std::unique_ptr<map> m_map;
 
     // progress bar config. TODO: put these together into an object
     float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.

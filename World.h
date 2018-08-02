@@ -76,6 +76,7 @@ TWorld();
     void compute_season( int const Yearday ) const;
     // calculates current weather
     void compute_weather() const;
+    TCamera& get_camera() { return Camera; }
 
 // members
 

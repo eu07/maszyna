@@ -163,6 +163,9 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
         // manually perform scenario initialization
         deserialize_firstinit( Input, Scratchpad );
     }
+
+    if (Global.map_enabled)
+        Region->create_map_geometry();
 }
 
 void

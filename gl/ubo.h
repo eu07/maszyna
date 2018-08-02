@@ -11,10 +11,13 @@ namespace gl
 
     class ubo : public object, public bindable<ubo>
     {
+        int index;
+
     public:
-        ubo(int size, int index);
+        ubo(int size, int index, GLenum hint = GL_DYNAMIC_DRAW);
         ~ubo();
 
+        void bind_uniform();
         using bindable::bind;
         static void bind(GLuint i);
 

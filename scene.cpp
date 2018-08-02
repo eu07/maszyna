@@ -599,6 +599,15 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
     m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
+void basic_cell::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
+{
+    if (!m_active)
+        return;
+
+    for (auto *path : m_paths)
+        path->create_map_geometry(Bank);
+}
+
 // executes event assigned to specified launcher
 void
 basic_cell::launch_event( TEventLauncher *Launcher ) {
@@ -900,6 +909,15 @@ basic_section::create_geometry() {
     for( auto &cell : m_cells ) {
         cell.create_geometry( m_geometrybank );
     }
+}
+
+void basic_section::create_map_geometry(const gfx::geometrybank_handle handle)
+{
+    std::vector<gfx::basic_vertex> lines;
+    for (auto &cell : m_cells)
+        cell.create_map_geometry(lines);
+
+    m_map_geometryhandle = GfxRenderer.Insert(lines, handle, GL_LINES);
 }
 
 // provides access to section enclosing specified point
@@ -1555,6 +1573,19 @@ basic_region::section( glm::dvec3 const &Location ) {
     }
 
     return *section;
+}
+
+void basic_region::create_map_geometry()
+{
+    m_map_geometrybank = GfxRenderer.Create_Bank();
+
+    for (int row = 0; row < EU07_REGIONSIDESECTIONCOUNT; row++)
+        for (int column = 0; column < EU07_REGIONSIDESECTIONCOUNT; column++)
+        {
+            basic_section *s = m_sections[row * EU07_REGIONSIDESECTIONCOUNT + column];
+            if (s)
+                s->create_map_geometry(m_map_geometrybank);
+        }
 }
 
 } // scene

@@ -1126,6 +1126,15 @@ void TTrack::RaAssign( TAnimModel *am, TEvent *done, TEvent *joined )
     }
 };
 
+void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
+{
+    if (iCategoryFlag != 1)
+        return; // only tracks for now
+
+    for (auto &v : endpoints())
+        Bank.push_back(gfx::basic_vertex(glm::vec3(v), glm::vec3(0.0f), glm::vec2(0.0f)));
+}
+
 // wypełnianie tablic VBO
 void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
     // Ra: trzeba rozdzielić szyny od podsypki, aby móc grupować wg tekstur

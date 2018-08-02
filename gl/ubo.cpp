@@ -1,11 +1,17 @@
 #include "stdafx.h"
 #include "ubo.h"
 
-gl::ubo::ubo(int size, int index)
+gl::ubo::ubo(int size, int idx, GLenum hint)
 {
     glGenBuffers(1, *this);
     bind();
-    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_STREAM_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, hint);
+    index = idx;
+    bind_uniform();
+}
+
+void gl::ubo::bind_uniform()
+{
     glBindBufferBase(GL_UNIFORM_BUFFER, index, *this);
 }
 

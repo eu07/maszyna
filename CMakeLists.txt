@@ -84,6 +84,7 @@ set(SOURCES
 "simulationtime.cpp"
 "sceneeditor.cpp"
 "screenshot.cpp"
+"map.cpp"
 
 "gl/shader.cpp"
 "gl/vao.cpp"

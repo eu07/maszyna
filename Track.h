@@ -251,6 +251,7 @@ public:
         endpoints() const;
 
     void create_geometry( gfx::geometrybank_handle const &Bank ); // wypełnianie VBO
+    void create_map_geometry(std::vector<gfx::basic_vertex> &Bank);
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet( scene::basic_cell *o ) {
