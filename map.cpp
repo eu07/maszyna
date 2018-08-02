@@ -6,15 +6,17 @@
 #include "Train.h"
 #include "Camera.h"
 
-void map::init()
+bool map::init()
 {
+    WriteLog("initializing map gfx...");
+
     gl::shader vert("map.vert");
     gl::shader frag("map.frag");
     gl::program *prog = new gl::program({vert, frag});
     m_shader = std::unique_ptr<gl::program>(prog);
 
     m_tex = std::make_unique<opengl_texture>();
-    m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, GL_FLOAT, fb_size, fb_size);
+    m_tex->alloc_rendertarget(GL_RGB4, GL_RGB, GL_FLOAT, fb_size, fb_size);
 
     m_fb = std::make_unique<gl::framebuffer>();
     m_fb->attach(*m_tex, GL_COLOR_ATTACHMENT0);
@@ -24,13 +26,13 @@ void map::init()
     if (!m_fb->is_complete())
     {
         ErrorLog("map framebuffer incomplete");
-        throw std::runtime_error("map framebuffer incomplete");
+        return false;
     }
 
     if (Global.iMultisampling)
     {
         m_msaa_rb = std::make_unique<gl::renderbuffer>();
-        m_msaa_rb->alloc(GL_RGB8, fb_size, fb_size, 1 << Global.iMultisampling);
+        m_msaa_rb->alloc(GL_RGB4, fb_size, fb_size, 1 << Global.iMultisampling);
 
         m_msaa_fb = std::make_unique<gl::framebuffer>();
         m_msaa_fb->attach(*m_msaa_rb, GL_COLOR_ATTACHMENT0);
@@ -40,11 +42,15 @@ void map::init()
         if (!m_msaa_fb->is_complete())
         {
             ErrorLog("map multisampling framebuffer incomplete");
-            throw std::runtime_error("map multisampling framebuffer incomplete");
+            return false;
         }
     }
 
     scene_ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0);
+
+    WriteLog("map init ok");
+
+    return true;
 }
 
 float map::get_vehicle_rotation()
@@ -61,8 +67,9 @@ void map::render(scene::basic_region *Region)
     if (!map_opened)
         return;
 
-    if (!m_shader)
-        init();
+    if (!scene_ubo)
+        if (!init())
+            return;
 
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(fb_size, fb_size));
     if (ImGui::Begin("Map", &map_opened, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))

@@ -298,6 +298,8 @@ eu07_application::run()
 		Timer::subsystem.mainloop_total.stop();
     }
 
+    LogsFlush();
+
     return 0;
 }
 

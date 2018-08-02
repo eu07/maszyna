@@ -119,6 +119,14 @@ void ErrorLog( const char *str, logtype const Type ) {
     errors.flush();
 };
 
+void LogsFlush()
+{
+    if (output.is_open())
+        output.flush();
+    if (errors.is_open())
+        errors.flush();
+}
+
 void Error(const std::string &asMessage, bool box)
 {
     // if (box)

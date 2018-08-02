@@ -24,7 +24,7 @@ class map
     float zoom = 1.0f / 1000.0f;
     float get_vehicle_rotation();
 
-    void init();
+    bool init();
 
     cFrustum frustum;
 public:
