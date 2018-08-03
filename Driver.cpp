@@ -1926,8 +1926,15 @@ double TController::ESMVelocity(bool Main)
 	for (int i = 0; i < 5; i++)
 	{
 		MS = mvControlling->MomentumF(IF, IF, SCPN);
-		Fmax = MS * mvControlling->RList[MCPN].Bn*mvControlling->RList[MCPN].Mn * 2 / mvControlling->WheelDiameter * mvControlling->Transmision.Ratio;
-		IF = 0.5*IF*(1 + FrictionMax/Fmax);
+		Fmax = MS * mvControlling->RList[MCPN].Bn * mvControlling->RList[MCPN].Mn * 2 / mvControlling->WheelDiameter * mvControlling->Transmision.Ratio;
+        if( Fmax != 0.0 ) {
+            IF = 0.5 * IF * ( 1 + FrictionMax / Fmax );
+        }
+        else {
+            // NOTE: gets trimmed to actual highest acceptable value after the loop
+            IF = std::numeric_limits<double>::max();
+            break;
+        }
 	}
 	IF = std::min(IF, mvControlling->Imax*fCurrentCoeff);
 	double R = mvControlling->RList[MCPN].R + mvControlling->CircuitRes + mvControlling->RList[MCPN].Mn*mvControlling->WindingRes;
@@ -1938,7 +1945,6 @@ double TController::ESMVelocity(bool Main)
 	ESMVel = ns * mvControlling->WheelDiameter*M_PI*3.6/mvControlling->Transmision.Ratio;
 	return ESMVel;
 }
-;
 
 int TController::CheckDirection() {
 

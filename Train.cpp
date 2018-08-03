@@ -3360,14 +3360,14 @@ void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Comm
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global.pCameraPosition ) ?
+                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -3386,14 +3386,14 @@ void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Comm
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCameraPosition ) > LengthSquared3( vehicle->RearPosition() - Global.pCameraPosition ) ?
+                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -4327,13 +4327,13 @@ bool TTrain::Update( double const Deltatime )
 
     // update driver's position
     {
-        auto Vec = Global.pCamera->Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
+        auto Vec = Global.pCamera.Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
         Vec.y = -Vec.y;
         if( mvOccupied->ActiveCab < 0 ) {
             Vec *= -1.0f;
             Vec.y = -Vec.y;
         }
-        Vec.RotateY( Global.pCamera->Yaw );
+        Vec.RotateY( Global.pCamera.Yaw );
         vMechMovement = Vec;
     }
 
@@ -5949,8 +5949,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     }
     // reset view angles
     pMechViewAngle = { 0.0, 0.0 };
-    Global.pCamera->Pitch = pMechViewAngle.x;
-    Global.pCamera->Yaw = pMechViewAngle.y;
+    Global.pCamera.Pitch = pMechViewAngle.x;
+    Global.pCamera.Yaw = pMechViewAngle.y;
 
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
@@ -6016,8 +6016,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 >> viewangle.y // yaw first, then pitch
                 >> viewangle.x;
             pMechViewAngle = glm::radians( viewangle );
-            Global.pCamera->Pitch = pMechViewAngle.x;
-            Global.pCamera->Yaw = pMechViewAngle.y;
+            Global.pCamera.Pitch = pMechViewAngle.x;
+            Global.pCamera.Yaw = pMechViewAngle.y;
 
             parser->getTokens();
             *parser >> token;

@@ -43,7 +43,10 @@ editor_mode::editor_mode() {
 bool
 editor_mode::init() {
 
-    Camera.Init( {}, {}, TCameraType::tp_Free );
+    Camera.Init( { 0, 15, 0 }, { glm::radians( -30.0 ), glm::radians( 180.0 ), 0 }, TCameraType::tp_Free );
+
+    m_userinterface->set_progress( "Scenario editor is active. Press F11 to return to driver mode" );
+    m_userinterface->set_progress( 0, 100 );
 
     return m_input.init();
 }
@@ -97,7 +100,7 @@ editor_mode::update_camera( double const Deltatime ) {
     // reset window state, it'll be set again if applicable in a check below
     Global.CabWindowOpen = false;
     // all done, update camera position to the new value
-    Global.pCameraPosition = Camera.Pos;
+    Global.pCamera = Camera;
 }
 
 // maintenance method, called when the mode is activated
@@ -106,7 +109,7 @@ editor_mode::enter() {
 
     m_statebackup = { Global.pCamera, FreeFlyModeFlag, Global.ControlPicking };
 
-    Global.pCamera = &Camera;
+    Global.pCamera = Camera;
     FreeFlyModeFlag = true;
     Global.ControlPicking = true;
     EditorModeFlag = true;
@@ -127,6 +130,10 @@ editor_mode::exit() {
         ( Global.ControlPicking ?
             GLFW_CURSOR_NORMAL :
             GLFW_CURSOR_DISABLED ) );
+
+    if( false == Global.ControlPicking ) {
+        Application.set_cursor_pos( 0, 0 );
+    }
 }
 
 void
@@ -142,16 +149,6 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 
     if( Action == GLFW_RELEASE ) { return; }
-
-    if( ( Key == GLFW_KEY_LEFT_SHIFT )
-     || ( Key == GLFW_KEY_LEFT_CONTROL )
-     || ( Key == GLFW_KEY_LEFT_ALT )
-     || ( Key == GLFW_KEY_RIGHT_SHIFT )
-     || ( Key == GLFW_KEY_RIGHT_CONTROL )
-     || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
-        // don't bother passing these
-        return;
-    }
 
     // legacy hardcoded keyboard commands
     // TODO: replace with current command system, move to input object(s)

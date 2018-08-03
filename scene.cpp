@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "globals.h"
+#include "camera.h"
 #include "animmodel.h"
 #include "event.h"
 #include "evlaunch.h"
@@ -122,7 +123,7 @@ basic_cell::update_events() {
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
         if( ( true == ( launcher->check_activation() && launcher->check_conditions() ) )
-         && ( SquareMagnitude( launcher->location() - Global.pCameraPosition ) < launcher->dRadius ) ) {
+         && ( SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) {
 
             launch_event( launcher );
         }
@@ -948,9 +949,9 @@ void
 basic_region::update_events() {
     // render events and sounds from sectors near enough to the viewer
     auto const range = EU07_SECTIONSIZE; // arbitrary range
-    auto const &sectionlist = sections( Global.pCameraPosition, range );
+    auto const &sectionlist = sections( Global.pCamera.Pos, range );
     for( auto *section : sectionlist ) {
-        section->update_events( Global.pCameraPosition, range );
+        section->update_events( Global.pCamera.Pos, range );
     }
 }
 
@@ -959,9 +960,9 @@ void
 basic_region::update_sounds() {
     // render events and sounds from sectors near enough to the viewer
     auto const range = 2750.f; // audible range of 100 db sound
-    auto const &sectionlist = sections( Global.pCameraPosition, range );
+    auto const &sectionlist = sections( Global.pCamera.Pos, range );
     for( auto *section : sectionlist ) {
-        section->update_sounds( Global.pCameraPosition, range );
+        section->update_sounds( Global.pCamera.Pos, range );
     }
 }
 

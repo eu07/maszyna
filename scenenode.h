@@ -299,7 +299,7 @@ private:
 
 
 // base interface for nodes which can be actvated in scenario editor
-struct basic_node {
+class basic_node {
 
 public:
 // constructor

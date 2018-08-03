@@ -241,8 +241,8 @@ void
 driver_mode::enter() {
 
     Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], ( FreeFlyModeFlag ? TCameraType::tp_Free : TCameraType::tp_Follow ) );
-    Global.pCamera = &Camera;
-    Global.pDebugCamera = &DebugCamera;
+    Global.pCamera = Camera;
+    Global.pDebugCamera = DebugCamera;
 
     TDynamicObject *nPlayerTrain { (
         ( Global.asHumanCtrlVehicle != "ghostview" ) ?
@@ -281,7 +281,6 @@ driver_mode::enter() {
         FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
         Camera.Type = TCameraType::tp_Free;
         DebugCamera = Camera;
-        Global.DebugCameraPosition = DebugCamera.Pos;
     }
 
     // if (!Global.bMultiplayer) //na razie włączone
@@ -345,17 +344,7 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
         }
     }
 
-    if( ( Key == GLFW_KEY_LEFT_SHIFT )
-     || ( Key == GLFW_KEY_LEFT_CONTROL )
-     || ( Key == GLFW_KEY_LEFT_ALT )
-     || ( Key == GLFW_KEY_RIGHT_SHIFT )
-     || ( Key == GLFW_KEY_RIGHT_CONTROL )
-     || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
-        // don't bother passing these
-        return;
-    }
-
-    if( Action == GLFW_PRESS || Action == GLFW_REPEAT ) {
+    if( Action == GLFW_PRESS ) {
 
         OnKeyDown( Key );
 
@@ -414,9 +403,9 @@ driver_mode::update_camera( double const Deltatime ) {
                 Camera.LookAt = controlled->GetPosition();
             }
             else {
-                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 300, false, false ) );
+                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
                 if( !d )
-                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
+                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
 
                 if( d && pDynamicNearest ) {
                     // jeśli jakiś jest znaleziony wcześniej
@@ -530,8 +519,7 @@ driver_mode::update_camera( double const Deltatime ) {
         }
     }
     // all done, update camera position to the new value
-    Global.pCameraPosition = Camera.Pos;
-    Global.DebugCameraPosition = DebugCamera.Pos;
+    Global.pCamera = Camera;
 }
 
 void
@@ -615,7 +603,7 @@ driver_mode::OnKeyDown(int cKey) {
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global.pCameraPosition) jest trochę bez sensu
-                    Global.pCameraPosition = Global.FreeCameraInit[ i ]; // nowa pozycja dla generowania obiektów
+                    Global.pCamera.Pos = Global.FreeCameraInit[ i ]; // nowa pozycja dla generowania obiektów
                     Camera.Init( Global.FreeCameraInit[ i ], Global.FreeCameraInitAngle[ i ], TCameraType::tp_Free ); // przestawienie
                 }
             }
@@ -653,7 +641,7 @@ driver_mode::OnKeyDown(int cKey) {
                     break;
                 }
 
-                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCameraPosition, 50, true, false ) );
+                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
 
                 if( tmp != nullptr ) {
 
@@ -879,9 +867,6 @@ driver_mode::FollowView(bool wycisz) {
                 train->Dynamic()->ABuSetModelShake( {} );
 
             DistantView(); // przestawienie kamery
-            //żeby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pudła
-            // tu ustawić nową, bo od niej liczą się odległości
-            Global.pCameraPosition = Camera.Pos;
         }
         else {
             Camera.Pos = train->pMechPosition;
@@ -987,7 +972,6 @@ driver_mode::InOutKey( bool const Near )
             DistantView( Near );
         }
         DebugCamera = Camera;
-        Global.DebugCameraPosition = DebugCamera.Pos;
     }
     else
     { // jazda w kabinie

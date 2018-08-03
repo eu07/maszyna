@@ -149,9 +149,13 @@ ui_layer::set_background( std::string const &Filename ) {
     else {
         m_background = null_handle;
     }
+
     if( m_background != null_handle ) {
         auto const &texture = GfxRenderer.Texture( m_background );
         m_progressbottom = ( texture.width() != texture.height() );
+    }
+    else {
+        m_progressbottom = true;
     }
 }
 

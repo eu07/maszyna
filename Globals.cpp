@@ -26,8 +26,6 @@ global_settings Global;
 void
 global_settings::LoadIniFile(std::string asFileName) {
 
-    FreeCameraInit.resize( 10 );
-    FreeCameraInitAngle.resize( 10 );
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };

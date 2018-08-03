@@ -193,7 +193,7 @@ driver_ui::update() {
 
     auto const *train { simulation::Train };
     auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
-    auto const *camera { Global.pCamera };
+    auto const &camera { Global.pCamera };
 
     if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
         if( false == DebugModeFlag ) {
@@ -292,7 +292,7 @@ driver_ui::update() {
             // timetable
             auto *vehicle {
                 ( FreeFlyModeFlag ?
-                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera->Pos, 20, false, false ) ) :
+                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) :
                     controlled ) }; // w trybie latania lokalizujemy wg mapy
 
             if( vehicle == nullptr ) { break; }
@@ -398,7 +398,7 @@ driver_ui::update() {
 
             auto const *vehicle {
                 ( FreeFlyModeFlag ?
-                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera->Pos, 20, false, false ) ) :
+                    std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) :
                     controlled ) }; // w trybie latania lokalizujemy wg mapy
 
             if( vehicle != nullptr ) {
@@ -579,14 +579,14 @@ driver_ui::update() {
                 // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
                 uitextline1 =
                     "Camera position: "
-                    + to_string( camera->Pos.x, 2 ) + " "
-                    + to_string( camera->Pos.y, 2 ) + " "
-                    + to_string( camera->Pos.z, 2 )
+                    + to_string( camera.Pos.x, 2 ) + " "
+                    + to_string( camera.Pos.y, 2 ) + " "
+                    + to_string( camera.Pos.z, 2 )
                     + ", azimuth: "
-                    + to_string( 180.0 - glm::degrees( camera->Yaw ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+                    + to_string( 180.0 - glm::degrees( camera.Yaw ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
                     + " "
                     + std::string( "S SEE NEN NWW SW" )
-                    .substr( 0 + 2 * floor( fmod( 8 + ( camera->Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+                    .substr( 0 + 2 * floor( fmod( 8 + ( camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
                 // current luminance level
                 uitextline2 = "Light level: " + to_string( Global.fLuminance, 3 );
                 if( Global.FakeLight ) { uitextline2 += "(*)"; }
@@ -683,7 +683,7 @@ driver_ui::update() {
 
                 auto const *vehicle {
                     ( FreeFlyModeFlag ?
-                        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera->Pos, 20, false, false ) ) :
+                        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) :
                         controlled ) }; // w trybie latania lokalizujemy wg mapy
                 if( vehicle == nullptr ) {
                     break;

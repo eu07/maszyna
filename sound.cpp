@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "parser.h"
 #include "globals.h"
+#include "camera.h"
 #include "train.h"
 #include "dynobj.h"
 #include "simulation.h"
@@ -357,7 +358,7 @@ sound_source::play( int const Flags ) {
 
     if( m_range > 0 ) {
         auto const cutoffrange { m_range * 5 };
-        if( glm::length2( location() - glm::dvec3 { Global.pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
+        if( glm::length2( location() - glm::dvec3 { Global.pCamera.Pos } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
             // while we drop sounds from beyond sensible and/or audible range
             // we act as if it was activated normally, meaning no need to include the opening bookend in subsequent calls
             m_playbeginning = false;

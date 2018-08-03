@@ -48,7 +48,7 @@ editor_ui::update() {
     std::string uitextline1, uitextline2, uitextline3, uitextline4;
     set_tooltip( "" );
 
-    auto const *camera { Global.pCamera };
+    auto const &camera { Global.pCamera };
 
     if( ( true == Global.ControlPicking )
      && ( true == DebugModeFlag ) ) {
@@ -60,12 +60,11 @@ editor_ui::update() {
                 "" ) );
     }
 
-
     // scenario inspector
     auto const *node { m_node };
 
     if( node == nullptr ) {
-        auto const mouseposition { Global.pCamera->Pos + GfxRenderer.Mouse_Position() };
+        auto const mouseposition { camera.Pos + GfxRenderer.Mouse_Position() };
         uitextline1 = "mouse location: [" + to_string( mouseposition.x, 2 ) + ", " + to_string( mouseposition.y, 2 ) + ", " + to_string( mouseposition.z, 2 ) + "]";
         goto update;
     }
@@ -73,7 +72,7 @@ editor_ui::update() {
     uitextline1 =
         "node name: " + node->name()
         + "; location: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
-        + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ Global.pCameraPosition.x, 0.0, Global.pCameraPosition.z } ), 1 ) + " m)";
+        + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ camera.Pos.x, 0.0, camera.Pos.z } ), 1 ) + " m)";
     // subclass-specific data
     // TBD, TODO: specialized data dump method in each node subclass, or data imports in the panel for provided subclass pointer?
     if( typeid( *node ) == typeid( TAnimModel ) ) {

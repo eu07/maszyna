@@ -810,12 +810,12 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
         case rendermode::color: {
             // modelview
             if( ( false == DebugCameraFlag ) || ( true == Ignoredebug ) ) {
-                camera.position() = Global.pCameraPosition;
-                Global.pCamera->SetMatrix( viewmatrix );
+                camera.position() = Global.pCamera.Pos;
+                Global.pCamera.SetMatrix( viewmatrix );
             }
             else {
-                camera.position() = Global.DebugCameraPosition;
-                Global.pDebugCamera->SetMatrix( viewmatrix );
+                camera.position() = Global.pDebugCamera.Pos;
+                Global.pDebugCamera.SetMatrix( viewmatrix );
             }
             // projection
             auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
@@ -921,10 +921,10 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                               m_sunlight.direction.x,
                     std::min( m_sunlight.direction.y, -0.2f ),
                               m_sunlight.direction.z } );
-            camera.position() = Global.pCameraPosition - glm::dvec3 { lightvector };
+            camera.position() = Global.pCamera.Pos - glm::dvec3 { lightvector };
             viewmatrix *= glm::lookAt(
                 camera.position(),
-                glm::dvec3 { Global.pCameraPosition },
+                glm::dvec3 { Global.pCamera.Pos },
                 glm::dvec3 { 0.f, 1.f, 0.f } );
             // projection
             auto const maphalfsize { Config.draw_range * 0.5f };
@@ -947,8 +947,8 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             // modelview
             camera.position() = (
                 ( ( true == DebugCameraFlag ) && ( false == Ignoredebug ) ) ?
-                    Global.DebugCameraPosition :
-                    Global.pCameraPosition );
+                    Global.pDebugCamera.Pos :
+                    Global.pCamera.Pos );
             glm::dvec3 const cubefacetargetvectors[ 6 ] = { {  1.0,  0.0,  0.0 }, { -1.0,  0.0,  0.0 }, {  0.0,  1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 } };
             glm::dvec3 const cubefaceupvectors[ 6 ] =     { {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 }, {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 } };
             auto const cubefaceindex = m_environmentcubetextureface - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
@@ -971,8 +971,8 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
         case rendermode::pickscenery: {
             // TODO: scissor test for pick modes
             // modelview
-            camera.position() = Global.pCameraPosition;
-            Global.pCamera->SetMatrix( viewmatrix );
+            camera.position() = Global.pCamera.Pos;
+            Global.pCamera.SetMatrix( viewmatrix );
             // projection
             camera.projection() *=
                 glm::perspective(
@@ -1997,7 +1997,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
         switch( m_renderpass.draw_mode ) {
             case rendermode::shadows: {
                 // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-                distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+                distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
                 break;
             }
             default: {
@@ -2051,7 +2051,7 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {
@@ -2105,7 +2105,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     float squaredistance;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCameraPosition } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {
@@ -2901,7 +2901,7 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {
@@ -2933,7 +2933,7 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Traction->location() - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+            distancesquared = Math3D::SquareMagnitude( ( Traction->location() - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {
@@ -2994,7 +2994,7 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCameraPosition ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+            distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {
@@ -3042,7 +3042,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     float squaredistance;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCameraPosition } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
         }
         default: {

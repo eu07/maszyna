@@ -117,7 +117,7 @@ openal_source::sync_with( sound_properties const &State ) {
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
     properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global.pCameraPosition };
+    sound_distance = properties.location - glm::dvec3 { Global.pCamera.Pos };
     if( sound_range > 0 ) {
         // range cutoff check
         auto const cutoffrange = (
@@ -312,7 +312,7 @@ openal_renderer::update( double const Deltatime ) {
     // update listener
     // orientation
     glm::dmat4 cameramatrix;
-    Global.pCamera->SetMatrix( cameramatrix );
+    Global.pCamera.SetMatrix( cameramatrix );
     auto rotationmatrix { glm::mat3{ cameramatrix } };
     glm::vec3 const orientation[] = {
         glm::vec3{ 0, 0,-1 } * rotationmatrix ,
@@ -320,7 +320,7 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
-        glm::dvec3 const listenerposition { Global.pCameraPosition };
+        glm::dvec3 const listenerposition { Global.pCamera.Pos };
         glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
         m_listenerposition = listenerposition;
         m_listenervelocity = (

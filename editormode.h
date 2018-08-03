@@ -57,7 +57,7 @@ private:
 
     struct state_backup {
 
-        TCamera *camera;
+        TCamera camera;
         bool freefly;
         bool picking;
     };

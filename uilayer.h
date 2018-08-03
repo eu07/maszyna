@@ -116,7 +116,7 @@ private:
     float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
     float m_subtaskprogress{ 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
     std::string m_progresstext; // label placed over the progress bar
-    bool m_progressbottom { false }; // location of the progress bar
+    bool m_progressbottom { true }; // location of the progress bar
 
     texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
     GLuint m_texture { 0 };

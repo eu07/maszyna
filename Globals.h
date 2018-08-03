@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "classes.h"
+#include "camera.h"
 #include "dumb3d.h"
 #include "float3d.h"
 #include "light.h"
@@ -25,12 +26,10 @@ struct global_settings {
     bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
-    TCamera *pCamera{ nullptr }; // parametry kamery
-    TCamera *pDebugCamera{ nullptr };
-    Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
-    Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
-    std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
-    std::vector<Math3D::vector3> FreeCameraInitAngle;
+    TCamera pCamera; // parametry kamery
+    TCamera pDebugCamera;
+    std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
+    std::array<Math3D::vector3, 10> FreeCameraInitAngle;
     int iCameraLast{ -1 };
     int iSlowMotion{ 0 }; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
     basic_light DayLight;
@@ -46,15 +45,15 @@ struct global_settings {
     bool bActive{ true }; // czy jest aktywnym oknem
     int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     float AirTemperature{ 15.f };
+    std::string asCurrentSceneryPath{ "scenery/" };
+    std::string asCurrentTexturePath{ szTexturePath };
+    std::string asCurrentDynamicPath;
     // settings
     // filesystem
     bool bLoadTraction{ true };
     std::string szTexturesTGA{ ".tga" }; // lista tekstur od TGA
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
-    std::string asCurrentSceneryPath{ "scenery/" };
-    std::string asCurrentTexturePath{ szTexturePath };
-    std::string asCurrentDynamicPath;
     std::string SceneryFile{ "td.scn" };
     std::string asHumanCtrlVehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
