@@ -383,7 +383,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		Update_Lights(simulation::Lights);
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
-		scene_ubo->update(scene_ubs);
+        scene_ubo->update(scene_ubs);
         scene_ubo->bind_uniform();
 
         m_colorpass = m_renderpass;
@@ -520,6 +520,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glDebug("uilayer render");
 		UILayer.render();
+
+        // restore binding
+        scene_ubo->bind_uniform();
 
 		glDebug("rendermode::color end");
 		break;

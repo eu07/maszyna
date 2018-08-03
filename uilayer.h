@@ -64,8 +64,8 @@ private:
 // members:
     GLFWwindow *m_window { nullptr };
     bool basic_info_active = false;
-    bool vehicle_info_active = false;
     bool timetable_active = false;
+    bool vehicle_info_active = false;
     bool renderer_debug_active = false;
     bool about_active = false;
     bool quit_active = false;

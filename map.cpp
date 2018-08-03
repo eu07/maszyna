@@ -69,7 +69,10 @@ void map::render(scene::basic_region *Region)
 
     if (!scene_ubo)
         if (!init())
+        {
+            map_opened = false;
             return;
+        }
 
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(fb_size, fb_size));
     if (ImGui::Begin("Map", &map_opened, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
@@ -165,7 +168,8 @@ void map::render(scene::basic_region *Region)
         if (Global.iMultisampling)
             m_fb->blit_from(*m_msaa_fb, size.x, size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 
-        m_fb->unbind();
+        gl::framebuffer::unbind();
+        m_shader->unbind();
 
         ImGui::ImageButton(reinterpret_cast<void*>(m_tex->id), size, ImVec2(0, size.y / fb_size), ImVec2(size.x / fb_size, 0), 0);
 

@@ -142,14 +142,14 @@ bool ui_layer::on_key(int const Key, int const Action)
     case GLFW_KEY_F2:
     {
         // parametry pojazdu
-        vehicle_info_active = !vehicle_info_active;
+        timetable_active = !timetable_active;
         return true;
     }
 
     case GLFW_KEY_F3:
     {
         // timetable
-        timetable_active = !timetable_active;
+        vehicle_info_active = !vehicle_info_active;
         return true;
     }
 
@@ -335,7 +335,7 @@ void ui_layer::render()
         ImGui::End();
     }
 
-    if (vehicle_info_active)
+    if (timetable_active)
     {
         // timetable
         auto *vehicle{(FreeFlyModeFlag ? std::get<TDynamicObject *>(simulation::Region->find_vehicle(camera->Pos, 20, false, false)) : controlled)}; // w trybie latania lokalizujemy wg mapy
@@ -368,7 +368,7 @@ void ui_layer::render()
         }
 
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Timetable", &vehicle_info_active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Timetable", &timetable_active, ImGuiWindowFlags_NoResize);
         ImGui::TextUnformatted(uitextline1.c_str());
         ImGui::TextUnformatted(uitextline2.c_str());
         ImGui::TextUnformatted(uitextline3.c_str());
@@ -424,10 +424,10 @@ void ui_layer::render()
 
 f2_cancel:;
 
-    if (timetable_active)
+    if (vehicle_info_active)
     {
         ImGui::SetNextWindowSize(ImVec2(0, 0));
-        ImGui::Begin("Vehicle status", &timetable_active, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Vehicle status", &vehicle_info_active, ImGuiWindowFlags_NoResize);
 
         uitextline1 = "";
         uitextline2 = "";
@@ -1120,8 +1120,8 @@ f2_cancel:;
             if (ImGui::BeginMenu("Window"))
             {
                 ImGui::MenuItem("Basic info", "F1", &basic_info_active);
-                ImGui::MenuItem("Timetable", "F2", &vehicle_info_active);
-                ImGui::MenuItem("Vehicle info", "F3", &timetable_active);
+                ImGui::MenuItem("Timetable", "F2", &timetable_active);
+                ImGui::MenuItem("Vehicle info", "F3", &vehicle_info_active);
                 ImGui::MenuItem("Renderer stats", "F8", &renderer_debug_active);
                 ImGui::MenuItem("Scenery inspector", "F11", &EditorModeFlag);
                 ImGui::MenuItem("Events", nullptr, &events_active);
