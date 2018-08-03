@@ -276,10 +276,8 @@ void opengl_vbogeometrybank::setup_buffer()
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         if( ::glGetError() == GL_OUT_OF_MEMORY ) {
-            // TBD: throw a bad_alloc?
             ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
-            delete_buffer();
-            return;
+            throw std::bad_alloc();
         }
         m_buffercapacity = datasize;
     }
