@@ -47,13 +47,15 @@ public:
         on_mouse_button( int const Button, int const Action, int const Mods ) override;
     void
         on_scroll( double const Xoffset, double const Yoffset ) override;
+    void
+        on_event_poll() override;
 
 private:
 // types
     struct drivermode_input {
 
         gamepad_input gamepad;
-        mouse_input mouse;
+        drivermouse_input mouse;
         glm::dvec2 mouse_pickmodepos; // stores last mouse position in control picking mode
         driverkeyboard_input keyboard;
         Console console;

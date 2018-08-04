@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "animmodel.h"
 #include "renderer.h"
 #include "uilayer.h"
+#include "logs.h"
 
 void
 mouse_slider::bind( user_command const &Command ) {
@@ -121,7 +122,7 @@ mouse_slider::on_move( double const Mousex, double const Mousey ) {
 
 
 bool
-mouse_input::init() {
+drivermouse_input::init() {
 
 #ifdef _WIN32
     DWORD systemkeyboardspeed;
@@ -131,11 +132,75 @@ mouse_input::init() {
     ::SystemParametersInfo( SPI_GETKEYBOARDDELAY, 0, &systemkeyboarddelay, 0 );
     m_updatedelay = interpolate( 0.25, 1.0, systemkeyboarddelay / 3.0 );
 #endif
+
+    default_bindings();
+    recall_bindings();
+
+    return true;
+}
+
+bool
+drivermouse_input::recall_bindings() {
+
+    cParser bindingparser( "eu07_input-mouse.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
+    // build helper translation tables
+    std::unordered_map<std::string, user_command> nametocommandmap;
+    std::size_t commandid = 0;
+    for( auto const &description : simulation::Commands_descriptions ) {
+        nametocommandmap.emplace(
+            description.name,
+            static_cast<user_command>( commandid ) );
+        ++commandid;
+    }
+
+    // NOTE: to simplify things we expect one entry per line, and whole entry in one line
+    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+
+        std::string bindingentry;
+        bindingparser >> bindingentry;
+        cParser entryparser( bindingentry );
+
+        if( true == entryparser.getTokens( 1, true, "\n\r\t " ) ) {
+
+            std::string bindingpoint {};
+            entryparser >> bindingpoint;
+
+            std::vector< std::reference_wrapper<user_command> > bindingtargets;
+
+            if( bindingpoint == "wheel" ) {
+                bindingtargets.emplace_back( std::ref( m_wheelbindings.up ) );
+                bindingtargets.emplace_back( std::ref( m_wheelbindings.down ) );
+            }
+            // TODO: binding targets for mouse buttons
+
+            for( auto &bindingtarget : bindingtargets ) {
+                // grab command(s) associated with the input pin
+                auto const bindingcommandname{ entryparser.getToken<std::string>() };
+                if( true == bindingcommandname.empty() ) {
+                    // no tokens left, may as well complain then call it a day
+                    WriteLog( "Mouse binding for " + bindingpoint + " didn't specify associated command(s)" );
+                    break;
+                }
+                auto const commandlookup = nametocommandmap.find( bindingcommandname );
+                if( commandlookup == nametocommandmap.end() ) {
+                    WriteLog( "Mouse binding for " + bindingpoint + " specified unknown command, \"" + bindingcommandname + "\"" );
+                }
+                else {
+                    bindingtarget.get() = commandlookup->second;
+                }
+            }
+        }
+    }
+
     return true;
 }
 
 void
-mouse_input::move( double Mousex, double Mousey ) {
+drivermouse_input::move( double Mousex, double Mousey ) {
 
     if( false == Global.ControlPicking ) {
         // default control mode
@@ -182,7 +247,33 @@ mouse_input::move( double Mousex, double Mousey ) {
 }
 
 void
-mouse_input::button( int const Button, int const Action ) {
+drivermouse_input::scroll( double const Xoffset, double const Yoffset ) {
+
+    if( Global.ctrlState ) {
+        // ctrl + scroll wheel adjusts fov
+        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.gfx_total.average() ), 15.0f, 75.0f );
+    }
+    else {
+        // scroll adjusts master controller
+        // TODO: allow configurable scroll commands
+        auto command {
+            adjust_command(
+                ( Yoffset > 0.0 ) ?
+                    m_wheelbindings.up :
+                    m_wheelbindings.down ) };
+
+        m_relay.post(
+            command,
+            0,
+            0,
+            GLFW_PRESS,
+            // TODO: pass correct entity id once the missing systems are in place
+            0 );
+    }
+}
+
+void
+drivermouse_input::button( int const Button, int const Action ) {
 
     // store key state
     if( Button >= 0 ) {
@@ -241,8 +332,8 @@ mouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto const lookup = m_mousecommands.find( simulation::Train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
-            if( lookup != m_mousecommands.end() ) {
+            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            if( lookup != m_buttonbindings.end() ) {
                 // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
                 mousecommand = (
                     Button == GLFW_MOUSE_BUTTON_LEFT ?
@@ -307,13 +398,13 @@ mouse_input::button( int const Button, int const Action ) {
 }
 
 int
-mouse_input::button( int const Button ) const {
+drivermouse_input::button( int const Button ) const {
 
     return m_buttons[ Button ];
 }
 
 void
-mouse_input::poll() {
+drivermouse_input::poll() {
 
     m_updateaccumulator += Timer::GetDeltaRenderTime();
 
@@ -341,7 +432,7 @@ mouse_input::poll() {
 }
 
 user_command
-mouse_input::command() const {
+drivermouse_input::command() const {
 
     return (
         m_slider.command() != user_command::none ? m_slider.command() :
@@ -350,9 +441,9 @@ mouse_input::command() const {
 }
 
 void
-mouse_input::default_bindings() {
+drivermouse_input::default_bindings() {
 
-    m_mousecommands = {
+    m_buttonbindings = {
         { "mainctrl:", {
             user_command::mastercontrollerset,
             user_command::none } },
@@ -610,6 +701,25 @@ mouse_input::default_bindings() {
             user_command::generictoggle9,
             user_command::none } }
     };
+}
+
+user_command
+drivermouse_input::adjust_command( user_command Command ) {
+
+    if( ( true == Global.shiftState )
+     && ( Command != user_command::none ) ) {
+        switch( Command ) {
+            case user_command::mastercontrollerincrease: { Command = user_command::mastercontrollerincreasefast; break; }
+            case user_command::mastercontrollerdecrease: { Command = user_command::mastercontrollerdecreasefast; break; }
+            case user_command::secondcontrollerincrease: { Command = user_command::secondcontrollerincreasefast; break; }
+            case user_command::secondcontrollerdecrease: { Command = user_command::secondcontrollerdecreasefast; break; }
+            case user_command::independentbrakeincrease: { Command = user_command::independentbrakeincreasefast; break; }
+            case user_command::independentbrakedecrease: { Command = user_command::independentbrakedecreasefast; break; }
+            default: { break; }
+        }
+    }
+
+    return Command;
 }
 
 //---------------------------------------------------------------------------

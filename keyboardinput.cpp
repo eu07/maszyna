@@ -110,8 +110,6 @@ keyboard_input::recall_bindings() {
         }
     }
 
-    bind();
-
     return true;
 }
 
@@ -187,15 +185,9 @@ keyboard_input::key( int const Key ) const {
 void
 keyboard_input::bind() {
 
-    m_bindings.clear();
-
     for( auto const &bindingsetup : m_bindingsetups ) {
 
-        if( bindingsetup.binding != -1 ) {
-            m_bindings.emplace(
-                bindingsetup.binding,
-                bindingsetup.command );
-        }
+         m_bindings[ bindingsetup.binding ] = bindingsetup.command;
     }
     // cache movement key bindings
     m_bindingscache.forward = binding( user_command::moveforward );

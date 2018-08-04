@@ -60,11 +60,13 @@ driver_mode::drivermode_input::init() {
     // initialize input devices
     auto result = (
         keyboard.init()
-     && mouse.init()
-     && gamepad.init() );
+     && mouse.init() );
+    if( true == Global.InputGamepad ) {
+        gamepad.init();
+    }
     if( true == Global.uart_conf.enable ) {
         uart = std::make_unique<uart_input>();
-        result = ( result && uart->init() );
+        uart->init();
     }
 #ifdef _WIN32
     Console::On(); // włączenie konsoli
@@ -231,8 +233,6 @@ driver_mode::update() {
 
     simulation::is_ready = true;
 
-    m_input.poll();
-  
     return true;
 }
 
@@ -381,10 +381,13 @@ driver_mode::on_mouse_button( int const Button, int const Action, int const Mods
 void
 driver_mode::on_scroll( double const Xoffset, double const Yoffset ) {
 
-    if( Global.ctrlState ) {
-        // ctrl + scroll wheel adjusts fov
-        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.gfx_total.average() ), 15.0f, 75.0f );
-    }
+    m_input.mouse.scroll( Xoffset, Yoffset );
+}
+
+void
+driver_mode::on_event_poll() {
+
+    m_input.poll();
 }
 
 void

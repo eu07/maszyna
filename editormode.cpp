@@ -87,8 +87,6 @@ editor_mode::update() {
 
     simulation::is_ready = true;
 
-    m_input.poll();
-
     return true;
 }
 
@@ -248,6 +246,12 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
     }
 
     m_input.mouse.button( Button, Action );
+}
+
+void
+editor_mode::on_event_poll() {
+
+    m_input.poll();
 }
 
 bool

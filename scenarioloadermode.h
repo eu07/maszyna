@@ -38,4 +38,6 @@ public:
         on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
     void
         on_scroll( double const Xoffset, double const Yoffset ) override { ; }
+    void
+        on_event_poll() override { ; }
 };

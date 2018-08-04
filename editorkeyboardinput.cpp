@@ -16,6 +16,7 @@ editorkeyboard_input::init() {
     default_bindings();
     // TODO: re-enable after mode-specific binding import is in place
     // return recall_bindings();
+    bind();
     return true;
 }
 
@@ -30,8 +31,6 @@ editorkeyboard_input::default_bindings() {
         { user_command::moveup, GLFW_KEY_PAGE_UP },
         { user_command::movedown, GLFW_KEY_PAGE_DOWN },
     };
-
-    bind();
 }
 
 //---------------------------------------------------------------------------

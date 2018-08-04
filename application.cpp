@@ -141,6 +141,7 @@ eu07_application::run() {
         && ( true == m_modes[ m_modestack.top() ]->update() )
         && ( true == GfxRenderer.Render() ) ) {
         glfwPollEvents();
+        m_modes[ m_modestack.top() ]->on_event_poll();
     }
 
     return 0;

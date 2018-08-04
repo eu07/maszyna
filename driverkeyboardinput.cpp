@@ -14,8 +14,10 @@ bool
 driverkeyboard_input::init() {
 
     default_bindings();
+    recall_bindings();
+    bind();
 
-    return recall_bindings();
+    return true;
 }
 
 void
@@ -59,7 +61,7 @@ driverkeyboard_input::default_bindings() {
         { user_command::manualbrakedecrease, GLFW_KEY_KP_7 | keymodifier::control },
         { user_command::alarmchaintoggle, GLFW_KEY_B | keymodifier::shift | keymodifier::control },
         { user_command::wheelspinbrakeactivate, GLFW_KEY_KP_ENTER },
-        { user_command::sandboxactivate, GLFW_KEY_S },
+        { user_command::sandboxactivate, GLFW_KEY_S | keymodifier::shift },
         { user_command::reverserincrease, GLFW_KEY_D },
         { user_command::reverserdecrease, GLFW_KEY_R },
         // reverserforwardhigh,
@@ -99,7 +101,7 @@ driverkeyboard_input::default_bindings() {
         // compressorenable,
         // compressordisable,
         { user_command::compressortogglelocal, GLFW_KEY_C | keymodifier::shift },
-        { user_command::motoroverloadrelaythresholdtoggle, GLFW_KEY_F },
+        { user_command::motoroverloadrelaythresholdtoggle, GLFW_KEY_F | keymodifier::control },
         // motoroverloadrelaythresholdsetlow,
         // motoroverloadrelaythresholdsethigh,
         { user_command::motoroverloadrelayreset, GLFW_KEY_N },
@@ -142,7 +144,7 @@ driverkeyboard_input::default_bindings() {
         { user_command::doortoggleleft, GLFW_KEY_COMMA },
         { user_command::doortoggleright, GLFW_KEY_PERIOD },
         { user_command::departureannounce, GLFW_KEY_SLASH },
-        { user_command::doorlocktoggle, GLFW_KEY_S | keymodifier::shift },
+        { user_command::doorlocktoggle, GLFW_KEY_S | keymodifier::control },
         { user_command::pantographcompressorvalvetoggle, GLFW_KEY_V | keymodifier::control },
         { user_command::pantographcompressoractivate, GLFW_KEY_V | keymodifier::shift },
         { user_command::pantographtogglefront, GLFW_KEY_P },
@@ -208,8 +210,6 @@ driverkeyboard_input::default_bindings() {
         // batteryenable,
         // batterydisable,
     };
-
-    bind();
 }
 
 //---------------------------------------------------------------------------

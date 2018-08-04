@@ -35,7 +35,7 @@ public:
             if( m_userinterface != nullptr ) {
                 m_userinterface->render(); } }
     inline
-        void
+    void
         set_progress( float const Progress = 0.f, float const Subtaskprogress = 0.f ) {
             if( m_userinterface != nullptr ) {
                 m_userinterface->set_progress( Progress, Subtaskprogress ); } }
@@ -60,6 +60,9 @@ public:
     virtual
     void
         on_scroll( double const Xoffset, double const Yoffset ) = 0;
+    virtual
+    void
+        on_event_poll() = 0;
 
 protected:
 // members
