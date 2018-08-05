@@ -50,6 +50,7 @@ struct openal_source {
     uint32_sequence sounds; // 
 //    buffer_sequence buffers; // sequence of samples the source will emit
     int sound_index { 0 }; // currently queued sample from the buffer sequence
+    bool sound_change { false }; // indicates currently queued sample has changed
     bool is_playing { false };
     bool is_looping { false };
     sound_properties properties;

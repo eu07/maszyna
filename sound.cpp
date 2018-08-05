@@ -533,9 +533,8 @@ sound_source::update_basic( audio::openal_source &Source ) {
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main
-            if( ( false == Source.is_looping )
-             && ( soundhandle == sound_id::main ) ) {
-                // when it happens update active sample counters, and activate the looping
+            if( true == Source.sound_change ) {
+                // when it happens update active sample counters, and potentially activate the looping
                 update_counter( sound_id::begin, -1 );
                 update_counter( soundhandle, 1 );
                 Source.loop( TestFlag( m_flags, sound_flags::looping ) );
@@ -618,8 +617,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main
-            if( ( false == Source.is_looping )
-             && ( soundhandle == ( sound_id::chunk | 0 ) ) ) {
+            if( true == Source.sound_change ) {
                 // when it happens update active sample counters, and activate the looping
                 update_counter( sound_id::begin, -1 );
                 update_counter( soundhandle, 1 );

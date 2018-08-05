@@ -87,7 +87,7 @@ keyboard_input::recall_bindings() {
 
                          if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
                     else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
-                    else if( bindingkeyname == "none" )  { binding = -1; }
+                    else if( bindingkeyname == "none" )  { binding = 0; }
                     else {
                         // regular key, convert it to glfw key code
                         auto const keylookup = nametokeymap.find( bindingkeyname );
@@ -143,10 +143,10 @@ keyboard_input::key( int const Key, int const Action ) {
                 true );
     }
 
+    if( Key == -1 ) { return false; }
+
     // store key state
-    if( Key != -1 ) {
-        input::keys[ Key ] = Action;
-    }
+    input::keys[ Key ] = Action;
 
     if( true == is_movement_key( Key ) ) {
         // if the received key was one of movement keys, it's been handled and we don't need to bother further
@@ -187,7 +187,7 @@ keyboard_input::bind() {
 
     for( auto const &bindingsetup : m_bindingsetups ) {
 
-         m_bindings[ bindingsetup.binding ] = bindingsetup.command;
+        m_bindings[ bindingsetup.binding ] = bindingsetup.command;
     }
     // cache movement key bindings
     m_bindingscache.forward = binding( user_command::moveforward );

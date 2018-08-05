@@ -44,10 +44,16 @@ openal_source::play() {
 
     ::alGetError(); // pop the error stack
     ::alSourcePlay( id );
+
+    ALint state;
+    ::alGetSourcei( id, AL_SOURCE_STATE, &state );
+    is_playing = ( state == AL_PLAYING );
+/*
     is_playing = (
         ::alGetError() == AL_NO_ERROR ?
             true :
             false );
+*/
 }
 
 // stops the playback
@@ -78,14 +84,17 @@ openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity
 
     if( id != audio::null_resource ) {
 
+        sound_change = false;
         ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &sound_index );
         // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
+        // TBD, TODO: instead of change flag move processed buffer ids to separate queue, for accurate tracking of longer buffer sequences
         ALuint bufferid;
         while( ( sound_index > 0 )
             && ( sounds.size() > 1 ) ) {
             ::alSourceUnqueueBuffers( id, 1, &bufferid );
             sounds.erase( std::begin( sounds ) );
             --sound_index;
+            sound_change = true;
         }
 
         int state;
