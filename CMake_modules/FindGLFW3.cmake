@@ -48,7 +48,7 @@ ELSEIF(MSVC)
 ENDIF()
 
 FIND_LIBRARY(GLFW3_LIBRARIES
-  NAMES glfw3dll glfw3
+  NAMES glfw3dll glfw3 glfw
   PATHS
     "${DEPENDS_DIR}/glfw"
     "$ENV{ProgramW6432}/glfw"
