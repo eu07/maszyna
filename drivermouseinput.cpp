@@ -544,6 +544,21 @@ drivermouse_input::default_bindings() {
         { "door_right_sw:", {
             user_command::doortoggleright,
             user_command::none } },
+        { "doorlefton_sw:", {
+            user_command::dooropenleft,
+            user_command::none } },
+        { "doorrighton_sw:", {
+            user_command::dooropenright,
+            user_command::none } },
+        { "doorleftoff_sw:", {
+            user_command::doorcloseleft,
+            user_command::none } },
+        { "doorrightoff_sw:", {
+            user_command::doorcloseright,
+            user_command::none } },
+        { "dooralloff_sw:", {
+            user_command::doorcloseall,
+            user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,
             user_command::none } },

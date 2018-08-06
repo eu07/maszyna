@@ -313,6 +313,11 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorlocktoggle, &TTrain::OnCommand_doorlocktoggle },
     { user_command::doortoggleleft, &TTrain::OnCommand_doortoggleleft },
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
+    { user_command::dooropenleft, &TTrain::OnCommand_dooropenleft },
+    { user_command::dooropenright, &TTrain::OnCommand_dooropenright },
+    { user_command::doorcloseleft, &TTrain::OnCommand_doorcloseleft },
+    { user_command::doorcloseright, &TTrain::OnCommand_doorcloseright },
+    { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -3725,24 +3730,106 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 Train->mvOccupied->DoorLeftOpened :
                 Train->mvOccupied->DoorRightOpened ) ) {
             // open
-            if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
-                return;
-            }
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                Train->mvOccupied->DoorLeft( true );
-            }
-            else {
-                // in the rear cab sides are reversed...
-                Train->mvOccupied->DoorRight( true );
-            }
-            // visual feedback
-            Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
+            OnCommand_dooropenleft( Train, Command );
         }
         else {
             // close
-            if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
+            if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+             && ( Train->ggDoorLeftOffButton.SubModel == nullptr ) ) {
+                // OnCommand_doorcloseall( Train, Command );
+                // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
                 return;
             }
+            else {
+                OnCommand_doorcloseleft( Train, Command );
+            }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( true == (
+            Train->mvOccupied->ActiveCab == 1 ?
+                Train->mvOccupied->DoorLeftOpened :
+                Train->mvOccupied->DoorRightOpened ) ) {
+            // open
+            if( ( Train->mvOccupied->DoorClosureWarningAuto )
+             && ( Train->mvOccupied->DepartureSignal ) ) {
+                // complete closing the doors
+                if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+                 && ( Train->ggDoorLeftOffButton.SubModel == nullptr ) ) {
+                    // OnCommand_doorcloseall( Train, Command );
+                    // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
+                    return;
+                }
+                else {
+                    OnCommand_doorcloseleft( Train, Command );
+                }
+            }
+            else {
+                OnCommand_dooropenleft( Train, Command );
+            }
+        }
+        else {
+            // close
+            if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+             && ( Train->ggDoorLeftOffButton.SubModel == nullptr ) ) {
+                // OnCommand_doorcloseall( Train, Command );
+                // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
+                return;
+            }
+            else {
+                OnCommand_doorcloseleft( Train, Command );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_dooropenleft( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
+        if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
+            return;
+        }
+        if( Train->mvOccupied->ActiveCab == 1 ) {
+            Train->mvOccupied->DoorLeft( true );
+        }
+        else {
+            // in the rear cab sides are reversed...
+            Train->mvOccupied->DoorRight( true );
+        }
+        // visual feedback
+        if( Train->ggDoorLeftOnButton.SubModel != nullptr ) {
+            // two separate impulse switches
+            Train->ggDoorLeftOnButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // single two-state switch
+            Train->ggDoorLeftButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        if( Train->ggDoorLeftOnButton.SubModel != nullptr ) {
+            // two separate impulse switches
+            Train->ggDoorLeftOnButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+    }
+}
+
+void TTrain::OnCommand_doorcloseleft( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
+            return;
+        }
+
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( true );
+        }
+        else {
             // TODO: move door opening/closing to the update, so the switch animation doesn't hinge on door working
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 Train->mvOccupied->DoorLeft( false );
@@ -3751,9 +3838,35 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 // in the rear cab sides are reversed...
                 Train->mvOccupied->DoorRight( false );
             }
-            // visual feedback
+        }
+        // visual feedback
+        if( Train->ggDoorLeftOffButton.SubModel != nullptr ) {
+            // two separate switches to open and close the door
+            Train->ggDoorLeftOffButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // single two-state switch
             Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( false );
+            // now we can actually close the door
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                Train->mvOccupied->DoorLeft( false );
+            }
+            else {
+                // in the rear cab sides are reversed...
+                Train->mvOccupied->DoorRight( false );
+            }
+        }
+        // visual feedback
+        // dedicated closing buttons are presumed to be impulse switches and return automatically to neutral position
+        if( Train->ggDoorLeftOffButton.SubModel )
+            Train->ggDoorLeftOffButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
@@ -3766,24 +3879,107 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 Train->mvOccupied->DoorRightOpened :
                 Train->mvOccupied->DoorLeftOpened ) ) {
             // open
-            if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
-                return;
-            }
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                Train->mvOccupied->DoorRight( true );
-            }
-            else {
-                // in the rear cab sides are reversed...
-                Train->mvOccupied->DoorLeft( true );
-            }
-            // visual feedback
-            Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            OnCommand_dooropenright( Train, Command );
         }
         else {
             // close
-            if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
+            if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+             && ( Train->ggDoorRightOffButton.SubModel == nullptr ) ) {
+                // OnCommand_doorcloseall( Train, Command );
+                // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
                 return;
             }
+            else {
+                OnCommand_doorcloseright( Train, Command );
+            }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( true == (
+            Train->mvOccupied->ActiveCab == 1 ?
+                Train->mvOccupied->DoorRightOpened :
+                Train->mvOccupied->DoorLeftOpened ) ) {
+            // open
+            if( ( Train->mvOccupied->DoorClosureWarningAuto )
+             && ( Train->mvOccupied->DepartureSignal ) ) {
+                // complete closing the doors
+                if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+                 && ( Train->ggDoorRightOffButton.SubModel == nullptr ) ) {
+                    // OnCommand_doorcloseall( Train, Command );
+                    // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
+                    return;
+                }
+                else {
+                    OnCommand_doorcloseright( Train, Command );
+                }
+            }
+            else {
+                OnCommand_dooropenright( Train, Command );
+            }
+        }
+        else {
+            // close
+            if( ( Train->ggDoorAllOffButton.SubModel != nullptr )
+             && ( Train->ggDoorRightOffButton.SubModel == nullptr ) ) {
+                // OnCommand_doorcloseall( Train, Command );
+                // if two-button setup lacks dedicated closing button require the user to press appropriate button manually
+                return;
+            }
+            else {
+                OnCommand_doorcloseright( Train, Command );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_dooropenright( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
+        if( Train->mvOccupied->DoorOpenCtrl != control_t::driver ) {
+            return;
+        }
+        if( Train->mvOccupied->ActiveCab == 1 ) {
+            Train->mvOccupied->DoorRight( true );
+        }
+        else {
+            // in the rear cab sides are reversed...
+            Train->mvOccupied->DoorLeft( true );
+        }
+        // visual feedback
+        if( Train->ggDoorRightOnButton.SubModel != nullptr ) {
+            // two separate impulse switches
+            Train->ggDoorRightOnButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // single two-state switch
+            Train->ggDoorRightButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        if( Train->ggDoorRightOnButton.SubModel != nullptr ) {
+            // two separate impulse switches
+            Train->ggDoorRightOnButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+    }
+}
+
+void TTrain::OnCommand_doorcloseright( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
+            return;
+        }
+
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( true );
+        }
+        else {
+            // TODO: move door opening/closing to the update, so the switch animation doesn't hinge on door working
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 Train->mvOccupied->DoorRight( false );
             }
@@ -3791,9 +3987,80 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 // in the rear cab sides are reversed...
                 Train->mvOccupied->DoorLeft( false );
             }
-            // visual feedback
+        }
+        // visual feedback
+        if( Train->ggDoorRightOffButton.SubModel != nullptr ) {
+            // two separate switches to open and close the door
+            Train->ggDoorRightOffButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // single two-state switch
             Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( false );
+            // now we can actually close the door
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                Train->mvOccupied->DoorRight( false );
+            }
+            else {
+                // in the rear cab sides are reversed...
+                Train->mvOccupied->DoorLeft( false );
+            }
+        }
+        // visual feedback
+        // dedicated closing buttons are presumed to be impulse switches and return automatically to neutral position
+        if( Train->ggDoorRightOffButton.SubModel )
+            Train->ggDoorRightOffButton.UpdateValue( 0.0, Train->dsbSwitch );
+    }
+}
+
+void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command ) {
+
+    if( Train->ggDoorAllOffButton.SubModel == nullptr ) {
+        // TODO: expand definition of cab controls so we can know if the control is present without testing for presence of 3d switch
+        if( Command.action == GLFW_PRESS ) {
+            WriteLog( "Close All Doors switch is missing, or wasn't defined" );
+        }
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( Train->mvOccupied->DoorCloseCtrl != control_t::driver ) {
+            return;
+        }
+
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( true );
+        }
+        else {
+            Train->mvOccupied->DoorRight( false );
+            Train->mvOccupied->DoorLeft( false );
+        }
+        // visual feedback
+        Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
+        Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
+        if( Train->ggDoorAllOffButton.SubModel )
+            Train->ggDoorAllOffButton.UpdateValue( 1.0, Train->dsbSwitch );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // release the button
+        if( Train->mvOccupied->DoorClosureWarningAuto ) {
+            // automatic departure signal delays actual door closing until the button is released
+            Train->mvOccupied->signal_departure( false );
+            // now we can actually close the door
+            Train->mvOccupied->DoorRight( false );
+            Train->mvOccupied->DoorLeft( false );
+        }
+        // visual feedback
+        if( Train->ggDoorAllOffButton.SubModel )
+            Train->ggDoorAllOffButton.UpdateValue( 0.0 );
     }
 }
 
@@ -5231,6 +5498,11 @@ bool TTrain::Update( double const Deltatime )
         // NBMX wrzesien 2003 - drzwi
         ggDoorLeftButton.Update();
         ggDoorRightButton.Update();
+        ggDoorLeftOnButton.Update();
+        ggDoorRightOnButton.Update();
+        ggDoorLeftOffButton.Update();
+        ggDoorRightOffButton.Update();
+        ggDoorAllOffButton.Update();
         ggDoorSignallingButton.Update();
         // NBMX dzwignia sprezarki
         ggCompressorButton.Update();
@@ -6391,6 +6663,11 @@ void TTrain::clear_cab_controls()
     ggRadioTest.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
+    ggDoorLeftOnButton.Clear();
+    ggDoorRightOnButton.Clear();
+    ggDoorLeftOffButton.Clear();
+    ggDoorRightOffButton.Clear();
+    ggDoorAllOffButton.Clear();
     ggTrainHeatingButton.Clear();
     ggSignallingButton.Clear();
     ggDoorSignallingButton.Clear();
@@ -6908,6 +7185,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "stlinoff_bt:", ggStLinOffButton },
         { "door_left_sw:", ggDoorLeftButton },
         { "door_right_sw:", ggDoorRightButton },
+        { "doorlefton_sw:", ggDoorLeftOnButton },
+        { "doorrighton_sw:", ggDoorRightOnButton },
+        { "doorleftoff_sw:", ggDoorLeftOffButton },
+        { "doorrightoff_sw:", ggDoorRightOffButton },
+        { "dooralloff_sw:", ggDoorAllOffButton },
         { "departure_signal_bt:", ggDepartureSignalButton },
         { "upperlight_sw:", ggUpperLightButton },
         { "leftlight_sw:", ggLeftLightButton },

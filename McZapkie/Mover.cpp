@@ -7853,11 +7853,9 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     else if( openmethod == "Fold" ) { DoorOpenMethod = 3; } //3 submodele się obracają
     else if( openmethod == "Plug" ) { DoorOpenMethod = 4; } //odskokowo-przesuwne
 
-    std::string closurewarning; extract_value( closurewarning, "DoorClosureWarning", line, "" );
-    DoorClosureWarning = ( closurewarning == "Yes" );
-
-    std::string doorblocked; extract_value( doorblocked, "DoorBlocked", line, "" );
-    DoorBlocked = ( doorblocked == "Yes" );
+    extract_value( DoorClosureWarning, "DoorClosureWarning", line, "" );
+    extract_value( DoorClosureWarningAuto, "DoorClosureWarningAuto", line, "" );
+    extract_value( DoorBlocked, "DoorBlocked", line, "" );
 
     extract_value( PlatformSpeed, "PlatformSpeed", line, "" );
     extract_value( PlatformMaxShift, "PlatformMaxShift", line, "" );

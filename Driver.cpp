@@ -27,6 +27,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "track.h"
 #include "station.h"
+#include "keyboardinput.h"
 #include "utilities.h"
 
 #define LOGVELOCITY 0
@@ -603,6 +604,17 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 if (pTrack->eType == tt_Cross) {
                     // na skrzyżowaniach trzeba wybrać segment, po którym pojedzie pojazd
                     // dopiero tutaj jest ustalany kierunek segmentu na skrzyżowaniu
+                    int routewanted;
+                    if( false == AIControllFlag ) {
+                        routewanted = (
+                            input::keys[ GLFW_KEY_LEFT ] != GLFW_RELEASE ? 1 :
+                            input::keys[ GLFW_KEY_RIGHT ] != GLFW_RELEASE ? 2 :
+                            3 );
+                    }
+                    else {
+                        routewanted = 1 + std::floor( Random( static_cast<double>( pTrack->RouteCount() ) - 0.001 ) );
+                    }
+
                     sSpeedTable[iLast].iFlags |=
                         ( ( pTrack->CrossSegment(
                                 (fLastDir < 0 ?
@@ -611,7 +623,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
 /*
                                 iRouteWanted )
 */
-                                1 + std::floor( Random( static_cast<double>(pTrack->RouteCount()) - 0.001 ) ) )
+                                routewanted )
                             & 0xf ) << 28 ); // ostatnie 4 bity pola flag
                     sSpeedTable[iLast].iFlags &= ~spReverse; // usunięcie flagi kierunku, bo może być błędna
                     if (sSpeedTable[iLast].iFlags < 0) {
@@ -1969,8 +1981,7 @@ bool TController::CheckVehicles(TOrders user)
     fVelMax = -1; // ustalenie prędkości dla składu
     bool main = true; // czy jest głównym sterującym
     iDrivigFlags |= moveOerlikons; // zakładamy, że są same Oerlikony
-    // Ra 2014-09: ustawić moveMultiControl, jeśli wszystkie są w ukrotnieniu (i skrajne mają
-    // kabinę?)
+    // Ra 2014-09: ustawić moveMultiControl, jeśli wszystkie są w ukrotnieniu (i skrajne mają kabinę?)
     while (p)
     { // sprawdzanie, czy jest głównym sterującym, żeby nie było konfliktu
         if (p->Mechanik) // jeśli ma obsadę
@@ -2016,9 +2027,20 @@ bool TController::CheckVehicles(TOrders user)
         }
         if (AIControllFlag)
         { // jeśli prowadzi komputer
-            if (OrderCurrentGet() == Obey_train) // jeśli jazda pociągowa
-            {
-                Lights(1 + 4 + 16, 2 + 32 + 64); //światła pociągowe (Pc1) i końcówki (Pc5)
+            if (OrderCurrentGet() == Obey_train) {
+                // jeśli jazda pociągowa
+                // światła pociągowe (Pc1) i końcówki (Pc5)
+                auto const frontlights { (
+                    ( m_lighthints[ side::front ] != -1 ) ?
+                        m_lighthints[ side::front ] :
+                        light::headlight_left | light::headlight_right | light::headlight_upper ) };
+                auto const rearlights { (
+                    ( m_lighthints[ side::rear ] != -1 ) ?
+                        m_lighthints[ side::rear ] :
+                        light::redmarker_left | light::redmarker_right | light::rearendsignals ) };
+                Lights(
+                    frontlights,
+                    rearlights );
 #if LOGPRESS == 0
                 AutoRewident(); // nastawianie hamulca do jazdy pociągowej
 #endif
@@ -2090,6 +2112,9 @@ bool TController::CheckVehicles(TOrders user)
                         JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
                     // skanowania!
                 }
+                break;
+            default:
+                break;
             }
         // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
         if( ( mvOccupied->TrainType == dt_EZT )
@@ -3249,6 +3274,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         mvOccupied->RunInternalCommand(); // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
         return true; // załatwione
     }
+
     if (NewCommand == "Overhead")
     { // informacja o stanie sieci trakcyjnej
         fOverhead1 =
@@ -3257,13 +3283,15 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // opuszczonym i ograniczeniem prędkości)
         return true; // załatwione
     }
-    else if (NewCommand == "Emergency_brake") // wymuszenie zatrzymania, niezależnie kto prowadzi
+
+    if (NewCommand == "Emergency_brake") // wymuszenie zatrzymania, niezależnie kto prowadzi
     { // Ra: no nadal nie jest zbyt pięknie
         SetVelocity(0, 0, reason);
         mvOccupied->PutCommand("Emergency_brake", 1.0, 1.0, mvOccupied->Loc);
         return true; // załatwione
     }
-    else if (NewCommand.compare(0, 10, "Timetable:") == 0)
+
+    if (NewCommand.compare(0, 10, "Timetable:") == 0)
     { // przypisanie nowego rozkładu jazdy, również prowadzonemu przez użytkownika
         NewCommand.erase(0, 10); // zostanie nazwa pliku z rozkładem
 #if LOGSTOPS
@@ -3374,6 +3402,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // TrainNumber=floor(NewValue1); //i co potem ???
         return true; // załatwione
     }
+
     if (NewCommand == "SetVelocity")
     {
         if (NewLocation)
@@ -3393,16 +3422,20 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             iDrivigFlags |= moveStopHere; // stać do momentu podania komendy jazdy
         SetVelocity(NewValue1, NewValue2, reason); // bylo: nic nie rob bo SetVelocity zewnetrznie
         // jest wywolywane przez dynobj.cpp
+        return true;
     }
-    else if (NewCommand == "SetProximityVelocity")
+
+    if (NewCommand == "SetProximityVelocity")
     {
         /*
           if (SetProximityVelocity(NewValue1,NewValue2))
            if (NewLocation)
             vCommandLocation=*NewLocation;
         */
+        return true;
     }
-    else if (NewCommand == "ShuntVelocity")
+
+    if (NewCommand == "ShuntVelocity")
     { // uruchomienie jazdy manewrowej bądź zmiana prędkości
         if (NewLocation)
             vCommandLocation = *NewLocation;
@@ -3426,15 +3459,21 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             iDrivigFlags |= moveStopHere; // ma stać w miejscu
         if (fabs(NewValue1) > 2.0) // o ile wartość jest sensowna (-1 nie jest konkretną wartością)
             fShuntVelocity = fabs(NewValue1); // zapamiętanie obowiązującej prędkości dla manewrów
+
+        return true;
     }
-    else if (NewCommand == "Wait_for_orders")
+
+    if (NewCommand == "Wait_for_orders")
     { // oczekiwanie; NewValue1 - czas oczekiwania, -1 = na inną komendę
         if (NewValue1 > 0.0 ? NewValue1 > fStopTime : false)
             fStopTime = NewValue1; // Ra: włączenie czekania bez zmiany komendy
         else
             OrderList[OrderPos] = Wait_for_orders; // czekanie na komendę (albo dać OrderPos=0)
+
+        return true;
     }
-    else if (NewCommand == "Prepare_engine")
+
+    if (NewCommand == "Prepare_engine")
     { // włączenie albo wyłączenie silnika (w szerokim sensie)
         OrdersClear(); // czyszczenie tabelki rozkazów, aby nic dalej nie robił
         if (NewValue1 == 0.0)
@@ -3442,8 +3481,10 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         else if (NewValue1 > 0.0)
             OrderNext(Prepare_engine); // odpalić silnik (wyłączyć wszystko, co się da)
         // po załączeniu przejdzie do kolejnej komendy, po wyłączeniu na Wait_for_orders
+        return true;
     }
-    else if (NewCommand == "Change_direction")
+
+    if (NewCommand == "Change_direction")
     {
         TOrders o = OrderList[OrderPos]; // co robił przed zmianą kierunku
         if (!iEngineActive)
@@ -3469,16 +3510,21 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         if (mvOccupied->Vel >= 1.0) // jeśli jedzie
             iDrivigFlags &= ~moveStartHorn; // to bez trąbienia po ruszeniu z zatrzymania
         // Change_direction wykona się samo i następnie przejdzie do kolejnej komendy
+        return true;
     }
-    else if (NewCommand == "Obey_train")
+
+    if (NewCommand == "Obey_train")
     {
         if (!iEngineActive)
             OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
         OrderNext(Obey_train);
         // if (NewValue1>0) TrainNumber=floor(NewValue1); //i co potem ???
         OrderCheck(); // jeśli jazda pociągowa teraz, to wykonać niezbędne operacje
+
+        return true;
     }
-    else if (NewCommand == "Shunt")
+
+    if (NewCommand == "Shunt")
     { // NewValue1 - ilość wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=dołącz, -1=bez zmian
         //-3,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1), zmienić kierunek i czekać w
         // trybie pociągowym
@@ -3552,70 +3598,73 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             if (VelDesired==0)
              SetVelocity(20,0); //to niech jedzie
         */
+        return true;
     }
-    else if (NewCommand == "Jump_to_first_order")
+
+    if( NewCommand == "Jump_to_first_order" ) {
         JumpToFirstOrder();
-    else if (NewCommand == "Jump_to_order")
+        return true;
+    }
+
+    if (NewCommand == "Jump_to_order")
     {
-        if (NewValue1 == -1.0)
+        if( NewValue1 == -1.0 ) {
             JumpToNextOrder();
+        }
         else if ((NewValue1 >= 0) && (NewValue1 < maxorders))
         {
             OrderPos = floor(NewValue1);
-            if (!OrderPos)
-                OrderPos = 1; // zgodność wstecz: dopiero pierwsza uruchamia
+            if( !OrderPos ) {
+                // zgodność wstecz: dopiero pierwsza uruchamia
+                OrderPos = 1;
+            }
 #if LOGORDERS
             WriteLog("--> Jump_to_order");
             OrdersDump();
 #endif
         }
-        /*
-          if (WriteLogFlag)
-          {
-           append(AIlogFile);
-           writeln(AILogFile,ElapsedTime:5:2," - new order: ",Order2Str( OrderList[OrderPos])," @
-          ",OrderPos);
-           close(AILogFile);
-          }
-        */
+        return true;
     }
-    /* //ta komenda jest teraz skanowana, więc wysyłanie jej eventem nie ma sensu
-     else if (NewCommand=="OutsideStation") //wskaznik W5
-     {
-      if (OrderList[OrderPos]==Obey_train)
-       SetVelocity(NewValue1,NewValue2,stopOut); //koniec stacji - predkosc szlakowa
-      else //manewry - zawracaj
-      {
-       iDirectionOrder=-iDirection; //zmiana na przeciwny niż obecny
-       OrderNext(Change_direction); //zmiana kierunku
-       OrderNext(Shunt); //a dalej manewry
-       iDrivigFlags&=~moveStartHorn; //bez trąbienia po zatrzymaniu
-      }
-     }
-    */
-    else if (NewCommand == "Warning_signal")
+
+    if (NewCommand == "Warning_signal")
     {
-        if (AIControllFlag) // poniższa komenda nie jest wykonywana przez użytkownika
-            if (NewValue1 > 0)
-            {
+        if( AIControllFlag ) {
+            // poniższa komenda nie jest wykonywana przez użytkownika
+            if( NewValue1 > 0 ) {
                 fWarningDuration = NewValue1; // czas trąbienia
                 mvOccupied->WarningSignal = NewValue2; // horn combination flag
             }
+        }
+        return true;
     }
-    else if (NewCommand == "Radio_channel")
-    { // wybór kanału radiowego (którego powinien używać AI, ręczny maszynista musi go ustawić sam)
-        if (NewValue1 >= 0) // wartości ujemne są zarezerwowane, -1 = nie zmieniać kanału
-        {
+
+    if (NewCommand == "Radio_channel") {
+        // wybór kanału radiowego (którego powinien używać AI, ręczny maszynista musi go ustawić sam)
+        if (NewValue1 >= 0) {
+            // wartości ujemne są zarezerwowane, -1 = nie zmieniać kanału
             iRadioChannel = NewValue1;
-            if (iGuardRadio)
-                iGuardRadio = iRadioChannel; // kierownikowi też zmienić
+            if( iGuardRadio ) {
+                // kierownikowi też zmienić
+                iGuardRadio = iRadioChannel;
+            }
         }
         // NewValue2 może zawierać dodatkowo oczekiwany kod odpowiedzi, np. dla W29 "nawiązać
         // łączność radiową z dyżurnym ruchu odcinkowym"
+        return true;
     }
-    else
-        return false; // nierozpoznana - wysłać bezpośrednio do pojazdu
-    return true; // komenda została przetworzona
+
+    if( NewCommand == "SetLights" ) {
+        // set consist lights pattern hints
+        m_lighthints[ side::front ] = static_cast<int>( NewValue1 );
+        m_lighthints[ side::rear ] = static_cast<int>( NewValue2 );
+        if( OrderCurrentGet() == Obey_train ) {
+            // light hints only apply in the obey_train mode
+            CheckVehicles();
+        }
+        return true;
+    }
+
+    return false; // nierozpoznana - wysłać bezpośrednio do pojazdu
 };
 
 void TController::PhysicsLog()
@@ -5465,6 +5514,11 @@ void TController::JumpToFirstOrder()
 
 void TController::OrderCheck()
 { // reakcja na zmianę rozkazu
+
+    if( OrderList[ OrderPos ] != Obey_train ) {
+        // reset light hints
+        m_lighthints[ side::front ] = m_lighthints[ side::rear ] = -1;
+    }
     if( OrderList[ OrderPos ] & ( Shunt | Connect | Obey_train ) ) {
         CheckVehicles(); // sprawdzić światła
     }

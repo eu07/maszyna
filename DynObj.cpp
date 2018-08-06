@@ -5690,6 +5690,14 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
 
                     m_powertrainsounds.rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
                 }
+                else if( token == "linebreakerclose:" ) {
+                    m_powertrainsounds.linebreaker_close.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.linebreaker_close.owner( this );
+                }
+                else if( token == "linebreakeropen:" ) {
+                    m_powertrainsounds.linebreaker_open.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.linebreaker_open.owner( this );
+                }
                 else if( token == "relay:" ) {
                     // styczniki itp:
                     m_powertrainsounds.motor_relay.deserialize( parser, sound_type::single );
@@ -6421,16 +6429,26 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( engine_state_last != Vehicle.Mains ) {
 
         if( true == Vehicle.Mains ) {
-           // main circuit/engine activation
            // TODO: separate engine and main circuit
+           // engine activation
             engine_ignition
                 .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
                 .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
                 .play( sound_flags::exclusive );
+            // main circuit activation 
+            linebreaker_close
+                .pitch( linebreaker_close.m_frequencyoffset + linebreaker_close.m_frequencyfactor * 1.f )
+                .gain( linebreaker_close.m_amplitudeoffset + linebreaker_close.m_amplitudefactor * 1.f )
+                .play();
         }
         else {
-            // main circuit/engine deactivation
+            // engine deactivation
             engine_ignition.stop();
+            // main circuit
+            linebreaker_open
+                .pitch( linebreaker_open.m_frequencyoffset + linebreaker_open.m_frequencyfactor * 1.f )
+                .gain( linebreaker_open.m_amplitudeoffset + linebreaker_open.m_amplitudefactor * 1.f )
+                .play();
         }
         engine_state_last = Vehicle.Mains;
     }

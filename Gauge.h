@@ -76,6 +76,7 @@ private:
         double *dData { nullptr };
         int *iData;
     };
+    int m_soundtype { 0 }; // toggle between exclusive and multiple sound generation
     sound_source m_soundtemplate { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // shared properties for control's sounds
     sound_source m_soundfxincrease { m_soundtemplate }; // sound associated with increasing control's value
     sound_source m_soundfxdecrease { m_soundtemplate }; // sound associated with decreasing control's value

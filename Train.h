@@ -297,6 +297,11 @@ class TTrain
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
@@ -416,6 +421,11 @@ public: // reszta może by?publiczna
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
+    TGauge ggDoorLeftOnButton;
+    TGauge ggDoorRightOnButton;
+    TGauge ggDoorLeftOffButton;
+    TGauge ggDoorRightOffButton;
+    TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
 
     // Winger 160204 - obsluga pantografow - ZROBIC

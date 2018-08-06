@@ -2372,18 +2372,18 @@ int TTrack::CrossSegment(int from, int into)
     switch (into)
     {
     case 0: // stop
-//        WriteLog( "Stopping in P" + to_string( from + 1 ) + " on " + pMyNode->asName );
+//        WriteLog( "Stopping in P" + to_string( from + 1 ) + " on " + name() );
         break;
     case 1: // left
-//        WriteLog( "Turning left from P" + to_string( from + 1 ) + " on " + pMyNode->asName );
+//        WriteLog( "Turning left from P" + to_string( from + 1 ) + " on " + name() );
         i = (SwitchExtension->iRoads == 4) ? iLewo4[from] : iLewo3[from];
         break;
     case 2: // right
-//        WriteLog( "Turning right from P" + to_string( from + 1 ) + " on " + pMyNode->asName );
+//        WriteLog( "Turning right from P" + to_string( from + 1 ) + " on " + name() );
         i = (SwitchExtension->iRoads == 4) ? iPrawo4[from] : iPrawo3[from];
         break;
     case 3: // stright
-//        WriteLog( "Going straight from P" + to_string( from + 1 ) + " on " + pMyNode->asName );
+//        WriteLog( "Going straight from P" + to_string( from + 1 ) + " on " + name() );
         i = (SwitchExtension->iRoads == 4) ? iProsto4[from] : iProsto3[from];
         break;
     }
