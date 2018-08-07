@@ -3204,7 +3204,12 @@ bool TDynamicObject::Update(double dt, double dt1)
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
                              p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
-				float VelC = ((FrED > 0.1) || p->MoverParameters->MED_EPVC ? clamp(p->MoverParameters->Vel, p->MoverParameters->MED_Vmin, p->MoverParameters->MED_Vmax) : p->MoverParameters->MED_Vref);//korekcja EP po prędkości
+				if (FrED > 0.1)
+					p->MoverParameters->MED_EPVC_CurrentTime = 0;
+				else
+					p->MoverParameters->MED_EPVC_CurrentTime += dt1;
+				bool EPVC = ((p->MoverParameters->MED_EPVC) && ((p->MoverParameters->MED_EPVC_Time < 0) || (p->MoverParameters->MED_EPVC_CurrentTime < p->MoverParameters->MED_EPVC_Time)));
+				float VelC = (EPVC ? clamp(p->MoverParameters->Vel, p->MoverParameters->MED_Vmin, p->MoverParameters->MED_Vmax) : p->MoverParameters->MED_Vref);//korekcja EP po prędkości
                 float FmaxPoj = Nmax * 
 					p->MoverParameters->Hamulec->GetFC(
 						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA), VelC) *
