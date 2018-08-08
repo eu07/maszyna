@@ -439,6 +439,7 @@ eu07_application::init_glfw()
     glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
     glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
 
+	glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
