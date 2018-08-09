@@ -9,7 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "parser.h"
+#include "utilities.h"
 #include "logs.h"
+
+#include "scenenodegroups.h"
 
 /*
     MaSzyna EU07 locomotive simulator parser
@@ -24,11 +27,6 @@ http://mozilla.org/MPL/2.0/.
 cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction, std::vector<std::string> Parameters ) :
     mPath(Path),
     LoadTraction( Loadtraction ) {
-    // build comments map
-    mComments.insert(commentmap::value_type("/*", "*/"));
-    mComments.insert(commentmap::value_type("//", "\n"));
-    // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie używane
-
     // store to calculate sub-sequent includes from relative path
     if( Type == buffertype::buffer_FILE ) {
         mFile = Stream;
@@ -38,6 +36,12 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
         case buffer_FILE: {
             Path.append( Stream );
             mStream = std::make_shared<std::ifstream>( Path );
+            // content of *.inc files is potentially grouped together
+            if( ( Stream.size() >= 4 )
+             && ( ToLower( Stream.substr( Stream.size() - 4 ) ) == ".inc" ) ) {
+                mIncFile = true;
+                scene::Groups.begin();
+            }
             break;
         }
         case buffer_TEXT: {
@@ -69,7 +73,10 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
 // destructor
 cParser::~cParser() {
 
-    mComments.clear();
+    if( true == mIncFile ) {
+        // wrap up the node group holding content of processed file
+        scene::Groups.end();
+    }
 }
 
 template<>

@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "scenenodegroups.h"
 #include "event.h"
 #include "driver.h"
 #include "dynobj.h"
@@ -304,6 +305,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             delete pathnode;
 */
         }
+        scene::Groups.register_node( path, scene::Groups.handle() );
         simulation::Region->insert_and_register( path );
     }
     else if( nodedata.type == "traction" ) {
@@ -315,6 +317,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         if( false == simulation::Traction.insert( traction ) ) {
             ErrorLog( "Bad scenario: traction piece with duplicate name \"" + traction->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+        scene::Groups.register_node( traction, scene::Groups.handle() );
         simulation::Region->insert_and_register( traction );
     }
     else if( nodedata.type == "tractionpowersource" ) {
@@ -375,6 +378,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             if( false == simulation::Instances.insert( instance ) ) {
                 ErrorLog( "Bad scenario: 3d model instance with duplicate name \"" + instance->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
             }
+            scene::Groups.register_node( instance, scene::Groups.handle() );
             simulation::Region->insert( instance );
         }
     }
@@ -417,6 +421,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         if( false == simulation::Memory.insert( memorycell ) ) {
             ErrorLog( "Bad scenario: memory memorycell with duplicate name \"" + memorycell->name() + "\" encountered in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
         }
+        scene::Groups.register_node( memorycell, scene::Groups.handle() );
         simulation::Region->insert( memorycell );
     }
     else if( nodedata.type == "eventlauncher" ) {
@@ -431,6 +436,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             simulation::Events.queue( eventlauncher );
         }
         else {
+            scene::Groups.register_node( eventlauncher, scene::Groups.handle() );
             simulation::Region->insert( eventlauncher );
         }
     }

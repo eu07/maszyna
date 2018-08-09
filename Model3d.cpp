@@ -224,7 +224,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             f4Specular = glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
         }
     }
-    parser.ignoreTokens(1); // zignorowanie nazwy "SelfIllum:"
+    parser.ignoreToken(); // zignorowanie nazwy "SelfIllum:"
     {
         std::string light = parser.getToken<std::string>();
         if (light == "true")

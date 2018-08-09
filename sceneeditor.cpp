@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "sceneeditor.h"
+#include "scenenodegroups.h"
 
 #include "globals.h"
 #include "application.h"
@@ -22,20 +23,26 @@ namespace scene {
 void
 basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bool const Snaptoground ) {
 
-    auto *node { Node }; // placeholder for operations on multiple nodes
-
-    auto location { Location };
+    auto const initiallocation { Node->location() };
+    auto targetlocation { Location };
     if( false == Snaptoground ) {
-        location.y = node->location().y;
+        targetlocation.y = initiallocation.y;
     }
+    // NOTE: bit of a waste for single nodes, for the sake of less varied code down the road
+    auto const translation { targetlocation - initiallocation };
 
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        translate_instance( static_cast<TAnimModel *>( node ), location );
+    if( Node->group() == null_handle ) {
+        translate_node( Node, Node->location() + translation );
     }
-    else if( typeid( *node ) == typeid( TMemCell ) ) {
-        translate_memorycell( static_cast<TMemCell *>( node ), location );
+    else {
+        // translate entire group
+        // TODO: contextual switch between group and item translation
+        auto nodegroup { scene::Groups.group( Node->group() ) };
+        std::for_each(
+            nodegroup.first, nodegroup.second,
+            [&]( auto *node ) {
+                translate_node( node, node->location() + translation ); } );
     }
-
 }
 
 void
@@ -44,15 +51,41 @@ basic_editor::translate( scene::basic_node *Node, float const Offset ) {
     // NOTE: offset scaling is calculated early so the same multiplier can be applied to potential whole group
     auto location { Node->location() };
     auto const distance { glm::length( location - glm::dvec3{ Global.pCamera.Pos } ) };
-    auto const offset { Offset * std::max( 1.0, distance * 0.01 ) };
+    auto const offset { static_cast<float>( Offset * std::max( 1.0, distance * 0.01 ) ) };
 
-    auto *node { Node }; // placeholder for operations on multiple nodes
-
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        translate_instance( static_cast<TAnimModel *>( node ), offset );
+    if( Node->group() == null_handle ) {
+        translate_node( Node, offset );
     }
-    else if( typeid( *node ) == typeid( TMemCell ) ) {
-        translate_memorycell( static_cast<TMemCell *>( node ), offset );
+    else {
+        // translate entire group
+        // TODO: contextual switch between group and item translation
+        auto nodegroup { scene::Groups.group( Node->group() ) };
+        std::for_each(
+            nodegroup.first, nodegroup.second,
+            [&]( auto *node ) {
+                translate_node( node, offset ); } );
+    }
+}
+
+void
+basic_editor::translate_node( scene::basic_node *Node, glm::dvec3 const &Location ) {
+
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        translate_instance( static_cast<TAnimModel *>( Node ), Location );
+    }
+    else if( typeid( *Node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( Node ), Location );
+    }
+}
+
+void
+basic_editor::translate_node( scene::basic_node *Node, float const Offset ) {
+
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        translate_instance( static_cast<TAnimModel *>( Node ), Offset );
+    }
+    else if( typeid( *Node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( Node ), Offset );
     }
 }
 
@@ -91,25 +124,62 @@ basic_editor::translate_memorycell( TMemCell *Memorycell, float const Offset ) {
 void
 basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization ) {
 
-    auto *node { Node }; // placeholder for operations on multiple nodes
+    glm::vec3 rotation { 0, Angle.y, 0 };
 
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        rotate_instance( static_cast<TAnimModel *>( node ), Angle, Quantization );
+    // quantize resulting angle if requested and type of the node allows it
+    // TBD, TODO: angle quantization for types other than instanced models
+    if( ( Quantization > 0.f )
+     && ( typeid( *Node ) == typeid( TAnimModel ) ) ) {
+
+        auto const initialangle { static_cast<TAnimModel *>( Node )->Angles() };
+        rotation += initialangle;
+
+        // TBD, TODO: adjustable quantization step
+        rotation.y = quantize( rotation.y, Quantization );
+
+        rotation -= initialangle;
+    }
+
+    if( Node->group() == null_handle ) {
+        rotate_node( Node, rotation );
+    }
+    else {
+        // rotate entire group
+        // TODO: contextual switch between group and item rotation
+        auto const rotationcenter { Node->location() };
+        auto nodegroup { scene::Groups.group( Node->group() ) };
+        std::for_each(
+            nodegroup.first, nodegroup.second,
+            [&]( auto *node ) {
+                rotate_node( node, rotation );
+                if( node != Node ) {
+                    translate_node(
+                        node,
+                        rotationcenter
+                        + glm::rotateY(
+                            node->location() - rotationcenter,
+                            glm::radians<double>( rotation.y ) ) ); } } );
     }
 }
 
 void
-basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle, float const Quantization ) {
+basic_editor::rotate_node( scene::basic_node *Node, glm::vec3 const &Angle ) {
 
-    // adjust node data
-    glm::vec3 angle = glm::dvec3 { Instance->Angles() };
-    angle.y = clamp_circular( angle.y + Angle.y, 360.f );
-    if( Quantization > 0.f ) {
-        // TBD, TODO: adjustable quantization step
-        angle.y = quantize( angle.y, Quantization );
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        rotate_instance( static_cast<TAnimModel *>( Node ), Angle );
     }
-    Instance->Angles( angle );
-    // update scene
+}
+
+void
+basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
+
+    auto targetangle { Instance->Angles() + Angle };
+
+    targetangle.x = clamp_circular( targetangle.x, 360.f );
+    targetangle.y = clamp_circular( targetangle.y, 360.f );
+    targetangle.z = clamp_circular( targetangle.z, 360.f );
+
+    Instance->Angles( targetangle );
 }
 
 } // scene

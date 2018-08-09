@@ -64,6 +64,8 @@ struct bounding_area {
         deserialize( std::istream &Input );
 };
 
+using group_handle = std::size_t;
+
 struct node_data {
 
     double range_min { 0.0 };
@@ -330,9 +332,14 @@ public:
         visible( bool const Visible );
     bool
         visible() const;
+    void
+        group( scene::group_handle Group );
+    scene::group_handle
+        group() const;
 
 protected:
 // members
+    scene::group_handle m_group { null_handle }; // group this node belongs to, if any
     scene::bounding_area m_area;
     double m_rangesquaredmin { 0.0 }; // visibility range, min
     double m_rangesquaredmax { 0.0 }; // visibility range, max
@@ -379,6 +386,18 @@ inline
 bool
 basic_node::visible() const {
     return m_visible;
+}
+
+inline
+void
+basic_node::group( scene::group_handle Group ) {
+    m_group = Group;
+}
+
+inline
+scene::group_handle
+basic_node::group() const {
+    return m_group;
 }
 
 } // scene

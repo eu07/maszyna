@@ -22,6 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "MdlMngr.h"
 #include "model3d.h"
+#include "dumb3d.h"
 #include "Timer.h"
 #include "Driver.h"
 #include "dynobj.h"
@@ -6243,7 +6244,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     }
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
-    std::shared_ptr<cParser> parser = std::make_shared<cParser>(asFileName, cParser::buffer_FILE);
+    cParser parser(asFileName, cParser::buffer_FILE);
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -6251,11 +6252,45 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         // szukanie kabiny
         token = "";
-        parser->getTokens();
-        *parser >> token;
+        parser.getTokens();
+        parser >> token;
+/*
+        if( token == "locations:" ) {
+            do {
+                token = "";
+                parser.getTokens(); parser >> token;
 
+                if( token == "radio:" ) {
+                    // point in 3d space, in format [ x, y, z ]
+                    glm::vec3 radiolocation;
+                    parser.getTokens( 3, false, "\n\r\t ,;[]" );
+                    parser
+                        >> radiolocation.x
+                        >> radiolocation.y
+                        >> radiolocation.z;
+                    radiolocation *= glm::vec3( NewCabNo, 1, NewCabNo );
+                    m_radiosound.offset( radiolocation );
+                }
+
+                else if( token == "alerter:" ) {
+                    // point in 3d space, in format [ x, y, z ]
+                    glm::vec3 alerterlocation;
+                    parser.getTokens( 3, false, "\n\r\t ,;[]" );
+                    parser
+                        >> alerterlocation.x
+                        >> alerterlocation.y
+                        >> alerterlocation.z;
+                    alerterlocation *= glm::vec3( NewCabNo, 1, NewCabNo );
+                    dsbBuzzer.offset( alerterlocation );
+                }
+
+            } while( ( token != "" )
+                  && ( token != "endlocations" ) );
+
+        } // locations:
+*/
     } while ((token != "") && (token != cabstr));
-
+/*
     if ((cabindex != 1) && (token != cabstr))
     {
         // jeśli nie znaleziony wpis kabiny, próba szukania kabiny 1
@@ -6267,65 +6302,66 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         do
         {
             token = "";
-            parser->getTokens();
-            *parser >> token;
+            parser.getTokens();
+            parser >> token;
         } while ((token != "") && (token != cabstr));
     }
+*/
     if (token == cabstr)
     {
         // jeśli znaleziony wpis kabiny
-        Cabine[cabindex].Load(*parser);
+        Cabine[cabindex].Load(parser);
         // NOTE: the position and angle definitions depend on strict entry order
         // TODO: refactor into more flexible arrangement
-        parser->getTokens();
-        *parser >> token;
+        parser.getTokens();
+        parser >> token;
         if( token == std::string( "driver" + std::to_string( cabindex ) + "angle:" ) ) {
             // camera view angle
-            parser->getTokens( 2, false );
+            parser.getTokens( 2, false );
             // angle is specified in degrees but internally stored in radians
             glm::vec2 viewangle;
-            *parser
+            parser
                 >> viewangle.y // yaw first, then pitch
                 >> viewangle.x;
             pMechViewAngle = glm::radians( viewangle );
             Global.pCamera.Pitch = pMechViewAngle.x;
             Global.pCamera.Yaw = pMechViewAngle.y;
 
-            parser->getTokens();
-            *parser >> token;
+            parser.getTokens();
+            parser >> token;
         }
         if (token == std::string("driver" + std::to_string(cabindex) + "pos:"))
         {
             // pozycja poczatkowa maszynisty
-            parser->getTokens(3, false);
-            *parser
+            parser.getTokens(3, false);
+            parser
                 >> pMechOffset.x
                 >> pMechOffset.y
                 >> pMechOffset.z;
             pMechSittingPosition = pMechOffset;
 
-            parser->getTokens();
-            *parser >> token;
+            parser.getTokens();
+            parser >> token;
         }
         // ABu: pozycja siedzaca mechanika
         if (token == std::string("driver" + std::to_string(cabindex) + "sitpos:"))
         {
             // ABu 180404 pozycja siedzaca maszynisty
-            parser->getTokens(3, false);
-            *parser
+            parser.getTokens(3, false);
+            parser
                 >> pMechSittingPosition.x
                 >> pMechSittingPosition.y
                 >> pMechSittingPosition.z;
 
-            parser->getTokens();
-            *parser >> token;
+            parser.getTokens();
+            parser >> token;
         }
         // else parse=false;
         do {
             if( parse == true ) {
                 token = "";
-                parser->getTokens();
-                *parser >> token;
+                parser.getTokens();
+                parser >> token;
             }
             else {
                 parse = true;
@@ -6338,8 +6374,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             if (token == std::string("cab" + std::to_string(cabindex) + "model:"))
             {
                 // model kabiny
-                parser->getTokens();
-                *parser >> token;
+                parser.getTokens();
+                parser >> token;
                 if (token != "none")
                 {
                     // bieżąca sciezka do tekstur to dynamic/...
@@ -6375,19 +6411,19 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // don't bother with other parts until the cab is initialised
                 continue;
             }
-            else if (true == initialize_gauge(*parser, token, cabindex))
+            else if (true == initialize_gauge(parser, token, cabindex))
             {
                 // matched the token, grab the next one
                 continue;
             }
-            else if (true == initialize_button(*parser, token, cabindex))
+            else if (true == initialize_button(parser, token, cabindex))
             {
                 // matched the token, grab the next one
                 continue;
             }
             else if (token == "pyscreen:")
             {
-                pyScreens.init(*parser, DynamicObject->mdKabina, DynamicObject->name(), NewCabNo);
+                pyScreens.init(parser, DynamicObject->mdKabina, DynamicObject->name(), NewCabNo);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");
@@ -6415,10 +6451,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         }
         // radio has two potential items which can provide the position
         if( m_radiosound.offset() == nullvector ) {
-            m_radiosound.offset( ggRadioButton.model_offset() );
+            m_radiosound.offset( btLampkaRadio.model_offset() );
         }
         if( m_radiosound.offset() == nullvector ) {
-            m_radiosound.offset( btLampkaRadio.model_offset() );
+            m_radiosound.offset( ggRadioButton.model_offset() );
         }
         if( m_radiostop.offset() == nullvector ) {
             m_radiostop.offset( m_radiosound.offset() );

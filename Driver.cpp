@@ -4350,8 +4350,10 @@ TController::UpdateSituation(double dt) {
     }
     case Shunt: {
         // na jaką odleglość i z jaką predkością ma podjechać
+/*
         fMinProximityDist = 5.0;
         fMaxProximityDist = 10.0; //[m]
+
         if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
             // for larger consists increase margins to account for slower braking etc
             // NOTE: this will affect also multi-unit vehicles TBD: is this what we want?
@@ -4367,6 +4369,15 @@ TController::UpdateSituation(double dt) {
                 }
             }
         }
+*/
+        fMinProximityDist = std::min( 5 + iVehicles, 25 );
+        fMaxProximityDist = std::min( 10 + iVehicles, 50 );
+        if( ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
+         && ( fBrake_a0[ 0 ] >= 0.35 ) ) {
+            // cargo trains with high braking threshold may require even larger safety margin
+            fMaxProximityDist *= 1.5;
+        }
+
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów

@@ -37,6 +37,15 @@ public:
     void
         translate( scene::basic_node *Node, float const Offset );
     void
+        rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization );
+
+private:
+// methods
+    void
+        translate_node( scene::basic_node *Node, glm::dvec3 const &Location );
+    void
+        translate_node( scene::basic_node *Node, float const Offset );
+    void
         translate_instance( TAnimModel *Instance, glm::dvec3 const &Location );
     void
         translate_instance( TAnimModel *Instance, float const Offset );
@@ -45,9 +54,9 @@ public:
     void
         translate_memorycell( TMemCell *Memorycell, float const Offset );
     void
-        rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization );
+        rotate_node( scene::basic_node *Node, glm::vec3 const &Angle );
     void
-        rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle, float const Quantization );
+        rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle );
 };
 
 } // scene
