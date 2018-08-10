@@ -475,12 +475,11 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         pTrack = pVehicle->RaTrackGet(); // odcinek, na którym stoi
         fTrackLength = pVehicle->RaTranslationGet(); // pozycja na tym torze (odległość od Point1)
         fLastDir = pVehicle->DirectionGet() * pVehicle->RaDirectionGet(); // ustalenie kierunku skanowania na torze
-        double odl_czola_od_wozka = (pVehicle->AxlePositionGet() - pVehicle->RearPosition()).Length();
         if( fLastDir < 0.0 ) {
             // jeśli w kierunku Point2 toru
             fTrackLength = pTrack->Length() - fTrackLength; // przeskanowana zostanie odległość do Point2
         }
-        fTrackLength -= odl_czola_od_wozka;
+        fTrackLength -= pVehicle->tracing_offset();
         fCurrentDistance = -fLength - fTrackLength; // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
         fLastVel = -1.0; // pTrack->VelocityGet(); // aktualna prędkość // changed to -1 to recognize speed limit, if any
         sSpeedTable.clear();
@@ -1878,10 +1877,16 @@ void TController::AutoRewident()
 	}
     // 4. Przeliczanie siły hamowania
     d = pVehicles[0]; // pojazd na czele składu
+    // HACK: calculated brake thresholds for cars are so high they prevent the AI from effectively braking
+    // thus we artificially reduce them until a better solution for the problem is found
+    auto const braketablescale { (
+        d->MoverParameters->CategoryFlag == 2 ?
+            0.6 :
+            1.0 ) };
 	while (d) { 
         for( int i = 0; i < BrakeAccTableSize; ++i ) {
-            fBrake_a0[ i + 1 ] += d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
-            fBrake_a1[ i + 1 ] += d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
+            fBrake_a0[ i + 1 ] += braketablescale * d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
+            fBrake_a1[ i + 1 ] += braketablescale * d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
 		}
 		d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 	}
@@ -4550,7 +4555,6 @@ TController::UpdateSituation(double dt) {
         if( ( true == AIControllFlag)
          && ( true == TestFlag( OrderList[ OrderPos ], Change_direction ) ) ) {
             // sprobuj zmienic kierunek (może być zmieszane z jeszcze jakąś komendą)
-            SetVelocity( 0, 0, stopDir ); // najpierw trzeba się zatrzymać
             if( mvOccupied->Vel < 0.1 ) {
                 // jeśli się zatrzymał, to zmieniamy kierunek jazdy, a nawet kabinę/człon
                 Activation(); // ustawienie zadanego wcześniej kierunku i ewentualne przemieszczenie AI
@@ -4598,8 +4602,8 @@ TController::UpdateSituation(double dt) {
             // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prędkosci
             TCommandType comm = TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired);
 
-            switch (comm)
-            { // ustawienie VelSignal - trochę proteza = do przemyślenia
+            switch (comm) {
+                // ustawienie VelSignal - trochę proteza = do przemyślenia
             case TCommandType::cm_Ready: // W4 zezwolił na jazdę
                 // ewentualne doskanowanie trasy za W4, który zezwolił na jazdę
                 TableCheck( routescanrange);
@@ -4634,6 +4638,11 @@ TController::UpdateSituation(double dt) {
                 break;
             default:
                 break;
+            }
+
+            if( true == TestFlag( OrderList[ OrderPos ], Change_direction ) ) {
+                // if ordered to change direction, try to stop
+                SetVelocity( 0, 0, stopDir );
             }
 
             if( VelNext == 0.0 ) {
@@ -4909,7 +4918,7 @@ TController::UpdateSituation(double dt) {
                             if( VelNext == 0.0 ) {
                                 if( mvOccupied->CategoryFlag & 1 ) {
                                     // trains
-                                    if( ( OrderCurrentGet() & Shunt )
+                                    if( ( OrderCurrentGet() & ( Shunt | Connect ) )
                                      && ( pVehicles[0]->fTrackBlock < 50.0 ) ) {
                                         // crude detection of edge case, if approaching another vehicle coast slowly until min distance
                                         // this should allow to bunch up trainsets more on sidings
@@ -4929,25 +4938,28 @@ TController::UpdateSituation(double dt) {
                             }
 						}
 						else {
-                            // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-                            auto const slowdowndistance { (
-                                ( OrderCurrentGet() & Connect ) == 0 ?
-                                    100.0 :
-                                    25.0 ) };
-                            if( ( std::max( slowdowndistance, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
-                                // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
-                                // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
-                                auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
-                                AccDesired = std::min(
-                                    AccDesired,
-                                    ( VelNext * VelNext - vel * vel )
-                                    / ( 25.92
-                                        * std::max(
-                                            ActualProximityDist - brakingpointoffset,
-                                            std::min(
-                                                ActualProximityDist,
-                                                brakingpointoffset ) )
-                                        + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                            // outside of max safe range
+                            if( vel > min_speed( 10.0, VelDesired ) ) {
+                                // allow to coast at reasonably low speed
+                                auto const slowdowndistance { (
+                                    ( OrderCurrentGet() & Connect ) == 0 ?
+                                        100.0 :
+                                        25.0 ) };
+                                if( ( std::max( slowdowndistance, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                                    // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
+                                    // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
+                                    auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
+                                    AccDesired = std::min(
+                                        AccDesired,
+                                        ( VelNext * VelNext - vel * vel )
+                                        / ( 25.92
+                                            * std::max(
+                                                ActualProximityDist - brakingpointoffset,
+                                                std::min(
+                                                    ActualProximityDist,
+                                                    brakingpointoffset ) )
+                                            + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
+                                }
                             }
 						}
                         AccDesired = std::min( AccDesired, AccPreferred );

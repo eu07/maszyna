@@ -2216,45 +2216,26 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
     iNumAxles = 2;
     // McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
-    fAxleDist = Max0R(MoverParameters->BDist, MoverParameters->ADist);
-    if (fAxleDist < 0.2f)
-        fAxleDist = 0.2f; //żeby się dało wektory policzyć
-    if (fAxleDist > MoverParameters->Dim.L - 0.2) // nie mogą być za daleko
-        fAxleDist = MoverParameters->Dim.L - 0.2; // bo będzie "walenie w mur"
+    fAxleDist = clamp(
+            std::max( MoverParameters->BDist, MoverParameters->ADist ),
+            0.2, //żeby się dało wektory policzyć
+            MoverParameters->Dim.L - 0.2 ); // nie mogą być za daleko bo będzie "walenie w mur"
     double fAxleDistHalf = fAxleDist * 0.5;
-    // WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at
-    // "+AnsiString(fDist));
-    // if (Cab) //jeśli ma obsadę - zgodność wstecz, jeśli tor startowy ma Event0
-    // if (Track->Event0) //jeśli tor ma Event0
-    //  if (fDist>=0.0) //jeśli jeśli w starych sceneriach początek składu byłby
-    //  wysunięty na ten
-    //  tor
-    //   if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysunięty
-    //    fDist+=0.5*MoverParameters->Dim.L+0.2; //wysunąć go na ten tor
     // przesuwanie pojazdu tak, aby jego początek był we wskazanym miejcu
-    fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pół długości pojazdu, bo
-    // ustawiamy jego środek (zliczanie na
-    // minus)
+    fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pół długości pojazdu, bo ustawiamy jego środek (zliczanie na minus)
     switch (iNumAxles) {
         // Ra: pojazdy wstawiane są na tor początkowy, a potem przesuwane
     case 2: // ustawianie osi na torze
         Axle0.Init(Track, this, iDirection ? 1 : -1);
         Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
         Axle1.Init(Track, this, iDirection ? 1 : -1);
-        Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf,
-                   false); // false, żeby nie generować eventów
-        // Axle2.Init(Track,this,iDirection?1:-1);
-        // Axle2.Move((iDirection?fDist:-fDist)-fAxleDistHalft+0.01),false);
-        // Axle3.Init(Track,this,iDirection?1:-1);
-        // Axle3.Move((iDirection?fDist:-fDist)+fAxleDistHalf-0.01),false);
+        Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf, false); // false, żeby nie generować eventów
         break;
     case 4:
         Axle0.Init(Track, this, iDirection ? 1 : -1);
-        Axle0.Move((iDirection ? fDist : -fDist) + (fAxleDistHalf + MoverParameters->ADist * 0.5),
-                   false);
+        Axle0.Move((iDirection ? fDist : -fDist) + (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
         Axle1.Init(Track, this, iDirection ? 1 : -1);
-        Axle1.Move((iDirection ? fDist : -fDist) - (fAxleDistHalf + MoverParameters->ADist * 0.5),
-                   false);
+        Axle1.Move((iDirection ? fDist : -fDist) - (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
         // Axle2.Init(Track,this,iDirection?1:-1);
         // Axle2.Move((iDirection?fDist:-fDist)-(fAxleDistHalf-MoverParameters->ADist*0.5),false);
         // Axle3.Init(Track,this,iDirection?1:-1);
@@ -2392,8 +2373,7 @@ void TDynamicObject::Move(double fDistance)
         // fAdjustment=0.0;
         vFront = Normalize(vFront); // kierunek ustawienia pojazdu (wektor jednostkowy)
         vLeft = Normalize(CrossProduct(vWorldUp, vFront)); // wektor poziomy w lewo,
-        // normalizacja potrzebna z powodu
-        // pochylenia (vFront)
+        // normalizacja potrzebna z powodu pochylenia (vFront)
         vUp = CrossProduct(vFront, vLeft); // wektor w górę, będzie jednostkowy
         modelRot.z = atan2(-vFront.x, vFront.z); // kąt obrotu pojazdu [rad]; z ABuBogies()
         double a = ((Axle1.GetRoll() + Axle0.GetRoll())); // suma przechyłek
@@ -2409,17 +2389,13 @@ void TDynamicObject::Move(double fDistance)
             vLeft = Normalize(CrossProduct(vUp, vFront)); // wektor w lewo
             // vUp=CrossProduct(vFront,vLeft); //wektor w górę
         }
-        mMatrix.Identity(); // to też można by od razu policzyć, ale potrzebne jest
-        // do wyświetlania
-        mMatrix.BasisChange(vLeft, vUp, vFront); // przesuwanie jest jednak rzadziej niż
-        // renderowanie
-        mMatrix = Inverse(mMatrix); // wyliczenie macierzy dla pojazdu (potrzebna
-        // tylko do wyświetlania?)
+        mMatrix.Identity(); // to też można by od razu policzyć, ale potrzebne jest do wyświetlania
+        mMatrix.BasisChange(vLeft, vUp, vFront); // przesuwanie jest jednak rzadziej niż renderowanie
+        mMatrix = Inverse(mMatrix); // wyliczenie macierzy dla pojazdu (potrzebna tylko do wyświetlania?)
         // if (MoverParameters->CategoryFlag&2)
         { // przesunięcia są używane po wyrzuceniu pociągu z toru
             vPosition.x += MoverParameters->OffsetTrackH * vLeft.x; // dodanie przesunięcia w bok
-            vPosition.z +=
-                MoverParameters->OffsetTrackH * vLeft.z; // vLeft jest wektorem poprzecznym
+            vPosition.z += MoverParameters->OffsetTrackH * vLeft.z; // vLeft jest wektorem poprzecznym
             // if () na przechyłce będzie dodatkowo zmiana wysokości samochodu
             vPosition.y += MoverParameters->OffsetTrackV; // te offsety są liczone przez moverparam
         }
@@ -2429,10 +2405,10 @@ void TDynamicObject::Move(double fDistance)
         // MoverParameters->Loc.Z= vPosition.y;
         // obliczanie pozycji sprzęgów do liczenia zderzeń
         auto dir = (0.5 * MoverParameters->Dim.L) * vFront; // wektor sprzęgu
-        vCoulpler[0] = vPosition + dir; // współrzędne sprzęgu na początku
-        vCoulpler[1] = vPosition - dir; // współrzędne sprzęgu na końcu
-        MoverParameters->vCoulpler[0] = vCoulpler[0]; // tymczasowo kopiowane na inny poziom
-        MoverParameters->vCoulpler[1] = vCoulpler[1];
+        vCoulpler[side::front] = vPosition + dir; // współrzędne sprzęgu na początku
+        vCoulpler[side::rear] = vPosition - dir; // współrzędne sprzęgu na końcu
+        MoverParameters->vCoulpler[side::front] = vCoulpler[side::front]; // tymczasowo kopiowane na inny poziom
+        MoverParameters->vCoulpler[side::rear]  = vCoulpler[side::rear];
         // bCameraNear=
         // if (bCameraNear) //jeśli istotne są szczegóły (blisko kamery)
         { // przeliczenie cienia
@@ -4501,6 +4477,17 @@ void TDynamicObject::RenderSounds() {
 
         MoverParameters->EventFlag = false;
     }
+}
+
+// calculates distance between event-starting axle and front of the vehicle
+double
+TDynamicObject::tracing_offset() const {
+
+    auto const axletoend{ ( GetLength() - fAxleDist ) * 0.5 };
+    return (
+        iAxleFirst ?
+            axletoend :
+            axletoend + iDirection * fAxleDist );
 }
 
 // McZapkie-250202

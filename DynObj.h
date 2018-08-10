@@ -539,6 +539,16 @@ private:
         return iAxleFirst ?
             Axle1.pPosition :
             Axle0.pPosition; };
+/*
+    // TODO: check if scanning takes into account direction when selecting axle
+    // if it does, replace the version above
+    // if it doesn't, fix it so it does
+    inline Math3D::vector3 AxlePositionGet() {
+        return (
+            iDirection ?
+                ( iAxleFirst ? Axle1.pPosition : Axle0.pPosition ) :
+                ( iAxleFirst ? Axle0.pPosition : Axle1.pPosition ) ); }
+*/
     inline Math3D::vector3 VectorFront() const {
         return vFront; };
     inline Math3D::vector3 VectorUp() const {
@@ -555,6 +565,8 @@ private:
         return MoverParameters->Dim.L; };
     inline double GetWidth() const {
         return MoverParameters->Dim.W; };
+    // calculates distance between event-starting axle and front of the vehicle
+    double tracing_offset() const;
     inline TTrack * GetTrack() {
         return (iAxleFirst ?
             Axle1.GetTrack() :
