@@ -1002,14 +1002,14 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
 	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
-		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta );
+		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos + Global.fBrakeStep );
 }
 
 void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
 	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
-		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta );
+		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep );
 

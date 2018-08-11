@@ -36,12 +36,10 @@ int main( int argc, char *argv[] )
             result = Application.run();
         }
         Application.exit();
-        return result;
     }
     catch( std::bad_alloc const &Error )
 	{
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
     }
-    LogsFlush();
     std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
 }

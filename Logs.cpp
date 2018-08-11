@@ -81,6 +81,7 @@ void WriteLog( const char *str, logtype const Type ) {
         }
         output << str << "\n";
     }
+	output.flush();
 
     UILayer.log.emplace_back(std::string(str));
     if (UILayer.log.size() > 100)
@@ -118,14 +119,6 @@ void ErrorLog( const char *str, logtype const Type ) {
     errors << str << "\n";
     errors.flush();
 };
-
-void LogsFlush()
-{
-    if (output.is_open())
-        output.flush();
-    if (errors.is_open())
-        errors.flush();
-}
 
 void Error(const std::string &asMessage, bool box)
 {
