@@ -301,7 +301,7 @@ void uart_input::poll()
 			WriteLog("uart: tx: " + std::string(buf));
 		}
 
-	    ret = sp_nonblocking_write(port, (void*)buffer.data(), buffer.size());
+	    ret = sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	    if (ret != buffer.size())
 			throw std::runtime_error("uart: failed to write to port");
 
