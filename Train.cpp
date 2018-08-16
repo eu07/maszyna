@@ -4832,8 +4832,8 @@ bool TTrain::Update( double const Deltatime )
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od kierunku
         if( ( mvControlled->Mains )
-         && ( mvControlled->EngineType == TEngineType::ElectricSeriesMotor ) ) {
-            if( std::max( mvControlled->GetTrainsetVoltage(), std::fabs( mvControlled->RunningTraction.TractionVoltage ) ) < 0.5 * mvControlled->EnginePowerSource.MaxVoltage ) {
+         && ( mvControlled->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) ) {
+            if( std::max( mvControlled->GetTrainsetVoltage(), std::abs( mvControlled->RunningTraction.TractionVoltage ) ) < 0.5 * mvControlled->EnginePowerSource.MaxVoltage ) {
                 // TODO: check whether it should affect entire consist for EMU
                 // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
                 // TODO: potentially move this to the mover module, as there isn't much reason to have this dependent on the operator presence
@@ -5627,24 +5627,28 @@ bool TTrain::Update( double const Deltatime )
         }
         case 1: {
             //światło wewnętrzne przygaszone (255 216 176)
-            if( mvOccupied->ConverterFlag == true ) {
-                // jasnosc dla zalaczonej przetwornicy
-                DynamicObject->InteriorLightLevel = 0.4f;
-            }
-            else {
-                DynamicObject->InteriorLightLevel = 0.2f;
-            }
+            auto const converteractive { (
+                ( mvOccupied->ConverterFlag )
+             || ( ( ( mvOccupied->Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::front ].Connected->ConverterFlag )
+             || ( ( ( mvOccupied->Couplers[ side::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::rear  ].Connected->ConverterFlag ) ) };
+
+            DynamicObject->InteriorLightLevel = (
+                converteractive ?
+                    0.4f :
+                    0.2f );
             break;
         }
         case 2: {
             //światło wewnętrzne zapalone (255 216 176)
-            if( mvOccupied->ConverterFlag == true ) {
-                // jasnosc dla zalaczonej przetwornicy
-                DynamicObject->InteriorLightLevel = 1.0f;
-            }
-            else {
-                DynamicObject->InteriorLightLevel = 0.5f;
-            }
+            auto const converteractive { (
+                ( mvOccupied->ConverterFlag )
+             || ( ( ( mvOccupied->Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::front ].Connected->ConverterFlag )
+             || ( ( ( mvOccupied->Couplers[ side::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::rear  ].Connected->ConverterFlag ) ) };
+
+            DynamicObject->InteriorLightLevel = (
+                converteractive ?
+                    1.0f :
+                    0.5f );
             break;
         }
     }

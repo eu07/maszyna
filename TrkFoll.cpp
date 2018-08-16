@@ -95,6 +95,11 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
 { // przesuwanie wózka po torach o odległość (fDistance), z wyzwoleniem eventów
     // bPrimary=true - jest pierwszą osią w pojeździe, czyli generuje eventy i przepisuje pojazd
     // Ra: zwraca false, jeśli pojazd ma być usunięty
+    auto const ismoving { ( std::abs( fDistance ) > 0.01 ) && ( Owner->GetVelocity() > 0.01 ) };
+    int const eventfilter { (
+        ( ( true == ismoving ) && ( Owner->ctOwner != nullptr ) ) ?
+            Owner->ctOwner->Direction() * ( Owner->ctOwner->Vehicle()->DirectionGet() == Owner->DirectionGet() ? 1 : -1 ) * ( fDirection > 0 ? 1 : -1 ) :
+            0 ) };
     fDistance *= fDirection; // dystans mnożnony przez kierunek
     double s; // roboczy dystans
     double dir; // zapamiętany kierunek do sprawdzenia, czy się zmienił
@@ -105,8 +110,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         // TODO: refactor following block as track method
         if( pCurrentTrack->m_events ) { // sumaryczna informacja o eventach
             // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
-            if( ( std::abs( fDistance ) < 0.01 )
-             && ( Owner->GetVelocity() < 0.01 ) ) {
+            if( false == ismoving ) {
                 //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
                 if( ( Owner->Mechanik != nullptr )
                  && ( Owner->Mechanik->Primary() ) ) {
@@ -115,7 +119,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 }
                 pCurrentTrack->QueueEvents( pCurrentTrack->m_events0all, Owner );
             }
-            else if (fDistance < 0) {
+            else if( (fDistance < 0) && ( eventfilter < 0 ) ) {
                 // event1, eventall1
                 if( SetFlag( iEventFlag, -1 ) ) {
                     // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
@@ -135,7 +139,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                     }
                 }
             }
-            else if (fDistance > 0) {
+            else if( ( fDistance > 0 ) && ( eventfilter > 0 ) ) {
                 // event2, eventall2
                 if( SetFlag( iEventFlag, -2 ) ) {
                     // zawsze ustawia flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona

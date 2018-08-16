@@ -479,9 +479,17 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             // jeśli w kierunku Point2 toru
             fTrackLength = pTrack->Length() - fTrackLength; // przeskanowana zostanie odległość do Point2
         }
-        fTrackLength -= pVehicle->tracing_offset();
-        fCurrentDistance = -fLength - fTrackLength; // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
-        fLastVel = -1.0; // pTrack->VelocityGet(); // aktualna prędkość // changed to -1 to recognize speed limit, if any
+        // account for the fact tracing begins from active axle, not the actual front of the vehicle
+        // NOTE: position of the couplers is modified by track offset, but the axles ain't, so we need to account for this as well
+        fTrackLength -= (
+            pVehicle->AxlePositionGet()
+            - pVehicle->RearPosition()
+            + pVehicle->VectorLeft() * pVehicle->MoverParameters->OffsetTrackH )
+            .Length();
+        // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
+        fCurrentDistance = -fLength - fTrackLength;
+        // aktualna prędkość // changed to -1 to recognize speed limit, if any
+        fLastVel = -1.0;
         sSpeedTable.clear();
         iLast = -1;
         tLast = nullptr; //żaden nie sprawdzony
@@ -1429,13 +1437,13 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
             return interpolate( 2.f, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
         }
         // HACK: cargo trains or trains going downhill with high braking threshold need more distance to come to a full stop
-        if( ( fBrake_a0[ 0 ] > 0.2 )
-         && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
-           || ( fAccGravity > 0.025 ) ) {
+        if( ( fBrake_a0[ 1 ] > 0.2 )
+         && ( ( true == IsCargoTrain )
+           || ( fAccGravity > 0.025 ) ) ) {
             return interpolate(
                 1.f, 2.f,
                 clamp(
-                    ( fBrake_a0[ 0 ] - 0.2 ) / 0.2,
+                    ( fBrake_a0[ 1 ] - 0.2 ) / 0.2,
                     0.0, 1.0 ) );
         }
 
@@ -1868,59 +1876,71 @@ void TController::AutoRewident()
         }
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
-	//teraz zerujemy tabelkę opóźnienia hamowania
-	double velstep = (mvOccupied->Vmax*0.5) / BrakeAccTableSize;
-	for (int i = 0; i < BrakeAccTableSize; i++)
+    //ustawianie trybu pracy zadajnika hamulca, wystarczy raz po inicjalizacji AI
+    for( int i = 1; i <= 8; i *= 2 ) {
+        if( ( mvOccupied->BrakeOpModes & i ) > 0 ) {
+            mvOccupied->BrakeOpModeFlag = i;
+        }
+    }
+	// teraz zerujemy tabelkę opóźnienia hamowania
+	for (int i = 0; i < BrakeAccTableSize; ++i)
 	{
 		fBrake_a0[i+1] = 0;
 		fBrake_a1[i+1] = 0;
 	}
     // 4. Przeliczanie siły hamowania
+    double const velstep = ( mvOccupied->Vmax*0.5 ) / BrakeAccTableSize;
     d = pVehicles[0]; // pojazd na czele składu
-    // HACK: calculated brake thresholds for cars are so high they prevent the AI from effectively braking
-    // thus we artificially reduce them until a better solution for the problem is found
-    auto const braketablescale { (
-        d->MoverParameters->CategoryFlag == 2 ?
-            0.6 :
-            1.0 ) };
 	while (d) { 
         for( int i = 0; i < BrakeAccTableSize; ++i ) {
-            fBrake_a0[ i + 1 ] += braketablescale * d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
-            fBrake_a1[ i + 1 ] += braketablescale * d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
+            fBrake_a0[ i + 1 ] += d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
+            fBrake_a1[ i + 1 ] += d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
 		}
 		d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 	}
-	for (int i = 0; i < BrakeAccTableSize; i++)
+	for (int i = 0; i < BrakeAccTableSize; ++i)
 	{
 		fBrake_a1[i+1] -= fBrake_a0[i+1];
 		fBrake_a0[i+1] /= fMass;
 		fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
 		fBrake_a1[i+1] /= (12*fMass);
 	}
+
+    IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
+    IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 );
+
+    BrakingInitialLevel = (
+        IsHeavyCargoTrain ? 1.25 :
+        IsCargoTrain      ? 1.25 :
+                            1.00 );
+
+    BrakingLevelIncrease = (
+        IsHeavyCargoTrain ? 0.25 :
+        IsCargoTrain      ? 0.25 :
+                            0.25 );
+
     if( mvOccupied->TrainType == dt_EZT ) {
-		fAccThreshold = std::max(-fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize], -0.55);
+        fAccThreshold = std::max( -0.55, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
 		fBrakeReaction = 0.25;
 	}
     else if( mvOccupied->TrainType == dt_DMU ) {
-        fAccThreshold = std::max( -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ], -0.45 );
+        fAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
         fBrakeReaction = 0.25;
     }
-    else if (ustaw > 16)
-	{
-		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 4 * fBrake_a1[BrakeAccTableSize];
+    else if (ustaw > 16) {
+        fAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 4 * fBrake_a1[ BrakeAccTableSize ];
 		fBrakeReaction = 1.00 + fLength*0.004;
 	}
-	else
-	{
-		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 1 * fBrake_a1[BrakeAccTableSize];
+	else {
+        fAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 1 * fBrake_a1[ BrakeAccTableSize ];
 		fBrakeReaction = 1.00 + fLength*0.005;
 	}
-	for (int i = 1; i <= 8; i *= 2) //ustawianie trybu pracy zadajnika hamulca, wystarczy raz po inicjalizacji AI
-	{
-		if ((mvOccupied->BrakeOpModes & i) > 0) {
-			mvOccupied->BrakeOpModeFlag = i;
-		}
-	}
+/*
+    if( IsHeavyCargoTrain ) {
+        // HACK: heavy cargo trains don't activate brakes early enough
+        fAccThreshold = std::max( -0.2, fAccThreshold );
+    }
+*/
 }
 
 double TController::ESMVelocity(bool Main)
@@ -2418,7 +2438,10 @@ bool TController::PrepareEngine()
                         mvControlling->IncMainCtrl( 1 );
                     }
                 }
-                mvControlling->MainSwitch(true);
+                if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
+                 || ( std::max( mvControlling->GetTrainsetVoltage(), std::abs( mvControlling->RunningTraction.TractionVoltage ) ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
+                    mvControlling->MainSwitch( true );
+                }
 /*
                 if (mvControlling->EngineType == DieselEngine) {
                     // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
@@ -2621,7 +2644,9 @@ bool TController::IncBrake()
 					d = pVehicles[0]; // pojazd na czele składu
 					while (d)
 					{ // przeliczanie dodatkowego potrzebnego spadku ciśnienia
-						pos_corr+=(d->MoverParameters->Hamulec->GetCRP() - 5.0)*d->MoverParameters->TotalMass;
+                        if( ( d->MoverParameters->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) {
+                            pos_corr += ( d->MoverParameters->Hamulec->GetCRP() - 5.0 ) * d->MoverParameters->TotalMass;
+                        }
 						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 					}
 					pos_corr = pos_corr / fMass * 2.5;
@@ -2636,10 +2661,7 @@ bool TController::IncBrake()
                     if( deltaAcc > fBrake_a1[0])
 					{
                         if( mvOccupied->BrakeCtrlPosR < 0.1 ) {
-                            OK = mvOccupied->BrakeLevelAdd( (
-                                mvOccupied->BrakeDelayFlag > bdelay_G ?
-                                    1.0 :
-                                    1.25 ) );
+                            OK = mvOccupied->BrakeLevelAdd( BrakingInitialLevel );
 /*
                             // HACK: stronger braking to overcome SA134 engine behaviour
                             if( ( mvOccupied->TrainType == dt_DMU )
@@ -2654,10 +2676,11 @@ bool TController::IncBrake()
                         }
 						else
 						{
-                            OK = mvOccupied->BrakeLevelAdd( 0.25 );
-                            if( ( deltaAcc > 5 * fBrake_a1[ 0 ] )
-                             && ( mvOccupied->BrakeCtrlPosR <= 3.0 ) ) {
-                                mvOccupied->BrakeLevelAdd( 0.75 );
+                            OK = mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
+                            // brake harder if the acceleration is much higher than desired
+                            if( ( deltaAcc > 2 * fBrake_a1[ 0 ] )
+                             && ( mvOccupied->BrakeCtrlPosR + BrakingLevelIncrease <= 5.0 ) ) {
+                                mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
                             }
 						}
                     }
@@ -2793,36 +2816,42 @@ bool TController::IncSpeed()
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
                     // use series mode:
-                    // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
                     // if high threshold is set for motor overload relay,
-                    // if the power station is heavily burdened
+                    // if the power station is heavily burdened,
+                    // if it generates enough traction force
+                    // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
+                    auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
                     auto const useseriesmodevoltage { 0.80 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
+                    auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
+                    auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
                     auto const useseriesmode = (
-                        ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 35 : 25 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) )
-                     || ( mvControlling->Imax > mvControlling->ImaxLo )
-                     || ( fVoltage < useseriesmodevoltage ) );
+                        ( mvControlling->Imax > mvControlling->ImaxLo )
+                     || ( fVoltage < useseriesmodevoltage )
+                     || ( ( true == sufficienttractionforce )
+                       && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
-                    auto const scndctrl = (
+                    auto const usefieldshunting = (
                         ( mvControlling->StLinFlag )
                      && ( mvControlling->RList[ mvControlling->MainCtrlPos ].R < 0.01 )
                      && ( useseriesmode ?
                             mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 :
-                            ( ( mvOccupied->Vel <= ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ? 55 : 45 ) + ( mvControlling->ScndCtrlPos == 0 ? 0 : 5 ) ) ?
+                            ( ( true == sufficienttractionforce )
+                           && ( mvOccupied->Vel <= ( IsCargoTrain ? 55 : 45 ) + ( parallelmodefieldshunting ? 5 : 0 ) ) ?
                                 mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 :
                                 mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );
 
 					double Vs = 99999;
-                    if( scndctrl ?
+                    if( usefieldshunting ?
                         ( mvControlling->ScndCtrlPos < mvControlling->ScndCtrlPosNo ) :
                         ( mvControlling->MainCtrlPos < mvControlling->MainCtrlPosNo ) ) {
-                        Vs = ESMVelocity( !scndctrl );
+                        Vs = ESMVelocity( !usefieldshunting );
                     }
 
                     if( ( std::abs( mvControlling->Im ) < ( fReady < 0.4 ? mvControlling->Imin : mvControlling->IminLo ) )
                      || ( mvControlling->Vel > Vs ) ) {
                         // Ra: wywalał nadmiarowy, bo Im może być ujemne; jak nie odhamowany, to nie przesadzać z prądem
-                        if( scndctrl ) {
+                        if( usefieldshunting ) {
                             // to dać bocznik
                             // engage the shuntfield only if there's sufficient power margin to draw from
                             OK = (
@@ -3787,12 +3816,13 @@ TController::UpdateSituation(double dt) {
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
                 if (AIControllFlag) // skład jak dotąd był wyluzowany
                 {
-                    if (mvOccupied->BrakeCtrlPos == 0) // jest pozycja jazdy
-                        if ((p->MoverParameters->PipePress - 5.0) >
-                            -0.1) // jeśli ciśnienie jak dla jazdy
-                            if (p->MoverParameters->Hamulec->GetCRP() >
-                                p->MoverParameters->PipePress + 0.12) // za dużo w zbiorniku
-                                p->MoverParameters->BrakeReleaser(1); // indywidualne luzowanko
+                    if( ( mvOccupied->BrakeCtrlPos == 0 ) // jest pozycja jazdy
+                     && ( ( p->MoverParameters->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) // brake isn't broken
+                     && ( p->MoverParameters->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
+                     && ( p->MoverParameters->Hamulec->GetCRP() > p->MoverParameters->PipePress + 0.12 ) ) { // za dużo w zbiorniku
+                        // indywidualne luzowanko
+                        p->MoverParameters->BrakeReleaser( 1 );
+                    }
                     if (p->MoverParameters->Power > 0.01) // jeśli ma silnik
                         if (p->MoverParameters->FuseFlag) // wywalony nadmiarowy
                             Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
@@ -4355,34 +4385,14 @@ TController::UpdateSituation(double dt) {
     }
     case Shunt: {
         // na jaką odleglość i z jaką predkością ma podjechać
-/*
-        fMinProximityDist = 5.0;
-        fMaxProximityDist = 10.0; //[m]
-
-        if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
-            // for larger consists increase margins to account for slower braking etc
-            // NOTE: this will affect also multi-unit vehicles TBD: is this what we want?
-            fMinProximityDist *= 2.0;
-            fMaxProximityDist *= 2.0;
-            if( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ) {
-                // additional safety margin for cargo consists
-                fMinProximityDist *= 2.0;
-                fMaxProximityDist *= 2.0;
-                if( fBrake_a0[ 0 ] >= 0.35 ) {
-                    // cargo trains with high braking threshold may require even larger safety margin
-                    fMaxProximityDist += 20.0;
-                }
-            }
-        }
-*/
+        // TODO: test if we can use the distances calculation from obey_train
         fMinProximityDist = std::min( 5 + iVehicles, 25 );
         fMaxProximityDist = std::min( 10 + iVehicles, 50 );
-        if( ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
-         && ( fBrake_a0[ 0 ] >= 0.35 ) ) {
-            // cargo trains with high braking threshold may require even larger safety margin
+/*
+        if( IsHeavyCargoTrain ) {
             fMaxProximityDist *= 1.5;
         }
-
+*/
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -4393,11 +4403,25 @@ TController::UpdateSituation(double dt) {
         // na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
         if( mvOccupied->CategoryFlag & 1 ) {
             // jeśli pociąg
-            fMinProximityDist = 15.0;
-            fMaxProximityDist =
-                ( mvOccupied->Vel > 0.0 ) ?
-                    25.0 :
-                    50.0; //[m] jak stanie za daleko, to niech nie dociąga paru metrów
+            fMinProximityDist = clamp(  5 + iVehicles, 10, 15 );
+            fMaxProximityDist = clamp( 10 + iVehicles, 15, 40 );
+
+            if( IsCargoTrain ) {
+                // increase distances for cargo trains to take into account slower reaction to brakes
+                fMinProximityDist += 10.0;
+                fMaxProximityDist += 10.0;
+/*
+                if( IsHeavyCargoTrain ) {
+                    // cargo trains with high braking threshold may require even larger safety margin
+                    fMaxProximityDist += 20.0;
+                }
+*/
+            }
+            if( mvOccupied->Vel < 0.1 ) {
+                // jak stanie za daleko, to niech nie dociąga paru metrów
+                fMaxProximityDist = 50.0;
+            }
+
             if( iDrivigFlags & moveLate ) {
                 // jeśli spóźniony, to gna
                 fVelMinus = 1.0;
@@ -4412,20 +4436,11 @@ TController::UpdateSituation(double dt) {
                 // bottom margin raised to 2 km/h to give the AI more leeway at low speed limits
                 fVelPlus = clamp( std::ceil( 0.05 * VelDesired ), 2.0, 5.0 );
             }
-            if( mvOccupied->BrakeDelayFlag == bdelay_G ) {
-                // increase distances for cargo trains to take into account slower reaction to brakes
-                fMinProximityDist += 10.0;
-                fMaxProximityDist += 15.0;
-                if( fBrake_a0[ 0 ] >= 0.35 ) {
-                    // cargo trains with high braking threshold may require even larger safety margin
-                    fMaxProximityDist += 20.0;
-                }
-            }
         }
         else {
             // samochod (sokista też)
-            fMinProximityDist = std::max( 3.0, mvOccupied->Vel * 0.2   );
-            fMaxProximityDist = std::max( 9.0, mvOccupied->Vel * 0.375 ); //[m]
+            fMinProximityDist = std::max( 3.5, mvOccupied->Vel * 0.2   );
+            fMaxProximityDist = std::max( 9.5, mvOccupied->Vel * 0.375 ); //[m]
             // margines prędkości powodujący załączenie napędu
             fVelMinus = 2.0;
             // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
@@ -4701,14 +4716,15 @@ TController::UpdateSituation(double dt) {
                                 fMinProximityDist : // cars can bunch up tighter
                                 fMaxProximityDist ) ); // other vehicle types less so
 */
-                    ActualProximityDist = std::min(
-                        ActualProximityDist,
-                        vehicle->fTrackBlock );
                     double k = coupler->Connected->Vel; // prędkość pojazdu z przodu (zakładając,
                     // że jedzie w tę samą stronę!!!)
-                    if( k - vel < 10 ) {
+                    if( k - vel < 5 ) {
                         // porównanie modułów prędkości [km/h]
                         // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
+                        ActualProximityDist = std::min(
+                            ActualProximityDist,
+                            vehicle->fTrackBlock );
+
                         double const distance = vehicle->fTrackBlock - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
                         if( distance < 0.0 ) {
                             // jeśli odległość jest zbyt mała
@@ -4939,13 +4955,17 @@ TController::UpdateSituation(double dt) {
 						}
 						else {
                             // outside of max safe range
+                            AccDesired = AccPreferred;
                             if( vel > min_speed( 10.0, VelDesired ) ) {
                                 // allow to coast at reasonably low speed
+                                auto const brakingdistance { fBrakeDist * braking_distance_multiplier( VelNext ) };
                                 auto const slowdowndistance { (
-                                    ( OrderCurrentGet() & Connect ) == 0 ?
-                                        100.0 :
-                                        25.0 ) };
-                                if( ( std::max( slowdowndistance, fMaxProximityDist ) + fBrakeDist * braking_distance_multiplier( VelNext ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
+                                    mvOccupied->CategoryFlag == 2 ? // cars can stop on a dime, for bigger vehicles we enforce some minimal braking distance
+                                        brakingdistance :
+                                        std::max(
+                                            ( ( OrderCurrentGet() & Connect ) == 0 ? 100.0 : 25.0 ),
+                                            brakingdistance ) ) };
+                                if( ( brakingdistance + std::max( slowdowndistance, fMaxProximityDist ) ) >= ( ActualProximityDist - fMaxProximityDist ) ) {
                                     // don't slow down prematurely; as long as we have room to come to a full stop at a safe distance, we're good
                                     // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
                                     auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
@@ -5060,8 +5080,8 @@ TController::UpdateSituation(double dt) {
                             // if it looks like we'll exceed maximum speed start thinking about slight slowing down
                             AccDesired = std::min( AccDesired, -0.25 );
                             // HACK: for cargo trains with high braking threshold ensure we cross that threshold
-                            if( ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 )
-                               && ( fBrake_a0[ 0 ] > 0.2 ) ) {
+                            if( ( true == IsCargoTrain )
+                             && ( fBrake_a0[ 0 ] > 0.2 ) ) {
                                 AccDesired -= clamp( fBrake_a0[ 0 ] - 0.2, 0.0, 0.15 );
                             }
                         }
@@ -5119,7 +5139,10 @@ TController::UpdateSituation(double dt) {
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
-            AccDesired = clamp( AccDesired, -0.9, 0.9 );
+            AccDesired = clamp(
+                AccDesired,
+                    ( mvControlling->CategoryFlag == 2  ? -2.0 : -0.9 ),
+                    ( mvControlling->CategoryFlag == 2 ?   2.0 :  0.9 ) );
 
             if (AIControllFlag) {
                 // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
@@ -5211,7 +5234,7 @@ TController::UpdateSituation(double dt) {
                              && ( BrakeChargingCooldown >= 0.0 ) )  {
 
                                 if( ( iDrivigFlags & moveOerlikons )
-                                 || ( mvOccupied->BrakeDelayFlag & bdelay_G ) ) {
+                                 || ( true == IsCargoTrain ) ) {
                                     // napełnianie w Oerlikonie
                                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) );
                                     // don't charge the brakes too often, or we risk overcharging

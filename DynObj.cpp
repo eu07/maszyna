@@ -2772,66 +2772,6 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (!bEnabled)
         return false; // a normalnie powinny mieć bEnabled==false
 
-    // McZapkie-260202
-    if ((MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) &&
-        (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
-/*
-        if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
-        {
-*/
-            // if
-            // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
-            // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-            
-            if( MoverParameters->PantPress < MoverParameters->EnginePowerSource.CollectorParameters.MinPress ) {
-                // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
-                if( true == MoverParameters->PantPressSwitchActive ) {
-                    // opuszczenie pantografów przy niskim ciśnieniu
-/*
-                    // NOTE: disabled, the pantographs drop by themseleves when the pantograph tank pressure gets low enough
-                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
-                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
-*/
-                    if( MoverParameters->TrainType != dt_EZT ) {
-                        // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
-                        if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
-                            // TODO: check whether line breaker should be open EMU-wide
-                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range_t::unit : range_t::local ) );
-                        }
-                    }
-                    else {
-                        // specialized variant for EMU -- pwr system disables converter and heating,
-                        // and prevents their activation until pressure switch is set again
-                        MoverParameters->PantPressLockActive = true;
-                        // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
-                        MoverParameters->ConverterSwitch( false, range_t::unit );
-                    }
-                    // mark the pressure switch as spent
-                    MoverParameters->PantPressSwitchActive = false;
-                }
-            }
-            else {
-                if( MoverParameters->PantPress >= 4.6 ) {
-                    // NOTE: we require active low power source to prime the pressure switch
-                    // this is a work-around for potential isssues caused by the switch activating on otherwise idle vehicles, but should check whether it's accurate
-                    if( ( true == MoverParameters->Battery )
-                     || ( true == MoverParameters->ConverterFlag ) ) {
-                        // prime the pressure switch
-                        MoverParameters->PantPressSwitchActive = true;
-                        // turn off the subsystems lock
-                        MoverParameters->PantPressLockActive = false;
-                    }
-
-                    if( MoverParameters->PantPress >= 4.8 ) {
-                        // Winger - automatyczne wylaczanie malej sprezarki
-                        // TODO: governor lock, disables usage until pressure drop below 3.8 (should really make compressor object we could reuse)
-                        MoverParameters->PantCompFlag = false;
-                    }
-                }
-            }
-/*
-        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
-*/
     double dDOMoveLen;
 
     TLocation l;

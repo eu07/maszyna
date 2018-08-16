@@ -733,8 +733,9 @@ void TMoverParameters::UpdatePantVolume(double dt)
         // Ra 2014-07: kurek trójdrogowy łączy spr.pom. z pantografami i wyłącznikiem ciśnieniowym WS
         // Ra 2014-07: zbiornika rozrządu nie pompuje się tu, tylko pantografy; potem można zamknąć
         // WS i odpalić resztę
-        if ((TrainType == dt_EZT) ? (PantPress < ScndPipePress) :
-                                    bPantKurek3) // kurek zamyka połączenie z ZG
+        if ((TrainType == dt_EZT) ?
+            (PantPress < ScndPipePress) :
+            bPantKurek3) // kurek zamyka połączenie z ZG
         { // zbiornik pantografu połączony ze zbiornikiem głównym - małą sprężarką się tego nie napompuje
             // Ra 2013-12: Niebugocław mówi, że w EZT nie ma potrzeby odcinać kurkiem
             PantPress = ScndPipePress;
@@ -758,33 +759,48 @@ void TMoverParameters::UpdatePantVolume(double dt)
         }
         if( !PantCompFlag && ( PantVolume > 0.1 ) )
             PantVolume -= dt * 0.0003 * std::max( 1.0, PantPress * 0.5 ); // nieszczelności: 0.0003=0.3l/s
-/*
-        // NOTE: disabled as this is redundant with check done in dynobj.update()
-        // TODO: determine if this isn't a mistake --
-        // though unlikely it's possible this is emulation of a different circuit than the pantograph pressure switch, with similar function?
-        // TBD, TODO: alternatively, move the dynobj.update() subroutine here, as it doesn't touch elements outside of the mover object
-        if( Mains ) {
-            // nie wchodzić w funkcję bez potrzeby
-            if( EngineType == ElectricSeriesMotor ) {
-                // nie dotyczy... czego właściwie?
-                if( ( true == PantPressSwitchActive )
-                 && ( PantPress < EnginePowerSource.CollectorParameters.MinPress ) ) {
-                    // wywalenie szybkiego z powodu niskiego ciśnienia
-                    if( GetTrainsetVoltage() < 0.5 * EnginePowerSource.MaxVoltage ) {
-                        // to jest trochę proteza; zasilanie członu może być przez sprzęg WN
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ) ) {
-                            EventFlag = true;
-                        }
+
+        if( PantPress < EnginePowerSource.CollectorParameters.MinPress ) {
+            // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+            if( true == PantPressSwitchActive ) {
+                // opuszczenie pantografów przy niskim ciśnieniu
+                if( TrainType != dt_EZT ) {
+                    // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
+                    if( GetTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
+                        // TODO: check whether line breaker should be open EMU-wide
+                        MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) );
                     }
+                }
+                else {
+                    // specialized variant for EMU -- pwr system disables converter and heating,
+                    // and prevents their activation until pressure switch is set again
+                    PantPressLockActive = true;
+                    // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
+                    ConverterSwitch( false, range_t::unit );
+                }
+                // mark the pressure switch as spent
+                PantPressSwitchActive = false;
+            }
+        }
+        else {
+            if( PantPress >= 4.6 ) {
+                // NOTE: we require active low power source to prime the pressure switch
+                // this is a work-around for potential isssues caused by the switch activating on otherwise idle vehicles, but should check whether it's accurate
+                if( ( true == Battery )
+                 || ( true == ConverterFlag ) ) {
+                    // prime the pressure switch
+                    PantPressSwitchActive = true;
+                    // turn off the subsystems lock
+                    PantPressLockActive = false;
+                }
 
-                    // NOTE: disabled, the flag gets set in dynobj.update() when the pantograph actually drops
-                    // mark the pressure switch as spent, regardless whether line breaker actually opened
-                    PantPressSwitchActive = false;
-
+                if( PantPress >= 4.8 ) {
+                    // Winger - automatyczne wylaczanie malej sprezarki
+                    // TODO: governor lock, disables usage until pressure drop below 3.8 (should really make compressor object we could reuse)
+                    PantCompFlag = false;
                 }
             }
         }
-*/
 /*
         // NOTE: pantograph tank pressure sharing experimentally disabled for more accurate simulation
         if (TrainType != dt_EZT) // w EN57 pompuje się tylko w silnikowym
@@ -1351,9 +1367,6 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
     } // liczone dL, predkosc i przyspieszenie
 
-    if (Power > 1.0) // w rozrządczym nie (jest błąd w FIZ!) - Ra 2014-07: teraz we wszystkich
-        UpdatePantVolume(dt); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
-
     auto const d { (
         EngineType == TEngineType::WheelsDriven ?
             dL * CabNo : // na chwile dla testu
@@ -1364,6 +1377,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
     // koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
     compute_movement_( dt );
+
     // security system
     if (!DebugModeFlag)
         SecuritySystemCheck(dt1);
@@ -1430,9 +1444,6 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
             if (Couplers[b].CheckCollision)
                 CollisionDetect(b, dt); // zmienia niejawnie AccS, V !!!
     } // liczone dL, predkosc i przyspieszenie
-    // QQQ
-    if (Power > 1.0) // w rozrządczym nie (jest błąd w FIZ!)
-        UpdatePantVolume(dt); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
 
     auto const d { (
         EngineType == TEngineType::WheelsDriven ?
@@ -1482,6 +1493,11 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         // sprężarka musi mieć jakąś niezerową wydajność żeby rozważać jej załączenie i pracę
         CompressorCheck( Deltatime );
     }
+    if( Power > 1.0 ) {
+        // w rozrządczym nie (jest błąd w FIZ!) - Ra 2014-07: teraz we wszystkich
+        UpdatePantVolume( Deltatime ); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
+    }
+
     UpdateBrakePressure(Deltatime);
     UpdatePipePressure(Deltatime);
     UpdateBatteryVoltage(Deltatime);
@@ -2695,61 +2711,21 @@ bool TMoverParameters::IncBrakeLevelOld(void)
 {
     bool IBLO = false;
 
-    if ((BrakeCtrlPosNo > 0) /*and (LocalBrakePos=0)*/)
+    if (BrakeCtrlPosNo > 0)
     {
         if (BrakeCtrlPos < BrakeCtrlPosNo)
         {
-            BrakeCtrlPos++;
-            //      BrakeCtrlPosR = BrakeCtrlPos;
-
-            // youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie
-            // poszczegolne pozycje;
-            //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba
-            //       wspolapracowac
-            //{
-            //        if (BrakeSystem==ElectroPneumatic)
-            //          if (BrakePressureActual.BrakeType==ElectroPneumatic)
-            //           {
-            //           BrakeStatus = ord(BrakeCtrlPos > 0);
-            //             SendCtrlToNext("BrakeCtrl", BrakeCtrlPos, CabNo);
-            //           }
-            //          else SendCtrlToNext("BrakeCtrl", -2, CabNo);
-            //        else
-            //         if (!TestFlag(BrakeStatus,b_dmg))
-            //          BrakeStatus = b_on;}
-
+            ++BrakeCtrlPos;
             // youBy: EP po nowemu
-
             IBLO = true;
             if ((BrakePressureActual.PipePressureVal < 0) &&
                 (BrakePressureTable[BrakeCtrlPos - 1].PipePressureVal > 0))
                 LimPipePress = PipePress;
-
-			//ten kawałek jest bez sensu gdyż nic nie robił. Zakomntowałem. GF 20161124
-            //if (BrakeSystem == ElectroPneumatic)
-            //    if (BrakeSubsystem != ss_K)
-            //    {
-            //        if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
-            //        {
-            //            //                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
-            //            //                SetFlag(BrakeStatus,b_epused);
-            //        }
-            //        else
-            //        {
-            //            //                SendCtrlToNext('Brake',0,CabNo);
-            //            //                SetFlag(BrakeStatus,-b_epused);
-            //        }
-            //    }
         }
-        else
-        {
+        else {
             IBLO = false;
-            //        if (BrakeSystem == Pneumatic)
-            //         EmergencyBrakeSwitch(true);
         }
     }
-    else
-        IBLO = false;
 
     return IBLO;
 }
@@ -2762,69 +2738,20 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 {
     bool DBLO = false;
 
-    if ((BrakeCtrlPosNo > 0) /*&& (LocalBrakePos == 0)*/)
+    if (BrakeCtrlPosNo > 0)
     {
-        if (BrakeCtrlPos > -1 - int(BrakeHandle == TBrakeHandle::FV4a))
+        if (BrakeCtrlPos > ( ( BrakeHandle == TBrakeHandle::FV4a ) ? -2 : -1 ) )
         {
-            BrakeCtrlPos--;
-            //        BrakeCtrlPosR:=BrakeCtrlPos;
-            //if (EmergencyBrakeFlag)
-            //{
-            //    EmergencyBrakeFlag = false; //!!!
-            //    SendCtrlToNext("Emergency_brake", 0, CabNo);
-            //}
-
-            // youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie
-            // poszczegolne pozycje;
-            //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba
-            //       wspolapracowac
-            /*
-                    if (BrakeSystem == ElectroPneumatic)
-                      if (BrakePressureActual.BrakeType == ElectroPneumatic)
-                       {
-            //             BrakeStatus =ord(BrakeCtrlPos > 0);
-                         SendCtrlToNext("BrakeCtrl",BrakeCtrlPos,CabNo);
-                       }
-                      else SendCtrlToNext('BrakeCtrl',-2,CabNo);
-            //        else}
-            //         if (not TestFlag(BrakeStatus,b_dmg) and (not
-            TestFlag(BrakeStatus,b_release))) then
-            //          BrakeStatus:=b_off;   {luzowanie jesli dziala oraz nie byl wlaczony
-            odluzniacz
-            */
-
+            --BrakeCtrlPos;
             // youBy: EP po nowemu
             DBLO = true;
-            //        if ((BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0) &&
-            //        (BrakePressureTable[BrakeCtrlPos+1].PipePressureVal > 0))
-            //          LimPipePress:=PipePress;
-
-			// to nic nie robi. Zakomentowałem. GF 20161124
-            //if (BrakeSystem == ElectroPneumatic)
-            //    if (BrakeSubsystem != ss_K)
-            //    {
-            //        if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
-            //        {
-            //            //                SendCtrlToNext("Brake", BrakeCtrlPos, CabNo);
-            //            //                SetFlag(BrakeStatus, b_epused);
-            //        }
-            //        else
-            //        {
-            //            //                SendCtrlToNext("Brake", 0, CabNo);
-            //            //                SetFlag(BrakeStatus, -b_epused);
-            //        }
-            //    }
-            //    for b:=0 to 1 do  {poprawic to!}
-            //     with Couplers[b] do
-            //      if CouplingFlag and ctrain_controll=ctrain_controll then
-            //       Connected^.BrakeCtrlPos:=BrakeCtrlPos;
-            //
+//            if ((BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0) &&
+//                (BrakePressureTable[BrakeCtrlPos+1].PipePressureVal > 0))
+//                LimPipePress=PipePress;
         }
         else
             DBLO = false;
     }
-    else
-        DBLO = false;
 
     return DBLO;
 }

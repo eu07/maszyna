@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "mczapkie/mover.h"
 #include "sound.h"
+#include "dynobj.h"
 
 enum TOrders
 { // rozkazy dla AI
@@ -208,8 +209,15 @@ public:
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
-	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
-	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
+    // dla fBrake_aX:
+    // indeks [0] - wartości odpowiednie dla aktualnej prędkości
+    // a potem jest 20 wartości dla różnych prędkości zmieniających się co 5 % Vmax pojazdu obsadzonego
+	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // opóźnienia hamowania przy ustawieniu zaworu maszynisty w pozycji 1.0
+	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // przyrost opóźnienia hamowania po przestawieniu zaworu maszynisty o 0,25 pozycji
+    double BrakingInitialLevel{ 1.0 };
+    double BrakingLevelIncrease{ 0.25 };
+    bool IsCargoTrain{ false };
+    bool IsHeavyCargoTrain{ false };
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
@@ -354,7 +362,7 @@ private:
     std::vector<TEvent *> CheckTrackEvent(TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
-    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
+    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     // modifies brake distance for low target speeds, to ease braking rate in such situations
@@ -412,4 +420,8 @@ private:
     std::string OwnerName() const;
     TMoverParameters const *Controlling() const {
         return mvControlling; }
+    int Direction() const {
+        return iDirection; }
+    TDynamicObject const *Vehicle() const {
+        return pVehicle; }
 };
