@@ -3130,7 +3130,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 					p->MoverParameters->Hamulec->GetFC(
 						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA), VelC) *
 					1000; // sila hamowania pn
-				p->MoverParameters->LocalBrakePosAEIM = (p->MoverParameters->SlippingWheels ? 0 : FzEP[i] / FmaxPoj);
+				p->MoverParameters->LocalBrakePosAEIM = FzEP[i] / FmaxPoj;
 				if (p->MoverParameters->LocalBrakePosAEIM>0.009)
 					if (p->MoverParameters->P2FTrans * p->MoverParameters->BrakeCylMult[0] *
 						p->MoverParameters->MaxBrakePress[0] != 0)
