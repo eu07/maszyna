@@ -16,7 +16,7 @@ node_groups Groups;
 
 // requests creation of a new node group. returns: handle to the group
 scene::group_handle
-node_groups::begin() {
+node_groups::create() {
 
     m_activegroup.push( create_handle() );
 
@@ -25,7 +25,7 @@ node_groups::begin() {
 
 // indicates creation of current group ended. returns: handle to the parent group or null_handle if group stack is empty
 scene::group_handle
-node_groups::end() {
+node_groups::close() {
 
     if( false == m_activegroup.empty() ) {
 
@@ -58,7 +58,7 @@ node_groups::handle() const {
 
 // places provided node in specified group
 void
-node_groups::register_node( scene::basic_node *Node, scene::group_handle const Group ) {
+node_groups::insert( scene::group_handle const Group, scene::basic_node *Node ) {
 
     // TBD, TODO: automatically unregister the node from its current group?
     Node->group( Group );

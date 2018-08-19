@@ -2906,15 +2906,12 @@ bool TController::IncSpeed()
 			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
                 OK = mvControlling->IncMainCtrl(std::max(1,mvOccupied->MainCtrlPosNo/10));
-				//tutaj jeszcze powinien być tempomat
-
-				double SpeedCntrlVel = VelDesired;
-				if (fProximityDist < 50)
-				{
-					SpeedCntrlVel = std::min(SpeedCntrlVel, VelNext);
-				}
+                // cruise control
+                auto const SpeedCntrlVel { (
+                    ( ActualProximityDist > std::max( 50.0, fMaxProximityDist ) ) ?
+                        VelDesired :
+                        min_speed( VelDesired, VelNext ) ) };
 				SpeedCntrl(SpeedCntrlVel);
-
             }
         break;
     case TEngineType::WheelsDriven:
@@ -3081,20 +3078,15 @@ void TController::SpeedSet()
         else if (Ready || (iDrivigFlags & movePress)) // o ile może jechać
             if (fAccGravity < -0.10) // i jedzie pod górę większą niż 10 promil
             { // procedura wjeżdżania na ekstremalne wzniesienia
-                if (fabs(mvControlling->Im) >
-                    0.85 * mvControlling->Imax) // a prąd jest większy niż 85% nadmiarowego
-                    // if (mvControlling->Imin*mvControlling->Voltage/(fMass*fAccGravity)<-2.8) //a
-                    // na niskim się za szybko nie pojedzie
-                    if (mvControlling->Imax * mvControlling->Voltage / (fMass * fAccGravity) <
-                        -2.8) // a na niskim się za szybko nie pojedzie
+                if (fabs(mvControlling->Im) > 0.85 * mvControlling->Imax) // a prąd jest większy niż 85% nadmiarowego
+                    if (mvControlling->Imax * mvControlling->Voltage / (fMass * fAccGravity) < -2.8) // a na niskim się za szybko nie pojedzie
                     { // włączenie wysokiego rozruchu;
                         // (I*U)[A*V=W=kg*m*m/sss]/(m[kg]*a[m/ss])=v[m/s]; 2.8m/ss=10km/h
                         if (mvControlling->RList[mvControlling->MainCtrlPos].Bn > 1)
                         { // jeśli jedzie na równoległym, to zbijamy do szeregowego, aby włączyć
                             // wysoki rozruch
                             if (mvControlling->ScndCtrlPos > 0) // jeżeli jest bocznik
-                                mvControlling->DecScndCtrl(
-                                    2); // wyłączyć bocznik, bo może blokować skręcenie NJ
+                                mvControlling->DecScndCtrl(2); // wyłączyć bocznik, bo może blokować skręcenie NJ
                             do // skręcanie do bezoporowej na szeregowym
                                 mvControlling->DecMainCtrl(1); // kręcimy nastawnik jazdy o 1 wstecz
                             while (mvControlling->MainCtrlPos ?
@@ -3102,8 +3094,7 @@ void TController::SpeedSet()
                                        false); // oporowa zapętla
                         }
                         if (mvControlling->Imax < mvControlling->ImaxHi) // jeśli da się na wysokim
-                            mvControlling->CurrentSwitch(
-                                true); // rozruch wysoki (za to może się ślizgać)
+                            mvControlling->CurrentSwitch(true); // rozruch wysoki (za to może się ślizgać)
                         if (ReactionTime > 0.1)
                             ReactionTime = 0.1; // orientuj się szybciej
                     } // if (Im>Imin)
@@ -3132,23 +3123,12 @@ void TController::SpeedSet()
                     if (mvOccupied->Vel >= 30.0) // jak się rozpędził
                         if (fAccGravity > -0.02) // a i pochylenie mnijsze niż 2‰
                             mvControlling->CurrentSwitch(false); // rozruch wysoki wyłącz
-                // dokręcanie do bezoporowej, bo IncSpeed() może nie być wywoływane
-                // if (mvOccupied->Vel<VelDesired)
-                // if (AccDesired>-0.1) //nie ma hamować
-                //  if (Controlling->RList[MainCtrlPos].R>0.0)
-                //   if (Im<1.3*Imin) //lekkie przekroczenie miimalnego prądu jest dopuszczalne
-                //    IncMainCtrl(1); //zwieksz nastawnik skoro możesz - tak aby się ustawic na
-                //    bezoporowej
             }
         break;
     case TEngineType::Dumb:
     case TEngineType::DieselElectric:
     case TEngineType::ElectricInductionMotor:
         break;
-    // WheelsDriven :
-    // begin
-    //  OK:=False;
-    // end;
     case TEngineType::DieselEngine:
         // Ra 2014-06: "automatyczna" skrzynia biegów...
         if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) // gdy biegi ręczne
@@ -4901,13 +4881,10 @@ TController::UpdateSituation(double dt) {
 #endif
             // ustalanie zadanego przyspieszenia
             //(ActualProximityDist) - odległość do miejsca zmniejszenia prędkości
-            //(AccPreferred) - wynika z psychyki oraz uwzglęnia już ewentualne zderzenie z
-            // pojazdem z przodu, ujemne gdy należy hamować
+            //(AccPreferred) - wynika z psychyki oraz uwzglęnia już ewentualne zderzenie z pojazdem z przodu, ujemne gdy należy hamować
             //(AccDesired) - uwzględnia sygnały na drodze ruchu, ujemne gdy należy hamować
-            //(fAccGravity) - chwilowe przspieszenie grawitacyjne, ujemne działa przeciwnie do
-            // zadanego kierunku jazdy
-            //(AbsAccS) - chwilowe przyspieszenie pojazu (uwzględnia grawitację), ujemne działa
-            // przeciwnie do zadanego kierunku jazdy
+            //(fAccGravity) - chwilowe przspieszenie grawitacyjne, ujemne działa przeciwnie do zadanego kierunku jazdy
+            //(AbsAccS) - chwilowe przyspieszenie pojazu (uwzględnia grawitację), ujemne działa przeciwnie do zadanego kierunku jazdy
             //(AccDesired) porównujemy z (fAccGravity) albo (AbsAccS)
             if( ( VelNext >= 0.0 )
              && ( ActualProximityDist <= routescanrange )

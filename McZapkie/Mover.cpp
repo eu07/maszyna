@@ -5398,8 +5398,6 @@ bool TMoverParameters::AutoRelaySwitch(bool State)
 bool TMoverParameters::AutoRelayCheck(void)
 {
     bool OK = false; // b:int;
-    bool ARFASI = false;
-    bool ARFASI2 = false; // sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
     bool ARC = false;
 
     // Ra 2014-06: dla SN61 nie działa prawidłowo
@@ -5421,11 +5419,14 @@ bool TMoverParameters::AutoRelayCheck(void)
         }
     }
 
-    ARFASI2 = (!AutoRelayFlag) || ((MotorParam[ScndCtrlActualPos].AutoSwitch) &&
-                                    (abs(Im) < Imin)); // wszystkie warunki w jednym
-    ARFASI = (!AutoRelayFlag) || ((RList[MainCtrlActualPos].AutoSwitch) && (abs(Im) < Imin)) ||
-              ((!RList[MainCtrlActualPos].AutoSwitch) &&
-               (RList[MainCtrlActualPos].Relay < MainCtrlPos)); // wszystkie warunki w jednym
+    // sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
+    auto const ARFASI2 { (
+        ( !AutoRelayFlag )
+     || ( ( MotorParam[ ScndCtrlActualPos ].AutoSwitch ) && ( abs( Im ) < Imin ) ) ) };
+    auto const ARFASI { (
+        ( !AutoRelayFlag )
+     || ( ( RList[ MainCtrlActualPos ].AutoSwitch ) && ( abs( Im ) < Imin ) )
+     || ( ( !RList[ MainCtrlActualPos ].AutoSwitch ) && ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos ) ) ) };
     // brak PSR                   na tej pozycji działa PSR i prąd poniżej progu
     // na tej pozycji nie działa PSR i pozycja walu ponizej
     //                         chodzi w tym wszystkim o to, żeby można było zatrzymać rozruch na

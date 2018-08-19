@@ -27,16 +27,16 @@ public:
 // methods
     // requests creation of a new node group. returns: handle to the group
     group_handle
-        begin();
+        create();
     // indicates creation of current group ended. returns: handle to the parent group or null_handle if group stack is empty
     group_handle
-        end();
+        close();
     // returns current active group, or null_handle if group stack is empty
     group_handle
         handle() const;
     // places provided node in specified group
     void
-        register_node( scene::basic_node *Node, scene::group_handle const Group );
+        insert( scene::group_handle const Group, scene::basic_node *Node );
     std::pair<node_sequence::iterator, node_sequence::iterator>
         group( scene::group_handle const Group ) {
             auto &group { m_groupmap[ Group ] };

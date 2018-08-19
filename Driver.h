@@ -265,7 +265,6 @@ private:
     double VelNext = 120.0; // prędkość, jaka ma być po przejechaniu długości ProximityDist
     double VelRestricted = -1.0; // speed of travel after passing a permissive signal at stop
   private:
-    double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do punktu, <0:podana wartość
     double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora
   public:
     double ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia

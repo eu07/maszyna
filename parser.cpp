@@ -40,7 +40,7 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
             if( ( Stream.size() >= 4 )
              && ( ToLower( Stream.substr( Stream.size() - 4 ) ) == ".inc" ) ) {
                 mIncFile = true;
-                scene::Groups.begin();
+                scene::Groups.create();
             }
             break;
         }
@@ -75,7 +75,7 @@ cParser::~cParser() {
 
     if( true == mIncFile ) {
         // wrap up the node group holding content of processed file
-        scene::Groups.end();
+        scene::Groups.close();
     }
 }
 
