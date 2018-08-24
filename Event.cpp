@@ -1764,11 +1764,15 @@ event_manager::export_as_text( std::ostream &Output ) const {
 
     Output << "// events\n";
     for( auto const *event : m_events ) {
-        event->export_as_text( Output );
+        if( event->group() == null_handle ) {
+            event->export_as_text( Output );
+        }
     }
     Output << "// event launchers\n";
     for( auto const *launcher : m_launchers.sequence() ) {
-        launcher->export_as_text( Output );
+        if( launcher->group() == null_handle ) {
+            launcher->export_as_text( Output );
+        }
     }
 }
 

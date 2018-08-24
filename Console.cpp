@@ -275,14 +275,13 @@ void Console::ValueSet(int x, double y)
                 WriteLog( " fraction=" + std::to_string( y ) );
             }
         }
-        double temp = (((((Global.fCalibrateOut[x][5] * y) + Global.fCalibrateOut[x][4]) * y +
-                            Global.fCalibrateOut[x][3]) *
-                            y +
-                        Global.fCalibrateOut[x][2]) *
-                            y +
-                        Global.fCalibrateOut[x][1]) *
-                            y +
-                        Global.fCalibrateOut[x][0]; // zakres <0;1>
+        double temp = (((((
+              Global.fCalibrateOut[x][5]  * y)
+            + Global.fCalibrateOut[x][4]) * y
+            + Global.fCalibrateOut[x][3]) * y
+            + Global.fCalibrateOut[x][2]) * y
+            + Global.fCalibrateOut[x][1]) * y
+            + Global.fCalibrateOut[x][0]; // zakres <0;1>
         if( Global.iCalibrateOutDebugInfo == x ) {
             WriteLog( " calibrated=" + std::to_string( temp ) );
         }
@@ -320,11 +319,13 @@ float Console::AnalogCalibrateGet(int x)
     if (iMode == 4 && PoKeys55[0])
     {
 		float b = PoKeys55[0]->fAnalog[x];
-		b = (((((Global.fCalibrateIn[x][5] * b) + Global.fCalibrateIn[x][4]) * b +
-			Global.fCalibrateIn[x][3]) * b +
-			Global.fCalibrateIn[x][2]) * b +
-			Global.fCalibrateIn[x][1]) * b +
-			Global.fCalibrateIn[x][0];
+		b = (((((
+              Global.fCalibrateIn[x][5]  * b)
+            + Global.fCalibrateIn[x][4]) * b
+            + Global.fCalibrateIn[x][3]) * b
+            + Global.fCalibrateIn[x][2]) * b
+            + Global.fCalibrateIn[x][1]) * b
+            + Global.fCalibrateIn[x][0];
 		if (x == 0) return (b + 2) / 8;
 		if (x == 1) return b/10;
 		else return b;

@@ -35,6 +35,8 @@ private:
     void deserialize_description( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_event( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_firstinit( cParser &Input, scene::scratch_data &Scratchpad );
+    void deserialize_group( cParser &Input, scene::scratch_data &Scratchpad );
+    void deserialize_endgroup( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_light( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_node( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_origin( cParser &Input, scene::scratch_data &Scratchpad );

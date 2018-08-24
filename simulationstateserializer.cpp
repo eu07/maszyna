@@ -73,6 +73,8 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
                 { "description", &state_serializer::deserialize_description },
                 { "event",       &state_serializer::deserialize_event },
                 { "firstinit",   &state_serializer::deserialize_firstinit },
+                { "group",       &state_serializer::deserialize_group },
+                { "endgroup",    &state_serializer::deserialize_endgroup },
                 { "light",       &state_serializer::deserialize_light },
                 { "node",        &state_serializer::deserialize_node },
                 { "origin",      &state_serializer::deserialize_origin },
@@ -237,7 +239,10 @@ state_serializer::deserialize_event( cParser &Input, scene::scratch_data &Scratc
                 Scratchpad.location.offset.top().z ) );
     event->Load( &Input, offset );
 
-    if( false == simulation::Events.insert( event ) ) {
+    if( true == simulation::Events.insert( event ) ) {
+        scene::Groups.insert( scene::Groups.handle(), event );
+    }
+    else {
         delete event;
     }
 }
@@ -254,6 +259,18 @@ state_serializer::deserialize_firstinit( cParser &Input, scene::scratch_data &Sc
     simulation::Memory.InitCells();
 
     Scratchpad.initialized = true;
+}
+
+void
+state_serializer::deserialize_group( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    scene::Groups.create();
+}
+
+void
+state_serializer::deserialize_endgroup( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    scene::Groups.close();
 }
 
 void
@@ -897,27 +914,39 @@ state_serializer::export_as_text( std::string const &Scenariofile ) const {
     filename = Global.asCurrentSceneryPath + filename + "_export";
 
     std::ofstream scmfile { filename + ".scm" };
+    // groups
+    scmfile << "// groups\n";
+    scene::Groups.export_as_text( scmfile );
     // tracks
     scmfile << "// paths\n";
     for( auto const *path : Paths.sequence() ) {
-        path->export_as_text( scmfile );
+        if( path->group() == null_handle ) {
+            path->export_as_text( scmfile );
+        }
     }
     // traction
     scmfile << "// traction\n";
     for( auto const *traction : Traction.sequence() ) {
-        traction->export_as_text( scmfile );
+        if( traction->group() == null_handle ) {
+            traction->export_as_text( scmfile );
+        }
     }
     // power grid
     scmfile << "// traction power sources\n";
     for( auto const *powersource : Powergrid.sequence() ) {
-        powersource->export_as_text( scmfile );
+        if( powersource->group() == null_handle ) {
+            powersource->export_as_text( scmfile );
+        }
     }
     // models
     scmfile << "// instanced models\n";
     for( auto const *instance : Instances.sequence() ) {
-        instance->export_as_text( scmfile );
+        if( instance->group() == null_handle ) {
+            instance->export_as_text( scmfile );
+        }
     }
     // sounds
+    // NOTE: sounds currently aren't included in groups
     scmfile << "// sounds\n";
     Region->export_as_text( scmfile );
 
@@ -925,7 +954,8 @@ state_serializer::export_as_text( std::string const &Scenariofile ) const {
     // mem cells
     ctrfile << "// memory cells\n";
     for( auto const *memorycell : Memory.sequence() ) {
-        if( true == memorycell->is_exportable ) {
+        if( ( true == memorycell->is_exportable )
+         && ( memorycell->group() == null_handle ) ) {
             memorycell->export_as_text( ctrfile );
         }
     }

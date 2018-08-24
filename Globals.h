@@ -141,12 +141,12 @@ struct global_settings {
     double fBrakeStep{ 1.0 }; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     // parametry kalibracyjne wejść z pulpitu
     double fCalibrateIn[ 6 ][ 6 ] = {
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 } };
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 } };
     // parametry kalibracyjne wyjść dla pulpitu
     double fCalibrateOut[ 7 ][ 6 ] = {
         { 0, 1, 0, 0, 0, 0 },

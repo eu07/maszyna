@@ -4409,13 +4409,16 @@ void TTrain::UpdateMechPosition(double dt)
          && ( true == mvOccupied->TruckHunting ) ) {
             // hunting oscillation
             HuntingAngle = clamp_circular( HuntingAngle + 4.0 * HuntingShake.frequency * dt * mvOccupied->Vel, 360.0 );
-            shakevector.x +=
-                ( std::sin( glm::radians( HuntingAngle ) ) * dt * HuntingShake.scale )
-                * interpolate(
+            auto const huntingamount =
+                interpolate(
                     0.0, 1.0,
                     clamp(
                         ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
                         0.0, 1.0 ) );
+            shakevector.x +=
+                ( std::sin( glm::radians( HuntingAngle ) ) * dt * HuntingShake.scale )
+                * huntingamount;
+            IsHunting = ( huntingamount > 0.025 );
         }
 
         if( iVel > 0.5 ) {
@@ -5873,59 +5876,23 @@ TTrain::update_sounds( double const Deltatime ) {
      && ( false == Global.CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
-        // frequency calculation
-        auto const normalizer { (
-            true == rsRunningNoise.is_combined() ?
-                mvOccupied->Vmax * 0.01f :
-                1.f ) };
-        auto const frequency {
-            rsRunningNoise.m_frequencyoffset
-            + rsRunningNoise.m_frequencyfactor * mvOccupied->Vel * normalizer };
-
-        // volume calculation
-        volume =
-            rsRunningNoise.m_amplitudeoffset
-            + rsRunningNoise.m_amplitudefactor * mvOccupied->Vel;
-        if( std::abs( mvOccupied->nrot ) > 0.01 ) {
-            // hamulce wzmagaja halas
-            auto const brakeforceratio { (
-            clamp(
-                mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
-                0.0, 1.0 ) ) };
-
-            volume *= 1 + 0.125 * brakeforceratio;
-        }
-        // scale volume by track quality
-        // TODO: track quality and/or environment factors as separate subroutine
-        volume *=
-            interpolate(
-                0.8, 1.2,
-                clamp(
-                    DynamicObject->MyTrack->iQualityFlag / 20.0,
-                    0.0, 1.0 ) );
-        // for single sample sounds muffle the playback at low speeds
-        if( false == rsRunningNoise.is_combined() ) {
-            volume *=
-                interpolate(
-                    0.0, 1.0,
-                    clamp(
-                        mvOccupied->Vel / 40.0,
-                        0.0, 1.0 ) );
-        }
-
-        if( volume > 0.05 ) {
-            rsRunningNoise
-                .pitch( frequency )
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsRunningNoise.stop();
-        }
+        update_sounds_runningnoise( rsRunningNoise );
     }
     else {
         // don't play the optional ending sound if the listener switches views
         rsRunningNoise.stop( true == FreeFlyModeFlag );
+    }
+    // hunting oscillation noise
+    if( ( false == FreeFlyModeFlag )
+     && ( false == Global.CabWindowOpen )
+     && ( DynamicObject->GetVelocity() > 0.5 )
+     && ( IsHunting ) ) {
+
+        update_sounds_runningnoise( rsHuntingNoise );
+    }
+    else {
+        // don't play the optional ending sound if the listener switches views
+        rsHuntingNoise.stop( true == FreeFlyModeFlag );
     }
 
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -5974,6 +5941,58 @@ TTrain::update_sounds( double const Deltatime ) {
     }
     else if( fTachoCount < 1.f ) {
         dsbHasler.stop();
+    }
+}
+
+void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
+    // frequency calculation
+    auto const normalizer { (
+        true == Sound.is_combined() ?
+            mvOccupied->Vmax * 0.01f :
+            1.f ) };
+    auto const frequency {
+        Sound.m_frequencyoffset
+        + Sound.m_frequencyfactor * mvOccupied->Vel * normalizer };
+
+    // volume calculation
+    auto volume =
+        Sound.m_amplitudeoffset
+        + Sound.m_amplitudefactor * mvOccupied->Vel;
+    if( std::abs( mvOccupied->nrot ) > 0.01 ) {
+        // hamulce wzmagaja halas
+        auto const brakeforceratio { (
+        clamp(
+            mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
+            0.0, 1.0 ) ) };
+
+        volume *= 1 + 0.125 * brakeforceratio;
+    }
+    // scale volume by track quality
+    // TODO: track quality and/or environment factors as separate subroutine
+    volume *=
+        interpolate(
+            0.8, 1.2,
+            clamp(
+                DynamicObject->MyTrack->iQualityFlag / 20.0,
+                0.0, 1.0 ) );
+    // for single sample sounds muffle the playback at low speeds
+    if( false == Sound.is_combined() ) {
+        volume *=
+            interpolate(
+                0.0, 1.0,
+                clamp(
+                    mvOccupied->Vel / 40.0,
+                    0.0, 1.0 ) );
+    }
+
+    if( volume > 0.05 ) {
+        Sound
+            .pitch( frequency )
+            .gain( volume )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        Sound.stop();
     }
 }
 
@@ -6146,6 +6165,14 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsRunningNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
+            else if( token == "huntingnoise:" ) {
+                // hunting oscillation sound:
+                rsHuntingNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
+                rsHuntingNoise.owner( DynamicObject );
+
+                rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
+                rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
+            }
             else if (token == "mechspring:")
             {
                 // parametry bujania kamery:
@@ -6217,7 +6244,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
-        &rsFadeSound, &rsRunningNoise,
+        &rsFadeSound, &rsRunningNoise, &rsHuntingNoise,
         &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound, &m_radiostop
     };
     for( auto sound : sounds ) {

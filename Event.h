@@ -95,6 +95,10 @@ public:
     bool StopCommand();
     void StopCommandSent();
     void Append(TEvent *e);
+    void
+        group( scene::group_handle Group );
+    scene::group_handle
+        group() const;
 // members
     std::string asName;
     bool m_ignored { false }; // replacement for tp_ignored
@@ -114,8 +118,23 @@ public:
     bool m_conditionalelse { false }; // TODO: make a part of condition struct
 
 private:
+// methods
     void Conditions( cParser *parser, std::string s );
+// members
+    scene::group_handle m_group { null_handle }; // group this event belongs to, if any
 };
+
+inline
+void
+TEvent::group( scene::group_handle Group ) {
+    m_group = Group;
+}
+
+inline
+scene::group_handle
+TEvent::group() const {
+    return m_group;
+}
 
 class event_manager {
 

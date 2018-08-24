@@ -142,6 +142,7 @@ class TTrain
     void set_paired_open_motor_connectors_button( bool const State );
     // update function subroutines
     void update_sounds( double const Deltatime );
+    void update_sounds_runningnoise( sound_source &Sound );
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -572,6 +573,7 @@ public: // reszta może by?publiczna
         float fadein_end { 0.f }; // full effect speed in km/h
     } HuntingShake;
     float HuntingAngle { 0.f }; // crude approximation of hunting oscillation; current angle of sine wave
+    bool IsHunting { false };
 
     sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
     sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
@@ -591,6 +593,7 @@ public: // reszta może by?publiczna
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
+    sound_source rsHuntingNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
 
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };

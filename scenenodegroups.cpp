@@ -10,6 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scenenodegroups.h"
 
+#include "event.h"
+#include "memcell.h"
+
 namespace scene {
 
 node_groups Groups;
@@ -37,7 +40,7 @@ node_groups::close() {
 
             auto lookup { m_groupmap.find( closinggroup ) };
             if( ( lookup != m_groupmap.end() )
-             && ( lookup->second.size() <= 1 ) ) {
+             && ( ( lookup->second.nodes.size() + lookup->second.events.size() ) <= 1 ) ) {
 
                 erase( lookup );
             }
@@ -65,10 +68,49 @@ node_groups::insert( scene::group_handle const Group, scene::basic_node *Node ) 
 
     if( Group == null_handle ) { return; }
 
-    auto &nodesequence { m_groupmap[ Group ] };
+    auto &nodesequence { m_groupmap[ Group ].nodes };
     if( std::find( std::begin( nodesequence ), std::end( nodesequence ), Node ) == std::end( nodesequence ) ) {
         // don't add the same node twice
         nodesequence.emplace_back( Node );
+    }
+}
+
+// places provided event in specified group
+void
+node_groups::insert( scene::group_handle const Group, TEvent *Event ) {
+
+    // TBD, TODO: automatically unregister the event from its current group?
+    Event->group( Group );
+
+    if( Group == null_handle ) { return; }
+
+    auto &eventsequence { m_groupmap[ Group ].events };
+    if( std::find( std::begin( eventsequence ), std::end( eventsequence ), Event ) == std::end( eventsequence ) ) {
+        // don't add the same node twice
+        eventsequence.emplace_back( Event );
+    }
+}
+
+// sends basic content of the class in legacy (text) format to provided stream
+void
+node_groups::export_as_text( std::ostream &Output ) const {
+
+    for( auto const &group : m_groupmap ) {
+
+        Output << "group\n";
+        for( auto *node : group.second.nodes ) {
+            // HACK: auto-generated memory cells aren't exported, so we check for this
+            // TODO: is_exportable as basic_node method
+            if( ( typeid( *node ) == typeid( TMemCell ) )
+             && ( false == static_cast<TMemCell *>( node )->is_exportable ) ) {
+                continue;
+            }
+            node->export_as_text( Output );
+        }
+        for( auto *event : group.second.events ) {
+            event->export_as_text( Output );
+        }
+        Output << "endgroup\n";
     }
 }
 
@@ -76,8 +118,11 @@ node_groups::insert( scene::group_handle const Group, scene::basic_node *Node ) 
 void
 node_groups::erase( group_map::const_iterator Group ) {
 
-    for( auto *node : Group->second ) {
+    for( auto *node : Group->second.nodes ) {
         node->group( null_handle );
+    }
+    for( auto *event : Group->second.events ) {
+        event->group( null_handle );
     }
     m_groupmap.erase( Group );
 }

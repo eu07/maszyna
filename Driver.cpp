@@ -2021,8 +2021,12 @@ bool TController::CheckVehicles(TOrders user)
         pVehicles[1] = p; // zapamiętanie ostatniego
         fLength += p->MoverParameters->Dim.L; // dodanie długości pojazdu
         fMass += p->MoverParameters->TotalMass; // dodanie masy łącznie z ładunkiem
-        if (fVelMax < 0 ? true : p->MoverParameters->Vmax < fVelMax)
-            fVelMax = p->MoverParameters->Vmax; // ustalenie maksymalnej prędkości dla składu
+        fVelMax = min_speed( fVelMax, p->MoverParameters->Vmax ); // ustalenie maksymalnej prędkości dla składu
+        // reset oerlikon brakes consist flag as different type was detected
+        if( ( p->MoverParameters->BrakeSubsystem != TBrakeSubSystem::ss_ESt )
+         && ( p->MoverParameters->BrakeSubsystem != TBrakeSubSystem::ss_LSt ) ) {
+            iDrivigFlags &= ~( moveOerlikons );
+        }
         p = p->Neightbour(dir); // pojazd podłączony od wskazanej strony
     }
     if (main)
@@ -2034,9 +2038,8 @@ bool TController::CheckVehicles(TOrders user)
         p = pVehicles[0];
         while (p)
         {
-            if (TrainParams)
-                if (p->asDestination == "none")
-                    p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeśli nie było
+            if (p->asDestination == "none")
+                p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeśli nie było
             if (AIControllFlag) // jeśli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy światła
             if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
@@ -3020,10 +3023,8 @@ void TController::SpeedSet()
                             mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
                         {
                             if (mvControlling->MainCtrlPos &&
-                                !mvControlling
-                                     ->StLinFlag) // jak niby jedzie, ale ma rozłączone liniowe
-                                mvControlling->DecMainCtrl(
-                                    2); // to na zero i czekać na przewalenie kułakowego
+                                !mvControlling->StLinFlag) // jak niby jedzie, ale ma rozłączone liniowe
+                                mvControlling->DecMainCtrl(2); // to na zero i czekać na przewalenie kułakowego
                             else
                                 switch (mvControlling->MainCtrlPos)
                                 { // ruch nastawnika uzależniony jest od aktualnie ustawionej
@@ -5225,10 +5226,7 @@ TController::UpdateSituation(double dt) {
                         }
 
                         if( ( mvOccupied->BrakeCtrlPos < 0 )
-                         && ( mvOccupied->EqvtPipePress > (
-                                fReady < 0.25 ?
-                                    5.1 :
-                                    5.2 ) ) ) {
+                         && ( mvOccupied->EqvtPipePress > ( fReady < 0.25 ? 5.1 : 5.2 ) ) ) {
                             mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
                         }
                     }

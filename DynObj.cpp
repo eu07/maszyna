@@ -4203,6 +4203,21 @@ void TDynamicObject::RenderSounds() {
             }
         }
     }
+    // door locks
+    if( MoverParameters->DoorBlockedFlag() != m_doorlocks ) {
+        // toggle state of the locks...
+        m_doorlocks = !m_doorlocks;
+        // ...and play relevant sounds
+        for( auto &door : m_doorsounds ) {
+            if( m_doorlocks ) {
+                door.lock.play( sound_flags::exclusive );
+            }
+            else {
+                door.unlock.play( sound_flags::exclusive );
+            }
+        }
+    }
+
     // horns
     if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
         sHorn1.play( sound_flags::exclusive | sound_flags::looping );
@@ -5413,7 +5428,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
 				else if( token == "dooropen:" ) {
-                    sound_source soundtemplate { sound_placement::general };
+                    sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5425,7 +5440,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
 				else if( token == "doorclose:" ) {
-                    sound_source soundtemplate { sound_placement::general };
+                    sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5436,8 +5451,32 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     }
                 }
 
+                else if( token == "doorlock:" ) {
+                    sound_source soundtemplate { sound_placement::general, 12.5f };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.lock.offset() };
+                        door.lock = soundtemplate;
+                        door.lock.offset( dooroffset );
+                    }
+                }
+
+				else if( token == "doorunlock:" ) {
+                    sound_source soundtemplate { sound_placement::general, 12.5f };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.unlock.offset() };
+                        door.unlock = soundtemplate;
+                        door.unlock.offset( dooroffset );
+                    }
+                }
+
                 else if( token == "doorstepopen:" ) {
-                    sound_source soundtemplate { sound_placement::general };
+                    sound_source soundtemplate { sound_placement::general, 20.f };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5449,7 +5488,7 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
 
                 else if( token == "doorstepclose:" ) {
-                    sound_source soundtemplate { sound_placement::general };
+                    sound_source soundtemplate { sound_placement::general, 20.f };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5539,6 +5578,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
+                            door.lock.offset( location );
+                            door.unlock.offset( location );
                             door.step_close.offset( location );
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
@@ -5549,6 +5590,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                             auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
+                            door.lock.offset( location );
+                            door.unlock.offset( location );
                             door.step_close.offset( location );
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
