@@ -338,8 +338,13 @@ sound_source::copy_sounds( sound_source const &Source ) {
     m_sounds = Source.m_sounds;
     m_soundchunks = Source.m_soundchunks;
     m_soundchunksempty = Source.m_soundchunksempty;
-    // NOTE: should probably zero the .playing fields here as precaution
-    // TODO: add this if we ever start copying sounds from active sources
+    // reset source's playback counters
+    for( auto &sound : m_sounds ) {
+        sound.playing = 0;
+    }
+    for( auto &sound : m_soundchunks ) {
+        sound.first.playing = 0;
+    }
     return *this;
 }
 

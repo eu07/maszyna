@@ -5703,16 +5703,6 @@ bool TTrain::Update( double const Deltatime )
     // sounds
     update_sounds( Deltatime );
 
-    if( false == m_radiomessages.empty() ) {
-        // erase completed radio messages from the list
-        m_radiomessages.erase(
-            std::remove_if(
-                std::begin( m_radiomessages ), std::end( m_radiomessages ),
-                []( sound_source const &source ) {
-                    return ( false == source.is_playing() ); } ),
-            std::end( m_radiomessages ) );
-    }
-
     return true; //(DynamicObject->Update(dt));
 } // koniec update
 
@@ -5921,14 +5911,7 @@ TTrain::update_sounds( double const Deltatime ) {
         }
     }
 
-    // radiostop
-    if( ( true == mvOccupied->Radio )
-     && ( true == mvOccupied->RadioStopFlag ) ) {
-        m_radiostop.play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        m_radiostop.stop();
-    }
+    update_sounds_radio();
 
     if( fTachoCount >= 3.f ) {
         auto const frequency { (
@@ -5993,6 +5976,37 @@ void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
     }
     else {
         Sound.stop();
+    }
+}
+
+void TTrain::update_sounds_radio() {
+
+    if( false == m_radiomessages.empty() ) {
+        // erase completed radio messages from the list
+        m_radiomessages.erase(
+            std::remove_if(
+                std::begin( m_radiomessages ), std::end( m_radiomessages ),
+                []( auto const &source ) {
+                    return ( false == source.second->is_playing() ); } ),
+            std::end( m_radiomessages ) );
+    }
+    // adjust audibility of remaining messages based on current radio conditions
+    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+    for( auto &message : m_radiomessages ) {
+        auto const volume {
+            ( true == radioenabled )
+         && ( message.first == iRadioChannel ) ?
+                1.0 :
+                0.0 };
+        message.second->gain( volume );
+    }
+    // radiostop
+    if( ( true == radioenabled )
+     && ( true == mvOccupied->RadioStopFlag ) ) {
+        m_radiostop.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        m_radiostop.stop();
     }
 }
 
@@ -6613,23 +6627,28 @@ void TTrain::DynamicSet(TDynamicObject *d)
 void
 TTrain::radio_message( sound_source *Message, int const Channel ) {
 
-    if( ( false == mvOccupied->Radio )
-     || ( iRadioChannel != Channel ) ) {
-        // skip message playback if the radio isn't able to receive it
-        return;
-    }
     auto const soundrange { Message->range() };
     if( ( soundrange > 0 )
      && ( glm::length2( Message->location() - glm::dvec3 { DynamicObject->GetPosition() } ) > ( soundrange * soundrange ) ) ) {
         // skip message playback if the receiver is outside of the emitter's range
         return;
     }
-
-    m_radiomessages.emplace_back( m_radiosound );
+    // NOTE: we initiate playback of all sounds in range, in case the user switches on the radio or tunes to the right channel mid-play
+    m_radiomessages.emplace_back(
+        Channel,
+        std::make_shared<sound_source>( m_radiosound ) );
     // assign sound to the template and play it
-    m_radiomessages.back()
+    auto &message = *( m_radiomessages.back().second.get() );
+    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+    auto const volume {
+        ( true == radioenabled )
+     && ( Channel == iRadioChannel ) ?
+            1.0 :
+            0.0 };
+    message
         .copy_sounds( *Message )
-        .play( sound_flags::exclusive );
+        .gain( volume )
+        .play();
 }
 
 void TTrain::SetLights()
