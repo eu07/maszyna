@@ -3703,19 +3703,17 @@ void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Comman
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the sound can loop uninterrupted
-        if( false == Train->mvControlled->DoorSignalling ) {
+        if( false == Train->mvOccupied->DoorLockEnabled ) {
             // turn on
-            // TODO: check wheter we really need separate flags for this
-            Train->mvControlled->DoorSignalling = true;
-            Train->mvOccupied->DoorBlocked = true;
+            // TODO: door lock command to send through consist
+            Train->mvOccupied->DoorLockEnabled = true;
             // visual feedback
             Train->ggDoorSignallingButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             // turn off
-            // TODO: check wheter we really need separate flags for this
-            Train->mvControlled->DoorSignalling = false;
-            Train->mvOccupied->DoorBlocked = false;
+            // TODO: door lock command to send through consist
+            Train->mvOccupied->DoorLockEnabled = false;
             // visual feedback
             Train->ggDoorSignallingButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -5039,8 +5037,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaNadmSil.Turn( false );
         }
 
-        if (mvControlled->Battery || mvControlled->ConverterFlag)
-        {
+        if (mvControlled->Battery || mvControlled->ConverterFlag) {
             // alerter test
             if( true == CAflag ) {
                 if( ggSecurityResetButton.GetDesiredValue() > 0.95 ) {
@@ -5056,7 +5053,6 @@ bool TTrain::Update( double const Deltatime )
                     fBlinkTimer = -fCzuwakBlink;
                 else
                     fBlinkTimer += Deltatime;
-
                 // hunter-091012: dodanie testu czuwaka
                 if( ( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) )
                  || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAtest ) ) ) {
@@ -5157,6 +5153,72 @@ bool TTrain::Update( double const Deltatime )
                 btLampkaBocznik3.Turn( false );
                 btLampkaBocznik4.Turn( false );
             }
+
+            if( mvControlled->Signalling == true ) {
+                if( mvOccupied->BrakePress >= 0.145f * 10 ) {
+                    btLampkaHamowanie1zes.Turn( true );
+                }
+                if( mvControlled->BrakePress < 0.075f * 10 ) {
+                    btLampkaHamowanie1zes.Turn( false );
+                }
+            }
+            else {
+                btLampkaHamowanie1zes.Turn( false );
+            }
+
+            switch (mvControlled->TrainType) {
+                // zależnie od typu lokomotywy
+                case dt_EZT: {
+                    btLampkaHamienie.Turn( ( mvControlled->BrakePress >= 0.2 ) && mvControlled->Signalling );
+                    break;
+                }
+                case dt_ET41: {
+                    // odhamowanie drugiego członu
+                    if( mvSecond ) {
+                        // bo może komuś przyjść do głowy jeżdżenie jednym członem
+                        btLampkaHamienie.Turn( mvSecond->BrakePress < 0.4 );
+                    }
+                    break;
+                }
+                default: {
+                    btLampkaHamienie.Turn( ( mvOccupied->BrakePress >= 0.1 ) || mvControlled->DynamicBrakeFlag );
+                    btLampkaBrakingOff.Turn( ( mvOccupied->BrakePress < 0.1 ) && ( false == mvControlled->DynamicBrakeFlag ) );
+                    break;
+                }
+            }
+            // KURS90
+            btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
+            btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
+            btLampkaRadio.Turn(mvOccupied->Radio);
+            btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
+            btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
+            // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
+            btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
+            btLampkaDoorRight.Turn(mvOccupied->DoorRightOpened);
+            btLampkaBlokadaDrzwi.Turn(mvOccupied->DoorBlockedFlag());
+            btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
+            btLampkaNapNastHam.Turn((mvControlled->ActiveDir != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
+            btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
+            btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do tyłu
+            btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
+            btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
+            btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
+            btLampkaBrakeProfileR.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_R ) );
+            // light indicators
+            // NOTE: sides are hardcoded to deal with setups where single cab is equipped with all indicators
+            btLampkaUpperLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_upper ) != 0 );
+            btLampkaLeftLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_left ) != 0 );
+            btLampkaRightLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_right ) != 0 );
+            btLampkaLeftEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_left ) != 0 );
+            btLampkaRightEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_right ) != 0 );
+            btLampkaRearUpperLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_upper ) != 0 );
+            btLampkaRearLeftLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_left ) != 0 );
+            btLampkaRearRightLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_right ) != 0 );
+            btLampkaRearLeftEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_left ) != 0 );
+            btLampkaRearRightEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_right ) != 0 );
+            // others
+            btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
+            btLampkaMotorBlowers.Turn( mvControlled->RventRot > 0.1 );
         }
         else {
             // wylaczone
@@ -5178,27 +5240,40 @@ bool TTrain::Update( double const Deltatime )
             btLampkaSprezarkaOff.Turn( false );
             btLampkaFuelPumpOff.Turn( false );
             btLampkaBezoporowa.Turn( false );
-        }
-        if (mvControlled->Signalling == true) {
-
-            if( ( mvOccupied->BrakePress >= 0.145f )
-             && ( mvControlled->Battery == true )
-             && ( mvControlled->Signalling == true ) ) {
-
-                btLampkaHamowanie1zes.Turn( true );
-            }
-            if (mvControlled->BrakePress < 0.075f) {
-
-                btLampkaHamowanie1zes.Turn( false );
-            }
-        }
-        else {
-
             btLampkaHamowanie1zes.Turn( false );
+            btLampkaHamienie.Turn( false );
+            btLampkaBrakingOff.Turn( false );
+            btLampkaBrakeProfileG.Turn( false );
+            btLampkaBrakeProfileP.Turn( false );
+            btLampkaBrakeProfileR.Turn( false );
+            btLampkaMaxSila.Turn( false );
+            btLampkaPrzekrMaxSila.Turn( false );
+            btLampkaRadio.Turn( false );
+            btLampkaRadioStop.Turn( false );
+            btLampkaHamulecReczny.Turn( false );
+            btLampkaDoorLeft.Turn( false );
+            btLampkaDoorRight.Turn( false );
+            btLampkaBlokadaDrzwi.Turn( false );
+            btLampkaDepartureSignal.Turn( false );
+            btLampkaNapNastHam.Turn( false );
+            btLampkaForward.Turn( false );
+            btLampkaBackward.Turn( false );
+            btLampkaED.Turn( false );
+            // light indicators
+            btLampkaUpperLight.Turn( false );
+            btLampkaLeftLight.Turn( false );
+            btLampkaRightLight.Turn( false );
+            btLampkaLeftEndLight.Turn( false );
+            btLampkaRightEndLight.Turn( false );
+            btLampkaRearUpperLight.Turn( false );
+            btLampkaRearLeftLight.Turn( false );
+            btLampkaRearRightLight.Turn( false );
+            btLampkaRearLeftEndLight.Turn( false );
+            btLampkaRearRightEndLight.Turn( false );
+            // others
+            btLampkaMalfunction.Turn( false );
+            btLampkaMotorBlowers.Turn( false );
         }
-        btLampkaBlokadaDrzwi.Turn(mvControlled->DoorSignalling ?
-                                      mvOccupied->DoorBlockedFlag() && mvControlled->Battery :
-                                      false);
 
         { // yB - wskazniki drugiego czlonu
             TDynamicObject *tmp; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to
@@ -5231,39 +5306,16 @@ bool TTrain::Update( double const Deltatime )
                     else if( tmp->MoverParameters->BrakePress < 0.1 ) {
                         btLampkaStycznB.Turn( true ); // mozna prowadzic rozruch
                     }
-
-                    //-----------------
-                    //        //hunter-271211: brak jazdy w drugim czlonie, gdy w
-                    //        pierwszym tez nie ma (i odwrotnie) - Ra: tutaj? w kabinie?
-                    //        if (tmp->MoverParameters->TrainType!=dt_EZT)
-                    //         if (((tmp->MoverParameters->BrakePress > 2) || (
-                    //         tmp->MoverParameters->PipePress < 3.6 )) && (
-                    //         tmp->MoverParameters->MainCtrlPos != 0 ))
-                    //          {
-                    //           tmp->MoverParameters->MainCtrlActualPos=0; //inaczej
-                    //           StLinFlag nie zmienia sie na false w drugim pojezdzie
-                    //           //tmp->MoverParameters->StLinFlag=true;
-                    //           mvControlled->StLinFlag=true;
-                    //          }
-                    //        if (mvControlled->StLinFlag==true)
-                    //         tmp->MoverParameters->MainCtrlActualPos=0;
-                    //         //tmp->MoverParameters->StLinFlag=true;
-
-                    //-----------------
-                    // hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy
-                    // wystapi w drugim
+                    // hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
                     btLampkaPoslizg.Turn(tmp->MoverParameters->SlippingWheels);
-                    //-----------------
 
                     btLampkaSprezarkaB.Turn( tmp->MoverParameters->CompressorFlag ); // mutopsitka dziala
                     btLampkaSprezarkaBOff.Turn( false == tmp->MoverParameters->CompressorFlag );
-                    if ((tmp->MoverParameters->BrakePress >= 0.145f * 10) &&
-                        (mvControlled->Battery == true) && (mvControlled->Signalling == true))
+                    if ((tmp->MoverParameters->BrakePress >= 0.145f * 10) && (mvControlled->Signalling == true))
                     {
                         btLampkaHamowanie2zes.Turn( true );
                     }
-                    if ((tmp->MoverParameters->BrakePress < 0.075f * 10) ||
-                        (mvControlled->Battery == false) || (mvControlled->Signalling == false))
+                    if ((tmp->MoverParameters->BrakePress < 0.075f * 10) || (mvControlled->Signalling == false))
                     {
                         btLampkaHamowanie2zes.Turn( false );
                     }
@@ -5288,96 +5340,6 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaMalfunctionB.Turn( false );
                 }
         }
-
-        if( mvControlled->Battery || mvControlled->ConverterFlag ) {
-            switch (mvControlled->TrainType) {
-                // zależnie od typu lokomotywy
-                case dt_EZT: {
-                    btLampkaHamienie.Turn( ( mvControlled->BrakePress >= 0.2 ) && mvControlled->Signalling );
-                    break;
-                }
-                case dt_ET41: {
-                    // odhamowanie drugiego członu
-                    if( mvSecond ) {
-                        // bo może komuś przyjść do głowy jeżdżenie jednym członem
-                        btLampkaHamienie.Turn( mvSecond->BrakePress < 0.4 );
-                    }
-                    break;
-                }
-                default: {
-                    btLampkaHamienie.Turn( ( mvOccupied->BrakePress >= 0.1 ) || mvControlled->DynamicBrakeFlag );
-                    btLampkaBrakingOff.Turn( ( mvOccupied->BrakePress < 0.1 ) && ( false == mvControlled->DynamicBrakeFlag ) );
-                    break;
-                }
-            }
-            // KURS90
-            btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
-            btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
-            btLampkaRadio.Turn(mvOccupied->Radio);
-            btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
-            btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
-            // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
-            btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
-            btLampkaDoorRight.Turn(mvOccupied->DoorRightOpened);
-            btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
-            btLampkaNapNastHam.Turn((mvControlled->ActiveDir != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-            btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
-            btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do tyłu
-            btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
-            btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
-            btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
-            btLampkaBrakeProfileR.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_R ) );
-            // light indicators
-            // NOTE: sides are hardcoded to deal with setups where single cab is equipped with all indicators
-            btLampkaUpperLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_upper ) != 0 );
-            btLampkaLeftLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_left ) != 0 );
-            btLampkaRightLight.Turn( ( mvOccupied->iLights[ side::front ] & light::headlight_right ) != 0 );
-            btLampkaLeftEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_left ) != 0 );
-            btLampkaRightEndLight.Turn( ( mvOccupied->iLights[ side::front ] & light::redmarker_right ) != 0 );
-            btLampkaRearUpperLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_upper ) != 0 );
-            btLampkaRearLeftLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_left ) != 0 );
-            btLampkaRearRightLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::headlight_right ) != 0 );
-            btLampkaRearLeftEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_left ) != 0 );
-            btLampkaRearRightEndLight.Turn( ( mvOccupied->iLights[ side::rear ] & light::redmarker_right ) != 0 );
-            // others
-            btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
-            btLampkaMotorBlowers.Turn( mvControlled->RventRot > 0.1 );
-        }
-        else
-        { // gdy bateria wyłączona
-            btLampkaHamienie.Turn( false );
-            btLampkaBrakingOff.Turn( false );
-            btLampkaBrakeProfileG.Turn( false );
-            btLampkaBrakeProfileP.Turn( false );
-            btLampkaBrakeProfileR.Turn( false );
-            btLampkaMaxSila.Turn( false );
-            btLampkaPrzekrMaxSila.Turn( false );
-            btLampkaRadio.Turn( false );
-            btLampkaRadioStop.Turn( false );
-            btLampkaHamulecReczny.Turn( false );
-            btLampkaDoorLeft.Turn( false );
-            btLampkaDoorRight.Turn( false );
-            btLampkaDepartureSignal.Turn( false );
-            btLampkaNapNastHam.Turn( false );
-            btLampkaForward.Turn( false );
-            btLampkaBackward.Turn( false );
-            btLampkaED.Turn( false );
-            // light indicators
-            btLampkaUpperLight.Turn( false );
-            btLampkaLeftLight.Turn( false );
-            btLampkaRightLight.Turn( false );
-            btLampkaLeftEndLight.Turn( false );
-            btLampkaRightEndLight.Turn( false );
-            btLampkaRearUpperLight.Turn( false );
-            btLampkaRearLeftLight.Turn( false );
-            btLampkaRearRightLight.Turn( false );
-            btLampkaRearLeftEndLight.Turn( false );
-            btLampkaRearRightEndLight.Turn( false );
-            // others
-            btLampkaMalfunction.Turn( false );
-            btLampkaMotorBlowers.Turn( false );
-        }
-
         // McZapkie-080602: obroty (albo translacje) regulatorow
         if (ggMainCtrl.SubModel) {
 
@@ -7041,9 +7003,10 @@ void TTrain::set_cab_controls() {
     ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened ? 1.0 : 0.0 );
     ggDoorRightButton.PutValue( mvOccupied->DoorRightOpened ? 1.0 : 0.0 );
     // door lock
-    if( true == mvControlled->DoorSignalling ) {
-        ggDoorSignallingButton.PutValue( 1.0 );
-    }
+    ggDoorSignallingButton.PutValue(
+        mvOccupied->DoorLockEnabled ?
+            1.0 :
+            0.0 );
     // heating
     if( true == mvControlled->Heating ) {
         ggTrainHeatingButton.PutValue( 1.0 );

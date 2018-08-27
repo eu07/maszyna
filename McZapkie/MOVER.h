@@ -747,7 +747,6 @@ public:
 	bool Battery = false; /*Czy sa zalavzone baterie*/
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
-	bool DoorSignalling = false;         /*Czy jest zalaczona sygnalizacja blokady drzwi*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
 	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
@@ -1170,6 +1169,7 @@ public:
 	double LastLoadChangeTime = 0.0; //raz (roz)ładowania
 
 	bool DoorBlocked = false;    //Czy jest blokada drzwi
+    bool DoorLockEnabled { true };
 	bool DoorLeftOpened = false;  //stan drzwi
     double DoorLeftOpenTimer { -1.0 }; // left door closing timer for automatic door type
 	bool DoorRightOpened = false;

@@ -6488,14 +6488,12 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
 // Q: 20160713
 // Zwraca informacje o działającej blokadzie drzwi
 // *************************************************************************************************
-bool TMoverParameters::DoorBlockedFlag(void)
-{
-    // if (DoorBlocked=true) and (Vel<5.0) then
-    bool DBF = false;
-    if ((DoorBlocked == true) && (Vel >= 5.0))
-        DBF = true;
-
-    return DBF;
+bool TMoverParameters::DoorBlockedFlag( void ) {
+    // TBD: configurable lock activation threshold?
+    return (
+        ( true == DoorBlocked )
+     && ( true == DoorLockEnabled )
+     && ( Vel >= 10.0 ) );
 }
 
 // *************************************************************************************************
