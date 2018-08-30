@@ -6474,7 +6474,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 default: {
                     volume =
                         engine.m_amplitudeoffset
-                        + engine.m_amplitudefactor * ( Vehicle.EnginePower / 1000 + std::fabs( Vehicle.enrot ) * 60.0 );
+                        + engine.m_amplitudefactor * ( Vehicle.EnginePower + std::fabs( Vehicle.enrot ) * 60.0 );
                     break;
                 }
             }
@@ -6626,7 +6626,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 case TEngineType::ElectricSeriesMotor: {
                     volume =
                         motor.m_amplitudeoffset
-                        + motor.m_amplitudefactor * ( Vehicle.EnginePower / 1000 + motorrevolutions * 60.0 );
+                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 60.0 );
                     break;
                 }
                 default: {

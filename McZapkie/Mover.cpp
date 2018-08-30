@@ -250,7 +250,7 @@ double TMoverParameters::Current(double n, double U)
 	else
 		Im = MotorCurrent;
 
-    EnginePower = abs(Itot) * (1 + RList[MainCtrlActualPos].Mn) * abs(U);
+    EnginePower = abs(Itot) * (1 + RList[MainCtrlActualPos].Mn) * abs(U) / 1000.0;
 
     // awarie
     MotorCurrent = abs(Im); // zmienna pomocnicza

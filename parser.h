@@ -91,7 +91,7 @@ class cParser //: public std::stringstream
     bool trimComments( std::string &String );
     std::size_t count();
     // members:
-    bool m_autoclear { true }; // not retrieved tokens are discarded when another read command is issued (legacy behaviour)
+    bool m_autoclear { true }; // unretrieved tokens are discarded when another read command is issued (legacy behaviour)
     bool LoadTraction { true }; // load traction?
     std::shared_ptr<std::istream> mStream; // relevant kind of buffer is attached on creation.
     std::string mFile; // name of the open file, if any
