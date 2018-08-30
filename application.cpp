@@ -153,6 +153,8 @@ eu07_application::exit() {
     SafeDelete( simulation::Train );
     SafeDelete( simulation::Region );
 
+    ui_layer::shutdown();
+
     glfwDestroyWindow( m_window );
     glfwTerminate();
 

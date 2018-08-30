@@ -49,6 +49,9 @@
     <Filter Include="Source Files\application\input">
       <UniqueIdentifier>{0630616b-1afe-4fb6-96d1-3755834ba8aa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\imgui">
+      <UniqueIdentifier>{33f7f4ae-692b-4989-a71a-004e0d48ed4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AirCoupler.cpp">
@@ -305,6 +308,24 @@
     </ClCompile>
     <ClCompile Include="scenenodegroups.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\imgui.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\imgui_draw.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl2.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\examples\imgui_impl_glfw.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="driveruipanels.cpp">
+      <Filter>Source Files\application\mode_driver</Filter>
+    </ClCompile>
+    <ClCompile Include="editoruipanels.cpp">
+      <Filter>Source Files\application\mode_editor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -577,6 +598,12 @@
     </ClInclude>
     <ClInclude Include="scenenodegroups.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="driveruipanels.h">
+      <Filter>Header Files\application\mode_driver</Filter>
+    </ClInclude>
+    <ClInclude Include="editoruipanels.h">
+      <Filter>Header Files\application\mode_editor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

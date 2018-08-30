@@ -409,6 +409,9 @@ opengl_renderer::Render() {
     m_debugstats = debug_stats();
     Render_pass( rendermode::color );
     Timer::subsystem.gfx_color.stop();
+    // add user interface
+    setup_units( true, false, false );
+    Application.render_ui();
 
     Timer::subsystem.gfx_swap.start();
     glfwSwapBuffers( m_window );
@@ -416,15 +419,19 @@ opengl_renderer::Render() {
 
     m_drawcount = m_cellqueue.size();
     m_debugtimestext
-        += "frame: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) "
-        += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec "
-        += "(" + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec total)";
+        += "color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n"
+        += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec\n"
+        += "frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec";
 
     m_debugstatstext =
-        "drawcalls: " + to_string( m_debugstats.drawcalls )
-        + "; dyn: " + to_string( m_debugstats.dynamics ) + " mod: " + to_string( m_debugstats.models ) + " sub: " + to_string( m_debugstats.submodels )
-        + "; trk: " + to_string( m_debugstats.paths ) + " shp: " + to_string( m_debugstats.shapes )
-        + " trc: " + to_string( m_debugstats.traction ) + " lin: " + to_string( m_debugstats.lines );
+        "drawcalls:  " + to_string( m_debugstats.drawcalls ) + "\n"
+        + " vehicles:  " + to_string( m_debugstats.dynamics ) + "\n"
+        + " models:    " + to_string( m_debugstats.models ) + "\n"
+        + " submodels: " + to_string( m_debugstats.submodels ) + "\n"
+        + " paths:     " + to_string( m_debugstats.paths ) + "\n"
+        + " shapes:    " + to_string( m_debugstats.shapes ) + "\n"
+        + " traction:  " + to_string( m_debugstats.traction ) + "\n"
+        + " lines:     " + to_string( m_debugstats.lines );
 
     ++m_framestamp;
 
@@ -463,7 +470,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     Render_pass( rendermode::cabshadows );
                 }
                 Timer::subsystem.gfx_shadows.stop();
-                m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors) ";
+                m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
 #ifdef EU07_USE_DEBUG_SHADOWMAP
                 UILayer.set_texture( m_shadowdebugtexture );
 #endif
@@ -584,7 +591,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glMatrixMode( GL_MODELVIEW );
                 }
             }
-            Application.render_ui();
             break;
         }
 
@@ -1413,10 +1419,6 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     // skydome
     Environment->m_skydome.Render();
-    if( true == Global.bUseVBO ) {
-        // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-        gfx::opengl_vbogeometrybank::reset();
-    }
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
         // setup

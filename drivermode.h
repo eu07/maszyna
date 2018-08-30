@@ -73,6 +73,7 @@ private:
     void InOutKey( bool const Near = true );
     void FollowView( bool wycisz = true );
     void DistantView( bool const Near = false );
+    void set_picking( bool const Picking );
 
 // members
     drivermode_input m_input;

@@ -154,8 +154,8 @@ class TSpeedPos
             fDist -= dist; }
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
-    std::string TableText();
-    std::string GetName();
+    std::string TableText() const;
+    std::string GetName() const;
     bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
@@ -205,7 +205,7 @@ public:
     double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
   public:
     double fBrakeDist = 0.0; // przybliżona droga hamowania
-	double BrakeAccFactor();
+	double BrakeAccFactor() const;
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
@@ -349,11 +349,11 @@ private:
     void OrdersClear();
     void OrdersDump();
     TController( bool AI, TDynamicObject *NewControll, bool InitPsyche, bool primary = true );
-    std::string OrderCurrent();
+    std::string OrderCurrent() const;
     void WaitingSet(double Seconds);
 
   private:
-    std::string Order2Str(TOrders Order);
+    std::string Order2Str(TOrders Order) const;
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
@@ -395,11 +395,11 @@ private:
     void TakeControl(bool yes);
     Mtable::TTrainParameters const * TrainTimetable() const;
     std::string TrainName() const;
-    std::string Relation();
+    std::string Relation() const;
     int StationCount() const;
     int StationIndex() const;
-    bool IsStop();
-    std::string NextStop();
+    bool IsStop() const;
+    std::string NextStop() const;
     inline
     bool Primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
@@ -411,7 +411,7 @@ private:
         TrackBlock() const;
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    std::string TableText(std::size_t const Index);
+    std::string TableText(std::size_t const Index) const;
     int CrossRoute(TTrack *tr);
 /*
     void RouteSwitch(int d);

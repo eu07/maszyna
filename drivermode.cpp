@@ -327,24 +327,12 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
        || ( Key == GLFW_KEY_RIGHT_ALT ) ) ) {
         // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
         if( Action == GLFW_PRESS ) {
-
-            if( Global.ControlPicking ) {
-                // switch off
-                Application.get_cursor_pos( m_input.mouse_pickmodepos.x, m_input.mouse_pickmodepos.y );
-                Application.set_cursor( GLFW_CURSOR_DISABLED );
-                Application.set_cursor_pos( 0, 0 );
-            }
-            else {
-                // enter picking mode
-                Application.set_cursor_pos( m_input.mouse_pickmodepos.x, m_input.mouse_pickmodepos.y );
-                Application.set_cursor( GLFW_CURSOR_NORMAL );
-            }
-            // actually toggle the mode
-            Global.ControlPicking = !Global.ControlPicking;
+            // toggle picking mode
+            set_picking( !Global.ControlPicking );
         }
     }
 
-    if( Action != GLFW_RELEASE ) {
+    if( Action == GLFW_PRESS ) {
 
         OnKeyDown( Key );
 
@@ -737,7 +725,7 @@ driver_mode::OnKeyDown(int cKey) {
         // if (cKey!=VK_F4)
         return; // nie są przekazywane do pojazdu wcale
     }
-
+/*
     if ((Global.iTextMode == GLFW_KEY_F12) ? (cKey >= '0') && (cKey <= '9') : false)
     { // tryb konfiguracji debugmode (przestawianie kamery już wyłączone
         if (!Global.shiftState) // bez [Shift]
@@ -757,14 +745,21 @@ driver_mode::OnKeyDown(int cKey) {
             // else if (cKey=='3') Global.iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
-    else if( cKey == GLFW_KEY_ESCAPE ) {
+    else */
+    if( cKey == GLFW_KEY_ESCAPE ) {
         // toggle pause
-        if( Global.iPause & 1 ) // jeśli pauza startowa
-            Global.iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
-        else if( !( Global.iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
+        if( Global.iPause & 1 ) {
+            // jeśli pauza startowa
+            // odpauzowanie, gdy po wczytaniu miało nie startować
+            Global.iPause &= ~1;
+        }
+        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
+            // w multiplayerze pauza nie ma sensu
             Global.iPause ^= 2; // zmiana stanu zapauzowania
-        if( Global.iPause ) {// jak pauza
-            Global.iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
+            if( ( Global.iPause & 2 )
+             && ( false == Global.ControlPicking ) ) {
+                set_picking( true );
+            }
         }
     }
     else {
@@ -991,4 +986,22 @@ driver_mode::InOutKey( bool const Near )
     }
     // update window title to reflect the situation
     Application.set_title( Global.AppName + " (" + ( train != nullptr ? train->Occupied()->Name : "" ) + " @ " + Global.SceneryFile + ")" );
+}
+
+void
+driver_mode::set_picking( bool const Picking ) {
+
+    if( Picking ) {
+        // enter picking mode
+        Application.set_cursor_pos( m_input.mouse_pickmodepos.x, m_input.mouse_pickmodepos.y );
+        Application.set_cursor( GLFW_CURSOR_NORMAL );
+    }
+    else {
+        // switch off
+        Application.get_cursor_pos( m_input.mouse_pickmodepos.x, m_input.mouse_pickmodepos.y );
+        Application.set_cursor( GLFW_CURSOR_DISABLED );
+        Application.set_cursor_pos( 0, 0 );
+    }
+    // actually toggle the mode
+    Global.ControlPicking = Picking;
 }

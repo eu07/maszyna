@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "uilayer.h"
+#include "editoruipanels.h"
 
 namespace scene {
 
@@ -34,6 +35,6 @@ public:
 
 private:
 // members
-    ui_panel UIHeader { 20, 20 }; // header ui panel
+    itemproperties_panel m_itempropertiespanel { "Node Properties", true };
     scene::basic_node * m_node { nullptr }; // currently bound scene node, if any
 };

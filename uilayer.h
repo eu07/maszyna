@@ -14,25 +14,35 @@ http://mozilla.org/MPL/2.0/.
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
-struct ui_panel {
+class ui_panel {
 
+public:
+// constructor
+    ui_panel( std::string const Name, bool const Isopen );
+// methods
+    virtual void update() {};
+    virtual void render();
+    // temporary  access
+// types
     struct text_line {
 
         std::string data;
         glm::vec4 color;
 
-        text_line( std::string const &Data, glm::vec4 const &Color):
-            data(Data), color(Color)
+        text_line( std::string const &Data, glm::vec4 const &Color)
+            : data(Data), color(Color)
         {}
     };
-
-    ui_panel( const int X, const int Y):
-        origin_x(X), origin_y(Y)
-    {}
-
+// members
+    bool is_open;
+    glm::ivec2 size { -1, -1 };
+    glm::ivec2 size_min { -1, -1 };
+    glm::ivec2 size_max { -1, -1 };
     std::vector<text_line> text_lines;
-    int origin_x;
-    int origin_y;
+
+protected:
+// members
+    std::string name;
 };
 
 class ui_layer {
@@ -51,6 +61,9 @@ public:
     static
     void
         set_unit( GLint const Textureunit ) { m_textureunit = Textureunit; }
+    static
+    void
+        shutdown();
     // potentially processes provided input key. returns: true if the input was processed, false otherwise
     virtual
     bool
@@ -58,7 +71,7 @@ public:
     // updates state of UI elements
     virtual
     void
-        update() {}
+        update();
 	// draws requested UI elements
 	void
         render();
@@ -79,17 +92,25 @@ public:
     void
         set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
     void
-        clear_texts() { m_panels.clear(); }
+        clear_panels() { m_panels.clear(); }
     void
         push_back( ui_panel *Panel ) { m_panels.emplace_back( Panel ); }
 
 protected:
 // members
     static GLFWwindow *m_window;
+    static ImGuiIO *m_imguiio;
     static bool m_cursorvisible;
 
 private:
 // methods
+    static
+    void
+        init_colors();
+    // render() subclass details
+    virtual
+    void
+        render_() {};
     // draws background quad with specified earlier texture
     void
         render_background();
@@ -102,15 +123,11 @@ private:
         render_panels();
     void
         render_tooltip();
-    // prints specified text, using display lists font
-    void
-        print( std::string const &Text );
     // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
     void
         quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
 // members
     static GLint m_textureunit;
-    static GLuint m_fontbase; // numer DL dla znaków w napisach
 
     // progress bar config. TODO: put these together into an object
     float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.

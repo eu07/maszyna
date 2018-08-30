@@ -45,9 +45,6 @@ editor_mode::init() {
 
     Camera.Init( { 0, 15, 0 }, { glm::radians( -30.0 ), glm::radians( 180.0 ), 0 }, TCameraType::tp_Free );
 
-    m_userinterface->set_progress( "Scenario editor is active. Press F11 to return to driver mode" );
-    m_userinterface->set_progress( 0, 100 );
-
     return m_input.init();
 }
 

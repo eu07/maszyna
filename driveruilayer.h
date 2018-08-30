@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "uilayer.h"
+#include "driveruipanels.h"
 
 class driver_ui : public ui_layer {
 
@@ -25,12 +26,14 @@ public:
         update() override;
 
 private:
+// methods
+    // render() subclass details
+    void
+        render_() override;
 // members
-    ui_panel UIHeader { 20, 20 }; // header ui panel
-    ui_panel UITable { 20, 100 };// schedule or scan table
-    ui_panel UITranscripts { 85, 600 }; // voice transcripts
-    int tprev { 0 }; // poprzedni czas
-    double VelPrev { 0.0 }; // poprzednia prędkość
-    double Acc { 0.0 }; // przyspieszenie styczne
+    drivingaid_panel m_aidpanel { "Driving Aid", true };
+    timetable_panel m_timetablepanel { "Timetable", false };
+    debug_panel m_debugpanel { "Debug Data", false };
+    transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts
 
 };

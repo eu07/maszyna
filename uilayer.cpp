@@ -27,61 +27,107 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "logs.h"
 
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl2.h"
+
 extern "C"
 {
     GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
 }
 
 GLFWwindow * ui_layer::m_window { nullptr };
+ImGuiIO *ui_layer::m_imguiio { nullptr };
 GLint ui_layer::m_textureunit { GL_TEXTURE0 };
-GLuint ui_layer::m_fontbase { (GLuint)-1 }; // numer DL dla znaków w napisach
 bool ui_layer::m_cursorvisible { true };
 
 
-ui_layer::~ui_layer() {
-/*
-// this should be invoked manually, or we risk trying to delete the lists after the context is gone
-    if( m_fontbase != -1 )
-        ::glDeleteLists( m_fontbase, 96 );
-*/
+ui_panel::ui_panel( std::string const Name, bool const Isopen )
+    : name( Name ), is_open( Isopen )
+{}
+
+void
+ui_panel::render() {
+
+    if( false == is_open ) { return; }
+    if( true  == text_lines.empty() ) { return; }
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    if( true == ImGui::Begin( name.c_str(), &is_open, flags ) ) {
+        for( auto const &line : text_lines ) {
+            ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        }
+    }
+    ImGui::End();
 }
+
+ui_layer::~ui_layer() {}
 
 bool
 ui_layer::init( GLFWwindow *Window ) {
 
     m_window = Window;
-    HFONT font; // Windows Font ID
-    m_fontbase = ::glGenLists(96); // storage for 96 characters
-    HDC hDC = ::GetDC( glfwGetWin32Window( m_window ) );
-    font = ::CreateFont( -MulDiv( 10, ::GetDeviceCaps( hDC, LOGPIXELSY ), 72 ), // height of font
-                        0, // width of font
-                        0, // angle of escapement
-                        0, // orientation angle
-                        (Global.bGlutFont ? FW_MEDIUM : FW_HEAVY), // font weight
-                        FALSE, // italic
-                        FALSE, // underline
-                        FALSE, // strikeout
-                        DEFAULT_CHARSET, // character set identifier
-                        OUT_DEFAULT_PRECIS, // output precision
-                        CLIP_DEFAULT_PRECIS, // clipping precision
-                        (Global.bGlutFont ? CLEARTYPE_QUALITY : PROOF_QUALITY), // output quality
-                        DEFAULT_PITCH | FF_DONTCARE, // family and pitch
-                        "Lucida Console"); // font name
-    ::SelectObject(hDC, font); // selects the font we want
-    if( TRUE == ::wglUseFontBitmaps( hDC, 32, 96, m_fontbase ) ) {
-        // builds 96 characters starting at character 32
-        WriteLog( "Display Lists font used" ); //+AnsiString(glGetError())
-        WriteLog( "Font init OK" ); //+AnsiString(glGetError())
-        Global.DLFont = true;
-        return true;
-    }
-    else {
-        ErrorLog( "Font init failed" );
-//        return false;
-        // NOTE: we report success anyway, given some cards can't produce fonts in this manner
-        Global.DLFont = false;
-        return true;
-    }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    m_imguiio = &ImGui::GetIO();
+//    m_imguiio->Fonts->AddFontFromFileTTF( "c:/windows/fonts/lucon.ttf", 13.0f );
+
+    ImGui_ImplGlfw_InitForOpenGL( m_window, false );
+    ImGui_ImplOpenGL2_Init();
+
+    init_colors();
+
+    return true;
+}
+
+void
+ui_layer::init_colors() {
+
+    // configure ui colours
+    auto *style = &ImGui::GetStyle();
+    auto *colors = style->Colors;
+    auto const background { ImVec4( 38.0f / 255.0f, 38.0f / 255.0f, 38.0f / 255.0f, 0.65f ) };
+    auto const accent     { ImVec4( 44.0f / 255.0f, 88.0f / 255.0f, 72.0f / 255.0f, 0.75f ) };
+    auto const itembase { ImVec4( accent.x, accent.y, accent.z, 0.35f ) };
+    auto const itemhover { ImVec4( accent.x, accent.y, accent.z, 0.65f ) };
+    auto const itemactive { ImVec4( accent.x, accent.y, accent.z, 0.95f ) };
+
+    colors[ ImGuiCol_WindowBg ] = background;
+    colors[ ImGuiCol_PopupBg ] = background;
+    colors[ ImGuiCol_FrameBg ] = itembase;
+    colors[ ImGuiCol_FrameBgHovered ] = itemhover;
+    colors[ ImGuiCol_FrameBgActive ] = itemactive;
+    colors[ ImGuiCol_TitleBg ] = background;
+    colors[ ImGuiCol_TitleBgActive ] = background;
+    colors[ ImGuiCol_TitleBgCollapsed ] = background;
+    colors[ ImGuiCol_CheckMark ] = colors[ ImGuiCol_Text ];
+    colors[ ImGuiCol_Button ] = itembase;
+    colors[ ImGuiCol_ButtonHovered ] = itemhover;
+    colors[ ImGuiCol_ButtonActive ] = itemactive;
+    colors[ ImGuiCol_Header ] = itembase;
+    colors[ ImGuiCol_HeaderHovered ] = itemhover;
+    colors[ ImGuiCol_HeaderActive ] = itemactive;
+    colors[ ImGuiCol_ResizeGrip ] = itembase;
+    colors[ ImGuiCol_ResizeGripHovered ] = itemhover;
+    colors[ ImGuiCol_ResizeGripActive ] = itemactive;
+}
+
+void
+ui_layer::shutdown() {
+
+    ImGui_ImplOpenGL2_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 
 bool
@@ -91,8 +137,17 @@ ui_layer::on_key( int const Key, int const Action ) {
 }
 
 void
+ui_layer::update() {
+
+    for( auto *panel : m_panels ) {
+        panel->update();
+    }
+}
+
+void
 ui_layer::render() {
 
+    // legacy ui code
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho( 0, std::max( 1, Global.iWindowWidth ), std::max( 1, Global.iWindowHeight ), 0, -1, 1 );
@@ -120,10 +175,27 @@ ui_layer::render() {
 
     glDisable( GL_BLEND );
 
+    glPopAttrib();
+
+    // imgui ui code
+    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
+
+    ::glClientActiveTexture( m_textureunit );
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+    ImGui_ImplOpenGL2_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
     render_panels();
     render_tooltip();
+    // template method implementation
+    render_();
 
-    glPopAttrib();
+    ImGui::Render();
+    ImGui_ImplOpenGL2_RenderDrawData( ImGui::GetDrawData() );
+
+    ::glPopClientAttrib();
 }
 
 void
@@ -207,30 +279,14 @@ ui_layer::render_progress() {
         ::glRasterPos2f(
             ( 0.5f * ( Global.iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
             ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
-        print( m_progresstext );
     }
 }
 
 void
 ui_layer::render_panels() {
 
-    if( m_panels.empty() ) { return; }
-
-    float const width = std::min( 4.f / 3.f, static_cast<float>(Global.iWindowWidth) / std::max( 1, Global.iWindowHeight ) ) * Global.iWindowHeight;
-    float const height = Global.iWindowHeight / 768.f;
-
-    for( auto const &panel : m_panels ) {
-
-        int lineidx = 0;
-        for( auto const &line : panel->text_lines ) {
-
-            ::glColor4fv( glm::value_ptr( line.color ) );
-            ::glRasterPos2f(
-                0.5f * ( Global.iWindowWidth - width ) + panel->origin_x * height,
-                panel->origin_y * height + 20.f * lineidx );
-            print( line.data );
-            ++lineidx;
-        }
+    for( auto *panel : m_panels ) {
+        panel->render();
     }
 }
 
@@ -240,12 +296,7 @@ ui_layer::render_tooltip() {
     if( m_tooltip.empty() ) { return; }
     if( false == m_cursorvisible ) { return; }
 
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-
-    ::glColor4fv( glm::value_ptr( colors::white ) );
-    ::glRasterPos2f( mousepos.x + 20.0f, mousepos.y + 25.0f );
-    print( m_tooltip );
+    ImGui::SetTooltip( m_tooltip.c_str() );
 }
 
 void
@@ -293,21 +344,6 @@ ui_layer::render_texture() {
 
         ::glBindTexture( GL_TEXTURE_2D, 0 );
     }
-}
-
-void
-ui_layer::print( std::string const &Text )
-{
-    if( (false == Global.DLFont)
-     || (true == Text.empty()) )
-        return;
-    
-    ::glPushAttrib( GL_LIST_BIT );
-
-    ::glListBase( m_fontbase - 32 );
-    ::glCallLists( Text.size(), GL_UNSIGNED_BYTE, Text.c_str() );
-
-    ::glPopAttrib();
 }
 
 void

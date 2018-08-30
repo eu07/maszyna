@@ -321,7 +321,7 @@ bool TSpeedPos::Update()
     return false;
 };
 
-std::string TSpeedPos::GetName()
+std::string TSpeedPos::GetName() const
 {
 	if (iFlags & spTrack) // jeśli tor
         return trTrack->name();
@@ -331,7 +331,7 @@ std::string TSpeedPos::GetName()
         return "";
 }
 
-std::string TSpeedPos::TableText()
+std::string TSpeedPos::TableText() const
 { // pozycja tabelki pr?dko?ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
@@ -1639,7 +1639,7 @@ TController::~TController()
     CloseLog();
 };
 
-std::string TController::Order2Str(TOrders Order)
+std::string TController::Order2Str(TOrders Order) const
 { // zamiana kodu rozkazu na opis
     if (Order & Change_direction)
         return "Change_direction"; // może być nałożona na inną i wtedy ma priorytet
@@ -1674,9 +1674,9 @@ std::string TController::Order2Str(TOrders Order)
     return "Undefined!";
 }
 
-std::string TController::OrderCurrent()
+std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
-    return std::to_string(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
+    return "[" + std::to_string(OrderPos) + "] " + Order2Str(OrderList[OrderPos]);
 };
 
 void TController::OrdersClear()
@@ -2244,7 +2244,7 @@ void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
     VelNext = NewVelNext; // prędkość przy następnym obiekcie
 }
 
-double TController::BrakeAccFactor()
+double TController::BrakeAccFactor() const
 {
 	double Factor = 1.0;
     if( ( ActualProximityDist > fMinProximityDist )
@@ -4916,7 +4916,7 @@ TController::UpdateSituation(double dt) {
                                      && ( pVehicles[0]->fTrackBlock < 50.0 ) ) {
                                         // crude detection of edge case, if approaching another vehicle coast slowly until min distance
                                         // this should allow to bunch up trainsets more on sidings
-                                        VelDesired = min_speed( VelDesired, 5.0 );
+                                        VelDesired = min_speed( 5.0, VelDesired );
                                     }
                                     else {
                                         // hamowanie tak, aby stanąć
@@ -4934,7 +4934,7 @@ TController::UpdateSituation(double dt) {
 						else {
                             // outside of max safe range
                             AccDesired = AccPreferred;
-                            if( vel > min_speed( 10.0, VelDesired ) ) {
+                            if( vel > min_speed( (ActualProximityDist > 10.0 ? 10.0 : 5.0 ), VelDesired ) ) {
                                 // allow to coast at reasonably low speed
                                 auto const brakingdistance { fBrakeDist * braking_distance_multiplier( VelNext ) };
                                 auto const slowdowndistance { (
@@ -6026,7 +6026,7 @@ TCommandType TController::BackwardScan()
     return TCommandType::cm_Unknown; // nic
 };
 
-std::string TController::NextStop()
+std::string TController::NextStop() const
 { // informacja o następnym zatrzymaniu, wyświetlane pod [F1]
     if (asNextStop == "[End of route]")
         return ""; // nie zawiera nazwy stacji, gdy dojechał do końca
@@ -6130,7 +6130,7 @@ TController::TrainTimetable() const {
     return TrainParams;
 }
 
-std::string TController::Relation()
+std::string TController::Relation() const
 { // zwraca relację pociągu
     return TrainParams->ShowRelation();
 };
@@ -6150,7 +6150,7 @@ int TController::StationIndex() const
     return TrainParams->StationIndex;
 };
 
-bool TController::IsStop()
+bool TController::IsStop() const
 { // informuje, czy jest zatrzymanie na najbliższej stacji
     return TrainParams->IsStop();
 };
@@ -6181,7 +6181,7 @@ void TController::ControllingSet()
     mvControlling = pVehicle->ControlledFind()->MoverParameters; // poszukiwanie członu sterowanego
 };
 
-std::string TController::TableText( std::size_t const Index )
+std::string TController::TableText( std::size_t const Index ) const
 { // pozycja tabelki prędkości
     if( Index < sSpeedTable.size() ) {
         return sSpeedTable[ Index ].TableText();

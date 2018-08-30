@@ -77,13 +77,20 @@
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
+#ifndef __ANDROID__
 #include "GL/glew.h"
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
 #ifdef _WIN32
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU
 //m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
+#ifndef __ANDROID__
 #include <GLFW/glfw3.h>
+#endif
 
 #define GLM_ENABLE_EXPERIMENTAL 
 #define GLM_FORCE_CTOR_INIT 
@@ -96,3 +103,16 @@
 #include <glm/gtx/norm.hpp>
 
 #include "openglmatrixstack.h"
+
+// imgui.h comes with its own operator new which gets wrecked by dbg_new, so we temporarily disable the latter
+#ifdef _MSC_VER
+#ifdef _DEBUG
+#undef new
+#endif  // _DEBUG
+#endif
+#include "imgui.h"
+#ifdef _MSC_VER
+#ifdef _DEBUG
+#define new DBG_NEW
+#endif  // _DEBUG
+#endif
