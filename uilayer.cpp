@@ -11,21 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 
 #include "globals.h"
-#include "translation.h"
-#include "simulation.h"
-#include "simulationtime.h"
-#include "event.h"
-#include "camera.h"
-#include "mtable.h"
-#include "train.h"
-#include "driver.h"
-#include "sceneeditor.h"
-#include "animmodel.h"
-#include "dynobj.h"
-#include "model3d.h"
 #include "renderer.h"
-#include "utilities.h"
-#include "logs.h"
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
@@ -96,7 +82,7 @@ ui_layer::init_colors() {
     // configure ui colours
     auto *style = &ImGui::GetStyle();
     auto *colors = style->Colors;
-    auto const background { ImVec4( 38.0f / 255.0f, 38.0f / 255.0f, 38.0f / 255.0f, 0.65f ) };
+    auto const background { ImVec4( 38.0f / 255.0f, 38.0f / 255.0f, 38.0f / 255.0f, Global.UIBgOpacity ) };
     auto const accent     { ImVec4( 44.0f / 255.0f, 88.0f / 255.0f, 72.0f / 255.0f, 0.75f ) };
     auto const itembase { ImVec4( accent.x, accent.y, accent.z, 0.35f ) };
     auto const itemhover { ImVec4( accent.x, accent.y, accent.z, 0.65f ) };

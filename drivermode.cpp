@@ -332,7 +332,7 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
         }
     }
 
-    if( Action == GLFW_PRESS ) {
+    if( Action != GLFW_RELEASE ) {
 
         OnKeyDown( Key );
 

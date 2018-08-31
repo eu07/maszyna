@@ -346,12 +346,13 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     auto const &mover { *m_input.mover };
 
         // f3 data
-        auto textline = "Vehicle name: " + mover.Name;
+        auto textline = "Name: " + mover.Name;
 
         if( ( vehicle.Mechanik == nullptr ) && ( vehicle.ctOwner ) ) {
             // for cars other than leading unit indicate the leader
             textline += ", owned by " + vehicle.ctOwner->OwnerName();
         }
+        textline += "\nLoad: " + to_string( mover.Load, 0 ) + ' ' + mover.LoadType;
         textline += "\nStatus: " + mover.EngineDescription( 0 );
         if( mover.WheelFlat > 0.01 ) {
             textline += " Flat: " + to_string( mover.WheelFlat, 1 ) + " mm";
@@ -359,17 +360,16 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
         // informacja o sprzęgach
         textline +=
-            "\nC0:" +
+            "\nCouplers:\n front: " +
             ( vehicle.PrevConnected ?
-                vehicle.PrevConnected->name() + ":" + to_string( mover.Couplers[ 0 ].CouplingFlag ) + (
+                vehicle.PrevConnected->name() + " [" + to_string( mover.Couplers[ 0 ].CouplingFlag ) + "]" + (
                     mover.Couplers[ 0 ].CouplingFlag == 0 ?
                     " (" + to_string( mover.Couplers[ 0 ].CoupleDist, 1 ) + " m)" :
                     "" ) :
-                "none" );
-        textline +=
-            " C1:" +
+                "none" )
+        + "\n rear:  " +
             ( vehicle.NextConnected ?
-                vehicle.NextConnected->name() + ":" + to_string( mover.Couplers[ 1 ].CouplingFlag ) + (
+                vehicle.NextConnected->name() + " [" + to_string( mover.Couplers[ 1 ].CouplingFlag ) + "]" + (
                     mover.Couplers[ 1 ].CouplingFlag == 0 ?
                     " (" + to_string( mover.Couplers[ 1 ].CoupleDist, 1 ) + " m)" :
                     "" ) :
@@ -378,8 +378,10 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         Output.emplace_back( textline, Global.UITextColor );
 
         // equipment flags
-        textline = ( mover.Battery ? "B" : "." );
+        textline = "Devices: ";
+        textline += ( mover.Battery ? "B" : "." );
         textline += ( mover.Mains ? "M" : "." );
+        textline += ( mover.FuseFlag ? "!" : "." );
         textline += ( mover.PantRearUp ? ( mover.PantRearVolt > 0.0 ? "O" : "o" ) : "." );
         textline += ( mover.PantFrontUp ? ( mover.PantFrontVolt > 0.0 ? "P" : "p" ) : "." );
         textline += ( mover.PantPressLockActive ? "!" : ( mover.PantPressSwitchActive ? "*" : "." ) );
@@ -393,37 +395,13 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         textline += ( mover.CompressorGovernorLock ? "!" : "." );
 
         if( ( m_input.train != nullptr ) && ( m_input.train->Dynamic() == m_input.vehicle ) ) {
-            textline += ( mover.Radio ? " R: " : " r: " ) + std::to_string( m_input.train->RadioChannel() );
+            textline += " radio: " + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "(off)" );
         }
-        textline += " Bdelay: ";
-        if( ( mover.BrakeDelayFlag & bdelay_G ) == bdelay_G )
-            textline += "G";
-        if( ( mover.BrakeDelayFlag & bdelay_P ) == bdelay_P )
-            textline += "P";
-        if( ( mover.BrakeDelayFlag & bdelay_R ) == bdelay_R )
-            textline += "R";
-        if( ( mover.BrakeDelayFlag & bdelay_M ) == bdelay_M )
-            textline += "+Mg";
+        if( ( mover.EngineType == TEngineType::DieselElectric )
+         || ( mover.EngineType == TEngineType::DieselEngine ) ) {
+            textline += ", oil pressure: " + to_string( mover.OilPump.pressure_present, 2 );
+        }
 
-        textline += ", Load: " + to_string( mover.Load, 0 ) + " (" + to_string( mover.LoadFlag, 0 ) + ")";
-
-        textline +=
-            "\nFt: " + to_string(
-                mover.Ft * 0.001f * (
-                    mover.ActiveCab ? mover.ActiveCab :
-                    vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab :
-                    1 ), 1 )
-            + ", Fb: " + to_string( mover.Fb * 0.001f, 1 )
-            + ", Fr: " + to_string( mover.Adhesive( mover.RunningTrack.friction ), 2 )
-            + ( mover.SlippingWheels ? " (!)" : "" );
-
-        textline +=
-            "\nPant: "
-            + to_string( mover.PantPress, 2 )
-            + ( mover.bPantKurek3 ? "-ZG" : "|ZG" );
-        textline +=
-            " TC:"
-            + to_string( mover.TotalCurrent, 0 );
         auto const frontcouplerhighvoltage =
             to_string( mover.Couplers[ side::front ].power_high.voltage, 0 )
             + "@"
@@ -432,7 +410,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
             to_string( mover.Couplers[ side::rear ].power_high.voltage, 0 )
             + "@"
             + to_string( mover.Couplers[ side::rear ].power_high.current, 0 );
-        textline += ", HV: ";
+
+        textline += "\nPower transfers: ";
         if( mover.Couplers[ side::front ].power_high.local == false ) {
             textline +=
                 "(" + frontcouplerhighvoltage + ")-"
@@ -448,91 +427,101 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
         Output.emplace_back( textline, Global.UITextColor );
 
-        textline =
-            "TrB: " + to_string( mover.BrakePress, 2 )
-            + ", " + to_hex_str( mover.Hamulec->GetBrakeStatus(), 2 );
+        textline = "Controllers:\n master: " + std::to_string( mover.MainCtrlPos ) + "(" + std::to_string( mover.MainCtrlActualPos ) + ")"
+            + ", secondary: " +
+            ( ( mover.ShuntMode && mover.EngineType == TEngineType::DieselElectric ) ?
+                to_string( mover.AnPos, 2 ) + " (shunt mode)" :
+                std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" );
 
-        textline +=
-            "; LcB: " + to_string( mover.LocBrakePress, 2 )
-            + "; hat: " + to_string( mover.BrakeCtrlPos2, 2 )
-            + "\npipes: " + to_string( mover.PipePress, 2 )
-            + "/" + to_string( mover.ScndPipePress, 2 )
-            + "/" + to_string( mover.EqvtPipePress, 2 )
-            + "\nMT: " + to_string( mover.CompressedVolume, 3 )
-            + ", BT: " + to_string( mover.Volume, 3 )
-            + ", CtlP: " + to_string( mover.CntrlPipePress, 3 )
-            + ", CtlT: " + to_string( mover.Hamulec->GetCRP(), 3 );
+        textline += "\nEngine output: " + to_string( mover.EnginePower, 1 );
+        textline += ", current: " +
+            ( mover.TrainType == dt_EZT ?
+                std::to_string( int( mover.ShowCurrent( 0 ) ) ) :
+                std::to_string( int( mover.Im ) ) );
 
-        if( mover.ManualBrakePos > 0 ) {
-
-            textline += "; manual brake on";
+        textline += "\nRevolutions:\n engine: " + to_string( mover.enrot * 60, 0 )
+            + ", motors: " + to_string( std::abs( mover.nrot ) * mover.Transmision.Ratio * 60, 0 )
+            + ", ventilators: " + to_string( mover.RventRot * 60, 0 )
+            + ", fans: " + to_string( mover.dizel_heat.rpmw, 0 ) + "+" + to_string( mover.dizel_heat.rpmw2, 0 );
+        if( ( mover.EngineType == TEngineType::DieselElectric )
+         || ( mover.EngineType == TEngineType::DieselEngine ) ) {
+            textline +=
+                "\nTemperatures:\n engine: " + to_string( mover.dizel_heat.Ts, 2 )
+                + ", oil: " + to_string( mover.dizel_heat.To, 2 )
+                + ", water: " + to_string( mover.dizel_heat.temperatura1, 2 )
+                + ( mover.WaterCircuitsLink ? "-" : "|" )
+                + to_string( mover.dizel_heat.temperatura2, 2 );
         }
 
         Output.emplace_back( textline, Global.UITextColor );
 
-        // debug mode f1 data
-        textline =
-            "vel: " + to_string( vehicle.GetVelocity(), 2 ) + "/" + to_string( mover.nrot* M_PI * mover.WheelDiameter * 3.6, 2 )
-            + " km/h;"
-            + " dist: " + to_string( mover.DistCounter, 2 ) + " km"
-            + "\npos: [" + to_string( vehicle.GetPosition().x, 2 ) + ", " + to_string( vehicle.GetPosition().y, 2 ) + ", " + to_string( vehicle.GetPosition().z, 2 ) + "]"
-            + "\nenpwr=" + to_string( mover.EnginePower, 1 )
-            + "; enrot=" + to_string( mover.enrot * 60, 0 )
-            + " tmrot=" + to_string( std::abs( mover.nrot ) * mover.Transmision.Ratio * 60, 0 )
-            + "; ventrot=" + to_string( mover.RventRot * 60, 1 )
-            + "; fanrot=" + to_string( mover.dizel_heat.rpmw, 1 ) + ", " + to_string( mover.dizel_heat.rpmw2, 1 );
+        textline = "Brakes:\n train: " + to_string( mover.fBrakeCtrlPos, 2 )
+            + ", independent: " + to_string( mover.LocalBrakePosA, 2 )
+            + ", delay: ";
+        if( ( mover.BrakeDelayFlag & bdelay_G ) == bdelay_G )
+            textline += "G";
+        if( ( mover.BrakeDelayFlag & bdelay_P ) == bdelay_P )
+            textline += "P";
+        if( ( mover.BrakeDelayFlag & bdelay_R ) == bdelay_R )
+            textline += "R";
+        if( ( mover.BrakeDelayFlag & bdelay_M ) == bdelay_M )
+            textline += "+Mg";
+        textline += ", load flag: " + to_string( mover.LoadFlag, 0 );
+/*
+        if( mover.ManualBrakePos > 0 ) {
+
+            textline += "; manual brake on";
+        }
+*/
+        textline += "\nBrake cylinder pressures:\n train: " + to_string( mover.BrakePress, 2 )
+            + ", independent: " + to_string( mover.LocBrakePress, 2 )
+            + ", status: " + to_hex_str( mover.Hamulec->GetBrakeStatus(), 2 );
+
+        textline += "\nPipe pressures:\n brake: " + to_string( mover.PipePress, 2 )
+            + " (hat: " + to_string( mover.BrakeCtrlPos2, 2 ) + ")"
+            + ", main: " + to_string( mover.ScndPipePress, 2 )
+            + ", control: " + to_string( mover.CntrlPipePress, 2 );
+
+        textline += "\nTank pressures:\n brake: " + to_string( mover.Volume, 2 )
+            + ", main: " + to_string( mover.Compressor, 2 )
+            + ", control: " + to_string( mover.Hamulec->GetCRP(), 2 );
+        if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+            textline += ", pantograph: " + to_string( mover.PantPress, 2 ) + ( mover.bPantKurek3 ? "-MT" : "|MT" );
+        }
 
         Output.emplace_back( textline, Global.UITextColor );
 
-        textline =
-            "HamZ=" + to_string( mover.fBrakeCtrlPos, 2 )
-            + "; HamP=" + to_string( mover.LocalBrakePosA, 2 )
-            + "; NasJ=" + std::to_string( mover.MainCtrlPos ) + "(" + std::to_string( mover.MainCtrlActualPos ) + ")"
-            + ( ( mover.ShuntMode && mover.EngineType == TEngineType::DieselElectric ) ?
-                "; NasB=" + to_string( mover.AnPos, 2 ) :
-                "; NasB=" + std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" )
-            + "\nI=" +
-            ( mover.TrainType == dt_EZT ?
-                std::to_string( int( mover.ShowCurrent( 0 ) ) ) :
-                std::to_string( int( mover.Im ) ) )
-            + "; U=" + to_string( int( mover.RunningTraction.TractionVoltage + 0.5 ) )
-            + "; R=" +
-            ( std::abs( mover.RunningShape.R ) > 10000.0 ?
-                "~0.0" :
-                to_string( mover.RunningShape.R, 1 ) )
-            + " An=" + to_string( mover.AccN, 2 ); // przyspieszenie poprzeczne
+        textline = "Forces:\n tractive: " + to_string(
+                mover.Ft * 0.001f * (
+                    mover.ActiveCab ? mover.ActiveCab :
+                    vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab :
+                    1 ) + 0.001f, 1 )
+            + ", brake: " + to_string( mover.Fb * 0.001f, 1 )
+            + ", friction: " + to_string( mover.Adhesive( mover.RunningTrack.friction ), 2 )
+            + ( mover.SlippingWheels ? " (!)" : "" );
 
         if( tprev != simulation::Time.data().wSecond ) {
             tprev = simulation::Time.data().wSecond;
             Acc = ( mover.Vel - VelPrev ) / 3.6;
             VelPrev = mover.Vel;
         }
-        textline += "; As=" + to_string( Acc, 2 ); // przyspieszenie wzdłużne
-                                                   //                uitextline2 += " eAngle=" + to_string( std::cos( mover.eAngle ), 2 );
-        textline += "\noilP=" + to_string( mover.OilPump.pressure_present, 3 );
-        textline += " oilT=" + to_string( mover.dizel_heat.To, 2 );
-        textline += "; waterT=" + to_string( mover.dizel_heat.temperatura1, 2 );
-        textline += ( mover.WaterCircuitsLink ? "-" : "|" );
-        textline += to_string( mover.dizel_heat.temperatura2, 2 );
-        textline += "; engineT=" + to_string( mover.dizel_heat.Ts, 2 );
+
+        textline += "\nAcceleration:\n tangential: " + to_string( Acc, 2 )
+            + ", normal: " + to_string( mover.AccN, 2 )
+            + " (path radius: " + ( std::abs( mover.RunningShape.R ) > 10000.0 ?
+                "~0.0" :
+                to_string( mover.RunningShape.R, 0 ) ) + ")";
+
+        textline += "\nVelocity: " + to_string( vehicle.GetVelocity(), 2 ) + " / " + to_string( mover.nrot* M_PI * mover.WheelDiameter * 3.6, 2 )
+            + ", distance traveled: " + to_string( mover.DistCounter, 2 )
+            + "\nPosition: [" + to_string( vehicle.GetPosition().x, 2 ) + ", " + to_string( vehicle.GetPosition().y, 2 ) + ", " + to_string( vehicle.GetPosition().z, 2 ) + "]";
 
         Output.emplace_back( textline, Global.UITextColor );
-
-        textline =
-            "cyl.ham. " + to_string( mover.BrakePress, 2 )
-            + "; prz.gl. " + to_string( mover.PipePress, 2 )
-            + "; zb.gl. " + to_string( mover.CompressedVolume, 2 )
-            // youBy - drugi wezyk
-            + "; p.zas. " + to_string( mover.ScndPipePress, 2 );
-
+/*
+        textline = " TC:" + to_string( mover.TotalCurrent, 0 );
+*/
+/*
         // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-        if( mover.ConvOvldFlag )
-            textline += " C! ";
-        else if( mover.FuseFlag )
-            textline += " F! ";
-        else if( !mover.Mains )
-            textline += " () ";
-        else {
             switch(
                 mover.ActiveDir *
                 ( mover.Imin == mover.IminLo ?
@@ -544,9 +533,6 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
                 case -1: { textline += " <- "; break; }
                 case -2: { textline += " << "; break; }
             }
-        }
-
-        Output.emplace_back( textline, Global.UITextColor );
 
         // McZapkie: komenda i jej parametry
         if( mover.CommandIn.Command != ( "" ) ) {
@@ -554,9 +540,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
                 "C:" + mover.CommandIn.Command
                 + " V1=" + to_string( mover.CommandIn.Value1, 0 )
                 + " V2=" + to_string( mover.CommandIn.Value2, 0 );
-
-            Output.emplace_back( textline, Global.UITextColor );
         }
+*/
 }
 
 void
@@ -572,63 +557,58 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
 
         // engine data
                 // induction motor data
-                if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
+    if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
 
-                    Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
-                    for( int i = 0; i <= 20; ++i ) {
+        Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
+        for( int i = 0; i <= 20; ++i ) {
 
-                        std::string parameters =
-                            mover.eimc_labels[ i ] + to_string( mover.eimc[ i ], 2, 9 )
-                            + " | "
-                            + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
+            std::string parameters =
+                mover.eimc_labels[ i ] + to_string( mover.eimc[ i ], 2, 9 )
+                + " | "
+                + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
 
-                        if( i < 10 ) {
-                            parameters += " | " + train.fPress_labels[i] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
-                        }
-                        else if( i == 12 ) {
-                            parameters += "        med:";
-                        }
-                        else if( i >= 13 ) {
-                            parameters += " | " + vehicle.MED_labels[ i - 13 ] + to_string( vehicle.MED[ 0 ][ i - 13 ], 2, 9 );
-                        }
+            if( i < 10 ) {
+                parameters += " | " + train.fPress_labels[ i ] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
+            }
+            else if( i == 12 ) {
+                parameters += "        med:";
+            }
+            else if( i >= 13 ) {
+                parameters += " | " + vehicle.MED_labels[ i - 13 ] + to_string( vehicle.MED[ 0 ][ i - 13 ], 2, 9 );
+            }
 
-                        Output.emplace_back( parameters, Global.UITextColor );
-                    }
-                }
-				if ( mover.EngineType == TEngineType::DieselEngine) {
-					std::string parameters = "param       value";
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "efill: " + to_string( mover.dizel_fill, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "etorq: " + to_string( mover.dizel_Torque, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "creal: " + to_string( mover.dizel_engage, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "cdesi: " + to_string( mover.dizel_engagestate, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "cdelt: " + to_string( mover.dizel_engagedeltaomega, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "gears: " + to_string( mover.dizel_automaticgearstatus, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hydro      value";
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCnI: " + to_string( mover.hydro_TC_nIn, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCnO: " + to_string( mover.hydro_TC_nOut, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCTM: " + to_string( mover.hydro_TC_TMRatio, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCTI: " + to_string( mover.hydro_TC_TorqueIn, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCTO: " + to_string( mover.hydro_TC_TorqueOut, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCfl: " + to_string( mover.hydro_TC_Fill, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					parameters = "hTCLR: " + to_string( mover.hydro_TC_LockupRate, 2, 9);
-                    Output.emplace_back(parameters, Global.UITextColor);
-					//parameters = "hTCXX: " + to_string(mover->hydro_TC_nIn, 2, 9);
-					//engine_lines.emplace_back(parameters, Global.UITextColor);
-				}
+            Output.emplace_back( parameters, Global.UITextColor );
+        }
+    }
+    if( mover.EngineType == TEngineType::DieselEngine ) {
+
+        std::string parameterstext = "param       value";
+        std::vector< std::pair <std::string, double> > const paramvalues {
+            { "efill: ", mover.dizel_fill },
+            { "etorq: ", mover.dizel_Torque },
+            { "creal: ", mover.dizel_engage },
+            { "cdesi: ", mover.dizel_engagestate },
+            { "cdelt: ", mover.dizel_engagedeltaomega },
+            { "gears: ", mover.dizel_automaticgearstatus} };
+        for( auto const &parameter : paramvalues ) {
+            parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
+        }
+        Output.emplace_back( parameterstext, Global.UITextColor );
+
+        parameterstext = "hydro      value";
+        std::vector< std::pair <std::string, double> > const hydrovalues {
+            { "hTCnI: ", mover.hydro_TC_nIn },
+            { "hTCnO: ", mover.hydro_TC_nOut },
+            { "hTCTM: ", mover.hydro_TC_TMRatio },
+            { "hTCTI: ", mover.hydro_TC_TorqueIn },
+            { "hTCTO: ", mover.hydro_TC_TorqueOut },
+            { "hTCfl: ", mover.hydro_TC_Fill },
+            { "hTCLR: ", mover.hydro_TC_LockupRate } };
+        for( auto const &parameter : hydrovalues ) {
+            parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
+        }
+        Output.emplace_back( parameterstext, Global.UITextColor );
+    }
 }
 
 void
@@ -696,6 +676,12 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
         + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 );
+
+    Output.emplace_back( textline, Global.UITextColor );
+
+    // brakes
+    textline =
+        "Brakes:\n consist: " + to_string( mechanik.fReady, 2 ) + " or less";
 
     Output.emplace_back( textline, Global.UITextColor );
 

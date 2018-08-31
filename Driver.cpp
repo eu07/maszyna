@@ -5282,25 +5282,11 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest większa od 5km/h
-                if( false == TestFlag( iDrivigFlags, movePress ) ) {
-                    // jeśli nie dociskanie
-                    if( AccDesired < -0.05 ) {
-                        while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
-                    }
-                    else if( ( vel > VelDesired )
-                          || ( fAccGravity < -0.01 ?
-                                    AccDesired < 0.0 :
-                                    AbsAccS > AccDesired ) ) {
-                        // jak za bardzo przyspiesza albo prędkość przekroczona
-                        DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
-                    }
-                }
                 // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
                 // zwiekszanie predkosci
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                if( AbsAccS < AccDesired ) {
+                if( ( AccDesired - AbsAccS > 0.01 ) ) {
                     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
                     if( vel < (
                         VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
@@ -5320,6 +5306,20 @@ TController::UpdateSituation(double dt) {
                 }
                 // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
                 // zmniejszanie predkosci
+                // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest większa od 5km/h
+                if( false == TestFlag( iDrivigFlags, movePress ) ) {
+                    // jeśli nie dociskanie
+                    if( AccDesired < -0.05 ) {
+                        while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
+                    }
+                    else if( ( vel > VelDesired )
+                          || ( fAccGravity < -0.01 ?
+                                    AccDesired < 0.0 :
+                                    AbsAccS > AccDesired ) ) {
+                        // jak za bardzo przyspiesza albo prędkość przekroczona
+                        DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
+                    }
+                }
                 if( mvOccupied->TrainType == dt_EZT ) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT

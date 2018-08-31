@@ -989,7 +989,7 @@ double TMoverParameters::ManualBrakeRatio(void)
 // Q: 20160713
 // Zwraca objętość
 // *****************************************************************************
-double TMoverParameters::BrakeVP(void)
+double TMoverParameters::BrakeVP(void) const
 {
     if (BrakeVVolume > 0)
         return Volume / (10.0 * BrakeVVolume);

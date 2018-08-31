@@ -1236,7 +1236,7 @@ public:
 	double ManualBrakeRatio(void);
 	double PipeRatio(void);/*ile napelniac*/
 	double RealPipeRatio(void);/*jak szybko*/
-	double BrakeVP(void);
+	double BrakeVP(void) const;
 
 	/*! przesylanie komend sterujacych*/
 	bool SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue);

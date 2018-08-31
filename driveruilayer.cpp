@@ -13,18 +13,9 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "translation.h"
 #include "simulation.h"
-#include "simulationtime.h"
-#include "event.h"
-#include "camera.h"
-#include "mtable.h"
 #include "train.h"
-#include "driver.h"
 #include "animmodel.h"
-#include "dynobj.h"
-#include "model3d.h"
 #include "renderer.h"
-#include "utilities.h"
-#include "logs.h"
 
 driver_ui::driver_ui() {
 

@@ -593,6 +593,12 @@ global_settings::ConfigParse(cParser &Parser) {
             UITextColor = UITextColor / 255.f;
             UITextColor.a = 1.f;
         }
+        else if( token == "ui.bg.opacity" ) {
+            // czy grupować eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> UIBgOpacity;
+            UIBgOpacity = clamp( UIBgOpacity, 0.f, 1.f );
+        }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
