@@ -26,9 +26,13 @@ driver_ui::driver_ui() {
     push_back( &m_debugpanel );
     push_back( &m_transcriptspanel );
 
+    m_aidpanel.name = locale::strings[ locale::string::driver_aid_header ];
+
+    m_timetablepanel.name = locale::strings[ locale::string::driver_timetable_header ];
     m_timetablepanel.size_min = { 435, 110 };
     m_timetablepanel.size_max = { 435, Global.iWindowHeight * 0.95 };
 
+    m_transcriptspanel.name = locale::strings[ locale::string::driver_transcripts_header ];
     m_transcriptspanel.size_min = { 435, 85 };
     m_transcriptspanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 }
@@ -141,14 +145,15 @@ driver_ui::render_() {
     auto const pausemask { 1 | 2 };
     if( ( Global.iPause & pausemask ) != 0 ) {
         // pause/quit modal
-        auto const popupheader{ "Simulation Paused" };
+        auto const popupheader { locale::strings[ locale::string::driver_pause_header ].c_str() };
         ImGui::OpenPopup( popupheader );
         if( ImGui::BeginPopupModal( popupheader, nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
-            if( ImGui::Button( "Resume", ImVec2( 120, 0 ) ) ) {
+            auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
+            if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
                 Global.iPause &= ~pausemask;
             }
-            if( ImGui::Button( "Quit", ImVec2( 120, 0 ) ) ) {
+            if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
                 glfwSetWindowShouldClose( m_window, 1 );
             }

@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
+#include "translation.h"
 #include "logs.h"
 
 #ifdef EU07_BUILD_STATIC
@@ -107,6 +108,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
+        return result;
+    }
+    if( ( result = init_locale() ) != 0 ) {
         return result;
     }
 
@@ -364,6 +368,14 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
             return -1;
         }
     }
+
+    return 0;
+}
+
+int
+eu07_application::init_locale() {
+
+    locale::init();
 
     return 0;
 }

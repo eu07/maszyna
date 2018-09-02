@@ -70,6 +70,7 @@ private:
     void init_debug();
     void init_files();
     int  init_settings( int Argc, char *Argv[] );
+    int  init_locale();
     int  init_glfw();
     void init_callbacks();
     int  init_gfx();

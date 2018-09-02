@@ -22,6 +22,10 @@ public:
     void update() override;
 
     bool is_expanded { false };
+
+private:
+// members
+    std::array<char, 256> m_buffer;
 };
 
 class timetable_panel : public ui_panel {
@@ -33,6 +37,10 @@ public:
     void update() override;
 
     bool is_expanded{ false };
+
+private:
+    // members
+    std::array<char, 256> m_buffer;
 };
 
 class debug_panel : public ui_panel {
@@ -64,9 +72,13 @@ private:
     void update_section_eventqueue( std::vector<text_line> &Output );
     void update_section_camera( std::vector<text_line> &Output );
     void update_section_renderer( std::vector<text_line> &Output );
+    // section update helpers
+    std::string update_vehicle_coupler( int const Side );
+    std::string update_vehicle_brake() const;
     // renders provided lines, under specified collapsing header
     void render_section( std::string const &Header, std::vector<text_line> const &Lines );
 // members
+    std::array<char, 1024> m_buffer;
     input_data m_input;
     std::vector<text_line>
         m_vehiclelines,
