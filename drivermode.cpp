@@ -571,12 +571,13 @@ driver_mode::OnKeyDown(int cKey) {
                 simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
             }
         }
-        else // zapamiętywanie kamery może działać podczas pauzy
+        else if( Global.ctrlState ) {
+            // zapamiętywanie kamery może działać podczas pauzy
             if( FreeFlyModeFlag ) {
                 // w trybie latania można przeskakiwać do ustawionych kamer
-                if( ( !Global.FreeCameraInit[ i ].x )
-                 && ( !Global.FreeCameraInit[ i ].y )
-                 && ( !Global.FreeCameraInit[ i ].z ) ) {
+                if( ( Global.FreeCameraInit[ i ].x == 0.0 )
+                 && ( Global.FreeCameraInit[ i ].y == 0.0 )
+                 && ( Global.FreeCameraInit[ i ].z == 0.0 ) ) {
                     // jeśli kamera jest w punkcie zerowym, zapamiętanie współrzędnych i kątów
                     Global.FreeCameraInit[ i ] = Camera.Pos;
                     Global.FreeCameraInitAngle[ i ].x = Camera.Pitch;
@@ -598,7 +599,7 @@ driver_mode::OnKeyDown(int cKey) {
                     Camera.Init( Global.FreeCameraInit[ i ], Global.FreeCameraInitAngle[ i ], TCameraType::tp_Free ); // przestawienie
                 }
             }
-        // będzie jeszcze załączanie sprzęgów z [Ctrl]
+        }
     }
     else if( ( cKey >= GLFW_KEY_F1 ) && ( cKey <= GLFW_KEY_F12 ) )
     {

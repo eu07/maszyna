@@ -970,7 +970,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         }
         
 		if( ( Mechanik != nullptr )
-         && ( Mechanik->GetAction() != TAction::actSleep ) ) {
+         && ( ( Mechanik->GetAction() != TAction::actSleep )
+           || ( MoverParameters->Battery ) ) ) {
             // rysowanie figurki mechanika
             btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
             btMechanik2.Turn( MoverParameters->ActiveCab < 0 );

@@ -740,8 +740,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
             // Ra 2013-12: Niebugocław mówi, że w EZT nie ma potrzeby odcinać kurkiem
             PantPress = ScndPipePress;
             // ograniczenie ciśnienia do MaxPress (tylko w pantografach!)
-            PantPress = std::min( PantPress, EnginePowerSource.CollectorParameters.MaxPress );
-            PantPress = std::max( PantPress, 0.0 );
+            PantPress = clamp( ScndPipePress, 0.0, EnginePowerSource.CollectorParameters.MaxPress );
             PantVolume = (PantPress + 1.0) * 0.1; // objętość, na wypadek odcięcia kurkiem
         }
         else
@@ -754,8 +753,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
                     * ( TrainType == dt_EZT ? 0.003 : 0.005 ) / std::max( 1.0, PantPress )
                     * ( 0.45 - ( ( 0.1 / PantVolume / 10 ) - 0.1 ) ) / 0.45;
             }
-            PantPress = std::min( (10.0 * PantVolume) - 1.0, EnginePowerSource.CollectorParameters.MaxPress ); // tu by się przydała objętość zbiornika
-            PantPress = std::max( PantPress, 0.0 );
+            PantPress = clamp( ( 10.0 * PantVolume ) - 1.0, 0.0, EnginePowerSource.CollectorParameters.MaxPress ); // tu by się przydała objętość zbiornika
         }
         if( !PantCompFlag && ( PantVolume > 0.1 ) )
             PantVolume -= dt * 0.0003 * std::max( 1.0, PantPress * 0.5 ); // nieszczelności: 0.0003=0.3l/s
@@ -4355,7 +4353,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
                     case 1: { // manual
                         if( ( ActiveDir != 0 )
-                            && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
@@ -4367,7 +4365,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     case 2: { // automatic
                         auto const motorcurrent{ std::min<double>( ImaxHi, std::abs( Im ) ) };
                         if( ( std::abs( Itot ) > RVentMinI )
-                            && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
 
                             RventRot +=
                                 ( RVentnmax
@@ -8512,8 +8510,8 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             //ciśnienie rozłączające WS
             extract_value( collectorparameters.MinPress, "MinPress", Line, "3.5" ); //domyślnie 2 bary do załączenia WS
             //maksymalne ciśnienie za reduktorem
-            collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
-            extract_value( collectorparameters.MaxPress, "MaxPress", Line, "" );
+//            collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
+            extract_value( collectorparameters.MaxPress, "MaxPress", Line, "5.0" );
             break;
         }
         case TPowerSource::PowerCable: {

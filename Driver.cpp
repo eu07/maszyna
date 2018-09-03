@@ -2256,11 +2256,9 @@ double TController::BrakeAccFactor() const
 
 void TController::SetDriverPsyche()
 {
-    // double maxdist=0.5; //skalowanie dystansu od innego pojazdu, zmienic to!!!
     if ((Psyche == Aggressive) && (OrderList[OrderPos] == Obey_train))
     {
         ReactionTime = HardReactionTime; // w zaleznosci od charakteru maszynisty
-        // if (pOccupied)
         if (mvOccupied->CategoryFlag & 2)
         {
             WaitingExpireTime = 1; // tyle ma czekać samochód, zanim się ruszy
@@ -2292,48 +2290,6 @@ void TController::SetDriverPsyche()
             ReactionTime = mvControlling->InitialCtrlDelay + ReactionTime;
         if (mvOccupied->BrakeCtrlPos > 1)
             ReactionTime = 0.5 * ReactionTime;
-        /*
-          if (mvOccupied->Vel>0.1) //o ile jedziemy
-          {//sprawdzenie jazdy na widoczność
-           TCoupling
-          *c=pVehicles[0]->MoverParameters->Couplers+(pVehicles[0]->DirectionGet()>0?0:1); //sprzęg
-          z przodu składu
-           if (c->Connected) //a mamy coś z przodu
-            if (c->CouplingFlag==0) //jeśli to coś jest podłączone sprzęgiem wirtualnym
-            {//wyliczanie optymalnego przyspieszenia do jazdy na widoczność (Ra: na pewno tutaj?)
-             double k=c->Connected->Vel; //prędkość pojazdu z przodu (zakładając, że jedzie w tę
-          samą stronę!!!)
-             if (k<=mvOccupied->Vel) //porównanie modułów prędkości [km/h]
-             {if (pVehicles[0]->fTrackBlock<fMaxProximityDist) //porównianie z minimalną odległością
-          kolizyjną
-               k=-AccPreferred; //hamowanie maksymalne, bo jest za blisko
-              else
-              {//jeśli tamten jedzie szybciej, to nie potrzeba modyfikować przyspieszenia
-               double d=(pVehicles[0]->fTrackBlock-0.5*fabs(mvOccupied->V)-fMaxProximityDist);
-          //bezpieczna odległość za poprzednim
-               //a=(v2*v2-v1*v1)/(25.92*(d-0.5*v1))
-               //(v2*v2-v1*v1)/2 to różnica energii kinetycznych na jednostkę masy
-               //jeśli v2=50km/h,v1=60km/h,d=200m => k=(192.9-277.8)/(25.92*(200-0.5*16.7)=-0.0171
-          [m/s^2]
-               //jeśli v2=50km/h,v1=60km/h,d=100m => k=(192.9-277.8)/(25.92*(100-0.5*16.7)=-0.0357
-          [m/s^2]
-               //jeśli v2=50km/h,v1=60km/h,d=50m  => k=(192.9-277.8)/(25.92*( 50-0.5*16.7)=-0.0786
-          [m/s^2]
-               //jeśli v2=50km/h,v1=60km/h,d=25m  => k=(192.9-277.8)/(25.92*( 25-0.5*16.7)=-0.1967
-          [m/s^2]
-               if (d>0) //bo jak ujemne, to zacznie przyspieszać, aby się zderzyć
-                k=(k*k-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //energia kinetyczna dzielona
-          przez masę i drogę daje przyspieszenie
-               else
-                k=0.0; //może lepiej nie przyspieszać -AccPreferred; //hamowanie
-               //WriteLog(pVehicle->asName+" "+AnsiString(k));
-              }
-              if (d<fBrakeDist) //bo z daleka nie ma co hamować
-               AccPreferred=Min0R(k,AccPreferred);
-             }
-            }
-          }
-        */
     }
 };
 
@@ -2486,6 +2442,7 @@ bool TController::PrepareEngine()
             // jeśli dotychczas spał teraz nie ma powodu do stania
             eStopReason = stopNone;
         }
+        eAction = TAction::actUnknown;
         iEngineActive = 1;
         return true;
     }
@@ -2495,56 +2452,84 @@ bool TController::PrepareEngine()
     }
 };
 
-bool TController::ReleaseEngine()
-{ // wyłączanie silnika (test wyłączenia, a część wykonawcza tylko jeśli steruje komputer)
+// wyłączanie silnika (test wyłączenia, a część wykonawcza tylko jeśli steruje komputer)
+bool TController::ReleaseEngine() {
+    
     bool OK = false;
-    LastReactionTime = 0.0;
-    ReactionTime = PrepareTime;
-    if (AIControllFlag)
-    { // jeśli steruje komputer
-        if (mvOccupied->DoorCloseCtrl == control_t::driver)
-        { // zamykanie drzwi
-            if (mvOccupied->DoorLeftOpened)
-                mvOccupied->DoorLeft(false);
-            if (mvOccupied->DoorRightOpened)
-                mvOccupied->DoorRight(false);
+
+    if( mvOccupied->Vel > 0.01 ) {
+        // TBD, TODO: make a dedicated braking procedure out of it for potential reuse
+        VelDesired = 0.0;
+        AccDesired = std::min( AccDesired, -1.25 ); // hamuj solidnie
+        ReactionTime = 0.1;
+        while( DecSpeed( true ) ) {
+            ; // zerowanie nastawników
         }
-        if (mvOccupied->ActiveDir == 0)
-            if (mvControlling->Mains)
-            {
-                mvControlling->CompressorSwitch(false);
-                mvControlling->ConverterSwitch(false);
-                if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
-                {
-                    mvControlling->PantFront(false);
-                    mvControlling->PantRear(false);
-                }
-                // line breaker
-                OK = mvControlling->MainSwitch(false);
-            }
-            else
-                OK = true;
-    }
-    else if( mvOccupied->ActiveDir == 0 ) {
-        // tylko to testujemy dla pojazdu człowieka
-        OK = mvControlling->Mains;
+        IncBrake();
+        return OK; // don't bother with the rest until we're standing still
     }
 
-    if( AIControllFlag ) {
+    LastReactionTime = 0.0;
+    ReactionTime = PrepareTime;
+
+    if( false == AIControllFlag ) {
+        // tylko to testujemy dla pojazdu człowieka
+        OK = ( ( mvOccupied->ActiveDir == 0 ) && ( mvControlling->Mains ) );
+    }
+    else  {
+        // jeśli steruje komputer
         mvOccupied->BrakeReleaser( 0 );
-        if( !mvOccupied->DecBrakeLevel() ) {
-            // tu moze zmieniać na -2, ale to bez znaczenia
-            if( !mvOccupied->IncLocalBrakeLevel( 1 ) ) {
-                while( DecSpeed( true ) )
-                    ; // zerowanie nastawników
-                while( mvOccupied->ActiveDir > 0 )
-                    mvOccupied->DirectionBackward();
-                while( mvOccupied->ActiveDir < 0 )
-                    mvOccupied->DirectionForward();
+        if( std::abs( fAccGravity ) < 0.01 ) {
+            // release train brake if on flats...
+            // TODO: check if we shouldn't leave it engaged instead
+            while( true == mvOccupied->DecBrakeLevel() ) {
+                // tu moze zmieniać na -2, ale to bez znaczenia
+                ;
+            }
+            // ...and engage independent brake
+            while( true == mvOccupied->IncLocalBrakeLevel( 1 ) ) {
+                ;
             }
         }
+        else {
+            // on slopes engage train brake
+            AccDesired = std::min( AccDesired, -0.9 );
+            while( true == IncBrake() ) {
+                ;
+            }
+        }
+        while( DecSpeed( true ) ) {
+            ; // zerowanie nastawników
+        }
+        // set direction to neutral
+        while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
+        while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+
+        if( mvOccupied->DoorCloseCtrl == control_t::driver ) {
+            // zamykanie drzwi
+            if( mvOccupied->DoorLeftOpened ) {
+                mvOccupied->DoorLeft( false );
+            }
+            if( mvOccupied->DoorRightOpened ) {
+                mvOccupied->DoorRight( false );
+            }
+        }
+
+        if( mvControlling->Mains ) {
+            mvControlling->CompressorSwitch( false );
+            mvControlling->ConverterSwitch( false );
+            // line breaker/engine
+            OK = mvControlling->MainSwitch( false );
+            if( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+                mvControlling->PantFront( false );
+                mvControlling->PantRear( false );
+            }
+        }
+        else {
+            OK = true;
+        }
     }
-    OK = OK && (mvOccupied->Vel < 0.01);
+
     if (OK)
     { // jeśli się zatrzymał
         iEngineActive = 0;
@@ -4822,6 +4807,11 @@ TController::UpdateSituation(double dt) {
                     // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
                     VelDesired = 0.0;
                 }
+            }
+
+            if( ( OrderCurrentGet() & Wait_for_orders ) != 0 ) {
+                // wait means sit and wait
+                VelDesired = 0.0;
             }
             // end of speed caps checks
 

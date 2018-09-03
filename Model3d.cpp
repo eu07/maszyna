@@ -431,6 +431,12 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                             >> Vertices[i].normal.x
                             >> Vertices[i].normal.y
                             >> Vertices[i].normal.z;
+                        if( glm::length2( Vertices[ i ].normal ) > 0.0f ) {
+                            glm::normalize( Vertices[ i ].normal );
+                        }
+                        else {
+                            WriteLog( "Bad model: zero length normal vector specified in: \"" + pName + "\", vertex " + std::to_string(i), logtype::model );
+                        }
 						wsp[i] = i; // wektory normalne "są już policzone"
 					}
 					parser.getTokens(2, false);
@@ -464,7 +470,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 /*
 				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
 */
-                std::vector<glm::vec3> facenormals;
+                std::vector<glm::vec3> facenormals; facenormals.reserve( facecount );
                 for( int i = 0; i < facecount; ++i ) {
                     // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
                     auto facenormal = 
@@ -1127,7 +1133,7 @@ TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 	TSubModel *sm = Name ? GetFromName(Name) : nullptr;
     if( ( sm == nullptr )
      && ( Name != nullptr ) && ( std::strcmp( Name, "none" ) != 0 ) ) {
-        ErrorLog( "Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located after in the model data", logtype::model );
+        ErrorLog( "Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located later in the model data", logtype::model );
     }
 	AddTo(sm, SubModel); // szukanie nadrzędnego
 	return sm; // zwracamy wskaźnik do nadrzędnego submodelu

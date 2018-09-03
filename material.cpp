@@ -38,7 +38,8 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
 
-    auto const value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
+    // NOTE: comma can be part of legacy file names, so we don't treat it as a separator here
+    auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
 
     if( Priority != -1 ) {
         // regular attribute processing mode
