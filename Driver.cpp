@@ -1373,6 +1373,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
                         fVelDes = v;
                     }
+                    if( ( sSpeedTable[ i ].iFlags & spEnd )
+                     && ( mvOccupied->CategoryFlag & 1 ) ) {
+                        // if the railway track ends here set the velnext accordingly as well
+                        // TODO: test this with turntables and such
+                        fNext = 0.0;
+                    }
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
                 }
@@ -2455,8 +2461,6 @@ bool TController::PrepareEngine()
 // wyłączanie silnika (test wyłączenia, a część wykonawcza tylko jeśli steruje komputer)
 bool TController::ReleaseEngine() {
     
-    bool OK = false;
-
     if( mvOccupied->Vel > 0.01 ) {
         // TBD, TODO: make a dedicated braking procedure out of it for potential reuse
         VelDesired = 0.0;
@@ -2466,11 +2470,14 @@ bool TController::ReleaseEngine() {
             ; // zerowanie nastawników
         }
         IncBrake();
-        return OK; // don't bother with the rest until we're standing still
+        // don't bother with the rest until we're standing still
+        return false;
     }
 
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
+
+    bool OK { false };
 
     if( false == AIControllFlag ) {
         // tylko to testujemy dla pojazdu człowieka
@@ -2515,7 +2522,7 @@ bool TController::ReleaseEngine() {
             }
         }
 
-        if( mvControlling->Mains ) {
+        if( true == mvControlling->Mains ) {
             mvControlling->CompressorSwitch( false );
             mvControlling->ConverterSwitch( false );
             // line breaker/engine
@@ -2528,15 +2535,9 @@ bool TController::ReleaseEngine() {
         else {
             OK = true;
         }
-    }
 
-    if (OK)
-    { // jeśli się zatrzymał
-        iEngineActive = 0;
-        eStopReason = stopSleep; // stoimy z powodu wyłączenia
-        eAction = TAction::actSleep; //śpi (wygaszony)
-        if (AIControllFlag)
-        {
+        if( OK ) {
+            // finish vehicle shutdown
             if( ( mvControlling->EngineType == TEngineType::DieselElectric )
              || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) {
                 // heating/cooling subsystem
@@ -2550,9 +2551,17 @@ bool TController::ReleaseEngine() {
                 mvControlling->OilPumpSwitch( false );
             }
             // gasimy światła
-            Lights(0, 0);
-            mvOccupied->BatterySwitch(false);
+            Lights( 0, 0 );
+            mvOccupied->BatterySwitch( false );
         }
+    }
+
+    if (OK) {
+        // jeśli się zatrzymał
+        iEngineActive = 0;
+        eStopReason = stopSleep; // stoimy z powodu wyłączenia
+        eAction = TAction::actSleep; //śpi (wygaszony)
+
         OrderNext(Wait_for_orders); //żeby nie próbował coś robić dalej
         TableClear(); // zapominamy ograniczenia
         iDrivigFlags &= ~moveActive; // ma nie skanować sygnałów i nie reagować na komendy
@@ -4415,8 +4424,8 @@ TController::UpdateSituation(double dt) {
         break;
     }
     default: {
-        fMinProximityDist = 0.01;
-        fMaxProximityDist = 2.0; //[m]
+        fMinProximityDist = 5.0;
+        fMaxProximityDist = 10.0; //[m]
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         fVelMinus = 5.0; // margines prędkości powodujący załączenie napędu
     }
@@ -4809,7 +4818,7 @@ TController::UpdateSituation(double dt) {
                 }
             }
 
-            if( ( OrderCurrentGet() & Wait_for_orders ) != 0 ) {
+            if( OrderCurrentGet() == Wait_for_orders ) {
                 // wait means sit and wait
                 VelDesired = 0.0;
             }

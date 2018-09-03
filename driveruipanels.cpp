@@ -148,7 +148,7 @@ drivingaid_panel::update() {
         text_lines.emplace_back( textline + "  " + expandedtext, Global.UITextColor );
     }
 
-    auto const sizex = ( is_expanded ? 660 : 135 );
+    auto const sizex = ( is_expanded ? 735 : 135 );
     size = { sizex, 85 };
 }
 
@@ -786,6 +786,7 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
     // current luminance level
     textline = "Light level: " + to_string( Global.fLuminance, 3 );
     if( Global.FakeLight ) { textline += "(*)"; }
+    textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
     Output.emplace_back( textline, Global.UITextColor );
 }
