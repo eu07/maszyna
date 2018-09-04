@@ -1416,7 +1416,6 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
-
     // skydome
     Environment->m_skydome.Render();
     // stars
@@ -1432,7 +1431,6 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glPointSize( 3.f );
         ::glPopMatrix();
     }
-
     // celestial bodies
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
     glm::vec3 suncolor = interpolate(
@@ -1523,29 +1521,29 @@ opengl_renderer::Render( world_environment *Environment ) {
     }
     ::glPopAttrib();
 
+    m_sunlight.apply_angle();
+    m_sunlight.apply_intensity();
+
     // clouds
     if( Environment->m_clouds.mdCloud ) {
         // setup
         Disable_Lights();
+        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glEnable( GL_LIGHTING );
         ::glLightModelfv(
             GL_LIGHT_MODEL_AMBIENT,
             glm::value_ptr(
                 interpolate( Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f )
                 * interpolate( 1.f, 0.35f, Global.Overcast / 2.f ) // overcast darkens the clouds
-                * 2.5f // arbitrary adjustment factor
+                * 0.5f // arbitrary adjustment factor
             ) );
         // render
-        Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
+//        Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         Render_Alpha( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         // post-render cleanup
         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( colors::none ) );
-        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glDisable( GL_LIGHTING );
     }
-
-    m_sunlight.apply_angle();
-    m_sunlight.apply_intensity();
 
     ::glPopMatrix();
     ::glDepthMask( GL_TRUE );
@@ -2409,7 +2407,17 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                         // main draw call
                         m_geometry.draw( Submodel->m_geometry );
-
+/*
+                        if( DebugModeFlag ) {
+                            auto const & vertices { m_geometry.vertices( Submodel->m_geometry ) };
+                            ::glBegin( GL_LINES );
+                            for( auto const &vertex : vertices ) {
+                                ::glVertex3fv( glm::value_ptr( vertex.position ) );
+                                ::glVertex3fv( glm::value_ptr( vertex.position + vertex.normal * 0.2f ) );
+                            }
+                            ::glEnd();
+                        }
+*/
                         // post-draw reset
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
@@ -3511,6 +3519,30 @@ opengl_renderer::Update_Mouse_Position() {
 void
 opengl_renderer::Update( double const Deltatime ) {
 
+    m_pickupdateaccumulator += Deltatime;
+
+    if( m_updateaccumulator > 0.5 ) {
+
+        m_pickupdateaccumulator = 0.0;
+
+        if( ( true  == Global.ControlPicking )
+         && ( false == FreeFlyModeFlag ) ) {
+            Update_Pick_Control();
+        }
+        else {
+            m_pickcontrolitem = nullptr;
+        }
+        // temporary conditions for testing. eventually will be coupled with editor mode
+        if( ( true == Global.ControlPicking )
+         && ( true == DebugModeFlag ) 
+         && ( true == FreeFlyModeFlag ) ) {
+            Update_Pick_Node();
+        }
+        else {
+            m_picksceneryitem = nullptr;
+        }
+    }
+
     m_updateaccumulator += Deltatime;
 
     if( m_updateaccumulator < 1.0 ) {
@@ -3563,22 +3595,6 @@ opengl_renderer::Update( double const Deltatime ) {
         m_debugtimestext += m_textures.info();
     }
 
-    if( ( true  == Global.ControlPicking )
-     && ( false == FreeFlyModeFlag ) ) {
-        Update_Pick_Control();
-    }
-    else {
-        m_pickcontrolitem = nullptr;
-    }
-    // temporary conditions for testing. eventually will be coupled with editor mode
-    if( ( true == Global.ControlPicking )
-     && ( true == DebugModeFlag ) 
-     && ( true == FreeFlyModeFlag ) ) {
-        Update_Pick_Node();
-    }
-    else {
-        m_picksceneryitem = nullptr;
-    }
     // dump last opengl error, if any
     auto const glerror = ::glGetError();
     if( glerror != GL_NO_ERROR ) {

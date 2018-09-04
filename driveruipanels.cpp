@@ -434,9 +434,9 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::string( isdieselinshuntmode ? to_string( mover.AnPos, 2 ) + locale::strings[ locale::string::debug_vehicle_shuntmode ] : std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" ).c_str(),
         // engine
         mover.EnginePower,
-        ( mover.TrainType == dt_EZT ? mover.ShowCurrent( 0 ) : mover.Im ),
+        std::abs( mover.TrainType == dt_EZT ? mover.ShowCurrent( 0 ) : mover.Im ),
         // revolutions
-        mover.enrot * 60,
+        std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
         mover.dizel_heat.rpmw,
@@ -510,7 +510,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // acceleration
         Acc,
         mover.AccN + 0.001f,
-        std::string( std::abs( mover.RunningShape.R ) > 10000.0 ? "~0.0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
+        std::string( std::abs( mover.RunningShape.R ) > 10000.0 ? "~0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
         // velocity
         vehicle.GetVelocity(),
         mover.DistCounter,

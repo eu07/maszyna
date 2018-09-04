@@ -92,6 +92,7 @@ ui_layer::init_colors() {
     auto const itembase { ImVec4( accent.x, accent.y, accent.z, 0.35f ) };
     auto const itemhover { ImVec4( accent.x, accent.y, accent.z, 0.65f ) };
     auto const itemactive { ImVec4( accent.x, accent.y, accent.z, 0.95f ) };
+    auto const modalbackground { ImVec4( accent.x, accent.y, accent.z, 0.95f ) };
 
     colors[ ImGuiCol_WindowBg ] = background;
     colors[ ImGuiCol_PopupBg ] = background;
@@ -111,6 +112,7 @@ ui_layer::init_colors() {
     colors[ ImGuiCol_ResizeGrip ] = itembase;
     colors[ ImGuiCol_ResizeGripHovered ] = itemhover;
     colors[ ImGuiCol_ResizeGripActive ] = itemactive;
+    colors[ ImGuiCol_ModalWindowDimBg ] = modalbackground;
 }
 
 void

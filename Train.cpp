@@ -5155,10 +5155,10 @@ bool TTrain::Update( double const Deltatime )
             }
 
             if( mvControlled->Signalling == true ) {
-                if( mvOccupied->BrakePress >= 0.145f * 10 ) {
+                if( mvOccupied->BrakePress >= 0.145f ) {
                     btLampkaHamowanie1zes.Turn( true );
                 }
-                if( mvControlled->BrakePress < 0.075f * 10 ) {
+                if( mvControlled->BrakePress < 0.075f ) {
                     btLampkaHamowanie1zes.Turn( false );
                 }
             }
@@ -5311,11 +5311,11 @@ bool TTrain::Update( double const Deltatime )
 
                     btLampkaSprezarkaB.Turn( tmp->MoverParameters->CompressorFlag ); // mutopsitka dziala
                     btLampkaSprezarkaBOff.Turn( false == tmp->MoverParameters->CompressorFlag );
-                    if ((tmp->MoverParameters->BrakePress >= 0.145f * 10) && (mvControlled->Signalling == true))
+                    if ((tmp->MoverParameters->BrakePress >= 0.145f) && (mvControlled->Signalling == true))
                     {
                         btLampkaHamowanie2zes.Turn( true );
                     }
-                    if ((tmp->MoverParameters->BrakePress < 0.075f * 10) || (mvControlled->Signalling == false))
+                    if ((tmp->MoverParameters->BrakePress < 0.075f) || (mvControlled->Signalling == false))
                     {
                         btLampkaHamowanie2zes.Turn( false );
                     }
