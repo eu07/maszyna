@@ -299,9 +299,7 @@ driver_mode::enter() {
 
     Timer::ResetTimers();
 
-    Application.set_cursor( GLFW_CURSOR_DISABLED );
-    Application.set_cursor_pos( 0, 0 );
-    Global.ControlPicking = false;
+    set_picking( Global.ControlPicking );
 }
 
 // maintenance method, called when the mode is deactivated
@@ -351,6 +349,9 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
 void
 driver_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_cursor_pos( Horizontal, Vertical ) ) { return; }
+
     if( false == Global.ControlPicking ) {
         // in regular view mode keep cursor on screen
         Application.set_cursor_pos( 0, 0 );
@@ -361,6 +362,9 @@ driver_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
 void
 driver_mode::on_mouse_button( int const Button, int const Action, int const Mods ) {
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_mouse_button( Button, Action ) ) { return; }
 
     // give the potential event recipient a shot at it, in the virtual z order
     m_input.mouse.button( Button, Action );
@@ -561,8 +565,8 @@ driver_mode::OnKeyDown(int cKey) {
 
     // actual key processing
     // TODO: redo the input system
-    if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) // klawisze cyfrowe
-    {
+    if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) {
+        // klawisze cyfrowe
         int i = cKey - GLFW_KEY_0; // numer klawisza
         if (Global.shiftState) {
             // z [Shift] uruchomienie eventu
@@ -600,217 +604,183 @@ driver_mode::OnKeyDown(int cKey) {
                 }
             }
         }
+        return;
     }
-    else if( ( cKey >= GLFW_KEY_F1 ) && ( cKey <= GLFW_KEY_F12 ) )
-    {
-        switch (cKey) {
 
-            case GLFW_KEY_F1: {
+    switch (cKey) {
 
-                if( DebugModeFlag ) {
-                    // additional simulation clock jump keys in debug mode
-                    if( Global.ctrlState ) {
-                        // ctrl-f1
-                        simulation::Time.update( 20.0 * 60.0 );
-                    }
-                    else if( Global.shiftState ) {
-                        // shift-f1
-                        simulation::Time.update( 5.0 * 60.0 );
-                    }
-                }
-                break;
-            }
-            
-            case GLFW_KEY_F4: {
-
-                InOutKey( !Global.shiftState ); // distant view with Shift, short distance step out otherwise
-                break;
-            }
-            case GLFW_KEY_F5: {
-                // przesiadka do innego pojazdu
-                if( false == FreeFlyModeFlag ) {
-                    // only available in free fly mode
-                    break;
-                }
-
-                TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
-
-                if( tmp != nullptr ) {
-
-                    if( simulation::Train ) {// jeśli mielismy pojazd
-                        if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-                            simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-                        }
-                    }
-
-                    if( ( true == DebugModeFlag )
-                     || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
-                        // works always in debug mode, or for stopped/slow moving vehicles otherwise
-                        if( simulation::Train == nullptr ) {
-                            simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
-                        }
-                        if( simulation::Train->Init( tmp ) ) { // przejmujemy sterowanie
-                            simulation::Train->Dynamic()->Mechanik->TakeControl( false );
-                        }
-                        else {
-                            SafeDelete( simulation::Train ); // i nie ma czym sterować
-                        }
-                        if( simulation::Train ) {
-                            InOutKey(); // do kabiny
-                        }
-                    }
-                }
-                break;
-            }
-            case GLFW_KEY_F6: {
-                // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
-                if( DebugModeFlag ) { 
-
-                    if( Global.ctrlState ) { Global.fTimeSpeed = ( Global.shiftState ? 60.0 : 20.0 ); }
-                    else                   { Global.fTimeSpeed = ( Global.shiftState ? 5.0 : 1.0 ); }
-                }
-                break;
-            }
-            case GLFW_KEY_F7: {
-                // debug mode functions
-                if( DebugModeFlag ) {
-
-                    if( Global.ctrlState
-                     && Global.shiftState ) {
-                        // shift + ctrl + f7 toggles between debug and regular camera
-                        DebugCameraFlag = !DebugCameraFlag;
-                    }
-                    else if( Global.ctrlState ) {
-                        // ctrl + f7 toggles static daylight
-                        simulation::Environment.toggle_daylight();
-                        break;
-                    }
-                    else if( Global.shiftState ) {
-                        // shift + f7 is currently unused
-                    }
-                    else {
-                        // f7: wireframe toggle
-                        // TODO: pass this to renderer instead of making direct calls
-                        Global.bWireFrame = !Global.bWireFrame;
-                        if( true == Global.bWireFrame ) {
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                        }
-                        else {
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                        }
-                    }
-                }
-                break;
-            }
-            case GLFW_KEY_F11: {
-                // editor mode
-                if( ( false == Global.ctrlState )
-                 && ( false == Global.shiftState ) ) {
-                    Application.push_mode( eu07_application::mode::editor );
-                }
-                break;
-            }
-            case GLFW_KEY_F12: {
-                // quick debug mode toggle
-                if( Global.ctrlState
-                 && Global.shiftState ) {
-                    DebugModeFlag = !DebugModeFlag;
-                }
-                break;
-            }
-
-            default: {
-                break;
-            }
-        }
-        // if (cKey!=VK_F4)
-        return; // nie są przekazywane do pojazdu wcale
-    }
-/*
-    if ((Global.iTextMode == GLFW_KEY_F12) ? (cKey >= '0') && (cKey <= '9') : false)
-    { // tryb konfiguracji debugmode (przestawianie kamery już wyłączone
-        if (!Global.shiftState) // bez [Shift]
-        {
-            if (cKey == GLFW_KEY_1)
-                Global.iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
-            else if (cKey == GLFW_KEY_2)
-            { // włącz/wyłącz okno konsoli
-                Global.iWriteLogEnabled ^= 2;
-                if ((Global.iWriteLogEnabled & 2) == 0) // nie było okienka
-                { // otwarcie okna
-                    AllocConsole(); // jeśli konsola już jest, to zwróci błąd; uwalniać nie ma po
-                    // co, bo się odłączy
-                    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
-                }
-            }
-            // else if (cKey=='3') Global.iWriteLogEnabled^=4; //wypisywanie nazw torów
-        }
-    }
-    else */
-    if( cKey == GLFW_KEY_ESCAPE ) {
-        // toggle pause
-        if( Global.iPause & 1 ) {
-            // jeśli pauza startowa
-            // odpauzowanie, gdy po wczytaniu miało nie startować
-            Global.iPause &= ~1;
-        }
-        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
-            // w multiplayerze pauza nie ma sensu
-            Global.iPause ^= 2; // zmiana stanu zapauzowania
-            if( ( Global.iPause & 2 )
-             && ( false == Global.ControlPicking ) ) {
-                set_picking( true );
-            }
-        }
-    }
-    else {
-
-        if( ( true == DebugModeFlag )
-         && ( false == Global.shiftState )
-         && ( true == Global.ctrlState )
-         && ( simulation::Train != nullptr )
-         && ( simulation::Train->Dynamic()->Controller == Humandriver ) ) {
+        case GLFW_KEY_F1: {
 
             if( DebugModeFlag ) {
-                // przesuwanie składu o 100m
-                auto *vehicle { simulation::Train->Dynamic() };
-                TDynamicObject *d = vehicle;
-                if( cKey == GLFW_KEY_LEFT_BRACKET ) {
-                    while( d ) {
-                        d->Move( 100.0 * d->DirectionGet() );
-                        d = d->Next(); // pozostałe też
-                    }
-                    d = vehicle->Prev();
-                    while( d ) {
-                        d->Move( 100.0 * d->DirectionGet() );
-                        d = d->Prev(); // w drugą stronę też
+                // additional simulation clock jump keys in debug mode
+                if( Global.ctrlState ) {
+                    // ctrl-f1
+                    simulation::Time.update( 20.0 * 60.0 );
+                }
+                else if( Global.shiftState ) {
+                    // shift-f1
+                    simulation::Time.update( 5.0 * 60.0 );
+                }
+            }
+            break;
+        }
+            
+        case GLFW_KEY_F4: {
+
+            InOutKey( !Global.shiftState ); // distant view with Shift, short distance step out otherwise
+            break;
+        }
+        case GLFW_KEY_F5: {
+            // przesiadka do innego pojazdu
+            if( false == FreeFlyModeFlag ) {
+                // only available in free fly mode
+                break;
+            }
+
+            TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
+
+            if( tmp != nullptr ) {
+
+                if( simulation::Train ) {// jeśli mielismy pojazd
+                    if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
+                        simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
                     }
                 }
-                else if( cKey == GLFW_KEY_RIGHT_BRACKET ) {
-                    while( d ) {
-                        d->Move( -100.0 * d->DirectionGet() );
-                        d = d->Next(); // pozostałe też
+
+                if( ( true == DebugModeFlag )
+                 || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
+                    // works always in debug mode, or for stopped/slow moving vehicles otherwise
+                    if( simulation::Train == nullptr ) {
+                        simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
                     }
-                    d = vehicle->Prev();
-                    while( d ) {
-                        d->Move( -100.0 * d->DirectionGet() );
-                        d = d->Prev(); // w drugą stronę też
+                    if( simulation::Train->Init( tmp ) ) { // przejmujemy sterowanie
+                        simulation::Train->Dynamic()->Mechanik->TakeControl( false );
                     }
-                }
-                else if( cKey == GLFW_KEY_TAB ) {
-                    while( d ) {
-                        d->MoverParameters->V += d->DirectionGet()*2.78;
-                        d = d->Next(); // pozostałe też
+                    else {
+                        SafeDelete( simulation::Train ); // i nie ma czym sterować
                     }
-                    d = vehicle->Prev();
-                    while( d ) {
-                        d->MoverParameters->V += d->DirectionGet()*2.78;
-                        d = d->Prev(); // w drugą stronę też
+                    if( simulation::Train ) {
+                        InOutKey(); // do kabiny
                     }
                 }
             }
+            break;
+        }
+        case GLFW_KEY_F6: {
+            // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
+            if( DebugModeFlag ) { 
+
+                if( Global.ctrlState ) { Global.fTimeSpeed = ( Global.shiftState ? 60.0 : 20.0 ); }
+                else                   { Global.fTimeSpeed = ( Global.shiftState ? 5.0 : 1.0 ); }
+            }
+            break;
+        }
+        case GLFW_KEY_F7: {
+            // debug mode functions
+            if( DebugModeFlag ) {
+
+                if( Global.ctrlState
+                 && Global.shiftState ) {
+                    // shift + ctrl + f7 toggles between debug and regular camera
+                    DebugCameraFlag = !DebugCameraFlag;
+                }
+                else if( Global.ctrlState ) {
+                    // ctrl + f7 toggles static daylight
+                    simulation::Environment.toggle_daylight();
+                    break;
+                }
+                else if( Global.shiftState ) {
+                    // shift + f7 is currently unused
+                }
+                else {
+                    // f7: wireframe toggle
+                    // TODO: pass this to renderer instead of making direct calls
+                    Global.bWireFrame = !Global.bWireFrame;
+                    if( true == Global.bWireFrame ) {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                    }
+                    else {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                    }
+                }
+            }
+            break;
+        }
+        case GLFW_KEY_F11: {
+            // editor mode
+            if( ( false == Global.ctrlState )
+             && ( false == Global.shiftState ) ) {
+                Application.push_mode( eu07_application::mode::editor );
+            }
+            break;
+        }
+        case GLFW_KEY_F12: {
+            // quick debug mode toggle
+            if( Global.ctrlState
+             && Global.shiftState ) {
+                DebugModeFlag = !DebugModeFlag;
+            }
+            break;
+        }
+
+        case GLFW_KEY_LEFT_BRACKET:
+        case GLFW_KEY_RIGHT_BRACKET:
+        case GLFW_KEY_TAB: {
+            // consist movement in debug mode
+            if( ( true == DebugModeFlag )
+             && ( false == Global.shiftState )
+             && ( true == Global.ctrlState )
+             && ( simulation::Train != nullptr )
+             && ( simulation::Train->Dynamic()->Controller == Humandriver ) ) {
+
+                if( DebugModeFlag ) {
+                    // przesuwanie składu o 100m
+                    auto *vehicle { simulation::Train->Dynamic() };
+                    TDynamicObject *d = vehicle;
+                    if( cKey == GLFW_KEY_LEFT_BRACKET ) {
+                        while( d ) {
+                            d->Move( 100.0 * d->DirectionGet() );
+                            d = d->Next(); // pozostałe też
+                        }
+                        d = vehicle->Prev();
+                        while( d ) {
+                            d->Move( 100.0 * d->DirectionGet() );
+                            d = d->Prev(); // w drugą stronę też
+                        }
+                    }
+                    else if( cKey == GLFW_KEY_RIGHT_BRACKET ) {
+                        while( d ) {
+                            d->Move( -100.0 * d->DirectionGet() );
+                            d = d->Next(); // pozostałe też
+                        }
+                        d = vehicle->Prev();
+                        while( d ) {
+                            d->Move( -100.0 * d->DirectionGet() );
+                            d = d->Prev(); // w drugą stronę też
+                        }
+                    }
+                    else if( cKey == GLFW_KEY_TAB ) {
+                        while( d ) {
+                            d->MoverParameters->V += d->DirectionGet()*2.78;
+                            d = d->Next(); // pozostałe też
+                        }
+                        d = vehicle->Prev();
+                        while( d ) {
+                            d->MoverParameters->V += d->DirectionGet()*2.78;
+                            d = d->Prev(); // w drugą stronę też
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        default: {
+            break;
         }
     }
+
+    return; // nie są przekazywane do pojazdu wcale
 }
 
 // places camera outside the controlled vehicle, or nearest if nothing is under control

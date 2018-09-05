@@ -154,7 +154,7 @@ openal_source::sync_with( sound_properties const &State ) {
         properties.soundproofing = State.soundproofing;
         properties.soundproofing_stamp = State.soundproofing_stamp;
 
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global.AudioVolume );
+        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing );
     }
     if( sound_range > 0 ) {
         auto const rangesquared { sound_range * sound_range };
@@ -170,7 +170,7 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global.AudioVolume );
+            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
@@ -283,10 +283,7 @@ openal_renderer::init() {
         // basic initialization failed
         return false;
     }
-    //
-//    ::alDistanceModel( AL_LINEAR_DISTANCE );
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
-    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 1.f, 4.f ) );
     // all done
     m_ready = true;
     return true;
@@ -319,6 +316,8 @@ void
 openal_renderer::update( double const Deltatime ) {
 
     // update listener
+    // gain
+    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 0.f, 2.f ) * ( Global.iPause == 0 ? 1.f : 0.15f ) );
     // orientation
     glm::dmat4 cameramatrix;
     Global.pCamera.SetMatrix( cameramatrix );

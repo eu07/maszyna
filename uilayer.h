@@ -69,6 +69,14 @@ public:
     virtual
     bool
         on_key( int const Key, int const Action );
+    // potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
+    virtual
+    bool
+        on_cursor_pos( double const Horizontal, double const Vertical );
+    // potentially processes provided mouse button. returns: true if the input was processed, false otherwise
+    virtual
+    bool
+        on_mouse_button( int const Button, int const Action );
     // updates state of UI elements
     virtual
     void

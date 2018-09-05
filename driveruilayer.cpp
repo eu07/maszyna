@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "driveruilayer.h"
 
 #include "globals.h"
+#include "application.h"
 #include "translation.h"
 #include "simulation.h"
 #include "train.h"
@@ -42,7 +43,26 @@ bool
 driver_ui::on_key( int const Key, int const Action ) {
     // TODO: pass the input first through an active ui element if there's any
     // if the ui element shows no interest or we don't have one, try to interpret the input yourself:
-    // shared conditions
+
+    if( Key == GLFW_KEY_ESCAPE ) {
+        // toggle pause
+        if( Action != GLFW_PRESS ) { return true; } // recognized, but ignored
+
+        if( Global.iPause & 1 ) {
+            // jeśli pauza startowa
+            // odpauzowanie, gdy po wczytaniu miało nie startować
+            Global.iPause ^= 1;
+        }
+        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
+            // w multiplayerze pauza nie ma sensu
+            Global.iPause ^= 2; // zmiana stanu zapauzowania
+        }
+        return true;
+    }
+
+    // if the pause is on ignore block other input
+    if( m_paused ) { return true; }
+
     switch( Key ) {
 
         case GLFW_KEY_F1:
@@ -108,9 +128,31 @@ driver_ui::on_key( int const Key, int const Action ) {
     return false;
 }
 
+// potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
+bool
+driver_ui::on_cursor_pos( double const Horizontal, double const Vertical ) {
+    // intercept mouse movement when the pause window is on
+    return m_paused;
+}
+
+// potentially processes provided mouse button. returns: true if the input was processed, false otherwise
+bool
+driver_ui::on_mouse_button( int const Button, int const Action ) {
+    // intercept mouse movement when the pause window is on
+    return m_paused;
+}
+
 // updates state of UI elements
 void
 driver_ui::update() {
+
+    auto const pausemask { 1 | 2 };
+    auto ispaused { ( Global.iPause & pausemask ) != 0 };
+    if( ( ispaused != m_paused )
+     && ( false == Global.ControlPicking ) ) {
+        set_cursor( ispaused );
+    }
+    m_paused = ispaused;
 
     set_tooltip( "" );
 
@@ -138,12 +180,24 @@ driver_ui::update() {
     ui_layer::update();
 }
 
+void
+driver_ui::set_cursor( bool const Visible ) {
+
+    if( Visible ) {
+        Application.set_cursor( GLFW_CURSOR_NORMAL );
+        Application.set_cursor_pos( Global.iWindowWidth / 2, Global.iWindowHeight / 2 );
+    }
+    else {
+        Application.set_cursor( GLFW_CURSOR_DISABLED );
+        Application.set_cursor_pos( 0, 0 );
+    }
+}
+
 // render() subclass details
 void
 driver_ui::render_() {
 
-    auto const pausemask { 1 | 2 };
-    if( ( Global.iPause & pausemask ) != 0 ) {
+    if( m_paused ) {
         // pause/quit modal
         auto const popupheader { locale::strings[ locale::string::driver_pause_header ].c_str() };
         ImGui::OpenPopup( popupheader );
@@ -151,6 +205,7 @@ driver_ui::render_() {
             auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
             if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
+                auto const pausemask { 1 | 2 };
                 Global.iPause &= ~pausemask;
             }
             if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {

@@ -129,6 +129,18 @@ ui_layer::on_key( int const Key, int const Action ) {
     return false;
 }
 
+bool
+ui_layer::on_cursor_pos( double const Horizontal, double const Vertical ) {
+
+    return false;
+}
+
+bool
+ui_layer::on_mouse_button( int const Button, int const Action ) {
+
+    return false;
+}
+
 void
 ui_layer::update() {
 

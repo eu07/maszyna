@@ -40,7 +40,7 @@ struct global_settings {
     std::string LastGLError;
     float ZoomFactor{ 1.f }; // determines current camera zoom level. TODO: move it to the renderer
     bool CabWindowOpen{ false }; // controls sound attenuation between cab and outside
-    bool ControlPicking{ false }; // indicates controls pick mode is active
+    bool ControlPicking{ true }; // indicates controls pick mode is active
     bool DLFont{ false }; // switch indicating presence of basic font
     bool bActive{ true }; // czy jest aktywnym oknem
     int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
