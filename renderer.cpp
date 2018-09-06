@@ -1528,8 +1528,8 @@ opengl_renderer::Render( world_environment *Environment ) {
     if( Environment->m_clouds.mdCloud ) {
         // setup
         Disable_Lights();
-        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glEnable( GL_LIGHTING );
+        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glLightModelfv(
             GL_LIGHT_MODEL_AMBIENT,
             glm::value_ptr(
@@ -1538,7 +1538,7 @@ opengl_renderer::Render( world_environment *Environment ) {
                 * 0.5f // arbitrary adjustment factor
             ) );
         // render
-//        Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
+        Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         Render_Alpha( Environment->m_clouds.mdCloud, nullptr, 100.0 );
         // post-render cleanup
         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( colors::none ) );
@@ -3518,7 +3518,7 @@ opengl_renderer::Update_Mouse_Position() {
 
 void
 opengl_renderer::Update( double const Deltatime ) {
-
+/*
     m_pickupdateaccumulator += Deltatime;
 
     if( m_updateaccumulator > 0.5 ) {
@@ -3542,7 +3542,7 @@ opengl_renderer::Update( double const Deltatime ) {
             m_picksceneryitem = nullptr;
         }
     }
-
+*/
     m_updateaccumulator += Deltatime;
 
     if( m_updateaccumulator < 1.0 ) {
@@ -3595,6 +3595,22 @@ opengl_renderer::Update( double const Deltatime ) {
         m_debugtimestext += m_textures.info();
     }
 
+    if( ( true  == Global.ControlPicking )
+     && ( false == FreeFlyModeFlag ) ) {
+        Update_Pick_Control();
+    }
+    else {
+        m_pickcontrolitem = nullptr;
+    }
+    // temporary conditions for testing. eventually will be coupled with editor mode
+    if( ( true == Global.ControlPicking )
+     && ( true == DebugModeFlag ) 
+     && ( true == FreeFlyModeFlag ) ) {
+        Update_Pick_Node();
+    }
+    else {
+        m_picksceneryitem = nullptr;
+    }
     // dump last opengl error, if any
     auto const glerror = ::glGetError();
     if( glerror != GL_NO_ERROR ) {

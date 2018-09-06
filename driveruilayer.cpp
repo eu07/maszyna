@@ -147,7 +147,7 @@ void
 driver_ui::update() {
 
     auto const pausemask { 1 | 2 };
-    auto ispaused { ( Global.iPause & pausemask ) != 0 };
+    auto ispaused { ( false == DebugModeFlag ) && ( ( Global.iPause & pausemask ) != 0 ) };
     if( ( ispaused != m_paused )
      && ( false == Global.ControlPicking ) ) {
         set_cursor( ispaused );

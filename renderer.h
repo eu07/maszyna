@@ -375,7 +375,7 @@ private:
     unsigned int m_framestamp; // id of currently rendered gfx frame
     float m_framerate;
     double m_updateaccumulator { 0.0 };
-    double m_pickupdateaccumulator { 0.0 };
+//    double m_pickupdateaccumulator { 0.0 };
     std::string m_debugtimestext;
     std::string m_pickdebuginfo;
     debug_stats m_debugstats;

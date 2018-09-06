@@ -996,7 +996,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
                             }
 
-                            if (OrderCurrentGet() == Shunt) {
+                            if (OrderCurrentGet() & Shunt) {
                                 OrderNext(Obey_train); // uruchomić jazdę pociągową
                                 CheckVehicles(); // zmienić światła
                             }
@@ -1060,12 +1060,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[i].iFlags = 0; // W4 nie liczy się już (nie wyśle SetVelocity)
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
-/*
-                                // NOTE: disabled as it's no longer needed, required time is calculated as part of loading/unloading procedure
-                                WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
-*/
                                 // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
-                                JumpToNextOrder();
+                                // FIX: don't automatically advance if there's disconnect procedure in progress
+                                if( false == TestFlag( OrderCurrentGet(), Disconnect ) ) {
+                                    JumpToNextOrder();
+                                }
                                 // ma się nie ruszać aż do momentu podania sygnału
                                 iDrivigFlags |= moveStopHere | moveStartHorn;
                                 continue; // nie analizować prędkości
@@ -2061,7 +2060,7 @@ bool TController::CheckVehicles(TOrders user)
         }
         if (AIControllFlag)
         { // jeśli prowadzi komputer
-            if (OrderCurrentGet() == Obey_train) {
+            if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
                 // jeśli jazda pociągowa
                 // światła pociągowe (Pc1) i końcówki (Pc5)
                 auto const frontlights { (
@@ -2098,7 +2097,7 @@ bool TController::CheckVehicles(TOrders user)
                         light::headlight_right ); //światła manewrowe (Tb1) na pojeździe z napędem
                 }
             }
-            else if( OrderCurrentGet() == Disconnect ) {
+            else if( true == TestFlag( OrderCurrentGet(), Disconnect ) ) {
                 if( mvOccupied->ActiveDir > 0 ) {
                     // jak ma kierunek do przodu
                     // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
@@ -3666,7 +3665,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // set consist lights pattern hints
         m_lighthints[ side::front ] = static_cast<int>( NewValue1 );
         m_lighthints[ side::rear ] = static_cast<int>( NewValue2 );
-        if( OrderCurrentGet() == Obey_train ) {
+        if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
             // light hints only apply in the obey_train mode
             CheckVehicles();
         }
@@ -4296,7 +4295,7 @@ TController::UpdateSituation(double dt) {
                             IncSpeed(); // dla (Ready)==false nie ruszy
                         }
                 }
-                if ((mvOccupied->Vel == 0.0) && !(iDrivigFlags & movePress))
+                if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
                 { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
                     // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                     // powino zostać wyłączone)
@@ -4333,7 +4332,7 @@ TController::UpdateSituation(double dt) {
                     }
                 }
                 else {
-                    if( mvOccupied->Vel > 0.0 ) {
+                    if( mvOccupied->Vel > 0.01 ) {
                         // 1st phase(?)
                         // bring it to stop if it's not already stopped
                         SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie

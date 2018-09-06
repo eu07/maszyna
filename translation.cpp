@@ -204,7 +204,7 @@ init() {
         "nastawa hamulca",
         "nastawa hamulca: towarowy",
         "nastawa hamulca: pospieszny",
-        "rozruch niski/wysoki",
+        "zakres pradu rozruchu",
         "pompa wody",
         "wylacznik samoczynny pompy wody",
         "podgrzewacz wody",
