@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 class drivingaid_panel : public ui_panel {
 
 public:
-    drivingaid_panel( std::string const Name, bool const Isopen )
+    drivingaid_panel( std::string const &Name, bool const Isopen )
         : ui_panel( Name, Isopen )
     {}
 
@@ -31,7 +31,7 @@ private:
 class timetable_panel : public ui_panel {
 
 public:
-    timetable_panel( std::string const Name, bool const Isopen )
+    timetable_panel( std::string const &Name, bool const Isopen )
         : ui_panel( Name, Isopen ) {}
 
     void update() override;
@@ -46,7 +46,7 @@ private:
 class debug_panel : public ui_panel {
 
 public:
-    debug_panel( std::string const Name, bool const Isopen )
+    debug_panel( std::string const &Name, bool const Isopen )
         : ui_panel( Name, Isopen ) {}
 
     void update() override;
@@ -97,7 +97,7 @@ private:
 class transcripts_panel : public ui_panel {
 
 public:
-    transcripts_panel( std::string const Name, bool const Isopen )
+    transcripts_panel( std::string const &Name, bool const Isopen )
         : ui_panel( Name, Isopen ) {}
 
     void update() override;

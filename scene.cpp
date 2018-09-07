@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 namespace scene {
 
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
+std::uint32_t const EU07_FILEHEADER { MAKE_ID4( 'E','U','0','7' ) };
 std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
 
 // potentially activates event handler with the same name as provided node, and within handler activation range
@@ -1002,7 +1003,7 @@ basic_region::serialize( std::string const &Scenariofile ) const {
 
     // region file version 1
     // header: EU07SBT + version (0-255)
-    sn_utils::ls_uint32( output, MAKE_ID4( 'E', 'U', '0', '7' ) );
+    sn_utils::ls_uint32( output, EU07_FILEHEADER );
     sn_utils::ls_uint32( output, EU07_FILEVERSION_REGION );
     // sections
     // TBD, TODO: build table of sections and file offsets, if we postpone section loading until they're within range
@@ -1047,7 +1048,7 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     uint32_t headermain { sn_utils::ld_uint32( input ) };
     uint32_t headertype { sn_utils::ld_uint32( input ) };
 
-    if( ( headermain != MAKE_ID4( 'E', 'U', '0', '7' )
+    if( ( headermain != EU07_FILEHEADER
      || ( headertype != EU07_FILEVERSION_REGION ) ) ) {
         // wrong file type
         WriteLog( "Bad file: \"" + filename + "\" is of either unrecognized type or version" );

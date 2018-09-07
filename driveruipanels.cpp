@@ -343,7 +343,7 @@ debug_panel::render() {
     if( size_min.x > 0 ) {
         ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
     }
-    if( true == ImGui::Begin( identifier.c_str(), &is_open, flags ) ) {
+    if( true == ImGui::Begin( name.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
@@ -929,10 +929,10 @@ transcripts_panel::render() {
         ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
     }
     auto const panelname { (
-        name.empty() ?
-            identifier :
-            name )
-        + "###" + identifier };
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {

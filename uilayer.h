@@ -18,7 +18,7 @@ class ui_panel {
 
 public:
 // constructor
-    ui_panel( std::string const Identifier, bool const Isopen );
+    ui_panel( std::string const &Identifier, bool const Isopen );
 // methods
     virtual void update() {};
     virtual void render();
@@ -34,7 +34,7 @@ public:
         {}
     };
 // members
-    std::string name;
+    std::string title;
     bool is_open;
     glm::ivec2 size { -1, -1 };
     glm::ivec2 size_min { -1, -1 };
@@ -43,7 +43,7 @@ public:
 
 protected:
 // members
-    std::string identifier;
+    std::string name;
 };
 
 class ui_layer {

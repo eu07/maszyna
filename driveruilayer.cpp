@@ -27,13 +27,13 @@ driver_ui::driver_ui() {
     push_back( &m_debugpanel );
     push_back( &m_transcriptspanel );
 
-    m_aidpanel.name = locale::strings[ locale::string::driver_aid_header ];
+    m_aidpanel.title = locale::strings[ locale::string::driver_aid_header ];
 
-    m_timetablepanel.name = locale::strings[ locale::string::driver_timetable_header ];
+    m_timetablepanel.title = locale::strings[ locale::string::driver_timetable_header ];
     m_timetablepanel.size_min = { 435, 110 };
     m_timetablepanel.size_max = { 435, Global.iWindowHeight * 0.95 };
 
-    m_transcriptspanel.name = locale::strings[ locale::string::driver_transcripts_header ];
+    m_transcriptspanel.title = locale::strings[ locale::string::driver_transcripts_header ];
     m_transcriptspanel.size_min = { 435, 85 };
     m_transcriptspanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 }

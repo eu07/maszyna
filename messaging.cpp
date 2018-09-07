@@ -29,6 +29,8 @@ extern "C"
 
 namespace multiplayer {
 
+std::uint32_t const EU07_MESSAGEHEADER { MAKE_ID4( 'E','U','0','7' ) };
+
 void
 Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam) {
 #ifdef _WIN32
@@ -43,7 +45,7 @@ Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam) {
 void
 OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
 { // odebranie komunikatu z serwera
-    if (pRozkaz->iSygn == MAKE_ID4('E','U','0','7') )
+    if (pRozkaz->iSygn == EU07_MESSAGEHEADER )
         switch (pRozkaz->iComm)
         {
         case 0: // odesłanie identyfikatora wersji
@@ -204,7 +206,7 @@ WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
 #ifdef _WIN32
     DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
     r.iComm = 2; // 2 - event
     size_t i = e.length(), j = d.length();
     r.cString[0] = char(i);
@@ -212,7 +214,7 @@ WyslijEvent(const std::string &e, const std::string &d)
     r.cString[i + 2] = char(j); // licznik po zerze kończącym
     strcpy(r.cString + 3 + i, d.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER; // sygnatura
     cData.cbData = (DWORD)(12 + i + j); // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Application.window() ), (LPARAM)&cData );
@@ -225,14 +227,14 @@ WyslijUszkodzenia(const std::string &t, char fl)
 { // wysłanie informacji w postaci pojedynczego tekstu
 #ifdef _WIN32
     DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
 	r.iComm = 13; // numer komunikatu
 	size_t i = t.length();
 	r.cString[0] = char(fl);
 	r.cString[1] = char(i);
 	strcpy(r.cString + 2, t.c_str()); // z zerem kończącym
 	COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER; // sygnatura
 	cData.cbData = (DWORD)(11 + i); // 8+licznik i zero kończące
 	cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Application.window() ), (LPARAM)&cData );
@@ -245,13 +247,13 @@ WyslijString(const std::string &t, int n)
 { // wysłanie informacji w postaci pojedynczego tekstu
 #ifdef _WIN32
     DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
     r.iComm = n; // numer komunikatu
     size_t i = t.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem kończącym
     COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER; // sygnatura
     cData.cbData = (DWORD)(10 + i); // 8+licznik i zero kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Application.window() ), (LPARAM)&cData );
@@ -271,7 +273,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
 #ifdef _WIN32
   // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
     r.iComm = 7; // 7 - dane pojazdu
 	int i = 32;
 	size_t j = Vehicle->asName.length();
@@ -334,7 +336,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
     strcpy(r.cString + i + 1, Vehicle->asName.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER; // sygnatura
     cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
@@ -349,7 +351,7 @@ WyslijObsadzone()
 {   // wysłanie informacji o pojeździe
 #ifdef _WIN32
     DaneRozkaz2 r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
 	r.iComm = 12;   // kod 12
 	for (int i=0; i<1984; ++i) r.cString[i] = 0;
 
@@ -383,7 +385,7 @@ WyslijObsadzone()
 	}
 
 	COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' );     // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER;     // sygnatura
 	cData.cbData = 8 + 1984; // 8+licznik i zero kończące
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
@@ -397,7 +399,7 @@ WyslijParam(int nr, int fl)
 { // wysłanie parametrów symulacji w ramce (nr) z flagami (fl)
 #ifdef _WIN32
     DaneRozkaz r;
-    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
+    r.iSygn = EU07_MESSAGEHEADER;
     r.iComm = nr; // zwykle 5
     r.iPar[0] = fl; // flagi istotności kolejnych parametrów
     int i = 0; // domyślnie brak danych
@@ -410,7 +412,7 @@ WyslijParam(int nr, int fl)
         break;
     }
     COPYDATASTRUCT cData;
-    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.dwData = EU07_MESSAGEHEADER; // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Application.window() ), (LPARAM)&cData );

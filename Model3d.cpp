@@ -1314,14 +1314,10 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_float32(s, fVisible);
 	sn_utils::ls_float32(s, fLight);
 
-	for (size_t i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Ambient[i]);
-	for (size_t i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Diffuse[i]);
-	for (size_t i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Specular[i]);
-	for (size_t i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Emision[i]);
+	sn_utils::s_vec4(s, f4Ambient);
+	sn_utils::s_vec4(s, f4Diffuse);
+	sn_utils::s_vec4(s, f4Specular);
+	sn_utils::s_vec4(s, f4Emision);
 
 	sn_utils::ls_float32(s, fWireSize);
 	sn_utils::ls_float32(s, fSquareMaxDist);
@@ -1438,14 +1434,10 @@ void TSubModel::deserialize(std::istream &s)
 	fVisible = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
-	for (size_t i = 0; i < 4; ++i)
-		f4Ambient[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
-		f4Diffuse[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
-		f4Specular[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; ++i)
-		f4Emision[i] = sn_utils::ld_float32(s);
+	f4Ambient = sn_utils::d_vec4(s);
+	f4Diffuse = sn_utils::d_vec4(s);
+	f4Specular = sn_utils::d_vec4(s);
+	f4Emision = sn_utils::d_vec4(s);
 
 	fWireSize = sn_utils::ld_float32(s);
 	fSquareMaxDist = sn_utils::ld_float32(s);

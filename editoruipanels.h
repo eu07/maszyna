@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 class itemproperties_panel : public ui_panel {
 
 public:
-    itemproperties_panel( std::string const Name, bool const Isopen )
+    itemproperties_panel( std::string const &Name, bool const Isopen )
         : ui_panel( Name, Isopen )
     {}
 

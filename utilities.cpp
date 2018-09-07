@@ -64,13 +64,11 @@ std::string Now() {
 // na dłuższą metę trzeba uwzględnić datę, jakby opóżnienia miały przekraczać 12h (towarowych)
 double CompareTime(double t1h, double t1m, double t2h, double t2m) {
 
-    double t;
-
     if ((t2h < 0))
         return 0;
     else
     {
-        t = (t2h - t1h) * 60 + t2m - t1m; // jeśli t2=00:05, a t1=23:50, to różnica wyjdzie ujemna
+        auto t = (t2h - t1h) * 60 + t2m - t1m; // jeśli t2=00:05, a t1=23:50, to różnica wyjdzie ujemna
         if ((t < -720)) // jeśli różnica przekracza 12h na minus
             t = t + 1440; // to dodanie doby minut;else
         if ((t > 720)) // jeśli przekracza 12h na plus
@@ -188,49 +186,49 @@ std::vector<std::string> Split(const std::string &s)
 	return elems;
 }
 
-std::string to_string(int _Val)
+std::string to_string(int Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(unsigned int _Val)
+std::string to_string(unsigned int Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(double _Val)
+std::string to_string(double Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(int _Val, int precision)
-{
-	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
-	o << _Val;
-	return o.str();
-};
-
-std::string to_string(double _Val, int precision)
+std::string to_string(int Value, int precision)
 {
 	std::ostringstream o;
 	o << std::fixed << std::setprecision(precision);
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(int _Val, int precision, int width)
+std::string to_string(double Value, int precision)
+{
+	std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+	o << Value;
+	return o.str();
+};
+
+std::string to_string(int Value, int precision, int width)
 {
 	std::ostringstream o;
 	o.width(width);
 	o << std::fixed << std::setprecision(precision);
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 

@@ -27,8 +27,8 @@ GLint ui_layer::m_textureunit { GL_TEXTURE0 };
 bool ui_layer::m_cursorvisible { true };
 
 
-ui_panel::ui_panel( std::string const Identifier, bool const Isopen )
-    : identifier( Identifier ), is_open( Isopen )
+ui_panel::ui_panel( std::string const &Identifier, bool const Isopen )
+    : name( Identifier ), is_open( Isopen )
 {}
 
 void
@@ -49,10 +49,10 @@ ui_panel::render() {
         ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
     }
     auto const panelname { (
-        name.empty() ?
-            identifier :
-            name )
-        + "###" + identifier };
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );

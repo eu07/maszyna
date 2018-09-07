@@ -6409,6 +6409,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
         if( true == Vehicle.Mains ) {
            // TODO: separate engine and main circuit
+           // engine activation
             engine_shutdown.stop();
             engine_ignition
                 .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
@@ -6426,7 +6427,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             engine_shutdown.pitch( engine_shutdown.m_frequencyoffset + engine_shutdown.m_frequencyfactor * 1.f )
                 .gain( engine_shutdown.m_amplitudeoffset + engine_shutdown.m_amplitudefactor * 1.f )
                 .play( sound_flags::exclusive );
-            // main circuit
+            // main circuit deactivation
             linebreaker_open
                 .pitch( linebreaker_open.m_frequencyoffset + linebreaker_open.m_frequencyfactor * 1.f )
                 .gain( linebreaker_open.m_amplitudeoffset + linebreaker_open.m_amplitudefactor * 1.f )
