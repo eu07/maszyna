@@ -947,6 +947,7 @@ public:
     float MaxLoad = 0.f;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
 	double OverLoadFactor = 0.0;       /*ile razy moze byc przekroczona ladownosc*/
+    float LoadMinOffset { 0.f }; // offset applied to cargo model when load amount is 0
 	float LoadSpeed = 0.f; float UnLoadSpeed = 0.f;/*szybkosc na- i rozladunku jednostki/s*/
 	int DoorOpenCtrl = 0; int DoorCloseCtrl = 0; /*0: przez pasazera, 1: przez maszyniste, 2: samoczynne (zamykanie)*/
 	double DoorStayOpen = 0.0;               /*jak dlugo otwarte w przypadku DoorCloseCtrl=2*/

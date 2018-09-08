@@ -6624,12 +6624,9 @@ TMoverParameters::signal_departure( bool const State, range_t const Notify ) {
 void
 TMoverParameters::update_autonomous_doors( double const Deltatime ) {
 
-    if( ( DoorCloseCtrl != control_t::autonomous )
-     || ( ( false == DoorLeftOpened )
-       && ( false == DoorRightOpened ) ) ) {
-        // nothing to do
-        return;
-    }
+    if( DoorCloseCtrl != control_t::autonomous ) { return; }
+    if( ( false == DoorLeftOpened )
+     && ( false == DoorRightOpened ) ) { return; }
 
     if( DoorStayOpen > 0.0 ) {
         // update door timers if the door close after defined time
@@ -6641,18 +6638,19 @@ TMoverParameters::update_autonomous_doors( double const Deltatime ) {
         if( true == DoorLeftOpened )  { DoorLeftOpenTimer  = DoorStayOpen; }
         if( true == DoorRightOpened ) { DoorRightOpenTimer = DoorStayOpen; }
     }
-    // the door are closed if their timer goes below 0, or if the vehicle is moving at > 5 km/h
+    // the door are closed if their timer goes below 0, or if the vehicle is moving at > 10 km/h
+    auto const closingspeed { 10.0 };
     // NOTE: timer value of 0 is 'special' as it means the door will stay open until vehicle is moving
     if( true == DoorLeftOpened ) {
         if( ( ( DoorStayOpen > 0.0 ) && ( DoorLeftOpenTimer < 0.0 ) )
-         || ( Vel > 5.0 ) ) {
+         || ( Vel > closingspeed ) ) {
             // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
             DoorLeft( false, range_t::local );
         }
     }
     if( true == DoorRightOpened ) {
         if( ( ( DoorStayOpen > 0.0 ) && ( DoorRightOpenTimer < 0.0 ) )
-         || ( Vel > 5.0 ) ) {
+         || ( Vel > closingspeed ) ) {
             // close the door and set the timer to expired state (closing may happen sooner if vehicle starts moving)
             DoorRight( false, range_t::local );
         }
@@ -7576,6 +7574,8 @@ void TMoverParameters::LoadFIZ_Load( std::string const &line ) {
     extract_value( OverLoadFactor, "OverLoadFactor", line, "" );
     extract_value( LoadSpeed, "LoadSpeed", line, "" );
     extract_value( UnLoadSpeed, "UnLoadSpeed", line, "" );
+
+    extract_value( LoadMinOffset, "LoadMinOffset", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {

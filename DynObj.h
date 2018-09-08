@@ -196,16 +196,17 @@ public:
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
+    float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
+    float LoadOffset { 0.f };
     glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
     float InteriorLightLevel { 0.0f }; // current level of interior lighting
-    struct section_light {
+    struct vehicle_section {
         TSubModel *compartment;
         TSubModel *load;
-        float level;
+        float light_level;
     };
-    std::vector<section_light> SectionLightLevels; // table of light levels for specific compartments of associated 3d model
+    std::vector<vehicle_section> Sections; // table of recognized vehicle sections
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
-    float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
     struct section_visibility {
         TSubModel *submodel;
         bool visible;
@@ -517,6 +518,7 @@ private:
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
+    int init_sections( TModel3d const *Model, std::string const &Nameprefix );
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
@@ -525,6 +527,7 @@ private:
     void LoadUpdate();
     void update_load_sections();
     void update_load_visibility();
+    void update_load_offset();
     void shuffle_load_sections();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);

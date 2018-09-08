@@ -2151,7 +2151,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
             if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
 
             // post-render cleanup
             m_renderspecular = false;
@@ -3096,7 +3096,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
         Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
 
     // post-render cleanup
     m_renderspecular = false;

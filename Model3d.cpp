@@ -1154,7 +1154,7 @@ void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel) {
 	iFlags |= 0x0200; // submodele są oddzielne
 };
 
-TSubModel *TModel3d::GetFromName(std::string const &Name)
+TSubModel *TModel3d::GetFromName(std::string const &Name) const
 { // wyszukanie submodelu po nazwie
 	if (Name.empty())
 		return Root; // potrzebne do terenu z E3D

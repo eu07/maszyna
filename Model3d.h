@@ -241,7 +241,7 @@ public:
                 Root->m_boundingradius :
                 0.f ); }
 	inline TSubModel * GetSMRoot() { return (Root); };
-	TSubModel * GetFromName(std::string const &Name);
+	TSubModel * GetFromName(std::string const &Name) const;
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);
