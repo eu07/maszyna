@@ -5154,6 +5154,24 @@ TController::UpdateSituation(double dt) {
                     ( mvControlling->CategoryFlag == 2  ? -2.0 : -0.9 ),
                     ( mvControlling->CategoryFlag == 2 ?   2.0 :  0.9 ) );
 
+
+			if ((-AccDesired > fBrake_a0[0] + 8 * fBrake_a1[0]) && (HelperState == 0))
+			{
+				HelperState = 1;
+			}
+			if ((-AccDesired > fBrake_a0[0] + 12 * fBrake_a1[0]) && (HelperState == 1))
+			{
+				HelperState = 2;
+			}
+			if ((-AccDesired > 0) && (HelperState == 2) && (-ActualProximityDist > 5))
+			{
+				HelperState = 3;
+			}
+			if ((-AccDesired < fBrake_a0[0] + 2 * fBrake_a1[0]) && (HelperState > 0) && (vel>1))
+			{
+				HelperState = 0;
+			}
+
             if (AIControllFlag) {
                 // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
 
