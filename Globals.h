@@ -78,6 +78,7 @@ struct global_settings {
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
+    float ScenarioTimeOverride { std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
     float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
     bool ScenarioTimeCurrent { false }; // automatic time shift to match scenario time with local clock
     bool bInactivePause{ true }; // automatyczna pauza, gdy okno nieaktywne

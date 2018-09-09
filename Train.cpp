@@ -5094,16 +5094,16 @@ bool TTrain::Update( double const Deltatime )
                 ( true == mvControlled->ResistorsFlagCheck() )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
-            if( ( mvControlled->Im != 0 )
-             || ( mvOccupied->BrakePress > 2 )
+            if( ( mvControlled->StLinFlag )
+             || ( mvOccupied->BrakePress > 2.0 )
              || ( mvOccupied->PipePress < 3.6 ) ) {
                 // Ra: czy to jest udawanie działania styczników liniowych?
                 btLampkaStyczn.Turn( false );
             }
-            else if( mvOccupied->BrakePress < 1 )
+            else if( mvOccupied->BrakePress < 1.0 )
                 btLampkaStyczn.Turn( true ); // mozna prowadzic rozruch
-            if( ( ( TestFlag( mvControlled->Couplers[ 1 ].CouplingFlag, ctrain_controll ) ) && ( mvControlled->CabNo == 1 ) ) ||
-                ( ( TestFlag( mvControlled->Couplers[ 0 ].CouplingFlag, ctrain_controll ) ) && ( mvControlled->CabNo == -1 ) ) )
+            if( ( ( TestFlag( mvControlled->Couplers[ side::rear ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == 1 ) )
+             || ( ( TestFlag( mvControlled->Couplers[ side::front ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == -1 ) ) )
                 btLampkaUkrotnienie.Turn( true );
             else
                 btLampkaUkrotnienie.Turn( false );
@@ -5155,10 +5155,10 @@ bool TTrain::Update( double const Deltatime )
             }
 
             if( mvControlled->Signalling == true ) {
-                if( mvOccupied->BrakePress >= 0.145f ) {
+                if( mvOccupied->BrakePress >= 1.45f ) {
                     btLampkaHamowanie1zes.Turn( true );
                 }
-                if( mvControlled->BrakePress < 0.075f ) {
+                if( mvControlled->BrakePress < 0.75f ) {
                     btLampkaHamowanie1zes.Turn( false );
                 }
             }
@@ -5298,12 +5298,12 @@ bool TTrain::Update( double const Deltatime )
                         ( true == tmp->MoverParameters->ResistorsFlagCheck() )
                      || ( tmp->MoverParameters->MainCtrlActualPos == 0 ) ); // do EU04
 
-                    if( ( tmp->MoverParameters->Itot != 0 )
-                     || ( tmp->MoverParameters->BrakePress > 0.2 )
+                    if( ( tmp->MoverParameters->StLinFlag )
+                     || ( tmp->MoverParameters->BrakePress > 2.0 )
                      || ( tmp->MoverParameters->PipePress < 0.36 ) ) {
                         btLampkaStycznB.Turn( false );
                     }
-                    else if( tmp->MoverParameters->BrakePress < 0.1 ) {
+                    else if( tmp->MoverParameters->BrakePress < 1.0 ) {
                         btLampkaStycznB.Turn( true ); // mozna prowadzic rozruch
                     }
                     // hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
@@ -5311,12 +5311,15 @@ bool TTrain::Update( double const Deltatime )
 
                     btLampkaSprezarkaB.Turn( tmp->MoverParameters->CompressorFlag ); // mutopsitka dziala
                     btLampkaSprezarkaBOff.Turn( false == tmp->MoverParameters->CompressorFlag );
-                    if ((tmp->MoverParameters->BrakePress >= 0.145f) && (mvControlled->Signalling == true))
-                    {
-                        btLampkaHamowanie2zes.Turn( true );
+                    if( mvControlled->Signalling == true ) {
+                        if( tmp->MoverParameters->BrakePress >= 1.45f ) {
+                            btLampkaHamowanie2zes.Turn( true );
+                        }
+                        if( tmp->MoverParameters->BrakePress < 0.75f ) {
+                            btLampkaHamowanie2zes.Turn( false );
+                        }
                     }
-                    if ((tmp->MoverParameters->BrakePress < 0.075f) || (mvControlled->Signalling == false))
-                    {
+                    else {
                         btLampkaHamowanie2zes.Turn( false );
                     }
                     btLampkaNadmPrzetwB.Turn( tmp->MoverParameters->ConvOvldFlag ); // nadmiarowy przetwornicy?

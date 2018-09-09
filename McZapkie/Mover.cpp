@@ -5974,8 +5974,9 @@ bool TMoverParameters::dizel_Update(double dt) {
         dizel_startup = false;
         dizel_ignition = false;
         // TODO: split engine and main circuit state indicator in two separate flags
-        Mains = true;
         LastSwitchingTime = 0;
+        Mains = true;
+        dizel_spinup = true;
         enrot = std::max(
             enrot,
             0.35 * ( // TODO: dac zaleznie od temperatury i baterii
@@ -5984,6 +5985,14 @@ bool TMoverParameters::dizel_Update(double dt) {
                     DElist[ 0 ].RPM / 60.0 ) );
 
     }
+
+    dizel_spinup = (
+        dizel_spinup
+        && Mains
+        && ( enrot < 0.95 * (
+            EngineType == TEngineType::DieselEngine ?
+                dizel_nmin :
+                DElist[ 0 ].RPM / 60.0 ) ) );
 
     if( ( true == Mains )
      && ( false == FuelPump.is_active ) ) {
@@ -6105,7 +6114,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
         // wstrzymywanie przy malych obrotach
         Moment -= dizel_Mstand;
     }
-	if (true == dizel_ignition)
+	if (true == dizel_spinup)
 		Moment += dizel_Mstand / (0.3 + std::max(0.0, enrot/dizel_nmin)); //rozrusznik
 
 	dizel_Torque = Moment;
@@ -6216,11 +6225,10 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	}
 
 
-	if ((enrot <= 0) && (!dizel_ignition))
-	{
-		Mains = false;
-		enrot = 0;
-	}
+    if( ( enrot <= 0 ) && ( false == dizel_spinup ) ) {
+        MainSwitch( false );
+        enrot = 0;
+    }
 
 	dizel_n_old = n; //obecna predkosc katowa na potrzeby kolejnej klatki
 

@@ -416,3 +416,29 @@ glm::dvec3 LoadPoint( cParser &Input ) {
 
     return point;
 }
+
+// extracts a group of tokens from provided data stream, returns one of them picked randomly
+std::string
+deserialize_random_set( cParser &Input, char const *Break ) {
+
+    auto token { Input.getToken<std::string>( true, Break ) };
+    if( token != "[" ) {
+        // simple case, single token
+        return token;
+    }
+    // if instead of a single token we've encountered '[' this marks a beginning of a random set
+    // we retrieve all entries, then return a random one
+    std::vector<std::string> tokens;
+    while( ( ( token = deserialize_random_set( Input, Break ) ) != "" )
+        && ( token != "]" ) ) {
+        tokens.emplace_back( token );
+    }
+    if( false == tokens.empty() ) {
+        std::shuffle( std::begin( tokens ), std::end( tokens ), Global.random_engine );
+        return tokens.front();
+    }
+    else {
+        // shouldn't ever get here but, eh
+        return "";
+    }
+}

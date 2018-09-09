@@ -541,6 +541,10 @@ state_serializer::deserialize_time( cParser &Input, scene::scratch_data &Scratch
         auto const *localtime = std::localtime( &timenow );
         Global.ScenarioTimeOffset = ( ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
     }
+    else if( false == std::isnan( Global.ScenarioTimeOverride ) ) {
+        // scenario time override takes precedence over scenario time offset
+        Global.ScenarioTimeOffset = ( ( Global.ScenarioTimeOverride * 60 ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
+    }
 
     // remaining sunrise and sunset parameters are no longer used, as they're now calculated dynamically
     // anything else left in the section has no defined meaning

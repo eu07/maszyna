@@ -101,13 +101,13 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
         switch( Legacytype ) {
             case sound_type::single: {
                 // single sample only
-                m_sounds[ main ].buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                m_sounds[ main ].buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
                 break;
             }
             case sound_type::multipart: {
                 // three samples: start, middle, stop
                 for( auto &sound : m_sounds ) {
-                    sound.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                    sound.buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
                 }
                 break;
             }
@@ -147,32 +147,6 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     return *this;
 }
 
-// extracts name of the sound file from provided data stream
-std::string
-sound_source::deserialize_filename( cParser &Input ) {
-
-    auto token { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
-    if( token != "[" ) {
-        // simple case, single file
-        return token;
-    }
-    // if instead of filename we've encountered '[' this marks a beginning of random sounds
-    // we retrieve all entries, then return a random one
-    std::vector<std::string> filenames;
-    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
-        && ( token != "]" ) ) {
-        filenames.emplace_back( token );
-    }
-    if( false == filenames.empty() ) {
-        std::shuffle( std::begin( filenames ), std::end( filenames ), Global.random_engine );
-        return filenames.front();
-    }
-    else {
-        // shouldn't ever get here but, eh
-        return "";
-    }
-}
-
 // imports member data pair from the config file
 bool
 sound_source::deserialize_mapping( cParser &Input ) {
@@ -183,16 +157,16 @@ sound_source::deserialize_mapping( cParser &Input ) {
 
     // if not block end then the key is followed by assigned value or sub-block
     if( key == "soundmain:" ) {
-        sound( sound_id::main ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::main ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key == "soundset:" ) {
         deserialize_soundset( Input );
     }
     else if( key == "soundbegin:" ) {
-        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key == "soundend:" ) {
-        sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sound chunks, defined with key soundX where X = activation threshold
@@ -203,7 +177,7 @@ sound_source::deserialize_mapping( cParser &Input ) {
             m_soundchunks.emplace_back(
                 soundchunk_pair {
                     // sound data
-                    { audio::renderer.fetch_buffer( deserialize_filename( Input ) ), 0 },
+                    { audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) ), 0 },
                     // chunk data
                     { std::stoi( key.substr( indexstart, indexend - indexstart ) ), 0, 0, 1.f } } );
         }
@@ -272,26 +246,12 @@ sound_source::deserialize_mapping( cParser &Input ) {
 void
 sound_source::deserialize_soundset( cParser &Input ) {
 
-    auto token { Input.getToken<std::string>( true, "\n\r\t ,;|" ) };
-    if( token != "[" ) {
-        // simple case, basic set of three filenames separated with |
-        // three samples: start, middle, stop
-        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( token );
-        sound( sound_id::main ).buffer  = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
-        sound( sound_id::end ).buffer   = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
-        return;
-    }
-    // if instead of filename we've encountered '[' this marks a beginning of random sets
-    // we retrieve all entries, then process a random one
-    std::vector<std::string> soundsets;
-    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
-        && ( token != "]" ) ) {
-        soundsets.emplace_back( token );
-    }
-    if( false == soundsets.empty() ) {
-        std::shuffle( std::begin( soundsets ), std::end( soundsets ), Global.random_engine );
-        return deserialize_soundset( cParser( soundsets.front() ) );
-    }
+    auto const soundset { deserialize_random_set( Input, "\n\r\t ,;" ) };
+    // split retrieved set
+    cParser setparser( soundset );
+    sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
+    sound( sound_id::main ).buffer  = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
+    sound( sound_id::end ).buffer   = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
 }
 
 // sends content of the class in legacy (text) format to provided stream

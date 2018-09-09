@@ -309,4 +309,8 @@ nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend,
 
 glm::dvec3 LoadPoint( class cParser &Input );
 
+// extracts a group of tokens from provided data stream
+std::string
+deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );
+
 //---------------------------------------------------------------------------

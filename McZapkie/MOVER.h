@@ -1127,7 +1127,8 @@ public:
 	double dizel_engage = 0.0; /*sprzeglo skrzyni biegow: aktualny docisk*/
 	double dizel_automaticgearstatus = 0.0; /*0 - bez zmiany, -1 zmiana na nizszy +1 zmiana na wyzszy*/
     bool dizel_startup { false }; // engine startup procedure request indicator
-	bool dizel_ignition = false; // engine ignition request indicator
+    bool dizel_ignition { false }; // engine ignition request indicator
+    bool dizel_spinup { false }; // engine spin up to idle speed flag
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
 	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
 	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
