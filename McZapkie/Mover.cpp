@@ -3599,7 +3599,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
             else
                 //(Hamulec as TWest).PLC(TotalMass);
-                Hamulec->PLC( TotalMass );
+                Hamulec->PLC( TotalMass-Mred );
             break;
         }
 
@@ -3629,7 +3629,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 if( MBPM < 2 )
                     Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
                 else
-                    Hamulec->PLC( TotalMass );
+                    Hamulec->PLC( TotalMass-Mred );
             break;
         }
 
@@ -3643,7 +3643,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
         case TBrakeValve::EP2:
         {
-            Hamulec->PLC( TotalMass );
+            Hamulec->PLC( TotalMass-Mred );
             break;
         }
         case TBrakeValve::ESt3AL2:
@@ -3656,7 +3656,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
             else
                 //(Hamulec as TNESt3).PLC(TotalMass);
-                Hamulec->PLC( TotalMass );
+                Hamulec->PLC( TotalMass-Mred );
             LocBrakePress = LocHandle->GetCP();
             //(Hamulec as TNESt3).SetLBP(LocBrakePress);
             Hamulec->SetLBP( LocBrakePress );
@@ -3672,7 +3672,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
             else
                 //(Hamulec as TKE).PLC(TotalMass);
-                Hamulec->PLC( TotalMass );
+                Hamulec->PLC( TotalMass-Mred );
             break;
         }
         default:
