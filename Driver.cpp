@@ -1932,21 +1932,22 @@ void TController::AutoRewident()
                             0.25 );
 
     if( mvOccupied->TrainType == dt_EZT ) {
-        fAccThreshold = std::max( -0.55, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+        fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
 		fBrakeReaction = 0.25;
 	}
     else if( mvOccupied->TrainType == dt_DMU ) {
-        fAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+        fNominalAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
         fBrakeReaction = 0.25;
     }
     else if (ustaw > 16) {
-        fAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 4 * fBrake_a1[ BrakeAccTableSize ];
+        fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 4 * fBrake_a1[ BrakeAccTableSize ];
 		fBrakeReaction = 1.00 + fLength*0.004;
 	}
 	else {
-        fAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 1 * fBrake_a1[ BrakeAccTableSize ];
+        fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 1 * fBrake_a1[ BrakeAccTableSize ];
 		fBrakeReaction = 1.00 + fLength*0.005;
 	}
+	fAccThreshold = fNominalAccThreshold;
 /*
     if( IsHeavyCargoTrain ) {
         // HACK: heavy cargo trains don't activate brakes early enough
@@ -3782,6 +3783,11 @@ TController::UpdateSituation(double dt) {
 	index = std::min(BrakeAccTableSize, std::max(1, index));
 	fBrake_a0[0] = fBrake_a0[index];
 	fBrake_a1[0] = fBrake_a1[index];
+
+	if ((mvOccupied->TrainType == dt_EZT) || (mvOccupied->TrainType == dt_DMU)) {
+		auto Coeff = clamp( mvOccupied->Vel*0.015 , 0.5 , 1.0);
+		fAccThreshold = fNominalAccThreshold * Coeff - fBrake_a0[BrakeAccTableSize] * (1.0 - Coeff);
+	}
 
     Ready = true; // wstępnie gotowy
     fReady = 0.0; // założenie, że odhamowany

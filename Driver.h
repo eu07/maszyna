@@ -210,7 +210,8 @@ public:
     double fBrakeDist = 0.0; // przybliżona droga hamowania
 	double BrakeAccFactor() const;
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
-    double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double fNominalAccThreshold = 0.0; // nominalny próg opóźnienia dla zadziałania hamulca
+    double fAccThreshold = 0.0; // aktualny próg opóźnienia dla zadziałania hamulca
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
     // dla fBrake_aX:
     // indeks [0] - wartości odpowiednie dla aktualnej prędkości
