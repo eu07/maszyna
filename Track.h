@@ -99,18 +99,32 @@ class TIsolated
 { // obiekt zbierający zajętości z kilku odcinków
 public:
     // constructors
-    TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
     // methods
     static void DeleteAll();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
+    bool AssignEvents();
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
-    bool Busy() {
-        return (iAxles > 0); };
-    static TIsolated * Root() {
-        return (pRoot); };
-    TIsolated * Next() {
-        return (pNext); };
+    inline
+    bool
+        Busy() {
+            return (iAxles > 0); };
+    inline
+    static TIsolated *
+        Root() {
+            return (pRoot); };
+    inline
+    TIsolated *
+        Next() {
+            return (pNext); };
+    inline
+    void
+        parent( TIsolated *Parent ) {
+            pParent = Parent; }
+    inline
+    TIsolated *
+        parent() const {
+            return pParent; }
     // members
     std::string asName; // nazwa obiektu, baza do nazw eventów
     TEvent *evBusy { nullptr }; // zdarzenie wyzwalane po zajęciu grupy
@@ -120,6 +134,7 @@ private:
     // members
     int iAxles { 0 }; // ilość osi na odcinkach obsługiwanych przez obiekt
     TIsolated *pNext { nullptr }; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
+    TIsolated *pParent { nullptr }; // optional parent piece, collecting data from its children
     static TIsolated *pRoot; // początek listy
 };
 
@@ -140,6 +155,7 @@ private:
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
     double fRadiusTable[ 2 ] = { 0.0, 0.0 }; // dwa promienie, drugi dla zwrotnicy
+    float fVerticalRadius { 0.f }; // y-axis track radius (currently not supported)
     float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
@@ -265,7 +281,6 @@ public:
         if (pIsolated)
             pIsolated->Modify(i, o); }; // dodanie lub odjęcie osi
     std::string IsolatedName();
-    bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);

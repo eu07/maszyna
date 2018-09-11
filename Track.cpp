@@ -68,12 +68,12 @@ TSwitchExtension::TSwitchExtension(TTrack *owner, int const what)
 TSwitchExtension::~TSwitchExtension()
 { // nie ma nic do usuwania
 }
-
+/*
 TIsolated::TIsolated()
 { // utworznie pustego
     TIsolated("none", NULL);
 };
-
+*/
 TIsolated::TIsolated(std::string const &n, TIsolated *i) :
                                 asName( n ),   pNext( i )
 {
@@ -101,6 +101,15 @@ TIsolated * TIsolated::Find(std::string const &n)
     pRoot = new TIsolated(n, pRoot); // BUG: source of a memory leak
     return pRoot;
 };
+
+bool
+TIsolated::AssignEvents() {
+
+    evBusy = simulation::Events.FindEvent( asName + ":busy" );
+    evFree = simulation::Events.FindEvent( asName + ":free" );
+
+    return ( evBusy != nullptr ) && ( evFree != nullptr );
+}
 
 void TIsolated::Modify(int i, TDynamicObject *o)
 { // dodanie lub odjęcie osi
@@ -130,6 +139,10 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, update_memval2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
+    }
+    // pass the event to the parent
+    if( pParent != nullptr ) {
+        pParent->Modify( i, o );
     }
 };
 
@@ -851,6 +864,12 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
                 iAction |= 0x40; // flaga opuszczenia pantografu (tor uwzględniany w skanowaniu jako
             // ograniczenie dla pantografujących)
         }
+        else if( str == "vradius" ) {
+            // y-axis track radius
+            // NOTE: not used/implemented
+            parser->getTokens();
+            *parser >> fVerticalRadius;
+        }
         else
             ErrorLog("Unknown property: \"" + str + "\" in track \"" + m_name + "\"");
         parser->getTokens();
@@ -952,19 +971,6 @@ std::string TTrack::IsolatedName()
         if (!pIsolated->evBusy && !pIsolated->evFree)
             return pIsolated->asName;
     return "";
-};
-
-bool TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
-{ // ustawia zdarzenia dla odcinka izolowanego
-    if (pIsolated)
-    {
-        if (busy)
-            pIsolated->evBusy = busy;
-        if (free)
-            pIsolated->evFree = free;
-        return true;
-    }
-    return false;
 };
 
 // ABu: przeniesione z Path.h i poprawione!!!
@@ -2764,7 +2770,7 @@ TTrack::export_as_text_( std::ostream &Output ) const {
             eEnvironment == e_canyon ? "canyon" :
             eEnvironment == e_mountains ? "mountains" :
             "none" )
-            << ' ';
+           << ' ';
     // visibility
     // NOTE: 'invis' would be less wrong than 'unvis', but potentially incompatible with old 3rd party tools
     Output << ( m_visible ? "vis" : "unvis" ) << ' ';
@@ -2772,8 +2778,8 @@ TTrack::export_as_text_( std::ostream &Output ) const {
         // texture parameters are supplied only if the path is set as visible
         auto texturefile { (
             m_material1 != null_handle ?
-            GfxRenderer.Material( m_material1 ).name :
-            "none" ) };
+                GfxRenderer.Material( m_material1 ).name :
+                "none" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
@@ -2784,8 +2790,8 @@ TTrack::export_as_text_( std::ostream &Output ) const {
 
         texturefile = (
             m_material2 != null_handle ?
-            GfxRenderer.Material( m_material2 ).name :
-            "none" );
+                GfxRenderer.Material( m_material2 ).name :
+                "none" );
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
@@ -2828,11 +2834,14 @@ TTrack::export_as_text_( std::ostream &Output ) const {
 
     for( auto &eventsequence : eventsequences ) {
         for( auto &event : *( eventsequence.second ) ) {
-            if( false == event.first.empty() ) {
-                Output
-                    << eventsequence.first << ' '
-                    << event.first << ' ';
-            }
+            // NOTE: actual event name can be potentially different from its cached name, if it was renamed in the editor
+            // therefore on export we pull the name from the event itself, if the binding isn't broken
+            Output
+                << eventsequence.first << ' '
+                << ( event.second != nullptr ?
+                        event.second->asName :
+                        event.first )
+                << ' ';
         }
     }
     if( ( SwitchExtension )
@@ -2849,6 +2858,9 @@ TTrack::export_as_text_( std::ostream &Output ) const {
     }
     if( fOverhead != -1.0 ) {
         Output << "overhead " << fOverhead << ' ';
+    }
+    if( fVerticalRadius != 0.f ) {
+        Output << "vradius " << fVerticalRadius << ' ';
     }
     // footer
     Output
@@ -3091,15 +3103,6 @@ path_table::InitTracks() {
         }
         } // switch
 
-        // pobranie nazwy odcinka izolowanego
-        auto const isolatedname { track->IsolatedName() };
-        if( false == isolatedname.empty() ) {
-            // jeśli została zwrócona nazwa
-            track->IsolatedEventsAssign(
-                simulation::Events.FindEvent( isolatedname + ":busy" ),
-                simulation::Events.FindEvent( isolatedname + ":free" ) );
-        }
-
         if( ( trackname[ 0 ] == '*' )
          && ( !track->CurrentPrev() && track->CurrentNext() ) ) {
             // możliwy portal, jeśli nie podłączony od strony 1
@@ -3108,25 +3111,25 @@ path_table::InitTracks() {
         }
     }
 
-    TIsolated *isolated = TIsolated::Root();
+    auto *isolated = TIsolated::Root();
     while( isolated ) {
-        // jeśli się znajdzie, to podać wskaźnik
+
+        isolated->AssignEvents();
+
         auto *memorycell = simulation::Memory.find( isolated->asName ); // czy jest komóka o odpowiedniej nazwie
-        if( memorycell != nullptr ) {
-            // przypisanie powiązanej komórki
-            isolated->pMemCell = memorycell;
-        }
-        else {
+        if( memorycell == nullptr ) {
             // utworzenie automatycznej komórki
             // TODO: determine suitable location for this one, create and add world reference node
             scene::node_data nodedata;
             nodedata.name = isolated->asName;
-            auto *memorycell = new TMemCell( nodedata ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
+            memorycell = new TMemCell( nodedata ); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
             // NOTE: autogenerated cells aren't exported; they'll be autogenerated anew when exported file is loaded
             memorycell->is_exportable = false;
             simulation::Memory.insert( memorycell );
-            isolated->pMemCell = memorycell; // wskaźnik komóki przekazany do odcinka izolowanego
         }
+        // przypisanie powiązanej komórki
+        isolated->pMemCell = memorycell;
+
         isolated = isolated->Next();
     }
 }

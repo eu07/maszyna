@@ -196,7 +196,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
                 // update line counter
                 ++mLine;
             }
-        } while( token == "" && mStream->peek() != EOF ); // double check to deal with trailing spaces
+        } while( token == "" && mStream->peek() != EOF ); // double check in case of consecutive separators
     }
 
     if( false == parameters.empty() ) {

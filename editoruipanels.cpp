@@ -147,7 +147,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
                     textline += ", ";
                 }
                 textline += (
-                    event.second ?
+                    event.second != nullptr ?
                         event.second->asName :
                         event.first + " (missing)" );
             }

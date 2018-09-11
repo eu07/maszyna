@@ -52,9 +52,12 @@ enum TMovementStatus
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
     movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
     moveSemaphorFound = 0x80000, // na drodze skanowania został znaleziony semafor
+    moveStopPointFound = 0x100000 // stop point detected ahead
+/*
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
     moveTrainInsideStation = 0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
     moveSpeedLimitFound = 0x400000 // pociąg w ograniczeniu z podaną jego długością
+*/
 };
 
 enum TStopReason

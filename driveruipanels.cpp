@@ -251,9 +251,10 @@ timetable_panel::update() {
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Dm ) ).substr( 1, 2 ) :
                         "  |  " );
                 auto const candeparture = (
-                    ( owner->iStationStart < table->StationIndex )
+                       ( owner->iStationStart < table->StationIndex )
                     && ( i < table->StationIndex )
-                    && ( ( time.wHour * 60 + time.wMinute ) >= ( tableline->Dh * 60 + tableline->Dm ) ) );
+                    && ( ( tableline->Ah < 0 ) // pass-through, always valid
+                      || ( time.wHour * 60 + time.wMinute >= tableline->Dh * 60 + tableline->Dm ) ) );
                 auto traveltime =
                     "   "
                     + ( i < 2 ? "" :
@@ -726,7 +727,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Acceleration:\n desired: " + to_string( mechanik.AccDesired, 2 )
         + ", corrected: " + to_string( mechanik.AccDesired * mechanik.BrakeAccFactor(), 2 )
-        + "\n current: " + to_string( mechanik.AbsAccS_pub, 2 )
+        + "\n current: " + to_string( mechanik.AbsAccS_pub + 0.001f, 2 )
         + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
@@ -744,7 +745,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     std::vector<std::string> const drivingflagnames {
         "StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
         "StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
-        "Visibility", "DoorOpened", "PushPull", "SemaphorFound", "SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound" };
+        "Visibility", "DoorOpened", "PushPull", "SemaphorFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
 
     textline = "Driving flags:";
     for( int idx = 0, flagbit = 1; idx < drivingflagnames.size(); ++idx, flagbit <<= 1 ) {

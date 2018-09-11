@@ -67,6 +67,7 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
         std::pair<
             std::string,
             deserializefunction> > functionlist = {
+                { "area",        &state_serializer::deserialize_area },
                 { "atmo",        &state_serializer::deserialize_atmo },
                 { "camera",      &state_serializer::deserialize_camera },
                 { "config",      &state_serializer::deserialize_config },
@@ -122,6 +123,20 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
     if( false == Scratchpad.initialized ) {
         // manually perform scenario initialization
         deserialize_firstinit( Input, Scratchpad );
+    }
+}
+
+void
+state_serializer::deserialize_area( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // first parameter specifies name of parent piece...
+    auto token { Input.getToken<std::string>() };
+    auto *groupowner { TIsolated::Find( token ) };
+    // ...followed by list of its children
+    while( ( false == ( token = Input.getToken<std::string>() ).empty() )
+        && ( token != "endarea" ) ) {
+        // bind the children with their parent
+        auto *isolated { TIsolated::Find( token ) };
+        isolated->parent( groupowner );
     }
 }
 
