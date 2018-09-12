@@ -410,14 +410,14 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-    long CollectorsNo; //musi być tu, bo inaczej się kopie
-    double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
-    double CSW;       //szerokość części roboczej (styku) ślizgacza
-    double MinV; double MaxV; //minimalne i maksymalne akceptowane napięcie
-    double OVP;       //czy jest przekaznik nadnapieciowy
-    double InsetV;    //minimalne napięcie wymagane do załączenia
-    double MinPress;  //minimalne ciśnienie do załączenia WS
-    double MaxPress;  //maksymalne ciśnienie za reduktorem
+    long CollectorsNo{0}; //musi być tu, bo inaczej się kopie
+    double MinH{ 0.0 }; double MaxH{ 0.0 }; //zakres ruchu pantografu, nigdzie nie używany
+    double CSW{ 0.0 };       //szerokość części roboczej (styku) ślizgacza
+    double MinV{ 0.0 }; double MaxV{ 0.0 }; //minimalne i maksymalne akceptowane napięcie
+    bool OVP{ false };       //czy jest przekaznik nadnapieciowy
+    double InsetV{ 0.0 };    //minimalne napięcie wymagane do załączenia
+    double MinPress{ 0.0 };  //minimalne ciśnienie do załączenia WS
+    double MaxPress{ 0.0 };  //maksymalne ciśnienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
@@ -1119,6 +1119,8 @@ public:
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
     bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
     bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level
+    bool NoVoltRelay{ true }; // switches off if the power level drops below threshold
+    bool OvervoltageRelay{ true }; // switches off if the power level goes above threshold
     bool s_CAtestebrake = false; //hunter-091012: zmienna dla testu ca
 
     /*-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna*/
@@ -1337,7 +1339,7 @@ public:
     void FuelPumpCheck( double const Timestep );
     void OilPumpCheck( double const Timestep );
     bool FuseOn(void); //bezpiecznik nadamiary
-	bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
+	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
     double ShowCurrent( int AmpN ) const; //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
 	double ShowCurrentP(int AmpN) const;  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
@@ -1357,7 +1359,7 @@ public:
 	bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
 	bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
 
-	bool ResistorsFlagCheck(void); //sprawdzenie kontrolki oporow rozruchowych NBMX
+	bool ResistorsFlagCheck(void) const; //sprawdzenie kontrolki oporow rozruchowych NBMX
     bool PantFront( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografou przedniego
     bool PantRear( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografu tylnego
 

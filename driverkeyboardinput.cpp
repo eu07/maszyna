@@ -202,6 +202,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::instrumentlighttoggle, GLFW_KEY_SEMICOLON },
         // instrumentlightenable,
         // instrumentlightdisable,
+        // dashboardlighttoggle,
+        // timetablelighttoggle,
         { user_command::generictoggle0, GLFW_KEY_0 },
         { user_command::generictoggle1, GLFW_KEY_1 },
         { user_command::generictoggle2, GLFW_KEY_2 },

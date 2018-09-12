@@ -2582,6 +2582,8 @@ bool TMoverParameters::MainSwitch( bool const State, range_t const Notify )
         if( ( false == State )
          || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
            && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+           && ( true == NoVoltRelay )
+           && ( true == OvervoltageRelay )
            && ( LastSwitchingTime > CtrlDelay )
            && ( false == TestFlag( DamageFlag, dtrain_out ) )
            && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
@@ -4452,6 +4454,32 @@ double TMoverParameters::TractionForce( double dt ) {
         }
     }
 
+    switch( EngineType ) {
+
+        case TEngineType::ElectricSeriesMotor: {
+/*
+			if ((Mains)) // nie wchodzić w funkcję bez potrzeby
+				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
+					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
+						EnginePowerSource.CollectorParameters.MaxV))
+                        if( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) // TODO: check whether we need to send this EMU-wide
+						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
+*/
+            // update the state of voltage relays
+            auto const voltage { std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) };
+            NoVoltRelay = ( voltage >= EnginePowerSource.CollectorParameters.MinV );
+            OvervoltageRelay = ( voltage <= EnginePowerSource.CollectorParameters.MaxV ) || ( false == EnginePowerSource.CollectorParameters.OVP );
+            // wywalanie szybkiego z powodu niewłaściwego napięcia
+            EventFlag |= ( ( true == Mains )
+                        && ( ( false == NoVoltRelay ) || ( false == OvervoltageRelay ) )
+                        && ( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) ); // TODO: check whether we need to send this EMU-wide
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (ActiveDir != 0)
         switch (EngineType)
         {
@@ -4531,13 +4559,6 @@ double TMoverParameters::TractionForce( double dt ) {
                 Vhyp = 0;
             if (Vhyp > CtrlDelay / 2) // jesli czas oddzialywania przekroczony
                 FuseOff(); // wywalanie bezpiecznika z powodu przetezenia silnikow
-
-			if ((Mains)) // nie wchodzić w funkcję bez potrzeby
-				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
-					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
-						EnginePowerSource.CollectorParameters.MaxV))
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) // TODO: check whether we need to send this EMU-wide
-						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
 
             if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) && (DynamicBrakeFlag))
                 Itot = Im * 2; // 2x2 silniki w EP09
@@ -5161,7 +5182,7 @@ double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n
 // Q: 20160713
 // Sprawdzenie bezpiecznika nadmiarowego
 // *************************************************************************************************
-bool TMoverParameters::FuseFlagCheck(void)
+bool TMoverParameters::FuseFlagCheck(void) const
 {
     bool FFC;
 
@@ -5353,7 +5374,7 @@ bool TMoverParameters::MinCurrentSwitch(bool State)
 // Q: 20160713
 // Sprawdzenie wskaźnika jazdy na oporach
 // *************************************************************************************************
-bool TMoverParameters::ResistorsFlagCheck(void)
+bool TMoverParameters::ResistorsFlagCheck(void) const
 {
     bool RFC = false;
 
@@ -8500,15 +8521,14 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
+            collectorparameters = TCurrentCollector();
+
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
             extract_value( collectorparameters.MaxH, "MaxH", Line, "" );
             extract_value( collectorparameters.CSW, "CSW", Line, "" ); //szerokość części roboczej
             extract_value( collectorparameters.MaxV, "MaxVoltage", Line, "" );
-            collectorparameters.OVP = //przekaźnik nadnapięciowy
-                extract_value( "OverVoltProt", Line ) == "Yes" ?
-                    1 :
-                    0;
+            extract_value( collectorparameters.OVP, "OverVoltProt", Line, "" ); //przekaźnik nadnapięciowy
             //napięcie rozłączające WS
             collectorparameters.MinV = 0.5 * collectorparameters.MaxV; //gdyby parametr nie podany
             extract_value( collectorparameters.MinV, "MinV", Line, "" );

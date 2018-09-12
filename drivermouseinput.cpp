@@ -676,6 +676,12 @@ drivermouse_input::default_bindings() {
         { "instrumentlight_sw:", {
             user_command::instrumentlighttoggle,
             user_command::none } },
+        { "dashboardlight_sw:", {
+            user_command::dashboardlighttoggle,
+            user_command::none } },
+        { "timetablelight_sw:", {
+            user_command::timetablelighttoggle,
+            user_command::none } },
         { "cablight_sw:", {
             user_command::interiorlighttoggle,
             user_command::none } },

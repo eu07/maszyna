@@ -128,6 +128,8 @@ enum string {
     cab_door_signalling_sw,
     cab_nextcurrent_sw,
     cab_instrumentlight_sw,
+    cab_dashboardlight_sw,
+    cab_timetablelight_sw,
     cab_cablight_sw,
     cab_cablightdim_sw,
     cab_battery_sw,

@@ -25,7 +25,7 @@ public:
     void Turn( bool const State );
     inline
     bool GetValue() const {
-        return ( m_state ? 1 : 0 ); }
+        return m_state; }
     inline
     bool Active() {
         return ( ( pModelOn != nullptr )
