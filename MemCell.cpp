@@ -112,13 +112,13 @@ bool TMemCell::Load(cParser *parser)
     return true;
 }
 
-void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc )
+void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc ) const
 { // wysłanie zawartości komórki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
-bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) {
+bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) const {
     // porównanie zawartości komórki pamięci z podanymi wartościami
     if( TestFlag( CheckMask, conditional_memstring ) ) {
         // porównać teksty
@@ -194,7 +194,7 @@ TMemCell::export_as_text_( std::ostream &Output ) const {
         << fValue1 << ' '
         << fValue2 << ' '
     // associated track
-        << ( asTrackName.empty() ? "none" : asTrackName ) << ' '
+        << ( Track ? Track->name() : asTrackName.empty() ? "none" : asTrackName ) << ' '
     // footer
         << "endmemcell"
         << "\n";
@@ -210,6 +210,13 @@ memory_table::InitCells() {
     for( auto *cell : m_items ) {
         // Ra: eventy komórek pamięci, wykonywane po wysłaniu komendy do zatrzymanego pojazdu
         cell->AssignEvents( simulation::Events.FindEvent( cell->name() + ":sent" ) );
+        // bind specified path with the memory cell
+        if( false == cell->asTrackName.empty() ) {
+            cell->Track = simulation::Paths.find( cell->asTrackName );
+            if( cell->Track == nullptr ) {
+                ErrorLog( "Bad memcell: track \"" + cell->asTrackName + "\" referenced in memcell \"" + cell->name() + "\" doesn't exist" );
+            }
+        }
     }
 }
 
