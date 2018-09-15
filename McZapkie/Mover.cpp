@@ -1255,6 +1255,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             OffsetTrackH = Sign(RunningShape.R) * 0.2;
         }
 
+    // TODO: investigate, seems supplied NewRot is always 0 although the code here suggests some actual values are expected
     Loc = NewLoc;
     Rot = NewRot;
     NewRot.Rx = 0;

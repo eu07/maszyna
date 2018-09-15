@@ -294,16 +294,16 @@ enum TProblem // lista problemów taboru, które uniemożliwiają jazdę
 /*lokacja*/
 struct TLocation
 {
-	double X = 0.0;
-	double Y = 0.0;
-	double Z = 0.0;
+	double X;
+	double Y;
+	double Z;
 };
 /*rotacja*/
 struct TRotation
 {
-	double Rx = 0.0;
-	double Ry = 0.0;
-	double Rz = 0.0;
+	double Rx;
+	double Ry;
+	double Rz;
 };
 /*wymiary*/
 struct TDimension
@@ -965,8 +965,8 @@ public:
 	double SpeedCtrlDelay = 2; /*opoznienie dzialania tempomatu z wybieralna predkoscia*/
     /*--sekcja zmiennych*/
     /*--opis konkretnego egzemplarza taboru*/
-	TLocation Loc; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
-	TRotation Rot;
+    TLocation Loc { 0.0, 0.0, 0.0 }; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
+    TRotation Rot { 0.0, 0.0, 0.0 };
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
 #ifdef EU07_USE_OLD_HVCOUPLERS

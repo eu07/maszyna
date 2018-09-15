@@ -2234,11 +2234,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // zrobiło tego
     Move( 0.0001 );
     ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
-    TLocation loc; // Ra: ustawienie pozycji do obliczania sprzęgów
-    loc.X = -vPosition.x;
-    loc.Y = vPosition.z;
-    loc.Z = vPosition.y;
-    MoverParameters->Loc = loc; // normalnie przesuwa ComputeMovement() w Update()
+    // Ra: ustawienie pozycji do obliczania sprzęgów
+    MoverParameters->Loc = {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y }; // normalnie przesuwa ComputeMovement() w Update()
     // ABuWozki 060504
     if (mdModel) // jeśli ma w czym szukać
     {
@@ -2807,20 +2807,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         return false; // a normalnie powinny mieć bEnabled==false
 
     double dDOMoveLen;
-
-    TLocation l;
-    l.X = -vPosition.x; // przekazanie pozycji do fizyki
-    l.Y = vPosition.z;
-    l.Z = vPosition.y;
-    TRotation r;
-    r.Rx = r.Ry = r.Rz = 0;
     // McZapkie: parametry powinny byc pobierane z toru
-
-    // TTrackShape ts;
-    // ts.R=MyTrack->fRadius;
-    // if (ABuGetDirection()<0) ts.R=-ts.R;
-    //    ts.R=MyTrack->fRadius; //ujemne promienie są już zamienione przy
-    //    wczytywaniu
     if (Axle0.vAngles.z != Axle1.vAngles.z)
     { // wyliczenie promienia z obrotów osi - modyfikację zgłosił youBy
         ts.R = Axle0.vAngles.z - Axle1.vAngles.z; // różnica może dawać stałą ±M_2PI
@@ -3232,16 +3219,15 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
 
     // fragment "z EXE Kursa"
-    if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ( ( false == MoverParameters->Battery )
-          && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
+    if( MoverParameters->Mains ) { // nie wchodzić w funkcję bez potrzeby
+        if( ( false == MoverParameters->Battery )
+         && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
 /*
-        // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
-          && ( Controller == Humandriver )
+          // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
+            && ( Controller == Humandriver )
 */
-          && ( MoverParameters->EngineType != TEngineType::DieselEngine )
-          && ( MoverParameters->EngineType != TEngineType::WheelsDriven ) )
-        { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
+            && ( MoverParameters->EngineType != TEngineType::DieselEngine )
+            && ( MoverParameters->EngineType != TEngineType::WheelsDriven ) ) { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
             if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) {
                 // wyłączyć zasilanie
                 // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
@@ -3256,7 +3242,16 @@ bool TDynamicObject::Update(double dt, double dt1)
 */
             }
         }
+    }
 
+    // przekazanie pozycji do fizyki
+    // NOTE: coordinate system swap
+    // TODO: replace with regular glm vectors
+    TLocation const l {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y };
+    TRotation r { 0.0, 0.0, 0.0 };
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
     if( Mechanik )
@@ -3859,13 +3854,13 @@ bool TDynamicObject::FastUpdate(double dt)
     if (!bEnabled)
         return false;
 
-    TLocation l;
-    l.X = -vPosition.x;
-    l.Y = vPosition.z;
-    l.Z = vPosition.y;
-    TRotation r;
-    r.Rx = r.Ry = r.Rz = 0.0;
-
+    // NOTE: coordinate system swap
+    // TODO: replace with regular glm vectors
+    TLocation const l {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y };
+    TRotation r { 0.0, 0.0, 0.0 };
     // McZapkie: parametry powinny byc pobierane z toru
     // ts.R=MyTrack->fRadius;
     // ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
