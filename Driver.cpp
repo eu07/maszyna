@@ -1651,39 +1651,25 @@ TController::~TController()
     CloseLog();
 };
 
-std::string TController::Order2Str(TOrders Order) const
-{ // zamiana kodu rozkazu na opis
-    if (Order & Change_direction)
-        return "Change_direction"; // może być nałożona na inną i wtedy ma priorytet
-    if (Order == Wait_for_orders)
-        return "Wait_for_orders";
-    if (Order == Prepare_engine)
-        return "Prepare_engine";
-    if (Order == Shunt)
-        return "Shunt";
-    if (Order == Connect)
-        return "Connect";
-    if (Order == Disconnect)
-        return "Disconnect";
-    if (Order == Obey_train)
-        return "Obey_train";
-    if (Order == Release_engine)
-        return "Release_engine";
-    if (Order == Jump_to_first_order)
-        return "Jump_to_first_order";
-    /* Ra: wersja ze switch nie działa prawidłowo (czemu?)
-     switch (Order)
-     {
-      Wait_for_orders:     return "Wait_for_orders";
-      Prepare_engine:      return "Prepare_engine";
-      Shunt:               return "Shunt";
-      Change_direction:    return "Change_direction";
-      Obey_train:          return "Obey_train";
-      Release_engine:      return "Release_engine";
-      Jump_to_first_order: return "Jump_to_first_order";
-     }
-    */
-    return "Undefined!";
+// zamiana kodu rozkazu na opis
+std::string TController::Order2Str(TOrders Order) const {
+
+    if( Order & Change_direction ) {
+        // może być nałożona na inną i wtedy ma priorytet
+        return "Change_direction";
+    }
+    switch( Order ) {
+        case Wait_for_orders:     return "Wait_for_orders";
+        case Prepare_engine:      return "Prepare_engine";
+        case Release_engine:      return "Release_engine";
+        case Change_direction:    return "Change_direction";
+        case Connect:             return "Connect";
+        case Disconnect:          return "Disconnect";
+        case Shunt:               return "Shunt";
+        case Obey_train:          return "Obey_train";
+        case Jump_to_first_order: return "Jump_to_first_order";
+        default:                  return "Undefined";
+    }
 }
 
 std::string TController::OrderCurrent() const
@@ -5611,7 +5597,7 @@ void TController::OrderPush(TOrders NewOrder)
     if (OrderTop >= maxorders)
         ErrorLog("Commands overflow: The program will now crash");
 #if LOGORDERS
-    WriteLog("--> OrderPush");
+    WriteLog("--> OrderPush: [" + Order2Str( NewOrder ) + "]");
     OrdersDump(); // normalnie nie ma po co tego wypisywać
 #endif
 }

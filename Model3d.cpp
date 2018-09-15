@@ -947,14 +947,16 @@ void TSubModel::RaAnimation(TAnimType a)
 	case TAnimType::at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
 		TSubModel *sm = ChildGet();
-		do
-		{ // pętla po submodelach potomnych i obracanie ich o kąt zależy od czasu
-			if (sm->pName.size())
-			{ // musi mieć niepustą nazwę
-				if ((sm->pName[0]) >= '0')
-					if ((sm->pName[0]) <= '5') // zegarek ma 6 cyfr maksymalnie
-						sm->SetRotate(float3(0, 1, 0),
-							-Global.fClockAngleDeg[(sm->pName[0]) - '0']);
+		do { // pętla po submodelach potomnych i obracanie ich o kąt zależy od czasu
+            if( sm->pName.size() ) {
+                // musi mieć niepustą nazwę
+                if( ( sm->pName[ 0 ] >= '0' )
+                 && ( sm->pName[ 0 ] <= '5') ) {
+                    // zegarek ma 6 cyfr maksymalnie
+                    sm->SetRotate(
+                        float3( 0, 1, 0 ),
+                        -Global.fClockAngleDeg[ sm->pName[ 0 ] - '0' ] );
+                }
 			}
 			sm = sm->NextGet();
 		} while (sm);

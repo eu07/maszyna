@@ -253,7 +253,8 @@ void uart_input::poll()
                 trainstate.ventilator_overload << 1
               | trainstate.motor_overload_threshold << 2),
             //byte 3
-			0,
+			(uint8_t)(
+                trainstate.coupled_hv_voltage_relays << 0),
             //byte 4
 			(uint8_t)(
                 trainstate.train_heating << 0

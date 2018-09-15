@@ -85,6 +85,7 @@ class TTrain
         std::uint8_t recorder_braking;
         std::uint8_t recorder_power;
         std::uint8_t alerter_sound;
+        std::uint8_t coupled_hv_voltage_relays;
         float velocity;
         float reservoir_pressure;
         float pipe_pressure;

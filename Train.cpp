@@ -596,6 +596,7 @@ TTrain::get_state() const {
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
         ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm ) || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ),
+        btLampkaHVoltageB.GetValue(),
         fTachoVelocity,
         static_cast<float>( mvOccupied->Compressor ),
         static_cast<float>( mvOccupied->PipePress ),

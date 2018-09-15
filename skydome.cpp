@@ -348,10 +348,16 @@ void CSkyDome::RebuildColors() {
 
     if( m_coloursbuffer != -1 ) {
         // the colour buffer was already initialized, so on this run we update its content
+        // cache entry state
+        ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
+        // begin
+        ::glEnableClientState( GL_VERTEX_ARRAY );
+        // update
         ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
         ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( glm::vec3 ), m_colours.data() );
+        // cleanup
+        ::glPopClientAttrib();
     }
-
 }
 
 //******************************************************************************//
