@@ -42,19 +42,25 @@ private:
     glm::dvec2 m_cursorposition { 0.0 };
 };
 
-class mouse_input {
+class drivermouse_input {
 
 public:
 // constructors
-    mouse_input() { default_bindings(); }
+    drivermouse_input() = default;
 
 // methods
     bool
         init();
+    bool
+        recall_bindings();
     void
         button( int const Button, int const Action );
+    int
+        button( int const Button ) const;
     void
-        move( double const Mousex, double const Mousey );
+        move( double const Horizontal, double const Vertical );
+    void
+        scroll( double const Xoffset, double const Yoffset );
     void
         poll();
     user_command
@@ -62,22 +68,32 @@ public:
 
 private:
 // types
-    struct mouse_commands {
+    struct button_bindings {
 
         user_command left;
         user_command right;
     };
 
-    typedef std::unordered_map<std::string, mouse_commands> controlcommands_map;
+    struct wheel_bindings {
+        
+        user_command up;
+        user_command down;
+    };
+
+    typedef std::unordered_map<std::string, button_bindings> buttonbindings_map;
 
 // methods
     void
         default_bindings();
+    // potentially replaces supplied command with a more relevant one
+    user_command
+        adjust_command( user_command Command );
 
 // members
     command_relay m_relay;
     mouse_slider m_slider; // virtual control, when active translates intercepted mouse position to a value
-    controlcommands_map m_mousecommands;
+    buttonbindings_map m_buttonbindings;
+    wheel_bindings m_wheelbindings { user_command::mastercontrollerincrease, user_command::mastercontrollerdecrease }; // commands bound to the scroll wheel
     user_command m_mousecommandleft { user_command::none }; // last if any command issued with left mouse button
     user_command m_mousecommandright { user_command::none }; // last if any command issued with right mouse button
     double m_updaterate { 0.075 };
@@ -87,6 +103,7 @@ private:
     glm::dvec2 m_cursorposition; // stored last cursor position, used for panning
     bool m_varyingpollrate { false }; // indicates rate of command repeats is affected by the cursor position
     glm::dvec2 m_varyingpollrateorigin; // helper, cursor position when the command was initiated
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_buttons;
 };
 
 //---------------------------------------------------------------------------

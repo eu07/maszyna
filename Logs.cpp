@@ -15,8 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "uilayer.h"
 
-std::shared_ptr<ui_panel> ui_log = std::make_shared<ui_panel>( 20, 140 );
-
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
 std::ofstream comms; // lista komunikatow "comms.txt", można go wyłączyć
@@ -84,10 +82,6 @@ void WriteLog( const char *str, logtype const Type ) {
         output << str << "\n";
         output.flush();
     }
-
-	ui_log->text_lines.emplace_back(std::string(str), Global.UITextColor);
-	if (ui_log->text_lines.size() > 20)
-		ui_log->text_lines.pop_front();
 
 #ifdef _WIN32
     if( Global.iWriteLogEnabled & 2 ) {

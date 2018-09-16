@@ -137,7 +137,7 @@ public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
     gfx::vertex_array Vertices;
     float m_boundingradius { 0 };
-    size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
+    std::uintptr_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ TAnimType::at_None }; // kody animacji oddzielnie, bo zerowane
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
@@ -181,12 +181,9 @@ public:
     inline void Hide() { iVisible = 0; };
 
     void create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank );
-	uint32_t FlagsCheck();
-	void WillBeAnimated()
-	{
-		if (this)
-			iFlags |= 0x4000;
-	};
+    uint32_t FlagsCheck();
+	void WillBeAnimated() {
+        iFlags |= 0x4000; };
 	void InitialRotate(bool doit);
 	void BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
 	static void ReplacableSet(material_handle const *r, int a) {
@@ -247,7 +244,7 @@ public:
                 Root->m_boundingradius :
                 0.f ); }
 	inline TSubModel * GetSMRoot() { return (Root); };
-	TSubModel * GetFromName(std::string const &Name);
+	TSubModel * GetFromName(std::string const &Name) const;
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);

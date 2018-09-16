@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "Globals.h"
+#include "TractionPower.h"
 #include "Logs.h"
 #include "renderer.h"
 #include "utilities.h"
@@ -477,10 +478,17 @@ double TTraction::VoltageGet(double u, double i)
     // 1. zasilacz psPower[0] z rezystancją fResistance[0] oraz jego wewnętrzną
     // 2. zasilacz psPower[1] z rezystancją fResistance[1] oraz jego wewnętrzną
     // 3. zasilacz psPowered z jego wewnętrzną rezystancją dla przęseł zasilanych bezpośrednio
-    double res = (i != 0.0) ? (u / i) : 10000.0;
-    if (psPowered)
-        return psPowered->CurrentGet(res) *
-               res; // yB: dla zasilanego nie baw się w gwiazdy, tylko bierz bezpośrednio
+    double res = (
+        (i != 0.0) ?
+            (u / i) :
+            10000.0 );
+    if( psPowered != nullptr ) {
+        // yB: dla zasilanego nie baw się w gwiazdy, tylko bierz bezpośrednio
+        return (
+            ( res != 0.0 ) ?
+                psPowered->CurrentGet( res ) * res :
+                0.0 );
+    }
     double r0t, r1t, r0g, r1g;
     double i0, i1;
     r0t = fResistance[0]; //średni pomysł, ale lepsze niż nic

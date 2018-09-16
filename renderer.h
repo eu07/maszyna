@@ -15,9 +15,9 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
-#include "World.h"
-#include "MemCell.h"
 #include "scene.h"
+#include "simulationenvironment.h"
+#include "MemCell.h"
 #include "light.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
@@ -375,6 +375,7 @@ private:
     unsigned int m_framestamp; // id of currently rendered gfx frame
     float m_framerate;
     double m_updateaccumulator { 0.0 };
+//    double m_pickupdateaccumulator { 0.0 };
     std::string m_debugtimestext;
     std::string m_pickdebuginfo;
     debug_stats m_debugstats;

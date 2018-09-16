@@ -14,8 +14,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Globals.h"
 
-#include "World.h"
 #include "simulation.h"
+#include "simulationenvironment.h"
+#include "Driver.h"
 #include "Logs.h"
 #include "Console.h"
 #include "PyInt.h"
@@ -25,8 +26,6 @@ global_settings Global;
 void
 global_settings::LoadIniFile(std::string asFileName) {
 
-    FreeCameraInit.resize( 10 );
-    FreeCameraInitAngle.resize( 10 );
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };
@@ -94,7 +93,7 @@ global_settings::ConfigParse(cParser &Parser) {
         { // Mczapkie-130302
 
             Parser.getTokens();
-            Parser >> bFreeFly;
+            Parser >> FreeFlyModeFlag;
             Parser.getTokens(3, false);
             Parser >>
                 FreeCameraInit[0].x,
@@ -128,7 +127,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AudioVolume;
-            AudioVolume = clamp( AudioVolume, 1.f, 4.f );
+            AudioVolume = clamp( AudioVolume, 0.0f, 2.f );
         }
 		else if (token == "sound.maxsources") {
 			Parser.getTokens();
@@ -296,7 +295,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 std::tm *localtime = std::localtime(&timenow);
                 fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            pWorld->compute_season( fMoveLight );
+            simulation::Environment.compute_season( fMoveLight );
         }
         else if( token == "dynamiclights" ) {
             // number of dynamic lights in the scene
@@ -305,6 +304,12 @@ global_settings::ConfigParse(cParser &Parser) {
             // clamp the light number
             // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
             DynamicLightCount = clamp( DynamicLightCount, 1, 7 ); 
+        }
+        else if( token == "scenario.time.override" ) {
+            // shift (in hours) applied to train timetables
+            Parser.getTokens( 1, false );
+            Parser >> ScenarioTimeOverride;
+            ScenarioTimeOverride = clamp( ScenarioTimeOverride, 0.f, 24 * 1439 / 1440.f );
         }
         else if( token == "scenario.time.offset" ) {
             // shift (in hours) applied to train timetables
@@ -595,6 +600,12 @@ global_settings::ConfigParse(cParser &Parser) {
             glm::clamp( UITextColor, 0.f, 255.f );
             UITextColor = UITextColor / 255.f;
             UITextColor.a = 1.f;
+        }
+        else if( token == "ui.bg.opacity" ) {
+            // czy grupować eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> UIBgOpacity;
+            UIBgOpacity = clamp( UIBgOpacity, 0.f, 1.f );
         }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach

@@ -2,7 +2,7 @@
 #include "uart.h"
 
 #include "Globals.h"
-#include "World.h"
+#include "simulation.h"
 #include "Train.h"
 #include "parser.h"
 #include "Logs.h"
@@ -130,7 +130,7 @@ void uart_input::poll()
         return;
     last_update = now;
 
-    auto *t = Global.pWorld->train();
+    auto const *t =simulation::Train;
 	if (!t)
 		return;
 

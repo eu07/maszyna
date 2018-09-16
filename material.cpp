@@ -33,12 +33,10 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
 // imports member data pair from the config file
 bool
 opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
-    // token can be a key or block end
-    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
-
+    // NOTE: comma can be part of legacy file names, so we don't treat it as a separator here
+    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ;[]" ) };
+    // key can be an actual key or block end
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
-
-    auto value { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
 
     if( Priority != -1 ) {
         // regular attribute processing mode
@@ -55,32 +53,36 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 ; // all work is done in the header
             }
         }
-        else if( key == "texture1:" ) {
+        else if( ( key == "texture1:" )
+              || ( key == "texture_diffuse:" ) ) {
             if( ( texture1 == null_handle )
              || ( Priority > priority1 ) ) {
-				std::replace(value.begin(), value.end(), '\\', '/');
-                texture1 = GfxRenderer.Fetch_Texture( value, Loadnow );
+                texture1 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
                 priority1 = Priority;
             }
         }
-        else if( key == "texture2:" ) {
+        else if( ( key == "texture2:" )
+              || ( key == "texture_normalmap:" ) ) {
             if( ( texture2 == null_handle )
              || ( Priority > priority2 ) ) {
-				std::replace(value.begin(), value.end(), '\\', '/');
-                texture2 = GfxRenderer.Fetch_Texture( value, Loadnow );
+                texture2 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
                 priority2 = Priority;
             }
         }
-        else if( value == "{" ) {
-            // unrecognized or ignored token, but comes with attribute block and potential further nesting
-            // go through it and discard the content
-            while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
-                ; // all work is done in the header
+        else {
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
+            if( value == "{" ) {
+                // unrecognized or ignored token, but comes with attribute block and potential further nesting
+                // go through it and discard the content
+                while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
+                    ; // all work is done in the header
+                }
             }
         }
     }
     else {
         // discard mode; ignores all retrieved tokens
+        auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
         if( value == "{" ) {
             // ignored tokens can come with their own blocks, ignore these recursively
             // go through it and discard the content

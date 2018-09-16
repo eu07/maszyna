@@ -35,6 +35,7 @@
 // stl
 #include <cstddef>
 #include <cstdlib>
+#include <cstdio>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -84,10 +85,7 @@
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU
-
-#ifndef __ANDROID__
 #include <GLFW/glfw3.h>
-#endif
 
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CTOR_INIT
@@ -104,4 +102,14 @@
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
+
+#ifdef DBG_NEW
+#pragma push_macro("new")
+#undef new
+#include "imgui/imgui.h"
+#pragma pop_macro("new")
+#else
+#include "imgui/imgui.h"
+#endif
+
 #endif

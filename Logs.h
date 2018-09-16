@@ -28,4 +28,3 @@ void WriteLog( const std::string &str, logtype const Type = logtype::generic );
 void CommLog( const char *str );
 void CommLog( const std::string &str );
 
-extern std::shared_ptr<ui_panel> ui_log;

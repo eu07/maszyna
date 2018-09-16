@@ -37,6 +37,9 @@ private:
     // imports member data pair from the config file, overriding existing parameter values of lower priority
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
+    // extracts name of the sound file from provided data stream
+    std::string
+        deserialize_filename( cParser &Input );
 
 // members
     int priority1 { -1 }; // priority of last loaded primary texture

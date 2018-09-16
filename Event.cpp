@@ -17,8 +17,16 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Event.h"
 #include "simulation.h"
-#include "World.h"
+#include "messaging.h"
 #include "Globals.h"
+#include "MemCell.h"
+#include "Track.h"
+#include "Traction.h"
+#include "TractionPower.h"
+#include "sound.h"
+#include "AnimModel.h"
+#include "DynObj.h"
+#include "Driver.h"
 #include "Timer.h"
 #include "Logs.h"
 
@@ -1197,7 +1205,7 @@ event_manager::CheckQuery() {
                     }
                     case 1: {
                         if( m_workevent->Params[ 1 ].asdouble > 0.0 ) {
-                            Global.pWorld->radio_message(
+                            simulation::radio_message(
                                 m_workevent->Params[ 9 ].tsTextSound,
                                 static_cast<int>( m_workevent->Params[ 1 ].asdouble ) );
                         }
@@ -1749,11 +1757,15 @@ event_manager::export_as_text( std::ostream &Output ) const {
 
     Output << "// events\n";
     for( auto const *event : m_events ) {
-        event->export_as_text( Output );
+        if( event->group() == null_handle ) {
+            event->export_as_text( Output );
+        }
     }
     Output << "// event launchers\n";
     for( auto const *launcher : m_launchers.sequence() ) {
-        launcher->export_as_text( Output );
+        if( launcher->group() == null_handle ) {
+            launcher->export_as_text( Output );
+        }
     }
 }
 

@@ -68,10 +68,10 @@ class TTrainParameters
     int Direction; /*kierunek jazdy w/g kilometrazu*/
     double CheckTrainLatency();
     /*todo: str hh:mm to int i z powrotem*/
-    std::string ShowRelation();
+    std::string ShowRelation() const;
     double WatchMTable(double DistCounter);
-    std::string NextStop();
-    bool IsStop();
+    std::string NextStop() const;
+    bool IsStop() const;
     bool IsTimeToGo(double hh, double mm);
     bool UpdateMTable(double hh, double mm, std::string const &NewName);
     bool UpdateMTable( scenario_time const &Time, std::string const &NewName );

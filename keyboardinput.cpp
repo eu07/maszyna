@@ -13,6 +13,15 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "parser.h"
 
+namespace input {
+
+std::array<char, GLFW_KEY_LAST + 1> keys { GLFW_RELEASE };
+bool key_alt;
+bool key_ctrl;
+bool key_shift;
+
+}
+
 bool
 keyboard_input::recall_bindings() {
 
@@ -78,7 +87,7 @@ keyboard_input::recall_bindings() {
 
                          if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
                     else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
-                    else if( bindingkeyname == "none" )  { binding = -1; }
+                    else if( bindingkeyname == "none" )  { binding = 0; }
                     else {
                         // regular key, convert it to glfw key code
                         auto const keylookup = nametokeymap.find( bindingkeyname );
@@ -94,14 +103,12 @@ keyboard_input::recall_bindings() {
                     }
 
                     if( ( binding & 0xffff ) != 0 ) {
-                        m_commands.at( static_cast<std::size_t>( lookup->second ) ).binding = binding;
+                        m_bindingsetups.emplace_back( binding_setup{ lookup->second, binding } );
                     }
                 }
             }
         }
     }
-
-    bind();
 
     return true;
 }
@@ -113,7 +120,7 @@ keyboard_input::key( int const Key, int const Action ) {
 
     if( ( Key == GLFW_KEY_LEFT_SHIFT ) || ( Key == GLFW_KEY_RIGHT_SHIFT ) ) {
         // update internal state, but don't bother passing these
-        m_shift =
+        input::key_shift =
             ( Action == GLFW_RELEASE ?
                 false :
                 true );
@@ -122,21 +129,24 @@ keyboard_input::key( int const Key, int const Action ) {
     }
     if( ( Key == GLFW_KEY_LEFT_CONTROL ) || ( Key == GLFW_KEY_RIGHT_CONTROL ) ) {
         // update internal state, but don't bother passing these
-        m_ctrl =
+        input::key_ctrl =
             ( Action == GLFW_RELEASE ?
                 false :
                 true );
         modifier = true;
     }
     if( ( Key == GLFW_KEY_LEFT_ALT ) || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
-        // currently we have no interest in these whatsoever
-        return false;
+        // update internal state, but don't bother passing these
+        input::key_alt =
+            ( Action == GLFW_RELEASE ?
+                false :
+                true );
     }
 
+    if( Key == -1 ) { return false; }
+
     // store key state
-    if( Key != -1 ) {
-        m_keys[ Key ] = Action;
-    }
+    input::keys[ Key ] = Action;
 
     if( true == is_movement_key( Key ) ) {
         // if the received key was one of movement keys, it's been handled and we don't need to bother further
@@ -146,8 +156,8 @@ keyboard_input::key( int const Key, int const Action ) {
     // include active modifiers for currently pressed key, except if the key is a modifier itself
     auto const key =
         Key
-        | ( modifier ? 0 : ( m_shift ? keymodifier::shift   : 0 ) )
-        | ( modifier ? 0 : ( m_ctrl  ? keymodifier::control : 0 ) );
+        | ( modifier ? 0 : ( input::key_shift ? keymodifier::shift   : 0 ) )
+        | ( modifier ? 0 : ( input::key_ctrl  ? keymodifier::control : 0 ) );
 
     auto const lookup = m_bindings.find( key );
     if( lookup == m_bindings.end() ) {
@@ -166,408 +176,37 @@ keyboard_input::key( int const Key, int const Action ) {
     return true;
 }
 
-void
-keyboard_input::default_bindings() {
+int
+keyboard_input::key( int const Key ) const {
 
-    m_commands = {
-        // aidriverenable
-        { GLFW_KEY_Q | keymodifier::shift },
-        // aidriverdisable
-        { GLFW_KEY_Q },
-        // mastercontrollerincrease
-        { GLFW_KEY_KP_ADD },
-        // mastercontrollerincreasefast
-        { GLFW_KEY_KP_ADD | keymodifier::shift },
-        // mastercontrollerdecrease
-        { GLFW_KEY_KP_SUBTRACT },
-        // mastercontrollerdecreasefast
-        { GLFW_KEY_KP_SUBTRACT | keymodifier::shift },
-        // mastercontrollerset
-        { -1 },
-        // secondcontrollerincrease
-        { GLFW_KEY_KP_DIVIDE },
-        // secondcontrollerincreasefast
-        { GLFW_KEY_KP_DIVIDE | keymodifier::shift },
-        // secondcontrollerdecrease
-        { GLFW_KEY_KP_MULTIPLY },
-        // secondcontrollerdecreasefast
-        { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
-        // secondcontrollerset
-        { -1 },
-        // mucurrentindicatorothersourceactivate
-        { GLFW_KEY_Z | keymodifier::shift },
-        // independentbrakeincrease
-        { GLFW_KEY_KP_1 },
-        // independentbrakeincreasefast
-        { GLFW_KEY_KP_1 | keymodifier::shift },
-        // independentbrakedecrease
-        { GLFW_KEY_KP_7 },
-        // independentbrakedecreasefast
-        { GLFW_KEY_KP_7 | keymodifier::shift },
-        // independentbrakeset
-        { -1 },
-        // independentbrakebailoff
-        { GLFW_KEY_KP_4 },
-        // trainbrakeincrease
-        { GLFW_KEY_KP_3 },
-        // trainbrakedecrease
-        { GLFW_KEY_KP_9 },
-        // trainbrakeset
-        { -1 },
-        // trainbrakecharging
-        { GLFW_KEY_KP_DECIMAL },
-        // trainbrakerelease
-        { GLFW_KEY_KP_6 },
-        // trainbrakefirstservice
-        { GLFW_KEY_KP_8 },
-        // trainbrakeservice
-        { GLFW_KEY_KP_5 },
-        // trainbrakefullservice
-        { GLFW_KEY_KP_2 },
-        // trainbrakehandleoff
-        { GLFW_KEY_KP_5 | keymodifier::control },
-        // trainbrakeemergency
-        { GLFW_KEY_KP_0 },
-        // trainbrakebasepressureincrease
-        { GLFW_KEY_KP_3 | keymodifier::control },
-        // trainbrakebasepressuredecrease
-        { GLFW_KEY_KP_9 | keymodifier::control },
-        // trainbrakebasepressurereset
-        { GLFW_KEY_KP_6 | keymodifier::control },
-        // trainbrakeoperationtoggle
-        { GLFW_KEY_KP_4 | keymodifier::control },
-        // manualbrakeincrease
-        { GLFW_KEY_KP_1 | keymodifier::control },
-        // manualbrakedecrease
-        { GLFW_KEY_KP_7 | keymodifier::control },
-        // alarm chain toggle
-        { GLFW_KEY_B | keymodifier::shift | keymodifier::control },
-        // wheelspinbrakeactivate
-        { GLFW_KEY_KP_ENTER },
-        // sandboxactivate
-        { GLFW_KEY_S },
-        // reverserincrease
-        { GLFW_KEY_D },
-        // reverserdecrease
-        { GLFW_KEY_R },
-        // reverserforwardhigh
-        { -1 },
-        // reverserforward
-        { -1 },
-        // reverserneutral
-        { -1 },
-        // reverserbackward
-        { -1 },
-        // waterpumpbreakertoggle
-        { GLFW_KEY_W | keymodifier::control },
-        // waterpumpbreakerclose
-        { -1 },
-        // waterpumpbreakeropen
-        { -1 },
-        // waterpumptoggle
-        { GLFW_KEY_W },
-        // waterpumpenable
-        { -1 },
-        // waterpumpdisable
-        { -1 },
-        // waterheaterbreakertoggle
-        { GLFW_KEY_W | keymodifier::control | keymodifier::shift },
-        // waterheaterbreakerclose
-        { -1 },
-        // waterheaterbreakeropen
-        { -1 },
-        // waterheatertoggle
-        { GLFW_KEY_W | keymodifier::shift },
-        // waterheaterenable
-        { -1 },
-        // waterheaterdisable
-        { -1 },
-        // watercircuitslinktoggle
-        { GLFW_KEY_H | keymodifier::shift },
-        // watercircuitslinkenable
-        { -1 },
-        // watercircuitslinkdisable
-        { -1 },
-        // fuelpumptoggle
-        { GLFW_KEY_F },
-        // fuelpumpenable,
-        { -1 },
-        // fuelpumpdisable,
-        { -1 },
-        // oilpumptoggle
-        { GLFW_KEY_F | keymodifier::shift },
-        // oilpumpenable,
-        { -1 },
-        // oilpumpdisable,
-        { -1 },
-        // linebreakertoggle
-        { GLFW_KEY_M },
-        // linebreakeropen
-        { -1 },
-        // linebreakerclose
-        { -1 },
-        // convertertoggle
-        { GLFW_KEY_X },
-        // converterenable,
-        { -1 },
-        // converterdisable,
-        { -1 },
-        // convertertogglelocal
-        { GLFW_KEY_X | keymodifier::shift },
-        // converteroverloadrelayreset
-        { GLFW_KEY_N | keymodifier::control },
-        // compressortoggle
-        { GLFW_KEY_C },
-        // compressorenable
-        { -1 },
-        // compressordisable
-        { -1 },
-        // compressortoggleloal
-        { GLFW_KEY_C | keymodifier::shift },
-        // motoroverloadrelaythresholdtoggle
-        { GLFW_KEY_F },
-        // motoroverloadrelaythresholdsetlow
-        { -1 },
-        // motoroverloadrelaythresholdsethigh
-        { -1 },
-        // motoroverloadrelayreset
-        { GLFW_KEY_N },
-        // notchingrelaytoggle
-        { GLFW_KEY_G },
-        // epbrakecontroltoggle
-        { GLFW_KEY_Z | keymodifier::control },
-		// trainbrakeoperationmodeincrease
-        { GLFW_KEY_KP_2 | keymodifier::control },
-		// trainbrakeoperationmodedecrease
-        { GLFW_KEY_KP_8 | keymodifier::control },
-        // brakeactingspeedincrease
-        { GLFW_KEY_B | keymodifier::shift },
-        // brakeactingspeeddecrease
-        { GLFW_KEY_B },
-        // brakeactingspeedsetcargo
-        { -1 },
-        // brakeactingspeedsetpassenger
-        { -1 },
-        // brakeactingspeedsetrapid
-        { -1 },
-        // brakeloadcompensationincrease
-        { GLFW_KEY_H | keymodifier::shift | keymodifier::control },
-        // brakeloadcompensationdecrease
-        { GLFW_KEY_H | keymodifier::control },
-        // mubrakingindicatortoggle
-        { GLFW_KEY_L | keymodifier::shift },
-        // alerteracknowledge
-        { GLFW_KEY_SPACE },
-        // hornlowactivate
-        { GLFW_KEY_A },
-        // hornhighactivate
-        { GLFW_KEY_S },
-        // whistleactivate
-        { GLFW_KEY_Z },
-        // radiotoggle
-        { GLFW_KEY_R | keymodifier::control },
-        // radiochannelincrease
-        { GLFW_KEY_R | keymodifier::shift },
-        // radiochanneldecrease
-        { GLFW_KEY_R },
-        // radiostopsend
-        { GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
-        // radiostoptest
-        { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
-        // cabchangeforward
-        { GLFW_KEY_HOME },
-        // cabchangebackward
-        { GLFW_KEY_END },
-        // viewturn
-        { -1 },
-        // movehorizontal
-        { -1 },
-        // movehorizontalfast
-        { -1 },
-        // movevertical
-        { -1 },
-        // moveverticalfast
-        { -1 },
-        // moveleft
-        { GLFW_KEY_LEFT },
-        // moveright
-        { GLFW_KEY_RIGHT },
-        // moveforward
-        { GLFW_KEY_UP },
-        // moveback
-        { GLFW_KEY_DOWN },
-        // moveup
-        { GLFW_KEY_PAGE_UP },
-        // movedown
-        { GLFW_KEY_PAGE_DOWN },
-        // carcouplingincrease
-        { GLFW_KEY_INSERT },
-        // carcouplingdisconnect
-        { GLFW_KEY_DELETE },
-        // doortoggleleft
-        { GLFW_KEY_COMMA },
-        // doortoggleright
-        { GLFW_KEY_PERIOD },
-        // departureannounce
-        { GLFW_KEY_SLASH },
-        // doorlocktoggle
-        { GLFW_KEY_S | keymodifier::shift },
-        // pantographcompressorvalvetoggle
-        { GLFW_KEY_V | keymodifier::control },
-        // pantographcompressoractivate
-        { GLFW_KEY_V | keymodifier::shift },
-        // pantographtogglefront
-        { GLFW_KEY_P },
-        // pantographtogglerear
-        { GLFW_KEY_O },
-        // pantographraisefront
-        { -1 },
-        // pantographraiserear
-        { -1 },
-        // pantographlowerfront
-        { -1 },
-        // pantographlowerrear
-        { -1 },
-        // pantographlowerall
-        { GLFW_KEY_P | keymodifier::control },
-        // heatingtoggle
-        { GLFW_KEY_H },
-        // heatingenable
-        { -1 },
-        // heatingdisable
-        { -1 },
-        // lightspresetactivatenext
-        { GLFW_KEY_T | keymodifier::shift },
-        // lightspresetactivateprevious
-        { GLFW_KEY_T },
-        // headlighttoggleleft
-        { GLFW_KEY_Y },
-        // headlightenableleft
-        { -1 },
-        // headlightdisableleft
-        { -1 },
-        // headlighttoggleright
-        { GLFW_KEY_I },
-        // headlightenableright
-        { -1 },
-        // headlightdisableright
-        { -1 },
-        // headlighttoggleupper
-        { GLFW_KEY_U },
-        // headlightenableupper
-        { -1 },
-        // headlightdisableupper
-        { -1 },
-        // redmarkertoggleleft
-        { GLFW_KEY_Y | keymodifier::shift },
-        // redmarkerenableleft
-        { -1 },
-        // redmarkerdisableleft
-        { -1 },
-        // redmarkertoggleright
-        { GLFW_KEY_I | keymodifier::shift },
-        // redmarkerenableright
-        { -1 },
-        // redmarkerdisableright
-        { -1 },
-        // headlighttogglerearleft
-        { GLFW_KEY_Y | keymodifier::control },
-        // headlighttogglerearright
-        { GLFW_KEY_I | keymodifier::control },
-        // headlighttogglerearupper
-        { GLFW_KEY_U | keymodifier::control },
-        // redmarkertogglerearleft
-        { GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
-        // redmarkertogglerearright
-        { GLFW_KEY_I | keymodifier::control | keymodifier::shift },
-        // redmarkerstoggle
-        { GLFW_KEY_E | keymodifier::shift },
-        // endsignalstoggle
-        { GLFW_KEY_E },
-        // headlightsdimtoggle
-        { GLFW_KEY_L | keymodifier::control },
-        // headlightsdimenable
-        { -1 },
-        // headlightsdimdisable
-        { -1 },
-        // motorconnectorsopen
-        { GLFW_KEY_L },
-        // motorconnectorsclose
-        { -1 },
-        // motordisconnect
-        { GLFW_KEY_E | keymodifier::control },
-        // interiorlighttoggle
-        { GLFW_KEY_APOSTROPHE },
-        // interiorlightenable
-        { -1 },
-        // interiorlightdisable
-        { -1 },
-        // interiorlightdimtoggle
-        { GLFW_KEY_APOSTROPHE | keymodifier::control },
-        // interiorlightdimenable
-        { -1 },
-        // interiorlightdimdisable
-        { -1 },
-        // instrumentlighttoggle
-        { GLFW_KEY_SEMICOLON },
-        // instrumentlightenable
-        { -1 },
-        // instrumentlightdisable,
-        { -1 },
-        // "generictoggle0"
-        { GLFW_KEY_0 },
-        // "generictoggle1"
-        { GLFW_KEY_1 },
-        // "generictoggle2"
-        { GLFW_KEY_2 },
-        // "generictoggle3"
-        { GLFW_KEY_3 },
-        // "generictoggle4"
-        { GLFW_KEY_4 },
-        // "generictoggle5"
-        { GLFW_KEY_5 },
-        // "generictoggle6"
-        { GLFW_KEY_6 },
-        // "generictoggle7"
-        { GLFW_KEY_7 },
-        // "generictoggle8"
-        { GLFW_KEY_8 },
-        // "generictoggle9"
-        { GLFW_KEY_9 },
-        // "batterytoggle"
-        { GLFW_KEY_J },
-        // batteryenable
-        { -1 },
-        // batterydisable
-        { -1 },
-    };
-
-    bind();
-
+    return input::keys[ Key ];
 }
 
 void
 keyboard_input::bind() {
 
-    m_bindings.clear();
+    for( auto const &bindingsetup : m_bindingsetups ) {
 
-    int commandcode{ 0 };
-    for( auto const &command : m_commands ) {
-
-        if( command.binding != -1 ) {
-            m_bindings.emplace(
-                command.binding,
-                static_cast<user_command>( commandcode ) );
-        }
-        ++commandcode;
+        m_bindings[ bindingsetup.binding ] = bindingsetup.command;
     }
     // cache movement key bindings
-    m_bindingscache.forward = m_commands[ static_cast<std::size_t>( user_command::moveforward ) ].binding;
-    m_bindingscache.back = m_commands[ static_cast<std::size_t>( user_command::moveback ) ].binding;
-    m_bindingscache.left = m_commands[ static_cast<std::size_t>( user_command::moveleft ) ].binding;
-    m_bindingscache.right = m_commands[ static_cast<std::size_t>( user_command::moveright ) ].binding;
-    m_bindingscache.up = m_commands[ static_cast<std::size_t>( user_command::moveup ) ].binding;
-    m_bindingscache.down = m_commands[ static_cast<std::size_t>( user_command::movedown ) ].binding;
+    m_bindingscache.forward = binding( user_command::moveforward );
+    m_bindingscache.back = binding( user_command::moveback );
+    m_bindingscache.left = binding( user_command::moveleft );
+    m_bindingscache.right = binding( user_command::moveright );
+    m_bindingscache.up = binding( user_command::moveup );
+    m_bindingscache.down = binding( user_command::movedown );
+}
+
+int
+keyboard_input::binding( user_command const Command ) const {
+
+    for( auto const &binding : m_bindings ) {
+        if( binding.second == Command ) {
+            return binding.first;
+        }
+    }
+    return -1;
 }
 
 bool
@@ -590,13 +229,13 @@ keyboard_input::poll() {
     glm::vec2 const movementhorizontal {
         // x-axis
         ( Global.shiftState ? 1.f : 0.5f ) *
-        ( m_keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
-          m_keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
+        ( input::keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
+          input::keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
           0.f ),
         // z-axis
         ( Global.shiftState ? 1.f : 0.5f ) *
-        ( m_keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
-          m_keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
+        ( input::keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
+          input::keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
           0.f ) };
 
     if( (   movementhorizontal.x != 0.f ||   movementhorizontal.y != 0.f )
@@ -616,8 +255,8 @@ keyboard_input::poll() {
     float const movementvertical {
         // y-axis
         ( Global.shiftState ? 1.f : 0.5f ) *
-        ( m_keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
-          m_keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
+        ( input::keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
+          input::keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
           0.f ) };
 
     if( (   movementvertical != 0.f )

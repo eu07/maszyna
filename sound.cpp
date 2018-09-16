@@ -12,9 +12,10 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "parser.h"
 #include "Globals.h"
-#include "World.h"
+#include "Camera.h"
 #include "Train.h"
 #include "DynObj.h"
+#include "simulation.h"
 
 // constructors
 sound_source::sound_source( sound_placement const Placement, float const Range ) :
@@ -100,13 +101,13 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
         switch( Legacytype ) {
             case sound_type::single: {
                 // single sample only
-                m_sounds[ main ].buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                m_sounds[ main ].buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
                 break;
             }
             case sound_type::multipart: {
                 // three samples: start, middle, stop
                 for( auto &sound : m_sounds ) {
-                    sound.buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+                    sound.buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
                 }
                 break;
             }
@@ -146,33 +147,6 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
     return *this;
 }
 
-// extracts name of the sound file from provided data stream
-std::string
-sound_source::deserialize_filename( cParser &Input ) {
-
-    auto token { Input.getToken<std::string>( true, "\n\r\t ,;" ) };
-	std::replace(token.begin(), token.end(), '\\', '/');
-    if( token != "[" ) {
-        // simple case, single file
-        return token;
-    }
-    // if instead of filename we've encountered '[' this marks a beginning of random sounds
-    // we retrieve all entries, then return a random one
-    std::vector<std::string> filenames;
-    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
-        && ( token != "]" ) ) {
-        filenames.emplace_back( token );
-    }
-    if( false == filenames.empty() ) {
-        std::shuffle( std::begin( filenames ), std::end( filenames ), Global.random_engine );
-        return filenames.front();
-    }
-    else {
-        // shouldn't ever get here but, eh
-        return "";
-    }
-}
-
 // imports member data pair from the config file
 bool
 sound_source::deserialize_mapping( cParser &Input ) {
@@ -183,16 +157,16 @@ sound_source::deserialize_mapping( cParser &Input ) {
 
     // if not block end then the key is followed by assigned value or sub-block
     if( key == "soundmain:" ) {
-        sound( sound_id::main ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::main ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key == "soundset:" ) {
         deserialize_soundset( Input );
     }
     else if( key == "soundbegin:" ) {
-        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key == "soundend:" ) {
-        sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_filename( Input ) );
+        sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
     else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sound chunks, defined with key soundX where X = activation threshold
@@ -203,7 +177,7 @@ sound_source::deserialize_mapping( cParser &Input ) {
             m_soundchunks.emplace_back(
                 soundchunk_pair {
                     // sound data
-                    { audio::renderer.fetch_buffer( deserialize_filename( Input ) ), 0 },
+                    { audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) ), 0 },
                     // chunk data
                     { std::stoi( key.substr( indexstart, indexend - indexstart ) ), 0, 0, 1.f } } );
         }
@@ -272,27 +246,12 @@ sound_source::deserialize_mapping( cParser &Input ) {
 void
 sound_source::deserialize_soundset( cParser &Input ) {
 
-    auto token { Input.getToken<std::string>( true, "\n\r\t ,;|" ) };
-    if( token != "[" ) {
-        // simple case, basic set of three filenames separated with |
-        // three samples: start, middle, stop
-        sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( token );
-        sound( sound_id::main ).buffer  = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
-        sound( sound_id::end ).buffer   = audio::renderer.fetch_buffer( Input.getToken<std::string>( true, "\n\r\t ,;|" ) );
-        return;
-    }
-    // if instead of filename we've encountered '[' this marks a beginning of random sets
-    // we retrieve all entries, then process a random one
-    std::vector<std::string> soundsets;
-    while( ( ( token = Input.getToken<std::string>( true, "\n\r\t ,;" ) ) != "" )
-        && ( token != "]" ) ) {
-        soundsets.emplace_back( token );
-    }
-    if( false == soundsets.empty() ) {
-        std::shuffle( std::begin( soundsets ), std::end( soundsets ), Global.random_engine );
-		auto cp = cParser( soundsets.front() );
-        return deserialize_soundset( cp );
-    }
+    auto const soundset { deserialize_random_set( Input, "\n\r\t ,;" ) };
+    // split retrieved set
+    cParser setparser( soundset );
+    sound( sound_id::begin ).buffer = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
+    sound( sound_id::main ).buffer  = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
+    sound( sound_id::end ).buffer   = audio::renderer.fetch_buffer( setparser.getToken<std::string>( true, "|" ) );
 }
 
 // sends content of the class in legacy (text) format to provided stream
@@ -339,8 +298,13 @@ sound_source::copy_sounds( sound_source const &Source ) {
     m_sounds = Source.m_sounds;
     m_soundchunks = Source.m_soundchunks;
     m_soundchunksempty = Source.m_soundchunksempty;
-    // NOTE: should probably zero the .playing fields here as precaution
-    // TODO: add this if we ever start copying sounds from active sources
+    // reset source's playback counters
+    for( auto &sound : m_sounds ) {
+        sound.playing = 0;
+    }
+    for( auto &sound : m_soundchunks ) {
+        sound.first.playing = 0;
+    }
     return *this;
 }
 
@@ -359,7 +323,7 @@ sound_source::play( int const Flags ) {
 
     if( m_range > 0 ) {
         auto const cutoffrange { m_range * 5 };
-        if( glm::length2( location() - glm::dvec3 { Global.pCameraPosition } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
+        if( glm::length2( location() - glm::dvec3 { Global.pCamera.Pos } ) > std::min( 2750.f * 2750.f, cutoffrange * cutoffrange ) ) {
             // while we drop sounds from beyond sensible and/or audible range
             // we act as if it was activated normally, meaning no need to include the opening bookend in subsequent calls
             m_playbeginning = false;
@@ -534,9 +498,8 @@ sound_source::update_basic( audio::openal_source &Source ) {
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main
-            if( ( false == Source.is_looping )
-             && ( soundhandle == sound_id::main ) ) {
-                // when it happens update active sample counters, and activate the looping
+            if( true == Source.sound_change ) {
+                // when it happens update active sample counters, and potentially activate the looping
                 update_counter( sound_id::begin, -1 );
                 update_counter( soundhandle, 1 );
                 Source.loop( TestFlag( m_flags, sound_flags::looping ) );
@@ -619,8 +582,7 @@ sound_source::update_combined( audio::openal_source &Source ) {
         if( sound( sound_id::begin ).buffer != null_handle ) {
             // potentially a multipart sound
             // detect the moment when the sound moves from startup sample to the main
-            if( ( false == Source.is_looping )
-             && ( soundhandle == ( sound_id::chunk | 0 ) ) ) {
+            if( true == Source.sound_change ) {
                 // when it happens update active sample counters, and activate the looping
                 update_counter( sound_id::begin, -1 );
                 update_counter( soundhandle, 1 );
@@ -912,15 +874,15 @@ sound_source::update_soundproofing() {
     int const activecab = (
         Global.CabWindowOpen ? 2 :
         FreeFlyModeFlag ? 0 :
-        ( Global.pWorld->train() ?
-            Global.pWorld->train()->Dynamic()->MoverParameters->ActiveCab :
+        ( simulation::Train ?
+            simulation::Train->Occupied()->ActiveCab :
             0 ) );
     // location-based gain factor:
     std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
         FreeFlyModeFlag ?
             nullptr :
-            ( Global.pWorld->train() ?
-                Global.pWorld->train()->Dynamic() :
+            ( simulation::Train ?
+                simulation::Train->Dynamic() :
                 nullptr ) ) )
         + activecab;
 
@@ -943,7 +905,7 @@ sound_source::update_soundproofing() {
             m_properties.soundproofing = (
                 soundproofingstamp == 0 ?
                     EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
-                    ( Global.pWorld->train()->Dynamic() != m_owner ?
+                    ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
                             EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
@@ -954,7 +916,7 @@ sound_source::update_soundproofing() {
             m_properties.soundproofing = (
                 ( ( soundproofingstamp == 0 ) || ( true == Global.CabWindowOpen ) ) ?
                     EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
-                    ( Global.pWorld->train()->Dynamic() != m_owner ?
+                    ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
                         ( activecab == 0 ?
                             EU07_SOUNDPROOFING_NONE : // listener in the engine compartment

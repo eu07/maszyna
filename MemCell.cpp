@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 
 #include "simulation.h"
+#include "Driver.h"
+#include "Event.h"
 #include "Logs.h"
 
 TMemCell::TMemCell( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {}

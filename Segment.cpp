@@ -201,16 +201,15 @@ double TSegment::GetTFromS(double const s) const
     // initial guess for Newton's method
     double fTolerance = 0.001;
     double fRatio = s / RombergIntegral(0, 1);
-    double fOmRatio = 1.0 - fRatio;
-    double fTime = fOmRatio * 0 + fRatio * 1;
-	int iteration = 0;
+    double fTime = interpolate( 0.0, 1.0, fRatio );
 
+    int iteration = 0;
+    double fDifference {}; // exposed for debug down the road
 	do {
-        double fDifference = RombergIntegral(0, fTime) - s;
+        fDifference = RombergIntegral(0, fTime) - s;
 		if( std::abs( fDifference ) < fTolerance ) {
 			return fTime;
 		}
-
         fTime -= fDifference / GetFirstDerivative(fTime).Length();
 		++iteration;
 	}
@@ -321,7 +320,7 @@ Math3D::vector3 TSegment::FastGetDirection(double fDistance, double fOffset)
         return (Point2 - CPointIn); // wektor na końcu jest stały
     return (FastGetPoint(t2) - FastGetPoint(t1));
 }
-
+/*
 Math3D::vector3 TSegment::GetPoint(double const fDistance) const
 { // wyliczenie współrzędnych XYZ na torze w odległości (fDistance) od Point1
     if (bCurve)
@@ -330,13 +329,17 @@ Math3D::vector3 TSegment::GetPoint(double const fDistance) const
         // return Interpolate(t,Point1,CPointOut,CPointIn,Point2);
         return RaInterpolate(t);
     }
-    else
-    { // wyliczenie dla odcinka prostego jest prostsze
-        double t = fDistance / fLength; // zerowych torów nie ma
-        return ((1.0 - t) * Point1 + (t)*Point2);
+    else {
+        // wyliczenie dla odcinka prostego jest prostsze
+        return
+            interpolate(
+                Point1, Point2,
+                clamp(
+                    fDistance / fLength,
+                    0.0, 1.0 ) );
     }
 };
-
+*/
 // ustalenie pozycji osi na torze, przechyłki, pochylenia i kierunku jazdy
 void TSegment::RaPositionGet(double const fDistance, Math3D::vector3 &p, Math3D::vector3 &a) const {
 

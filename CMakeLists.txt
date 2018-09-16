@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-include(PrecompiledHeader)
-#include(cotire)
+#include(PrecompiledHeader)
+include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
@@ -18,7 +18,6 @@ set(SOURCES
 "TractionPower.cpp"
 "Train.cpp"
 "TrkFoll.cpp"
-"World.cpp"
 "AirCoupler.cpp"
 "AnimModel.cpp"
 "Button.cpp"
@@ -63,7 +62,7 @@ set(SOURCES
 "keyboardinput.cpp"
 "gamepadinput.cpp"
 "openglgeometrybank.cpp"
-"mouseinput.cpp"
+"drivermouseinput.cpp"
 "translation.cpp"
 "material.cpp"
 "lua.cpp"
@@ -85,6 +84,26 @@ set(SOURCES
 "simulationtime.cpp"
 "sceneeditor.cpp"
 "screenshot.cpp"
+"combustionengine.cpp"
+"driverkeyboardinput.cpp"
+"drivermode.cpp"
+"driveruilayer.cpp"
+"driveruipanels.cpp"
+"editorkeyboardinput.cpp"
+"editormode.cpp"
+"editormouseinput.cpp"
+"editoruilayer.cpp"
+"editoruipanels.cpp"
+"scenarioloadermode.cpp"
+"scenenodegroups.cpp"
+"simulationenvironment.cpp"
+"simulationstateserializer.cpp"
+
+"imgui/imgui.cpp"
+"imgui/imgui_demo.cpp"
+"imgui/imgui_draw.cpp"
+"imgui/imgui_impl_glfw.cpp"
+"imgui/imgui_impl_opengl3.cpp"
 )
 
 set (PREFIX "")
@@ -131,7 +150,11 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+cotire(${PROJECT_NAME})
+#add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
