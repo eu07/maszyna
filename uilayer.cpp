@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 
 #include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl2.h"
+#include "imgui_impl_opengl3.h"
 
 extern "C"
 {
@@ -74,7 +74,8 @@ ui_layer::init( GLFWwindow *Window ) {
 //    m_imguiio->Fonts->AddFontFromFileTTF( "c:/windows/fonts/lucon.ttf", 13.0f );
 
     ImGui_ImplGlfw_InitForOpenGL( m_window, false );
-    ImGui_ImplOpenGL2_Init();
+//    ImGui_ImplOpenGL3_Init( "#version 140" );
+    ImGui_ImplOpenGL3_Init();
 
     init_colors();
 
@@ -118,7 +119,7 @@ ui_layer::init_colors() {
 void
 ui_layer::shutdown() {
 
-    ImGui_ImplOpenGL2_Shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
@@ -188,7 +189,7 @@ ui_layer::render() {
     ::glClientActiveTexture( m_textureunit );
     ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
-    ImGui_ImplOpenGL2_NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
@@ -198,7 +199,7 @@ ui_layer::render() {
     render_();
 
     ImGui::Render();
-    ImGui_ImplOpenGL2_RenderDrawData( ImGui::GetDrawData() );
+    ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
 
     ::glPopClientAttrib();
 }

@@ -3722,8 +3722,8 @@ opengl_renderer::Init_caps() {
         + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
         + " OpenGL Version: " + oglversion );
 
-    if( !GLEW_VERSION_1_5 ) {
-        ErrorLog( "Requires openGL >= 1.5" );
+    if( !GLEW_VERSION_3_0 ) {
+        ErrorLog( "Requires openGL >= 3.0" ); // technically 1.5 for now, but imgui wants more
         return false;
     }
 

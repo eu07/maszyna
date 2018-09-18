@@ -315,9 +315,6 @@
     <ClCompile Include="ref\imgui\imgui_draw.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl2.cpp">
-      <Filter>Source Files\imgui</Filter>
-    </ClCompile>
     <ClCompile Include="ref\imgui\examples\imgui_impl_glfw.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
@@ -326,6 +323,12 @@
     </ClCompile>
     <ClCompile Include="editoruipanels.cpp">
       <Filter>Source Files\application\mode_editor</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl3.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -106,14 +106,11 @@
 #include "openglmatrixstack.h"
 
 // imgui.h comes with its own operator new which gets wrecked by dbg_new, so we temporarily disable the latter
-#ifdef _MSC_VER
-#ifdef _DEBUG
+#ifdef DBG_NEW
+#pragma push_macro("new")
 #undef new
-#endif  // _DEBUG
-#endif
 #include "imgui.h"
-#ifdef _MSC_VER
-#ifdef _DEBUG
-#define new DBG_NEW
-#endif  // _DEBUG
+#pragma pop_macro("new")
+#else
+#include "imgui.h"
 #endif
