@@ -16,7 +16,7 @@ namespace scene {
 struct basic_group {
 // members
     std::vector<scene::basic_node *> nodes;
-    std::vector<TEvent *> events;
+    std::vector<basic_event *> events;
 };
 
 // holds lists of grouped scene nodes
@@ -41,7 +41,7 @@ public:
         insert( scene::group_handle const Group, scene::basic_node *Node );
     // places provided event in specified group
     void
-        insert( scene::group_handle const Group, TEvent *Event );
+        insert( scene::group_handle const Group, basic_event *Event );
     // grants direct access to specified group
     scene::basic_group &
         group( scene::group_handle const Group ) {

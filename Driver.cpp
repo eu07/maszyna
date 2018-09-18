@@ -39,22 +39,22 @@ http://mozilla.org/MPL/2.0/.
 // finds point of specified track nearest to specified event. returns: distance to that point from the specified end of the track
 // TODO: move this to file with all generic routines, too easy to forget it's here and it may come useful
 double
-ProjectEventOnTrack( TEvent const *Event, TTrack const *Track, double const Direction ) {
+ProjectEventOnTrack( basic_event const *Event, TTrack const *Track, double const Direction ) {
 
     auto const segment = Track->CurrentSegment();
-    auto const nearestpoint = segment->find_nearest_point( Event->PositionGet() );
+    auto const nearestpoint = segment->find_nearest_point( Event->input_location() );
     return (
         Direction > 0 ?
             nearestpoint * segment->GetLength() : // measure from point1
             ( 1.0 - nearestpoint ) * segment->GetLength() ); // measure from point2
 };
 
-double GetDistanceToEvent(TTrack const *track, TEvent const *event, double scan_dir, double start_dist, int iter = 0, bool back = false)
+double GetDistanceToEvent(TTrack const *track, basic_event const *event, double scan_dir, double start_dist, int iter = 0, bool back = false)
 {
     if( track == nullptr ) { return start_dist; }
 
     auto const segment = track->CurrentSegment();
-    auto const pos_event = event->PositionGet();
+    auto const pos_event = event->input_location();
     double len1, len2;
     double sd = scan_dir;
     double seg_len = scan_dir > 0 ? 0.0 : 1.0;
@@ -181,7 +181,7 @@ TSpeedPos::TSpeedPos(TTrack *track, double dist, int flag)
     Set(track, dist, flag);
 };
 
-TSpeedPos::TSpeedPos(TEvent *event, double dist, TOrders order)
+TSpeedPos::TSpeedPos(basic_event *event, double dist, TOrders order)
 {
     Set(event, dist, order);
 };
@@ -198,9 +198,9 @@ void TSpeedPos::Clear()
 
 void TSpeedPos::CommandCheck()
 { // sprawdzenie typu komendy w evencie i określenie prędkości
-    TCommandType command = evEvent->Command();
-    double value1 = evEvent->ValueGet(1);
-    double value2 = evEvent->ValueGet(2);
+    TCommandType command = evEvent->input_command();
+    double value1 = evEvent->input_value(1);
+    double value2 = evEvent->input_value(2);
     switch (command)
     {
     case TCommandType::cm_ShuntVelocity:
@@ -326,7 +326,7 @@ std::string TSpeedPos::GetName() const
 	if (iFlags & spTrack) // jeśli tor
         return trTrack->name();
     else if( iFlags & spEvent ) // jeśli event
-        return evEvent->asName;
+        return evEvent->m_name;
     else
         return "";
 }
@@ -358,12 +358,12 @@ bool TSpeedPos::IsProperSemaphor(TOrders order)
 	return false; // true gdy zatrzymanie, wtedy nie ma po co skanować dalej
 }
 
-bool TSpeedPos::Set(TEvent *event, double dist, TOrders order)
+bool TSpeedPos::Set(basic_event *event, double dist, TOrders order)
 { // zapamiętanie zdarzenia
     fDist = dist;
     iFlags = spEnabled | spEvent; // event+istotny
     evEvent = event;
-    vPos = event->PositionGet(); // współrzędne eventu albo komórki pamięci (zrzutować na tor?)
+    vPos = event->input_location(); // współrzędne eventu albo komórki pamięci (zrzutować na tor?)
     CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
 	// zależnie od trybu sprawdzenie czy jest tutaj gdzieś semafor lub tarcza manewrowa
 	// jeśli wskazuje stop wtedy wystawiamy true jako koniec sprawdzania
@@ -421,13 +421,13 @@ void TController::TableClear()
     eSignSkip = nullptr; // nic nie pomijamy
 };
 
-std::vector<TEvent *> TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
+std::vector<basic_event *> TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
 { // sprawdzanie eventów na podanym torze do podstawowego skanowania
-    std::vector<TEvent *> events;
+    std::vector<basic_event *> events;
     auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
     for( auto const &event : eventsequence ) {
         if( ( event.second != nullptr )
-         && ( false == event.second->bEnabled ) ) {
+         && ( event.second->m_passive ) ) {
             events.emplace_back( event.second );
         }
     }
@@ -441,7 +441,7 @@ bool TController::TableAddNew()
     return true; // false gdy się nałoży
 };
 
-bool TController::TableNotFound(TEvent const *Event) const
+bool TController::TableNotFound(basic_event const *Event) const
 { // sprawdzenie, czy nie został już dodany do tabelki (np. podwójne W4 robi problemy)
     auto lookup =
         std::find_if(
@@ -453,7 +453,7 @@ bool TController::TableNotFound(TEvent const *Event) const
 
     if( ( Global.iWriteLogEnabled & 8 )
      && ( lookup != sSpeedTable.end() ) ) {
-        WriteLog( "Speed table for " + OwnerName() + " already contains event " + lookup->evEvent->asName );
+        WriteLog( "Speed table for " + OwnerName() + " already contains event " + lookup->evEvent->m_name );
     }
 
     return lookup == sSpeedTable.end();
@@ -558,7 +558,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                         TableAddNew(); // zawsze jest true
 
                         if (Global.iWriteLogEnabled & 8) {
-                            WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
+                            WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->m_name);
                         }
                         auto &newspeedpoint = sSpeedTable[iLast];
 /*
@@ -788,7 +788,7 @@ void TController::TableCheck(double fDistance)
                 else if (sSpeedTable[i].iFlags & spEvent) // jeśli event
                 {
                     if (sSpeedTable[i].fDist < (
-                            sSpeedTable[i].evEvent->Type == tp_PutValues ?
+                            typeid( *(sSpeedTable[i].evEvent) ) == typeid( putvalues_event ) ?
                                 -fLength :
                                 0)) // jeśli jest z tyłu
                         if ((mvOccupied->CategoryFlag & 1) ? false :
@@ -840,13 +840,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 // stop points are irrelevant when not in one of the basic modes
                 if( ( OrderCurrentGet() & ( Obey_train | Shunt ) ) == 0 ) { continue; }
                 // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
-                if ( ToLower(sSpeedTable[i].evEvent->CommandGet()).compare( 19, sizeof(asNextStop), ToLower(asNextStop)) != 0 )
+                if ( ToLower(sSpeedTable[i].evEvent->input_text()).compare( 19, sizeof(asNextStop), ToLower(asNextStop)) != 0 )
                 { // jeśli nazwa nie jest zgodna
                     if (sSpeedTable[i].fDist < 300.0 && sSpeedTable[i].fDist > 0) // tylko jeśli W4 jest blisko, przy dwóch może zaczać szaleć
                     {
                         // porównuje do następnej stacji, więc trzeba przewinąć do poprzedniej
                         // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
-                        if( true == TrainParams->RewindTimeTable( sSpeedTable[ i ].evEvent->CommandGet() ) ) {
+                        if( true == TrainParams->RewindTimeTable( sSpeedTable[ i ].evEvent->input_text() ) ) {
                             asNextStop = TrainParams->NextStop();
                             iStationStart = TrainParams->StationIndex;
                         }
@@ -895,8 +895,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             Drugi paramer dodatni - długość peronu (W4).
                             */
 							auto L = 0.0;
-							auto Par1 = sSpeedTable[i].evEvent->ValueGet(1);
-							auto Par2 = sSpeedTable[i].evEvent->ValueGet(2);
+							auto Par1 = sSpeedTable[i].evEvent->input_value(1);
+							auto Par2 = sSpeedTable[i].evEvent->input_value(2);
 							if ((Par2 >= 0) || (fLength < -Par2)) { //użyj tego W4
 								if (Par1 < 0) {
                                     L = -Par1;
@@ -922,7 +922,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             && ( ( iDrivigFlags & moveStopCloser ) != 0 ?
                                 sSpeedTable[ i ].fDist + fLength <=
                                     std::max(
-                                        std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ),
+                                        std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ),
                                         2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
                                 sSpeedTable[ i ].fDist < d_to_next_sem ) );
 
@@ -943,7 +943,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             if( ( iDrivigFlags & moveDoorOpened ) == 0 ) {
                                 // drzwi otwierać jednorazowo
                                 iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                                Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) ) % 10 );
+                                Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
                             }
 
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
@@ -955,7 +955,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
 
                                 // perform loading/unloading
-                                auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 2 ) ) ) ) % 10;
+                                auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
                                 auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
                                 WaitingSet( std::max( -fStopTime, exchangetime ) ); // na końcu rozkładu się ustawia 60s i tu by było skrócenie
 
@@ -1024,7 +1024,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // NOTE: this calculation is expected to run after completing loading/unloading
                                     AutoRewident(); // nastawianie hamulca do jazdy pociągowej
 
-                                    if( static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->ValueGet( 1 ) ) ) ) % 2 ) {
+                                    if( static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 1 ) ) ) ) % 2 ) {
                                         // nie podjeżdżać do semafora, jeśli droga nie jest wolna
                                         iDrivigFlags |= moveStopHere;
                                     }
@@ -1162,12 +1162,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // ostrożnie interpretować sygnały - semafor może zezwalać na jazdę pociągu z przodu!
                             iDrivigFlags |= moveVisibility;
                             // store the ordered restricted speed and don't exceed it until the flag is cleared
-                            VelRestricted = sSpeedTable[ i ].evEvent->ValueGet( 2 );
+                            VelRestricted = sSpeedTable[ i ].evEvent->input_value( 2 );
                         }
                     }
                     if( eSignSkip != sSpeedTable[ i ].evEvent ) {
                         // jeśli ten SBL nie jest do pominięcia to ma 0 odczytywać
-                        v = sSpeedTable[ i ].evEvent->ValueGet( 1 );
+                        v = sSpeedTable[ i ].evEvent->input_value( 1 );
                         // TODO sprawdzić do której zmiennej jest przypisywane v i zmienić to tutaj
                     }
                 }
@@ -1197,7 +1197,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if (sSpeedTable[i].fSectionVelocityDist == 0.0)
                         {
                             if (Global.iWriteLogEnabled & 8)
-                            WriteLog("TableUpdate: Event is behind. SVD = 0: " + sSpeedTable[i].evEvent->asName);
+                            WriteLog("TableUpdate: Event is behind. SVD = 0: " + sSpeedTable[i].evEvent->m_name);
                             sSpeedTable[i].iFlags = 0; // jeśli punktowy to kasujemy i nie dajemy ograniczenia na stałe
                         }
                         else if (sSpeedTable[i].fSectionVelocityDist < 0.0)
@@ -1211,7 +1211,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             { // jeśli większe to musi wyjechać za poprzednie
                                 VelLimitLast = sSpeedTable[i].fVelNext;
                                 if (Global.iWriteLogEnabled & 8)
-                                WriteLog("TableUpdate: Event is behind. SVD < 0: " + sSpeedTable[i].evEvent->asName);
+                                WriteLog("TableUpdate: Event is behind. SVD < 0: " + sSpeedTable[i].evEvent->m_name);
                                 sSpeedTable[i].iFlags = 0; // wyjechaliśmy poza poprzednie, można skasować
                             }
                         }
@@ -1230,7 +1230,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             { //
                                 VelLimitLast = -1.0;
                                 if (Global.iWriteLogEnabled & 8)
-                                WriteLog("TableUpdate: Event is behind. SVD > 0: " + sSpeedTable[i].evEvent->asName);
+                                WriteLog("TableUpdate: Event is behind. SVD > 0: " + sSpeedTable[i].evEvent->m_name);
                                 sSpeedTable[i].iFlags = 0; // wyjechaliśmy poza poprzednie, można skasować
                             }
                         }
@@ -1313,7 +1313,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     sSpeedTable[ i ].iFlags = 0;
                                 }
                             }
-                            else if( sSpeedTable[ i ].evEvent->StopCommand() ) {
+                            else if( sSpeedTable[ i ].evEvent->is_command() ) {
                                 // jeśli prędkość jest zerowa, a komórka zawiera komendę
                                 eSignNext = sSpeedTable[ i ].evEvent; // dla informacji
                                 if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
@@ -4623,8 +4623,11 @@ TController::UpdateSituation(double dt) {
                     // jedzie w dowolnym trybie albo Wait_for_orders
                     if( mvOccupied->Vel < 0.1 ) {
                         // dopiero jak stanie
-                        PutCommand( eSignNext->CommandGet(), eSignNext->ValueGet( 1 ), eSignNext->ValueGet( 2 ), nullptr );
+/*
+                        PutCommand( eSignNext->text(), eSignNext->value( 1 ), eSignNext->value( 2 ), nullptr );
                         eSignNext->StopCommandSent(); // się wykonało już
+*/                      // replacement of the above
+                        eSignNext->send_command( *this );
                     }
                 }
                 break;
@@ -5744,22 +5747,22 @@ bool TController::BackwardTrackBusy(TTrack *Track)
     return false; // wolny
 };
 
-TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
+basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
 { // sprawdzanie eventu w torze, czy jest sygnałowym - skanowanie do tyłu
     // NOTE: this method returns only one event which meets the conditions, due to limitations in the caller
     // TBD, TODO: clean up the caller and return all suitable events, as in theory things will go awry if the track has more than one signal
     auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
     for( auto const &event : eventsequence ) {
         if( ( event.second != nullptr )
-         && ( false == event.second->bEnabled )
-         && ( event.second->Type == tp_GetValues ) ) {
+         && ( event.second->m_passive )
+         && ( typeid(*(event.second)) == typeid( getvalues_event ) ) ) {
             return event.second;
         }
     }
     return nullptr;
 };
 
-TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event)
+TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, basic_event *&Event)
 { // szukanie sygnalizatora w kierunku przeciwnym jazdy (eventu odczytu komórki pamięci)
     TTrack *pTrackChVel = Track; // tor ze zmianą prędkości
     TTrack *pTrackFrom; // odcinek poprzedni, do znajdywania końca dróg
@@ -5873,7 +5876,7 @@ TCommandType TController::BackwardScan()
         // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
         double scanmax = 1000; // 1000m do tyłu, żeby widział przeciwny koniec stacji
         double scandist = scanmax; // zmodyfikuje na rzeczywiście przeskanowane
-        TEvent *e = NULL; // event potencjalnie od semafora
+        basic_event *e = NULL; // event potencjalnie od semafora
         // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
         TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(), e);
         auto const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
@@ -5896,12 +5899,12 @@ TCommandType TController::BackwardScan()
 #endif
                 // najpierw sprawdzamy, czy semafor czy inny znak został przejechany
                 auto pos = pVehicles[1]->RearPosition(); // pozycja tyłu
-                if (e->Type == tp_GetValues)
+                if( typeid( *e ) == typeid( getvalues_event ) )
                 { // przesłać info o zbliżającym się semaforze
 #if LOGBACKSCAN
                     edir += "(" + ( e->asNodeName ) + ")";
 #endif
-                    auto sl = e->PositionGet(); // położenie komórki pamięci
+                    auto sl = e->input_location(); // położenie komórki pamięci
                     auto sem = sl - pos; // wektor do komórki pamięci od końca składu
                     if (dir.x * sem.x + dir.z * sem.z < 0) {
                         // jeśli został minięty
@@ -5911,7 +5914,7 @@ TCommandType TController::BackwardScan()
 #endif
                         return TCommandType::cm_Unknown; // nic
                     }
-                    vmechmax = e->ValueGet(1); // prędkość przy tym semaforze
+                    vmechmax = e->input_value(1); // prędkość przy tym semaforze
                     // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
                     scandist = sem.Length() - 2; // 2m luzu przy manewrach wystarczy
                     if( scandist < 0 ) {
@@ -5919,7 +5922,7 @@ TCommandType TController::BackwardScan()
                         scandist = 0;
                     }
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if( e->Command() == TCommandType::cm_SetVelocity ) {
+                    if( e->input_command() == TCommandType::cm_SetVelocity ) {
                         if( ( vmechmax == 0.0 ) ?
                                 ( OrderCurrentGet() & ( Shunt | Connect ) ) :
                                 ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
@@ -5963,7 +5966,7 @@ TCommandType TController::BackwardScan()
                     if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
-                        if (move ? true : e->Command() == TCommandType::cm_ShuntVelocity)
+                        if (move ? true : e->input_command() == TCommandType::cm_ShuntVelocity)
                         { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
                             if ((scandist > fMinProximityDist) ?
                                     (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) :
@@ -5996,7 +5999,7 @@ TCommandType TController::BackwardScan()
                                     WriteLog(
                                         edir + " - [ShuntVelocity] ["
                                         + to_string( vmechmax, 2 ) + "] ["
-                                        + to_string( e->ValueGet( 2 ), 2 ) + "]" );
+                                        + to_string( e->value( 2 ), 2 ) + "]" );
 #endif
                                     return (
                                         vmechmax > 0 ?
@@ -6017,8 +6020,8 @@ TCommandType TController::BackwardScan()
                             }
                         } // if (move?...
                     } // if (OrderCurrentGet()==Shunt)
-                    if (!e->bEnabled) // jeśli skanowany
-                        if (e->StopCommand()) // a podłączona komórka ma komendę
+                    if (e->m_passive) // jeśli skanowany
+                        if (e->is_command()) // a podłączona komórka ma komendę
                             return TCommandType::cm_Command; // to też się obrócić
                 } // if (e->Type==tp_GetValues)
             } // if (e)

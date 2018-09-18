@@ -43,7 +43,7 @@ class TAnimVocaloidFrame
     char cBezier[64]; // krzywe Béziera do interpolacji dla x,y,z i obrotu
 };
 
-class TEvent;
+class basic_event;
 
 class TAnimContainer
 { // opakowanie submodelu, określające animację egzemplarza - obsługiwane jako lista
@@ -73,7 +73,7 @@ class TAnimContainer
     { // mogą być animacje klatkowe różnego typu, wskaźniki używa AnimModel
         TAnimVocaloidFrame *pMovementData; // wskaźnik do klatki
     };
-    TEvent *evDone; // ewent wykonywany po zakończeniu animacji, np. zapór, obrotnicy
+    basic_event *evDone; // ewent wykonywany po zakończeniu animacji, np. zapór, obrotnicy
   public:
     TAnimContainer *pNext;
     TAnimContainer *acAnimNext; // lista animacji z eventem, które muszą być przeliczane również bez
@@ -101,9 +101,9 @@ class TAnimContainer
     void WillBeAnimated() {
         if (pSubModel)
             pSubModel->WillBeAnimated(); };
-    void EventAssign(TEvent *ev);
+    void EventAssign(basic_event *ev);
     inline
-    TEvent * Event() {
+    basic_event * Event() {
         return evDone; };
 };
 

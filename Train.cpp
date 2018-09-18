@@ -3729,7 +3729,7 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( item.GetValue() < 0.25 ) {
+        if( item.GetDesiredValue() < 0.5 ) {
             // turn on
             // visual feedback
             item.UpdateValue( 1.0, Train->dsbSwitch );

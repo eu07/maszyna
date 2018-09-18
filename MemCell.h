@@ -45,7 +45,7 @@ public:
     void StopCommandSent();
     TCommandType CommandCheck();
     bool IsVelocity() const;
-    void AssignEvents(TEvent *e);
+    void AssignEvents(basic_event *e);
 // members
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
     TTrack *Track { nullptr }; // resolved binding with the specified track
@@ -68,7 +68,7 @@ private:
     // other
     TCommandType eCommand { TCommandType::cm_Unknown };
     bool bCommand { false }; // czy zawiera komendę dla zatrzymanego AI
-    TEvent *OnSent { nullptr }; // event dodawany do kolejki po wysłaniu komendy zatrzymującej skład
+    basic_event *OnSent { nullptr }; // event dodawany do kolejki po wysłaniu komendy zatrzymującej skład
 };
 
 

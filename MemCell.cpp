@@ -27,25 +27,25 @@ TMemCell::TMemCell( scene::node_data const &Nodedata ) : basic_node( Nodedata ) 
 
 void TMemCell::UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask )
 {
-    if (CheckMask & update_memadd)
+    if (CheckMask & basic_event::flags::mode_add)
     { // dodawanie wartości
-        if( TestFlag( CheckMask, update_memstring ) )
+        if( TestFlag( CheckMask, basic_event::flags::text ) )
             szText += szNewText;
-        if (TestFlag(CheckMask, update_memval1))
+        if (TestFlag(CheckMask, basic_event::flags::value_1))
             fValue1 += fNewValue1;
-        if (TestFlag(CheckMask, update_memval2))
+        if (TestFlag(CheckMask, basic_event::flags::value_2))
             fValue2 += fNewValue2;
     }
     else
     {
-        if( TestFlag( CheckMask, update_memstring ) )
+        if( TestFlag( CheckMask, basic_event::flags::text ) )
             szText = szNewText;
-        if (TestFlag(CheckMask, update_memval1))
+        if (TestFlag(CheckMask, basic_event::flags::value_1))
             fValue1 = fNewValue1;
-        if (TestFlag(CheckMask, update_memval2))
+        if (TestFlag(CheckMask, basic_event::flags::value_2))
             fValue2 = fNewValue2;
     }
-    if (TestFlag(CheckMask, update_memstring))
+    if (TestFlag(CheckMask, basic_event::flags::text))
         CommandCheck(); // jeśli zmieniony tekst, próbujemy rozpoznać komendę
 }
 
@@ -120,7 +120,7 @@ void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc ) const
 
 bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) const {
     // porównanie zawartości komórki pamięci z podanymi wartościami
-    if( TestFlag( CheckMask, conditional_memstring ) ) {
+    if( TestFlag( CheckMask, basic_event::flags::text ) ) {
         // porównać teksty
         auto range = szTestText.find( '*' );
         if( range != std::string::npos ) {
@@ -137,8 +137,8 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
         }
     }
     // tekst zgodny, porównać resztę
-    return ( ( !TestFlag( CheckMask, conditional_memval1 ) || ( fValue1 == fTestValue1 ) )
-          && ( !TestFlag( CheckMask, conditional_memval2 ) || ( fValue2 == fTestValue2 ) ) );
+    return ( ( !TestFlag( CheckMask, basic_event::flags::value_1 ) || ( fValue1 == fTestValue1 ) )
+          && ( !TestFlag( CheckMask, basic_event::flags::value_2 ) || ( fValue2 == fTestValue2 ) ) );
 };
 
 bool TMemCell::IsVelocity() const
@@ -161,7 +161,7 @@ void TMemCell::StopCommandSent()
     }
 };
 
-void TMemCell::AssignEvents(TEvent *e)
+void TMemCell::AssignEvents(basic_event *e)
 { // powiązanie eventu
     OnSent = e;
 };

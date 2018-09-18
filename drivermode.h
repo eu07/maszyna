@@ -77,7 +77,7 @@ private:
 
 // members
     drivermode_input m_input;
-    std::array<TEvent *, 10> KeyEvents { nullptr }; // eventy wyzwalane z klawiaury
+    std::array<basic_event *, 10> KeyEvents { nullptr }; // eventy wyzwalane z klawiaury
     TCamera Camera;
     TCamera DebugCamera;
     TDynamicObject *pDynamicNearest { nullptr }; // vehicle nearest to the active camera. TODO: move to camera

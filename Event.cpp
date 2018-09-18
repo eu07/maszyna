@@ -30,688 +30,79 @@ http://mozilla.org/MPL/2.0/.
 #include "timer.h"
 #include "logs.h"
 
-TMemCell const *
-TEvent::update_data::data_cell() const {
-
-    return static_cast<TMemCell const *>( std::get<scene::basic_node *>( data_source ) );
-}
-TMemCell *
-TEvent::update_data::data_cell() {
-
-    return static_cast<TMemCell *>( std::get<scene::basic_node *>( data_source ) );
-}
-
-TEvent::~TEvent() {
-
-    switch (Type)
-    { // sprzątanie
-    case tp_Animation: // nic
-        if( m_animationtype == 4 ) {
-            // jeśli z pliku VMD
-            SafeDeleteArray( m_animationfiledata ); // zwolnić obszar
-        }
-        break;
-    default:
-        break;
-    }
-    evJoined = nullptr; // nie usuwać podczepionych tutaj
-
-};
-
-void TEvent::Load(cParser *parser, Math3D::vector3 const &org)
-{
-    std::string token;
-
-    bEnabled = true; // zmieniane na false dla eventów używanych do skanowania sygnałów
-
-    parser->getTokens();
-    *parser >> token;
-    asName = ToLower(token); // użycie parametrów może dawać wielkie
-
-    parser->getTokens();
-    *parser >> token;
-
-    if (token == "updatevalues")
-        Type = tp_UpdateValues;
-    else if (token == "getvalues")
-        Type = tp_GetValues;
-    else if (token == "putvalues")
-        Type = tp_PutValues;
-    else if (token == "sound")
-        Type = tp_Sound;
-    else if (token == "animation")
-        Type = tp_Animation;
-    else if (token == "lights")
-        Type = tp_Lights;
-    else if (token == "visible")
-        Type = tp_Visible; // zmiana wyświetlania obiektu
-    else if (token == "switch")
-        Type = tp_Switch;
-    else if (token == "trackvel")
-        Type = tp_TrackVel;
-    else if (token == "multiple")
-        Type = tp_Multiple;
-    else if (token == "addvalues")
-        Type = tp_AddValues;
-    else if (token == "copyvalues")
-        Type = tp_CopyValues;
-    else if (token == "whois")
-        Type = tp_WhoIs;
-    else if (token == "logvalues")
-        Type = tp_LogValues;
-    else if (token == "voltage")
-        Type = tp_Voltage; // zmiana napięcia w zasilaczu (TractionPowerSource)
-    else if (token == "message")
-        Type = tp_Message; // wyświetlenie komunikatu
-    else if (token == "friction")
-        Type = tp_Friction; // zmiana tarcia na scenerii
-    else
-        Type = tp_Unknown;
-
-    parser->getTokens();
-    *parser >> fDelay;
-
-    parser->getTokens();
-    *parser >> token;
-/*
-    if( token != "none" ) {
-        asNodeName = token; // nazwa obiektu powiązanego
-    }
-*/
-    load_targets( token );
-
-    if (asName.substr(0, 5) == "none_")
-        m_ignored = true; // Ra: takie są ignorowane
-
-    switch (Type) {
-    case tp_AddValues: {
-        m_update.flags = update_memadd; // dodawanko
-        // NOTE: AddValues and UpdateValues are largely the same
-    }
-    case tp_UpdateValues: {
-        // update data, previously stored in params 0, 1, 2
-        parser->getTokens( 1, false ); // case sensitive
-        *parser >> m_update.data_text;
-        if( m_update.data_text != "*" ) { //"*" - nie brac command pod uwage
-            m_update.flags |= update_memstring;
-        }
-        parser->getTokens();
-        if( parser->peek() != "*" ) { //"*" - nie brac val1 pod uwage
-            *parser >> m_update.data_value_1;
-            m_update.flags |= update_memval1;
-        }
-        parser->getTokens();
-        if( parser->peek() != "*" ) { //"*" - nie brac val2 pod uwage
-            *parser >> m_update.data_value_2;
-            m_update.flags |= update_memval2;
-        }
-        // optional blocks
-        while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-            && ( token != "endevent" ) ) {
-
-            if( token == "condition" ) {
-                m_condition.load( *parser );
-                // NOTE: load() call leaves a preloaded token if it's not recognized
-                *parser >> token;
-                if( ( true == token.empty() ) || ( token == "endevent" ) ) { break; }
-            }
-            if( token == "randomdelay" ) { // losowe opóźnienie
-                parser->getTokens();
-                *parser >> fRandomDelay; // Ra 2014-03-11
-            }
-        }
-        break;
-    }
-    case tp_CopyValues: {
-        m_update.flags = update_memstring | update_memval1 | update_memval2; // normalnie trzy
-        int paramidx { 0 };
-        while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-            && ( token != "endevent" ) ) {
-            switch( ++paramidx ) {
-                case 1: { // nazwa drugiej komórki (źródłowej) // previously stored in param 9
-                    std::get<std::string>( m_update.data_source ) = token;
-                    break;
-                }
-                case 2: { // maska wartości
-                    m_update.flags = stol_def( token, ( update_memstring | update_memval1 | update_memval2 ) );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        break;
-    }
-    case tp_WhoIs: {
-        m_update.flags = update_memstring | update_memval1 | update_memval2; // normalnie trzy
-        int paramidx { 0 };
-        while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-            && ( token != "endevent" ) ) {
-            switch( ++paramidx ) {
-                case 1: { // maska wartości
-                    m_update.flags = stol_def( token, ( update_memstring | update_memval1 | update_memval2 ) );
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        break;
-    }
-    case tp_GetValues:
-    case tp_LogValues: {
-        parser->getTokens(); //"endevent"
-        *parser >> token;
-        break;
-    }
-    case tp_PutValues: {
-        parser->getTokens( 3 );
-        // location, previously held in param 3, 4, 5
-        *parser
-            >> m_update.location.x
-            >> m_update.location.y
-            >> m_update.location.z;
-        // przesunięcie
-        // tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzględnienie rotacji
-        // TBD, TODO: take into account rotation as well?
-        m_update.location += glm::dvec3{ org };
-
-        parser->getTokens( 1, false ); // komendy 'case sensitive'
-        *parser >> token;
-        // command type, previously held in param 6
-        if( token.substr( 0, 19 ) == "PassengerStopPoint:" ) {
-            if( token.find( '#' ) != std::string::npos )
-                token.erase( token.find( '#' ) ); // obcięcie unikatowości
-            win1250_to_ascii( token ); // get rid of non-ascii chars
-            m_update.command_type = TCommandType::cm_PassengerStopPoint;
-            // nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
-            bEnabled = false;
-        }
-        else if( token == "SetVelocity" ) {
-            m_update.command_type = TCommandType::cm_SetVelocity;
-            bEnabled = false;
-        }
-        else if( token == "RoadVelocity" ) {
-            m_update.command_type = TCommandType::cm_RoadVelocity;
-            bEnabled = false;
-        }
-        else if( token == "SectionVelocity" ) {
-            m_update.command_type = TCommandType::cm_SectionVelocity;
-            bEnabled = false;
-        }
-        else if( token == "ShuntVelocity" ) {
-            m_update.command_type = TCommandType::cm_ShuntVelocity;
-            bEnabled = false;
-        }
-        else if( token == "OutsideStation" ) {
-            m_update.command_type = TCommandType::cm_OutsideStation;
-            bEnabled = false; // ma być skanowny, aby AI nie przekraczało W5
-        }
-        else {
-            m_update.command_type = TCommandType::cm_Unknown;
-        }
-        // update data, previously stored in params 0, 1, 2
-        m_update.data_text = token;
-        parser->getTokens();
-        if( parser->peek() != "none" ) {
-            *parser >> m_update.data_value_1;
-        }
-        parser->getTokens();
-        if( parser->peek() != "none" ) {
-            *parser >> m_update.data_value_2;
-        }
-        parser->getTokens();
-        *parser >> token;
-        break;
-    }
-    case tp_Lights: {
-        // TBD, TODO: remove light count limit?
-        auto const lightcountlimit { 8 };
-        m_lights.resize( lightcountlimit );
-        int paramidx { 0 };
-        parser->getTokens();
-        while( ( false == ( token = parser->peek() ).empty() )
-            && ( token != "endevent" ) ) {
-
-            if( paramidx < lightcountlimit ) {
-                *parser >> m_lights[ paramidx++ ];
-            }
-            else {
-                ErrorLog( "Bad event: lights event \"" + asName + "\" with more than " + to_string( lightcountlimit ) + " parameters" );
-            }
-            parser->getTokens();
-        }
-        while( paramidx < lightcountlimit ) {
-            // HACK: mark unspecified lights with magic value
-            m_lights[ paramidx++ ] = -2.f;
-        }
-        break;
-    }
-    case tp_Visible: // zmiana wyświetlania obiektu
-        parser->getTokens();
-        // visibility flag, previously held in param 0
-        *parser >> m_visible;
-        parser->getTokens();
-        *parser >> token;
-        break;
-    case tp_Sound:
-        parser->getTokens();
-        // playback mode, previously held in param 0 // 0: wylaczyc, 1: wlaczyc; -1: wlaczyc zapetlone
-        *parser >> m_soundmode;
-        parser->getTokens();
-        if( parser->peek() != "endevent" ) {
-            // optional parameter, radio channel to receive/broadcast the sound, previously held in param 1
-            *parser >> m_soundradiochannel;
-            parser->getTokens();
-        }
-        *parser >> token;
-        break;
-    case tp_Animation:
-        parser->getTokens();
-        *parser >> token;
-        if (token.compare("rotate") == 0)
-        { // obrót względem osi
-            parser->getTokens();
-            // animation submodel, previously held in param 9
-            *parser >> m_animationsubmodel;
-            // animation type, previously held in param 0
-            m_animationtype = 1;
-            parser->getTokens( 4 );
-            // animation params, previously held in param 1, 2, 3, 4
-            *parser
-				>> m_animationparams[ 0 ]
-				>> m_animationparams[ 1 ]
-				>> m_animationparams[ 2 ]
-				>> m_animationparams[ 3 ];
-        }
-        else if (token.compare("translate") == 0)
-        { // przesuw o wektor
-            parser->getTokens();
-            // animation submodel, previously held in param 9
-            *parser >> m_animationsubmodel;
-            // animation type, previously held in param 0
-            m_animationtype = 2;
-            parser->getTokens( 4 );
-            // animation params, previously held in param 1, 2, 3, 4
-            *parser
-                >> m_animationparams[ 0 ]
-                >> m_animationparams[ 1 ]
-                >> m_animationparams[ 2 ]
-                >> m_animationparams[ 3 ];
-        }
-        else if (token.compare("digital") == 0)
-        { // licznik cyfrowy
-            parser->getTokens();
-            // animation submodel, previously held in param 9
-            *parser >> m_animationsubmodel;
-            // animation type, previously held in param 0
-            m_animationtype = 8;
-            parser->getTokens( 4 );
-            // animation params, previously held in param 1, 2, 3, 4
-            *parser
-                >> m_animationparams[ 0 ]
-                >> m_animationparams[ 1 ]
-                >> m_animationparams[ 2 ]
-                >> m_animationparams[ 3 ];
-        }
-        else if (token.substr(token.length() - 4, 4) == ".vmd") // na razie tu, może będzie inaczej
-        { // animacja z pliku VMD
-			{
-                m_animationfilename = token;
-				std::ifstream file( szModelPath + m_animationfilename, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
-				auto size = file.tellg();   // ios::ate already positioned us at the end of the file
-				file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
-                // animation size, previously held in param 7
-                m_animationfilesize = size;
-                // animation data, previously held in param 8
-                m_animationfiledata = new char[size];
-				file.read( m_animationfiledata, size ); // wczytanie pliku
-			}
-            parser->getTokens();
-            // animation submodel, previously held in param 9
-            *parser >> m_animationsubmodel;
-            // animation type, previously held in param 0
-            m_animationtype = 4;
-            parser->getTokens( 4 );
-            // animation params, previously held in param 1, 2, 3, 4
-            *parser
-                >> m_animationparams[ 0 ]
-                >> m_animationparams[ 1 ]
-                >> m_animationparams[ 2 ]
-                >> m_animationparams[ 3 ];
-        }
-        parser->getTokens();
-        *parser >> token;
-        break;
-    case tp_Switch:
-        parser->getTokens();
-        // switch state, previously held in param 0
-        *parser >> m_switchstate;
-        parser->getTokens();
-        if (parser->peek() != "endevent") {
-            // prędkość liniowa ruchu iglic
-            // previously held in param 1
-            *parser >> m_switchmoverate;
-            parser->getTokens();
-        }
-        if (parser->peek() != "endevent") {
-            // dodatkowy ruch drugiej iglicy (zamknięcie nastawnicze)
-            // previously held in param 2
-            *parser >> m_switchmovedelay;
-            parser->getTokens();
-        }
-        break;
-    case tp_TrackVel:
-        parser->getTokens();
-        // velocity, previously held in param 0
-        *parser >> m_velocity;
-        parser->getTokens();
-        *parser >> token;
-        break;
-    case tp_Multiple: {
-        m_condition.has_else = false;
-        while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-            && ( token != "endevent" ) ) {
-
-            if( token == "condition" ) {
-                m_condition.load( *parser );
-                // NOTE: load() call leaves a preloaded token if it's not recognized
-                *parser >> token;
-                if( ( true == token.empty() ) || ( token == "endevent" ) ) { break; }
-            }
-
-            if( token == "randomdelay" ) { // losowe opóźnienie
-                parser->getTokens();
-                *parser >> fRandomDelay; // Ra 2014-03-11
-            }
-            else if( token == "else" ) {
-                // zmiana flagi dla słowa "else"
-                m_condition.has_else = !m_condition.has_else;
-            }
-            else {
-                // potentially valid event name
-                if( token.substr( 0, 5 ) != "none_" ) {
-                    // eventy rozpoczynające się od "none_" są ignorowane
-                    m_children.emplace_back( token, nullptr, ( m_condition.has_else == false ) );
-                }
-                else {
-                    WriteLog( "Multi-event \"" + asName + "\" ignored link to event \"" + token + "\"" );
-                }
-            }
-        }
-        break;
-    }
-    case tp_Voltage: // zmiana napięcia w zasilaczu (TractionPowerSource)
-        parser->getTokens();
-        // voltage, previously held in param 0
-        *parser >> m_voltage;
-        parser->getTokens();
-        *parser >> token;
-        break;
-    case tp_Friction: // zmiana przyczepnosci na scenerii
-        parser->getTokens();
-        // friction, previously held in param 0
-        *parser >> m_friction;
-        parser->getTokens();
-        *parser >> token;
-        break;
-    case tp_Message: // wyświetlenie komunikatu
-        do
-        {
-            parser->getTokens();
-            *parser >> token;
-            // str = AnsiString(token.c_str());
-        } while (token != "endevent");
-        break;
-    case tp_Unknown: // nieznany
-        do
-        {
-            parser->getTokens();
-            *parser >> token;
-            // str = AnsiString(token.c_str());
-        } while (token != "endevent");
-        WriteLog("Bad event: \"" + asName +
-                 (Type == tp_Unknown ? "\" has unknown type." : "\" is ignored."));
-        break;
-    }
-};
-
-// prepares event for use
 void
-TEvent::init() {
+basic_event::event_conditions::bind( basic_event::node_sequence *Nodes ) {
 
-    switch( Type ) {
+    cells = Nodes;
+}
 
-        case tp_AddValues: // sumowanie wartości
-        case tp_UpdateValues: { // zmiana wartości
-                                // target memory cell(s), previously held in param 5, copy held in param 9 for memcompare
-            init_targets( simulation::Memory, "memory cell" );
-            // conditional data
-            init_conditions();
-            break;
-        }
-        case tp_LogValues: {
-            // skojarzenie z memcell
-            init_targets( simulation::Memory, "memory cell" );
-            break;
-        }
-        case tp_GetValues: {
-            init_targets( simulation::Memory, "memory cell" );
-            // custom target initialization code
-            for( auto &target : m_targets ) {
-                auto *targetcell = static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) );
-                if( targetcell == nullptr ) { continue; }
-                if( targetcell->IsVelocity() ) {
-                    // jeśli odczyt komórki a komórka zawiera komendę SetVelocity albo ShuntVelocity
-                    // to event nie będzie dodawany do kolejki
-                    bEnabled = false;
-                }
+void
+basic_event::event_conditions::init() {
+
+    tracks.clear();
+
+    if( flags & ( flags::track_busy | flags::track_free ) ) {
+        for( auto &target : *cells ) {
+            tracks.emplace_back( simulation::Paths.find( std::get<std::string>( target ) ) );
+            if( tracks.back() == nullptr ) {
+                // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
+//                m_ignored = true; // deaktywacja
+//                ErrorLog( "Bad event: track \"" + std::get<std::string>( target ) + "\" referenced in event \"" + asName + "\" doesn't exist" );
+                flags &= ~( flags::track_busy | flags::track_free ); // zerowanie flag
             }
-            // NOTE: GetValues retrieves data only from first specified memory cell
-            // TBD, TODO: allow retrieval from more than one cell?
-            m_update.data_source = m_targets.front();
-            break;
         }
-        case tp_WhoIs: {
-            init_targets( simulation::Memory, "memory cell" );
-            break;
-        }
-        case tp_CopyValues: {
-            // skopiowanie komórki do innej
-            init_targets( simulation::Memory, "memory cell" );
-            // source cell
-            std::get<scene::basic_node *>( m_update.data_source ) = simulation::Memory.find( std::get<std::string>( m_update.data_source ) );
-            if( std::get<scene::basic_node *>( m_update.data_source ) == nullptr ) {
-                m_ignored = true; // deaktywacja
-                ErrorLog( "Bad event: copyvalues event \"" + asName + "\" cannot find memcell \"" + std::get<std::string>( m_update.data_source ) + "\"" );
-            }
-            break;
-        }
-        case tp_Animation: {
-            // animacja modelu
-            init_targets( simulation::Instances, "model instance" );
-            // custom target initialization code
-            if( m_animationtype == 4 ) {
-                // vmd animations target whole model
-                break;
-            }
-            // locate and set up animated submodels
-            m_animationcontainers.clear();
-            for( auto &target : m_targets ) {
-                auto *targetmodel{ static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) ) };
-                if( targetmodel == nullptr ) { continue; }
-                auto *targetcontainer{ targetmodel->GetContainer( m_animationsubmodel ) };
-                if( targetcontainer == nullptr ) {
-                    m_ignored = true;
-                    ErrorLog( "Bad event: animation event \"" + asName + "\" cannot find submodel " + m_animationsubmodel + " in model instance \"" + targetmodel->name() + "\"" );
-                    break;
-                }
-                targetcontainer->WillBeAnimated(); // oflagowanie animacji
-                if( targetcontainer->Event() == nullptr ) {
-                    // nie szukać, gdy znaleziony
-                    targetcontainer->EventAssign( simulation::Events.FindEvent( targetmodel->name() + '.' + m_animationsubmodel + ":done" ) );
-                }
-                m_animationcontainers.emplace_back( targetcontainer );
-            }
-            break;
-        }
-        case tp_Lights: {
-            // zmiana świeteł modelu
-            init_targets( simulation::Instances, "model instance" );
-            break;
-        }
-        case tp_Visible: {
-            // ukrycie albo przywrócenie obiektu
-            for( auto &target : m_targets ) {
-                auto &targetnode{ std::get<scene::basic_node *>( target ) };
-                auto &targetname{ std::get<std::string>( target ) };
-                // najpierw model
-                targetnode = simulation::Instances.find( targetname );
-                if( targetnode == nullptr ) {
-                    // albo tory?
-                    targetnode = simulation::Paths.find( targetname );
-                }
-                if( targetnode == nullptr ) {
-                    // może druty?
-                    targetnode = simulation::Traction.find( targetname );
-                }
-                if( targetnode == nullptr ) {
-                    m_ignored = true; // deaktywacja
-                    ErrorLog( "Bad event: event \"" + asName + "\" [" + type_to_string() + "] cannot find item \"" + std::get<std::string>( target ) + "\"" );
-                }
-            }
-            break;
-        }
-        case tp_Switch: {
-            // przełożenie zwrotnicy albo zmiana stanu obrotnicy
-            init_targets( simulation::Paths, "track" );
-            // custom target initialization code
-            for( auto &target : m_targets ) {
-                auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
-                if( targettrack == nullptr ) { continue; }
-                // dowiązanie toru
-                if( targettrack->iAction == 0 ) {
-                    // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
-                    targettrack->iAction |= 0x100;
-                }
-                if( ( m_switchstate == 0 )
-                    && ( m_switchmovedelay >= 0.0 ) ) {
-                    // jeśli przełącza do stanu 0 & jeśli jest zdefiniowany dodatkowy ruch iglic
-                    // przesłanie parametrów
-                    targettrack->Switch(
-                        m_switchstate,
-                        m_switchmoverate,
-                        m_switchmovedelay );
-                }
-            }
-            break;
-        }
-        case tp_Sound: {
-            // odtworzenie dźwięku
-            for( auto &target : m_sounds ) {
-                std::get<sound_source *>( target ) = simulation::Sounds.find( std::get<std::string>( target ) );
-                if( std::get<sound_source *>( target ) == nullptr ) {
-                    m_ignored = true; // deaktywacja
-                    ErrorLog( "Bad event: event \"" + asName + "\" [" + type_to_string() + "] cannot find static sound \"" + std::get<std::string>( target ) + "\"" );
-                }
-            }
-            break;
-        }
-        case tp_TrackVel: {
-            // ustawienie prędkości na torze
-            init_targets( simulation::Paths, "track" );
-            // custom target initialization code
-            for( auto &target : m_targets ) {
-                auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
-                if( targettrack == nullptr ) { continue; }
-                // flaga zmiany prędkości toru jest istotna dla skanowania
-                targettrack->iAction |= 0x200;
-            }
-            break;
-        }
-        case tp_Multiple: {
-            // conditional data
-            init_targets( simulation::Memory, "memory cell", false );
-            if( m_ignored ) {
-                m_condition.flags &= ~( conditional_memstring | conditional_memval1 | conditional_memval2 );
-                m_ignored = false;
-            }
-            init_conditions();
-            // child events bindings
-            for( auto &childevent : m_children ) {
-                std::get<TEvent *>( childevent ) = simulation::Events.FindEvent( std::get<std::string>( childevent ) );
-                if( std::get<TEvent *>( childevent ) == nullptr ) {
-                    ErrorLog( "Bad event: multi-event \"" + asName + "\" cannot find event \"" + std::get<std::string>( childevent ) + "\"" );
-                }
-            }
-            break;
-        }
-        case tp_Voltage: {
-            // zmiana napięcia w zasilaczu (TractionPowerSource)
-            init_targets( simulation::Powergrid, "power source" );
-            break;
-        }
-        case tp_Message: {
-            // wyświetlenie komunikatu
-            break;
-        }
-        default: {
-            break;
-        }
-    } // switch
+    }
 }
 
 bool
-TEvent::test_condition() const {
+basic_event::event_conditions::test() const {
 
-    if( m_condition.flags == 0 ) {
+    if( flags == 0 ) {
         return true; // bezwarunkowo
     }
     // if there's conditions, check them
-    if( m_condition.flags & conditional_propability ) {
-        auto const rprobability { static_cast<float>( Random() ) };
-        WriteLog( "Test: Random integer - [" + std::to_string( rprobability ) + "] / [" + std::to_string( m_condition.probability ) + "]" );
-        if( rprobability > m_condition.probability ) {
+    if( flags & flags::probability ) {
+        auto const randomroll { static_cast<float>( Random() ) };
+        WriteLog( "Test: Random integer - [" + std::to_string( randomroll ) + "] / [" + std::to_string( probability ) + "]" );
+        if( randomroll > probability ) {
             return false;
         }
     }
-    if( m_condition.flags & conditional_trackoccupied ) {
-        for( auto *track : m_condition.tracks ) {
+    if( flags & flags::track_busy ) {
+        for( auto *track : tracks ) {
             if( true == track->IsEmpty() ) {
                 return false;
             }
         }
     }
-    if( m_condition.flags & conditional_trackfree ) {
-        for( auto *track : m_condition.tracks ) {
+    if( flags & flags::track_free ) {
+        for( auto *track : tracks ) {
             if( false == track->IsEmpty() ) {
                 return false;
             }
         }
     }
-    if( m_condition.flags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) {
+    if( flags & ( flags::text | flags::value_1 | flags::value_2 ) ) {
         // porównanie wartości
-        for( auto &target : m_targets ) {
-            auto *targetcell = static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) );
-            if( targetcell == nullptr ) {
-                ErrorLog( "Event " + asName + " trying conditional_memcompare with nonexistent memcell" );
+        for( auto &cellwrapper : *cells ) {
+            auto *cell { static_cast<TMemCell *>( std::get<scene::basic_node *>( cellwrapper ) ) };
+            if( cell == nullptr ) {
+//                ErrorLog( "Event " + asName + " trying conditional_memcompare with nonexistent memcell" );
                 continue; // though this is technically error, we treat it as a success to maintain backward compatibility
             }
             auto const comparisonresult =
-                targetcell->Compare(
-                    m_condition.match_text,
-                    m_condition.match_value_1,
-                    m_condition.match_value_2,
-                    m_condition.flags );
+                cell->Compare(
+                    match_text,
+                    match_value_1,
+                    match_value_2,
+                    flags );
 
             std::string comparisonlog = "Test: MemCompare - ";
 
             comparisonlog +=
-                   "[" + targetcell->Text() + "]"
-                + " [" + to_string( targetcell->Value1(), 2 ) + "]"
-                + " [" + to_string( targetcell->Value2(), 2 ) + "]";
+                   "[" + cell->Text() + "]"
+                + " [" + to_string( cell->Value1(), 2 ) + "]"
+                + " [" + to_string( cell->Value2(), 2 ) + "]";
 
             comparisonlog += (
                 true == comparisonresult ?
@@ -719,16 +110,16 @@ TEvent::test_condition() const {
                     " != " );
 
             comparisonlog += (
-                TestFlag( m_condition.flags, conditional_memstring ) ?
-                    "[" + std::string( m_condition.match_text ) + "]" :
+                TestFlag( flags, flags::text ) ?
+                    "[" + std::string( match_text ) + "]" :
                     "[*]" );
             comparisonlog += (
-                TestFlag( m_condition.flags, conditional_memval1 ) ?
-                    " [" + to_string( m_condition.match_value_1, 2 ) + "]" :
+                TestFlag( flags, flags::value_1 ) ?
+                    " [" + to_string( match_value_1, 2 ) + "]" :
                     " [*]" );
             comparisonlog += (
-                TestFlag( m_condition.flags, conditional_memval2 ) ?
-                    " [" + to_string( m_condition.match_value_2, 2 ) + "]" :
+                TestFlag( flags, flags::value_2 ) ?
+                    " [" + to_string( match_value_2, 2 ) + "]" :
                     " [*]" );
 
             WriteLog( comparisonlog );
@@ -743,411 +134,21 @@ TEvent::test_condition() const {
 }
 
 void
-TEvent::run() {
-
-    WriteLog( "EVENT LAUNCHED" + ( Activator ? ( " by " + Activator->asName ) : "" ) + ": " + asName );
-    switch (Type) {
-        case tp_CopyValues: {
-            // skopiowanie wartości z innej komórki
-            auto const *datasource = static_cast<TMemCell *>( std::get<scene::basic_node *>( m_update.data_source ) );
-            m_update.data_text = datasource->Text();
-            m_update.data_value_1 = datasource->Value1();
-            m_update.data_value_2 = datasource->Value2();
-        }
-        case tp_AddValues: // różni się jedną flagą od UpdateValues
-        case tp_UpdateValues: {
-            if( false == test_condition() ) { break; }
-            WriteLog( "Type: " + std::string( Type == tp_AddValues ? "AddValues & Track command" : "UpdateValues" ) + " - ["
-                + m_update.data_text + "] ["
-                + to_string( m_update.data_value_1, 2 ) + "] ["
-                + to_string( m_update.data_value_2, 2 ) + "]" );
-            // TODO: dump status of target cells after the operation
-            for( auto &target : m_targets ) {
-                auto *targetcell = static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) );
-                if( targetcell == nullptr ) { continue; }
-                targetcell->UpdateValues(
-                    m_update.data_text,
-                    m_update.data_value_1,
-                    m_update.data_value_2,
-                    m_update.flags );
-                if( targetcell->Track == nullptr ) { continue; }
-                // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
-                auto const location { targetcell->location() };
-                for( auto dynamic : targetcell->Track->Dynamics ) {
-                    targetcell->PutCommand(
-                        dynamic->Mechanik,
-                        &location );
-                }
-            }
-            break;
-        }
-        case tp_GetValues: {
-            WriteLog( "Type: GetValues" );
-            if( Activator ) {
-                // TODO: re-enable when messaging module is in place
-                if( Global.iMultiplayer ) {
-                    // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
-                    multiplayer::WyslijEvent( asName, Activator->name() );
-                }
-                m_update.data_cell()->PutCommand(
-                    Activator->Mechanik,
-                    &(m_update.data_cell()->location()) );
-            }
-            break;
-        }
-        case tp_PutValues: {
-            WriteLog( "Type: PutValues - [" +
-                m_update.data_text + "] [" +
-                to_string( m_update.data_value_1, 2 ) + "] [" +
-                to_string( m_update.data_value_2, 2 ) + "]" );
-            if (Activator) {
-                // zamiana, bo fizyka ma inaczej niż sceneria
-                // NOTE: y & z swap, negative x
-                TLocation const loc {
-                    -m_update.location.x,
-                     m_update.location.z,
-                     m_update.location.y };
-                if( Activator->Mechanik ) {
-                    // przekazanie rozkazu do AI
-                    Activator->Mechanik->PutCommand(
-                        m_update.data_text,
-                        m_update.data_value_1,
-                        m_update.data_value_2,
-                        loc);
-                }
-                else {
-                    // przekazanie do pojazdu
-                    Activator->MoverParameters->PutCommand(
-                        m_update.data_text,
-                        m_update.data_value_1,
-                        m_update.data_value_2,
-                        loc);
-                }
-            }
-            break;
-        }
-        case tp_Lights: {
-            for( auto &target : m_targets ) {
-                auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
-                if( targetmodel == nullptr ) { continue; }
-                // event effect code
-                for( auto i = 0; i < iMaxNumLights; ++i ) {
-                    if( m_lights[ i ] == -2.f ) {
-                        // processed all supplied values, bail out
-                        break;
-                    }
-                    if( m_lights[ i ] >= 0.f ) {
-                        // -1 zostawia bez zmiany
-                        targetmodel->LightSet(
-                            i,
-                            m_lights[ i ] );
-                    }
-                }
-            }
-            break;
-        }
-        case tp_Visible: {
-            for( auto &target : m_targets ) {
-                auto *targetnode = std::get<scene::basic_node *>( target );
-                if( targetnode == nullptr ) { continue; }
-                // event effect code
-                targetnode->visible( m_visible );
-            }
-            break;
-        }
-        case tp_Sound: {
-            for( auto &target : m_sounds ) {
-                auto *targetsound = std::get<sound_source *>( target );
-                if( targetsound == nullptr ) { continue; }
-                // event effect code
-                switch( m_soundmode ) {
-                    // trzy możliwe przypadki:
-                    case 0: {
-                        targetsound->stop();
-                        break;
-                    }
-                    case 1: {
-                        if( m_soundradiochannel > 0 ) {
-                            simulation::radio_message(
-                                targetsound,
-                                m_soundradiochannel );
-                        }
-                        else {
-                            targetsound->play( sound_flags::exclusive | sound_flags::event );
-                        }
-                        break;
-                    }
-                    case -1: {
-                        targetsound->play( sound_flags::exclusive | sound_flags::looping | sound_flags::event );
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-            }
-            break;
-        }
-        case tp_Animation: {
-            WriteLog( "Type: Animation" );
-            if( m_animationtype == 4 ) {
-                // vmd mode targets the entire model
-                for( auto &target : m_targets ) {
-                    auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
-                    if( targetmodel == nullptr ) { continue; }
-                    // event effect code
-                    targetmodel->AnimationVND(
-                        m_animationfiledata,
-                        m_animationparams[ 0 ], // tu mogą być dodatkowe parametry, np. od-do
-                        m_animationparams[ 1 ],
-                        m_animationparams[ 2 ],
-                        m_animationparams[ 3 ] );
-                }
-            }
-            else {
-                // other animation modes target specific submodels
-                for( auto *targetcontainer : m_animationcontainers ) {
-                    switch( m_animationtype ) {
-                        case 1: { // rotate
-                            targetcontainer->SetRotateAnim(
-                                glm::make_vec3( m_animationparams.data() ),
-                                m_animationparams[ 3 ] );
-                            break;
-                        }
-                        case 2: { // translate
-                            targetcontainer->SetTranslateAnim(
-                                glm::make_vec3( m_animationparams.data() ),
-                                m_animationparams[ 3 ] );
-                            break;
-                        }
-                        // TODO: implement digital mode
-                        default: {
-                            break;
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case tp_Switch: {
-            for( auto &target : m_targets ) {
-                auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
-                if( targettrack == nullptr ) { continue; }
-                // event effect code
-                targettrack->Switch(
-                    m_switchstate,
-                    m_switchmoverate,
-                    m_switchmovedelay );
-            }
-            if( Global.iMultiplayer ) {
-                // dajemy znać do serwera o przełożeniu
-                multiplayer::WyslijEvent( asName, "" ); // wysłanie nazwy eventu przełączajacego
-            }
-            // Ra: bardziej by się przydała nazwa toru, ale nie ma do niej stąd dostępu
-            break;
-        }
-        case tp_TrackVel: {
-            WriteLog( "Type: TrackVel - [" + to_string( m_velocity, 2 ) + "]" );
-            for( auto &target : m_targets ) {
-                auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
-                if( targettrack == nullptr ) { continue; }
-                // event effect code
-                targettrack->VelocitySet( m_velocity );
-                if( DebugModeFlag ) {
-                    WriteLog( "actual track velocity for " + targettrack->name() + " [" + to_string( targettrack->VelocityGet(), 2 ) + "]" );
-                }
-            }
-            break;
-        }
-        case tp_Multiple: {
-            auto const condition { test_condition() };
-            if( ( true == condition )
-                || ( true == m_condition.has_else ) ) {
-                // warunek spelniony albo było użyte else
-                WriteLog("Type: Multi-event");
-                for( auto &childevent : m_children ) {
-                    auto *childeventdata { std::get<TEvent*>( childevent ) };
-                    if( childeventdata == nullptr ) { continue; }
-                    if( std::get<bool>( childevent ) != condition ) { continue; }
-
-                    if( childeventdata != this ) {
-                        // normalnie dodać
-                        simulation::Events.AddToQuery( childeventdata, Activator );
-                    }
-                    else {
-                        // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
-                        if( fDelay >= 5.0 ) {
-                            simulation::Events.AddToQuery( this, Activator );
-                        }
-                    }
-                }
-                if( Global.iMultiplayer ) {
-                    // dajemy znać do serwera o wykonaniu
-                    if( false == m_condition.has_else ) {
-                        // jednoznaczne tylko, gdy nie było else
-                        if( Activator ) {
-                            multiplayer::WyslijEvent( asName, Activator->name() );
-                        }
-                        else {
-                            multiplayer::WyslijEvent( asName, "" );
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case tp_WhoIs: {
-            for( auto &target : m_targets ) {
-                auto *targetcell = static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) );
-                if( targetcell == nullptr ) { continue; }
-                // event effect code
-                if( m_update.flags & update_load ) {
-                    // jeśli pytanie o ładunek
-                    if( m_update.flags & update_memadd ) {
-                        // jeśli typ pojazdu
-                        // TODO: define and recognize individual request types
-                        auto const owner = (
-                            ( ( Activator->Mechanik != nullptr ) && ( Activator->Mechanik->Primary() ) ) ?
-                                Activator->Mechanik :
-                                Activator->ctOwner );
-                        auto const consistbrakelevel = (
-                            owner != nullptr ?
-                                owner->fReady :
-                                -1.0 );
-                        auto const collisiondistance = (
-                            owner != nullptr ?
-                                owner->TrackBlock() :
-                                -1.0 );
-
-                        targetcell->UpdateValues(
-                            Activator->MoverParameters->TypeName, // typ pojazdu
-                            consistbrakelevel,
-                            collisiondistance,
-                            m_update.flags & ( update_memstring | update_memval1 | update_memval2 ) );
-
-                        WriteLog(
-                            "Type: WhoIs (" + to_string( m_update.flags ) + ") - "
-                            + "[name: " + Activator->MoverParameters->TypeName + "], "
-                            + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
-                            + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
-                    }
-                    else {
-                        // jeśli parametry ładunku
-                        targetcell->UpdateValues(
-                            Activator->MoverParameters->LoadType, // nazwa ładunku
-                            Activator->MoverParameters->Load, // aktualna ilość
-                            Activator->MoverParameters->MaxLoad, // maksymalna ilość
-                            m_update.flags & ( update_memstring | update_memval1 | update_memval2 ) );
-
-                        WriteLog(
-                            "Type: WhoIs (" + to_string( m_update.flags ) + ") - "
-                            + "[load type: " + Activator->MoverParameters->LoadType + "], "
-                            + "[current load: " + to_string( Activator->MoverParameters->Load, 2 ) + "], "
-                            + "[max load: " + to_string( Activator->MoverParameters->MaxLoad, 2 ) + "]" );
-                    }
-                }
-                else if( m_update.flags & update_memadd ) { // jeśli miejsce docelowe pojazdu
-                    targetcell->UpdateValues(
-                        Activator->asDestination, // adres docelowy
-                        Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
-                        Activator->MoverParameters->Power, // moc pojazdu silnikowego: 0 dla wagonu
-                        m_update.flags & ( update_memstring | update_memval1 | update_memval2 ) );
-
-                    WriteLog(
-                        "Type: WhoIs (" + to_string( m_update.flags ) + ") - "
-                        + "[destination: " + Activator->asDestination + "], "
-                        + "[direction: " + to_string( Activator->DirectionGet() ) + "], "
-                        + "[engine power: " + to_string( Activator->MoverParameters->Power, 2 ) + "]" );
-                }
-                else if( Activator->Mechanik ) {
-                    if( Activator->Mechanik->Primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
-                        targetcell->UpdateValues(
-                            Activator->Mechanik->TrainName(),
-                            Activator->Mechanik->StationCount() - Activator->Mechanik->StationIndex(), // ile przystanków do końca
-                            Activator->Mechanik->IsStop() ?
-                            1 :
-                            0, // 1, gdy ma tu zatrzymanie
-                            m_update.flags );
-                        WriteLog( "Train detected: " + Activator->Mechanik->TrainName() );
-                    }
-                }
-            }
-            break;
-        }
-        case tp_LogValues: { // zapisanie zawartości komórki pamięci do logu
-            if( m_targets.empty() ) {
-                // lista wszystkich
-                simulation::Memory.log_all();
-            }
-            else {
-                // jeśli była podana nazwa komórki
-                for( auto &target : m_targets ) {
-                    auto *targetcell = static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) );
-                    if( targetcell == nullptr ) { continue; }
-                    WriteLog( "Memcell \"" + targetcell->name() + "\": ["
-                        + targetcell->Text() + "] ["
-                        + to_string( targetcell->Value1(), 2 ) + "] ["
-                        + to_string( targetcell->Value2(), 2 ) + "]" );
-                }
-            }
-            break;
-        }
-        case tp_Voltage: { // zmiana napięcia w zasilaczu (TractionPowerSource)
-            WriteLog( "Type: Voltage [" + to_string( m_voltage, 2 ) + "]" );
-            for( auto &target : m_targets ) {
-                auto *targetpowersource = static_cast<TTractionPowerSource *>( std::get<scene::basic_node *>( target ) );
-                if( targetpowersource == nullptr ) { continue; }
-                targetpowersource->VoltageSet( m_voltage );
-            }
-            break;
-        }
-        case tp_Friction: { // zmiana tarcia na scenerii
-            // na razie takie chamskie ustawienie napięcia zasilania
-            WriteLog("Type: Friction");
-            Global.fFriction = (m_friction);
-            break;
-        }
-        case tp_Message: { // wyświetlenie komunikatu
-            break;
-        }
-    } // switch (tmpEvent->Type)
-}
-
-void
-TEvent::init_conditions() {
-
-    m_condition.tracks.clear();
-
-    if( m_condition.flags & ( conditional_trackoccupied | conditional_trackfree ) ) {
-        for( auto &target : m_targets ) {
-            m_condition.tracks.emplace_back( simulation::Paths.find( std::get<std::string>( target ) ) );
-            if( m_condition.tracks.back() == nullptr ) {
-//                m_ignored = true; // deaktywacja
-                ErrorLog( "Bad event: track \"" + std::get<std::string>( target ) + "\" referenced in event \"" + asName + "\" doesn't exist" );
-                m_condition.flags &= ~( conditional_trackoccupied | conditional_trackfree ); // zerowanie flag
-            }
-        }
-    }
-}
-
-void
-TEvent::condition_data::load( cParser &Input  )
-{ // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
+basic_event::event_conditions::deserialize( cParser &Input ) { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
 
     std::string token;
     while( ( true == Input.getTokens() )
         && ( false == ( token = Input.peek() ).empty() )
-        && ( token != "endevent" )
-        && ( token != "randomdelay" ) ) {
+        && ( false == basic_event::is_keyword( token ) ) ) {
 
         if( token == "trackoccupied" ) {
-            flags |= conditional_trackoccupied;
+            flags |= flags::track_busy;
         }
         else if( token == "trackfree" ) {
-            flags |= conditional_trackfree;
+            flags |= flags::track_free;
         }
         else if( token == "propability" ) {
-            flags |= conditional_propability;
+            flags |= flags::probability;
             Input.getTokens();
             Input >> probability;
         }
@@ -1156,69 +157,115 @@ TEvent::condition_data::load( cParser &Input  )
             if( Input.peek() != "*" ) //"*" - nie brac command pod uwage
             { // zapamiętanie łańcucha do porównania
                 Input >> match_text;
-                flags |= conditional_memstring;
+                flags |= flags::text;
             }
             Input.getTokens();
             if( Input.peek() != "*" ) //"*" - nie brac val1 pod uwage
             {
                 Input >> match_value_1;
-                flags |= conditional_memval1;
+                flags |= flags::value_1;
             }
             Input.getTokens();
             if( Input.peek() != "*" ) //"*" - nie brac val2 pod uwage
             {
                 Input >> match_value_2;
-                flags |= conditional_memval2;
+                flags |= flags::value_2;
             }
         }
     }
-}
-
-void TEvent::load_targets( std::string const &Input ) {
-
-    cParser targetparser{ Input };
-    std::string target;
-    while( false == ( target = targetparser.getToken<std::string>( true, "|," ) ).empty() ) {
-        // actual bindings to targets of proper type are created during scenario initialization
-        if( target != "none" ) {
-            // sound objects don't inherit from scene node, so we can't use the same container
-            // TODO: fix this, having sounds as scene nodes (or a node wrapper for one) might have benefits elsewhere
-            if( Type != tp_Sound ) {
-                m_targets.emplace_back( target, nullptr );
-            }
-            else {
-                m_sounds.emplace_back( target, nullptr );
-            }
-        }
-    }
-}
-
-std::string
-TEvent::type_to_string() const {
-
-    std::vector<std::string> const types {
-        "unknown", "sound", "animation", "lights", "updatevalues",
-        "getvalues", "putvalues", "switch", "trackvel", "multiple",
-        "addvalues", "copyvalues", "whois", "logvalues", "visible",
-        "voltage", "message", "friction" };
-
-    return types[ Type ];
 }
 
 // sends basic content of the class in legacy (text) format to provided stream
 void
-TEvent::export_as_text( std::ostream &Output ) const {
+basic_event::event_conditions::export_as_text( std::ostream &Output ) const {
 
-    if( Type == tp_Unknown ) { return; }
+    if( flags != 0 ) {
+        Output << "condition ";
+        if( ( flags & flags::track_busy ) != 0 ) {
+            Output << "trackoccupied ";
+        }
+        if( ( flags & flags::track_free ) != 0 ) {
+            Output << "trackfree ";
+        }
+        if( ( flags & flags::probability ) != 0 ) {
+            Output
+                << "propability "
+                << probability << ' ';
+        }
+        if( ( flags & ( flags::text | flags::value_1 | flags::value_2 ) ) != 0 ) {
+            Output
+                << "memcompare "
+                << ( ( flags & flags::text )    == 0 ? "*" :            match_text ) << ' '
+                << ( ( flags & flags::value_1 ) == 0 ? "*" : to_string( match_value_1 ) ) << ' '
+                << ( ( flags & flags::value_2 ) == 0 ? "*" : to_string( match_value_2 ) ) << ' ';
+        }
+    }
+}
 
+basic_event::~basic_event() {
+
+    m_sibling = nullptr; // nie usuwać podczepionych tutaj
+}
+
+void
+basic_event::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    std::string token;
+
+    Input.getTokens();
+    Input >> m_delay;
+
+    Input.getTokens();
+    Input >> token;
+    deserialize_targets( token );
+
+    if (m_name.substr(0, 5) == "none_")
+        m_ignored = true; // Ra: takie są ignorowane
+
+    deserialize_( Input, Scratchpad );
+    // subclass method is expected to leave next token past its own data preloaded on its exit
+    while( ( false == ( token = Input.peek() ).empty() )
+        && ( token != "endevent" ) ) {
+
+        if( token == "randomdelay" ) { // losowe opóźnienie
+            Input.getTokens();
+            Input >> m_delayrandom; // Ra 2014-03-11
+        }
+        Input.getTokens();
+    }
+}
+
+void
+basic_event::deserialize_targets( std::string const &Input ) {
+
+    cParser targetparser { Input };
+    std::string target;
+    while( false == ( target = targetparser.getToken<std::string>( true, "|," ) ).empty() ) {
+        // actual bindings to targets of proper type are created during scenario initialization
+        if( target != "none" ) {
+            m_targets.emplace_back( target, nullptr );
+        }
+    }
+}
+
+void
+basic_event::run() {
+
+    WriteLog( "EVENT LAUNCHED" + ( m_activator ? ( " by " + m_activator->asName ) : "" ) + ": " + m_name );
+    run_();
+}
+
+// sends basic content of the class in legacy (text) format to provided stream
+void
+basic_event::export_as_text( std::ostream &Output ) const {
     // header
     Output << "event ";
     // name
-    Output << asName << ' ';
+    Output << m_name << ' ';
     // type
-    Output << type_to_string() << ' ';
+    Output << type() << ' ';
     // delay
-    Output << fDelay << ' ';
+    Output << m_delay << ' ';
     // target node(s)
     if( m_targets.empty() ) {
         Output << "none";
@@ -1233,160 +280,12 @@ TEvent::export_as_text( std::ostream &Output ) const {
         }
     }
     // type-specific attributes
-    switch( Type ) {
-        case tp_AddValues:
-        case tp_UpdateValues: {
-            Output
-                << ( ( m_update.flags & update_memstring ) == 0 ? "*" :            m_update.data_text ) << ' '
-                << ( ( m_update.flags & update_memval1 )   == 0 ? "*" : to_string( m_update.data_value_1 ) ) << ' '
-                << ( ( m_update.flags & update_memval2 )   == 0 ? "*" : to_string( m_update.data_value_2 ) ) << ' ';
-            break;
-        }
-        case tp_CopyValues: {
-            auto const *datasource = static_cast<TMemCell *>( std::get<scene::basic_node *>( m_update.data_source ) );
-            Output
-                << ( datasource != nullptr ?
-                        datasource->name() :
-                        std::get<std::string>( m_update.data_source ) )
-                << ' ' << ( m_update.flags & ( update_memstring | update_memval1 | update_memval2 ) ) << ' ';
-            break;
-        }
-        case tp_PutValues: {
-            Output
-                // location
-                << m_update.location.x << ' '
-                << m_update.location.y << ' '
-                << m_update.location.z << ' '
-                // command
-                << m_update.data_text << ' '
-                << m_update.data_value_1 << ' '
-                << m_update.data_value_2 << ' ';
-            break;
-        }
-        case tp_Multiple: {
-            for( auto const &childevent : m_children ) {
-                if( true == std::get<bool>( childevent ) ) {
-                    auto *childeventdata { std::get<TEvent *>( childevent ) };
-                    Output
-                        << ( childeventdata != nullptr ?
-                            childeventdata->asName :
-                            std::get<std::string>( childevent ) )
-                        << ' ';
-                }
-            }
-            // optional 'else' block
-            if( false == m_condition.has_else ) { break; }
-            Output << "else ";
-            for( auto const &childevent : m_children ) {
-                if( false == std::get<bool>( childevent ) ) {
-                    auto *childeventdata { std::get<TEvent *>( childevent ) };
-                    Output
-                        << ( childeventdata != nullptr ?
-                            childeventdata->asName :
-                            std::get<std::string>( childevent ) )
-                        << ' ';
-                }
-            }
-            break;
-        }
-        case tp_Visible: {
-            Output << ( m_visible ? 1 : 0 ) << ' ';
-            break;
-        }
-        case tp_Switch: {
-            Output << m_switchstate << ' ';
-            if( ( m_switchmoverate < 0.f )
-             || ( m_switchmovedelay < 0.f ) ) {
-                Output << m_switchmoverate << ' ';
-            }
-            if( m_switchmovedelay < 0.f ) {
-                Output << m_switchmovedelay << ' ';
-            }
-            break;
-        }
-        case tp_Lights: {
-            auto lightidx { 0 };
-            while( ( lightidx < iMaxNumLights )
-                && ( m_lights[ lightidx ] > -2.0 ) ) {
-                Output << m_lights[ lightidx ] << ' ';
-                ++lightidx;
-            }
-            break;
-        }
-        case tp_Animation: {
-            // animation type
-            Output << (
-                m_animationtype == 1 ? "rotate" :
-                m_animationtype == 2 ? "translate" :
-                m_animationtype == 4 ? m_animationfilename :
-                m_animationtype == 8 ? "digital" :
-                "none" )
-                << ' ';
-            // submodel
-            Output << m_animationsubmodel << ' ';
-            // animation parameters
-            Output
-                << m_animationparams[0] << ' '
-                << m_animationparams[1] << ' '
-                << m_animationparams[2] << ' '
-                << m_animationparams[3] << ' ';
-            break;
-        }
-        case tp_Sound: {
-            // playback mode
-            Output << m_soundmode << ' ';
-            // optional radio channel
-            if( m_soundradiochannel > 0 ) {
-                Output << m_soundradiochannel << ' ';
-            }
-            break;
-        }
-        case tp_TrackVel:
-            Output << m_velocity << ' ';
-            break;
-        case tp_Voltage:
-            Output << m_voltage << ' ';
-            break;
-        case tp_Friction: {
-            Output << m_friction << ' ';
-            break;
-        }
-        case tp_WhoIs: {
-            Output
-                << ( m_update.flags & ( update_memstring | update_memval1 | update_memval2 ) ) << ' ';
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    // optional conditions
-    // NOTE: for flexibility condition check and export is performed for all event types rather than only for these which support it currently
-    if( m_condition.flags != 0 ) {
-        Output << "condition ";
-        if( ( m_condition.flags & conditional_trackoccupied ) != 0 ) {
-            Output << "trackoccupied ";
-        }
-        if( ( m_condition.flags & conditional_trackfree ) != 0 ) {
-            Output << "trackfree ";
-        }
-        if( ( m_condition.flags & conditional_propability ) != 0 ) {
-            Output
-                << "propability "
-                << m_condition.probability << ' ';
-        }
-        if( ( m_condition.flags & ( conditional_memstring | conditional_memval1 | conditional_memval2 ) ) != 0 ) {
-            Output
-                << "memcompare "
-                << ( ( m_condition.flags & conditional_memstring ) == 0 ? "*" :            m_condition.match_text ) << ' '
-                << ( ( m_condition.flags & conditional_memval1 )   == 0 ? "*" : to_string( m_condition.match_value_1 ) ) << ' '
-                << ( ( m_condition.flags & conditional_memval2 )   == 0 ? "*" : to_string( m_condition.match_value_2 ) ) << ' ';
-        }
-    }
-    if( fRandomDelay != 0.0 ) {
+    export_as_text_( Output );
+
+    if( m_delayrandom != 0.0 ) {
         Output
             << "randomdelay "
-            << fRandomDelay << ' ';
+            << m_delayrandom << ' ';
     }
     // footer
     Output
@@ -1394,112 +293,1611 @@ TEvent::export_as_text( std::ostream &Output ) const {
         << "\n";
 }
 
-void TEvent::AddToQuery( TEvent *Event, TEvent *&Start ) {
-
-    TEvent *target( Start );
-    TEvent *previous( nullptr );
-    while( ( Event->fStartTime >= target->fStartTime )
-        && ( target->evNext != nullptr ) ) {
-        previous = target;
-        target = target->evNext;
-    }
-    // the new event will be either before or after the one we located
-    if( Event->fStartTime >= target->fStartTime ) {
-        assert( target->evNext == nullptr );
-        target->evNext = Event;
-        // if we have resurrected event land at the end of list, the link from previous run could potentially "add" unwanted events to the queue
-        Event->evNext = nullptr;
-    }
+void
+basic_event::append( basic_event *Event ) {
+    // doczepienie kolejnych z tą samą nazwą
+    // TODO: remove recursion
+    if( m_sibling )
+        m_sibling->append( Event ); // rekurencja! - góra kilkanaście eventów będzie potrzebne
     else {
-        if( previous != nullptr ) {
-            previous->evNext = Event;
-            Event->evNext = target;
-        }
-        else {
-            // special case, we're inserting our event before the provided start point
-            Event->evNext = Start;
-            Start = Event;
-        }
+        m_sibling = Event;
+        Event->m_passive = false; // ten doczepiony może być tylko kolejkowany
     }
+};
+
+// returns: true if the event should be executed immediately
+bool
+basic_event::is_instant() const {
+
+    return false;
 }
 
-//---------------------------------------------------------------------------
+// sends content of associated data cell to specified vehicle controller
+void
+basic_event::send_command( TController &Controller ) {
 
-std::string TEvent::CommandGet() const
-{ // odczytanie komendy z eventu
-    switch (Type)
-    { // to się wykonuje również składu jadącego bez obsługi
-    case tp_GetValues:
-        return m_update.data_cell()->Text();
-    case tp_PutValues:
-        return m_update.data_text;
-    }
-    return ""; // inne eventy się nie liczą
-};
+    return;
+}
 
-TCommandType TEvent::Command() const
-{ // odczytanie komendy z eventu
-    switch (Type)
-    { // to się wykonuje również dla składu jadącego bez obsługi
-    case tp_GetValues:
-        return m_update.data_cell()->Command();
-    case tp_PutValues:
-        return m_update.command_type; // komenda zakodowana binarnie
-    }
-    return TCommandType::cm_Unknown; // inne eventy się nie liczą
-};
-
-double TEvent::ValueGet(int n) const
-{ // odczytanie komendy z eventu
-    n &= 1; // tylko 1 albo 2 jest prawidłowy
-    switch (Type)
-    { // to się wykonuje również składu jadącego bez obsługi
-    case tp_GetValues:
-        return ( n ? m_update.data_cell()->Value1() : m_update.data_cell()->Value2() );
-    case tp_PutValues:
-        return ( n ? m_update.data_value_1 : m_update.data_value_2 );
-    }
-    return 0.0; // inne eventy się nie liczą
-};
-
-glm::dvec3 TEvent::PositionGet() const
-{ // pobranie współrzędnych eventu
-    switch (Type)
-    { //
-    case tp_GetValues:
-        return m_update.data_cell()->location(); // współrzędne podłączonej komórki pamięci
-    case tp_PutValues:
-        return m_update.location;
-    }
-    return glm::dvec3(0, 0, 0); // inne eventy się nie liczą
-};
-
-bool TEvent::StopCommand() const
-{ //
-    if (Type == tp_GetValues)
-        return m_update.data_cell()->StopCommand(); // info o komendzie z komórki
+// returns: true if associated data cell contains a command for vehicle controller
+bool
+basic_event::is_command() const {
 
     return false;
 };
 
-void TEvent::StopCommandSent()
-{
-    if (Type == tp_GetValues)
-        m_update.data_cell()->StopCommandSent(); // komenda z komórki została wysłana
+std::string
+basic_event::input_text() const {
+    // odczytanie komendy z eventu
+    return "";
 };
 
-void TEvent::Append(TEvent *e)
-{ // doczepienie kolejnych z tą samą nazwą
-    if (evJoined)
-        evJoined->Append(e); // rekurencja! - góra kilkanaście eventów będzie potrzebne
-    else
-    {
-        evJoined = e;
-        e->bEnabled = true; // ten doczepiony może być tylko kolejkowany
+TCommandType
+basic_event::input_command() const {
+    // odczytanie komendy z eventu
+    return TCommandType::cm_Unknown;
+};
+
+double
+basic_event::input_value( int Index ) const {
+    // odczytanie komendy z eventu
+    return 0.0;
+};
+
+glm::dvec3
+basic_event::input_location() const {
+    // pobranie współrzędnych eventu
+    return glm::dvec3( 0, 0, 0 );
+};
+
+bool
+basic_event::is_keyword( std::string const &Token ) {
+
+    return ( Token == "endevent" )
+        || ( Token == "randomdelay" );
+}
+
+
+
+TMemCell const *
+input_event::input_data::data_cell() const {
+
+    return static_cast<TMemCell const *>( std::get<scene::basic_node *>( data_source ) );
+}
+TMemCell *
+input_event::input_data::data_cell() {
+
+    return static_cast<TMemCell *>( std::get<scene::basic_node *>( data_source ) );
+}
+
+
+
+// prepares event for use
+void
+updatevalues_event::init() {
+    // sumowanie wartości // zmiana wartości
+    init_targets( simulation::Memory, "memory cell" );
+    // conditional data
+    m_conditions.bind( &m_targets );
+    m_conditions.init();
+}
+
+// event type string
+std::string
+updatevalues_event::type() const {
+
+    return (
+        ( m_input.flags & flags::mode_add ) == 0 ?
+            "updatevalues" :
+            "addvalues" );
+}
+
+// deserialize() subclass details
+void
+updatevalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens( 1, false ); // case sensitive
+    Input >> m_input.data_text;
+    if( m_input.data_text != "*" ) { //"*" - nie brac command pod uwage
+        m_input.flags |= flags::text;
     }
-};
+    Input.getTokens();
+    if( Input.peek() != "*" ) { //"*" - nie brac val1 pod uwage
+        Input >> m_input.data_value_1;
+        m_input.flags |= flags::value_1;
+    }
+    Input.getTokens();
+    if( Input.peek() != "*" ) { //"*" - nie brac val2 pod uwage
+        Input >> m_input.data_value_2;
+        m_input.flags |= flags::value_2;
+    }
+    Input.getTokens();
+    // optional blocks
+    std::string token;
+    while( ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+
+        if( token == "condition" ) {
+            m_conditions.deserialize( Input );
+            // NOTE: condition deserialization leaves preloaded next token
+        }
+    }
+}
+
+// run() subclass details
+// TODO: update and copy values run_ methods are largely identical, refactor to a single helper
+void
+updatevalues_event::run_() {
+
+    if( false == m_conditions.test() ) { return; }
+
+    WriteLog( "Type: " + std::string( ( m_input.flags & flags::mode_add ) ? "AddValues" : "UpdateValues" ) + " & Track command - ["
+        + ( ( m_input.flags & flags::text ) ? m_input.data_text : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value_1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value_2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
+    // TODO: dump status of target cells after the operation
+    for( auto &target : m_targets ) {
+        auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
+        if( targetcell == nullptr ) { continue; }
+        targetcell->UpdateValues(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            m_input.flags );
+        if( targetcell->Track == nullptr ) { continue; }
+        // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
+        auto const location { targetcell->location() };
+        for( auto dynamic : targetcell->Track->Dynamics ) {
+            targetcell->PutCommand(
+                dynamic->Mechanik,
+                &location );
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+updatevalues_event::export_as_text_( std::ostream &Output ) const {
+
+    Output
+        << ( ( m_input.flags & flags::text )    == 0 ? "*" : m_input.data_text ) << ' '
+        << ( ( m_input.flags & flags::value_1 ) == 0 ? "*" : to_string( m_input.data_value_1 ) ) << ' '
+        << ( ( m_input.flags & flags::value_2 ) == 0 ? "*" : to_string( m_input.data_value_2 ) ) << ' ';
+
+    m_conditions.export_as_text( Output );
+}
+
+// returns: true if the event should be executed immediately
+bool
+updatevalues_event::is_instant() const {
+
+    return ( ( ( m_input.flags & flags::mode_add ) != 0 ) && ( m_delay == 0.0 ) );
+}
 
 
+
+// prepares event for use
+void
+getvalues_event::init() {
+
+    init_targets( simulation::Memory, "memory cell" );
+    // custom target initialization code
+    for( auto &target : m_targets ) {
+        auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
+        if( targetcell == nullptr ) { continue; }
+        if( targetcell->IsVelocity() ) {
+            // jeśli odczyt komórki a komórka zawiera komendę SetVelocity albo ShuntVelocity
+            // to event nie będzie dodawany do kolejki
+            m_passive = true;
+        }
+    }
+    // NOTE: GetValues retrieves data only from first specified memory cell
+    // TBD, TODO: allow retrieval from more than one cell?
+    m_input.data_source = m_targets.front();
+}
+
+// event type string
+std::string
+getvalues_event::type() const {
+
+    return "getvalues";
+}
+
+// deserialize() subclass details
+void
+getvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // nothing to do here, just preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+getvalues_event::run_() {
+
+    WriteLog( "Type: GetValues" );
+
+    if( m_activator == nullptr ) { return; }
+
+    m_input.data_cell()->PutCommand(
+        m_activator->Mechanik,
+        &( m_input.data_cell()->location() ) );
+
+    // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
+    if( Global.iMultiplayer ) {
+        multiplayer::WyslijEvent( m_name, m_activator->name() );
+    }
+}
+
+// export_as_text() subclass details
+void
+getvalues_event::export_as_text_( std::ostream &Output ) const {
+    // nothing to do here
+}
+
+// sends content of associated data cell to specified vehicle controller
+void
+getvalues_event::send_command( TController &Controller ) {
+
+    Controller.PutCommand( input_text(), input_value( 1 ), input_value( 2 ), nullptr );
+    m_input.data_cell()->StopCommandSent(); // komenda z komórki została wysłana
+}
+// returns: true if associated data cell contains a command for vehicle controller
+bool
+getvalues_event::is_command() const {
+    // info o komendzie z komórki
+    return m_input.data_cell()->StopCommand();
+}
+
+// input data access
+std::string
+getvalues_event::input_text() const {
+
+    return m_input.data_cell()->Text();
+}
+
+TCommandType
+getvalues_event::input_command() const {
+
+    return m_input.data_cell()->Command();
+}
+
+double
+getvalues_event::input_value( int Index ) const {
+
+    Index &= 1; // tylko 1 albo 2 jest prawidłowy
+    return ( Index == 1 ? m_input.data_cell()->Value1() : m_input.data_cell()->Value2() );
+}
+
+glm::dvec3
+getvalues_event::input_location() const {
+
+    return m_input.data_cell()->location(); // współrzędne podłączonej komórki pamięci
+}
+
+
+
+// prepares event for use
+void
+putvalues_event::init() {
+    // nothing to do here
+}
+
+// event type string
+std::string
+putvalues_event::type() const {
+
+    return "putvalues";
+}
+
+// deserialize() subclass details
+void
+putvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens( 3 );
+    // location, previously held in param 3, 4, 5
+    Input
+        >> m_input.location.x
+        >> m_input.location.y
+        >> m_input.location.z;
+    // przesunięcie
+    // tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzględnienie rotacji
+    // TBD, TODO: take into account rotation as well?
+    if( false == Scratchpad.location.offset.empty() ) {
+        m_input.location += Scratchpad.location.offset.top();
+    }
+
+    std::string token;
+    Input.getTokens( 1, false ); // komendy 'case sensitive'
+    Input >> token;
+    // command type, previously held in param 6
+    if( token.substr( 0, 19 ) == "PassengerStopPoint:" ) {
+        if( token.find( '#' ) != std::string::npos )
+            token.erase( token.find( '#' ) ); // obcięcie unikatowości
+        win1250_to_ascii( token ); // get rid of non-ascii chars
+        m_input.command_type = TCommandType::cm_PassengerStopPoint;
+        // nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
+        m_passive = true;
+    }
+    else if( token == "SetVelocity" ) {
+        m_input.command_type = TCommandType::cm_SetVelocity;
+        m_passive = true;
+    }
+    else if( token == "RoadVelocity" ) {
+        m_input.command_type = TCommandType::cm_RoadVelocity;
+        m_passive = true;
+    }
+    else if( token == "SectionVelocity" ) {
+        m_input.command_type = TCommandType::cm_SectionVelocity;
+        m_passive = true;
+    }
+    else if( token == "ShuntVelocity" ) {
+        m_input.command_type = TCommandType::cm_ShuntVelocity;
+        m_passive = true;
+    }
+    else if( token == "OutsideStation" ) {
+        m_input.command_type = TCommandType::cm_OutsideStation;
+        m_passive = true; // ma być skanowny, aby AI nie przekraczało W5
+    }
+    else {
+        m_input.command_type = TCommandType::cm_Unknown;
+    }
+    // update data, previously stored in params 0, 1, 2
+    m_input.data_text = token;
+    Input.getTokens();
+    if( Input.peek() != "none" ) {
+        Input >> m_input.data_value_1;
+    }
+    Input.getTokens();
+    if( Input.peek() != "none" ) {
+        Input >> m_input.data_value_2;
+    }
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+putvalues_event::run_() {
+
+    WriteLog(
+        "Type: PutValues - ["
+        + m_input.data_text + "] ["
+        + to_string( m_input.data_value_1, 2 ) + "] ["
+        + to_string( m_input.data_value_2, 2 ) + "]" );
+
+    if( m_activator == nullptr ) { return; }
+    // zamiana, bo fizyka ma inaczej niż sceneria
+    // NOTE: y & z swap, negative x
+    TLocation const loc {
+        -m_input.location.x,
+         m_input.location.z,
+         m_input.location.y };
+
+    if( m_activator->Mechanik ) {
+        // przekazanie rozkazu do AI
+        m_activator->Mechanik->PutCommand(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            loc );
+    }
+    else {
+        // przekazanie do pojazdu
+        m_activator->MoverParameters->PutCommand(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            loc );
+    }
+}
+
+// export_as_text() subclass details
+void
+putvalues_event::export_as_text_( std::ostream &Output ) const {
+
+    Output
+        // location
+        << m_input.location.x << ' '
+        << m_input.location.y << ' '
+        << m_input.location.z << ' '
+        // command
+        << m_input.data_text << ' '
+        << m_input.data_value_1 << ' '
+        << m_input.data_value_2 << ' ';
+}
+
+// input data access
+std::string
+putvalues_event::input_text() const {
+
+    return m_input.data_text;
+}
+
+TCommandType
+putvalues_event::input_command() const {
+
+    return m_input.command_type; // komenda zakodowana binarnie
+}
+
+double
+putvalues_event::input_value( int Index ) const {
+
+    Index &= 1; // tylko 1 albo 2 jest prawidłowy
+    return ( Index == 1 ? m_input.data_value_1 : m_input.data_value_2 );
+}
+
+glm::dvec3
+putvalues_event::input_location() const {
+
+    return m_input.location;
+}
+
+
+
+// prepares event for use
+void
+copyvalues_event::init() {
+    // skopiowanie komórki do innej
+    init_targets( simulation::Memory, "memory cell" );
+    // source cell
+    std::get<scene::basic_node *>( m_input.data_source ) = simulation::Memory.find( std::get<std::string>( m_input.data_source ) );
+    if( std::get<scene::basic_node *>( m_input.data_source ) == nullptr ) {
+        m_ignored = true; // deaktywacja
+        ErrorLog( "Bad event: copyvalues event \"" + m_name + "\" cannot find memcell \"" + std::get<std::string>( m_input.data_source ) + "\"" );
+    }
+}
+
+// event type string
+std::string
+copyvalues_event::type() const {
+
+    return "copyvalues";
+}
+
+// deserialize() subclass details
+void
+copyvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    m_input.flags = ( flags::text | flags::value_1 | flags::value_2 ); // normalnie trzy
+
+    std::string token;
+    int paramidx { 0 };
+
+    while( ( true == Input.getTokens() )
+        && ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+
+        Input >> token;
+        switch( ++paramidx ) {
+            case 1: { // nazwa drugiej komórki (źródłowej) // previously stored in param 9
+                std::get<std::string>( m_input.data_source ) = token;
+                break;
+            }
+            case 2: { // maska wartości
+                m_input.flags = stol_def( token, ( flags::text | flags::value_1 | flags::value_2 ) );
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+}
+
+// run() subclass details
+// TODO: update and copy values run_ methods are largely identical, refactor to a single helper
+void
+copyvalues_event::run_() {
+    // skopiowanie wartości z innej komórki
+    auto const *datasource { static_cast<TMemCell *>( std::get<scene::basic_node *>( m_input.data_source ) ) };
+    m_input.data_text = datasource->Text();
+    m_input.data_value_1 = datasource->Value1();
+    m_input.data_value_2 = datasource->Value2();
+
+    WriteLog( "Type: CopyValues - ["
+        + ( ( m_input.flags & flags::text ) ? m_input.data_text : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value_1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value_2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
+    // TODO: dump status of target cells after the operation
+    for( auto &target : m_targets ) {
+        auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
+        if( targetcell == nullptr ) { continue; }
+        targetcell->UpdateValues(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            m_input.flags );
+        if( targetcell->Track == nullptr ) { continue; }
+        // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
+        auto const location { targetcell->location() };
+        for( auto dynamic : targetcell->Track->Dynamics ) {
+            targetcell->PutCommand(
+                dynamic->Mechanik,
+                &location );
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+copyvalues_event::export_as_text_( std::ostream &Output ) const {
+
+    auto const *datasource { static_cast<TMemCell *>( std::get<scene::basic_node *>( m_input.data_source ) ) };
+    Output
+        << ( datasource != nullptr ?
+                datasource->name() :
+                std::get<std::string>( m_input.data_source ) )
+        << ' ' << ( m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) << ' ';
+}
+
+
+
+// prepares event for use
+void
+whois_event::init() {
+
+    init_targets( simulation::Memory, "memory cell" );
+}
+
+// event type string
+std::string
+whois_event::type() const {
+
+    return "whois";
+}
+
+// deserialize() subclass details
+void
+whois_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    m_input.flags = ( flags::text | flags::value_1 | flags::value_2 ); // normalnie trzy
+
+    std::string token;
+    int paramidx { 0 };
+
+    while( ( true == Input.getTokens() )
+        && ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+
+        Input >> token;
+        switch( ++paramidx ) {
+            case 1: { // maska wartości
+                m_input.flags = stol_def( token, ( flags::text | flags::value_1 | flags::value_2 ) );
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+}
+
+// run() subclass details
+void 
+whois_event::run_() {
+
+    for( auto &target : m_targets ) {
+        auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
+        if( targetcell == nullptr ) { continue; }
+        // event effect code
+        if( m_input.flags & flags::load ) {
+            // jeśli pytanie o ładunek
+            if( m_input.flags & flags::mode_add ) {
+                // jeśli typ pojazdu
+                // TODO: define and recognize individual request types
+                auto const owner { (
+                    ( ( m_activator->Mechanik != nullptr ) && ( m_activator->Mechanik->Primary() ) ) ?
+                        m_activator->Mechanik :
+                        m_activator->ctOwner ) };
+                auto const consistbrakelevel { (
+                    owner != nullptr ?
+                        owner->fReady :
+                        -1.0 ) };
+                auto const collisiondistance { (
+                    owner != nullptr ?
+                        owner->TrackBlock() :
+                        -1.0 ) };
+
+                targetcell->UpdateValues(
+                    m_activator->MoverParameters->TypeName, // typ pojazdu
+                    consistbrakelevel,
+                    collisiondistance,
+                    m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[name: " + m_activator->MoverParameters->TypeName + "], "
+                    + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
+                    + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
+            }
+            else {
+                // jeśli parametry ładunku
+                targetcell->UpdateValues(
+                    m_activator->MoverParameters->LoadType, // nazwa ładunku
+                    m_activator->MoverParameters->Load, // aktualna ilość
+                    m_activator->MoverParameters->MaxLoad, // maksymalna ilość
+                    m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[load type: " + m_activator->MoverParameters->LoadType + "], "
+                    + "[current load: " + to_string( m_activator->MoverParameters->Load, 2 ) + "], "
+                    + "[max load: " + to_string( m_activator->MoverParameters->MaxLoad, 2 ) + "]" );
+            }
+        }
+        else if( m_input.flags & flags::mode_add ) { // jeśli miejsce docelowe pojazdu
+            targetcell->UpdateValues(
+                m_activator->asDestination, // adres docelowy
+                m_activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
+                m_activator->MoverParameters->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+
+            WriteLog(
+                "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                + "[destination: " + m_activator->asDestination + "], "
+                + "[direction: " + to_string( m_activator->DirectionGet() ) + "], "
+                + "[engine power: " + to_string( m_activator->MoverParameters->Power, 2 ) + "]" );
+        }
+        else if( m_activator->Mechanik ) {
+            if( m_activator->Mechanik->Primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
+                targetcell->UpdateValues(
+                    m_activator->Mechanik->TrainName(),
+                    m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex(), // ile przystanków do końca
+                    m_activator->Mechanik->IsStop() ?
+                        1 :
+                        0, // 1, gdy ma tu zatrzymanie
+                    m_input.flags );
+                WriteLog( "Train detected: " + m_activator->Mechanik->TrainName() );
+            }
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+whois_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << ( m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) << ' ';
+}
+
+
+
+// prepares event for use
+void
+logvalues_event::init() {
+
+    init_targets( simulation::Memory, "memory cell" );
+}
+
+// event type string
+std::string
+logvalues_event::type() const {
+
+    return "logvalues";
+}
+
+// deserialize() subclass details
+void
+logvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // nothing to do here, just preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+logvalues_event::run_() {
+    // zapisanie zawartości komórki pamięci do logu
+    if( m_targets.empty() ) {
+        // lista wszystkich
+        simulation::Memory.log_all();
+    }
+    else {
+        // jeśli była podana nazwa komórki
+        for( auto &target : m_targets ) {
+            auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
+            if( targetcell == nullptr ) { continue; }
+            WriteLog(
+                "Memcell \"" + targetcell->name() + "\": ["
+                + targetcell->Text() + "] ["
+                + to_string( targetcell->Value1(), 2 ) + "] ["
+                + to_string( targetcell->Value2(), 2 ) + "]" );
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+logvalues_event::export_as_text_( std::ostream &Output ) const {
+
+}
+
+
+
+// prepares event for use
+void
+multi_event::init() {
+
+    init_targets( simulation::Memory, "memory cell" );
+    if( m_ignored ) {
+        // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
+        m_conditions.flags &= ~( flags::text | flags::value_1 | flags::value_2 );
+        m_ignored = false;
+    }
+    // conditional data
+    m_conditions.bind( &m_targets );
+    m_conditions.init();
+    // child events bindings
+    for( auto &childevent : m_children ) {
+        std::get<basic_event *>( childevent ) = simulation::Events.FindEvent( std::get<std::string>( childevent ) );
+        if( std::get<basic_event *>( childevent ) == nullptr ) {
+            ErrorLog( "Bad event: multi-event \"" + m_name + "\" cannot find event \"" + std::get<std::string>( childevent ) + "\"" );
+        }
+    }
+}
+
+// event type string
+std::string
+multi_event::type() const {
+
+    return "multiple";
+}
+
+// deserialize() subclass details
+void
+multi_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    m_conditions.has_else = false;
+
+    std::string token;
+    while( ( true == Input.getTokens() )
+        && ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+
+        if( token == "condition" ) {
+            m_conditions.deserialize( Input );
+            // NOTE: condition block comes last so we can bail out afterwards
+            break;
+        }
+
+        else if( token == "else" ) {
+            // zmiana flagi dla słowa "else"
+            m_conditions.has_else = !m_conditions.has_else;
+        }
+        else {
+            // potentially valid event name
+            if( token.substr( 0, 5 ) != "none_" ) {
+                // eventy rozpoczynające się od "none_" są ignorowane
+                m_children.emplace_back( token, nullptr, ( m_conditions.has_else == false ) );
+            }
+            else {
+                WriteLog( "Multi-event \"" + m_name + "\" ignored link to event \"" + token + "\"" );
+            }
+        }
+    }
+}
+
+// run() subclass details
+void
+multi_event::run_() {
+
+    auto const conditiontest { m_conditions.test() };
+    if( conditiontest
+     || m_conditions.has_else ) {
+           // warunek spelniony albo było użyte else
+        WriteLog( "Type: Multi-event" );
+        for( auto &childwrapper : m_children ) {
+            auto *childevent { std::get<basic_event*>( childwrapper ) };
+            if( childevent == nullptr ) { continue; }
+            if( std::get<bool>( childwrapper ) != conditiontest ) { continue; }
+
+            if( childevent != this ) {
+                // normalnie dodać
+                simulation::Events.AddToQuery( childevent, m_activator );
+            }
+            else {
+                // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
+                if( m_delay >= 5.0 ) {
+                    simulation::Events.AddToQuery( this, m_activator );
+                }
+            }
+        }
+        if( Global.iMultiplayer ) {
+            // dajemy znać do serwera o wykonaniu
+            if( false == m_conditions.has_else ) {
+                // jednoznaczne tylko, gdy nie było else
+                if( m_activator ) {
+                    multiplayer::WyslijEvent( m_name, m_activator->name() );
+                }
+                else {
+                    multiplayer::WyslijEvent( m_name, "" );
+                }
+            }
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+multi_event::export_as_text_( std::ostream &Output ) const {
+
+    for( auto const &childevent : m_children ) {
+        if( true == std::get<bool>( childevent ) ) {
+            auto *childeventdata { std::get<basic_event *>( childevent ) };
+            Output
+                << ( childeventdata != nullptr ?
+                    childeventdata->m_name :
+                    std::get<std::string>( childevent ) )
+                << ' ';
+        }
+    }
+    // optional 'else' block
+    if( true == m_conditions.has_else ) {
+        Output << "else ";
+        for( auto const &childevent : m_children ) {
+            if( false == std::get<bool>( childevent ) ) {
+                auto *childeventdata{ std::get<basic_event *>( childevent ) };
+                Output
+                    << ( childeventdata != nullptr ?
+                        childeventdata->m_name :
+                        std::get<std::string>( childevent ) )
+                    << ' ';
+            }
+        }
+    }
+
+    m_conditions.export_as_text( Output );
+}
+
+
+
+// prepares event for use
+void
+sound_event::init() {
+    // odtworzenie dźwięku
+    for( auto &target : m_sounds ) {
+        std::get<sound_source *>( target ) = simulation::Sounds.find( std::get<std::string>( target ) );
+        if( std::get<sound_source *>( target ) == nullptr ) {
+            m_ignored = true; // deaktywacja
+            ErrorLog( "Bad event: sound event \"" + m_name + "\" cannot find static sound \"" + std::get<std::string>( target ) + "\"" );
+        }
+    }
+}
+
+// event type string
+std::string
+sound_event::type() const {
+
+    return "sound";
+}
+
+// deserialize() subclass details
+void
+sound_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens();
+    // playback mode, previously held in param 0 // 0: wylaczyc, 1: wlaczyc; -1: wlaczyc zapetlone
+    Input >> m_soundmode;
+    Input.getTokens();
+    if( false == is_keyword( Input.peek() ) ) {
+        // optional parameter, radio channel to receive/broadcast the sound, previously held in param 1
+        Input >> m_soundradiochannel;
+        Input.getTokens(); // preload next token
+    }
+}
+
+// run() subclass details
+void
+sound_event::run_() {
+
+    WriteLog(
+        "Type: Sound - [" + std::string( m_soundmode == 1 ? "play" : m_soundmode == -1 ? "loop" : "stop" ) + "]"
+        + ( m_soundradiochannel > 0 ? " [channel " + to_string( m_soundradiochannel ) + "]" : "" ) );
+    for( auto &target : m_sounds ) {
+        auto *targetsound = std::get<sound_source *>( target );
+        if( targetsound == nullptr ) { continue; }
+        // event effect code
+        switch( m_soundmode ) {
+            // trzy możliwe przypadki:
+            case 0: {
+                targetsound->stop();
+                break;
+            }
+            case 1: {
+                if( m_soundradiochannel > 0 ) {
+                    simulation::radio_message(
+                        targetsound,
+                        m_soundradiochannel );
+                }
+                else {
+                    targetsound->play( sound_flags::exclusive | sound_flags::event );
+                }
+                break;
+            }
+            case -1: {
+                targetsound->play( sound_flags::exclusive | sound_flags::looping | sound_flags::event );
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+sound_event::export_as_text_( std::ostream &Output ) const {
+
+    // playback mode
+    Output << m_soundmode << ' ';
+    // optional radio channel
+    if( m_soundradiochannel > 0 ) {
+        Output << m_soundradiochannel << ' ';
+    }
+}
+
+void
+sound_event::deserialize_targets( std::string const &Input ) {
+    // sound objects don't inherit from scene node, so we can't use the same container
+    // TODO: fix this, having sounds as scene nodes (or a node wrapper for one) might have benefits elsewhere
+    cParser targetparser{ Input };
+    std::string target;
+    while( false == ( target = targetparser.getToken<std::string>( true, "|," ) ).empty() ) {
+        // actual bindings to targets of proper type are created during scenario initialization
+        if( target != "none" ) {
+            m_sounds.emplace_back( target, nullptr );
+        }
+    }
+}
+
+
+
+// destructor
+animation_event::~animation_event() {
+
+    if( m_animationtype == 4 ) {
+        // jeśli z pliku VMD
+        SafeDeleteArray( m_animationfiledata ); // zwolnić obszar
+    }
+}
+
+// prepares event for use
+void
+animation_event::init() {
+    // animacja modelu
+    init_targets( simulation::Instances, "model instance" );
+    // custom target initialization code
+    if( m_animationtype == 4 ) {
+        // vmd animations target whole model
+        return;
+    }
+    // locate and set up animated submodels
+    m_animationcontainers.clear();
+    for( auto &target : m_targets ) {
+        auto *targetmodel { static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) ) };
+        if( targetmodel == nullptr ) { continue; }
+        auto *targetcontainer{ targetmodel->GetContainer( m_animationsubmodel ) };
+        if( targetcontainer == nullptr ) {
+            m_ignored = true;
+            ErrorLog( "Bad event: animation event \"" + m_name + "\" cannot find submodel " + m_animationsubmodel + " in model instance \"" + targetmodel->name() + "\"" );
+            break;
+        }
+        targetcontainer->WillBeAnimated(); // oflagowanie animacji
+        if( targetcontainer->Event() == nullptr ) {
+            // nie szukać, gdy znaleziony
+            targetcontainer->EventAssign( simulation::Events.FindEvent( targetmodel->name() + '.' + m_animationsubmodel + ":done" ) );
+        }
+        m_animationcontainers.emplace_back( targetcontainer );
+    }
+}
+
+// event type string
+std::string
+animation_event::type() const {
+
+    return "animation";
+}
+
+// deserialize() subclass details
+void
+animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    std::string token;
+
+    Input.getTokens();
+    Input >> token;
+    if( token.compare( "rotate" ) == 0 ) { // obrót względem osi
+        Input.getTokens();
+        // animation submodel, previously held in param 9
+        Input >> m_animationsubmodel;
+        // animation type, previously held in param 0
+        m_animationtype = 1;
+        Input.getTokens( 4 );
+        // animation params, previously held in param 1, 2, 3, 4
+        Input
+            >> m_animationparams[ 0 ]
+            >> m_animationparams[ 1 ]
+            >> m_animationparams[ 2 ]
+            >> m_animationparams[ 3 ];
+    }
+    else if( token.compare( "translate" ) == 0 ) { // przesuw o wektor
+        Input.getTokens();
+        // animation submodel, previously held in param 9
+        Input >> m_animationsubmodel;
+        // animation type, previously held in param 0
+        m_animationtype = 2;
+        Input.getTokens( 4 );
+        // animation params, previously held in param 1, 2, 3, 4
+        Input
+            >> m_animationparams[ 0 ]
+            >> m_animationparams[ 1 ]
+            >> m_animationparams[ 2 ]
+            >> m_animationparams[ 3 ];
+    }
+    else if( token.compare( "digital" ) == 0 ) { // licznik cyfrowy
+        Input.getTokens();
+        // animation submodel, previously held in param 9
+        Input >> m_animationsubmodel;
+        // animation type, previously held in param 0
+        m_animationtype = 8;
+        Input.getTokens( 4 );
+        // animation params, previously held in param 1, 2, 3, 4
+        Input
+            >> m_animationparams[ 0 ]
+            >> m_animationparams[ 1 ]
+            >> m_animationparams[ 2 ]
+            >> m_animationparams[ 3 ];
+    }
+    else if( token.substr( token.length() - 4, 4 ) == ".vmd" ) // na razie tu, może będzie inaczej
+    { // animacja z pliku VMD
+        {
+            m_animationfilename = token;
+            std::ifstream file( szModelPath + m_animationfilename, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+            auto size = file.tellg();   // ios::ate already positioned us at the end of the file
+            file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
+            // animation size, previously held in param 7
+            m_animationfilesize = size;
+            // animation data, previously held in param 8
+            m_animationfiledata = new char[ size ];
+            file.read( m_animationfiledata, size ); // wczytanie pliku
+        }
+        Input.getTokens();
+        // animation submodel, previously held in param 9
+        Input >> m_animationsubmodel;
+        // animation type, previously held in param 0
+        m_animationtype = 4;
+        Input.getTokens( 4 );
+        // animation params, previously held in param 1, 2, 3, 4
+        Input
+            >> m_animationparams[ 0 ]
+            >> m_animationparams[ 1 ]
+            >> m_animationparams[ 2 ]
+            >> m_animationparams[ 3 ];
+    }
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+animation_event::run_() {
+
+    WriteLog( "Type: Animation" );
+    if( m_animationtype == 4 ) {
+        // vmd mode targets the entire model
+        for( auto &target : m_targets ) {
+            auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
+            if( targetmodel == nullptr ) { continue; }
+            // event effect code
+            targetmodel->AnimationVND(
+                m_animationfiledata,
+                m_animationparams[ 0 ], // tu mogą być dodatkowe parametry, np. od-do
+                m_animationparams[ 1 ],
+                m_animationparams[ 2 ],
+                m_animationparams[ 3 ] );
+        }
+    }
+    else {
+        // other animation modes target specific submodels
+        for( auto *targetcontainer : m_animationcontainers ) {
+            switch( m_animationtype ) {
+                case 1: { // rotate
+                    targetcontainer->SetRotateAnim(
+                        glm::make_vec3( m_animationparams.data() ),
+                        m_animationparams[ 3 ] );
+                    break;
+                }
+                case 2: { // translate
+                    targetcontainer->SetTranslateAnim(
+                        glm::make_vec3( m_animationparams.data() ),
+                        m_animationparams[ 3 ] );
+                    break;
+                }
+                // TODO: implement digital mode
+                default: {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+animation_event::export_as_text_( std::ostream &Output ) const {
+
+    // animation type
+    Output << (
+        m_animationtype == 1 ? "rotate" :
+        m_animationtype == 2 ? "translate" :
+        m_animationtype == 4 ? m_animationfilename :
+        m_animationtype == 8 ? "digital" :
+        "none" )
+        << ' ';
+    // submodel
+    Output << m_animationsubmodel << ' ';
+    // animation parameters
+    Output
+        << m_animationparams[ 0 ] << ' '
+        << m_animationparams[ 1 ] << ' '
+        << m_animationparams[ 2 ] << ' '
+        << m_animationparams[ 3 ] << ' ';
+}
+
+
+
+// prepares event for use
+void
+lights_event::init() {
+    // zmiana świeteł modelu
+    init_targets( simulation::Instances, "model instance" );
+}
+
+// event type string
+std::string
+lights_event::type() const {
+
+    return "lights";
+}
+
+// deserialize() subclass details
+void
+lights_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    // TBD, TODO: remove light count limit?
+    auto const lightcountlimit { 8 };
+    m_lights.resize( lightcountlimit );
+    int lightidx { 0 };
+
+    std::string token;
+    while( ( true == Input.getTokens() )
+        && ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+
+        if( lightidx < lightcountlimit ) {
+            Input >> m_lights[ lightidx++ ];
+        }
+        else {
+            ErrorLog( "Bad event: lights event \"" + m_name + "\" with more than " + to_string( lightcountlimit ) + " parameters" );
+        }
+    }
+    while( lightidx < lightcountlimit ) {
+        // HACK: mark unspecified lights with magic value
+        m_lights[ lightidx++ ] = -2.f;
+    }
+}
+
+// run() subclass details
+void
+lights_event::run_() {
+
+    for( auto &target : m_targets ) {
+        auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
+        if( targetmodel == nullptr ) { continue; }
+        // event effect code
+        for( auto lightidx = 0; lightidx < iMaxNumLights; ++lightidx ) {
+            if( m_lights[ lightidx ] == -2.f ) {
+                // processed all supplied values, bail out
+                break;
+            }
+            if( m_lights[ lightidx ] >= 0.f ) {
+                // -1 zostawia bez zmiany
+                targetmodel->LightSet(
+                    lightidx,
+                    m_lights[ lightidx ] );
+            }
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+lights_event::export_as_text_( std::ostream &Output ) const {
+
+    auto lightidx{ 0 };
+    while( ( lightidx < iMaxNumLights )
+        && ( m_lights[ lightidx ] > -2.0 ) ) {
+        Output << m_lights[ lightidx ] << ' ';
+        ++lightidx;
+    }
+}
+
+
+
+// prepares event for use
+void
+switch_event::init() {
+    // przełożenie zwrotnicy albo zmiana stanu obrotnicy
+    init_targets( simulation::Paths, "track" );
+    // custom target initialization code
+    for( auto &target : m_targets ) {
+        auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
+        if( targettrack == nullptr ) { continue; }
+        // dowiązanie toru
+        if( targettrack->iAction == 0 ) {
+            // jeśli nie jest zwrotnicą ani obrotnicą to będzie się zmieniał stan uszkodzenia
+            targettrack->iAction |= 0x100;
+        }
+        if( ( m_switchstate == 0 )
+            && ( m_switchmovedelay >= 0.0 ) ) {
+            // jeśli przełącza do stanu 0 & jeśli jest zdefiniowany dodatkowy ruch iglic
+            // przesłanie parametrów
+            targettrack->Switch(
+                m_switchstate,
+                m_switchmoverate,
+                m_switchmovedelay );
+        }
+    }
+}
+
+// event type string
+std::string
+switch_event::type() const {
+
+    return "switch";
+}
+
+// deserialize() subclass details
+void
+switch_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens();
+    // switch state, previously held in param 0
+    Input >> m_switchstate;
+    Input.getTokens();
+    if( false == is_keyword( Input.peek() ) ) {
+        // prędkość liniowa ruchu iglic
+        // previously held in param 1
+        Input >> m_switchmoverate;
+        Input.getTokens();
+    }
+    if( false == is_keyword( Input.peek() ) ) {
+        // dodatkowy ruch drugiej iglicy (zamknięcie nastawnicze)
+        // previously held in param 2
+        Input >> m_switchmovedelay;
+        Input.getTokens();
+    }
+}
+
+// run() subclass details
+void
+switch_event::run_() {
+
+    for( auto &target : m_targets ) {
+        auto *targettrack { static_cast<TTrack *>( std::get<scene::basic_node *>( target ) ) };
+        if( targettrack == nullptr ) { continue; }
+        // event effect code
+        targettrack->Switch(
+            m_switchstate,
+            m_switchmoverate,
+            m_switchmovedelay );
+    }
+    if( Global.iMultiplayer ) {
+        // dajemy znać do serwera o przełożeniu
+        multiplayer::WyslijEvent( m_name, "" ); // wysłanie nazwy eventu przełączajacego
+    }
+    // Ra: bardziej by się przydała nazwa toru, ale nie ma do niej stąd dostępu
+}
+
+// export_as_text() subclass details
+void
+switch_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << m_switchstate << ' ';
+    if( ( m_switchmoverate  < 0.f )
+     || ( m_switchmovedelay < 0.f ) ) {
+        Output << m_switchmoverate << ' ';
+    }
+    if( m_switchmovedelay < 0.f ) {
+        Output << m_switchmovedelay << ' ';
+    }
+}
+
+
+
+// prepares event for use
+void
+track_event::init() {
+    // ustawienie prędkości na torze
+    init_targets( simulation::Paths, "track" );
+    // custom target initialization code
+    for( auto &target : m_targets ) {
+        auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
+        if( targettrack == nullptr ) { continue; }
+        // flaga zmiany prędkości toru jest istotna dla skanowania
+        targettrack->iAction |= 0x200;
+    }
+}
+
+// event type string
+std::string
+track_event::type() const {
+
+    return "trackvel";
+}
+
+// deserialize() subclass details
+void
+track_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens();
+    Input >> m_velocity;
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+track_event::run_() {
+
+    WriteLog( "Type: TrackVel - [" + to_string( m_velocity, 2 ) + "]" );
+    for( auto &target : m_targets ) {
+        auto *targettrack = static_cast<TTrack *>( std::get<scene::basic_node *>( target ) );
+        if( targettrack == nullptr ) { continue; }
+        // event effect code
+        targettrack->VelocitySet( m_velocity );
+        if( DebugModeFlag ) {
+            WriteLog( "actual track velocity for " + targettrack->name() + " [" + to_string( targettrack->VelocityGet(), 2 ) + "]" );
+        }
+    }
+}
+
+// export_as_text() subclass details
+void
+track_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << m_velocity << ' ';
+}
+
+
+
+// prepares event for use
+void
+voltage_event::init() {
+    // zmiana napięcia w zasilaczu (TractionPowerSource)
+    init_targets( simulation::Powergrid, "power source" );
+}
+
+// event type string
+std::string
+voltage_event::type() const {
+
+    return "voltage";
+}
+
+// deserialize() subclass details
+void
+voltage_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // zmiana napięcia w zasilaczu (TractionPowerSource)
+    Input.getTokens();
+    Input >> m_voltage;
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+voltage_event::run_() {
+    // zmiana napięcia w zasilaczu (TractionPowerSource)
+    WriteLog( "Type: Voltage [" + to_string( m_voltage, 2 ) + "]" );
+    for( auto &target : m_targets ) {
+        auto *targetpowersource = static_cast<TTractionPowerSource *>( std::get<scene::basic_node *>( target ) );
+        if( targetpowersource == nullptr ) { continue; }
+        // na razie takie chamskie ustawienie napięcia zasilania
+        targetpowersource->VoltageSet( m_voltage );
+    }
+}
+
+// export_as_text() subclass details
+void
+voltage_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << m_voltage << ' ';
+}
+
+
+
+// prepares event for use
+void
+visible_event::init() {
+    // ukrycie albo przywrócenie obiektu
+    for( auto &target : m_targets ) {
+        auto &targetnode{ std::get<scene::basic_node *>( target ) };
+        auto &targetname{ std::get<std::string>( target ) };
+        // najpierw model
+        targetnode = simulation::Instances.find( targetname );
+        if( targetnode == nullptr ) {
+            // albo tory?
+            targetnode = simulation::Paths.find( targetname );
+        }
+        if( targetnode == nullptr ) {
+            // może druty?
+            targetnode = simulation::Traction.find( targetname );
+        }
+        if( targetnode == nullptr ) {
+            m_ignored = true; // deaktywacja
+            ErrorLog( "Bad event: visibility event \"" + m_name + "\" cannot find item \"" + std::get<std::string>( target ) + "\"" );
+        }
+    }
+}
+
+// event type string
+std::string
+visible_event::type() const {
+
+    return "visible";
+}
+
+// deserialize() subclass details
+void
+visible_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // zmiana wyświetlania obiektu
+    Input.getTokens();
+    Input >> m_visible;
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+visible_event::run_() {
+
+    for( auto &target : m_targets ) {
+        auto *targetnode = std::get<scene::basic_node *>( target );
+        if( targetnode == nullptr ) { continue; }
+        // event effect code
+        targetnode->visible( m_visible );
+    }
+}
+
+// export_as_text() subclass details
+void
+visible_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << ( m_visible ? 1 : 0 ) << ' ';
+}
+
+
+
+// prepares event for use
+void
+friction_event::init() {
+    // nothing to do here
+}
+
+// event type string
+std::string
+friction_event::type() const {
+
+    return "friction";
+}
+
+// deserialize() subclass details
+void
+friction_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // zmiana przyczepnosci na scenerii
+    Input.getTokens();
+    Input >> m_friction;
+    // preload next token
+    Input.getTokens();
+}
+
+// run() subclass details
+void
+friction_event::run_() {
+    // zmiana tarcia na scenerii
+    WriteLog( "Type: Friction" );
+    Global.fFriction = ( m_friction );
+}
+
+// export_as_text() subclass details
+void
+friction_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << m_friction << ' ';
+}
+
+
+
+// prepares event for use
+void
+message_event::init() {
+    // nothing to do here
+}
+
+// event type string
+std::string
+message_event::type() const {
+
+    return "message";
+}
+
+// deserialize() subclass details
+void
+message_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // wyświetlenie komunikatu
+    std::string token;
+    while( ( true == Input.getTokens() )
+        && ( false == ( token = Input.peek() ).empty() )
+        && ( false == is_keyword( token ) ) ) {
+        m_message += ( m_message.empty() ? "" : " " ) + token;
+    }
+}
+
+// run() subclass details
+void
+message_event::run_() {
+    // TODO: implement
+}
+
+// export_as_text() subclass details
+void
+message_event::export_as_text_( std::ostream &Output ) const {
+
+    Output << '\"' << m_message << '\"' << ' ';
+}
+
+//---------------------------------------------------------------------------
+
+basic_event *
+make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    auto const name = ToLower( Input.getToken<std::string>() );
+    auto const type = Input.getToken<std::string>();
+
+    basic_event *event { nullptr };
+
+         if( type == "addvalues" )    { event = new updatevalues_event(); }
+    else if( type == "updatevalues" ) { event = new updatevalues_event(); }
+    else if( type == "copyvalues" )   { event = new copyvalues_event(); }
+    else if( type == "getvalues" )    { event = new getvalues_event(); }
+    else if( type == "putvalues" )    { event = new putvalues_event(); }
+    else if( type == "whois" )        { event = new whois_event(); }
+    else if( type == "logvalues" )    { event = new logvalues_event(); }
+    else if( type == "multiple" )     { event = new multi_event(); }
+    else if( type == "switch" )       { event = new switch_event(); }
+    else if( type == "trackvel" )     { event = new track_event(); }
+    else if( type == "sound" )        { event = new sound_event(); }
+    else if( type == "animation" )    { event = new animation_event(); }
+    else if( type == "lights" )       { event = new lights_event(); }
+    else if( type == "voltage" )      { event = new voltage_event(); }
+    else if( type == "visible" )      { event = new visible_event(); }
+    else if( type == "friction" )     { event = new friction_event(); }
+    else if( type == "message" )      { event = new message_event(); }
+
+    if( event == nullptr ) {
+        WriteLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
+        return event;
+    }
+
+    event->m_name = name;
+    if( type == "addvalues" ) {
+        static_cast<updatevalues_event*>( event )->m_input.flags = basic_event::flags::mode_add;
+    }
+    return event;
+}
+
+//---------------------------------------------------------------------------
 
 event_manager::~event_manager() {
 
@@ -1535,35 +1933,32 @@ event_manager::update() {
 }
 
 // adds provided event to the collection. returns: true on success
-// TODO: return handle instead of pointer
+// TBD, TODO: return handle instead of pointer
 bool
-event_manager::insert( TEvent *Event ) {
-
-    if( Event->Type == tp_Unknown ) { return false; }
-
+event_manager::insert( basic_event *Event ) {
     // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
-    auto lookup = m_eventmap.find( Event->asName );
+    auto lookup = m_eventmap.find( Event->m_name );
     if( lookup != m_eventmap.end() ) {
         // duplicate of already existing event
-        auto const size = Event->asName.size();
+        auto const size = Event->m_name.size();
         // zawsze jeden znak co najmniej jest
-        if( Event->asName[ 0 ] == '#' ) {
+        if( Event->m_name[ 0 ] == '#' ) {
             // utylizacja duplikatu z krzyżykiem
             return false;
         }
         // tymczasowo wyjątki:
         else if( ( size > 8 )
-              && ( Event->asName.substr( 0, 9 ) == "lineinfo:" ) ) {
+              && ( Event->m_name.substr( 0, 9 ) == "lineinfo:" ) ) {
             // tymczasowa utylizacja duplikatów W5
             return false;
         }
         else if( ( size > 8 )
-              && ( Event->asName.substr( size - 8 ) == "_warning" ) ) {
+              && ( Event->m_name.substr( size - 8 ) == "_warning" ) ) {
             // tymczasowa utylizacja duplikatu z trąbieniem
             return false;
         }
         else if( ( size > 4 )
-              && ( Event->asName.substr( size - 4 ) == "_shp" ) ) {
+              && ( Event->m_name.substr( size - 4 ) == "_shp" ) ) {
             // nie podlegają logowaniu
             // tymczasowa utylizacja duplikatu SHP
             return false;
@@ -1572,13 +1967,13 @@ event_manager::insert( TEvent *Event ) {
         auto *duplicate = m_events[ lookup->second ];
         if( Global.bJoinEvents ) {
             // doczepka (taki wirtualny multiple bez warunków)
-            duplicate->Append( Event );
+            duplicate->append( Event );
         }
         else {
             // NOTE: somewhat convoluted way to deal with 'replacing' events without leaving dangling pointers
             // can be cleaned up if pointers to events were replaced with handles
-            ErrorLog( "Bad event: encountered duplicated event, \"" + Event->asName + "\"" );
-            duplicate->Append( Event ); // doczepka (taki wirtualny multiple bez warunków)
+            ErrorLog( "Bad event: encountered duplicated event, \"" + Event->m_name + "\"" );
+            duplicate->append( Event ); // doczepka (taki wirtualny multiple bez warunków)
             duplicate->m_ignored = true; // dezaktywacja pierwotnego - taka proteza na wsteczną zgodność
         }
     }
@@ -1586,9 +1981,9 @@ event_manager::insert( TEvent *Event ) {
     m_events.emplace_back( Event );
     if( lookup == m_eventmap.end() ) {
         // if it's first event with such name, it's potential candidate for the execution queue
-        m_eventmap.emplace( Event->asName, m_events.size() - 1 );
+        m_eventmap.emplace( Event->m_name, m_events.size() - 1 );
         if( ( Event->m_ignored != true )
-         && ( Event->asName.find( "onstart" ) != std::string::npos ) ) {
+         && ( Event->m_name.find( "onstart" ) != std::string::npos ) ) {
             // event uruchamiany automatycznie po starcie
             AddToQuery( Event, nullptr );
         }
@@ -1598,7 +1993,7 @@ event_manager::insert( TEvent *Event ) {
 }
 
 // legacy method, returns pointer to specified event, or null
-TEvent *
+basic_event *
 event_manager::FindEvent( std::string const &Name ) {
 
     if( Name.empty() ) { return nullptr; }
@@ -1612,44 +2007,67 @@ event_manager::FindEvent( std::string const &Name ) {
 
 // legacy method, inserts specified event in the event query
 bool
-event_manager::AddToQuery( TEvent *Event, TDynamicObject const *Owner ) {
+event_manager::AddToQuery( basic_event *Event, TDynamicObject const *Owner ) {
 
-    if( false == Event->bEnabled ) { return false; } // jeśli może być dodany do kolejki (nie używany w skanowaniu)
-    if( Event->iQueued != 0 )      { return false; } // jeśli nie dodany jeszcze do kolejki
+    if( Event->m_passive )     { return false; } // jeśli może być dodany do kolejki (nie używany w skanowaniu)
+    if( Event->m_inqueue > 0 ) { return false; } // jeśli nie dodany jeszcze do kolejki
         
     // kolejka eventów jest posortowana względem (fStartTime)
-    Event->Activator = Owner;
-    if( ( Event->Type == tp_AddValues )
-     && ( Event->fDelay == 0.0 ) ) {
+    Event->m_activator = Owner;
+    if( Event->is_instant() ) {
         // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
         if( false == Event->m_ignored ) {
             Event->run();
         }
         // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
         do {
-            Event = Event->evJoined;
+            Event = Event->m_sibling;
             // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
             // TODO: refactor this arrangement, it's hardly optimal
         } while( ( Event != nullptr )
-              && ( ( false == Event->bEnabled )
-                || ( Event->iQueued > 0 ) ) );
+              && ( ( Event->m_passive )
+                || ( Event->m_inqueue > 0 ) ) );
     }
     if( ( Event != nullptr )
      && ( false == Event->m_ignored ) ) {
         // standardowe dodanie do kolejki
-        ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
-        WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->asName );
-        Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
-        if( Event->fRandomDelay > 0.0 ) {
+        ++(Event->m_inqueue); // zabezpieczenie przed podwójnym dodaniem do kolejki
+        WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->m_name );
+        Event->m_launchtime = std::abs( Event->m_delay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+        if( Event->m_delayrandom > 0.0 ) {
             // doliczenie losowego czasu opóźnienia
-            Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
+            Event->m_launchtime += Event->m_delayrandom * Random();
         }
         if( QueryRootEvent != nullptr ) {
-            TEvent::AddToQuery( Event, QueryRootEvent );
+            basic_event *target { QueryRootEvent };
+            basic_event *previous { nullptr };
+            while( ( Event->m_launchtime >= target->m_launchtime )
+                && ( target->m_next != nullptr ) ) {
+                previous = target;
+                target = target->m_next;
+            }
+            // the new event will be either before or after the one we located
+            if( Event->m_launchtime >= target->m_launchtime ) {
+                assert( target->m_next == nullptr );
+                target->m_next = Event;
+                // if we have resurrected event land at the end of list, the link from previous run could potentially "add" unwanted events to the queue
+                Event->m_next = nullptr;
+            }
+            else {
+                if( previous != nullptr ) {
+                    previous->m_next = Event;
+                    Event->m_next = target;
+                }
+                else {
+                    // special case, we're inserting our event at the very start
+                    Event->m_next = QueryRootEvent;
+                    QueryRootEvent = Event;
+                }
+            }
         }
         else {
             QueryRootEvent = Event;
-            QueryRootEvent->evNext = nullptr;
+            QueryRootEvent->m_next = nullptr;
         }
     }
 
@@ -1661,23 +2079,23 @@ bool
 event_manager::CheckQuery() {
 
     while( ( QueryRootEvent != nullptr )
-        && ( QueryRootEvent->fStartTime < Timer::GetTime() ) )
+        && ( QueryRootEvent->m_launchtime < Timer::GetTime() ) )
     { // eventy są posortowana wg czasu wykonania
         m_workevent = QueryRootEvent; // wyjęcie eventu z kolejki
-        if (QueryRootEvent->evJoined) // jeśli jest kolejny o takiej samej nazwie
+        if (QueryRootEvent->m_sibling) // jeśli jest kolejny o takiej samej nazwie
         { // to teraz on będzie następny do wykonania
-            QueryRootEvent = QueryRootEvent->evJoined; // następny będzie ten doczepiony
-            QueryRootEvent->evNext = m_workevent->evNext; // pamiętając o następnym z kolejki
-            QueryRootEvent->fStartTime = m_workevent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
-            QueryRootEvent->Activator = m_workevent->Activator; // pojazd aktywujący
-            QueryRootEvent->iQueued = 1;
+            QueryRootEvent = QueryRootEvent->m_sibling; // następny będzie ten doczepiony
+            QueryRootEvent->m_next = m_workevent->m_next; // pamiętając o następnym z kolejki
+            QueryRootEvent->m_launchtime = m_workevent->m_launchtime; // czas musi być ten sam, bo nie jest aktualizowany
+            QueryRootEvent->m_activator = m_workevent->m_activator; // pojazd aktywujący
+            QueryRootEvent->m_inqueue = 1;
             // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg czasu wykonania
         }
         else // a jak nazwa jest unikalna, to kolejka idzie dalej
-            QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
-        if( ( false == m_workevent->m_ignored ) && ( true == m_workevent->bEnabled ) ) {
+            QueryRootEvent = QueryRootEvent->m_next; // NULL w skrajnym przypadku
+        if( ( false == m_workevent->m_ignored ) && ( false == m_workevent->m_passive ) ) {
             // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
-            --m_workevent->iQueued; // teraz moze być ponownie dodany do kolejki
+            --(m_workevent->m_inqueue); // teraz moze być ponownie dodany do kolejki
             m_workevent->run();
         } // if (tmpEvent->bEnabled)
     } // while
@@ -1690,7 +2108,7 @@ event_manager::InitEvents() {
     //łączenie eventów z pozostałymi obiektami
     for( auto *event : m_events ) {
         event->init();
-        if( event->fDelay < 0 ) { AddToQuery( event, nullptr ); }
+        if( event->m_delay < 0 ) { AddToQuery( event, nullptr ); }
     }
 }
 

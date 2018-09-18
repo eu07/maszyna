@@ -77,7 +77,7 @@ node_groups::insert( scene::group_handle const Group, scene::basic_node *Node ) 
 
 // places provided event in specified group
 void
-node_groups::insert( scene::group_handle const Group, TEvent *Event ) {
+node_groups::insert( scene::group_handle const Group, basic_event *Event ) {
 
     // TBD, TODO: automatically unregister the event from its current group?
     Event->group( Group );

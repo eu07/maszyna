@@ -244,15 +244,14 @@ void
 state_serializer::deserialize_event( cParser &Input, scene::scratch_data &Scratchpad ) {
 
     // TODO: refactor event class and its de/serialization. do offset and rotation after deserialization is done
-    auto *event = new TEvent();
-    Math3D::vector3 offset = (
-        Scratchpad.location.offset.empty() ?
-            Math3D::vector3() :
-            Math3D::vector3(
-                Scratchpad.location.offset.top().x,
-                Scratchpad.location.offset.top().y,
-                Scratchpad.location.offset.top().z ) );
-    event->Load( &Input, offset );
+    auto *event = make_event( Input, Scratchpad );
+    if( event == nullptr ) {
+        // something went wrong at initial stage, move on
+        skip_until( Input, "endevent" );
+        return;
+    }
+
+    event->deserialize( Input, Scratchpad );
 
     if( true == simulation::Events.insert( event ) ) {
         scene::Groups.insert( scene::Groups.handle(), event );
