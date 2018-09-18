@@ -606,7 +606,7 @@ lines_node::import( cParser &Input, scene::node_data const &Nodedata ) {
         m_data.vertices.emplace_back( vertex0 );
     }
     if( m_data.vertices.size() % 2 != 0 ) {
-        ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
+        ErrorLog( "Lines node specified odd number of vertices, defined in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
         m_data.vertices.pop_back();
     }
 

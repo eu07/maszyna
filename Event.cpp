@@ -743,7 +743,7 @@ copyvalues_event::init() {
     std::get<scene::basic_node *>( m_input.data_source ) = simulation::Memory.find( std::get<std::string>( m_input.data_source ) );
     if( std::get<scene::basic_node *>( m_input.data_source ) == nullptr ) {
         m_ignored = true; // deaktywacja
-        ErrorLog( "Bad event: copyvalues event \"" + m_name + "\" cannot find memcell \"" + std::get<std::string>( m_input.data_source ) + "\"" );
+        ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find memory cell \"" + std::get<std::string>( m_input.data_source ) + "\"" );
     }
 }
 
@@ -1030,7 +1030,7 @@ multi_event::init() {
     for( auto &childevent : m_children ) {
         std::get<basic_event *>( childevent ) = simulation::Events.FindEvent( std::get<std::string>( childevent ) );
         if( std::get<basic_event *>( childevent ) == nullptr ) {
-            ErrorLog( "Bad event: multi-event \"" + m_name + "\" cannot find event \"" + std::get<std::string>( childevent ) + "\"" );
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find event \"" + std::get<std::string>( childevent ) + "\"" );
         }
     }
 }
@@ -1158,7 +1158,7 @@ sound_event::init() {
         std::get<sound_source *>( target ) = simulation::Sounds.find( std::get<std::string>( target ) );
         if( std::get<sound_source *>( target ) == nullptr ) {
             m_ignored = true; // deaktywacja
-            ErrorLog( "Bad event: sound event \"" + m_name + "\" cannot find static sound \"" + std::get<std::string>( target ) + "\"" );
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find static sound \"" + std::get<std::string>( target ) + "\"" );
         }
     }
 }
@@ -1279,7 +1279,7 @@ animation_event::init() {
         auto *targetcontainer{ targetmodel->GetContainer( m_animationsubmodel ) };
         if( targetcontainer == nullptr ) {
             m_ignored = true;
-            ErrorLog( "Bad event: animation event \"" + m_name + "\" cannot find submodel " + m_animationsubmodel + " in model instance \"" + targetmodel->name() + "\"" );
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find submodel " + m_animationsubmodel + " in model instance \"" + targetmodel->name() + "\"" );
             break;
         }
         targetcontainer->WillBeAnimated(); // oflagowanie animacji
@@ -1478,7 +1478,7 @@ lights_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
             Input >> m_lights[ lightidx++ ];
         }
         else {
-            ErrorLog( "Bad event: lights event \"" + m_name + "\" with more than " + to_string( lightcountlimit ) + " parameters" );
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") with more than " + to_string( lightcountlimit ) + " parameters" );
         }
     }
     while( lightidx < lightcountlimit ) {
@@ -1736,7 +1736,7 @@ visible_event::init() {
         }
         if( targetnode == nullptr ) {
             m_ignored = true; // deaktywacja
-            ErrorLog( "Bad event: visibility event \"" + m_name + "\" cannot find item \"" + std::get<std::string>( target ) + "\"" );
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find item \"" + std::get<std::string>( target ) + "\"" );
         }
     }
 }
@@ -1972,7 +1972,7 @@ event_manager::insert( basic_event *Event ) {
         else {
             // NOTE: somewhat convoluted way to deal with 'replacing' events without leaving dangling pointers
             // can be cleaned up if pointers to events were replaced with handles
-            ErrorLog( "Bad event: encountered duplicated event, \"" + Event->m_name + "\"" );
+            ErrorLog( "Bad scenario: duplicate event name \"" + Event->m_name + "\"" );
             duplicate->append( Event ); // doczepka (taki wirtualny multiple bez warunków)
             duplicate->m_ignored = true; // dezaktywacja pierwotnego - taka proteza na wsteczną zgodność
         }
@@ -2123,7 +2123,7 @@ event_manager::InitLaunchers() {
                 // jeśli jest powiązana komórka pamięci
                 launcher->MemCell = simulation::Memory.find( launcher->asMemCellName );
                 if( launcher->MemCell == nullptr ) {
-                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find memcell \"" + launcher->asMemCellName + "\"" );
+                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find memcell \"" + launcher->asMemCellName + "\"" );
                 }
             }
             else {
@@ -2134,14 +2134,14 @@ event_manager::InitLaunchers() {
         if( launcher->asEvent1Name != "none" ) {
             launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
             if( launcher->Event1 == nullptr ) {
-                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent1Name + "\"" );
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent1Name + "\"" );
             }
         }
 
         if( launcher->asEvent2Name != "none" ) {
             launcher->Event2 = simulation::Events.FindEvent( launcher->asEvent2Name );
             if( launcher->Event2 == nullptr ) {
-                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" cannot find event \"" + launcher->asEvent2Name + "\"" );
+                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent2Name + "\"" );
             }
         }
     }

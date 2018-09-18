@@ -909,7 +909,7 @@ bool TTrack::AssignEvents() {
                 m_events = true;
             }
             else {
-                ErrorLog( "Bad event: event \"" + event.first + "\" assigned to track \"" + m_name + "\" does not exist" );
+                ErrorLog( "Bad track: \"" + m_name + "\" can't find assigned event \"" + event.first + "\"" );
                 lookupfail = true;
             }
         }

@@ -634,7 +634,7 @@ basic_event::init_targets( TableType_ &Repository, std::string const &Targettype
         if( std::get<scene::basic_node *>( target ) == nullptr ) {
             m_ignored = true; // deaktywacja
             if( Logerrors )
-                ErrorLog( "Bad event: " + type() + " event \"" + m_name + "\" cannot find " + Targettype +" \"" + std::get<std::string>( target ) + "\"" );
+                ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find " + Targettype +" \"" + std::get<std::string>( target ) + "\"" );
         }
     }
 }
