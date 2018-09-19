@@ -413,6 +413,10 @@ opengl_renderer::Render() {
     setup_units( true, false, false );
     Application.render_ui();
 
+    if( Global.bUseVBO ) {
+        // swapbuffers() will unbind current buffers so we prepare for it on our end
+        gfx::opengl_vbogeometrybank::reset();
+    }
     Timer::subsystem.gfx_swap.start();
     glfwSwapBuffers( m_window );
     Timer::subsystem.gfx_swap.stop();
