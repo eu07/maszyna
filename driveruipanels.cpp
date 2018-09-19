@@ -385,8 +385,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         locale::strings[ locale::string::debug_vehicle_nameloadstatuscouplers ].c_str(),
         mover.Name.c_str(),
         std::string( isowned ? locale::strings[ locale::string::debug_vehicle_owned ].c_str() + vehicle.ctOwner->OwnerName() : "" ).c_str(),
-        mover.Load,
-        mover.LoadType.c_str(),
+        mover.LoadAmount,
+        mover.LoadType.name.c_str(),
         mover.EngineDescription( 0 ).c_str(),
         // TODO: put wheel flat reporting in the enginedescription()
         std::string( mover.WheelFlat > 0.01 ? " Flat: " + to_string( mover.WheelFlat, 1 ) + " mm" : "" ).c_str(),

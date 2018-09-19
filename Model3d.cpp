@@ -79,12 +79,12 @@ TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool co
     if( true == Includesiblings ) {
         auto sibling { this };
         while( ( sibling = sibling->Next ) != nullptr ) {
-            sibling->f4Emision.a = Level;
+            sibling->SetLightLevel( Level, Includechildren, false ); // no need for all siblings to duplicate the work
         }
     }
     if( ( true == Includechildren )
      && ( Child != nullptr ) ) {
-        Child->SetLightLevel( Level, true, true ); // node's children include child's siblings and children
+        Child->SetLightLevel( Level, Includechildren, true ); // node's children include child's siblings and children
     }
 }
 

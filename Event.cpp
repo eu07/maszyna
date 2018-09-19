@@ -913,15 +913,15 @@ whois_event::run_() {
             else {
                 // jeśli parametry ładunku
                 targetcell->UpdateValues(
-                    m_activator->MoverParameters->LoadType, // nazwa ładunku
-                    m_activator->MoverParameters->Load, // aktualna ilość
+                    m_activator->MoverParameters->LoadType.name, // nazwa ładunku
+                    m_activator->MoverParameters->LoadAmount, // aktualna ilość
                     m_activator->MoverParameters->MaxLoad, // maksymalna ilość
                     m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
 
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
-                    + "[load type: " + m_activator->MoverParameters->LoadType + "], "
-                    + "[current load: " + to_string( m_activator->MoverParameters->Load, 2 ) + "], "
+                    + "[load type: " + m_activator->MoverParameters->LoadType.name + "], "
+                    + "[current load: " + to_string( m_activator->MoverParameters->LoadAmount, 2 ) + "], "
                     + "[max load: " + to_string( m_activator->MoverParameters->MaxLoad, 2 ) + "]" );
             }
         }

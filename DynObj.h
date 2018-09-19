@@ -458,7 +458,7 @@ private:
   public:
     void ABuScanObjects(int ScanDir, double ScanDist);
 
-  protected:
+  private:
     TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler );
     void ABuCheckMyTrack();
 
@@ -580,7 +580,8 @@ private:
             Axle0.GetTrack()); };
 
     // McZapkie-260202
-    void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
+    void LoadMMediaFile(std::string const &TypeName, std::string const &ReplacableSkin);
+    TModel3d *LoadMMediaFile_mdload( std::string const &Name ) const;
 
     inline double ABuGetDirection() const { // ABu.
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection()); };
