@@ -914,6 +914,9 @@ opengl_texture::downsize( GLuint const Format ) {
         }
 
         WriteLog( "Texture size exceeds specified limits, downsampling data" );
+        // trim potential odd texture sizes
+        data_width  -= ( data_width % 2 );
+        data_height -= ( data_height % 2 );
         switch( Format ) {
 
             case GL_RGB:  { downsample< glm::tvec3<std::uint8_t> >( data_width, data_height, data.data() ); break; }

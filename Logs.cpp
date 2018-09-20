@@ -22,6 +22,8 @@ char logbuffer[ 256 ];
 
 char endstring[10] = "\n";
 
+std::deque<std::string> log_scrollback;
+
 std::string filename_date() {
     ::SYSTEMTIME st;
 
@@ -83,9 +85,9 @@ void WriteLog( const char *str, logtype const Type ) {
     }
 	output.flush();
 
-    UILayer.log.emplace_back(std::string(str));
-    if (UILayer.log.size() > 100)
-        UILayer.log.pop_front();
+    log_scrollback.emplace_back(std::string(str));
+    if (log_scrollback.size() > 200)
+        log_scrollback.pop_front();
 
     if( Global.iWriteLogEnabled & 2 ) {
 #ifdef _WIN32

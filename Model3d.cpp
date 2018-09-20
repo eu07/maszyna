@@ -20,19 +20,17 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"
+#include "simulation.h"
 #include "simulationtime.h"
 #include "mtable.h"
 #include "sn_utils.h"
-#include "World.h"
-
-extern TWorld World;
 
 //---------------------------------------------------------------------------
 
 using namespace Mtable;
 
 float TSubModel::fSquareDist = 0.f;
-size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
+std::uintptr_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
@@ -227,7 +225,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             f4Specular = glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
         }
     }
-    parser.ignoreTokens(1); // zignorowanie nazwy "SelfIllum:"
+    parser.ignoreToken(); // zignorowanie nazwy "SelfIllum:"
     {
         std::string light = parser.getToken<std::string>();
         if (light == "true")
@@ -454,6 +452,12 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                             >> Vertices[i].normal.x
                             >> Vertices[i].normal.y
                             >> Vertices[i].normal.z;
+                        if( glm::length2( Vertices[ i ].normal ) > 0.0f ) {
+                            glm::normalize( Vertices[ i ].normal );
+                        }
+                        else {
+                            WriteLog( "Bad model: zero length normal vector specified in: \"" + pName + "\", vertex " + std::to_string(i), logtype::model );
+                        }
 						wsp[i] = i; // wektory normalne "są już policzone"
 					}
 					parser.getTokens(2, false);
@@ -487,7 +491,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 /*
 				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
 */
-                std::vector<glm::vec3> facenormals;
+                std::vector<glm::vec3> facenormals; facenormals.reserve( facecount );
                 for( int i = 0; i < facecount; ++i ) {
                     // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
                     auto facenormal = 
@@ -1156,7 +1160,7 @@ TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 	TSubModel *sm = Name ? GetFromName(Name) : nullptr;
     if( ( sm == nullptr )
      && ( Name != nullptr ) && ( std::strcmp( Name, "none" ) != 0 ) ) {
-        ErrorLog( "Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located after in the model data", logtype::model );
+        ErrorLog( "Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located later in the model data", logtype::model );
     }
 	AddTo(sm, SubModel); // szukanie nadrzędnego
 	return sm; // zwracamy wskaźnik do nadrzędnego submodelu
@@ -1177,7 +1181,7 @@ void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel) {
 	iFlags |= 0x0200; // submodele są oddzielne
 };
 
-TSubModel *TModel3d::GetFromName(std::string const &Name)
+TSubModel *TModel3d::GetFromName(std::string const &Name) const
 { // wyszukanie submodelu po nazwie
 	if (Name.empty())
 		return Root; // potrzebne do terenu z E3D
@@ -1221,7 +1225,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
 
     if( true == TestFlag( iFlags, 0x0200 ) ) {
         // flip coordinates for t3d file which wasn't yet initialized
-        if( ( false == Global.pWorld->InitPerformed() )
+        if( ( false == simulation::is_ready )
          || ( false == Vertices.empty() ) ) {
             // NOTE, HACK: results require flipping if the model wasn't yet initialized, so we're using crude method to detect possible cases
             // TODO: sort out this mess, either unify offset lookups to take place before (or after) initialization,
@@ -1337,14 +1341,10 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_float32(s, fVisible);
 	sn_utils::ls_float32(s, fLight);
 
-	for (int i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Ambient[i]);
-	for (int i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Diffuse[i]);
-	for (int i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Specular[i]);
-	for (int i = 0; i < 4; i++)
-		sn_utils::ls_float32(s, f4Emision[i]);
+	sn_utils::s_vec4(s, f4Ambient);
+	sn_utils::s_vec4(s, f4Diffuse);
+	sn_utils::s_vec4(s, f4Specular);
+	sn_utils::s_vec4(s, f4Emision);
 
 	sn_utils::ls_float32(s, fWireSize);
 	sn_utils::ls_float32(s, fSquareMaxDist);
@@ -1461,14 +1461,10 @@ void TSubModel::deserialize(std::istream &s)
 	fVisible = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
-	for (int i = 0; i < 4; ++i)
-		f4Ambient[i] = sn_utils::ld_float32(s);
-	for (int i = 0; i < 4; ++i)
-		f4Diffuse[i] = sn_utils::ld_float32(s);
-	for (int i = 0; i < 4; ++i)
-		f4Specular[i] = sn_utils::ld_float32(s);
-	for (int i = 0; i < 4; ++i)
-		f4Emision[i] = sn_utils::ld_float32(s);
+	f4Ambient = sn_utils::d_vec4(s);
+	f4Diffuse = sn_utils::d_vec4(s);
+	f4Specular = sn_utils::d_vec4(s);
+	f4Emision = sn_utils::d_vec4(s);
 
 	fWireSize = sn_utils::ld_float32(s);
 	fSquareMaxDist = sn_utils::ld_float32(s);

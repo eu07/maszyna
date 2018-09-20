@@ -47,11 +47,6 @@ class cParser //: public std::stringstream
         ignoreToken() {
             readToken(); };
     inline
-    void
-        ignoreTokens(int count) {
-            for( int i = 0; i < count; ++i ) {
-                readToken(); } };
-    inline
     bool
         expectToken( std::string const &Value ) {
             return readToken() == Value; };
@@ -96,15 +91,18 @@ class cParser //: public std::stringstream
     bool trimComments( std::string &String );
     std::size_t count();
     // members:
-    bool m_autoclear { true }; // not retrieved tokens are discarded when another read command is issued (legacy behaviour)
-    bool LoadTraction; // load traction?
+    bool m_autoclear { true }; // unretrieved tokens are discarded when another read command is issued (legacy behaviour)
+    bool LoadTraction { true }; // load traction?
     std::shared_ptr<std::istream> mStream; // relevant kind of buffer is attached on creation.
     std::string mFile; // name of the open file, if any
     std::string mPath; // path to open stream, for relative path lookups.
     std::streamoff mSize { 0 }; // size of open stream, for progress report.
     std::size_t mLine { 0 }; // currently processed line
+    bool mIncFile { false }; // the parser is processing an *.inc file
     typedef std::map<std::string, std::string> commentmap;
-    commentmap mComments;
+    commentmap mComments {
+        commentmap::value_type( "/*", "*/" ),
+        commentmap::value_type( "//", "\n" ) };
     std::shared_ptr<cParser> mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;

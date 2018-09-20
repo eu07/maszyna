@@ -88,8 +88,10 @@ public:
             return CPointOut; };
     Math3D::vector3
         FastGetDirection(double const fDistance, double const fOffset);
+/*
     Math3D::vector3
         GetPoint(double const fDistance) const;
+*/
     void
         RaPositionGet(double const fDistance, Math3D::vector3 &p, Math3D::vector3 &a) const;
     Math3D::vector3

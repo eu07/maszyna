@@ -215,7 +215,8 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
     m_targetvalue = fNewDesired;
     // if there's any sound associated with new requested value, play it
     // check value-specific table first...
-    if( desiredtimes100 % 100 == 0 ) {
+    auto const fullinteger { desiredtimes100 % 100 == 0 };
+    if( fullinteger ) {
         // filter out values other than full integers
         auto const lookup = m_soundfxvalues.find( desiredtimes100 / 100 );
         if( lookup != m_soundfxvalues.end() ) {
@@ -223,21 +224,26 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
             return;
         }
     }
+    else {
+        // toggle the control to continous range/exclusive sound mode from now on
+        m_soundtype = sound_flags::exclusive;
+    }
     // ...and if there isn't any, fall back on the basic set...
     auto const currentvalue = GetValue();
+    // HACK: crude way to discern controls with continuous and quantized value range
     if( ( currentvalue < fNewDesired )
      && ( false == m_soundfxincrease.empty() ) ) {
         // shift up
-        m_soundfxincrease.play( sound_flags::exclusive );
+        m_soundfxincrease.play( m_soundtype );
     }
     else if( ( currentvalue > fNewDesired )
           && ( false == m_soundfxdecrease.empty() ) ) {
         // shift down
-        m_soundfxdecrease.play( sound_flags::exclusive );
+        m_soundfxdecrease.play( m_soundtype );
     }
     else if( Fallbacksound != nullptr ) {
         // ...and if that fails too, try the provided fallback sound from legacy system
-        Fallbacksound->play( sound_flags::exclusive );
+        Fallbacksound->play( m_soundtype );
     }
 };
 

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "World.h"
+#include "messaging.h"
 #include "utilities.h"
 
 #pragma warning (disable: 4091)
@@ -62,7 +62,7 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
             // obsługa danych przesłanych przez program sterujący
             pDane = (PCOPYDATASTRUCT)lParam;
             if( pDane->dwData == MAKE_ID4('E', 'U', '0', '7')) // sygnatura danych
-                World.OnCommandGet( ( multiplayer::DaneRozkaz *)( pDane->lpData ) );
+                multiplayer::OnCommandGet( ( multiplayer::DaneRozkaz *)( pDane->lpData ) );
             break;
         }
 		case WM_KEYDOWN:

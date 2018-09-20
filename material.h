@@ -44,6 +44,9 @@ private:
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
         void log_error(const std::string &str);
+    // extracts name of the sound file from provided data stream
+    std::string
+        deserialize_filename( cParser &Input );
 
 // members
     // priorities for textures, shader, opacity

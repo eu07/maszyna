@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
-#include "World.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -144,6 +143,8 @@ class TTrain
     void set_paired_open_motor_connectors_button( bool const State );
     // update function subroutines
     void update_sounds( double const Deltatime );
+    void update_sounds_runningnoise( sound_source &Sound );
+    void update_sounds_radio();
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -296,9 +297,16 @@ class TTrain
     static void OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlightenable( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlightdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_dashboardlighttoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_timetablelighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
@@ -410,6 +418,8 @@ public: // reszta może by?publiczna
     std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
 
     TGauge ggInstrumentLightButton;
+    TGauge ggDashboardLightButton;
+    TGauge ggTimetableLightButton;
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
@@ -418,6 +428,11 @@ public: // reszta może by?publiczna
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
+    TGauge ggDoorLeftOnButton;
+    TGauge ggDoorRightOnButton;
+    TGauge ggDoorLeftOffButton;
+    TGauge ggDoorRightOffButton;
+    TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
 
     // Winger 160204 - obsluga pantografow - ZROBIC
@@ -448,13 +463,13 @@ public: // reszta może by?publiczna
     TButton btLampkaNadmPrzetw;
     TButton btLampkaPrzetw;
     TButton btLampkaPrzetwOff;
-    TButton btLampkaPrzekRozn;
-    TButton btLampkaPrzekRoznPom;
+    TButton btLampkaPrzekRozn; // TODO: implement
+    TButton btLampkaPrzekRoznPom; // TODO: implement
     TButton btLampkaNadmSil;
     TButton btLampkaWylSzybki;
     TButton btLampkaWylSzybkiOff;
     TButton btLampkaNadmWent;
-    TButton btLampkaNadmSpr;
+    TButton btLampkaNadmSpr; // TODO: implement
     // yB: drugie lampki dla EP05 i ET42
     TButton btLampkaOporyB;
     TButton btLampkaStycznB;
@@ -463,6 +478,7 @@ public: // reszta może by?publiczna
     TButton btLampkaNadmPrzetwB;
     TButton btLampkaPrzetwB;
     TButton btLampkaPrzetwBOff;
+    TButton btLampkaHVoltageB; // TODO: implement
     // KURS90 lampki jazdy bezoporowej dla EU04
     TButton btLampkaBezoporowaB;
     TButton btLampkaBezoporowa;
@@ -475,9 +491,13 @@ public: // reszta może by?publiczna
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
     TButton btInstrumentLight;
-    int InstrumentLightType; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
-    bool InstrumentLightActive;
-    TButton btLampkaWentZaluzje; // ET22
+    TButton btDashboardLight;
+    TButton btTimetableLight;
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    bool InstrumentLightActive{ false };
+    bool DashboardLightActive{ false };
+    bool TimetableLightActive{ false };
+    TButton btLampkaWentZaluzje; // ET22 // TODO: implement
     TButton btLampkaOgrzewanieSkladu;
     TButton btLampkaSHP;
     TButton btLampkaCzuwaka; // McZapkie-141102
@@ -493,7 +513,7 @@ public: // reszta może by?publiczna
     TButton btLampkaBocznik2;
     TButton btLampkaBocznik3;
     TButton btLampkaBocznik4;
-    TButton btLampkaRadiotelefon;
+    TButton btLampkaRadiotelefon; // TODO: implement
     TButton btLampkaHamienie;
     TButton btLampkaBrakingOff;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
@@ -564,6 +584,7 @@ public: // reszta może by?publiczna
         float fadein_end { 0.f }; // full effect speed in km/h
     } HuntingShake;
     float HuntingAngle { 0.f }; // crude approximation of hunting oscillation; current angle of sine wave
+    bool IsHunting { false };
 
     sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
     sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
@@ -583,12 +604,13 @@ public: // reszta może by?publiczna
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
+    sound_source rsHuntingNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
 
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
-    std::vector<sound_source> m_radiomessages; // list of currently played radio messages
+    std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
     sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)

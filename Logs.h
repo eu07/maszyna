@@ -27,3 +27,5 @@ void ErrorLog( const std::string &str, logtype const Type = logtype::generic );
 void WriteLog( const std::string &str, logtype const Type = logtype::generic );
 void CommLog( const char *str );
 void CommLog( const std::string &str );
+
+extern std::deque<std::string> log_scrollback;

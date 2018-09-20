@@ -9,21 +9,24 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "application.h"
+#include "scenarioloadermode.h"
+#include "drivermode.h"
+#include "editormode.h"
 
 #include "Globals.h"
 #include "keyboardinput.h"
-#include "mouseinput.h"
+#include "drivermouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "simulation.h"
-#include "World.h"
 #include "PyInt.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
 #include "Logs.h"
 #include "screenshot.h"
-#include "motiontelemetry.h"
+#include "translation.h"
+#include "Train.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
@@ -40,19 +43,7 @@ http://mozilla.org/MPL/2.0/.
 eu07_application Application;
 screenshot_manager screenshot_man;
 
-namespace input {
-
-gamepad_input Gamepad;
-mouse_input Mouse;
-glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
-keyboard_input Keyboard;
-std::unique_ptr<uart_input> uart;
-user_command command; // currently issued control command, if any
-std::unique_ptr<motiontelemetry> motiontelemetry;
-#ifdef _WIN32
-Console console;
-#endif
-}
+ui_layer uilayerstaticinitializer;
 
 #ifdef _WIN32
 extern "C"
@@ -68,6 +59,15 @@ extern WNDPROC BaseWindowProc;
 
 // user input callbacks
 
+void focus_callback( GLFWwindow *window, int focus ) {
+    if( Global.bInactivePause ) {// jeśli ma być pauzowanie okna w tle
+        if( focus )
+            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
+        else
+            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
+    }
+}
+
 void window_resize_callback( GLFWwindow *window, int w, int h ) {
     // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
     // TBD, TODO: merge them?
@@ -78,117 +78,26 @@ void window_resize_callback( GLFWwindow *window, int w, int h ) {
 }
 
 void cursor_pos_callback( GLFWwindow *window, double x, double y ) {
-    if( false == Global.ControlPicking ) {
-        glfwSetCursorPos( window, 0, 0 );
-    }
-
-    Application.m_cursor_pos.x = x;
-    Application.m_cursor_pos.y = y;
-
-    // give the potential event recipient a shot at it, in the virtual z order
-    if( true == scene::Editor.on_mouse_move( x, y ) ) { return; }
-    input::Mouse.move( x, y );
+    Application.on_cursor_pos( x, y );
 }
 
 void mouse_button_callback( GLFWwindow* window, int button, int action, int mods )
 {
-    if (UILayer.mouse_button_callback(button, action, mods))
-		return;
-
-    if( ( button != GLFW_MOUSE_BUTTON_LEFT )
-        && ( button != GLFW_MOUSE_BUTTON_RIGHT ) ) {
-        // we don't care about other mouse buttons at the moment
-        return;
-    }
-    // give the potential event recipient a shot at it, in the virtual z order
-    if( true == scene::Editor.on_mouse_button( button, action ) ) { return; }
-    input::Mouse.button( button, action );
+    Application.on_mouse_button( button, action, mods );
 }
 
-void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
-{
-	if (UILayer.key_callback(key, scancode, action, mods))
-		return;
+void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
+    Application.on_scroll( xoffset, yoffset );
+}
 
-    Global.shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
-    Global.ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
-    Global.altState = ( mods & GLFW_MOD_ALT ) ? true : false;
+void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods ) {
 
-    // give the ui first shot at the input processing...
-    if( true == UILayer.on_key( key, action ) ) { return; }
-    if( true == scene::Editor.on_key( key, action ) ) { return; }
-    // ...if the input is left untouched, pass it on
-    input::Keyboard.key( key, action );
-
-    if( ( true == Global.InputMouse )
-        && ( ( key == GLFW_KEY_LEFT_ALT )
-            || ( key == GLFW_KEY_RIGHT_ALT ) ) ) {
-        // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
-        if( action == GLFW_RELEASE ) {
-
-            if( Global.ControlPicking ) {
-                // switch off
-                Application.get_cursor_pos( input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
-                Application.set_cursor( GLFW_CURSOR_DISABLED );
-                Application.set_cursor_pos( 0, 0 );
-            }
-            else {
-                // enter picking mode
-                Application.set_cursor_pos( input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
-                Application.set_cursor( GLFW_CURSOR_NORMAL );
-            }
-            // actually toggle the mode
-            Global.ControlPicking = !Global.ControlPicking;
-        }
-    }
-
-    if( ( key == GLFW_KEY_LEFT_SHIFT )
-        || ( key == GLFW_KEY_LEFT_CONTROL )
-        || ( key == GLFW_KEY_LEFT_ALT )
-        || ( key == GLFW_KEY_RIGHT_SHIFT )
-        || ( key == GLFW_KEY_RIGHT_CONTROL )
-        || ( key == GLFW_KEY_RIGHT_ALT ) ) {
-        // don't bother passing these
-        return;
-    }
-
-    if( action == GLFW_PRESS || action == GLFW_REPEAT ) {
-
-        World.OnKeyDown( key );
-
-        switch( key ) {
-            case GLFW_KEY_PRINT_SCREEN: {
-                Application.queue_screenshot();
-                break;
-            }
-            default: { break; }
-        }
-    }
+    Application.on_key( key, scancode, action, mods );
 }
 
 void char_callback(GLFWwindow *window, unsigned int c)
 {
-    if (UILayer.char_callback(c))
-        return;
-}
-
-void focus_callback( GLFWwindow *window, int focus ) {
-    if( Global.bInactivePause ) // jeśli ma być pauzowanie okna w tle
-        if( focus )
-            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
-        else
-            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
-}
-
-void scroll_callback( GLFWwindow* window, double xoffset, double yoffset )
-{
-	if (UILayer.scroll_callback(xoffset, yoffset))
-		return;
-
-    if( Global.ctrlState ) {
-        // ctrl + scroll wheel adjusts fov in debug mode
-        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - yoffset ), 15.0f, 75.0f );
-    }
+    Application.on_char(c);
 }
 
 // public:
@@ -208,6 +117,15 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
         return result;
     }
+    if( ( result = init_locale() ) != 0 ) {
+        return result;
+    }
+
+    WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
+    WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
+    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
+
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
@@ -218,84 +136,38 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
+    if( ( result = init_modes() ) != 0 ) {
+        return result;
+    }
 
     return result;
 }
 
 int
-eu07_application::run()
-{
-    // TODO: move input sources and their initializations to the application mode member
-    input::Keyboard.init();
-    input::Mouse.init();
-    input::Gamepad.init();
-    if( true == Global.uart_conf.enable ) {
-        input::uart = std::make_unique<uart_input>();
-        input::uart->init();
-    }
-	if (Global.motiontelemetry_conf.enable)
-		input::motiontelemetry = std::make_unique<motiontelemetry>();
-#ifdef _WIN32
-    Console::On(); // włączenie konsoli
-#endif
-
-    Global.pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-
-    if( false == World.Init( m_window ) ) {
-        ErrorLog( "Bad init: simulation setup failed" );
-        return -1;
-    }
-
-    if( Global.iConvertModels < 0 ) {
-        // generate binary files for all 3d models
-        Global.iConvertModels = -Global.iConvertModels;
-        World.CreateE3D( szModelPath ); // rekurencyjne przeglądanie katalogów
-        World.CreateE3D( szDynamicPath, true );
-        // auto-close when you're done
-        WriteLog( "Binary 3d model generation completed" );
-        return 0;
-    }
+eu07_application::run() {
 
     // main application loop
-    // TODO: split into parts and delegate these to application mode member
-    while (!glfwWindowShouldClose(m_window))
-	{
-		Timer::subsystem.mainloop_total.start();
-
-		glfwPollEvents();
-
-		if (!World.Update())
-			break;
-
-		if (!GfxRenderer.Render())
-			break;
-
-        if (m_screenshot_queued)
-		{
-            m_screenshot_queued = false;
-			screenshot_man.make_screenshot();
-		}
-
-		if (input::motiontelemetry)
-			input::motiontelemetry->update();
-        input::Keyboard.poll();
-		simulation::Commands.update();
-        if (Global.InputMouse)
-			input::Mouse.poll();
-        if (Global.InputGamepad)
-			input::Gamepad.poll();
-        if (input::uart)
-			input::uart->poll();
-
-        // TODO: wrap current command in object, include other input sources
-        input::command = (
-            input::Mouse.command() != user_command::none ?
-                input::Mouse.command() :
-                input::Keyboard.command() );
+    while (!glfwWindowShouldClose( m_window ) && !m_modestack.empty())
+    {
+        if (!m_modes[ m_modestack.top() ]->update())
+            break;
+        if (!GfxRenderer.Render())
+            break;
 
         GfxRenderer.SwapBuffers();
 
-		Timer::subsystem.mainloop_total.stop();
+        Timer::subsystem.mainloop_total.start();
+        glfwPollEvents();
+
+        m_modes[ m_modestack.top() ]->on_event_poll();
+
+        simulation::Commands.update();
+        if (m_screenshot_queued) {
+            m_screenshot_queued = false;
+            screenshot_man.make_screenshot();
+        }
+
+        Timer::subsystem.mainloop_total.stop();
     }
 
     return 0;
@@ -304,10 +176,10 @@ eu07_application::run()
 void
 eu07_application::exit() {
 
-#ifdef _WIN32
-    Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
-#endif    
+    SafeDelete( simulation::Train );
     SafeDelete( simulation::Region );
+
+    ui_layer::shutdown();
 
     glfwDestroyWindow( m_window );
     glfwTerminate();
@@ -316,28 +188,122 @@ eu07_application::exit() {
 }
 
 void
-eu07_application::set_cursor( int const Mode ) {
+eu07_application::render_ui() {
 
-    UILayer.set_cursor( Mode );
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->render_ui();
+}
+
+bool
+eu07_application::pop_mode() {
+
+    if( m_modestack.empty() ) { return false; }
+
+    m_modes[ m_modestack.top() ]->exit();
+    m_modestack.pop();
+    return true;
+}
+
+bool
+eu07_application::push_mode( eu07_application::mode const Mode ) {
+
+    if( Mode >= mode::count_ ) { return false; }
+
+    m_modes[ Mode ]->enter();
+    m_modestack.push( Mode );
+
+    return true;
 }
 
 void
-eu07_application::set_cursor_pos( double const X, double const Y ) {
+eu07_application::set_title( std::string const &Title ) {
+
+    glfwSetWindowTitle( m_window, Title.c_str() );
+}
+
+void
+eu07_application::set_progress( float const Progress, float const Subtaskprogress ) {
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->set_progress( Progress, Subtaskprogress );
+}
+
+void
+eu07_application::set_cursor( int const Mode ) {
+
+    ui_layer::set_cursor( Mode );
+}
+
+void
+eu07_application::set_cursor_pos( double const Horizontal, double const Vertical ) {
 
     if( m_window != nullptr ) {
-        glfwSetCursorPos( m_window, X, Y );
+        glfwSetCursorPos( m_window, Horizontal, Vertical );
+    }
+}
+
+glm::dvec2 eu07_application::get_cursor_pos() const {
+    glm::dvec2 pos;
+    if( m_window != nullptr ) {
+        glfwGetCursorPos( m_window, &pos.x, &pos.y );
+    }
+    return pos;
+}
+
+void
+eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
+
+    if( m_window != nullptr ) {
+        glfwGetCursorPos( m_window, &Horizontal, &Vertical );
     }
 }
 
 void
-eu07_application::get_cursor_pos( double &X, double &Y ) const {
-    X = m_cursor_pos.x;
-    Y = m_cursor_pos.y;
+eu07_application::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
+
+    if (ui_layer::key_callback(Key, Scancode, Action, Mods))
+        return;
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->on_key( Key, Scancode, Action, Mods );
 }
 
-glm::dvec2 eu07_application::get_cursor_pos() const
-{
-    return m_cursor_pos;
+void
+eu07_application::on_cursor_pos( double const Horizontal, double const Vertical ) {
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->on_cursor_pos( Horizontal, Vertical );
+}
+
+void
+eu07_application::on_mouse_button( int const Button, int const Action, int const Mods ) {
+
+    if (ui_layer::mouse_button_callback(Button, Action, Mods))
+        return;
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->on_mouse_button( Button, Action, Mods );
+}
+
+void
+eu07_application::on_scroll( double const Xoffset, double const Yoffset ) {
+
+    if (ui_layer::scroll_callback(Xoffset, Yoffset))
+        return;
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->on_scroll( Xoffset, Yoffset );
+}
+
+void eu07_application::on_char(unsigned int c) {
+    if (ui_layer::char_callback(c))
+        return;
 }
 
 // private:
@@ -391,13 +357,7 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
 
         std::string token { Argv[ i ] };
 
-        if( token == "-e3d" ) {
-            Global.iConvertModels = (
-                Global.iConvertModels > 0 ?
-                    -Global.iConvertModels :
-                    -7 ); // z optymalizacją, bananami i prawidłowym Opacity
-        }
-        else if( token == "-s" ) {
+        if( token == "-s" ) {
             if( i + 1 < Argc ) {
                 Global.SceneryFile = ToLower( Argv[ ++i ] );
             }
@@ -412,7 +372,6 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
                 << "usage: " << std::string( Argv[ 0 ] )
                 << " [-s sceneryfilepath]"
                 << " [-v vehiclename]"
-                << " [-e3d]"
                 << std::endl;
             return -1;
         }
@@ -422,8 +381,16 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
 }
 
 int
-eu07_application::init_glfw()
-{
+eu07_application::init_locale() {
+
+    locale::init();
+
+    return 0;
+}
+
+int
+eu07_application::init_glfw() {
+
     if( glfwInit() == GLFW_FALSE ) {
         ErrorLog( "Bad init: failed to initialize glfw" );
         return -1;
@@ -484,6 +451,7 @@ eu07_application::init_glfw()
 		Global.ControlPicking = true;
 
     // TBD, TODO: move the global pointer to a more appropriate place
+
     m_window = window;
 
     return 0;
@@ -514,11 +482,11 @@ eu07_application::init_gfx() {
         return -1;
     }
 
-	if (!UILayer.init(m_window))
-		return -1;
+    if (!ui_layer::init(m_window))
+        return -1;
 
-	if (!GfxRenderer.Init(m_window))
-		return -1;
+    if (!GfxRenderer.Init(m_window))
+        return -1;
 
     return 0;
 }
@@ -530,5 +498,27 @@ eu07_application::init_audio() {
         Global.bSoundEnabled &= audio::renderer.init();
     }
     // NOTE: lack of audio isn't deemed a failure serious enough to throw in the towel
+    return 0;
+}
+
+int
+eu07_application::init_modes() {
+
+    // NOTE: we could delay creation/initialization until transition to specific mode is requested,
+    // but doing it in one go at the start saves us some error checking headache down the road
+
+    // create all application behaviour modes
+    m_modes[ mode::scenarioloader ] = std::make_shared<scenarioloader_mode>();
+    m_modes[ mode::driver ] = std::make_shared<driver_mode>();
+    m_modes[ mode::editor ] = std::make_shared<editor_mode>();
+    // initialize the mode objects
+    for( auto &mode : m_modes ) {
+        if( false == mode->init() ) {
+            return -1;
+        }
+    }
+    // activate the default mode
+    push_mode( mode::scenarioloader );
+
     return 0;
 }

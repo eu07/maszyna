@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "MOVER.h"
 #include "sound.h"
+#include "DynObj.h"
 
 enum TOrders
 { // rozkazy dla AI
@@ -51,9 +52,12 @@ enum TMovementStatus
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
     movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
     moveSemaphorFound = 0x80000, // na drodze skanowania został znaleziony semafor
+    moveStopPointFound = 0x100000 // stop point detected ahead
+/*
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
     moveTrainInsideStation = 0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
     moveSpeedLimitFound = 0x400000 // pociąg w ograniczeniu z podaną jego długością
+*/
 };
 
 enum TStopReason
@@ -153,8 +157,8 @@ class TSpeedPos
             fDist -= dist; }
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
-    std::string TableText();
-    std::string GetName();
+    std::string TableText() const;
+    std::string GetName() const;
     bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
@@ -204,12 +208,20 @@ public:
     double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
   public:
     double fBrakeDist = 0.0; // przybliżona droga hamowania
-	double BrakeAccFactor();
+	double BrakeAccFactor() const;
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
-    double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double fNominalAccThreshold = 0.0; // nominalny próg opóźnienia dla zadziałania hamulca
+    double fAccThreshold = 0.0; // aktualny próg opóźnienia dla zadziałania hamulca
 	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
-	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
-	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
+    // dla fBrake_aX:
+    // indeks [0] - wartości odpowiednie dla aktualnej prędkości
+    // a potem jest 20 wartości dla różnych prędkości zmieniających się co 5 % Vmax pojazdu obsadzonego
+	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // opóźnienia hamowania przy ustawieniu zaworu maszynisty w pozycji 1.0
+	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // przyrost opóźnienia hamowania po przestawieniu zaworu maszynisty o 0,25 pozycji
+    double BrakingInitialLevel{ 1.0 };
+    double BrakingLevelIncrease{ 0.25 };
+    bool IsCargoTrain{ false };
+    bool IsHeavyCargoTrain{ false };
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
@@ -241,6 +253,7 @@ private:
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
     sound_source tsGuardSignal { sound_placement::internal };
+    std::array<int, 2> m_lighthints { -1 }; // suggested light patterns
   public:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
@@ -256,7 +269,6 @@ private:
     double VelNext = 120.0; // prędkość, jaka ma być po przejechaniu długości ProximityDist
     double VelRestricted = -1.0; // speed of travel after passing a permissive signal at stop
   private:
-    double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do punktu, <0:podana wartość
     double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora
   public:
     double ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
@@ -341,11 +353,11 @@ private:
     void OrdersClear();
     void OrdersDump();
     TController( bool AI, TDynamicObject *NewControll, bool InitPsyche, bool primary = true );
-    std::string OrderCurrent();
+    std::string OrderCurrent() const;
     void WaitingSet(double Seconds);
 
   private:
-    std::string Order2Str(TOrders Order);
+    std::string Order2Str(TOrders Order) const;
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
@@ -353,7 +365,7 @@ private:
     std::vector<TEvent *> CheckTrackEvent(TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
-    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
+    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     // modifies brake distance for low target speeds, to ease braking rate in such situations
@@ -387,11 +399,11 @@ private:
     void TakeControl(bool yes);
     Mtable::TTrainParameters const * TrainTimetable() const;
     std::string TrainName() const;
-    std::string Relation();
+    std::string Relation() const;
     int StationCount() const;
     int StationIndex() const;
-    bool IsStop();
-    std::string NextStop();
+    bool IsStop() const;
+    std::string NextStop() const;
     inline
     bool Primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
@@ -403,7 +415,7 @@ private:
         TrackBlock() const;
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    std::string TableText(std::size_t const Index);
+    std::string TableText(std::size_t const Index) const;
     int CrossRoute(TTrack *tr);
 /*
     void RouteSwitch(int d);
@@ -411,4 +423,8 @@ private:
     std::string OwnerName() const;
     TMoverParameters const *Controlling() const {
         return mvControlling; }
+    int Direction() const {
+        return iDirection; }
+    TDynamicObject const *Vehicle() const {
+        return pVehicle; }
 };

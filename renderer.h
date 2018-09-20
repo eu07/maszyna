@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
-#include "World.h"
+#include "simulationenvironment.h"
 #include "MemCell.h"
 #include "scene.h"
 #include "light.h"

@@ -5,6 +5,7 @@
 #include "Train.h"
 #include "Timer.h"
 #include "Driver.h"
+#include "simulation.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -65,7 +66,7 @@ void motiontelemetry::update()
 	if (Global.iPause)
 		return;
 
-	const TTrain *t = Global.pWorld->train();
+    const TTrain *t = simulation::Train;
 	if (!t)
 		return;
 

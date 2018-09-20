@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MdlMngr.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "event.h"
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
@@ -611,7 +612,7 @@ void TAnimModel::RaPrepare()
         if (LightsOff[i])
             LightsOff[i]->iVisible = !state;
     }
-    TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
+    TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( this ); //żeby nie robić cudzych animacji
     TSubModel::pasText = &asText; // przekazanie tekstu do wyświetlacza (!!!! do przemyślenia)
     if (pAdvanced) // jeśli jest zaawansowana animacja
         Advanced(); // wykonać co tam trzeba

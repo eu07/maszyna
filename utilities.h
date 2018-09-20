@@ -99,18 +99,18 @@ std::vector<std::string> &Split(const std::string &s, char delim, std::vector<st
 std::vector<std::string> Split(const std::string &s, char delim);
 //std::vector<std::string> Split(const std::string &s);
 
-std::string to_string(int _Val);
-std::string to_string(unsigned int _Val);
-std::string to_string(int _Val, int precision);
-std::string to_string(int _Val, int precision, int width);
-std::string to_string(double _Val);
-std::string to_string(double _Val, int precision);
-std::string to_string(double _Val, int precision, int width);
-std::string to_hex_str( int const _Val, int const width = 4 );
+std::string to_string(int Value);
+std::string to_string(unsigned int Value);
+std::string to_string(int Value, int precision);
+std::string to_string(int Value, int precision, int width);
+std::string to_string(double Value);
+std::string to_string(double Value, int precision);
+std::string to_string(double Value, int precision, int width);
+std::string to_hex_str( int const Value, int const width = 4 );
 
-inline std::string to_string(bool _Val) {
+inline std::string to_string(bool Value) {
 
-	return _Val == true ? "true" : "false";
+	return ( Value == true ? "true" : "false" );
 }
 
 template <typename Type_, glm::precision Precision_ = glm::defaultp>
@@ -131,7 +131,7 @@ std::string ToUpper(std::string const &text);
 // replaces polish letters with basic ascii
 void win1250_to_ascii( std::string &Input );
 // TODO: unify with win1250_to_ascii()
-std::string Bezogonkow( std::string str, bool _ = false );
+std::string Bezogonkow( std::string Input, bool const Underscorestospaces = false );
 
 inline
 std::string
@@ -308,5 +308,8 @@ nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend,
     return c1 / c2;
 }
 
-class cParser;
-glm::dvec3 LoadPoint( cParser &Input );
+glm::dvec3 LoadPoint( class cParser &Input );
+
+// extracts a group of tokens from provided data stream
+std::string
+deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );

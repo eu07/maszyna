@@ -28,14 +28,22 @@ class sound_source;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
-class TWorld;
 class TCamera;
 class scenario_time;
 class TMoverParameters;
 class ui_layer;
+class editor_ui;
+class itemproperties_panel;
+class event_manager;
+class memory_table;
+class powergridsource_table;
+class instance_table;
+class vehicle_table;
+struct light_array;
 
 namespace scene {
 struct node_data;
+class basic_node;
 }
 
 namespace Mtable

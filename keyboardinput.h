@@ -13,19 +13,32 @@ http://mozilla.org/MPL/2.0/.
 #include <array>
 #include "command.h"
 
+namespace input {
+
+extern std::array<char, GLFW_KEY_LAST + 1> keys;
+extern bool key_alt;
+extern bool key_ctrl;
+extern bool key_shift;
+
+}
+
 class keyboard_input {
 
 public:
 // constructors
-    keyboard_input() { default_bindings(); }
+    keyboard_input() = default;
+
+// destructor
+    virtual ~keyboard_input() = default;
 
 // methods
+    virtual
     bool
-        init() { return recall_bindings(); }
-    bool
-        recall_bindings();
+        init() { return true; }
     bool
         key( int const Key, int const Action );
+    int
+        key( int const Key ) const;
     void
         poll();
     inline
@@ -33,7 +46,7 @@ public:
         command() const {
             return m_command; }
 
-private:
+protected:
 // types
     enum keymodifier : int {
 
@@ -41,43 +54,53 @@ private:
         control = 0x20000
     };
 
-    struct command_setup {
+    struct binding_setup {
 
+        user_command command;
         int binding;
     };
 
-    typedef std::vector<command_setup> commandsetup_sequence;
-    typedef std::unordered_map<int, user_command> usercommand_map;
+    using bindingsetup_sequence = std::vector<binding_setup>;
+
+// methods
+    virtual
+    void
+        default_bindings() = 0;
+    bool
+        recall_bindings();
+    void
+        bind();
+
+// members
+    bindingsetup_sequence m_bindingsetups;
+
+private:
+// types
+    using usercommand_map = std::unordered_map<int, user_command>;
 
     struct bindings_cache {
 
-        int forward{ -1 };
-        int back{ -1 };
-        int left{ -1 };
-        int right{ -1 };
-        int up{ -1 };
-        int down{ -1 };
+        int forward { -1 };
+        int back { -1 };
+        int left { -1 };
+        int right { -1 };
+        int up { -1 };
+        int down { -1 };
     };
 
 // methods
-    void
-        default_bindings();
-    void
-        bind();
+    int
+        binding( user_command const Command ) const;
     bool
         is_movement_key( int const Key ) const;
 
 // members
-    commandsetup_sequence m_commands;
     user_command m_command { user_command::none }; // last, if any, issued command
     usercommand_map m_bindings;
     command_relay m_relay;
-    bool m_shift { false };
-    bool m_ctrl { false };
     bindings_cache m_bindingscache;
     glm::vec2 m_movementhorizontal { 0.f };
     float m_movementvertical { 0.f };
-    std::array<char, GLFW_KEY_LAST + 1> m_keys;
 };
 
 //---------------------------------------------------------------------------

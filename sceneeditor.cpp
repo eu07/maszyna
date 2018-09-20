@@ -9,128 +9,85 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "sceneeditor.h"
+#include "scenenodegroups.h"
 
 #include "Globals.h"
 #include "application.h"
 #include "simulation.h"
+#include "Camera.h"
+#include "AnimModel.h"
 #include "renderer.h"
 
 namespace scene {
 
-basic_editor Editor;
+void
+basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bool const Snaptoground ) {
 
-bool
-basic_editor::on_key( int const Key, int const Action ) {
-
-    if( false == EditorModeFlag ) { return false; }
-
-    if( ( Key == GLFW_KEY_LEFT_ALT )
-     || ( Key == GLFW_KEY_RIGHT_ALT ) ) {
-        // intercept these while in editor mode
-        return true;
+    auto const initiallocation { Node->location() };
+    auto targetlocation { Location };
+    if( false == Snaptoground ) {
+        targetlocation.y = initiallocation.y;
     }
+    // NOTE: bit of a waste for single nodes, for the sake of less varied code down the road
+    auto const translation { targetlocation - initiallocation };
 
-    return false;
-}
-
-bool
-basic_editor::on_mouse_button( int const Button, int const Action ) {
-
-    if( false == EditorModeFlag )  { return false; }
-    // TBD: automatically activate and enforce freefly mode when editor is active?
-    if( false == FreeFlyModeFlag ) { return false; }
-
-    if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
-
-        if( Action == GLFW_PRESS ) {
-
-            m_node = GfxRenderer.Update_Pick_Node();
-            m_nodesnapshot = { m_node };
-            if( m_node ) {
-                Application.set_cursor( GLFW_CURSOR_DISABLED );
-            }
-        }
-        else {
-            // left button release
-            // TODO: record the current undo step on the undo stack
-            m_nodesnapshot = { m_node };
-            if( m_node ) {
-                Application.set_cursor( GLFW_CURSOR_NORMAL );
-            }
-        }
-
-        m_mouseleftbuttondown = ( Action == GLFW_PRESS );
-
-        return ( m_node != nullptr );
-    }
-
-    return false;
-}
-
-bool
-basic_editor::on_mouse_move( double const Mousex, double const Mousey ) {
-
-    auto const mousemove { glm::dvec2{ Mousex, Mousey } - m_mouseposition };
-    m_mouseposition = { Mousex, Mousey };
-
-    if( false == EditorModeFlag ) { return false; }
-    if( false == m_mouseleftbuttondown ) { return false; }
-    if( m_node == nullptr ) { return false; }
-
-    if( mode_translation() ) {
-        // move selected node
-        if( mode_translation_vertical() ) {
-            auto const translation { mousemove.y * -0.01f };
-            translate( translation );
-        }
-        else {
-            auto const mouseworldposition{ Global.pCamera->Pos + GfxRenderer.Mouse_Position() };
-            translate( mouseworldposition );
-        }
+    if( Node->group() == null_handle ) {
+        translate_node( Node, Node->location() + translation );
     }
     else {
-        // rotate selected node
-        auto const rotation { glm::vec3 { mousemove.y, mousemove.x, 0 } * 0.25f };
-        rotate( rotation );
+        // translate entire group
+        // TODO: contextual switch between group and item translation
+        // TODO: translation of affected/relevant events
+        auto &nodegroup { scene::Groups.group( Node->group() ).nodes };
+        std::for_each(
+            std::begin( nodegroup ), std::end( nodegroup ),
+            [&]( auto *node ) {
+                translate_node( node, node->location() + translation ); } );
     }
-
-    return true;
 }
 
 void
-basic_editor::translate( glm::dvec3 const &Location ) {
-
-    auto *node { m_node }; // placeholder for operations on multiple nodes
-
-    auto location { Location };
-    if( false == mode_snap() ) {
-        location.y = node->location().y;
-    }
-
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        translate_instance( static_cast<TAnimModel *>( node ), location );
-    }
-    else if( typeid( *node ) == typeid( TMemCell ) ) {
-        translate_memorycell( static_cast<TMemCell *>( node ), location );
-    }
-
-}
-
-void
-basic_editor::translate( float const Offset ) {
+basic_editor::translate( scene::basic_node *Node, float const Offset ) {
 
     // NOTE: offset scaling is calculated early so the same multiplier can be applied to potential whole group
-    auto location { m_node->location() };
-    auto const distance { glm::length( location - glm::dvec3{ Global.pCamera->Pos } ) };
-    auto const offset { Offset * std::max( 1.0, distance * 0.01 ) };
+    auto location { Node->location() };
+    auto const distance { glm::length( location - glm::dvec3{ Global.pCamera.Pos } ) };
+    auto const offset { static_cast<float>( Offset * std::max( 1.0, distance * 0.01 ) ) };
 
-    auto *node { m_node }; // placeholder for operations on multiple nodes
-
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        translate_instance( static_cast<TAnimModel *>( node ), offset );
+    if( Node->group() == null_handle ) {
+        translate_node( Node, offset );
     }
-    else if( typeid( *node ) == typeid( TMemCell ) ) {
-        translate_memorycell( static_cast<TMemCell *>( node ), offset );
+    else {
+        // translate entire group
+        // TODO: contextual switch between group and item translation
+        // TODO: translation of affected/relevant events
+        auto &nodegroup { scene::Groups.group( Node->group() ).nodes };
+        std::for_each(
+            std::begin( nodegroup ), std::end( nodegroup ),
+            [&]( auto *node ) {
+                translate_node( node, offset ); } );
+    }
+}
+
+void
+basic_editor::translate_node( scene::basic_node *Node, glm::dvec3 const &Location ) {
+
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        translate_instance( static_cast<TAnimModel *>( Node ), Location );
+    }
+    else if( typeid( *Node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( Node ), Location );
+    }
+}
+
+void
+basic_editor::translate_node( scene::basic_node *Node, float const Offset ) {
+
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        translate_instance( static_cast<TAnimModel *>( Node ), Offset );
+    }
+    else if( typeid( *Node ) == typeid( TMemCell ) ) {
+        translate_memorycell( static_cast<TMemCell *>( Node ), Offset );
     }
 }
 
@@ -167,45 +124,65 @@ basic_editor::translate_memorycell( TMemCell *Memorycell, float const Offset ) {
 }
 
 void
-basic_editor::rotate( glm::vec3 const &Angle ) {
+basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization ) {
 
-    auto *node { m_node }; // placeholder for operations on multiple nodes
+    glm::vec3 rotation { 0, Angle.y, 0 };
 
-    if( typeid( *node ) == typeid( TAnimModel ) ) {
-        rotate_instance( static_cast<TAnimModel *>( node ), Angle );
+    // quantize resulting angle if requested and type of the node allows it
+    // TBD, TODO: angle quantization for types other than instanced models
+    if( ( Quantization > 0.f )
+     && ( typeid( *Node ) == typeid( TAnimModel ) ) ) {
+
+        auto const initialangle { static_cast<TAnimModel *>( Node )->Angles() };
+        rotation += initialangle;
+
+        // TBD, TODO: adjustable quantization step
+        rotation.y = quantize( rotation.y, Quantization );
+
+        rotation -= initialangle;
+    }
+
+    if( Node->group() == null_handle ) {
+        rotate_node( Node, rotation );
+    }
+    else {
+        // rotate entire group
+        // TODO: contextual switch between group and item rotation
+        // TODO: translation of affected/relevant events
+        auto const rotationcenter { Node->location() };
+        auto &nodegroup { scene::Groups.group( Node->group() ).nodes };
+        std::for_each(
+            std::begin( nodegroup ), std::end( nodegroup ),
+            [&]( auto *node ) {
+                rotate_node( node, rotation );
+                if( node != Node ) {
+                    translate_node(
+                        node,
+                        rotationcenter
+                        + glm::rotateY(
+                            node->location() - rotationcenter,
+                            glm::radians<double>( rotation.y ) ) ); } } );
+    }
+}
+
+void
+basic_editor::rotate_node( scene::basic_node *Node, glm::vec3 const &Angle ) {
+
+    if( typeid( *Node ) == typeid( TAnimModel ) ) {
+        rotate_instance( static_cast<TAnimModel *>( Node ), Angle );
     }
 }
 
 void
 basic_editor::rotate_instance( TAnimModel *Instance, glm::vec3 const &Angle ) {
 
-    // adjust node data
-    glm::vec3 angle = glm::dvec3 { Instance->Angles() };
-    angle.y = clamp_circular( angle.y + Angle.y, 360.f );
-    if( mode_snap() ) {
-        // TBD, TODO: adjustable quantization step
-        angle.y = quantize( angle.y, 15.f );
-    }
-    Instance->Angles( angle );
-    // update scene
-}
+    auto targetangle { Instance->Angles() + Angle };
 
-bool
-basic_editor::mode_translation() const {
+    targetangle.x = clamp_circular( targetangle.x, 360.f );
+    targetangle.y = clamp_circular( targetangle.y, 360.f );
+    targetangle.z = clamp_circular( targetangle.z, 360.f );
 
-    return ( false == Global.altState );
-}
-
-bool
-basic_editor::mode_translation_vertical() const {
-
-    return ( true == Global.shiftState );
-}
-
-bool
-basic_editor::mode_snap() const {
-
-    return ( true == Global.ctrlState );
+    Instance->Angles( targetangle );
 }
 
 } // scene

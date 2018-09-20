@@ -2,7 +2,6 @@
 #include "moon.h"
 #include "Globals.h"
 #include "mtable.h"
-#include "World.h"
 #include "utilities.h"
 #include "simulationtime.h"
 

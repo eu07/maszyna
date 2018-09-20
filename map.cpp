@@ -2,9 +2,9 @@
 #include "map.h"
 #include "imgui/imgui.h"
 #include "Logs.h"
-#include "World.h"
 #include "Train.h"
 #include "Camera.h"
+#include "simulation.h"
 
 bool map::init()
 {
@@ -55,7 +55,7 @@ bool map::init()
 
 float map::get_vehicle_rotation()
 {
-    const TDynamicObject *vehicle = World.train()->Dynamic();
+    const TDynamicObject *vehicle = simulation::Train->Dynamic();
     glm::vec3 front = glm::dvec3(vehicle->VectorFront()) * (vehicle->DirectionGet() > 0 ? 1.0 : -1.0);
     glm::vec2 f2(front.x, front.z);
     glm::vec2 north_ptr(0.0f, 1.0f);
@@ -97,26 +97,26 @@ void map::render(scene::basic_region *Region)
         ImGui::RadioButton("cam", &mode, 1); ImGui::SameLine();
         ImGui::RadioButton("vehicle", &mode, 2);
 
-        if (mode == 2 && World.train() && World.train()->Dynamic())
+        if (mode == 2 && simulation::Train && simulation::Train->Dynamic())
         {
             float rot = get_vehicle_rotation();
 
             transform = glm::rotate(transform, rot, glm::vec3(0.0f, 1.0f, 0.0f));
 
-            glm::dvec3 vpos = World.train()->Dynamic()->GetPosition();
+            glm::dvec3 vpos = simulation::Train->Dynamic()->GetPosition();
             translate = glm::vec2(vpos.x, vpos.z) * -zoom;
         }
         else if (mode == 1)
         {
             float rot;
             if (FreeFlyModeFlag)
-                rot = glm::pi<float>() - World.get_camera().Yaw;
+                rot = glm::pi<float>() - Global.pCamera.Yaw;
             else
-                rot = get_vehicle_rotation() - World.get_camera().Yaw;
+                rot = get_vehicle_rotation() - Global.pCamera.Yaw;
 
             transform = glm::rotate(transform, rot, glm::vec3(0.0f, 1.0f, 0.0f));
 
-            glm::dvec3 vpos = World.get_camera().Pos;
+            glm::dvec3 vpos = Global.pCamera.Pos;
             translate = glm::vec2(vpos.x, vpos.z) * -zoom;
         }
 

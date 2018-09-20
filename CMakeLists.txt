@@ -18,7 +18,6 @@ set(SOURCES
 "TractionPower.cpp"
 "Train.cpp"
 "TrkFoll.cpp"
-"World.cpp"
 "AirCoupler.cpp"
 "AnimModel.cpp"
 "Button.cpp"
@@ -62,7 +61,7 @@ set(SOURCES
 "keyboardinput.cpp"
 "gamepadinput.cpp"
 "openglgeometrybank.cpp"
-"mouseinput.cpp"
+"drivermouseinput.cpp"
 "translation.cpp"
 "material.cpp"
 "lua.cpp"
@@ -94,6 +93,21 @@ set(SOURCES
 "gl/postfx.cpp"
 "gl/cubemap.cpp"
 "gl/glsl_common.cpp"
+
+"combustionengine.cpp"
+"driverkeyboardinput.cpp"
+"drivermode.cpp"
+"driveruilayer.cpp"
+"driveruipanels.cpp"
+"editorkeyboardinput.cpp"
+"editormode.cpp"
+"editormouseinput.cpp"
+"editoruilayer.cpp"
+"editoruipanels.cpp"
+"scenarioloadermode.cpp"
+"scenenodegroups.cpp"
+"simulationenvironment.cpp"
+"simulationstateserializer.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"
@@ -146,6 +160,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 cotire(${PROJECT_NAME})

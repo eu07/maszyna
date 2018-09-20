@@ -160,12 +160,11 @@ void opengl_material::finalize(bool Loadnow)
 // imports member data pair from the config file
 bool
 opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
-    // token can be a key or block end
-    std::string key = Input.getToken<std::string>( true, "\n\r\t  ,;[]" );
 
+    // NOTE: comma can be part of legacy file names, so we don't treat it as a separator here
+    std::string key { Input.getToken<std::string>( true, "\n\r\t  ;[]" ) };
+    // key can be an actual key or block end
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
-
-    auto value { Input.getToken<std::string>( true, "\n\r\t,;" ) };
 
     if( Priority != -1 ) {
         // regular attribute processing mode
@@ -182,9 +181,11 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 ; // all work is done in the header
             }
         }
+
         else if (key.compare(0, 7, "texture") == 0) {
             key.erase(0, 7);
 
+            std::string value = deserialize_random_set( Input );
             std::replace(value.begin(), value.end(), '\\', '/');
             auto it = parse_info->tex_mapping.find(key);
             if (it == parse_info->tex_mapping.end())
@@ -198,6 +199,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if (key.compare(0, 5, "param") == 0) {
             key.erase(0, 5);
 
+            std::string value = Input.getToken<std::string>( true, "\n\r\t;" );
             std::istringstream stream(value);
             glm::vec4 data;
             stream >> data.r;
@@ -219,6 +221,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         {
             try
             {
+                std::string value = deserialize_random_set( Input );
                 shader = GfxRenderer.Fetch_Shader(value);
                 m_shader_priority = Priority;
             }
@@ -230,25 +233,31 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         else if (key == "opacity:" &&
                 Priority > m_opacity_priority)
         {
+            std::string value = deserialize_random_set( Input );
             opacity = std::stof(value); //m7t: handle exception
             m_opacity_priority = Priority;
         }
         else if (key == "selfillum:" &&
                 Priority > m_selfillum_priority)
         {
+            std::string value = deserialize_random_set( Input );
             selfillum = std::stof(value); //m7t: handle exception
             m_selfillum_priority = Priority;
         }
-        else if( value == "{" ) {
-            // unrecognized or ignored token, but comes with attribute block and potential further nesting
-            // go through it and discard the content
-            while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
-                ; // all work is done in the header
+        else {
+            auto const value = Input.getToken<std::string>( true, "\n\r\t ;" );
+            if( value == "{" ) {
+                // unrecognized or ignored token, but comes with attribute block and potential further nesting
+                // go through it and discard the content
+                while( true == deserialize_mapping( Input, -1, Loadnow ) ) {
+                    ; // all work is done in the header
+                }
             }
         }
     }
     else {
         // discard mode; ignores all retrieved tokens
+        auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
         if( value == "{" ) {
             // ignored tokens can come with their own blocks, ignore these recursively
             // go through it and discard the content

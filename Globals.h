@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Classes.h"
+#include "Camera.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "light.h"
@@ -27,12 +28,10 @@ struct global_settings {
     bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
-    TWorld *pWorld{ nullptr }; // wskaźnik na świat do usuwania pojazdów
-    TCamera *pCamera{ nullptr }; // parametry kamery
-    Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
-    Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
-    std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
-    std::vector<Math3D::vector3> FreeCameraInitAngle;
+    TCamera pCamera; // parametry kamery
+    TCamera pDebugCamera;
+    std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
+    std::array<Math3D::vector3, 10> FreeCameraInitAngle;
     int iCameraLast{ -1 };
     int iSlowMotion{ 0 }; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
     basic_light DayLight;
@@ -43,20 +42,20 @@ struct global_settings {
     std::string LastGLError;
     float ZoomFactor{ 1.f }; // determines current camera zoom level. TODO: move it to the renderer
     bool CabWindowOpen{ false }; // controls sound attenuation between cab and outside
-    bool ControlPicking{ false }; // indicates controls pick mode is active
+    bool ControlPicking{ true }; // indicates controls pick mode is active
     bool DLFont{ false }; // switch indicating presence of basic font
     bool bActive{ true }; // czy jest aktywnym oknem
     int iPause{ 0 }; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     float AirTemperature{ 15.f };
+    std::string asCurrentSceneryPath{ "scenery/" };
+    std::string asCurrentTexturePath{ szTexturePath };
+    std::string asCurrentDynamicPath;
     // settings
     // filesystem
     bool bLoadTraction{ true };
     std::string szTexturesTGA{ ".tga" }; // lista tekstur od TGA
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
-    std::string asCurrentSceneryPath{ "scenery/" };
-    std::string asCurrentTexturePath{ szTexturePath };
-    std::string asCurrentDynamicPath;
     std::string SceneryFile{ "td.scn" };
     std::string asHumanCtrlVehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
@@ -66,7 +65,6 @@ struct global_settings {
     unsigned int DisabledLogTypes{ 0 };
     // simulation
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
-    bool bFreeFly{ false };
     bool bEnableTraction{ true };
     float fFriction{ 1.f }; // mnożnik tarcia - KURS90
     bool bLiveTraction{ true };
@@ -82,6 +80,7 @@ struct global_settings {
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
+    float ScenarioTimeOverride { std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
     float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
     bool ScenarioTimeCurrent { false }; // automatic time shift to match scenario time with local clock
     bool bInactivePause{ true }; // automatyczna pauza, gdy okno nieaktywne
@@ -94,6 +93,7 @@ struct global_settings {
     int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
     glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
+    float UIBgOpacity { 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
     int iWindowWidth{ 800 };
@@ -143,12 +143,12 @@ struct global_settings {
     double brake_speed { 3.0 }; // prędkość przesuwu hamulca dla FV4a
     // parametry kalibracyjne wejść z pulpitu
     double fCalibrateIn[ 6 ][ 6 ] = {
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 },
-        { 0, 1, 0, 0, 0, 0 } };
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 } };
     // parametry kalibracyjne wyjść dla pulpitu
     double fCalibrateOut[ 7 ][ 6 ] = {
         { 0, 1, 0, 0, 0, 0 },

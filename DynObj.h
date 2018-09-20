@@ -200,16 +200,17 @@ public:
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
+    float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
+    float LoadOffset { 0.f };
     glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
     float InteriorLightLevel { 0.0f }; // current level of interior lighting
-    struct section_light {
+    struct vehicle_section {
         TSubModel *compartment;
         TSubModel *load;
-        float level;
+        float light_level;
     };
-    std::vector<section_light> SectionLightLevels; // table of light levels for specific compartments of associated 3d model
+    std::vector<vehicle_section> Sections; // table of recognized vehicle sections
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
-    float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
     struct section_visibility {
         TSubModel *submodel;
         bool visible;
@@ -308,10 +309,12 @@ private:
     };
 
     struct door_sounds {
-        sound_source rsDoorOpen { sound_placement::general, 25.f }; // Ra: przeniesione z kabiny
-        sound_source rsDoorClose { sound_placement::general, 25.f };
-        sound_source step_open { sound_placement::general, 25.f };
-        sound_source step_close { sound_placement::general, 25.f };
+        sound_source rsDoorOpen { sound_placement::general }; // Ra: przeniesione z kabiny
+        sound_source rsDoorClose { sound_placement::general };
+        sound_source lock { sound_placement::general };
+        sound_source unlock { sound_placement::general };
+        sound_source step_open { sound_placement::general };
+        sound_source step_close { sound_placement::general };
     };
 
     struct exchange_sounds {
@@ -334,6 +337,8 @@ private:
         sound_source dsbWejscie_na_bezoporow { sound_placement::engine }; // moved from cab
         sound_source motor_parallel { sound_placement::engine }; // moved from cab
         sound_source motor_shuntfield { sound_placement::engine };
+        sound_source linebreaker_close { sound_placement::engine };
+        sound_source linebreaker_open { sound_placement::engine };
         sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
         sound_source engine { sound_placement::engine }; // generally diesel engine
         sound_source engine_ignition { sound_placement::engine }; // moved from cab
@@ -425,6 +430,7 @@ private:
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
     std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it
+    bool m_doorlocks { false }; // sound helper, current state of door locks
     sound_source sDepartureSignal { sound_placement::general };
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
@@ -515,6 +521,7 @@ private:
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
+    int init_sections( TModel3d const *Model, std::string const &Nameprefix );
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
@@ -523,6 +530,7 @@ private:
     void LoadUpdate();
     void update_load_sections();
     void update_load_visibility();
+    void update_load_offset();
     void shuffle_load_sections();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);
@@ -541,6 +549,16 @@ private:
         return iAxleFirst ?
             Axle1.pPosition :
             Axle0.pPosition; };
+/*
+    // TODO: check if scanning takes into account direction when selecting axle
+    // if it does, replace the version above
+    // if it doesn't, fix it so it does
+    inline Math3D::vector3 AxlePositionGet() {
+        return (
+            iDirection ?
+                ( iAxleFirst ? Axle1.pPosition : Axle0.pPosition ) :
+                ( iAxleFirst ? Axle0.pPosition : Axle1.pPosition ) ); }
+*/
     inline Math3D::vector3 VectorFront() const {
         return vFront; };
     inline Math3D::vector3 VectorUp() const {
@@ -557,6 +575,8 @@ private:
         return MoverParameters->Dim.L; };
     inline double GetWidth() const {
         return MoverParameters->Dim.W; };
+    // calculates distance between event-starting axle and front of the vehicle
+    double tracing_offset() const;
     inline TTrack * GetTrack() {
         return (iAxleFirst ?
             Axle1.GetTrack() :

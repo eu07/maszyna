@@ -150,9 +150,6 @@ private:
     };
 
 // methods
-    // extracts name of the sound file from provided data stream
-    std::string
-        deserialize_filename( cParser &Input );
     // imports member data pair from the provided data stream
     bool
         deserialize_mapping( cParser &Input );

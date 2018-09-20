@@ -23,7 +23,7 @@ enum class TCameraType
 class TCamera {
 
   public: // McZapkie: potrzebuje do kiwania na boki
-    void Init( Math3D::vector3 NPos, Math3D::vector3 NAngle);
+    void Init( Math3D::vector3 const &Location, Math3D::vector3 const &Angle, TCameraType const Type );
     void Reset();
     void OnCursorMove(double const x, double const y);
     bool OnCommand( command_data const &Command );

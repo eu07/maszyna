@@ -64,13 +64,11 @@ std::string Now() {
 // na dłuższą metę trzeba uwzględnić datę, jakby opóżnienia miały przekraczać 12h (towarowych)
 double CompareTime(double t1h, double t1m, double t2h, double t2m) {
 
-    double t;
-
     if ((t2h < 0))
         return 0;
     else
     {
-        t = (t2h - t1h) * 60 + t2m - t1m; // jeśli t2=00:05, a t1=23:50, to różnica wyjdzie ujemna
+        auto t = (t2h - t1h) * 60 + t2m - t1m; // jeśli t2=00:05, a t1=23:50, to różnica wyjdzie ujemna
         if ((t < -720)) // jeśli różnica przekracza 12h na minus
             t = t + 1440; // to dodanie doby minut;else
         if ((t > 720)) // jeśli przekracza 12h na plus
@@ -188,49 +186,49 @@ std::vector<std::string> Split(const std::string &s)
 	return elems;
 }
 
-std::string to_string(int _Val)
+std::string to_string(int Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(unsigned int _Val)
+std::string to_string(unsigned int Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(double _Val)
+std::string to_string(double Value)
 {
 	std::ostringstream o;
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(int _Val, int precision)
-{
-	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
-	o << _Val;
-	return o.str();
-};
-
-std::string to_string(double _Val, int precision)
+std::string to_string(int Value, int precision)
 {
 	std::ostringstream o;
 	o << std::fixed << std::setprecision(precision);
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
-std::string to_string(int _Val, int precision, int width)
+std::string to_string(double Value, int precision)
+{
+	std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+	o << Value;
+	return o.str();
+};
+
+std::string to_string(int Value, int precision, int width)
 {
 	std::ostringstream o;
 	o.width(width);
 	o << std::fixed << std::setprecision(precision);
-	o << _Val;
+	o << Value;
 	return o.str();
 };
 
@@ -281,7 +279,7 @@ std::string ToUpper(std::string const &text) {
 void
 win1250_to_ascii( std::string &Input ) {
 
-    std::unordered_map<char, char> charmap{
+    std::unordered_map<char, char> const charmap {
         { 165, 'A' }, { 198, 'C' }, { 202, 'E' }, { 163, 'L' }, { 209, 'N' }, { 211, 'O' }, { 140, 'S' }, { 143, 'Z' }, { 175, 'Z' },
         { 185, 'a' }, { 230, 'c' }, { 234, 'e' }, { 179, 'l' }, { 241, 'n' }, { 243, 'o' }, { 156, 's' }, { 159, 'z' }, { 191, 'z' }
     };
@@ -293,23 +291,33 @@ win1250_to_ascii( std::string &Input ) {
 }
 
 // Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów
-char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
-                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
-                     "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
-                     "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+char charsetconversiontable[] =
+    "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+    " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+    "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+    "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
-std::string Bezogonkow(std::string str, bool _)
-{ // wycięcie liter z ogonkami, bo OpenGL nie umie wyświetlić
-    for (unsigned int i = 1; i < str.length(); ++i)
-        if (str[i] & 0x80)
-            str[i] = bezogonkowo[str[i] & 0x7F];
-        else if (str[i] < ' ') // znaki sterujące nie są obsługiwane
-            str[i] = ' ';
-        else if (_)
-            if (str[i] == '_') // nazwy stacji nie mogą zawierać spacji
-                str[i] = ' '; // więc trzeba wyświetlać inaczej
-    return str;
-};
+// wycięcie liter z ogonkami
+std::string Bezogonkow(std::string Input, bool const Underscorestospaces) {
+
+    char const extendedcharsetbit { static_cast<char>( 0x80 ) };
+    char const space { ' ' };
+    char const underscore { '_' };
+
+    for( auto &input : Input ) {
+        if( input & extendedcharsetbit ) {
+            input = charsetconversiontable[ input ^ extendedcharsetbit ];
+        }
+        else if( input < space ) {
+            input = space;
+        }
+        else if( Underscorestospaces && ( input == underscore ) ) {
+            input = space;
+        }
+    }
+
+    return Input;
+}
 
 template <>
 bool
@@ -407,4 +415,31 @@ glm::dvec3 LoadPoint( cParser &Input ) {
         >> point.y
         >> point.z;
     return point;
+}
+
+// extracts a group of tokens from provided data stream, returns one of them picked randomly
+std::string
+deserialize_random_set( cParser &Input, char const *Break ) {
+
+    auto token { Input.getToken<std::string>( true, Break ) };
+    std::replace(token.begin(), token.end(), '\\', '/');
+    if( token != "[" ) {
+        // simple case, single token
+        return token;
+    }
+    // if instead of a single token we've encountered '[' this marks a beginning of a random set
+    // we retrieve all entries, then return a random one
+    std::vector<std::string> tokens;
+    while( ( ( token = deserialize_random_set( Input, Break ) ) != "" )
+        && ( token != "]" ) ) {
+        tokens.emplace_back( token );
+    }
+    if( false == tokens.empty() ) {
+        std::shuffle( std::begin( tokens ), std::end( tokens ), Global.random_engine );
+        return tokens.front();
+    }
+    else {
+        // shouldn't ever get here but, eh
+        return "";
+    }
 }

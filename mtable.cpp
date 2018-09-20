@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mtable.h"
-#include "World.h"
 #include "Globals.h"
 #include "simulationtime.h"
 #include "utilities.h"
@@ -33,7 +32,7 @@ double TTrainParameters::WatchMTable(double DistCounter)
     return dist;
 }
 
-std::string TTrainParameters::NextStop()
+std::string TTrainParameters::NextStop() const
 { // pobranie nazwy następnego miejsca zatrzymania
     if (StationIndex <= StationCount)
         return NextStationName; // nazwa następnego przystanku;
@@ -41,7 +40,7 @@ std::string TTrainParameters::NextStop()
         return "[End of route]"; //że niby koniec
 }
 
-bool TTrainParameters::IsStop()
+bool TTrainParameters::IsStop() const
 { // zapytanie, czy zatrzymywać na następnym punkcie rozkładu
     if ((StationIndex < StationCount))
         return TimeTable[StationIndex].Ah >= 0; //-1 to brak postoju
@@ -129,7 +128,7 @@ bool TTrainParameters::IsTimeToGo(double hh, double mm)
         return false; // dalej nie jechać
 }
 
-std::string TTrainParameters::ShowRelation()
+std::string TTrainParameters::ShowRelation() const
 /*zwraca informację o relacji*/
 {
     // if (Relation1=TimeTable[1].StationName) and (Relation2=TimeTable[StationCount].StationName)

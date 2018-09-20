@@ -43,7 +43,10 @@ openal_source::play() {
     if( id == audio::null_resource ) { return; } // no implementation-side source to match, no point
 
     ::alSourcePlay( id );
-    is_playing = true;
+
+    ALint state;
+    ::alGetSourcei( id, AL_SOURCE_STATE, &state );
+    is_playing = ( state == AL_PLAYING );
 }
 
 // stops the playback
@@ -74,14 +77,17 @@ openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity
 
     if( id != audio::null_resource ) {
 
+        sound_change = false;
         ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &sound_index );
         // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
+        // TBD, TODO: instead of change flag move processed buffer ids to separate queue, for accurate tracking of longer buffer sequences
         ALuint bufferid;
         while( ( sound_index > 0 )
             && ( sounds.size() > 1 ) ) {
             ::alSourceUnqueueBuffers( id, 1, &bufferid );
             sounds.erase( std::begin( sounds ) );
             --sound_index;
+            sound_change = true;
         }
 
         int state;
@@ -113,7 +119,7 @@ openal_source::sync_with( sound_properties const &State ) {
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
     properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global.pCameraPosition };
+    sound_distance = properties.location - glm::dvec3 { Global.pCamera.Pos };
     if( sound_range > 0 ) {
         // range cutoff check
         auto const cutoffrange = (
@@ -141,7 +147,7 @@ openal_source::sync_with( sound_properties const &State ) {
         properties.soundproofing = State.soundproofing;
         properties.soundproofing_stamp = State.soundproofing_stamp;
 
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * Global.AudioVolume );
+        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing );
     }
     if( sound_range > 0 ) {
         auto const rangesquared { sound_range * sound_range };
@@ -157,7 +163,7 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor * Global.AudioVolume );
+            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
@@ -270,10 +276,7 @@ openal_renderer::init() {
         // basic initialization failed
         return false;
     }
-    //
-//    ::alDistanceModel( AL_LINEAR_DISTANCE );
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
-    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 1.f, 4.f ) );
     // all done
     m_ready = true;
     return true;
@@ -336,9 +339,11 @@ openal_renderer::update( double const Deltatime ) {
 		alcDeviceResumeSOFT(m_device);
 
     // update listener
+    // gain
+    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 0.f, 2.f ) * ( Global.iPause == 0 ? 1.f : 0.15f ) );
     // orientation
     glm::dmat4 cameramatrix;
-    Global.pCamera->SetMatrix( cameramatrix );
+    Global.pCamera.SetMatrix( cameramatrix );
     auto rotationmatrix { glm::mat3{ cameramatrix } };
     glm::vec3 const orientation[] = {
         glm::vec3{ 0, 0,-1 } * rotationmatrix ,
@@ -346,7 +351,7 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
-        glm::dvec3 const listenerposition { Global.pCameraPosition };
+        glm::dvec3 const listenerposition { Global.pCamera.Pos };
         glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
         m_listenerposition = listenerposition;
         m_listenervelocity = (

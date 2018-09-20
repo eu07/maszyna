@@ -3,12 +3,9 @@
 #include "Event.h"
 #include "Logs.h"
 #include "MemCell.h"
-#include "World.h"
 #include "Driver.h"
 #include "lua_ffi.h"
 #include "simulation.h"
-
-extern TWorld World;
 
 lua::lua()
 {
@@ -116,7 +113,7 @@ extern "C"
 	EXPORT TIsolated* scriptapi_isolated_find(const char* name)
 	{
 		std::string str(name);
-		TIsolated *isolated = TIsolated::Find(name, false);
+        TIsolated *isolated = TIsolated::Find(name);
 		if (isolated)
 			return isolated;
 		else
