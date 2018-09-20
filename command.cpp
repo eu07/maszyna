@@ -200,7 +200,7 @@ commanddescription_sequence Commands_descriptions = {
     { "instrumentlighttoggle", command_target::vehicle, command_mode::oneoff },
     { "instrumentlightenable", command_target::vehicle, command_mode::oneoff },
     { "instrumentlightdisable", command_target::vehicle, command_mode::oneoff },
-    { "dshboardlighttoggle", command_target::vehicle, command_mode::oneoff },
+    { "dashboardlighttoggle", command_target::vehicle, command_mode::oneoff },
     { "timetablelighttoggle", command_target::vehicle, command_mode::oneoff },
     { "generictoggle0", command_target::vehicle, command_mode::oneoff },
     { "generictoggle1", command_target::vehicle, command_mode::oneoff },

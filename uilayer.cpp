@@ -130,7 +130,7 @@ bool ui_layer::init(GLFWwindow *Window)
         m_map = std::make_unique<map>();
 
     ImGui_ImplGlfw_InitForOpenGL(m_window);
-    ImGui_ImplOpenGL3_Init("#version 140");
+    ImGui_ImplOpenGL3_Init("#version 130");
     ImGui::StyleColorsClassic();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -143,6 +143,7 @@ bool ui_layer::init(GLFWwindow *Window)
 void ui_layer::shutdown()
 {
     ImGui::EndFrame();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

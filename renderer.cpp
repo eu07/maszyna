@@ -364,6 +364,8 @@ void opengl_renderer::SwapBuffers()
 {
 	Timer::subsystem.gfx_swap.start();
 	glfwSwapBuffers(m_window);
+	// swapbuffers() will unbind current buffers so we prepare for it on our end
+	gfx::opengl_vbogeometrybank::reset();
 	Timer::subsystem.gfx_swap.stop();
 }
 

@@ -80,12 +80,12 @@ TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool co
     if( true == Includesiblings ) {
         auto sibling { this };
         while( ( sibling = sibling->Next ) != nullptr ) {
-            sibling->f4Emision.a = Level;
+            sibling->SetLightLevel( Level, Includechildren, false ); // no need for all siblings to duplicate the work
         }
     }
     if( ( true == Includechildren )
      && ( Child != nullptr ) ) {
-        Child->SetLightLevel( Level, true, true ); // node's children include child's siblings and children
+        Child->SetLightLevel( Level, Includechildren, true ); // node's children include child's siblings and children
     }
 }
 
@@ -974,14 +974,16 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	case TAnimType::at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
 		TSubModel *sm = ChildGet();
-		do
-		{ // pętla po submodelach potomnych i obracanie ich o kąt zależy od czasu
-			if (sm->pName.size())
-			{ // musi mieć niepustą nazwę
-				if ((sm->pName[0]) >= '0')
-					if ((sm->pName[0]) <= '5') // zegarek ma 6 cyfr maksymalnie
-						sm->SetRotate(float3(0, 1, 0),
-							-Global.fClockAngleDeg[(sm->pName[0]) - '0']);
+		do { // pętla po submodelach potomnych i obracanie ich o kąt zależy od czasu
+            if( sm->pName.size() ) {
+                // musi mieć niepustą nazwę
+                if( ( sm->pName[ 0 ] >= '0' )
+                 && ( sm->pName[ 0 ] <= '5') ) {
+                    // zegarek ma 6 cyfr maksymalnie
+                    sm->SetRotate(
+                        float3( 0, 1, 0 ),
+                        -Global.fClockAngleDeg[ sm->pName[ 0 ] - '0' ] );
+                }
 			}
 			sm = sm->NextGet();
 		} while (sm);

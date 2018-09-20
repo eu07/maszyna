@@ -32,8 +32,8 @@ public:
     std::string asEvent1Name;
     std::string asEvent2Name;
     std::string asMemCellName;
-    TEvent *Event1 { nullptr };
-    TEvent *Event2 { nullptr };
+    basic_event *Event1 { nullptr };
+    basic_event *Event2 { nullptr };
     TMemCell *MemCell { nullptr };
     int iCheckMask { 0 };
     double dRadius { 0.0 };

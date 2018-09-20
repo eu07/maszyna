@@ -44,7 +44,7 @@ enum TEnvironmentType {
 };
 // Ra: opracować alternatywny system cieni/świateł z definiowaniem koloru oświetlenia w halach
 
-class TEvent;
+class basic_event;
 class TTrack;
 class TGroundNode;
 class TSubRect;
@@ -89,7 +89,7 @@ class TSwitchExtension
     bool bMovement = false; // czy w trakcie animacji
     scene::basic_cell *pOwner = nullptr; // TODO: convert this to observer pattern
     TTrack *pNextAnim = nullptr; // następny tor do animowania
-    TEvent *evPlus = nullptr,
+    basic_event *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
@@ -127,8 +127,8 @@ public:
             return pParent; }
     // members
     std::string asName; // nazwa obiektu, baza do nazw eventów
-    TEvent *evBusy { nullptr }; // zdarzenie wyzwalane po zajęciu grupy
-    TEvent *evFree { nullptr }; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
+    basic_event *evBusy { nullptr }; // zdarzenie wyzwalane po zajęciu grupy
+    basic_event *evFree { nullptr }; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
     TMemCell *pMemCell { nullptr }; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
 private:
     // members
@@ -175,7 +175,7 @@ private:
 
 public:
     using dynamics_sequence = std::deque<TDynamicObject *>;
-    using event_sequence = std::vector<std::pair<std::string, TEvent *> >;
+    using event_sequence = std::vector<std::pair<std::string, basic_event *> >;
 
     dynamics_sequence Dynamics;
     event_sequence
@@ -251,7 +251,7 @@ public:
                 1 ); }
     void Load(cParser *parser, glm::dvec3 const &pOrigin);
     bool AssignEvents();
-    bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
+    bool AssignForcedEvents(basic_event *NewEventPlus, basic_event *NewEventMinus);
     void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner );
     void QueueEvents( event_sequence const &Events, TDynamicObject const *Owner, double const Delaylimit );
     bool CheckDynamicObject(TDynamicObject *Dynamic);
@@ -273,7 +273,7 @@ public:
     void RaOwnerSet( scene::basic_cell *o ) {
         if( SwitchExtension ) { SwitchExtension->pOwner = o; } };
     bool InMovement(); // czy w trakcie animacji?
-    void RaAssign( TAnimModel *am, TEvent *done, TEvent *joined );
+    void RaAssign( TAnimModel *am, basic_event *done, basic_event *joined );
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
 
