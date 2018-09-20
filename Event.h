@@ -10,133 +10,557 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Classes.h"
-#include "dumb3d.h"
+#include "scene.h"
 #include "Names.h"
 #include "EvLaunch.h"
+#include "Logs.h"
+#include "lua.h"
 
-enum TEventType {
-    tp_Unknown,
-    tp_Sound,
-    tp_Exit,
-    tp_Disable,
-    tp_Velocity,
-    tp_Animation,
-    tp_Lights,
-    tp_UpdateValues,
-    tp_GetValues,
-    tp_PutValues,
-    tp_Switch,
-    tp_DynVel,
-    tp_TrackVel,
-    tp_Multiple,
-    tp_AddValues,
-    tp_CopyValues,
-    tp_WhoIs,
-    tp_LogValues,
-    tp_Visible,
-    tp_Voltage,
-    tp_Message,
-    tp_Friction,
-    tp_Lua
-};
+// common event interface
+class basic_event {
 
-const int update_memstring = 0x0000001; // zmodyfikować tekst (UpdateValues)
-const int update_memval1 = 0x0000002; // zmodyfikować pierwszą wartosć
-const int update_memval2 = 0x0000004; // zmodyfikować drugą wartosć
-const int update_memadd = 0x0000008; // dodać do poprzedniej zawartości
-const int update_load = 0x0000010; // odczytać ładunek
-const int update_only = 0x00000FF; // wartość graniczna
-const int conditional_memstring = 0x0000100; // porównanie tekstu
-const int conditional_memval1 = 0x0000200; // porównanie pierwszej wartości liczbowej
-const int conditional_memval2 = 0x0000400; // porównanie drugiej wartości
-const int conditional_trackoccupied = 0x1000000; // jeśli tor zajęty
-const int conditional_trackfree = 0x2000000; // jeśli tor wolny
-const int conditional_propability = 0x4000000; // zależnie od generatora lizcb losowych
-const int conditional_memcompare = 0x8000000; // porównanie zawartości
-
-union TParam
-{
-    void *asPointer;
-    TMemCell *asMemCell;
-    scene::basic_node *asSceneNode;
-    glm::dvec3 const *asLocation;
-    TTrack *asTrack;
-    TAnimModel *asModel;
-    TAnimContainer *asAnimContainer;
-    TTrain *asTrain;
-    TDynamicObject *asDynamic;
-    TEvent *asEvent;
-    double asdouble;
-    int asInt;
-    sound_source *tsTextSound;
-    char *asText;
-    TCommandType asCommand;
-    TTractionPowerSource *psPower;
-};
-
-class TEvent // zmienne: ev*
-{ // zdarzenie
 public:
 // types
-    // wrapper for binding between editor-supplied name, event, and execution conditional flag
-    using conditional_event = std::tuple<std::string, TEvent *, bool>;
-// constructors
-    TEvent(std::string const &m = "");
-    ~TEvent();
-// metody
-    void Load(cParser *parser, Math3D::vector3 const &org);
+    enum flags {
+        // shared values
+        text        = 1 << 0,
+        value_1     = 1 << 1,
+        value_2     = 1 << 2,
+        // update values
+        load        = 1 << 3,
+        mode_add    = 1 << 4,
+        // condition values
+        track_busy  = 1 << 3,
+        track_free  = 1 << 4,
+        probability = 1 << 5
+    };
+// constructor
+    basic_event() = default;
+// destructor
+    virtual ~basic_event();
+// methods
+    // restores event data from provided stream
+    virtual
+    void
+        deserialize( cParser &Input, scene::scratch_data &Scratchpad );
+    // prepares event for use
+    virtual
+    void
+        init() = 0;
+    // executes event
+    virtual
+    void
+        run();
     // sends basic content of the class in legacy (text) format to provided stream
+    virtual
     void
         export_as_text( std::ostream &Output ) const;
-    static void AddToQuery( TEvent *Event, TEvent *&Start );
-    std::string CommandGet();
-    TCommandType Command();
-    double ValueGet(int n);
-    glm::dvec3 PositionGet() const;
-    bool StopCommand();
-    void StopCommandSent();
-    void Append(TEvent *e);
+    // adds a sibling event executed together
     void
-        group( scene::group_handle Group );
-    scene::group_handle
-        group() const;
+        append( basic_event *Event );
+    // returns: true if the event should be executed immediately
+    virtual
+    bool
+        is_instant() const;
+    // sends content of associated data cell to specified vehicle controller
+    virtual
+    void
+        send_command( TController &Controller );
+    // returns: true if associated data cell contains a command for vehicle controller
+    virtual
+    bool
+        is_command() const;
+    // input data access
+    virtual std::string input_text() const;
+    virtual TCommandType input_command() const;
+    virtual double input_value( int Index ) const;
+    virtual glm::dvec3 input_location() const;
+    void group( scene::group_handle Group );
+    scene::group_handle group() const;
 // members
-    std::string asName;
+    basic_event *m_next { nullptr }; // następny w kolejce // TODO: replace with event list in the manager
+    basic_event *m_sibling { nullptr }; // kolejny event z tą samą nazwą - od wersji 378
+    std::string m_name;
     bool m_ignored { false }; // replacement for tp_ignored
-    bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
-    int iQueued = 0; // ile razy dodany do kolejki
-    TEvent *evNext = nullptr; // następny w kolejce
-    TEventType Type = tp_Unknown;
-    double fStartTime = 0.0;
-    double fDelay = 0.0;
-    TDynamicObject const *Activator = nullptr;
-    TParam Params[13]; // McZapkie-070502 //Ra: zamienić to na union/struct
+    bool m_passive { false }; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
+    int m_inqueue { 0 }; // ile razy dodany do kolejki
+    TDynamicObject const *m_activator { nullptr };
+    double m_launchtime { 0.0 };
+    double m_delay { 0.0 };
+    double m_delayrandom { 0.0 }; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
 
-    unsigned int iFlags = 0; // zamiast Params[8] z flagami warunku
-    std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
-    TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378
-    double fRandomDelay = 0.0; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
-    std::vector<conditional_event> m_children; // events which are placed in the query when this event is executed
-    bool m_conditionalelse { false }; // TODO: make a part of condition struct
+protected:
+// types
+    using basic_node = std::tuple<std::string, scene::basic_node *>;
+    using node_sequence = std::vector<basic_node>;
+
+    struct event_conditions {
+        unsigned int flags { 0 };
+        float probability { 0.0 }; // used by conditional_probability
+        double match_value_1 { 0.0 }; // used by conditional_memcompare
+        double match_value_2 { 0.0 }; // used by conditional_memcompare
+        std::string match_text; // used by conditional_memcompare
+        basic_event::node_sequence *cells; // used by conditional_memcompare
+        std::vector<TTrack *> tracks; // used by conditional_track
+        bool has_else { false };
+
+        void deserialize( cParser &Input );
+        void bind( basic_event::node_sequence *Nodes );
+        void init();
+        // verifies whether event meets execution condition(s)
+        bool test() const;
+        // sends basic content of the class in legacy (text) format to provided stream
+        void export_as_text( std::ostream &Output ) const;
+    };
+// methods
+    template <class TableType_>
+    void init_targets( TableType_ &Repository, std::string const &Targettype, bool const Logerrors = true );
+    // returns true if provided token is a an event desription keyword, false otherwise
+    static bool is_keyword( std::string const &Token );
+
+// members
+    node_sequence m_targets; // targets of operation performed when this event is executed
 
 private:
 // methods
-    void Conditions( cParser *parser, std::string s );
+    // event type string
+    virtual std::string type() const = 0;
+    // deserialization helper, converts provided string to a list of target nodes
+    virtual void deserialize_targets( std::string const &Input );
+    // deserialize() subclass details
+    virtual void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) = 0;
+    // run() subclass details
+    virtual void run_() = 0;
+    // export_as_text() subclass details
+    virtual void export_as_text_( std::ostream &Output ) const = 0;
 // members
     scene::group_handle m_group { null_handle }; // group this event belongs to, if any
 };
 
-inline
-void
-TEvent::group( scene::group_handle Group ) {
-    m_group = Group;
-}
 
-inline
-scene::group_handle
-TEvent::group() const {
-    return m_group;
-}
+
+// specialized event, sends received input to its target(s)
+// TBD: replace the generic module with specialized mixins
+class input_event : public basic_event {
+
+    friend basic_event * make_event( cParser &Input, scene::scratch_data &Scratchpad );
+
+protected:
+// types
+    struct input_data {
+        unsigned int flags { 0 };
+        std::string data_text;
+        double data_value_1 { 0.0 };
+        double data_value_2 { 0.0 };
+        basic_node data_source { "", nullptr };
+        glm::dvec3 location { 0.0 };
+        TCommandType command_type { TCommandType::cm_Unknown };
+
+        TMemCell const * data_cell() const;
+        TMemCell * data_cell();
+    };
+
+// members
+    input_data m_input;
+};
+
+
+
+class updatevalues_event : public input_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+    // returns: true if the event should be executed immediately
+    bool is_instant() const override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    event_conditions m_conditions;
+};
+
+
+
+class copyvalues_event : public input_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+};
+
+
+
+class getvalues_event : public input_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+    // sends content of associated data cell to specified vehicle controller
+    void send_command( TController &Controller ) override;
+    // returns: true if associated data cell contains a command for vehicle controller
+    bool is_command() const override;
+    // input data access
+    std::string input_text() const override;
+    TCommandType input_command() const override;
+    double input_value( int Index ) const override;
+    glm::dvec3 input_location() const override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+};
+
+
+
+class putvalues_event : public input_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+    // input data access
+    std::string input_text() const override;
+    TCommandType input_command() const override;
+    double input_value( int Index ) const override;
+    glm::dvec3 input_location() const override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+};
+
+
+
+class whois_event : public input_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+};
+
+
+
+class logvalues_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+};
+
+
+
+class multi_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// types
+    // wrapper for binding between editor-supplied name, event, and execution conditional flag
+    using conditional_event = std::tuple<std::string, basic_event *, bool>;
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    std::vector<conditional_event> m_children; // events which are placed in the query when this event is executed
+    event_conditions m_conditions;
+};
+
+class sound_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// types
+    // wrapper for binding between editor-supplied name and sound object
+    using basic_sound = std::tuple<std::string, sound_source *>;
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialization helper, converts provided string to a list of target nodes
+    void deserialize_targets( std::string const &Input ) override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    std::vector<basic_sound> m_sounds;
+    int m_soundmode{ 0 };
+    int m_soundradiochannel{ 0 };
+};
+
+class animation_event : public basic_event {
+
+public:
+// destuctor
+    ~animation_event() override;
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    int m_animationtype{ 0 };
+    std::array<double, 4> m_animationparams{ 0.0 };
+    std::string m_animationsubmodel;
+    std::vector<TAnimContainer *> m_animationcontainers;
+    std::string m_animationfilename;
+    std::size_t m_animationfilesize{ 0 };
+    char *m_animationfiledata{ nullptr };
+};
+
+class lights_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    std::vector<float> m_lights;
+};
+
+class switch_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    int m_switchstate{ 0 };
+    float m_switchmoverate{ -1.f };
+    float m_switchmovedelay{ -1.f };
+};
+
+class track_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    float m_velocity{ 0.f };
+};
+
+class voltage_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    float m_voltage{ -1.f };
+};
+
+class visible_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    bool m_visible{ true };
+};
+
+class friction_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    float m_friction{ -1.f };
+};
+
+class lua_event : public basic_event {
+public:
+    lua_event(lua::eventhandler_t func);
+    void init() override;
+
+private:
+    std::string type() const override;
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    void run_() override;
+    void export_as_text_( std::ostream &Output ) const override;
+
+    lua::eventhandler_t lua_func = nullptr;
+};
+
+class message_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    std::string m_message;
+};
+
+
+
+basic_event *
+make_event( cParser &Input, scene::scratch_data &Scratchpad );
+
+
 
 class event_manager {
 
@@ -155,20 +579,22 @@ public:
     // adds provided event to the collection. returns: true on success
     // TBD, TODO: return handle to the event
     bool
-        insert( TEvent *Event );
+        insert( basic_event *Event );
+    inline
     bool
         insert( TEventLauncher *Launcher ) {
             return m_launchers.insert( Launcher ); }
     // returns first event in the queue
-    TEvent *
+    inline
+    basic_event *
         begin() {
             return QueryRootEvent; }
     // legacy method, returns pointer to specified event, or null
-    TEvent *
+    basic_event *
         FindEvent( std::string const &Name );
     // legacy method, inserts specified event in the event query
     bool
-        AddToQuery( TEvent *Event, TDynamicObject const *Owner, double delay = 0.0 );
+        AddToQuery( basic_event *Event, TDynamicObject const *Owner, double delay = 0.0 );
     // legacy method, executes queued events
     bool
         CheckQuery();
@@ -184,15 +610,9 @@ public:
 
 private:
 // types
-    using event_sequence = std::deque<TEvent *>;
+    using event_sequence = std::deque<basic_event *>;
     using event_map = std::unordered_map<std::string, std::size_t>;
     using eventlauncher_sequence = std::vector<TEventLauncher *>;
-
-// methods
-    // legacy method, verifies condition for specified event
-    bool
-        EventConditon( TEvent *Event );
-
 // members
     event_sequence m_events;
 /*
@@ -200,11 +620,39 @@ private:
     event_sequence m_eventqueue;
 */
     // legacy version of the above
-    TEvent *QueryRootEvent { nullptr };
-    TEvent *m_workevent { nullptr };
+    basic_event *QueryRootEvent { nullptr };
+    basic_event *m_workevent { nullptr };
     event_map m_eventmap;
     basic_table<TEventLauncher> m_launchers;
     eventlauncher_sequence m_launcherqueue;
 };
+
+
+
+inline
+void
+basic_event::group( scene::group_handle Group ) {
+    m_group = Group;
+}
+
+inline
+scene::group_handle
+basic_event::group() const {
+    return m_group;
+}
+
+template <class TableType_>
+void
+basic_event::init_targets( TableType_ &Repository, std::string const &Targettype, bool const Logerrors ) {
+
+    for( auto &target : m_targets ) {
+        std::get<scene::basic_node *>( target ) = Repository.find( std::get<std::string>( target ) );
+        if( std::get<scene::basic_node *>( target ) == nullptr ) {
+            m_ignored = true; // deaktywacja
+            if( Logerrors )
+                ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find " + Targettype +" \"" + std::get<std::string>( target ) + "\"" );
+        }
+    }
+}
 
 //---------------------------------------------------------------------------

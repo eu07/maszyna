@@ -49,20 +49,19 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
 
         auto &parameters { *vehicle->MoverParameters };
 
-        if( ( true == parameters.LoadType.empty() )
-         && ( parameters.LoadAccepted.find( "passengers" ) != std::string::npos ) ) {
-            // set the type for empty cars
-            parameters.LoadType = "passengers";
+        if( parameters.LoadType.name.empty() ) {
+            // (try to) set the cargo type for empty cars
+            parameters.AssignLoad( "passengers" );
         }
 
-        if( parameters.LoadType == "passengers" ) {
+        if( parameters.LoadType.name == "passengers" ) {
             // NOTE: for the time being we're doing simple, random load change calculation
             // TODO: exchange driven by station parameters and time of the day
             auto unloadcount = static_cast<int>(
-                laststop ? parameters.Load :
+                laststop ? parameters.LoadAmount :
                 firststop ? 0 :
                 std::min<float>(
-                    parameters.Load,
+                    parameters.LoadAmount,
                     Random( parameters.MaxLoad * 0.10 * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
                 laststop ?

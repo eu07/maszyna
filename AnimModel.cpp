@@ -404,7 +404,7 @@ bool TAnimContainer::InMovement()
     return (fRotateSpeed != 0.0) || (fTranslateSpeed != 0.0);
 }
 
-void TAnimContainer::EventAssign(TEvent *ev)
+void TAnimContainer::EventAssign(basic_event *ev)
 { // przypisanie eventu wykonywanego po zakończeniu animacji
     evDone = ev;
 };

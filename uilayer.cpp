@@ -101,7 +101,7 @@ ui_layer::init( GLFWwindow *Window ) {
     m_imguiio->Fonts->AddFontFromFileTTF("DejaVuSansMono.ttf", 13.0f);
 
     ImGui_ImplGlfw_InitForOpenGL(m_window);
-    ImGui_ImplOpenGL3_Init("#version 140");
+    ImGui_ImplOpenGL3_Init("#version 130");
     ImGui::StyleColorsClassic();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -114,6 +114,7 @@ ui_layer::init( GLFWwindow *Window ) {
 void
 ui_layer::shutdown() {
     ImGui::EndFrame();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -182,7 +183,6 @@ ui_layer::render() {
     render_();
 
     ImGui::Render();
-
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     ImGui_ImplOpenGL3_NewFrame();

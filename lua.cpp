@@ -66,25 +66,23 @@ int lua::openffi(lua_State *s)
 
 extern "C"
 {
-    EXPORT TEvent* scriptapi_event_create(const char* name, double delay, double randomdelay, lua::eventhandler_t handler)
+    EXPORT basic_event* scriptapi_event_create(const char* name, double delay, double randomdelay, lua::eventhandler_t handler)
     {
-        TEvent *event = new TEvent();
-        event->bEnabled = true;
-        event->Type = tp_Lua;
-        event->asName = std::string(name);
-        event->fDelay = delay;
-        event->fRandomDelay = randomdelay;
-        event->Params[0].asPointer = (void*)handler;
+        basic_event *event = new lua_event(handler);
+        event->m_name = std::string(name);
+        event->m_delay = delay;
+        event->m_delayrandom = randomdelay;
+
 		if (simulation::Events.insert(event))
 			return event;
 		else
 			return nullptr;
     }
 
-    EXPORT TEvent* scriptapi_event_find(const char* name)
+    EXPORT basic_event* scriptapi_event_find(const char* name)
     {
         std::string str(name);
-        TEvent *e = simulation::Events.FindEvent(str);
+        basic_event *e = simulation::Events.FindEvent(str);
         if (e)
             return e;
         else
@@ -128,10 +126,10 @@ extern "C"
 		return false;
 	}
 
-    EXPORT const char* scriptapi_event_getname(TEvent *e)
+    EXPORT const char* scriptapi_event_getname(basic_event *e)
     {
         if (e)
-            return e->asName.c_str();
+            return e->m_name.c_str();
         return nullptr;
     }
 
@@ -142,7 +140,7 @@ extern "C"
         return nullptr;
     }
 
-    EXPORT void scriptapi_event_dispatch(TEvent *e, TDynamicObject *activator, double delay)
+    EXPORT void scriptapi_event_dispatch(basic_event *e, TDynamicObject *activator, double delay)
     {
         if (e)
             simulation::Events.AddToQuery(e, activator, delay);
@@ -188,7 +186,7 @@ extern "C"
         if (!mc)
             return;
         mc->UpdateValues(std::string(str), num1, num2,
-                         update_memstring | update_memval1 | update_memval2);
+                         basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2);
     }
 
     EXPORT void scriptapi_dynobj_putvalues(TDynamicObject *dyn, const char *str, double num1, double num2)

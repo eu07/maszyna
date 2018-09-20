@@ -64,9 +64,9 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             if( Global.iMultiplayer ) {
                 auto *event = simulation::Events.FindEvent( std::string( pRozkaz->cString + 1, (unsigned)( pRozkaz->cString[ 0 ] ) ) );
                 if( event != nullptr ) {
-                    if( ( event->Type == tp_Multiple )
-                     || ( event->Type == tp_Lights )
-                     || ( event->evJoined != 0 ) ) {
+                    if( ( typeid( *event ) == typeid( multi_event ) )
+                     || ( typeid( *event ) == typeid( lights_event ) )
+                     || ( event->m_sibling != 0 ) ) {
                         // tylko jawne albo niejawne Multiple
                         simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
                     }

@@ -1,7 +1,7 @@
 #pragma once
 #include <lua.hpp>
 
-class TEvent;
+class basic_event;
 class TDynamicObject;
 
 class lua
@@ -17,5 +17,5 @@ public:
 
     void interpret(std::string file);
 
-    typedef void (*eventhandler_t)(TEvent*, const TDynamicObject*);
+    typedef void (*eventhandler_t)(basic_event*, const TDynamicObject*);
 };

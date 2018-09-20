@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 class opengl_renderer;
 class TTrack; // odcinek trajektorii
-class TEvent;
+class basic_event;
 class TTrain; // pojazd sterowany
 class TDynamicObject; // pojazd w scenerii
 struct material_data;

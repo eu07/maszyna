@@ -140,13 +140,13 @@ class TSpeedPos
     struct
     {
         TTrack *trTrack{ nullptr }; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
-        TEvent *evEvent{ nullptr }; // połączenie z eventem albo komórką pamięci
+        basic_event *evEvent{ nullptr }; // połączenie z eventem albo komórką pamięci
     };
     void CommandCheck();
 
   public:
     TSpeedPos(TTrack *track, double dist, int flag);
-    TSpeedPos(TEvent *event, double dist, TOrders order);
+    TSpeedPos(basic_event *event, double dist, TOrders order);
     TSpeedPos() = default;
     void Clear();
     bool Update();
@@ -155,7 +155,7 @@ class TSpeedPos
     void
         UpdateDistance( double dist ) {
             fDist -= dist; }
-    bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
+    bool Set(basic_event *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText() const;
     std::string GetName() const;
@@ -181,7 +181,7 @@ class TController {
     std::vector<TSpeedPos> sSpeedTable;
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
     TTrack *tLast = nullptr; // ostatni analizowany tor
-    TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
+    basic_event *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
     std::size_t SemNextIndex{ std::size_t(-1) };
     std::size_t SemNextStopIndex{ std::size_t( -1 ) };
     double dMoveLen = 0.0; // odległość przejechana od ostatniego sprawdzenia tabelki
@@ -190,7 +190,7 @@ class TController {
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
 public:
     double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
-    TEvent *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
+    basic_event *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
     int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
     // parametry sterowania pojazdem (stan, hamowanie)
@@ -362,9 +362,9 @@ private:
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
     // Ra: metody obsługujące skanowanie toru
-    std::vector<TEvent *> CheckTrackEvent(TTrack *Track, double const fDirection ) const;
+    std::vector<basic_event *> CheckTrackEvent(TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
-    bool TableNotFound(TEvent const *Event) const;
+    bool TableNotFound(basic_event const *Event) const;
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
@@ -387,8 +387,8 @@ private:
 
   private: // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
     bool BackwardTrackBusy(TTrack *Track);
-    TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, TEvent *&Event);
+    basic_event *CheckTrackEventBackward(double fDirection, TTrack *Track);
+    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, basic_event *&Event);
     void SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos );
     TCommandType BackwardScan();
 

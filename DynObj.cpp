@@ -1784,7 +1784,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeśli ma być wstawiony jako obrócony tyłem
     asBaseDir = szDynamicPath + BaseDir + "/"; // McZapkie-310302
     asName = Name;
-    std::string asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
+    std::string asAnimName; // zmienna robocza do wyszukiwania osi i wózków
     // Ra: zmieniamy znaczenie obsady na jednoliterowe, żeby dosadzić kierownika
     if (DriverType == "headdriver")
         DriverType = "1"; // sterujący kabiną +1
@@ -1811,7 +1811,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
 */
     // utworzenie parametrów fizyki
-    MoverParameters = new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Load, LoadType, Cab);
+    MoverParameters = new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Cab);
     iLights = MoverParameters->iLights; // wskaźnik na stan własnych świateł
     // McZapkie: TypeName musi byc nazwą CHK/MMD pojazdu
     if (!MoverParameters->LoadFIZ(asBaseDir))
@@ -1823,6 +1823,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         }
         return 0.0; // zerowa długość to brak pojazdu
     }
+    // load the cargo now that we know whether the vehicle will allow it
+    MoverParameters->AssignLoad( LoadType, Load );
+
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch
     if (!MoverParameters->CheckLocomotiveParameters(
             driveractive,
@@ -2096,7 +2099,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iAxles = std::min( MoverParameters->NAxles, MaxAxles ); // ilość osi
 */
     // wczytywanie z pliku nazwatypu.mmd, w tym model
-    LoadMMediaFile(asBaseDir, Type_Name, asReplacableSkin);
+    erase_extension( asReplacableSkin );
+    LoadMMediaFile(Type_Name, asReplacableSkin);
     // McZapkie-100402: wyszukiwanie submodeli sprzegów
     btCoupler1.Init( "coupler1", mdModel, false ); // false - ma być wyłączony
     btCoupler2.Init( "coupler2", mdModel, false);
@@ -2235,11 +2239,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // zrobiło tego
     Move( 0.0001 );
     ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
-    TLocation loc; // Ra: ustawienie pozycji do obliczania sprzęgów
-    loc.X = -vPosition.x;
-    loc.Y = vPosition.z;
-    loc.Z = vPosition.y;
-    MoverParameters->Loc = loc; // normalnie przesuwa ComputeMovement() w Update()
+    // Ra: ustawienie pozycji do obliczania sprzęgów
+    MoverParameters->Loc = {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y }; // normalnie przesuwa ComputeMovement() w Update()
     // ABuWozki 060504
     if (mdModel) // jeśli ma w czym szukać
     {
@@ -2613,13 +2617,13 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
             auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * m_exchange.speed_factor );
             m_exchange.unload_count -= exchangesize;
             MoverParameters->LoadStatus = 1;
-            MoverParameters->Load = std::max( 0.f, MoverParameters->Load - exchangesize );
+            MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
             update_load_visibility();
         }
         if( m_exchange.unload_count < 0.01 ) {
             // finish any potential unloading operation before adding new load
             // don't load more than can fit
-            m_exchange.load_count = std::min( m_exchange.load_count, MoverParameters->MaxLoad - MoverParameters->Load );
+            m_exchange.load_count = std::min( m_exchange.load_count, MoverParameters->MaxLoad - MoverParameters->LoadAmount );
             while( ( m_exchange.load_count > 0.01 )
                 && ( m_exchange.time >= 1.0 ) ) {
 
@@ -2627,7 +2631,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * m_exchange.speed_factor );
                 m_exchange.load_count -= exchangesize;
                 MoverParameters->LoadStatus = 2;
-                MoverParameters->Load = std::min( MoverParameters->MaxLoad, MoverParameters->Load + exchangesize ); // std::max not strictly needed but, eh
+                MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
                 update_load_visibility();
             }
         }
@@ -2665,34 +2669,28 @@ void TDynamicObject::LoadUpdate() {
     // przeładowanie modelu ładunku
     // Ra: nie próbujemy wczytywać modeli miliony razy podczas renderowania!!!
     if( ( mdLoad == nullptr )
-     && ( MoverParameters->Load > 0 ) ) {
+     && ( MoverParameters->LoadAmount > 0 ) ) {
 
-        if( false == MoverParameters->LoadType.empty() ) {
+        if( false == MoverParameters->LoadType.name.empty() ) {
+            // bieżąca ścieżka do tekstur to dynamic/...
+            Global.asCurrentTexturePath = asBaseDir;
 
-            Global.asCurrentTexturePath = asBaseDir; // bieżąca ścieżka do tekstur to dynamic/...
-
-            // try first specialized version of the load model, vehiclename_loadname
-            auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + MoverParameters->LoadType };
-            mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
-            if( mdLoad == nullptr ) {
-                // if this fails, try generic load model
-                auto const genericloadfilename { asBaseDir + MoverParameters->LoadType };
-                mdLoad = TModelsManager::GetModel( genericloadfilename, true );
-            }
+            mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
+            // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
+            // and actual vehicles which get their initialization after their animations are set up
             if( mdLoad != nullptr ) {
-                // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
-                // and actual vehicles which get their initialization after their animations are set up
                 mdLoad->Init();
             }
             // update bindings between lowpoly sections and potential load chunks placed inside them
             update_load_sections();
-
-            Global.asCurrentTexturePath = std::string( szTexturePath ); // z powrotem defaultowa sciezka do tekstur
+            // z powrotem defaultowa sciezka do tekstur
+            Global.asCurrentTexturePath = std::string( szTexturePath );
         }
         // Ra: w MMD można by zapisać położenie modelu ładunku (np. węgiel) w zależności od załadowania
     }
-    else if( MoverParameters->Load == 0 ) {
+    else if( MoverParameters->LoadAmount == 0 ) {
         // nie ma ładunku
+        MoverParameters->AssignLoad( "" );
         mdLoad = nullptr;
         // erase bindings between lowpoly sections and potential load chunks placed inside them
         update_load_sections();
@@ -2730,7 +2728,7 @@ TDynamicObject::update_load_visibility() {
     auto loadpercentage { (
         MoverParameters->MaxLoad == 0.0 ?
             0.0 :
-            100.0 * MoverParameters->Load / MoverParameters->MaxLoad ) };
+            100.0 * MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
     auto const sectionloadpercentage { (
         SectionLoadVisibility.empty() ?
             0.0 :
@@ -2759,14 +2757,14 @@ TDynamicObject::update_load_visibility() {
 void
 TDynamicObject::update_load_offset() {
 
-    if( MoverParameters->LoadMinOffset == 0.f ) { return; }
+    if( MoverParameters->LoadType.offset_min == 0.f ) { return; }
 
     auto const loadpercentage { (
         MoverParameters->MaxLoad == 0.0 ?
             0.0 :
-            100.0 * MoverParameters->Load / MoverParameters->MaxLoad ) };
+            100.0 * MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
 
-    LoadOffset = interpolate( MoverParameters->LoadMinOffset, 0.f, clamp( 0.0, 1.0, loadpercentage * 0.01 ) );
+    LoadOffset = interpolate( MoverParameters->LoadType.offset_min, 0.f, clamp( 0.0, 1.0, loadpercentage * 0.01 ) );
 }
 
 void 
@@ -2808,20 +2806,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         return false; // a normalnie powinny mieć bEnabled==false
 
     double dDOMoveLen;
-
-    TLocation l;
-    l.X = -vPosition.x; // przekazanie pozycji do fizyki
-    l.Y = vPosition.z;
-    l.Z = vPosition.y;
-    TRotation r;
-    r.Rx = r.Ry = r.Rz = 0;
     // McZapkie: parametry powinny byc pobierane z toru
-
-    // TTrackShape ts;
-    // ts.R=MyTrack->fRadius;
-    // if (ABuGetDirection()<0) ts.R=-ts.R;
-    //    ts.R=MyTrack->fRadius; //ujemne promienie są już zamienione przy
-    //    wczytywaniu
     if (Axle0.vAngles.z != Axle1.vAngles.z)
     { // wyliczenie promienia z obrotów osi - modyfikację zgłosił youBy
         ts.R = Axle0.vAngles.z - Axle1.vAngles.z; // różnica może dawać stałą ±M_2PI
@@ -3233,16 +3218,15 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
 
     // fragment "z EXE Kursa"
-    if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ( ( false == MoverParameters->Battery )
-          && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
+    if( MoverParameters->Mains ) { // nie wchodzić w funkcję bez potrzeby
+        if( ( false == MoverParameters->Battery )
+         && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
 /*
-        // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
-          && ( Controller == Humandriver )
+          // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
+            && ( Controller == Humandriver )
 */
-          && ( MoverParameters->EngineType != TEngineType::DieselEngine )
-          && ( MoverParameters->EngineType != TEngineType::WheelsDriven ) )
-        { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
+            && ( MoverParameters->EngineType != TEngineType::DieselEngine )
+            && ( MoverParameters->EngineType != TEngineType::WheelsDriven ) ) { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
             if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) {
                 // wyłączyć zasilanie
                 // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
@@ -3257,7 +3241,16 @@ bool TDynamicObject::Update(double dt, double dt1)
 */
             }
         }
+    }
 
+    // przekazanie pozycji do fizyki
+    // NOTE: coordinate system swap
+    // TODO: replace with regular glm vectors
+    TLocation const l {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y };
+    TRotation r { 0.0, 0.0, 0.0 };
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
     if( Mechanik )
@@ -3860,13 +3853,13 @@ bool TDynamicObject::FastUpdate(double dt)
     if (!bEnabled)
         return false;
 
-    TLocation l;
-    l.X = -vPosition.x;
-    l.Y = vPosition.z;
-    l.Z = vPosition.y;
-    TRotation r;
-    r.Rx = r.Ry = r.Rz = 0.0;
-
+    // NOTE: coordinate system swap
+    // TODO: replace with regular glm vectors
+    TLocation const l {
+        -vPosition.x,
+         vPosition.z,
+         vPosition.y };
+    TRotation r { 0.0, 0.0, 0.0 };
     // McZapkie: parametry powinny byc pobierane z toru
     // ts.R=MyTrack->fRadius;
     // ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -4485,20 +4478,14 @@ TDynamicObject::tracing_offset() const {
 
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
-void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, std::string ReplacableSkin ) {
+void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string const &ReplacableSkin ) {
 
-    replace_slashes( BaseDir );
-    Global.asCurrentDynamicPath = BaseDir;
-    std::string asFileName = BaseDir + TypeName + ".mmd";
-    std::string asLoadName;
-    if( false == MoverParameters->LoadType.empty() ) {
-        asLoadName = BaseDir + MoverParameters->LoadType;
-    }
-
+    Global.asCurrentDynamicPath = asBaseDir;
+    std::string asFileName = asBaseDir + TypeName + ".mmd";
     std::string asAnimName;
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
-	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, BaseDir );
+	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
     if( false == parser.ok() ) {
         ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
         return;
@@ -4532,8 +4519,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                 }
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
-            asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
-            Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
+            asModel = asBaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
+            Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none")
             {
@@ -4560,7 +4547,6 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     }
                     else {
                         // otherwise try the basic approach
-                        erase_extension( ReplacableSkin );
                         int skinindex = 0;
                         do {
                             material_handle material = GfxRenderer.Fetch_Material( ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
@@ -4605,53 +4591,9 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                     m_materialdata.textures_alpha |= 0x08080008;
                 }
             }
-            if( !MoverParameters->LoadAccepted.empty() ) {
-
-                if( ( MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
-                 && ( asLoadName == "pantstate" ) ) {
-                    // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
-                    if( MoverParameters->Load == 1 ) {
-                        MoverParameters->PantFront( true );
-                    }
-                    else if( MoverParameters->Load == 2 ) {
-                        MoverParameters->PantRear( true );
-                    }
-                    else if( MoverParameters->Load == 3 ) {
-                        MoverParameters->PantFront( true );
-                        MoverParameters->PantRear( true );
-                    }
-                    else if( MoverParameters->Load == 4 ) {
-                        MoverParameters->DoubleTr = -1;
-                    }
-                    else if( MoverParameters->Load == 5 ) {
-                        MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantRear( true );
-                    }
-                    else if( MoverParameters->Load == 6 ) {
-                        MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantFront( true );
-                    }
-                    else if( MoverParameters->Load == 7 ) {
-                        MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantFront( true );
-                        MoverParameters->PantRear( true );
-                    }
-                }
-                else {
-                    // Ra: tu wczytywanie modelu ładunku jest w porządku
-                    if( false == asLoadName.empty() ) {
-                         // try first specialized version of the load model, vehiclename_loadname
-                        auto const specializedloadfilename { BaseDir + TypeName + "_" + MoverParameters->LoadType };
-                        if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
-                         || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
-                            mdLoad = TModelsManager::GetModel( specializedloadfilename, true );
-                        }
-                        if( mdLoad == nullptr ) {
-                            // if this fails, try generic load model
-                            mdLoad = TModelsManager::GetModel( asLoadName, true );
-                        }
-                    }
-                }
+            if( false == MoverParameters->LoadAttributes.empty() ) {
+                // Ra: tu wczytywanie modelu ładunku jest w porządku
+                mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
             }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
@@ -4715,9 +4657,8 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
                         // filename can potentially begin with a slash, and we don't need it
                         asModel.erase( 0, 1 );
                     }
-
-                    asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
-                    Global.asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
+                    asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
+                    Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
                 }
 
@@ -5934,6 +5875,25 @@ void TDynamicObject::LoadMMediaFile( std::string BaseDir, std::string TypeName, 
     m_couplersounds[ side::rear ].dsbBufferClamp_loud.offset( rearcoupleroffset );
 }
 
+TModel3d *
+TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
+
+    if( Name.empty() ) { return nullptr; }
+
+    // try first specialized version of the load model, vehiclename_loadname
+    TModel3d *loadmodel { nullptr };
+    auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
+    if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
+     || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
+        loadmodel = TModelsManager::GetModel( specializedloadfilename, true );
+    }
+    if( loadmodel == nullptr ) {
+        // if this fails, try generic load model
+        loadmodel = TModelsManager::GetModel( asBaseDir + Name, true );
+    }
+    return loadmodel;
+}
+
 //---------------------------------------------------------------------------
 void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
@@ -7039,7 +6999,8 @@ vehicle_table::erase_disabled() {
              && ( true == vehicle->MyTrack->RemoveDynamicObject( vehicle ) ) ) {
                 vehicle->MyTrack = nullptr;
             }
-            if( simulation::Train->Dynamic() == vehicle ) {
+            if( ( simulation::Train != nullptr )
+             && ( simulation::Train->Dynamic() == vehicle ) ) {
                 // clear potential train binding
                 // TBD, TODO: manually eject the driver first ?
                 SafeDelete( simulation::Train );
