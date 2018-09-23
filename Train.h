@@ -366,6 +366,7 @@ public: // reszta może by?publiczna
     TGauge ggBrakeProfileCtrl; // nastawiacz GPR - przelacznik obrotowy
     TGauge ggBrakeProfileG; // nastawiacz GP - hebelek towarowy
     TGauge ggBrakeProfileR; // nastawiacz PR - hamowanie dwustopniowe
+	TGauge ggBrakeOperationModeCtrl; //przełącznik trybu pracy PS/PN/EP/MED
 
     TGauge ggMaxCurrentCtrl;
 
