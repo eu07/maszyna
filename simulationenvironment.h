@@ -14,6 +14,8 @@ http://mozilla.org/MPL/2.0/.
 #include "moon.h"
 #include "stars.h"
 #include "skydome.h"
+#include "precipitation.h"
+#include "sound.h"
 
 class opengl_renderer;
 
@@ -26,6 +28,7 @@ public:
 // methods
     void init();
     void update();
+    void update_precipitation();
     void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
     // switches between static and dynamic daylight calculation
     void toggle_daylight();
@@ -41,6 +44,9 @@ private:
     cSun m_sun;
     cMoon m_moon;
     TSky m_clouds;
+    basic_precipitation m_precipitation;
+
+    sound_source m_precipitationsound { sound_placement::external, -1 };
 };
 
 namespace simulation {

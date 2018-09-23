@@ -43,12 +43,16 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         if( key == Global.Weather ) {
             // weather textures override generic (pri 0) and seasonal (pri 1) textures
             // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, Priority + 2, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
         else if( key == Global.Season ) {
             // seasonal textures override generic textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, 1, Loadnow ) ) {
                 ; // all work is done in the header
             }

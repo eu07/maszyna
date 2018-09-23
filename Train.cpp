@@ -527,9 +527,9 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "unit_no", PyGetInt( iUnitNo ) );
 
     for( int i = 0; i < 20; i++ ) {
-        PyDict_SetItemString( dict, ( "doors_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 0 ] ) );
-        PyDict_SetItemString( dict, ( "doors_r_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 1 ] ) );
-        PyDict_SetItemString( dict, ( "doors_l_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 2 ] ) );
+        PyDict_SetItemString( dict, ( "doors_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 0 ] ) );
+        PyDict_SetItemString( dict, ( "doors_r_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 1 ] ) );
+        PyDict_SetItemString( dict, ( "doors_l_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 2 ] ) );
         PyDict_SetItemString( dict, ( "doors_no_" + std::to_string( i + 1 ) ).c_str(), PyGetInt( iDoorNo[ i ] ) );
         PyDict_SetItemString( dict, ( "code_" + std::to_string( i + 1 ) ).c_str(), PyGetString( ( std::to_string( iUnits[ i ] ) + cCode[ i ] ).c_str() ) );
         PyDict_SetItemString( dict, ( "car_name" + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
@@ -4529,31 +4529,14 @@ void TTrain::UpdateMechPosition(double dt)
         2 :
         DynamicObject->MoverParameters->ActiveCab );
     if( !DebugModeFlag ) { // sprawdzaj więzy //Ra: nie tu!
-        if( pMechPosition.x < Cabine[ iCabn ].CabPos1.x )
-            pMechPosition.x = Cabine[ iCabn ].CabPos1.x;
-        if( pMechPosition.x > Cabine[ iCabn ].CabPos2.x )
-            pMechPosition.x = Cabine[ iCabn ].CabPos2.x;
-        if( pMechPosition.z < Cabine[ iCabn ].CabPos1.z )
-            pMechPosition.z = Cabine[ iCabn ].CabPos1.z;
-        if( pMechPosition.z > Cabine[ iCabn ].CabPos2.z )
-            pMechPosition.z = Cabine[ iCabn ].CabPos2.z;
-        if( pMechPosition.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
-            pMechPosition.y = Cabine[ iCabn ].CabPos1.y + 1.8;
-        if( pMechPosition.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
-            pMechPosition.y = Cabine[ iCabn ].CabPos2.y + 0.5;
 
-        if( pMechOffset.x < Cabine[ iCabn ].CabPos1.x )
-            pMechOffset.x = Cabine[ iCabn ].CabPos1.x;
-        if( pMechOffset.x > Cabine[ iCabn ].CabPos2.x )
-            pMechOffset.x = Cabine[ iCabn ].CabPos2.x;
-        if( pMechOffset.z < Cabine[ iCabn ].CabPos1.z )
-            pMechOffset.z = Cabine[ iCabn ].CabPos1.z;
-        if( pMechOffset.z > Cabine[ iCabn ].CabPos2.z )
-            pMechOffset.z = Cabine[ iCabn ].CabPos2.z;
-        if( pMechOffset.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
-            pMechOffset.y = Cabine[ iCabn ].CabPos1.y + 1.8;
-        if( pMechOffset.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
-            pMechOffset.y = Cabine[ iCabn ].CabPos2.y + 0.5;
+        pMechPosition.x = clamp( pMechPosition.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
+        pMechPosition.y = clamp( pMechPosition.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
+        pMechPosition.z = clamp( pMechPosition.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
+
+        pMechOffset.x = clamp( pMechOffset.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
+        pMechOffset.y = clamp( pMechOffset.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
+        pMechOffset.z = clamp( pMechOffset.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
     }
 };
 
@@ -5863,7 +5846,7 @@ TTrain::update_sounds( double const Deltatime ) {
             dsbSlipAlarm.stop();
         }
     }
-
+/*
     // szum w czasie jazdy
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
@@ -5875,6 +5858,7 @@ TTrain::update_sounds( double const Deltatime ) {
         // don't play the optional ending sound if the listener switches views
         rsRunningNoise.stop( true == FreeFlyModeFlag );
     }
+    */
     // hunting oscillation noise
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
@@ -5882,6 +5866,15 @@ TTrain::update_sounds( double const Deltatime ) {
      && ( IsHunting ) ) {
 
         update_sounds_runningnoise( rsHuntingNoise );
+        // modify calculated sound volume by hunting amount
+        auto const huntingamount =
+            interpolate(
+                0.0, 1.0,
+                clamp(
+                ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
+                    0.0, 1.0 ) );
+
+        rsHuntingNoise.gain( rsHuntingNoise.gain() * huntingamount );
     }
     else {
         // don't play the optional ending sound if the listener switches views

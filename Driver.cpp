@@ -238,9 +238,16 @@ void TSpeedPos::CommandCheck()
     case TCommandType::cm_PassengerStopPoint:
         // nie ma dostępu do rozkładu
         // przystanek, najwyżej AI zignoruje przy analizie tabelki
-//        if ((iFlags & spPassengerStopPoint) == 0)
-            fVelNext = 0.0; // TrainParams->IsStop()?0.0:-1.0; //na razie tak
+        fVelNext = 0.0;
         iFlags |= spPassengerStopPoint; // niestety nie da się w tym miejscu współpracować z rozkładem
+/*
+        // NOTE: not used for now as it might be unnecessary
+        // special case, potentially override any set speed limits if requested
+        // NOTE: we test it here because for the time being it's only used for passenger stops
+        if( TestFlag( iFlags, spDontApplySpeedLimit ) ) {
+            fVelNext = -1;
+        }
+*/
         break;
     case TCommandType::cm_SetProximityVelocity:
         // musi zostać gdyż inaczej nie działają manewry
@@ -879,7 +886,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to nie
                             // jest dobry pomysł
                             sSpeedTable[i].iFlags = 0; // nie liczy się już
-                            sSpeedTable[i].fVelNext = -1; // jechać
                             continue; // nie analizować prędkości
                         }
                     } // koniec obsługi przelotu na W4
@@ -1035,9 +1041,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     iDrivigFlags |= moveStopCloser; // do następnego W4 podjechać blisko (z dociąganiem)
                                     sSpeedTable[i].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                                     sSpeedTable[i].fVelNext = -1; // można jechać za W4
+                                    if( ( sSpeedTable[ i ].fDist <= 0.0 ) && ( eSignNext == sSpeedTable[ i ].evEvent ) ) {
+                                        // sanity check, if we're held by this stop point, let us go
+                                        VelSignalLast = -1;
+                                    }
                                     if (go == TCommandType::cm_Unknown) // jeśli nie było komendy wcześniej
-                                        go = TCommandType::cm_Ready; // gotów do odjazdu z W4 (semafor może
-                                    // zatrzymać)
+                                        go = TCommandType::cm_Ready; // gotów do odjazdu z W4 (semafor może zatrzymać)
                                     if( false == tsGuardSignal.empty() ) {
                                         // jeśli mamy głos kierownika, to odegrać
                                         iDrivigFlags |= moveGuardSignal;
@@ -1061,14 +1070,15 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // if the consist can change direction through a simple cab change it doesn't need fiddling with recognition of passenger stops
                                     iDrivigFlags &= ~( moveStopPoint );
                                 }
+                                fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
                                 sSpeedTable[i].iFlags = 0; // W4 nie liczy się już (nie wyśle SetVelocity)
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
-                                fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
-                                // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
-                                // FIX: don't automatically advance if there's disconnect procedure in progress
-                                if( false == TestFlag( OrderCurrentGet(), Disconnect ) ) {
-                                    JumpToNextOrder();
+                                if( ( sSpeedTable[ i ].fDist <= 0.0 ) && ( eSignNext == sSpeedTable[ i ].evEvent ) ) {
+                                    // sanity check, if we're held by this stop point, let us go
+                                    VelSignalLast = -1;
                                 }
+                                // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
+                                JumpToNextOrder();
                                 // ma się nie ruszać aż do momentu podania sygnału
                                 iDrivigFlags |= moveStopHere | moveStartHorn;
                                 continue; // nie analizować prędkości
@@ -1094,36 +1104,42 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             }
             else if (sSpeedTable[i].iFlags & spEvent) // W4 może się deaktywować
             { // jeżeli event, może być potrzeba wysłania komendy, aby ruszył
-                // sprawdzanie eventów pasywnych miniętych
-                if( (sSpeedTable[ i ].fDist < 0.0) && (SemNextIndex == i) )
-                {
-                    if( Global.iWriteLogEnabled & 8 ) {
-                        WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextIndex ].GetName() );
+                if( sSpeedTable[ i ].fDist < 0.0 ) {
+                    // sprawdzanie eventów pasywnych miniętych
+/*
+                    if( ( eSignNext != nullptr ) && ( sSpeedTable[ i ].evEvent == eSignNext ) ) {
+                        VelSignalLast = sSpeedTable[ i ].fVelNext;
                     }
-                    SemNextIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-                }
-                if( (sSpeedTable[ i ].fDist < 0.0) && (SemNextStopIndex == i) )
-                {
-                    if( Global.iWriteLogEnabled & 8 ) {
-                        WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextStopIndex ].GetName() );
-                    }
-                    SemNextStopIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-                }
-                if (sSpeedTable[i].fDist > 0.0 &&
-                    sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
-                {
-                    if( SemNextIndex == -1 ) {
-                        // jeśli jest mienięty poprzedni semafor a wcześniej
-                        // byl nowy to go dorzucamy do zmiennej, żeby cały czas widział najbliższy
-                        SemNextIndex = i;
+*/
+                    if( SemNextIndex == i ) {
                         if( Global.iWriteLogEnabled & 8 ) {
-                            WriteLog( "Speed table update for " + OwnerName() + ", next semaphor is " + sSpeedTable[ SemNextIndex ].GetName() );
+                            WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextIndex ].GetName() );
                         }
+                        SemNextIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
                     }
-                    if( ( SemNextStopIndex == -1 )
-                     || ( ( sSpeedTable[SemNextStopIndex].fVelNext != 0 )
-                       && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
-                        SemNextStopIndex = i;
+                    if( SemNextStopIndex == i ) {
+                        if( Global.iWriteLogEnabled & 8 ) {
+                            WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextStopIndex ].GetName() );
+                        }
+                        SemNextStopIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
+                    }
+                }
+                if( sSpeedTable[ i ].fDist > 0.0 ) {
+                    // check signals ahead
+                    if( sSpeedTable[ i ].IsProperSemaphor( OrderCurrentGet() ) ) {
+                        if( SemNextIndex == -1 ) {
+                            // jeśli jest mienięty poprzedni semafor a wcześniej
+                            // byl nowy to go dorzucamy do zmiennej, żeby cały czas widział najbliższy
+                            SemNextIndex = i;
+                            if( Global.iWriteLogEnabled & 8 ) {
+                                WriteLog( "Speed table update for " + OwnerName() + ", next semaphor is " + sSpeedTable[ SemNextIndex ].GetName() );
+                            }
+                        }
+                        if( ( SemNextStopIndex == -1 )
+                         || ( ( sSpeedTable[ SemNextStopIndex ].fVelNext != 0 )
+                           && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
+                            SemNextStopIndex = i;
+                        }
                     }
                 }
                 if (sSpeedTable[i].iFlags & spOutsideStation)

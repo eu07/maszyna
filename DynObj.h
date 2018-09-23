@@ -546,6 +546,8 @@ private:
         return iAxleFirst ?
             Axle1.pPosition :
             Axle0.pPosition; };
+    inline double Roll() {
+        return ( ( Axle1.GetRoll() + Axle0.GetRoll() ) ); }
 /*
     // TODO: check if scanning takes into account direction when selecting axle
     // if it does, replace the version above

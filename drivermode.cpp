@@ -224,6 +224,8 @@ driver_mode::update() {
 
     update_camera( deltarealtime );
 
+    simulation::Environment.update_precipitation(); // has to be launched after camera step to work properly
+
     Timer::subsystem.sim_total.stop();
 
     simulation::Region->update_sounds();
@@ -951,6 +953,7 @@ driver_mode::InOutKey( bool const Near )
             train->Dynamic()->ABuSetModelShake( { 0, 0, 0 } );
             train->MechStop();
             FollowView(); // na pozycję mecha
+            train->UpdateMechPosition( m_secondaryupdaterate );
         }
         else
             FreeFlyModeFlag = true; // nadal poza kabiną

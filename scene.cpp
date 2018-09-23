@@ -986,6 +986,37 @@ basic_region::update_traction( TDynamicObject *Vehicle, int const Pantographinde
     }
 }
 
+// checks whether specified file is a valid region data file
+bool
+basic_region::is_scene( std::string const &Scenariofile ) const {
+
+    auto filename { Scenariofile };
+    while( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+        filename.erase( 0, 1 );
+    }
+    erase_extension( filename );
+    filename = Global.asCurrentSceneryPath + filename;
+    filename += EU07_FILEEXTENSION_REGION;
+
+    if( false == FileExists( filename ) ) {
+        return false;
+    }
+    // file type and version check
+    std::ifstream input( filename, std::ios::binary );
+
+    uint32_t headermain{ sn_utils::ld_uint32( input ) };
+    uint32_t headertype{ sn_utils::ld_uint32( input ) };
+
+    if( ( headermain != EU07_FILEHEADER
+     || ( headertype != EU07_FILEVERSION_REGION ) ) ) {
+        // wrong file type
+        return false;
+    }
+
+    return true;
+}
+
 // stores content of the class in file with specified name
 void
 basic_region::serialize( std::string const &Scenariofile ) const {
@@ -1062,7 +1093,9 @@ basic_region::deserialize( std::string const &Scenariofile ) {
         // section index, followed by section data size, followed by section data
         auto *&section { m_sections[ sn_utils::ld_uint32( input ) ] };
         auto const sectionsize { sn_utils::ld_uint32( input ) };
-        section = new basic_section();
+        if( section == nullptr ) {
+            section = new basic_section();
+        }
         section->deserialize( input );
     }
 

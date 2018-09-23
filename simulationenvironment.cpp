@@ -76,6 +76,9 @@ world_environment::init() {
     m_moon.init();
     m_stars.init();
     m_clouds.Init();
+    m_precipitation.init();
+
+    m_precipitationsound.deserialize( "rain-sound-loop", sound_type::single );
 }
 
 void
@@ -147,6 +150,24 @@ world_environment::update() {
     // but quite effective way to make the distant items blend with background better
     // NOTE: base brightness calculation provides scaled up value, so we bring it back to 'real' one here
     Global.FogColor = m_skydome.GetAverageHorizonColor();
+
+    // weather-related simulation factors
+    // TODO: dynamic change of air temperature and overcast levels
+    if( Global.Weather == "rain:" ) {
+        // reduce friction in rain
+        Global.FrictionWeatherFactor = 0.85f;
+        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else if( Global.Weather == "snow:" ) {
+        // reduce friction due to snow
+        Global.FrictionWeatherFactor = 0.75f;
+    }
+}
+
+void
+world_environment::update_precipitation() {
+
+    m_precipitation.update();
 }
 
 void

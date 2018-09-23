@@ -295,6 +295,8 @@ private:
     void
         Render( TMemCell *Memcell );
     void
+        Render_precipitation();
+    void
         Render_Alpha( scene::basic_region *Region );
     void
         Render_Alpha( cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last );

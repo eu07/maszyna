@@ -330,6 +330,9 @@
     <ClCompile Include="ref\imgui\imgui_widgets.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="precipitation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -607,6 +610,9 @@
     </ClInclude>
     <ClInclude Include="editoruipanels.h">
       <Filter>Header Files\application\mode_editor</Filter>
+    </ClInclude>
+    <ClInclude Include="precipitation.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

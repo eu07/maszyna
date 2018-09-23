@@ -65,6 +65,7 @@ struct global_settings {
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
     bool bEnableTraction{ true };
     float fFriction{ 1.f }; // mnożnik tarcia - KURS90
+    float FrictionWeatherFactor { 1.f };
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };

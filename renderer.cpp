@@ -129,6 +129,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     ui_layer::set_unit( m_diffusetextureunit );
+    simulation::Environment.m_precipitation.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
@@ -550,7 +551,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glEnable( GL_TEXTURE_2D );
                 }
 #endif
-                if( false == FreeFlyModeFlag ) {
+                // without rain/snow we can render the cab early to limit the overdraw
+                if( ( false == FreeFlyModeFlag )
+                 && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
@@ -570,8 +573,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
+                // precipitation; done at the end, only before cab render
+                Render_precipitation();
+                // cab render
                 if( false == FreeFlyModeFlag ) {
-                    // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
@@ -579,6 +584,12 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     auto const *vehicle{ simulation::Train->Dynamic() };
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+                    }
+                    if( Global.Overcast > 1.f ) {
+                        // with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
+                        setup_drawing( false );
+                        Render_cab( vehicle, false );
+                        setup_drawing( true );
                     }
                     Render_cab( vehicle, true );
                     if( vehicle->InteriorLightLevel > 0.f ) {
@@ -590,7 +601,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     // restore default texture matrix for reflections cube map
                     select_unit( m_helpertextureunit );
                     ::glMatrixMode( GL_TEXTURE );
-                    ::glPopMatrix();
+//                    ::glPopMatrix();
+                    ::glLoadIdentity();
                     select_unit( m_diffusetextureunit );
                     ::glMatrixMode( GL_MODELVIEW );
                 }
@@ -1011,7 +1023,8 @@ opengl_renderer::setup_matrices() {
         // special case, for colour render pass setup texture matrix for reflections cube map
         select_unit( m_helpertextureunit );
         ::glMatrixMode( GL_TEXTURE );
-        ::glPushMatrix();
+//        ::glPushMatrix();
+        ::glLoadIdentity();
         ::glMultMatrixf( glm::value_ptr( glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.camera.modelview() } } ) ) );
         select_unit( m_diffusetextureunit );
     }
@@ -1459,7 +1472,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     // sun
     {
         Bind_Texture( m_suntexture );
-        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, 1.0f );
+        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, clamp( 1.5f - Global.Overcast, 0.f, 1.f ) );
         auto const sunvector = Environment->m_sun.getDirection();
         auto const sunposition = modelview * glm::vec4( sunvector.x, sunvector.y, sunvector.z, 1.0f );
 
@@ -2804,6 +2817,54 @@ opengl_renderer::Render( TMemCell *Memcell ) {
         }
     }
 
+    ::glPopMatrix();
+}
+
+void
+opengl_renderer::Render_precipitation() {
+
+    if( Global.Overcast <= 1.f ) { return; }
+
+    switch_units( true, false, false );
+
+//    ::glColor4fv( glm::value_ptr( glm::vec4( glm::min( glm::vec3( Global.fLuminance ), glm::vec3( 1 ) ), 1 ) ) );
+    ::glColor4fv(
+        glm::value_ptr(
+            interpolate(
+                0.5f * ( Global.DayLight.diffuse + Global.DayLight.ambient ),
+                colors::white,
+                0.5f * clamp<float>( Global.fLuminance, 0.f, 1.f ) ) ) );
+    ::glPushMatrix();
+
+    auto const velocity { simulation::Environment.m_precipitation.m_cameramove * -1.0 };
+    if( glm::length2( velocity ) > 0.0 ) {
+        auto const forward{ glm::normalize( velocity ) };
+        if( false == FreeFlyModeFlag ) {
+            // counter potential vehicle roll
+            auto const roll { simulation::Train->Dynamic()->Roll() };
+            if( roll != 0.0 ) {
+                ::glRotated( roll, forward.x, 0.0, forward.z );
+            }
+        }
+        auto left { glm::cross( forward, {0.0,1.0,0.0} ) };
+        auto const rotationangle {
+            std::min(
+                45.0,
+                ( FreeFlyModeFlag ?
+                    5 * glm::length( velocity ) :
+                    simulation::Train->Dynamic()->GetVelocity() * 0.2 ) ) };
+        ::glRotated( rotationangle, left.x, 0.0, left.z );
+    }
+
+    // TBD: leave lighting on to allow vehicle lights to affect it?
+    ::glDisable( GL_LIGHTING );
+    // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
+    ::glDepthMask( GL_FALSE );
+
+    simulation::Environment.m_precipitation.render();
+
+    ::glDepthMask( GL_TRUE );
+    ::glEnable( GL_LIGHTING );
     ::glPopMatrix();
 }
 

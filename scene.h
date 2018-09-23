@@ -53,6 +53,7 @@ struct scratch_data {
         bool is_open { false };
     } trainset;
 
+    std::string name;
     bool initialized { false };
 };
 
@@ -321,6 +322,9 @@ public:
     // legacy method, updates sounds around camera
     void
         update_sounds();
+    // checks whether specified file is a valid region data file
+    bool
+        is_scene( std::string const &Scenariofile ) const;
     // stores content of the class in file with specified name
     void
         serialize( std::string const &Scenariofile ) const;
