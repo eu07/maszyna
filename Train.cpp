@@ -478,6 +478,7 @@ PyObject *TTrain::GetTrainState() {
         bPN = false;
     PyDict_SetItemString( dict, "indir_brake", PyGetBool( bPN ) );
 	PyDict_SetItemString( dict, "brake_delay_flag", PyGetInt( mvControlled->BrakeDelayFlag ));
+	PyDict_SetItemString( dict, "brake_op_mode_flag", PyGetInt( mvControlled->BrakeOpModeFlag ));
     // other controls
     PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
     PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
