@@ -1325,9 +1325,11 @@ void TTrain::OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_da
             // audio feedback
 			Train->dsbPneumaticSwitch.play();
 			// visual feedback
-			// NOTE: there's no button for brake operation mode switch
-			// TBD, TODO: add brake operation mode switch?
-		}
+            Train->ggBrakeOperationModeCtrl.UpdateValue(
+                Train->mvOccupied->BrakeOpModeFlag > 0 ?
+                    std::log2( Train->mvOccupied->BrakeOpModeFlag ) :
+                    0 );
+        }
 	}
 }
 
@@ -1341,8 +1343,10 @@ void TTrain::OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_da
 			// audio feedback
 			Train->dsbPneumaticSwitch.play();
 			// visual feedback
-			// NOTE: there's no button for brake operation mode switch
-			// TBD, TODO: add brake operation mode switch?
+            Train->ggBrakeOperationModeCtrl.UpdateValue(
+                Train->mvOccupied->BrakeOpModeFlag > 0 ?
+                    std::log2( Train->mvOccupied->BrakeOpModeFlag ) :
+                    0 );
 		}
 	}
 }

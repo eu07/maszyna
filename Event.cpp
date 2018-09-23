@@ -1017,7 +1017,9 @@ logvalues_event::export_as_text_( std::ostream &Output ) const {
 void
 multi_event::init() {
 
-    init_targets( simulation::Memory, "memory cell" );
+    auto const conditiontchecksmemcell { m_conditions.flags & ( flags::text | flags::value_1 | flags::value_2 ) };
+    // not all multi-events have memory cell checks, for the ones which don't we can keep quiet about it
+    init_targets( simulation::Memory, "memory cell", ( false == conditiontchecksmemcell ) );
     if( m_ignored ) {
         // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
         m_conditions.flags &= ~( flags::text | flags::value_1 | flags::value_2 );

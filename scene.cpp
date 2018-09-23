@@ -233,7 +233,8 @@ basic_cell::deserialize( std::istream &Input ) {
     }
     // cell activation flag
     m_active = (
-        ( false == m_shapesopaque.empty() )
+        ( true == m_active )
+     || ( false == m_shapesopaque.empty() )
      || ( false == m_shapestranslucent.empty() )
      || ( false == m_lines.empty() ) );
 }
@@ -1091,12 +1092,12 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     auto sectioncount { sn_utils::ld_uint32( input ) };
     while( sectioncount-- ) {
         // section index, followed by section data size, followed by section data
-        auto *&section { m_sections[ sn_utils::ld_uint32( input ) ] };
+        auto const sectionindex { sn_utils::ld_uint32( input ) };
         auto const sectionsize { sn_utils::ld_uint32( input ) };
-        if( section == nullptr ) {
-            section = new basic_section();
+        if( m_sections[ sectionindex ] == nullptr ) {
+            m_sections[ sectionindex ] = new basic_section();
         }
-        section->deserialize( input );
+        m_sections[ sectionindex ]->deserialize( input );
     }
 
     return true;
