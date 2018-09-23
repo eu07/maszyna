@@ -150,7 +150,9 @@ void calculate_tangent(vertex_array &vertices, int type)
 gfx::geometry_handle
 geometry_bank::create( gfx::vertex_array const &Vertices, unsigned int const Type ) {
 
-    if( true == Vertices.empty() ) { return { 0, 0 }; }
+    if( true == Vertices.empty() ) {
+		return { 0, 0 };
+	}
 
     m_chunks.emplace_back( Vertices, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
@@ -456,22 +458,23 @@ void geometrybank_manager::draw(const std::vector<gfx::geometry_handle>::iterato
     if (begin == end)
         return;
 
-    auto &run_bank = bank(*begin);
+    auto run_bank = begin->bank;
     std::vector<gfx::geometry_handle>::iterator run_begin = begin;
 
     std::vector<gfx::geometry_handle>::iterator it;
     for (it = begin; it != end; it++)
     {
-        if (bank(*it) != run_bank)
+        if (it->bank != run_bank)
         {
-            run_bank.first->draw(run_begin, it);
-            run_bank = bank(*it);
+			if (run_bank != 0)
+	            m_geometrybanks[run_bank - 1].first->draw(run_begin, it);
+            run_bank = it->bank;
             run_begin = it;
         }
     }
 
-    if (run_begin != it)
-        run_bank.first->draw(run_begin, it);
+    if (run_begin != it && run_bank != 0)
+        m_geometrybanks[run_bank - 1].first->draw(run_begin, it);
 }
 
 // provides direct access to vertex data of specfied chunk
