@@ -117,8 +117,10 @@ public:
 
     bool
         RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, gfx::basic_vertex const *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, float fOffsetX = 0.f, glm::vec3 **p = nullptr, bool bRender = true);
+/*
     void
         Render();
+*/
     inline
     double
         GetLength() const {

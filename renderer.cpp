@@ -1058,8 +1058,9 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
             // setup fog
             if( Global.fFogEnd > 0 ) {
                 // fog setup
+                auto const adjustedfogrange { Global.fFogEnd / std::max( 1.f, Global.Overcast * 2.f ) };
                 ::glFogfv( GL_FOG_COLOR, glm::value_ptr( Global.FogColor ) );
-                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / Global.fFogEnd ) );
+                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / adjustedfogrange ) );
                 ::glEnable( GL_FOG );
             }
             else { ::glDisable( GL_FOG ); }
@@ -1461,7 +1462,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         Environment->m_moon.render();
     }
     // render actual sun and moon
-    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+    ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT );
 
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_ALPHA_TEST );
@@ -2529,15 +2530,16 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             0.f, 1.f );
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                        float const distancefactor = std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist );
+                        float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
+                        float const precipitationfactor { std::max( 1.f, Global.Overcast - 1.f ) };
 
                         if( lightlevel > 0.f ) {
                             // material configuration:
-                            ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
+                            ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
                             Bind_Material( null_handle );
                             ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
-                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
+                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], std::min( 1.f, lightlevel * anglefactor * precipitationfactor ) );
                             ::glDisable( GL_LIGHTING );
                             ::glEnable( GL_BLEND );
 
@@ -2580,7 +2582,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     if( Global.fLuminance < Submodel->fLight ) {
 
                         // material configuration:
-                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
+                        ::glPushAttrib( GL_ENABLE_BIT );
 
                         Bind_Material( null_handle );
                         ::glDisable( GL_LIGHTING );
@@ -3352,7 +3354,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
 
-            if( Global.fLuminance < Submodel->fLight ) {
+            if( ( Global.fLuminance < Submodel->fLight ) || ( Global.Overcast > 1.f ) ) {
                 // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
                 // TODO: separate instance data from reusable geometry
                 auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
@@ -3367,18 +3369,17 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
                     // only bother if the viewer is inside the visibility cone
-                    if( Global.Overcast > 1.0 ) {
-                        // increase the glare in rainy/foggy conditions
-                        glarelevel += std::max( 0.f, 0.5f * ( Global.Overcast - 1.f ) );
-                    }
+                    auto glarelevel { clamp<float>(
+                        0.6f
+                        - Global.fLuminance // reduce the glare in bright daylight
+                        + std::max( 0.f, Global.Overcast - 1.f ), // increase the glare in rainy/foggy conditions
+                        0.f, 1.f ) };
                     // scale it down based on view angle
                     glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
-                    // reduce the glare in bright daylight
-                    glarelevel = clamp( glarelevel - static_cast<float>(Global.fLuminance), 0.f, 1.f );
 
                     if( glarelevel > 0.0f ) {
                         // setup
-                        ::glPushAttrib( GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
+                        ::glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );

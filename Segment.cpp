@@ -524,7 +524,8 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
     }
     return true;
 };
-
+/*
+// NOTE: legacy leftover, potentially usable (but not really)
 void TSegment::Render()
 {
     Math3D::vector3 pt;
@@ -572,5 +573,5 @@ void TSegment::Render()
         glEnd();
     }
 }
-
+*/
 //---------------------------------------------------------------------------

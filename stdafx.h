@@ -104,6 +104,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include "openglmatrixstack.h"
+#include "openglcolor.h"
 
 // imgui.h comes with its own operator new which gets wrecked by dbg_new, so we temporarily disable the latter
 #ifdef DBG_NEW

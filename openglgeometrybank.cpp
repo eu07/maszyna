@@ -341,6 +341,7 @@ opengl_dlgeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_
         auto const &chunk = gfx::geometry_bank::chunk( Geometry );
         ::glNewList( chunkrecord.list, GL_COMPILE );
 
+        ::glColor3f( -1.f, -1.f, -1.f ); // HACK: force the opengl color wrapper to include color call in the display list regardless of currently active color
         ::glBegin( chunk.type );
         for( auto const &vertex : chunk.vertices ) {
                  if( Streams & gfx::stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
