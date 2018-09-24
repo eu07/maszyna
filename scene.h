@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -24,6 +24,10 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "Traction.h"
 #include "sound.h"
+// for simulation::state_serializer::scratch_data
+#include "simulationstateserializer.h"
+
+using simulation::state_serializer;
 
 class opengl_renderer;
 namespace scene
@@ -31,34 +35,6 @@ namespace scene
     int const CELL_SIZE = 250;
     int const SECTION_SIZE = 1000;
     int const REGION_SIDE_SECTION_COUNT = 500; // number of sections along a side of square region
-
-    struct scratch_data
-    {
-        struct binary_data
-        {
-            bool terrain{ false };
-        } binary;
-
-        struct location_data
-        {
-            std::stack<glm::dvec3> offset;
-            glm::vec3 rotation;
-        } location;
-
-        struct trainset_data
-        {
-            std::string name;
-            std::string track;
-            float offset { 0.f };
-            float velocity { 0.f };
-            std::vector<TDynamicObject *> vehicles;
-            std::vector<int> couplings;
-            TDynamicObject * driver { nullptr };
-            bool is_open { false };
-        } trainset;
-
-        bool initialized { false };
-    };
 
     // basic element of rudimentary partitioning scheme for the section. fixed size, no further subdivision
     // TBD, TODO: replace with quadtree scheme?
@@ -358,10 +334,10 @@ namespace scene
         void RadioStop( glm::dvec3 const &Location );
 
         // inserts provided shape in the region
-        void insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform );
+        void insert( shape_node Shape, state_serializer::scratch_data &Scratchpad, bool const Transform );
 
         // inserts provided lines in the region
-        void insert( lines_node Lines, scratch_data &Scratchpad );
+        void insert( lines_node Lines, state_serializer::scratch_data &Scratchpad );
 
         // inserts provided node in the region
         template <class Type_>
