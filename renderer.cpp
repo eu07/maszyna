@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -591,10 +591,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
                 switch_units( true, true, true );
                 setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
-                Render( simulation::Region );
+                Render( simulation::Region.get() );
                 // ...translucent parts
                 setup_drawing( true );
-                Render_Alpha( simulation::Region );
+                Render_Alpha( simulation::Region.get() );
                 if( false == FreeFlyModeFlag ) {
                     // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, true, false );
@@ -652,7 +652,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #else
                 setup_units( false, false, false );
 #endif
-                Render( simulation::Region );
+                Render( simulation::Region.get() );
                 m_shadowpass = m_renderpass;
 
                 // post-render restore
@@ -726,7 +726,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 setup_drawing( false );
                 setup_units( true, true, true );
                 setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
-                Render( simulation::Region );
+                Render( simulation::Region.get() );
 /*
                 // reflections are limited to sky and ground only, the update rate is too low for anything else
                 // ...translucent parts
@@ -779,7 +779,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( false, false, false );
-                Render( simulation::Region );
+                Render( simulation::Region.get() );
                 // post-render cleanup
             }
             break;

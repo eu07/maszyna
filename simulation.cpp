@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -6,6 +6,8 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
+
+#include <memory>
 
 #include "stdafx.h"
 #include "simulation.h"
@@ -21,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "lightarray.h"
-#include "scene.h"
+#include "scene.h" // for basic_region
 #include "Train.h"
 
 namespace simulation {
@@ -38,7 +40,8 @@ light_array Lights;
 sound_table Sounds;
 lua Lua;
 
-scene::basic_region *Region { nullptr };
+std::unique_ptr< scene::basic_region > Region;
+
 TTrain *Train { nullptr };
 
 bool is_ready { false };

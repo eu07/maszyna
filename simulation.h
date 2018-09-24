@@ -9,12 +9,16 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <memory>
+
 #include "simulationstateserializer.h"
 #include "Classes.h"
 #include "lua.h"
 #include "Event.h"
 #include "Track.h" // for TEnvironmentType, path_table
 #include "Traction.h" // for traction_table
+#include "scene.h" // for basic_region
+
 class sound_table; class shape_node;
 
 namespace simulation {
@@ -54,8 +58,7 @@ extern vehicle_table Vehicles;
 extern light_array Lights;
 extern sound_table Sounds;
 extern lua Lua;
-
-extern scene::basic_region *Region;
+extern std::unique_ptr< scene::basic_region > Region;
 extern TTrain *Train;
 
 extern bool is_ready;

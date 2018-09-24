@@ -296,11 +296,11 @@ namespace scene
         friend opengl_renderer;
 
       public:
-        // constructors
         basic_region();
-
-        // destructor
         ~basic_region();
+        basic_region( basic_region& ) = delete;
+        basic_region& operator = ( basic_region& ) = delete;
+
         // methods
         // potentially activates event handler with the same name as provided node, and within handler activation range
         void on_click( TAnimModel const *Instance );

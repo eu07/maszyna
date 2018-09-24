@@ -28,9 +28,9 @@ namespace simulation {
 bool
 state_serializer::deserialize( std::string const &Scenariofile ) {
 
-    // TODO: move initialization to separate routine so we can reuse it
-    SafeDelete( Region );
-    Region = new scene::basic_region();
+    // TODO: move initializatiscene::basic_regionon to separate routine so we can reuse it
+    Region.reset( nullptr );
+    Region = std::make_unique< scene::basic_region >();
 
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
@@ -368,7 +368,7 @@ state_serializer::deserialize_node( cParser &Input ) {
         }
 /*
         // TODO: implement this
-        simulation::Region.insert_powersource( powersource, scratchpad );
+        simulation::Region->insert_powersource( powersource, scratchpad );
 */
     }
     else if( nodedata.type == "model" ) {

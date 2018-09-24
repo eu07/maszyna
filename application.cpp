@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -171,7 +171,7 @@ void
 eu07_application::exit() {
 
     SafeDelete( simulation::Train );
-    SafeDelete( simulation::Region );
+    simulation::Region.reset( nullptr );
 
     ui_layer::shutdown();
 
