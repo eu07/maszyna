@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Console.h"
 #include "renderer.h"
+#include "audiorenderer.h"
 
 bool
 editor_mode::editormode_input::init() {

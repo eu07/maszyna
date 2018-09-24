@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "scene.h"
+#include "Traction.h"
 
 #include "simulation.h"
 #include "Globals.h"

@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -13,6 +13,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "lua.h"
 #include "Event.h"
+#include "Track.h" // for TEnvironmentType, path_table
+#include "Traction.h" // for traction_table
+class sound_table; class shape_node;
 
 namespace simulation {
 

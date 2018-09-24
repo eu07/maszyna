@@ -18,18 +18,14 @@ http://mozilla.org/MPL/2.0/.
 #include <stack>
 #include <unordered_set>
 
-#include "parser.h"
-#include "openglgeometrybank.h"
-#include "scenenode.h"
-#include "Track.h"
-#include "Traction.h"
-#include "sound.h"
+#include "scenenode.h" // for bounding_area
 // for simulation::state_serializer::scratch_data
 #include "simulationstateserializer.h"
 
 using simulation::state_serializer;
 
-class opengl_renderer;
+class shape_node; class lines_node; class opengl_renderer;
+
 namespace scene
 {
     int const CELL_SIZE = 250;
