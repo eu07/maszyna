@@ -1673,19 +1673,19 @@ opengl_renderer::Render( scene::basic_region *Region ) {
     m_cellqueue.clear();
     // build a list of region sections to render
     glm::vec3 const cameraposition { m_renderpass.camera.position() };
-    auto const camerax = static_cast<int>( std::floor( cameraposition.x / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
-    auto const cameraz = static_cast<int>( std::floor( cameraposition.z / scene::EU07_SECTIONSIZE + scene::EU07_REGIONSIDESECTIONCOUNT / 2 ) );
-    int const segmentcount = 2 * static_cast<int>( std::ceil( m_renderpass.draw_range * Global.fDistanceFactor / scene::EU07_SECTIONSIZE ) );
+    auto const camerax = static_cast<int>( std::floor( cameraposition.x / scene::SECTION_SIZE + scene::REGION_SIDE_SECTION_COUNT / 2 ) );
+    auto const cameraz = static_cast<int>( std::floor( cameraposition.z / scene::SECTION_SIZE + scene::REGION_SIDE_SECTION_COUNT / 2 ) );
+    int const segmentcount = 2 * static_cast<int>( std::ceil( m_renderpass.draw_range * Global.fDistanceFactor / scene::SECTION_SIZE ) );
     int const originx = camerax - segmentcount / 2;
     int const originz = cameraz - segmentcount / 2;
 
     for( int row = originz; row <= originz + segmentcount; ++row ) {
         if( row < 0 ) { continue; }
-        if( row >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
+        if( row >= scene::REGION_SIDE_SECTION_COUNT ) { break; }
         for( int column = originx; column <= originx + segmentcount; ++column ) {
             if( column < 0 ) { continue; }
-            if( column >= scene::EU07_REGIONSIDESECTIONCOUNT ) { break; }
-            auto *section { Region->m_sections[ row * scene::EU07_REGIONSIDESECTIONCOUNT + column ] };
+            if( column >= scene::REGION_SIDE_SECTION_COUNT ) { break; }
+            auto *section { Region->m_sections[ row * scene::REGION_SIDE_SECTION_COUNT + column ] };
             if( ( section != nullptr )
              && ( m_renderpass.camera.visible( section->m_area ) ) ) {
                 m_sectionqueue.emplace_back( section );

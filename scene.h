@@ -28,9 +28,9 @@ http://mozilla.org/MPL/2.0/.
 class opengl_renderer;
 namespace scene
 {
-    int const EU07_CELLSIZE = 250;
-    int const EU07_SECTIONSIZE = 1000;
-    int const EU07_REGIONSIDESECTIONCOUNT = 500; // number of sections along a side of square region
+    int const CELL_SIZE = 250;
+    int const SECTION_SIZE = 1000;
+    int const REGION_SIDE_SECTION_COUNT = 500; // number of sections along a side of square region
 
     struct scratch_data
     {
@@ -178,7 +178,7 @@ namespace scene
         void enclose_area( scene::basic_node *Node );
         
         // members
-        scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_CELLSIZE ) };
+        scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * CELL_SIZE ) };
         bool m_active { false }; // whether the cell holds any actual data content
         shapenode_sequence m_shapesopaque; // opaque pieces of geometry
         shapenode_sequence m_shapestranslucent; // translucent pieces of geometry
@@ -296,7 +296,7 @@ namespace scene
 
       private:
         // types
-        using cell_array = std::array<basic_cell, (EU07_SECTIONSIZE / EU07_CELLSIZE) * (EU07_SECTIONSIZE / EU07_CELLSIZE)>;
+        using cell_array = std::array<basic_cell, (SECTION_SIZE / CELL_SIZE) * (SECTION_SIZE / CELL_SIZE)>;
         using shapenode_sequence = std::vector<shape_node>;
 
         // methods
@@ -306,7 +306,7 @@ namespace scene
 
         // members
         // placement and visibility
-        scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * EU07_SECTIONSIZE ) };
+        scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * SECTION_SIZE ) };
 
         // content
         cell_array m_cells; // partitioning scheme
@@ -416,7 +416,7 @@ namespace scene
 
       private:
         // types
-        using section_array = std::array<basic_section *, EU07_REGIONSIDESECTIONCOUNT * EU07_REGIONSIDESECTIONCOUNT>;
+        using section_array = std::array<basic_section *, REGION_SIDE_SECTION_COUNT * REGION_SIDE_SECTION_COUNT>;
 
         struct region_scratchpad
         {
