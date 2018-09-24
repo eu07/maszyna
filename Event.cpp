@@ -31,6 +31,45 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "lua.h"
 
+
+auto basic_event::make( cParser& Input, state_serializer::scratch_data& Scratchpad )
+        -> basic_event*
+{
+    auto const name = ToLower( Input.getToken<std::string>() );
+    auto const type = Input.getToken<std::string>();
+
+    basic_event *event { nullptr };
+
+         if( type == "addvalues" )    { event = new updatevalues_event(); }
+    else if( type == "updatevalues" ) { event = new updatevalues_event(); }
+    else if( type == "copyvalues" )   { event = new copyvalues_event(); }
+    else if( type == "getvalues" )    { event = new getvalues_event(); }
+    else if( type == "putvalues" )    { event = new putvalues_event(); }
+    else if( type == "whois" )        { event = new whois_event(); }
+    else if( type == "logvalues" )    { event = new logvalues_event(); }
+    else if( type == "multiple" )     { event = new multi_event(); }
+    else if( type == "switch" )       { event = new switch_event(); }
+    else if( type == "trackvel" )     { event = new track_event(); }
+    else if( type == "sound" )        { event = new sound_event(); }
+    else if( type == "animation" )    { event = new animation_event(); }
+    else if( type == "lights" )       { event = new lights_event(); }
+    else if( type == "voltage" )      { event = new voltage_event(); }
+    else if( type == "visible" )      { event = new visible_event(); }
+    else if( type == "friction" )     { event = new friction_event(); }
+    else if( type == "message" )      { event = new message_event(); }
+
+    if( event == nullptr ) {
+        WriteLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
+        return event;
+    }
+
+    event->m_name = name;
+    if( type == "addvalues" ) {
+        static_cast<updatevalues_event*>( event )->m_input.flags = basic_event::flags::mode_add;
+    }
+    return event;
+}
+
 void
 basic_event::event_conditions::bind( basic_event::node_sequence *Nodes ) {
 
@@ -1891,48 +1930,6 @@ message_event::export_as_text_( std::ostream &Output ) const {
 
     Output << '\"' << m_message << '\"' << ' ';
 }
-
-//---------------------------------------------------------------------------
-
-basic_event *
-make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
-
-    auto const name = ToLower( Input.getToken<std::string>() );
-    auto const type = Input.getToken<std::string>();
-
-    basic_event *event { nullptr };
-
-         if( type == "addvalues" )    { event = new updatevalues_event(); }
-    else if( type == "updatevalues" ) { event = new updatevalues_event(); }
-    else if( type == "copyvalues" )   { event = new copyvalues_event(); }
-    else if( type == "getvalues" )    { event = new getvalues_event(); }
-    else if( type == "putvalues" )    { event = new putvalues_event(); }
-    else if( type == "whois" )        { event = new whois_event(); }
-    else if( type == "logvalues" )    { event = new logvalues_event(); }
-    else if( type == "multiple" )     { event = new multi_event(); }
-    else if( type == "switch" )       { event = new switch_event(); }
-    else if( type == "trackvel" )     { event = new track_event(); }
-    else if( type == "sound" )        { event = new sound_event(); }
-    else if( type == "animation" )    { event = new animation_event(); }
-    else if( type == "lights" )       { event = new lights_event(); }
-    else if( type == "voltage" )      { event = new voltage_event(); }
-    else if( type == "visible" )      { event = new visible_event(); }
-    else if( type == "friction" )     { event = new friction_event(); }
-    else if( type == "message" )      { event = new message_event(); }
-
-    if( event == nullptr ) {
-        WriteLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
-        return event;
-    }
-
-    event->m_name = name;
-    if( type == "addvalues" ) {
-        static_cast<updatevalues_event*>( event )->m_input.flags = basic_event::flags::mode_add;
-    }
-    return event;
-}
-
-//---------------------------------------------------------------------------
 
 event_manager::~event_manager() {
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -243,7 +243,7 @@ void
 state_serializer::deserialize_event( cParser &Input, scene::scratch_data &Scratchpad ) {
 
     // TODO: refactor event class and its de/serialization. do offset and rotation after deserialization is done
-    auto *event = make_event( Input, Scratchpad );
+    auto *event = basic_event::make( Input, scratchpad );
     if( event == nullptr ) {
         // something went wrong at initial stage, move on
         skip_until( Input, "endevent" );

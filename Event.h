@@ -39,6 +39,10 @@ public:
 // destructor
     virtual ~basic_event();
 // methods
+    
+    static auto make( cParser& Input,
+            state_serializer::scratch_data& Scratchpad ) -> basic_event*;
+
     // restores event data from provided stream
     virtual
     void
@@ -143,7 +147,7 @@ private:
 // TBD: replace the generic module with specialized mixins
 class input_event : public basic_event {
 
-    friend basic_event * make_event( cParser &Input, scene::scratch_data &Scratchpad );
+    friend class basic_event;
 
 protected:
 // types
@@ -554,13 +558,6 @@ private:
 // members
     std::string m_message;
 };
-
-
-
-basic_event *
-make_event( cParser &Input, scene::scratch_data &Scratchpad );
-
-
 
 class event_manager {
 
