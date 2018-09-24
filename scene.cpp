@@ -32,6 +32,25 @@ std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 std::uint32_t const EU07_FILEHEADER { MAKE_ID4( 'E','U','0','7' ) };
 std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
 
+basic_cell::basic_cell()
+        : m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * CELL_SIZE ) }
+        , m_active { false }
+        , m_shapesopaque {}
+        , m_shapestranslucent {}
+        , m_lines {}
+        , m_paths {}
+        , m_instancesopaque {}
+        , m_instancetranslucent {}
+        , m_traction {}
+        , m_sounds {}
+        , m_eventlaunchers {}
+        , m_memorycells {}
+        , m_directories {}
+        , m_geometrycreated { false }
+        , m_framestamp { 0 }
+        , tTrackAnim { nullptr }
+{};
+
 // potentially activates event handler with the same name as provided node, and within handler activation range
 void
 basic_cell::on_click( TAnimModel const *Instance ) {

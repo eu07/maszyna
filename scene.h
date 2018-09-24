@@ -40,7 +40,7 @@ namespace scene
 
       public:
         // constructors
-        basic_cell() = default;
+        basic_cell();
 
         // methods
         // potentially activates event handler with the same name as provided node, and within handler activation range
@@ -150,8 +150,8 @@ namespace scene
         void enclose_area( scene::basic_node *Node );
         
         // members
-        scene::bounding_area m_area { glm::dvec3(), static_cast<float>( 0.5 * M_SQRT2 * CELL_SIZE ) };
-        bool m_active { false }; // whether the cell holds any actual data content
+        scene::bounding_area m_area;
+        bool m_active; // whether the cell holds any actual data content
         shapenode_sequence m_shapesopaque; // opaque pieces of geometry
         shapenode_sequence m_shapestranslucent; // translucent pieces of geometry
         linesnode_sequence m_lines;
@@ -171,9 +171,9 @@ namespace scene
         } m_directories;
 
         // animation of owned items (legacy code, clean up along with track refactoring)
-        bool m_geometrycreated { false };
-        unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
-        TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
+        bool m_geometrycreated;
+        unsigned int m_framestamp; // id of last rendered gfx frame
+        TTrack* tTrackAnim; // obiekty do przeliczenia animacji
     };
 
     // basic scene partitioning structure, holds terrain geometry and collection of cells
