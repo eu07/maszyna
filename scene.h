@@ -18,13 +18,12 @@ http://mozilla.org/MPL/2.0/.
 #include <stack>
 #include <unordered_set>
 
+#include "Classes.h"
 #include "scenenode.h" // for bounding_area
 // for simulation::state_serializer::scratch_data
 #include "simulationstateserializer.h"
 
 using simulation::state_serializer;
-
-class shape_node; class lines_node; class opengl_renderer;
 
 namespace scene
 {

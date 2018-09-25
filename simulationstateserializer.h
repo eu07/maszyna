@@ -9,10 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "Classes.h"
 #include "parser.h"
-class TDynamicObject; class TTrack; class TTraction; class TTractionPowerSource;
-class TMemCell; class TEventLauncher; class TAnimModel; class TDynamicObject;
-class sound_source;
 
 namespace scene { struct node_data; };
 

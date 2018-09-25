@@ -19,8 +19,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Traction.h" // for traction_table
 #include "scene.h" // for basic_region
 
-class sound_table; class shape_node;
-
 namespace simulation {
 
 class state_manager {
