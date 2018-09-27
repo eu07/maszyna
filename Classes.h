@@ -40,6 +40,9 @@ class powergridsource_table;
 class instance_table;
 class vehicle_table;
 struct light_array;
+class sound_table;
+class shape_node;
+class lines_node;
 
 namespace scene {
 struct node_data;

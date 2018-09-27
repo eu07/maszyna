@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationenvironment.h"
 #include "MemCell.h"
 #include "light.h"
+#include "Track.h" // for TEnvironmentType
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
