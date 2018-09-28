@@ -103,6 +103,8 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
 
+int const null_handle = 0;
+
 #include "openglmatrixstack.h"
 #include "openglcolor.h"
 

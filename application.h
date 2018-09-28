@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "applicationmode.h"
+#include "pyint.h"
 
 class eu07_application {
 
@@ -29,6 +30,8 @@ public:
         init( int Argc, char *Argv[] );
     int
         run();
+    bool
+        request( python_taskqueue::task_request const &Task );
     void
         exit();
     void
@@ -57,10 +60,9 @@ public:
         on_mouse_button( int const Button, int const Action, int const Mods );
     void
         on_scroll( double const Xoffset, double const Yoffset );
-    inline
+    // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
-        window() {
-            return m_window; }
+        window( int const Windowindex = 0 );
 
 private:
 // types
@@ -77,9 +79,10 @@ private:
     int  init_audio();
     int  init_modes();
 // members
-    GLFWwindow * m_window { nullptr };
     modeptr_array m_modes { nullptr }; // collection of available application behaviour modes
     mode_stack m_modestack; // current behaviour mode
+    python_taskqueue m_taskqueue;
+    std::vector<GLFWwindow *> m_windows;
 };
 
 extern eu07_application Application;

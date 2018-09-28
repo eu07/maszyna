@@ -313,4 +313,61 @@ glm::dvec3 LoadPoint( class cParser &Input );
 std::string
 deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );
 
+namespace threading {
+
+// simple POD pairing of a data item and a mutex
+// NOTE: doesn't do any locking itself, it's merely for cleaner argument arrangement and passing
+template <typename Type_>
+struct lockable {
+
+    Type_ data;
+    std::mutex mutex;
+};
+
+// basic wrapper simplifying use of std::condition_variable for most typical cases.
+// has its own mutex and secondary variable to ignore spurious wakeups
+class condition_variable {
+
+public:
+// methods
+    void
+        wait() {
+            std::unique_lock<std::mutex> lock( m_mutex );
+            m_condition.wait(
+                lock,
+                [ this ]() {
+                    return m_spurious == false; } ); }
+    template< class Rep_, class Period_ >
+    void
+        wait_for( const std::chrono::duration<Rep_, Period_> &Time ) {
+            std::unique_lock<std::mutex> lock( m_mutex );
+            m_condition.wait_for(
+                lock,
+                Time,
+                [ this ]() {
+                    return m_spurious == false; } ); }
+    void
+        notify_one() {
+            spurious( false );
+            m_condition.notify_one();
+    }
+    void
+        notify_all() {
+            spurious( false );
+            m_condition.notify_all();
+    }
+    void
+        spurious( bool const Spurious ) {
+            std::lock_guard<std::mutex> lock( m_mutex );
+            m_spurious = Spurious; }
+
+private:
+// members
+    mutable std::mutex m_mutex;
+    std::condition_variable m_condition;
+    bool m_spurious { true };
+};
+
+} // threading
+
 //---------------------------------------------------------------------------

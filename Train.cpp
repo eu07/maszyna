@@ -28,6 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dynobj.h"
 #include "mtable.h"
 #include "Console.h"
+#include "application.h"
 
 namespace input {
 
@@ -449,6 +450,7 @@ PyObject *TTrain::GetTrainState() {
         return nullptr;
     }
 
+    PyDict_SetItemString( dict, "name", PyGetString( DynamicObject->asName.c_str() ) );
     PyDict_SetItemString( dict, "cab", PyGetInt( mover->ActiveCab ) );
     // basic systems state data
     PyDict_SetItemString( dict, "battery", PyGetBool( mvControlled->Battery ) );
@@ -469,7 +471,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
     bool bPN;
     if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
-        || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
 
         TBrake* temp_ham = mvControlled->Hamulec.get();
         bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP() > 0.2 );
@@ -4682,7 +4684,6 @@ bool TTrain::Update( double const Deltatime )
             }
         }
 
-        tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
         auto const maxtacho { 3.0 };
         fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
@@ -5606,7 +5607,6 @@ bool TTrain::Update( double const Deltatime )
         ggFuelPumpButton.Update();
         ggOilPumpButton.Update();
         //------
-        pyScreens.update();
     }
     // wyprowadzenie sygnałów dla haslera na PoKeys (zaznaczanie na taśmie)
     btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress > 0.4); // ciśnienie w cylindrach
@@ -5676,8 +5676,8 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 /*
-    // NOTE: disabled while switch state isn't preserved while moving between compartments
     // check whether we should raise the pantographs, based on volume in pantograph tank
+    // NOTE: disabled while switch state isn't preserved while moving between compartments
     if( mvControlled->PantPress > (
             mvControlled->TrainType == dt_EZT ?
                 2.4 :
@@ -5692,7 +5692,15 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 */
-
+    // screens
+    fScreenTimer += Deltatime;
+    if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
+     && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
+        fScreenTimer = 0.f;
+        for( auto const &screen : m_screens ) {
+            Application.request( { screen.first, GetTrainState(), screen.second } );
+        }
+    }
     // sounds
     update_sounds( Deltatime );
 
@@ -5853,7 +5861,6 @@ TTrain::update_sounds( double const Deltatime ) {
             dsbSlipAlarm.stop();
         }
     }
-/*
     // szum w czasie jazdy
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
@@ -5865,7 +5872,6 @@ TTrain::update_sounds( double const Deltatime ) {
         // don't play the optional ending sound if the listener switches views
         rsRunningNoise.stop( true == FreeFlyModeFlag );
     }
-    */
     // hunting oscillation noise
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
@@ -6255,6 +6261,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 {
     m_controlmapper.clear();
+    // clear python screens
+    m_screens.clear();
     // reset sound positions and owner
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> sounds = {
@@ -6272,9 +6280,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pMechViewAngle = { 0.0, 0.0 };
     Global.pCamera.Pitch = pMechViewAngle.x;
     Global.pCamera.Yaw = pMechViewAngle.y;
-
-    pyScreens.reset(this);
-    pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
@@ -6469,9 +6474,32 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // matched the token, grab the next one
                 continue;
             }
+            // TODO: add "pydestination:"
             else if (token == "pyscreen:")
             {
-                pyScreens.init(parser, DynamicObject->mdKabina, DynamicObject->name(), NewCabNo);
+                std::string submodelname, renderername;
+                parser.getTokens( 2 );
+                parser
+                    >> submodelname
+                    >> renderername;
+
+                auto const *submodel { DynamicObject->mdKabina->GetFromName( submodelname ) };
+                if( submodel == nullptr ) {
+                    WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
+                    continue;
+                }
+                auto const material { submodel->GetMaterial() };
+                if( material <= 0 ) {
+                    // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
+                    WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
+                    continue;
+                }
+                // record renderer and material binding for future update requests
+                m_screens.emplace_back(
+                    ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
+                        DynamicObject->asBaseDir + renderername :
+                        renderername ),
+                    material );
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");
@@ -6480,7 +6508,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         return false;
     }
-    pyScreens.start();
     if (DynamicObject->mdKabina)
     {
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually

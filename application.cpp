@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "simulation.h"
 #include "train.h"
-#include "pyint.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
@@ -129,6 +128,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
+    m_taskqueue.init();
     if( ( result = init_modes() ) != 0 ) {
         return result;
     }
@@ -140,7 +140,7 @@ int
 eu07_application::run() {
 
     // main application loop
-    while( ( false == glfwWindowShouldClose( m_window ) )
+    while( ( false == glfwWindowShouldClose( m_windows.front() ) )
         && ( false == m_modestack.empty() )
         && ( true == m_modes[ m_modestack.top() ]->update() )
         && ( true == GfxRenderer.Render() ) ) {
@@ -151,6 +151,12 @@ eu07_application::run() {
     return 0;
 }
 
+bool
+eu07_application::request( python_taskqueue::task_request const &Task ) {
+
+    return m_taskqueue.insert( Task );
+}
+
 void
 eu07_application::exit() {
 
@@ -159,10 +165,11 @@ eu07_application::exit() {
 
     ui_layer::shutdown();
 
-    glfwDestroyWindow( m_window );
+    for( auto *window : m_windows ) {
+        glfwDestroyWindow( window );
+    }
     glfwTerminate();
-
-    TPythonInterpreter::killInstance();
+    m_taskqueue.exit();
 }
 
 void
@@ -197,7 +204,7 @@ eu07_application::push_mode( eu07_application::mode const Mode ) {
 void
 eu07_application::set_title( std::string const &Title ) {
 
-    glfwSetWindowTitle( m_window, Title.c_str() );
+    glfwSetWindowTitle( m_windows.front(), Title.c_str() );
 }
 
 void
@@ -217,17 +224,13 @@ eu07_application::set_cursor( int const Mode ) {
 void
 eu07_application::set_cursor_pos( double const Horizontal, double const Vertical ) {
 
-    if( m_window != nullptr ) {
-        glfwSetCursorPos( m_window, Horizontal, Vertical );
-    }
+    glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
 void
 eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
-    if( m_window != nullptr ) {
-        glfwGetCursorPos( m_window, &Horizontal, &Vertical );
-    }
+    glfwGetCursorPos( m_windows.front(), &Horizontal, &Vertical );
 }
 
 void
@@ -260,6 +263,24 @@ eu07_application::on_scroll( double const Xoffset, double const Yoffset ) {
     if( m_modestack.empty() ) { return; }
 
     m_modes[ m_modestack.top() ]->on_scroll( Xoffset, Yoffset );
+}
+
+GLFWwindow *
+eu07_application::window( int const Windowindex ) {
+
+    if( Windowindex >= 0 ) {
+        return (
+            Windowindex < m_windows.size() ?
+                m_windows[ Windowindex ] :
+                nullptr );
+    }
+    // for index -1 create a new child window
+    glfwWindowHint( GLFW_VISIBLE, GL_FALSE );
+    auto *childwindow = glfwCreateWindow( 1, 1, "eu07helper", nullptr, m_windows.front() );
+    if( childwindow != nullptr ) {
+        m_windows.emplace_back( childwindow );
+    }
+    return childwindow;
 }
 
 // private:
@@ -433,7 +454,7 @@ eu07_application::init_glfw() {
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
-    m_window = window;
+    m_windows.emplace_back( window );
 
     return 0;
 }
@@ -441,16 +462,17 @@ eu07_application::init_glfw() {
 void
 eu07_application::init_callbacks() {
 
-    glfwSetFramebufferSizeCallback( m_window, window_resize_callback );
-    glfwSetCursorPosCallback( m_window, cursor_pos_callback );
-    glfwSetMouseButtonCallback( m_window, mouse_button_callback );
-    glfwSetKeyCallback( m_window, key_callback );
-    glfwSetScrollCallback( m_window, scroll_callback );
-    glfwSetWindowFocusCallback( m_window, focus_callback );
+    auto *window { m_windows.front() };
+    glfwSetFramebufferSizeCallback( window, window_resize_callback );
+    glfwSetCursorPosCallback( window, cursor_pos_callback );
+    glfwSetMouseButtonCallback( window, mouse_button_callback );
+    glfwSetKeyCallback( window, key_callback );
+    glfwSetScrollCallback( window, scroll_callback );
+    glfwSetWindowFocusCallback( window, focus_callback );
     {
         int width, height;
-        glfwGetFramebufferSize( m_window, &width, &height );
-        window_resize_callback( m_window, width, height );
+        glfwGetFramebufferSize( window, &width, &height );
+        window_resize_callback( window, width, height );
     }
 }
 
@@ -462,8 +484,8 @@ eu07_application::init_gfx() {
         return -1;
     }
 
-    if( ( false == GfxRenderer.Init( m_window ) )
-     || ( false == ui_layer::init( m_window ) ) ) {
+    if( ( false == GfxRenderer.Init( m_windows.front() ) )
+     || ( false == ui_layer::init( m_windows.front() ) ) ) {
         return -1;
     }
 

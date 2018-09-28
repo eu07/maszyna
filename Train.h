@@ -628,12 +628,10 @@ private:
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
-    float fLightsTimer; // yB 150617: timer do swiatel
+    float fScreenTimer { 0.f };
 
     bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
 
-    double fPoslizgTimer;
-    TTrack *tor;
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };
     float fTachoVelocityJump{ 0.0f }; // ze skakaniem
@@ -659,10 +657,8 @@ private:
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
-//    float fSPPress, fSNPress;
-    int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-    TPythonScreens pyScreens;
+    std::vector<std::pair<std::string, material_handle>> m_screens;
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
