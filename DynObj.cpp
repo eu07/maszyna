@@ -2157,7 +2157,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         btShutters1.Init( "shutters1", mdModel, false );
     }
     if( MoverParameters->dizel_heat.water_aux.config.shutters ) {
-        btShutters1.Init( "shutters2", mdModel, false );
+        btShutters2.Init( "shutters2", mdModel, false );
     }
     TurnOff(); // resetowanie zmiennych submodeli
 
@@ -3971,6 +3971,13 @@ void TDynamicObject::RenderSounds() {
         sSmallCompressor.stop();
     }
 
+    // heating sound
+    if( MoverParameters->Heating ) {
+        sHeater.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        sHeater.stop();
+    }
 
     // brake system and braking sounds:
 
@@ -5393,6 +5400,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sConverter.owner( this );
                 }
 
+                else if( token == "heater:" ) {
+                    // train heating device
+                    sHeater.deserialize( parser, sound_type::single );
+                    sHeater.owner( this );
+                }
+
 				else if( token == "turbo:" ) {
 					// pliki z turbogeneratorem
                     m_powertrainsounds.engine_turbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
@@ -5827,7 +5840,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     // other engine compartment sounds
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &sConverter, &sCompressor, &sSmallCompressor
+        &sConverter, &sCompressor, &sSmallCompressor, &sHeater
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {

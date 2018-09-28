@@ -9,6 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "globals.h"
+
 // encapsulation of the fixed pipeline opengl color
 class opengl_color {
 
@@ -32,7 +34,7 @@ public:
     inline
     void
         color4( glm::vec4 const &Color ) {
-            if( Color != m_color ) {
+            if( ( Color != m_color ) || ( false == Global.bUseVBO ) ) {
                 m_color = Color;
                 ::glColor4fv( glm::value_ptr( m_color ) ); } }
     inline

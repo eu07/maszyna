@@ -814,14 +814,17 @@ void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
     m_textures[ Texture ].second = m_garbagecollector.timestamp();
-
+    if( m_units[ Unit ].unit == 0 ) {
+        // no texture unit, nothing to bind the texture to
+        return;
+    }
+    // even if we may skip texture binding make sure the relevant texture unit is activated
+    unit( m_units[ Unit ].unit );
     if( Texture == m_units[ Unit ].texture ) {
         // don't bind again what's already active
         return;
     }
     // TBD, TODO: do binding in texture object, add support for other types than 2d
-    if( m_units[ Unit ].unit == 0 ) { return; }
-    unit( m_units[ Unit ].unit );
     if( Texture != null_handle ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid

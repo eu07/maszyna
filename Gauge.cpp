@@ -209,7 +209,7 @@ void
 TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
 
     auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
-    if( desiredtimes100 == static_cast<int>( 100.0 * m_targetvalue ) ) {
+    if( desiredtimes100 == static_cast<int>( std::round( 100.0 * m_targetvalue ) ) ) {
         return;
     }
     m_targetvalue = fNewDesired;

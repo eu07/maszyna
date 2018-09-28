@@ -2837,17 +2837,10 @@ opengl_renderer::Render_precipitation() {
                 colors::white,
                 0.5f * clamp<float>( Global.fLuminance, 0.f, 1.f ) ) ) );
     ::glPushMatrix();
-
+    // tilt the precipitation cone against the velocity vector for crude motion blur
     auto const velocity { simulation::Environment.m_precipitation.m_cameramove * -1.0 };
     if( glm::length2( velocity ) > 0.0 ) {
         auto const forward{ glm::normalize( velocity ) };
-        if( false == FreeFlyModeFlag ) {
-            // counter potential vehicle roll
-            auto const roll { simulation::Train->Dynamic()->Roll() };
-            if( roll != 0.0 ) {
-                ::glRotated( roll, forward.x, 0.0, forward.z );
-            }
-        }
         auto left { glm::cross( forward, {0.0,1.0,0.0} ) };
         auto const rotationangle {
             std::min(
@@ -2856,6 +2849,19 @@ opengl_renderer::Render_precipitation() {
                     5 * glm::length( velocity ) :
                     simulation::Train->Dynamic()->GetVelocity() * 0.2 ) ) };
         ::glRotated( rotationangle, left.x, 0.0, left.z );
+    }
+    if( false == FreeFlyModeFlag ) {
+        // counter potential vehicle roll
+        auto const roll { 0.5 * glm::degrees( simulation::Train->Dynamic()->Roll() ) };
+        if( roll != 0.0 ) {
+            auto const forward { simulation::Train->Dynamic()->VectorFront() };
+            auto const vehicledirection = simulation::Train->Dynamic()->DirectionGet();
+            ::glRotated( roll, forward.x, 0.0, forward.z );
+        }
+    }
+    if( Global.Weather == "rain:" ) {
+        // oddly enough random streaks produce more natural looking rain than ones the eye can follow
+        ::glRotated( Random() * 360, 0.0, 1.0, 0.0 );
     }
 
     // TBD: leave lighting on to allow vehicle lights to affect it?

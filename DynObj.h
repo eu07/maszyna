@@ -409,6 +409,7 @@ private:
     sound_source sConverter { sound_placement::engine };
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
     sound_source sSmallCompressor { sound_placement::engine };
+    sound_source sHeater { sound_placement::engine };
     // braking sounds
     sound_source dsbPneumaticRelay { sound_placement::external };
     sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
