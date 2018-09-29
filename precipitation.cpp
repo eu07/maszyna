@@ -91,13 +91,18 @@ basic_precipitation::init() {
     create( 18 );
 
     // TODO: select texture based on current overcast level
+    // TODO: when the overcast level dynamic change is in check the current level during render and pick the appropriate texture on the fly
+    std::string const densitysuffix { (
+        Global.Overcast < 1.35 ?
+            "_light" :
+            "_medium" ) };
     if( Global.Weather == "rain:" ) {
-        m_texture = GfxRenderer.Fetch_Texture( "fx/rain_medium" );
         m_moverateweathertypefactor = 2.f;
+        m_texture = GfxRenderer.Fetch_Texture( "fx/rain" + densitysuffix );
     }
     else if( Global.Weather == "snow:" ) {
-        m_texture = GfxRenderer.Fetch_Texture( "fx/snow_medium" );
         m_moverateweathertypefactor = 1.25f;
+        m_texture = GfxRenderer.Fetch_Texture( "fx/snow" + densitysuffix );
     }
 
     return true;
@@ -111,7 +116,7 @@ basic_precipitation::update() {
     if( timedelta == 0.0 ) { return; }
 
     m_textureoffset += m_moverate * m_moverateweathertypefactor * timedelta;
-    m_textureoffset = clamp_circular( m_textureoffset, 1.f );
+    m_textureoffset = clamp_circular( m_textureoffset, 10.f );
 
     auto cameramove { glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
     cameramove.y = 0.0; // vertical movement messes up vector calculation

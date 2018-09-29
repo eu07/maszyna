@@ -397,7 +397,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
 
     float m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
     step = fStep;
-    tv1 = 1.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
+    tv1 = 0.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
     s = fStep * iSkip; // iSkip - ile odcinków z początku pominąć
     int i = iSkip; // domyślnie 0
     t = fTsBuffer[ i ]; // tabela wattości t dla segmentów
@@ -435,7 +435,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
         while( tv1 < 0.0 ) {
             tv1 += 1.0;
         }
-        tv2 = tv1 - step / texturelength; // mapowanie na końcu segmentu
+        tv2 = tv1 + step / texturelength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
         pos2 = glm::dvec3{ FastGetPoint( t ) - Origin };

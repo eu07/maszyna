@@ -2117,8 +2117,17 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_fuelpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->FuelPump.is_enabled ) {
             // turn on
             OnCommand_fuelpumpenable( Train, Command );
@@ -2132,32 +2141,65 @@ void TTrain::OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_fuelpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->FuelPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->FuelPumpSwitch( true );
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( true );
+            Train->mvControlled->FuelPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_fuelpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->FuelPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->FuelPumpSwitch( false );
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( false );
+            Train->mvControlled->FuelPumpSwitchOff( true );
+        }
     }
 }
 
 void TTrain::OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_oilpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->OilPump.is_enabled ) {
             // turn on
             OnCommand_oilpumpenable( Train, Command );
@@ -2171,25 +2213,49 @@ void TTrain::OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command
 
 void TTrain::OnCommand_oilpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->OilPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->OilPumpSwitch( true );
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( true );
+            Train->mvControlled->OilPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_oilpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->OilPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->OilPumpSwitch( false );
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( false );
+            Train->mvControlled->OilPumpSwitchOff( true );
+        }
     }
 }
 
@@ -2312,8 +2378,17 @@ void TTrain::OnCommand_waterpumpbreakeropen( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_waterpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_waterpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->WaterPump.is_enabled ) {
             // turn on
             OnCommand_waterpumpenable( Train, Command );
@@ -2327,25 +2402,49 @@ void TTrain::OnCommand_waterpumptoggle( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_waterpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->WaterPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->WaterPumpSwitch( true );
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( true );
+            Train->mvControlled->WaterPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_waterpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->WaterPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->WaterPumpSwitch( false );
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( false );
+            Train->mvControlled->WaterPumpSwitchOff( true );
+        }
     }
 }
 
@@ -5122,14 +5221,13 @@ bool TTrain::Update( double const Deltatime )
                 ( true == mvControlled->ResistorsFlagCheck() )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
-            if( ( mvControlled->StLinFlag )
-             || ( mvOccupied->BrakePress > 2.0 )
-             || ( mvOccupied->PipePress < 3.6 ) ) {
-                // Ra: czy to jest udawanie działania styczników liniowych?
+            if( mvControlled->StLinFlag ) {
                 btLampkaStyczn.Turn( false );
             }
-            else if( mvOccupied->BrakePress < 1.0 )
-                btLampkaStyczn.Turn( true ); // mozna prowadzic rozruch
+            else {
+                // mozna prowadzic rozruch
+                btLampkaStyczn.Turn( mvOccupied->BrakePress < 1.0 );
+            }
             if( ( ( TestFlag( mvControlled->Couplers[ side::rear ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == 1 ) )
              || ( ( TestFlag( mvControlled->Couplers[ side::front ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == -1 ) ) )
                 btLampkaUkrotnienie.Turn( true );
@@ -7140,10 +7238,12 @@ void TTrain::set_cab_controls() {
         mvControlled->WaterPump.breaker ?
             1.0 :
             0.0 );
-    ggWaterPumpButton.PutValue(
-        mvControlled->WaterPump.is_enabled ?
-            1.0 :
-            0.0 );
+    if( ggWaterPumpButton.type() != TGaugeType::push ) {
+        ggWaterPumpButton.PutValue(
+            mvControlled->WaterPump.is_enabled ?
+                1.0 :
+                0.0 );
+    }
     // water heater
     ggWaterHeaterBreakerButton.PutValue(
         mvControlled->WaterHeater.breaker ?
@@ -7158,15 +7258,19 @@ void TTrain::set_cab_controls() {
             1.0 :
             0.0 );
     // fuel pump
-    ggFuelPumpButton.PutValue(
-        mvControlled->FuelPump.is_enabled ?
-            1.0 :
-            0.0 );
+    if( ggFuelPumpButton.type() != TGaugeType::push ) {
+        ggFuelPumpButton.PutValue(
+            mvControlled->FuelPump.is_enabled ?
+                1.0 :
+                0.0 );
+    }
     // oil pump
-    ggOilPumpButton.PutValue(
-        mvControlled->OilPump.is_enabled ?
+    if( ggOilPumpButton.type() != TGaugeType::push ) {
+        ggOilPumpButton.PutValue(
+            mvControlled->OilPump.is_enabled ?
             1.0 :
             0.0 );
+    }
     
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
@@ -7574,9 +7678,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), TGaugeType::gt_Rotate, 1.0/60.0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), TGaugeType::gt_Rotate, 1.0/60.0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), TGaugeType::gt_Rotate, 1.0/12.0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), TGaugeAnimation::gt_Rotate, 1.0/60.0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), TGaugeAnimation::gt_Rotate, 1.0/60.0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), TGaugeAnimation::gt_Rotate, 1.0/12.0);
         }
     }
     else if (Label == "evoltage:")
