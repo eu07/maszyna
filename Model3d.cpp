@@ -135,7 +135,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     iVboPtr = Pos; // pozycja w VBO
 */
     if (!parser.expectToken("type:"))
-        Error("Model type parse failure!");
+        ErrorLog("Bad model: expected submodel type definition not found while loading model \"" + Model->NameGet() + "\"" );
     {
         std::string type = parser.getToken<std::string>();
         if (type == "mesh")
@@ -1225,8 +1225,10 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
     }
 */
     auto const name { FileName };
+    // cache the file name, in case someone wants it later
+    m_filename = name;
 
-	asBinary = name + ".e3d";
+    asBinary = name + ".e3d";
 	if (FileExists(asBinary))
 	{
 		LoadFromBinFile(asBinary, dynamic);
@@ -1244,8 +1246,6 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
             }
         }
 	}
-    // cache the file name, in case someone wants it later
-    m_filename = name;
 	bool const result =
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)

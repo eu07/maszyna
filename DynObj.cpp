@@ -3971,9 +3971,15 @@ void TDynamicObject::RenderSounds() {
         sSmallCompressor.stop();
     }
 
-    // heating sound
-    if( MoverParameters->Heating ) {
-        sHeater.play( sound_flags::exclusive | sound_flags::looping );
+    // heater sound
+    if( ( true == MoverParameters->Heating )
+     && ( std::abs( MoverParameters->enrot ) > 0.01 ) ) {
+        // TBD: check whether heating should depend on 'engine rotations' for electric vehicles
+        sHeater
+            .pitch( true == sHeater.is_combined() ?
+                    std::abs( MoverParameters->enrot ) * 60.f * 0.01f :
+                    1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
         sHeater.stop();
@@ -3997,8 +4003,7 @@ void TDynamicObject::RenderSounds() {
         }
         else if( quantizedratiochange < 0 ) {
             m_brakecylinderpistonrecede
-                .pitch(
-                    true == m_brakecylinderpistonrecede.is_combined() ?
+                .pitch( true == m_brakecylinderpistonrecede.is_combined() ?
                         quantizedratio * 0.01f :
                         m_brakecylinderpistonrecede.m_frequencyoffset + m_brakecylinderpistonrecede.m_frequencyfactor * 1.f )
                 .play();

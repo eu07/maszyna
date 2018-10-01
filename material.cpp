@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "material.h"
 #include "renderer.h"
 #include "utilities.h"
+#include "sn_utils.h"
 #include "globals.h"
 
 bool
@@ -72,6 +73,12 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 texture2 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
                 priority2 = Priority;
             }
+        }
+        else if( key == "size:" ) {
+            Input.getTokens( 2 );
+            Input
+                >> size.x
+                >> size.y;
         }
         else {
             auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };

@@ -1433,9 +1433,12 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
-    ::glPushMatrix();
     // skydome
+    // drawn with 500m radius to blend in if the fog range is low
+    ::glPushMatrix();
+    ::glScalef( 500.f, 500.f, 500.f );
     Environment->m_skydome.Render();
+    ::glPopMatrix();
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
         // setup
@@ -1450,12 +1453,6 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glPopMatrix();
     }
     // celestial bodies
-    float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
-    glm::vec3 suncolor = interpolate(
-        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
-        duskfactor );
-
     if( DebugModeFlag == true ) {
         // mark sun position for easier debugging
         Environment->m_sun.render();
@@ -1470,10 +1467,17 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+
+    auto const fogfactor { clamp<float>( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // stronger fog reduces opacity of the celestial bodies
+    float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
+    glm::vec3 suncolor = interpolate(
+        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
+        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+        duskfactor );
     // sun
     {
         Bind_Texture( m_suntexture );
-        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, clamp( 1.5f - Global.Overcast, 0.f, 1.f ) );
+        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, clamp( 1.5f - Global.Overcast, 0.f, 1.f ) * fogfactor );
         auto const sunvector = Environment->m_sun.getDirection();
         auto const sunposition = modelview * glm::vec4( sunvector.x, sunvector.y, sunvector.z, 1.0f );
 
@@ -1495,14 +1499,15 @@ opengl_renderer::Render( world_environment *Environment ) {
     {
         Bind_Texture( m_moontexture );
         glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
-        // fade the moon if it's near the sun in the sky, especially during the day
         ::glColor4f(
             mooncolor.r, mooncolor.g, mooncolor.b,
+            // fade the moon if it's near the sun in the sky, especially during the day
             std::max<float>(
                 0.f,
                 1.0
                 - 0.5 * Global.fLuminance
-                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) ) );
+                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) )
+            * fogfactor );
 
         auto const moonposition = modelview * glm::vec4( Environment->m_moon.getDirection(), 1.0f );
         ::glPushMatrix();
@@ -1563,7 +1568,6 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glDisable( GL_LIGHTING );
     }
 
-    ::glPopMatrix();
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_DEPTH_TEST );
     ::glEnable( GL_LIGHTING );

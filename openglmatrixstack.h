@@ -58,6 +58,10 @@ public:
             m_stack.top() = glm::translate( m_stack.top(), Translation );
             upload(); }
     void
+        scale( glm::vec3 const &Scale ) {
+            m_stack.top() = glm::scale( m_stack.top(), Scale );
+            upload(); }
+    void
         multiply( glm::mat4 const &Matrix ) {
             m_stack.top() *= Matrix;
             upload(); }
@@ -133,13 +137,21 @@ public:
             m_stacks[ m_mode ].rotate(
                 static_cast<float>(glm::radians(Angle)),
                 glm::vec3(
-                    static_cast<float>(X),
-                    static_cast<float>(Y),
-                    static_cast<float>(Z) ) ); }
+                    static_cast<float>( X ),
+                    static_cast<float>( Y ),
+                    static_cast<float>( Z ) ) ); }
     template <typename Type_>
     void
         translate( Type_ const X, Type_ const Y, Type_ const Z ) {
             m_stacks[ m_mode ].translate(
+                glm::vec3(
+                    static_cast<float>( X ),
+                    static_cast<float>( Y ),
+                    static_cast<float>( Z ) ) ); }
+    template <typename Type_>
+    void
+        scale( Type_ const X, Type_ const Y, Type_ const Z ) {
+            m_stacks[ m_mode ].scale(
                 glm::vec3(
                     static_cast<float>( X ),
                     static_cast<float>( Y ),
@@ -204,7 +216,8 @@ extern opengl_matrices OpenGLMatrices;
 #define glRotatef OpenGLMatrices.rotate
 #define glTranslated OpenGLMatrices.translate
 #define glTranslatef OpenGLMatrices.translate
-// NOTE: no scale override as we aren't using it anywhere
+#define glScaled OpenGLMatrices.scale
+#define glScalef OpenGLMatrices.scale
 #define glMultMatrixd OpenGLMatrices.multiply
 #define glMultMatrixf OpenGLMatrices.multiply
 #define glOrtho OpenGLMatrices.ortho

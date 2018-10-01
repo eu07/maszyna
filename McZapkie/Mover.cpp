@@ -1570,11 +1570,12 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
 
     OilPump.is_active = (
         ( true == Battery )
+     && ( false == Mains )
      && ( false == OilPump.is_disabled )
      && ( ( OilPump.is_active )
        || ( OilPump.start_type == start_t::manual ? ( OilPump.is_enabled ) :
-            OilPump.start_type == start_t::automatic ? ( dizel_startup || Mains ) :
-            OilPump.start_type == start_t::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup || Mains ) :
+            OilPump.start_type == start_t::automatic ? ( dizel_startup ) :
+            OilPump.start_type == start_t::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup ) :
             false ) ) ); // shouldn't ever get this far but, eh
 
     auto const maxrevolutions {
@@ -2642,7 +2643,6 @@ bool TMoverParameters::MainSwitch( bool const State, range_t const Notify )
                 Mains = false;
                 // potentially knock out the pumps if their switch doesn't force them on
                 WaterPump.is_active &= WaterPump.is_enabled;
-                OilPump.is_active &= OilPump.is_enabled;
                 FuelPump.is_active &= FuelPump.is_enabled;
             }
 
@@ -4765,7 +4765,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 Voltage = 0;
 
             // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-            if ((MainCtrlPos == 0) || (ShuntMode))
+            if ((MainCtrlPos == 0) || (ShuntMode) || (false==Mains))
                 ScndCtrlPos = 0;
 
             else {
@@ -9305,7 +9305,6 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             Mains = false;
             // potentially knock out the pumps if their switch doesn't force them on
             WaterPump.is_active &= WaterPump.is_enabled;
-            OilPump.is_active &= OilPump.is_enabled;
             FuelPump.is_active &= FuelPump.is_enabled;
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

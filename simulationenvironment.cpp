@@ -62,8 +62,8 @@ void
 world_environment::compute_weather() const {
 
     Global.Weather = (
-        Global.Overcast < 0.25 ? "clear:" :
-        Global.Overcast < 1.0 ? "cloudy:" :
+        Global.Overcast <= 0.25 ? "clear:" :
+        Global.Overcast <= 1.0 ? "cloudy:" :
         ( Global.Season != "winter:" ?
             "rain:" :
             "snow:" ) );
