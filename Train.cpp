@@ -5548,7 +5548,7 @@ bool TTrain::Update( double const Deltatime )
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
 						(Global.iFeedbackMode == 4 /*|| (Global.bMWDmasterEnable && Global.bMWDBreakEnable)*/)) :
-                    false) // nie blokujemy AI
+                    false && Global.fCalibrateIn[ 0 ][ 1 ] != 0.0) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
 				if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
@@ -5581,7 +5581,7 @@ bool TTrain::Update( double const Deltatime )
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
              && ( mvOccupied->BrakeLocHandle == TBrakeHandle::FD1 )
-             && ( ( Global.iFeedbackMode == 4 )
+             && ( ( Global.iFeedbackMode == 4 ) && Global.fCalibrateIn[ 1 ][ 1 ] != 0.0
                /*|| ( Global.bMWDmasterEnable && Global.bMWDBreakEnable )*/ ) ) {
                 // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
                 // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
