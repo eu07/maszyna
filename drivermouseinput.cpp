@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "uilayer.h"
 #include "Logs.h"
+#include "Timer.h"
 
 void
 mouse_slider::bind( user_command const &Command ) {

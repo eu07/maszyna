@@ -98,10 +98,13 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+int const null_handle = 0;
+
 #include "openglmatrixstack.h"
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
+#include "openglcolor.h"
 
 #ifdef DBG_NEW
 #pragma push_macro("new")

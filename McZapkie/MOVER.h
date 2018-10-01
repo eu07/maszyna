@@ -624,6 +624,7 @@ struct TCoupling {
 struct fuel_pump {
 
     bool is_enabled { false }; // device is allowed/requested to operate
+    bool is_disabled { false }; // device is requested to stop
     bool is_active { false }; // device is working
     start_t start_type { start_t::manual };
 };
@@ -633,6 +634,7 @@ struct fuel_pump {
 struct oil_pump {
 
     bool is_enabled { false }; // device is allowed/requested to operate
+    bool is_disabled { false }; // device is requested to stop
     bool is_active { false }; // device is working
     start_t start_type { start_t::manual };
     float resource_amount { 1.f };
@@ -646,6 +648,7 @@ struct water_pump {
 
     bool breaker { true }; // device is allowed to operate
     bool is_enabled { false }; // device is requested to operate
+    bool is_disabled { false }; // device is requested to stop
     bool is_active { false }; // device is working
     start_t start_type { start_t::manual };
 };
@@ -1332,11 +1335,14 @@ public:
 	bool DirectionBackward(void);/*! kierunek ruchu*/
     bool WaterPumpBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water pump breaker state toggle
     bool WaterPumpSwitch( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
+    bool WaterPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
     bool WaterHeaterBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water heater breaker state toggle
     bool WaterHeaterSwitch( bool State, range_t const Notify = range_t::consist ); // water heater state toggle
     bool WaterCircuitsLinkSwitch( bool State, range_t const Notify = range_t::consist ); // water circuits link state toggle
     bool FuelPumpSwitch( bool State, range_t const Notify = range_t::consist ); // fuel pump state toggle
+    bool FuelPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // fuel pump state toggle
     bool OilPumpSwitch( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
+    bool OilPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
@@ -1366,7 +1372,8 @@ public:
 	bool MaxCurrentSwitch(bool State); //przelacznik pradu wysokiego rozruchu
 	bool MinCurrentSwitch(bool State); //przelacznik pradu automatycznego rozruchu
 	bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
-	bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
+	bool AutoRelayCheck();//symulacja automatycznego rozruchu
+    bool MotorConnectorsCheck();
 
 	bool ResistorsFlagCheck(void) const; //sprawdzenie kontrolki oporow rozruchowych NBMX
     bool PantFront( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografou przedniego
@@ -1441,4 +1448,4 @@ private:
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
 };
 
-extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
+//double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);

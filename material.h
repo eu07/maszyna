@@ -24,6 +24,7 @@ struct opengl_material {
 
     bool has_alpha { false }; // alpha state, calculated from presence of alpha in texture1
     std::string name;
+    glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters
 
 // constructors
     opengl_material() = default;

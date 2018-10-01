@@ -1,24 +1,64 @@
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
 #include "stdafx.h"
 #include "PyInt.h"
 
 #include "Globals.h"
-#include "parser.h"
+#include "application.h"
 #include "renderer.h"
-#include "Model3d.h"
-#include "Train.h"
 #include "Logs.h"
-
-TPythonInterpreter *TPythonInterpreter::_instance = NULL;
-
-//#define _PY_INT_MORE_LOG
 
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
 
-TPythonInterpreter::TPythonInterpreter()
-{
-    WriteLog("Loading Python ...");
+void render_task::run() {
+    // call the renderer
+    auto *output { PyObject_CallMethod( m_renderer, "render", "O", m_input ) };
+    Py_DECREF( m_input );
+
+    if( output != nullptr ) {
+        auto *outputwidth { PyObject_CallMethod( m_renderer, "get_width", nullptr ) };
+        auto *outputheight { PyObject_CallMethod( m_renderer, "get_height", nullptr ) };
+        // upload texture data
+        if( ( outputwidth != nullptr )
+         && ( outputheight != nullptr ) ) {
+
+            GfxRenderer.Bind_Material( m_target );
+            // setup texture parameters
+            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+            if( GLEW_EXT_texture_filter_anisotropic ) {
+                // anisotropic filtering
+                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+            }
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+            // build texture
+            ::glTexImage2D(
+                GL_TEXTURE_2D, 0,
+                GL_RGBA8,
+                PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
+                GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
+        }
+        Py_DECREF( outputheight );
+        Py_DECREF( outputwidth );
+        Py_DECREF( output );
+    }
+    // clean up after yourself
+    delete this;
+}
+
+// initializes the module. returns true on success
+auto python_taskqueue::init() -> bool {
+
 #ifdef _WIN32
 	if (sizeof(void*) == 8)
 		Py_SetPythonHome("python64");
@@ -31,329 +71,261 @@ TPythonInterpreter::TPythonInterpreter()
 		Py_SetPythonHome("linuxpython");
 #endif
     Py_Initialize();
-    _main = PyImport_ImportModule("__main__");
-    if (_main == NULL)
-    {
-        WriteLog("Cannot import Python module __main__");
+    PyEval_InitThreads();
+
+	PyObject *stringiomodule { nullptr };
+	PyObject *stringioclassname { nullptr };
+	PyObject *stringioobject { nullptr };
+
+    // save a pointer to the main PyThreadState object
+    m_mainthread = PyThreadState_Get();
+    // do the setup work while we hold the lock
+    m_main = PyImport_ImportModule("__main__");
+    if (m_main == nullptr) {
+        ErrorLog( "Python Interpreter: __main__ module is missing" );
+        goto release_and_exit;
     }
-    PyObject *cStringModule = PyImport_ImportModule("cStringIO");
-    _stdErr = NULL;
-    if (cStringModule == NULL)
-        return;
-    PyObject *cStringClassName = PyObject_GetAttrString(cStringModule, "StringIO");
-    if (cStringClassName == NULL)
-        return;
-    PyObject *cString = PyObject_CallObject(cStringClassName, NULL);
-    if (cString == NULL)
-        return;
-    if (PySys_SetObject("stderr", cString) != 0)
-        return;
-    _stdErr = cString;
+
+    stringiomodule = PyImport_ImportModule( "cStringIO" );
+    stringioclassname = (
+        stringiomodule != nullptr ?
+            PyObject_GetAttrString( stringiomodule, "StringIO" ) :
+            nullptr );
+    stringioobject = (
+        stringioclassname != nullptr ?
+            PyObject_CallObject( stringioclassname, nullptr ) :
+            nullptr );
+    m_error = { (
+        stringioobject == nullptr ? nullptr :
+        PySys_SetObject( "stderr", stringioobject ) != 0 ? nullptr :
+        stringioobject ) };
+
+    if( m_error == nullptr ) { goto release_and_exit; }
+
+    if( false == run_file( "abstractscreenrenderer" ) ) { goto release_and_exit; }
+
+    // release the lock
+    PyEval_ReleaseLock();
+
+    WriteLog( "Python Interpreter setup complete" );
+
+    // init workers
+    for( auto &worker : m_workers ) {
+
+        auto *openglcontextwindow { Application.window( -1 ) };
+        worker =
+            std::make_unique<std::thread>(
+                &python_taskqueue::run, this,
+                openglcontextwindow, std::ref( m_tasks ), std::ref( m_condition ), std::ref( m_exit ) );
+
+        if( worker == nullptr ) { return false; }
+    }
+
+    return true;
+
+release_and_exit:
+    PyEval_ReleaseLock();
+    return false;
 }
 
-TPythonInterpreter *TPythonInterpreter::getInstance()
-{
-    if (!_instance)
-    {
-        _instance = new TPythonInterpreter();
+// shuts down the module
+void python_taskqueue::exit() {
+    // let the workers know we're done with them
+    m_exit = true;
+    m_condition.notify_all();
+    // let them free up their shit before we proceed
+    for( auto const &worker : m_workers ) {
+        worker->join();
     }
-    return _instance;
+    // get rid of the leftover tasks
+    // with the workers dead we don't have to worry about concurrent access anymore
+    for( auto *task : m_tasks.data ) {
+        delete task;
+    }
+    // take a bow
+    PyEval_AcquireLock();
+    PyThreadState_Swap( m_mainthread );
+    Py_Finalize();
 }
 
-void
-TPythonInterpreter::killInstance() {
+// adds specified task along with provided collection of data to the work queue. returns true on success
+auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-	delete _instance;
-}
+    if( ( Task.renderer.empty() )
+     || ( Task.input == nullptr )
+     || ( Task.target == null_handle ) ) { return false; }
 
-bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::string const &className )
-{
-    std::set<std::string>::const_iterator it = _classes.find(className);
-    if (it == _classes.end())
+    auto *renderer { fetch_renderer( Task.renderer ) };
+    if( renderer == nullptr ) { return false; }
+    // acquire a lock on the task queue and add a new task
     {
-        FILE *sourceFile = _getFile(lookupPath, className);
-        if (sourceFile != nullptr)
-        {
-            fseek(sourceFile, 0, SEEK_END);
-            auto const fsize = ftell(sourceFile);
-            char *buffer = (char *)calloc(fsize + 1, sizeof(char));
-            fseek(sourceFile, 0, SEEK_SET);
-            auto const freaded = fread(buffer, sizeof(char), fsize, sourceFile);
-            buffer[freaded] = 0; // z jakiegos powodu czytamy troche mniej i trzczeba dodac konczace
-// zero do bufora (mimo ze calloc teoretycznie powiniene zwrocic
-// wyzerowana pamiec)
-#ifdef _PY_INT_MORE_LOG
-            char buf[255];
-            sprintf(buf, "readed %d / %d characters for %s", freaded, fsize, className);
-            WriteLog(buf);
-#endif // _PY_INT_MORE_LOG
-            fclose(sourceFile);
-            if (PyRun_SimpleString(buffer) != 0)
-            {
-                handleError();
-                return false;
-            }
-			_classes.insert( className );
-/*
-            char *classNameToRemember = (char *)calloc(strlen(className) + 1, sizeof(char));
-            strcpy(classNameToRemember, className);
-            _classes.insert(classNameToRemember);
-*/
-			free(buffer);
-            return true;
-        }
-        return false;
+        std::lock_guard<std::mutex> lock( m_tasks.mutex );
+        m_tasks.data.emplace_back( new render_task( renderer, Task.input, Task.target ) );
     }
+    // potentially wake a worker to handle the new task
+    m_condition.notify_one();
+    // all done
     return true;
 }
 
-PyObject *TPythonInterpreter::newClass( std::string const &className )
-{
-    return newClass(className, NULL);
+// executes python script stored in specified file. returns true on success
+auto python_taskqueue::run_file( std::string const &File, std::string const &Path ) -> bool {
+
+    auto const lookup { FileExists( { Path + File, "python/local/" + File }, { ".py" } ) };
+    if( lookup.first.empty() ) { return false; }
+
+    std::ifstream inputfile { lookup.first + lookup.second };
+    std::string input;
+    input.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
+
+    if( PyRun_SimpleString( input.c_str() ) != 0 ) {
+        error();
+        return false;
+    }
+
+    return true;
 }
 
-FILE *TPythonInterpreter::_getFile( std::string const &lookupPath, std::string const &className )
-{
-	if( false == lookupPath.empty() ) {
-		std::string const sourcefilepath = lookupPath + className + ".py";
-		FILE *file = fopen( sourcefilepath.c_str(), "r" );
-#ifdef _PY_INT_MORE_LOG
-		WriteLog( sourceFilePath );
-#endif // _PY_INT_MORE_LOG
-		if( nullptr != file ) { return file; }
-	}
-	std::string  sourcefilepath = "python/local/" + className + ".py";
-	FILE *file = fopen( sourcefilepath.c_str(), "r" );
-#ifdef _PY_INT_MORE_LOG
-	WriteLog( sourceFilePath );
-#endif // _PY_INT_MORE_LOG
-	return file; // either the file, or a nullptr on fail
-/*
-    char *sourceFilePath;
-    if (lookupPath != NULL)
-    {
-        sourceFilePath = (char *)calloc(strlen(lookupPath) + strlen(className) + 4, sizeof(char));
-        strcat(sourceFilePath, lookupPath);
-        strcat(sourceFilePath, className);
-        strcat(sourceFilePath, ".py");
+auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject * {
 
-        FILE *file = fopen(sourceFilePath, "r");
-#ifdef _PY_INT_MORE_LOG
-        WriteLog(sourceFilePath);
-#endif // _PY_INT_MORE_LOG
-        free(sourceFilePath);
-        if (file != NULL)
-        {
-            return file;
+    auto const lookup { m_renderers.find( Renderer ) };
+    if( lookup != std::end( m_renderers ) ) {
+        return lookup->second;
+    }
+    // try to load specified renderer class
+    auto const path { substr_path( Renderer ) };
+    auto const file { Renderer.substr( path.size() ) };
+    PyObject *renderer { nullptr };
+	PyObject *rendererarguments { nullptr };
+	PyObject *renderername { nullptr };
+
+    PyEval_AcquireLock();
+
+    if( m_main == nullptr ) {
+        ErrorLog( "Python Renderer: __main__ module is missing" );
+        goto cache_and_return;
+    }
+
+    {
+        if( false == run_file( file, path ) ) {
+            goto cache_and_return;
+        }
+        renderername = PyObject_GetAttrString( m_main, file.c_str() );
+        if( renderername == nullptr ) {
+            ErrorLog( "Python Renderer: class \"" + file + "\" not defined" );
+            goto cache_and_return;
+        }
+        rendererarguments = Py_BuildValue( "(s)", path.c_str() );
+        if( rendererarguments == nullptr ) {
+            ErrorLog( "Python Renderer: failed to create initialization arguments" );
+            goto cache_and_return;
+        }
+        renderer = PyObject_CallObject( renderername, rendererarguments );
+
+        if( PyErr_Occurred() != nullptr ) {
+            error();
+            renderer = nullptr;
+        }
+
+cache_and_return:
+        // clean up after yourself
+        if( rendererarguments != nullptr ) {
+            Py_DECREF( rendererarguments );
         }
     }
-    char *basePath = "python/local/";
-    sourceFilePath = (char *)calloc(strlen(basePath) + strlen(className) + 4, sizeof(char));
-    strcat(sourceFilePath, basePath);
-    strcat(sourceFilePath, className);
-    strcat(sourceFilePath, ".py");
-
-    FILE *file = fopen(sourceFilePath, "r");
-#ifdef _PY_INT_MORE_LOG
-    WriteLog(sourceFilePath);
-#endif // _PY_INT_MORE_LOG
-    free(sourceFilePath);
-    if (file != NULL)
-    {
-        return file;
-    }
-    return NULL;
-*/
+    PyEval_ReleaseLock();
+    // cache the failures as well so we don't try again on subsequent requests
+    m_renderers.emplace( Renderer, renderer );
+    return renderer;
 }
 
-void TPythonInterpreter::handleError()
-{
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("Python Error occured");
-#endif // _PY_INT_MORE_LOG
-    if (_stdErr != NULL)
-    { // std err pythona jest buforowane
+void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit ) {
+
+    glfwMakeContextCurrent( Context );
+    // create a state object for this thread
+    PyEval_AcquireLock();
+    auto *threadstate { PyThreadState_New( m_mainthread->interp ) };
+    PyEval_ReleaseLock();
+
+    render_task *task { nullptr };
+
+    while( false == Exit.load() ) {
+        // regardless of the reason we woke up prime the spurious wakeup flag for the next time
+        Condition.spurious( true );
+        // keep working as long as there's any scheduled tasks
+        do {
+            task = nullptr;
+            // acquire a lock on the task queue and potentially grab a task from it
+            {
+                std::lock_guard<std::mutex> lock( Tasks.mutex );
+                if( false == Tasks.data.empty() ) {
+                    // fifo
+                    task = Tasks.data.front();
+                    Tasks.data.pop_front();
+                }
+            }
+            if( task != nullptr ) {
+                // swap in my thread state
+                PyEval_AcquireLock();
+                PyThreadState_Swap( threadstate );
+                // execute python code
+                task->run();
+                error();
+                // clear the thread state
+                PyThreadState_Swap( nullptr );
+                PyEval_ReleaseLock();
+            }
+            // TBD, TODO: add some idle time between tasks in case we're on a single thread cpu?
+        } while( task != nullptr );
+        // if there's nothing left to do wait until there is
+        // but check every now and then on your own to minimize potential deadlock situations
+        Condition.wait_for( std::chrono::seconds( 5 ) );
+    }
+    // clean up thread state data
+    PyEval_AcquireLock();
+    PyThreadState_Swap( nullptr );
+    PyThreadState_Clear( threadstate );
+    PyThreadState_Delete( threadstate );
+    PyEval_ReleaseLock();
+}
+
+void
+python_taskqueue::error() {
+
+    if( PyErr_Occurred() == nullptr ) { return; }
+
+    if( m_error != nullptr ) {
+        // std err pythona jest buforowane
         PyErr_Print();
-        PyObject *bufferContent = PyObject_CallMethod(_stdErr, "getvalue", NULL);
-        PyObject_CallMethod(_stdErr, "truncate", "i", 0); // czyscimy bufor na kolejne bledy
-        WriteLog(PyString_AsString(bufferContent));
+        auto *errortext { PyObject_CallMethod( m_error, "getvalue", nullptr ) };
+        ErrorLog( PyString_AsString( errortext ) );
+        // czyscimy bufor na kolejne bledy
+        PyObject_CallMethod( m_error, "truncate", "i", 0 );
     }
-    else
-    { // nie dziala buffor pythona
-        if (PyErr_Occurred() != NULL)
-        {
-            PyObject *ptype, *pvalue, *ptraceback;
-            PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-            if (ptype == NULL)
-            {
-                WriteLog("Don't konw how to handle NULL exception");
-            }
-            PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);
-            if (ptype == NULL)
-            {
-                WriteLog("Don't konw how to handle NULL exception");
-            }
-            PyObject *pStrType = PyObject_Str(ptype);
-            if (pStrType != NULL)
-            {
-                WriteLog(PyString_AsString(pStrType));
-            }
-            WriteLog(PyString_AsString(pvalue));
-            PyObject *pStrTraceback = PyObject_Str(ptraceback);
-            if (pStrTraceback != NULL)
-            {
-                WriteLog(PyString_AsString(pStrTraceback));
-            }
-            else
-            {
-                WriteLog("Python Traceback cannot be shown");
-            }
+    else {
+        // nie dziala buffor pythona
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch( &type, &value, &traceback );
+        if( type == nullptr ) {
+            ErrorLog( "Python Interpreter: don't know how to handle null exception" );
         }
-        else
-        {
-#ifdef _PY_INT_MORE_LOG
-            WriteLog("Called python error handler when no error occured!");
-#endif // _PY_INT_MORE_LOG
+        PyErr_NormalizeException( &type, &value, &traceback );
+        if( type == nullptr ) {
+            ErrorLog( "Python Interpreter: don't know how to handle null exception" );
         }
-    }
-}
-PyObject *TPythonInterpreter::newClass(std::string const &className, PyObject *argsTuple)
-{
-    if (_main == NULL)
-    {
-        WriteLog("main turned into null");
-        return NULL;
-    }
-    PyObject *classNameObj = PyObject_GetAttrString(_main, className.c_str());
-    if (classNameObj == NULL)
-    {
-#ifdef _PY_INT_MORE_LOG
-        char buf[255];
-        sprintf(buf, "Python class %s not defined!", className);
-        WriteLog(buf);
-#endif // _PY_INT_MORE_LOG
-        return NULL;
-    }
-    PyObject *object = PyObject_CallObject(classNameObj, argsTuple);
-
-    if (PyErr_Occurred() != NULL)
-    {
-        handleError();
-        return NULL;
-    }
-    return object;
-}
-
-TPythonScreenRenderer::TPythonScreenRenderer(int textureId, PyObject *renderer)
-{
-    _textureId = textureId;
-    _pyRenderer = renderer;
-}
-
-void TPythonScreenRenderer::updateTexture()
-{
-    int width, height;
-    if (_pyWidth == NULL || _pyHeight == NULL)
-    {
-        WriteLog("Unknown python texture size!");
-        return;
-    }
-    width = PyInt_AsLong(_pyWidth);
-    height = PyInt_AsLong(_pyHeight);
-    if (_pyTexture != NULL)
-    {
-        char *textureData = PyString_AsString(_pyTexture);
-        if (textureData != NULL)
-        {
-#ifdef _PY_INT_MORE_LOG
-            char buff[255];
-            sprintf(buff, "Sending texture id: %d w: %d h: %d", _textureId, width, height);
-            WriteLog(buff);
-#endif // _PY_INT_MORE_LOG
-/*
-            glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-            glPixelStorei( GL_PACK_ALIGNMENT, 1 );
-*/
-            GfxRenderer.Bind_Material(_textureId);
-            // setup texture parameters
-            glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
-            // build texture
-            glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData );
-
-#ifdef _PY_INT_MORE_LOG
-            GLenum status = glGetError();
-            switch (status)
-            {
-            case GL_INVALID_ENUM:
-                WriteLog("An unacceptable value is specified for an enumerated argument. The "
-                         "offending function is ignored, having no side effect other than to set "
-                         "the error flag.");
-                break;
-            case GL_INVALID_VALUE:
-                WriteLog("A numeric argument is out of range. The offending function is ignored, "
-                         "having no side effect other than to set the error flag.");
-                break;
-            case GL_INVALID_OPERATION:
-                WriteLog("The specified operation is not allowed in the current state. The "
-                         "offending function is ignored, having no side effect other than to set "
-                         "the error flag.");
-                break;
-            case GL_NO_ERROR:
-                WriteLog("No error has been recorded. The value of this symbolic constant is "
-                         "guaranteed to be zero.");
-                break;
-            case GL_STACK_OVERFLOW:
-                WriteLog("This function would cause a stack overflow. The offending function is "
-                         "ignored, having no side effect other than to set the error flag.");
-                break;
-            case GL_STACK_UNDERFLOW:
-                WriteLog("This function would cause a stack underflow. The offending function is "
-                         "ignored, having no side effect other than to set the error flag.");
-                break;
-            case GL_OUT_OF_MEMORY:
-                WriteLog("There is not enough memory left to execute the function. The state of "
-                         "OpenGL is undefined, except for the state of the error flags, after this "
-                         "error is recorded.");
-                break;
-            };
-#endif // _PY_INT_MORE_LOG
+        auto *typetext { PyObject_Str( type ) };
+        if( typetext != nullptr ) {
+            ErrorLog( PyString_AsString( typetext ) );
         }
-        else
-        {
-            WriteLog("RAW python texture data is NULL!");
+        if( value != nullptr ) {
+            ErrorLog( PyString_AsString( value ) );
         }
-    }
-    else
-    {
-        WriteLog("Python texture object is NULL!");
-    }
-}
-
-void TPythonScreenRenderer::render(PyObject *trainState)
-{
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("Python rendering texture ...");
-#endif // _PY_INT_MORE_LOG
-    _pyTexture = PyObject_CallMethod(_pyRenderer, "render", "O", trainState);
-
-    if (_pyTexture == NULL)
-    {
-        TPythonInterpreter::getInstance()->handleError();
-    }
-    else
-    {
-        _pyWidth = PyObject_CallMethod(_pyRenderer, "get_width", NULL);
-        if (_pyWidth == NULL)
-        {
-            TPythonInterpreter::getInstance()->handleError();
+        auto *tracebacktext { PyObject_Str( traceback ) };
+        if( tracebacktext != nullptr ) {
+            WriteLog( PyString_AsString( tracebacktext ) );
         }
-        _pyHeight = PyObject_CallMethod(_pyRenderer, "get_height", NULL);
-        if (_pyHeight == NULL)
-        {
-            TPythonInterpreter::getInstance()->handleError();
+        else {
+            WriteLog( "Python Interpreter: failed to retrieve the stack traceback" );
         }
     }
 }
@@ -361,237 +333,3 @@ void TPythonScreenRenderer::render(PyObject *trainState)
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-TPythonScreenRenderer::~TPythonScreenRenderer()
-{
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("PythonScreenRenderer descturctor called");
-#endif // _PY_INT_MORE_LOG
-    if (_pyRenderer != NULL)
-    {
-        Py_CLEAR(_pyRenderer);
-    }
-    cleanup();
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("PythonScreenRenderer desctructor finished");
-#endif // _PY_INT_MORE_LOG
-}
-
-void TPythonScreenRenderer::cleanup()
-{
-    if (_pyTexture != NULL)
-    {
-        Py_CLEAR(_pyTexture);
-        _pyTexture = NULL;
-    }
-    if (_pyWidth != NULL)
-    {
-        Py_CLEAR(_pyWidth);
-        _pyWidth = NULL;
-    }
-    if (_pyHeight != NULL)
-    {
-        Py_CLEAR(_pyHeight);
-        _pyHeight = NULL;
-    }
-}
-
-void TPythonScreens::reset(void *train)
-{
-    _terminationFlag = true;
-    if (_thread != NULL)
-    {
-//        WriteLog("Awaiting python thread to end");
-		_thread->join();
-		delete _thread;
-        _thread = nullptr;
-    }
-    _terminationFlag = false;
-    _cleanupReadyFlag = false;
-    _renderReadyFlag = false;
-    for (std::vector<TPythonScreenRenderer *>::iterator i = _screens.begin(); i != _screens.end();
-         ++i)
-    {
-        delete *i;
-    }
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("Clearing renderer vector");
-#endif // _PY_INT_MORE_LOG
-    _screens.clear();
-    _train = train;
-}
-
-void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &name, int const cab)
-{
-	std::string asSubModelName, asPyClassName;
-	parser.getTokens( 2, false );
-	parser
-		>> asSubModelName
-		>> asPyClassName;
-    std::string subModelName = ToLower( asSubModelName );
-    std::string pyClassName = ToLower( asPyClassName );
-    TSubModel *subModel = model->GetFromName(subModelName);
-    if (subModel == NULL)
-    {
-        WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
-        return; // nie ma takiego sub modelu w danej kabinie pomijamy
-    }
-    auto textureId = subModel->GetMaterial();
-    if (textureId <= 0)
-    {
-        WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );
-        return; // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
-    }
-    TPythonInterpreter *python = TPythonInterpreter::getInstance();
-    python->loadClassFile(_lookupPath, pyClassName);
-    PyObject *args = Py_BuildValue("(ssi)", _lookupPath.c_str(), name.c_str(), cab);
-    if (args == NULL)
-    {
-        WriteLog("Python Screen: cannot create __init__ arguments");
-        return;
-    }
-    PyObject *pyRenderer = python->newClass(pyClassName, args);
-    Py_CLEAR(args);
-    if (pyRenderer == NULL)
-    {
-        WriteLog( "Python Screen: null renderer for " + pyClassName + " - Ignoring screen" );
-        return; // nie mozna utworzyc obiektu Pythonowego
-    }
-    m_updaterate = Global.PythonScreenUpdateRate;
-    TPythonScreenRenderer *renderer = new TPythonScreenRenderer(textureId, pyRenderer);
-    _screens.push_back(renderer);
-    WriteLog( "Created python screen " + pyClassName + " on submodel " + subModelName + " (" + std::to_string(textureId) + ")" );
-}
-
-void TPythonScreens::update()
-{
-    if (!_renderReadyFlag)
-    {
-        return;
-    }
-    _renderReadyFlag = false;
-    for (std::vector<TPythonScreenRenderer *>::iterator i = _screens.begin(); i != _screens.end();
-         ++i)
-    {
-        (*i)->updateTexture();
-    }
-    _cleanupReadyFlag = true;
-}
-
-void TPythonScreens::setLookupPath(std::string const &path)
-{
-	_lookupPath = path;
-}
-
-TPythonScreens::TPythonScreens()
-{
-    TPythonInterpreter::getInstance()->loadClassFile("", "abstractscreenrenderer");
-}
-
-TPythonScreens::~TPythonScreens()
-{
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("Called python sceeens destructor");
-#endif // _PY_INT_MORE_LOG
-    reset(NULL);
-/*
-    if (_lookupPath != NULL)
-    {
-#ifdef _PY_INT_MORE_LOG
-        WriteLog("Freeing lookup path");
-#endif // _PY_INT_MORE_LOG
-        free(_lookupPath);
-    }
-*/
-}
-
-void TPythonScreens::run()
-{
-    while (1)
-    {
-        m_updatestopwatch.start();
-        if (_terminationFlag)
-        {
-            return;
-        }
-        TTrain *train = (TTrain *)_train;
-        _trainState = train->GetTrainState();
-        if (_terminationFlag)
-        {
-            _freeTrainState();
-            return;
-        }
-        for (std::vector<TPythonScreenRenderer *>::iterator i = _screens.begin();
-             i != _screens.end(); ++i)
-        {
-            (*i)->render(_trainState);
-        }
-        _freeTrainState();
-        if (_terminationFlag)
-        {
-            _cleanup();
-            return;
-        }
-        _renderReadyFlag = true;
-        m_updatestopwatch.stop();
-        while (!_cleanupReadyFlag && !_terminationFlag)
-        {
-            auto const sleeptime {
-                std::max(
-                    100,
-                    m_updaterate - static_cast<int>( m_updatestopwatch.average() ) ) };
-#ifdef _WIN32
-            Sleep( sleeptime );
-#elif __linux__
-			usleep( sleeptime * 1000 );
-#endif
-        }
-        if (_terminationFlag)
-        {
-            return;
-        }
-        _cleanup();
-    }
-}
-
-void TPythonScreens::finish()
-{
-    // nothing to do here, proper clean up takes place afterwards
-}
-
-void ScreenRendererThread(TPythonScreens* renderer)
-{
-    renderer->run();
-    renderer->finish();
-#ifdef _PY_INT_MORE_LOG
-    WriteLog("Python Screen Renderer Thread Ends");
-#endif // _PY_INT_MORE_LOG
-}
-
-void TPythonScreens::start()
-{
-    if (_screens.size() > 0)
-    {
-		_thread = new std::thread(ScreenRendererThread, this);
-    }
-}
-
-void TPythonScreens::_cleanup()
-{
-    _cleanupReadyFlag = false;
-    for (std::vector<TPythonScreenRenderer *>::iterator i = _screens.begin(); i != _screens.end();
-         ++i)
-    {
-        (*i)->cleanup();
-    }
-}
-
-void TPythonScreens::_freeTrainState()
-{
-    if (_trainState != NULL)
-    {
-        PyDict_Clear(_trainState);
-        Py_CLEAR(_trainState);
-        _trainState = NULL;
-    }
-}

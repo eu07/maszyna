@@ -28,11 +28,11 @@ TGauge::TGauge( sound_source const &Soundtemplate ) :
     m_soundfxdecrease = m_soundtemplate;
 }
 
-void TGauge::Init(TSubModel *Submodel, TGaugeType Type, float Scale, float Offset, float Friction, float Value, float const Endvalue, float const Endscale, bool const Interpolatescale )
+void TGauge::Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale, float Offset, float Friction, float Value, float const Endvalue, float const Endscale, bool const Interpolatescale )
 { // ustawienie parametrów animacji submodelu
     SubModel = Submodel;
     m_value = Value;
-    m_type = Type;
+    m_animation = Type;
     m_scale = Scale;
     m_offset = Offset;
     m_friction = Friction;
@@ -45,7 +45,7 @@ void TGauge::Init(TSubModel *Submodel, TGaugeType Type, float Scale, float Offse
         return;
     }
 
-    if( m_type == TGaugeType::gt_Digital ) {
+    if( m_animation == TGaugeAnimation::gt_Digital ) {
 
         TSubModel *sm = SubModel->ChildGet();
         do {
@@ -147,19 +147,19 @@ bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, 
         ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"", logtype::model );
     }
 
-    std::map<std::string, TGaugeType> gaugetypes {
-        { "rot", TGaugeType::gt_Rotate },
-        { "rotvar", TGaugeType::gt_Rotate },
-        { "mov", TGaugeType::gt_Move },
-        { "movvar", TGaugeType::gt_Move },
-        { "wip", TGaugeType::gt_Wiper },
-        { "dgt", TGaugeType::gt_Digital }
+    std::map<std::string, TGaugeAnimation> gaugetypes {
+        { "rot", TGaugeAnimation::gt_Rotate },
+        { "rotvar", TGaugeAnimation::gt_Rotate },
+        { "mov", TGaugeAnimation::gt_Move },
+        { "movvar", TGaugeAnimation::gt_Move },
+        { "wip", TGaugeAnimation::gt_Wiper },
+        { "dgt", TGaugeAnimation::gt_Digital }
     };
     auto lookup = gaugetypes.find( gaugetypename );
     auto const type = (
         lookup != gaugetypes.end() ?
             lookup->second :
-            TGaugeType::gt_Unknown );
+            TGaugeAnimation::gt_Unknown );
 
     Init( submodel, type, scale, offset, friction, 0, endvalue, endscale, interpolatescale );
 
@@ -170,10 +170,17 @@ bool
 TGauge::Load_mapping( cParser &Input ) {
 
     // token can be a key or block end
-    std::string const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
+    auto const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
     if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
     // if not block end then the key is followed by assigned value or sub-block
-    if( key == "soundinc:" ) {
+    if( key == "type:" ) {
+        auto const gaugetype { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
+        m_type = (
+            gaugetype == "impulse" ? TGaugeType::push :
+            gaugetype == "return" ? TGaugeType::push :
+            TGaugeType::toggle ); // default
+    }
+    else if( key == "soundinc:" ) {
         m_soundfxincrease.deserialize( Input, sound_type::single );
     }
     else if( key == "sounddec:" ) {
@@ -209,7 +216,7 @@ void
 TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
 
     auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
-    if( desiredtimes100 == static_cast<int>( 100.0 * m_targetvalue ) ) {
+    if( desiredtimes100 == static_cast<int>( std::round( 100.0 * m_targetvalue ) ) ) {
         return;
     }
     m_targetvalue = fNewDesired;
@@ -281,16 +288,16 @@ void TGauge::Update() {
     }
     if( SubModel )
     { // warunek na wszelki wypadek, gdyby się submodel nie podłączył
-        switch (m_type) {
-            case TGaugeType::gt_Rotate: {
+        switch (m_animation) {
+            case TGaugeAnimation::gt_Rotate: {
                 SubModel->SetRotate( float3( 0, 1, 0 ), GetScaledValue() * 360.0 );
                 break;
             }
-            case TGaugeType::gt_Move: {
+            case TGaugeAnimation::gt_Move: {
                 SubModel->SetTranslate( float3( 0, 0, GetScaledValue() ) );
                 break;
             }
-            case TGaugeType::gt_Wiper: {
+            case TGaugeAnimation::gt_Wiper: {
                 auto const scaledvalue { GetScaledValue() };
                 SubModel->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
                 auto *sm = SubModel->ChildGet();
@@ -302,7 +309,7 @@ void TGauge::Update() {
                 }
                 break;
             }
-            case TGaugeType::gt_Digital: {
+            case TGaugeAnimation::gt_Digital: {
                 // Ra 2014-07: licznik cyfrowy
                 auto *sm = SubModel->ChildGet();
 /*  			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochę bez sensu
@@ -389,3 +396,9 @@ TGauge::model_offset() const {
             SubModel->offset( 1.f ) :
             glm::vec3() );
 }
+
+TGaugeType
+TGauge::type() const {
+    return m_type;
+}
+//---------------------------------------------------------------------------

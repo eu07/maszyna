@@ -1,5 +1,14 @@
-#ifndef PyIntH
-#define PyIntH
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
+#ifndef PYINT_H
+#define PYINT_H
 
 #ifdef _POSIX_C_SOURCE
 #undef _POSIX_C_SOURCE
@@ -17,78 +26,72 @@
 #include "Python.h"
 #endif
 #include "Classes.h"
-#include "Timer.h"
+#include "utilities.h"
 
 #define PyGetFloat(param) PyFloat_FromDouble(param >= 0 ? param : -param)
 #define PyGetFloatS(param) PyFloat_FromDouble(param)
 #define PyGetInt(param) PyInt_FromLong(param)
-#define PyGetFloatS(param) PyFloat_FromDouble(param)
 #define PyGetBool(param) param ? Py_True : Py_False
 #define PyGetString(param) PyString_FromString(param)
 
-class TPythonInterpreter
-{
-  protected:
-    TPythonInterpreter();
-	~TPythonInterpreter() {}
-    static TPythonInterpreter *_instance;
-	std::set<std::string> _classes;
-	PyObject *_main;
-    PyObject *_stdErr;
-	FILE *_getFile( std::string const &lookupPath, std::string const &className );
+// TODO: extract common base and inherit specialization from it
+class render_task {
 
-  public:
-    static TPythonInterpreter *getInstance();
-	static void killInstance();
-	bool loadClassFile( std::string const &lookupPath, std::string const &className );
-	PyObject *newClass( std::string const &className );
-	PyObject *newClass( std::string const &className, PyObject *argsTuple );
-    void handleError();
-};
-
-class TPythonScreenRenderer
-{
-  protected:
-    PyObject *_pyRenderer;
-    PyObject *_pyTexture;
-    int _textureId;
-    PyObject *_pyWidth;
-    PyObject *_pyHeight;
-
-  public:
-    TPythonScreenRenderer(int textureId, PyObject *renderer);
-    ~TPythonScreenRenderer();
-    void render(PyObject *trainState);
-    void cleanup();
-    void updateTexture();
-};
-
-class TPythonScreens
-{
-  protected:
-    bool _cleanupReadyFlag{ false };
-    bool _renderReadyFlag{ false };
-    bool _terminationFlag{ false };
-    std::thread *_thread{ nullptr };
-    std::vector<TPythonScreenRenderer *> _screens;
-    std::string _lookupPath;
-    void *_train;
-    void _cleanup();
-    void _freeTrainState();
-    PyObject *_trainState;
-    int m_updaterate { 200 };
-    Timer::stopwatch m_updatestopwatch;
-
-  public:
-    void reset(void *train);
-    void setLookupPath(std::string const &path);
-    void init(cParser &parser, TModel3d *model, std::string const &name, int const cab);
-    void update();
-    TPythonScreens();
-    ~TPythonScreens();
+public:
+// constructors
+    render_task( PyObject *Renderer, PyObject *Input, material_handle Target ) :
+        m_renderer( Renderer ), m_input( Input ), m_target( Target )
+    {}
+// methods
     void run();
-    void start();
-    void finish();
+
+private:
+// members
+    PyObject *m_renderer {nullptr};
+    PyObject *m_input { nullptr };
+    material_handle m_target { null_handle };
 };
 
-#endif // PyIntH
+class python_taskqueue {
+
+public:
+// types
+    struct task_request {
+
+        std::string const &renderer;
+        PyObject *input;
+        material_handle target;
+    };
+// constructors
+    python_taskqueue() = default;
+// methods
+    // initializes the module. returns true on success
+    auto init() -> bool;
+    // shuts down the module
+    void exit();
+    // adds specified task along with provided collection of data to the work queue. returns true on success
+    auto insert( task_request const &Task ) -> bool;
+    // executes python script stored in specified file. returns true on success
+    auto run_file( std::string const &File, std::string const &Path = "" ) -> bool;
+
+private:
+// types
+    static int const WORKERCOUNT { 1 };
+    using worker_array = std::array<std::unique_ptr<std::thread>, WORKERCOUNT >;
+    using rendertask_sequence = threading::lockable< std::deque<render_task *> >;
+// methods
+    auto fetch_renderer( std::string const Renderer ) -> PyObject *;
+    void run( GLFWwindow *Context, rendertask_sequence &Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit );
+    void error();
+// members
+    PyObject *m_main { nullptr };
+    PyObject *m_error { nullptr };
+    PyThreadState *m_mainthread{ nullptr };
+    worker_array m_workers;
+    threading::condition_variable m_condition; // wakes up the workers
+    std::atomic<bool> m_exit { false }; // signals the workers to quit
+    std::unordered_map<std::string, PyObject *> m_renderers; // cache of python classes
+    rendertask_sequence m_tasks;
+};
+
+#endif

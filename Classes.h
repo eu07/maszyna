@@ -70,4 +70,6 @@ enum class TCommandType
     cm_Command // komenda pobierana z komórki
 };
 
+using material_handle = int;
+
 #endif

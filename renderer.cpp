@@ -129,6 +129,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     ui_layer::set_unit( m_diffusetextureunit );
+    simulation::Environment.m_precipitation.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
@@ -575,7 +576,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glEnable( GL_TEXTURE_2D );
                 }
 #endif
-                if( false == FreeFlyModeFlag ) {
+                // without rain/snow we can render the cab early to limit the overdraw
+                if( ( false == FreeFlyModeFlag )
+                 && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
@@ -595,8 +598,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
+                // precipitation; done at the end, only before cab render
+                Render_precipitation();
+                // cab render
                 if( false == FreeFlyModeFlag ) {
-                    // cab render is performed without shadows, due to low resolution and number of models without windows :|
                     switch_units( true, true, false );
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
@@ -604,6 +609,12 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     auto const *vehicle{ simulation::Train->Dynamic() };
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+                    }
+                    if( Global.Overcast > 1.f ) {
+                        // with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
+                        setup_drawing( false );
+                        Render_cab( vehicle, false );
+                        setup_drawing( true );
                     }
                     Render_cab( vehicle, true );
                     if( vehicle->InteriorLightLevel > 0.f ) {
@@ -615,7 +626,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     // restore default texture matrix for reflections cube map
                     select_unit( m_helpertextureunit );
                     ::glMatrixMode( GL_TEXTURE );
-                    ::glPopMatrix();
+//                    ::glPopMatrix();
+                    ::glLoadIdentity();
                     select_unit( m_diffusetextureunit );
                     ::glMatrixMode( GL_MODELVIEW );
                 }
@@ -1036,7 +1048,8 @@ opengl_renderer::setup_matrices() {
         // special case, for colour render pass setup texture matrix for reflections cube map
         select_unit( m_helpertextureunit );
         ::glMatrixMode( GL_TEXTURE );
-        ::glPushMatrix();
+//        ::glPushMatrix();
+        ::glLoadIdentity();
         ::glMultMatrixf( glm::value_ptr( glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.camera.modelview() } } ) ) );
         select_unit( m_diffusetextureunit );
     }
@@ -1070,8 +1083,9 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
             // setup fog
             if( Global.fFogEnd > 0 ) {
                 // fog setup
+                auto const adjustedfogrange { Global.fFogEnd / std::max( 1.f, Global.Overcast * 2.f ) };
                 ::glFogfv( GL_FOG_COLOR, glm::value_ptr( Global.FogColor ) );
-                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / Global.fFogEnd ) );
+                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / adjustedfogrange ) );
                 ::glEnable( GL_FOG );
             }
             else { ::glDisable( GL_FOG ); }
@@ -1444,9 +1458,12 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
-    ::glPushMatrix();
     // skydome
+    // drawn with 500m radius to blend in if the fog range is low
+    ::glPushMatrix();
+    ::glScalef( 500.f, 500.f, 500.f );
     Environment->m_skydome.Render();
+    ::glPopMatrix();
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
         // setup
@@ -1461,19 +1478,13 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glPopMatrix();
     }
     // celestial bodies
-    float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
-    glm::vec3 suncolor = interpolate(
-        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
-        duskfactor );
-
     if( DebugModeFlag == true ) {
         // mark sun position for easier debugging
         Environment->m_sun.render();
         Environment->m_moon.render();
     }
     // render actual sun and moon
-    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+    ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT );
 
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_ALPHA_TEST );
@@ -1481,10 +1492,17 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+
+    auto const fogfactor { clamp<float>( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // stronger fog reduces opacity of the celestial bodies
+    float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
+    glm::vec3 suncolor = interpolate(
+        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
+        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+        duskfactor );
     // sun
     {
         Bind_Texture( m_suntexture );
-        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, 1.0f );
+        ::glColor4f( suncolor.x, suncolor.y, suncolor.z, clamp( 1.5f - Global.Overcast, 0.f, 1.f ) * fogfactor );
         auto const sunvector = Environment->m_sun.getDirection();
         auto const sunposition = modelview * glm::vec4( sunvector.x, sunvector.y, sunvector.z, 1.0f );
 
@@ -1506,14 +1524,15 @@ opengl_renderer::Render( world_environment *Environment ) {
     {
         Bind_Texture( m_moontexture );
         glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
-        // fade the moon if it's near the sun in the sky, especially during the day
         ::glColor4f(
             mooncolor.r, mooncolor.g, mooncolor.b,
+            // fade the moon if it's near the sun in the sky, especially during the day
             std::max<float>(
                 0.f,
                 1.0
                 - 0.5 * Global.fLuminance
-                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) ) );
+                - 0.65 * std::max( 0.f, glm::dot( Environment->m_sun.getDirection(), Environment->m_moon.getDirection() ) ) )
+            * fogfactor );
 
         auto const moonposition = modelview * glm::vec4( Environment->m_moon.getDirection(), 1.0f );
         ::glPushMatrix();
@@ -1574,7 +1593,6 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glDisable( GL_LIGHTING );
     }
 
-    ::glPopMatrix();
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_DEPTH_TEST );
     ::glEnable( GL_LIGHTING );
@@ -2541,15 +2559,16 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             0.f, 1.f );
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                        float const distancefactor = std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist );
+                        float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
+                        float const precipitationfactor { std::max( 1.f, Global.Overcast - 1.f ) };
 
                         if( lightlevel > 0.f ) {
                             // material configuration:
-                            ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
+                            ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
                             Bind_Material( null_handle );
                             ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
-                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
+                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], std::min( 1.f, lightlevel * anglefactor * precipitationfactor ) );
                             ::glDisable( GL_LIGHTING );
                             ::glEnable( GL_BLEND );
 
@@ -2592,7 +2611,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     if( Global.fLuminance < Submodel->fLight ) {
 
                         // material configuration:
-                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
+                        ::glPushAttrib( GL_ENABLE_BIT );
 
                         Bind_Material( null_handle );
                         ::glDisable( GL_LIGHTING );
@@ -2829,6 +2848,60 @@ opengl_renderer::Render( TMemCell *Memcell ) {
         }
     }
 
+    ::glPopMatrix();
+}
+
+void
+opengl_renderer::Render_precipitation() {
+
+    if( Global.Overcast <= 1.f ) { return; }
+
+    switch_units( true, false, false );
+
+//    ::glColor4fv( glm::value_ptr( glm::vec4( glm::min( glm::vec3( Global.fLuminance ), glm::vec3( 1 ) ), 1 ) ) );
+    ::glColor4fv(
+        glm::value_ptr(
+            interpolate(
+                0.5f * ( Global.DayLight.diffuse + Global.DayLight.ambient ),
+                colors::white,
+                0.5f * clamp<float>( Global.fLuminance, 0.f, 1.f ) ) ) );
+    ::glPushMatrix();
+    // tilt the precipitation cone against the velocity vector for crude motion blur
+    auto const velocity { simulation::Environment.m_precipitation.m_cameramove * -1.0 };
+    if( glm::length2( velocity ) > 0.0 ) {
+        auto const forward{ glm::normalize( velocity ) };
+        auto left { glm::cross( forward, {0.0,1.0,0.0} ) };
+        auto const rotationangle {
+            std::min(
+                45.0,
+                ( FreeFlyModeFlag ?
+                    5 * glm::length( velocity ) :
+                    simulation::Train->Dynamic()->GetVelocity() * 0.2 ) ) };
+        ::glRotated( rotationangle, left.x, 0.0, left.z );
+    }
+    if( false == FreeFlyModeFlag ) {
+        // counter potential vehicle roll
+        auto const roll { 0.5 * glm::degrees( simulation::Train->Dynamic()->Roll() ) };
+        if( roll != 0.0 ) {
+            auto const forward { simulation::Train->Dynamic()->VectorFront() };
+            auto const vehicledirection = simulation::Train->Dynamic()->DirectionGet();
+            ::glRotated( roll, forward.x, 0.0, forward.z );
+        }
+    }
+    if( Global.Weather == "rain:" ) {
+        // oddly enough random streaks produce more natural looking rain than ones the eye can follow
+        ::glRotated( Random() * 360, 0.0, 1.0, 0.0 );
+    }
+
+    // TBD: leave lighting on to allow vehicle lights to affect it?
+    ::glDisable( GL_LIGHTING );
+    // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
+    ::glDepthMask( GL_FALSE );
+
+    simulation::Environment.m_precipitation.render();
+
+    ::glDepthMask( GL_TRUE );
+    ::glEnable( GL_LIGHTING );
     ::glPopMatrix();
 }
 
@@ -3316,7 +3389,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
 
-            if( Global.fLuminance < Submodel->fLight ) {
+            if( ( Global.fLuminance < Submodel->fLight ) || ( Global.Overcast > 1.f ) ) {
                 // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
                 // TODO: separate instance data from reusable geometry
                 auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
@@ -3331,18 +3404,17 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
                     // only bother if the viewer is inside the visibility cone
-                    if( Global.Overcast > 1.0 ) {
-                        // increase the glare in rainy/foggy conditions
-                        glarelevel += std::max( 0.f, 0.5f * ( Global.Overcast - 1.f ) );
-                    }
+                    auto glarelevel { clamp<float>(
+                        0.6f
+                        - Global.fLuminance // reduce the glare in bright daylight
+                        + std::max( 0.f, Global.Overcast - 1.f ), // increase the glare in rainy/foggy conditions
+                        0.f, 1.f ) };
                     // scale it down based on view angle
                     glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
-                    // reduce the glare in bright daylight
-                    glarelevel = clamp( glarelevel - static_cast<float>(Global.fLuminance), 0.f, 1.f );
 
                     if( glarelevel > 0.0f ) {
                         // setup
-                        ::glPushAttrib( GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
+                        ::glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );

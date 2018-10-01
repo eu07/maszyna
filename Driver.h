@@ -119,8 +119,8 @@ enum TSpeedPosFlag
     spSemaphor = 0x4000, // semafor pociągowy
     spRoadVel = 0x8000, // zadanie prędkości drogowej
     spSectionVel = 0x20000, // odcinek z ograniczeniem
-    spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podaną jego długościa
-    spEndOfTable = 0x10000 // zatkanie tabelki
+    spProximityVelocity = 0x40000 // odcinek z ograniczeniem i podaną jego długościa
+//    spDontApplySpeedLimit = 0x10000 // this point won't apply its speed limit. potentially set by the scanning vehicle
 };
 
 class TSpeedPos

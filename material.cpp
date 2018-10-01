@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "Globals.h"
 #include "utilities.h"
+#include "sn_utils.h"
 
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
@@ -43,12 +44,16 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         if( key == Global.Weather ) {
             // weather textures override generic (pri 0) and seasonal (pri 1) textures
             // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, Priority + 2, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
         else if( key == Global.Season ) {
             // seasonal textures override generic textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, 1, Loadnow ) ) {
                 ; // all work is done in the header
             }
@@ -68,6 +73,12 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
                 texture2 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
                 priority2 = Priority;
             }
+        }
+        else if( key == "size:" ) {
+            Input.getTokens( 2 );
+            Input
+                >> size.x
+                >> size.y;
         }
         else {
             auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
