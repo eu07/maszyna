@@ -162,7 +162,15 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
     std::string token { Input.getToken<std::string>() };
     if( token != "endatmo" ) {
         // optional overcast parameter
-        Global.Overcast = clamp( std::stof( token ), 0.f, 2.f );
+        Global.Overcast = std::stof( token );
+        if( Global.Overcast < 0.f ) {
+            // negative overcast means random value in range 0-abs(specified range)
+            Global.Overcast =
+                Random(
+                    clamp(
+                        std::abs( Global.Overcast ),
+                        0.f, 2.f ) );
+        }
         // overcast drives weather so do a calculation here
         // NOTE: ugly, clean it up when we're done with world refactoring
         simulation::Environment.compute_weather();

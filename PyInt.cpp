@@ -187,14 +187,14 @@ auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject *
     auto const path { substr_path( Renderer ) };
     auto const file { Renderer.substr( path.size() ) };
     PyObject *renderer { nullptr };
-    if( m_main == nullptr ) {
-        ErrorLog( "Python Renderer: __main__ module is missing" );
-        goto cache_and_return;
-    }
-
+    PyObject *rendererarguments { nullptr };
     PyEval_AcquireLock();
     {
-        PyObject *rendererarguments{ nullptr };
+        if( m_main == nullptr ) {
+            ErrorLog( "Python Renderer: __main__ module is missing" );
+            goto cache_and_return;
+        }
+
         if( false == run_file( file, path ) ) {
             goto cache_and_return;
         }

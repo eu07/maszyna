@@ -167,7 +167,7 @@ static const bool Aggressive = true;
 static const bool Easyman = false;
 static const bool AIdriver = true;
 static const bool Humandriver = false;
-static const int maxorders = 32; // ilość rozkazów w tabelce
+static const int maxorders = 64; // ilość rozkazów w tabelce
 static const int maxdriverfails = 4; // ile błędów może zrobić AI zanim zmieni nastawienie
 extern bool WriteLogFlag; // logowanie parametrów fizycznych
 static const int BrakeAccTableSize = 20;
