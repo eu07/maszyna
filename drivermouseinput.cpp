@@ -499,6 +499,15 @@ drivermouse_input::default_bindings() {
         { "oilpump_sw:", {
             user_command::oilpumptoggle,
             user_command::none } },
+        { "motorblowersfront_sw:", {
+            user_command::motorblowerstogglefront,
+            user_command::none } },
+        { "motorblowersrear_sw:", {
+            user_command::motorblowerstogglerear,
+            user_command::none } },
+        { "motorblowersalloff_sw:", {
+            user_command::motorblowersdisableall,
+            user_command::none } },
         { "main_off_bt:", {
             user_command::linebreakeropen,
             user_command::none } },

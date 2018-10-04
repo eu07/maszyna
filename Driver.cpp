@@ -2440,6 +2440,11 @@ bool TController::PrepareEngine()
                 mvOccupied->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
                 mvOccupied->CompressorSwitch( true );
+                // enable motor blowers
+                mvOccupied->MotorBlowersSwitchOff( false, side::front );
+                mvOccupied->MotorBlowersSwitch( true, side::front );
+                mvOccupied->MotorBlowersSwitchOff( false, side::rear );
+                mvOccupied->MotorBlowersSwitch( true, side::rear );
             }
         }
         else

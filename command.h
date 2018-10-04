@@ -208,6 +208,9 @@ enum class user_command {
     batterytoggle,
     batteryenable,
     batterydisable,
+    motorblowerstogglefront,
+    motorblowerstogglerear,
+    motorblowersdisableall,
 
     none = -1
 };

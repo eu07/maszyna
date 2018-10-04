@@ -414,7 +414,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
-        std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure_present, 2 )  : "" ).c_str(),
+        std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
         mover.Couplers[ side::front ].power_high.voltage,
         mover.Couplers[ side::front ].power_high.current,
@@ -440,6 +440,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
+        mover.MotorBlowers[side::front].revolutions,
+        mover.MotorBlowers[side::rear].revolutions,
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 

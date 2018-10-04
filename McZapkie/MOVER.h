@@ -166,6 +166,7 @@ enum class start_t {
     manual,
     automatic,
     manualwithautofallback,
+    converter,
     battery
 };
 // recognized vehicle light locations and types; can be combined
@@ -619,107 +620,122 @@ struct TCoupling {
     int sounds { 0 }; // sounds emitted by the coupling devices
 };
 
-// basic approximation of a fuel pump
-// TODO: fuel consumption, optional automatic engine start after activation
-struct fuel_pump {
-
-    bool is_enabled { false }; // device is allowed/requested to operate
-    bool is_disabled { false }; // device is requested to stop
-    bool is_active { false }; // device is working
-    start_t start_type { start_t::manual };
-};
-
-// basic approximation of a fuel pump
-// TODO: fuel consumption, optional automatic engine start after activation
-struct oil_pump {
-
-    bool is_enabled { false }; // device is allowed/requested to operate
-    bool is_disabled { false }; // device is requested to stop
-    bool is_active { false }; // device is working
-    start_t start_type { start_t::manual };
-    float resource_amount { 1.f };
-    float pressure_minimum { 0.f }; // lowest acceptable working pressure
-    float pressure_maximum { 0.65f }; // oil pressure at maximum engine revolutions
-    float pressure_target { 0.f };
-    float pressure_present { 0.f };
-};
-
-struct water_pump {
-
-    bool breaker { true }; // device is allowed to operate
-    bool is_enabled { false }; // device is requested to operate
-    bool is_disabled { false }; // device is requested to stop
-    bool is_active { false }; // device is working
-    start_t start_type { start_t::manual };
-};
-
-struct water_heater {
-
-    bool breaker { true }; // device is allowed to operate
-    bool is_enabled { false }; // device is requested to operate
-    bool is_active { false }; // device is working
-    bool is_damaged { false }; // device is damaged
-
-    struct heater_config_t {
-        float temp_min { -1 }; // lowest accepted temperature
-        float temp_max { -1 }; // highest accepted temperature
-    } config;
-};
-
-struct heat_data {
-    // input, state of relevant devices
-    bool cooling { false }; // TODO: user controlled device, implement
-//    bool okienko { true }; // window in the engine compartment
-    // system configuration
-    bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
-    double fan_speed { 0.075 }; // cooling fan rpm; either fraction of engine rpm, or absolute value if negative
-    // heat exchange factors
-    double kw { 0.35 };
-    double kv { 0.6 };
-    double kfe { 1.0 };
-    double kfs { 80.0 };
-    double kfo { 25.0 };
-    double kfo2 { 25.0 };
-    // system parts
-    struct fluid_circuit_t {
-
-        struct circuit_config_t {
-            float temp_min { -1 }; // lowest accepted temperature
-            float temp_max { -1 }; // highest accepted temperature
-            float temp_cooling { -1 }; // active cooling activation point
-            float temp_flow { -1 }; // fluid flow activation point
-            bool shutters { false }; // the radiator has shutters to assist the cooling
-        } config;
-        bool is_cold { false }; // fluid is too cold
-        bool is_warm { false }; // fluid is too hot
-        bool is_hot { false }; // fluid temperature crossed cooling threshold
-        bool is_flowing { false }; // fluid is being pushed through the circuit
-    }   water,
-        water_aux,
-        oil;
-    // output, state of affected devices
-    bool PA { false }; // malfunction flag
-    float rpmw { 0.0 }; // current main circuit fan revolutions
-    float rpmwz { 0.0 }; // desired main circuit fan revolutions
-    bool zaluzje1 { false };
-    float rpmw2 { 0.0 }; // current auxiliary circuit fan revolutions
-    float rpmwz2 { 0.0 }; // desired auxiliary circuit fan revolutions
-    bool zaluzje2 { false };
-    // output, temperatures
-    float Te { 15.0 }; // ambient temperature TODO: get it from environment data
-    // NOTE: by default the engine is initialized in warm, startup-ready state
-    float Ts { 50.0 }; // engine temperature
-    float To { 45.0 }; // oil temperature
-    float Tsr { 50.0 }; // main circuit radiator temperature (?)
-    float Twy { 50.0 }; // main circuit water temperature
-    float Tsr2 { 40.0 }; // secondary circuit radiator temperature (?)
-    float Twy2 { 40.0 }; // secondary circuit water temperature
-    float temperatura1 { 50.0 };
-    float temperatura2 { 40.0 };
-};
-
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
+private:
+// types
+
+    // basic approximation of a generic device
+    // TBD: inheritance or composition?
+    struct basic_device {
+        // config
+        start_t start_type { start_t::manual };
+        // ld inputs
+        bool is_enabled { false }; // device is allowed/requested to operate
+        bool is_disabled { false }; // device is requested to stop
+        // TODO: add remaining inputs; start conditions and potential breakers
+        // ld outputs
+        bool is_active { false }; // device is working
+    };
+
+    struct cooling_fan : public basic_device {
+        // config
+        float speed { 0.f }; // cooling fan rpm; either fraction of parent rpm, or absolute value if negative
+        // ld outputs
+        float revolutions { 0.f }; // current fan rpm
+    };
+
+    // basic approximation of a fuel pump
+    struct fuel_pump : public basic_device {
+        // TODO: fuel consumption, optional automatic engine start after activation
+    };
+
+    // basic approximation of an oil pump
+    struct oil_pump : public basic_device {
+        // config
+        float pressure_minimum { 0.f }; // lowest acceptable working pressure
+        float pressure_maximum { 0.65f }; // oil pressure at maximum engine revolutions
+        // ld inputs
+        float resource_amount { 1.f }; // amount of affected resource, compared to nominal value
+        // internal data
+        float pressure_target { 0.f };
+        // ld outputs
+        float pressure { 0.f }; // current pressure
+    };
+
+    // basic approximation of a water pump
+    struct water_pump : public basic_device {
+        // ld inputs
+        // TODO: move to breaker list in the basic device once implemented
+        bool breaker { true }; // device is allowed to operate
+    };
+
+    struct water_heater {
+        // config
+        struct heater_config_t {
+            float temp_min { -1 }; // lowest accepted temperature
+            float temp_max { -1 }; // highest accepted temperature
+        } config;
+        // ld inputs
+        bool breaker { true }; // device is allowed to operate
+        bool is_enabled { false }; // device is requested to operate
+        // ld outputs
+        bool is_active { false }; // device is working
+        bool is_damaged { false }; // device is damaged
+    };
+
+    struct heat_data {
+        // input, state of relevant devices
+        bool cooling { false }; // TODO: user controlled device, implement
+    //    bool okienko { true }; // window in the engine compartment
+        // system configuration
+        bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
+        double fan_speed { 0.075 }; // cooling fan rpm; either fraction of engine rpm, or absolute value if negative
+        // heat exchange factors
+        double kw { 0.35 };
+        double kv { 0.6 };
+        double kfe { 1.0 };
+        double kfs { 80.0 };
+        double kfo { 25.0 };
+        double kfo2 { 25.0 };
+        // system parts
+        struct fluid_circuit_t {
+
+            struct circuit_config_t {
+                float temp_min { -1 }; // lowest accepted temperature
+                float temp_max { -1 }; // highest accepted temperature
+                float temp_cooling { -1 }; // active cooling activation point
+                float temp_flow { -1 }; // fluid flow activation point
+                bool shutters { false }; // the radiator has shutters to assist the cooling
+            } config;
+            bool is_cold { false }; // fluid is too cold
+            bool is_warm { false }; // fluid is too hot
+            bool is_hot { false }; // fluid temperature crossed cooling threshold
+            bool is_flowing { false }; // fluid is being pushed through the circuit
+        }   water,
+            water_aux,
+            oil;
+        // output, state of affected devices
+        bool PA { false }; // malfunction flag
+        float rpmw { 0.0 }; // current main circuit fan revolutions
+        float rpmwz { 0.0 }; // desired main circuit fan revolutions
+        bool zaluzje1 { false };
+        float rpmw2 { 0.0 }; // current auxiliary circuit fan revolutions
+        float rpmwz2 { 0.0 }; // desired auxiliary circuit fan revolutions
+        bool zaluzje2 { false };
+        // output, temperatures
+        float Te { 15.0 }; // ambient temperature TODO: get it from environment data
+        // NOTE: by default the engine is initialized in warm, startup-ready state
+        float Ts { 50.0 }; // engine temperature
+        float To { 45.0 }; // oil temperature
+        float Tsr { 50.0 }; // main circuit radiator temperature (?)
+        float Twy { 50.0 }; // main circuit water temperature
+        float Tsr2 { 40.0 }; // secondary circuit radiator temperature (?)
+        float Twy2 { 40.0 }; // secondary circuit water temperature
+        float temperatura1 { 50.0 };
+        float temperatura2 { 40.0 };
+    };
+
 public:
 
 	double dMoveLen = 0.0;
@@ -1040,6 +1056,7 @@ public:
     water_heater WaterHeater;
     bool WaterCircuitsLink { false }; // optional connection between water circuits
     heat_data dizel_heat;
+    std::array<cooling_fan, 2> MotorBlowers;
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1126,7 +1143,7 @@ public:
     bool StLinSwitchOff{ false }; // state of the button forcing motor connectors open
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
-	bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
+    bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
     bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
     bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level
@@ -1343,6 +1360,8 @@ public:
     bool FuelPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // fuel pump state toggle
     bool OilPumpSwitch( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
     bool OilPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
+    bool MotorBlowersSwitch( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
+    bool MotorBlowersSwitchOff( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
@@ -1353,6 +1372,7 @@ public:
     void WaterHeaterCheck( double const Timestep );
     void FuelPumpCheck( double const Timestep );
     void OilPumpCheck( double const Timestep );
+    void MotorBlowersCheck( double const Timestep );
     bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego

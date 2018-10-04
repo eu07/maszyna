@@ -214,10 +214,14 @@ commanddescription_sequence Commands_descriptions = {
     { "generictoggle9", command_target::vehicle },
     { "batterytoggle", command_target::vehicle },
     { "batteryenable", command_target::vehicle },
-    { "batterydisable", command_target::vehicle }
+    { "batterydisable", command_target::vehicle },
+    { "motorblowerstogglefront", command_target::vehicle },
+    { "motorblowerstogglerear", command_target::vehicle },
+    { "motorblowersdisableall", command_target::vehicle }
+
 };
 
-}
+} // simulation
 
 // posts specified command for specified recipient
 void

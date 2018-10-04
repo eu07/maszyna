@@ -5257,6 +5257,35 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     }
                 }
 
+                else if( token == "motorblower:" ) {
+
+                    sound_source blowertemplate { sound_placement::engine };
+                    blowertemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    blowertemplate.owner( this );
+
+                    auto const amplitudedivisor = static_cast<float>(
+                        MoverParameters->MotorBlowers[ side::front ].speed > 0.f ?
+                            MoverParameters->MotorBlowers[ side::front ].speed * MoverParameters->nmax * 60 + MoverParameters->Power * 3 :
+                            MoverParameters->MotorBlowers[ side::front ].speed * -1 );
+                    blowertemplate.m_amplitudefactor /= amplitudedivisor;
+                    blowertemplate.m_frequencyfactor /= amplitudedivisor;
+
+                    if( true == m_powertrainsounds.motors.empty() ) {
+                        // fallback for cases without specified motor locations, convert sound template to a single sound source
+                        m_powertrainsounds.motorblowers.emplace_back( blowertemplate );
+                    }
+                    else {
+                        // apply configuration to all defined motor blowers
+                        for( auto &blower : m_powertrainsounds.motorblowers ) {
+                            // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual blowers
+                            auto bloweroffset { blowertemplate.offset() };
+                            bloweroffset.z = blower.offset().z;
+                            blower = blowertemplate;
+                            blower.offset( bloweroffset );
+                        }
+                    }
+                }
+
 				else if( token == "inverter:" ) {
 					// plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
                     m_powertrainsounds.inverter.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
@@ -5604,10 +5633,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         auto const offset { std::atof( token.c_str() ) * -1.f };
                         // NOTE: we skip setting owner of the sounds, it'll be done during individual sound deserialization
                         sound_source motor { sound_placement::external }; // generally traction motor
+                        sound_source motorblower { sound_placement::engine }; // associated motor blowers
                         // add entry to the list
                         auto const location { glm::vec3 { 0.f, 0.f, offset } };
                         motor.offset( location );
                         m_powertrainsounds.motors.emplace_back( motor );
+                        motorblower.offset( location );
+                        m_powertrainsounds.motorblowers.emplace_back( motorblower );
                     }
                 }
 
@@ -6710,6 +6742,27 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             motor.stop();
         }
     }
+    // motor blowers
+    if( false == motorblowers.empty() ) {
+        for( auto &blowersound : motorblowers ) {
+            // match the motor blower and the sound source based on whether they're located in the front or the back of the vehicle
+            auto const &blower { Vehicle.MotorBlowers[ ( blowersound.offset().z > 0 ? side::front : side::rear ) ] };
+            if( blower.revolutions > 1 ) {
+
+                blowersound
+                    .pitch(
+                        true == blowersound.is_combined() ?
+                            blower.revolutions * 0.01f :
+                            blowersound.m_frequencyoffset + blowersound.m_frequencyfactor * blower.revolutions )
+                    .gain( blowersound.m_amplitudeoffset + blowersound.m_amplitudefactor * blower.revolutions )
+                    .play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                blowersound.stop();
+            }
+        }
+    }
+
     // inverter sounds
     if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
         if( Vehicle.InverterFrequency > 0.1 ) {
