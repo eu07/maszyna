@@ -6640,15 +6640,14 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
         }
     }
 
-    // can't mix load types, at least for the time being
-    if( ( LoadAmount > 0 ) && ( LoadType.name != Name ) ) { return false; }
-
     if( Name.empty() ) {
-        // empty the vehicle
+        // empty the vehicle if requested
         LoadType = load_attributes();
         LoadAmount = 0.f;
         return true;
     }
+    // can't mix load types, at least for the time being
+    if( ( LoadAmount > 0 ) && ( LoadType.name != Name ) ) { return false; }
 
     for( auto const &loadattributes : LoadAttributes ) {
         if( Name == loadattributes.name ) {

@@ -369,6 +369,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> splinefidelity;
             SplineFidelity = clamp( splinefidelity, 1.f, 4.f );
         }
+        else if( token == "createswitchtrackbeds" ) {
+            // podwójna jasność ambient
+            Parser.getTokens();
+            Parser >> CreateSwitchTrackbeds;
+        }
         else if( token == "gfx.resource.sweep" ) {
 
             Parser.getTokens();

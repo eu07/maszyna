@@ -2689,7 +2689,7 @@ void TDynamicObject::LoadUpdate() {
     }
     else if( MoverParameters->LoadAmount == 0 ) {
         // nie ma ładunku
-        MoverParameters->AssignLoad( "" );
+//        MoverParameters->AssignLoad( "" );
         mdLoad = nullptr;
         // erase bindings between lowpoly sections and potential load chunks placed inside them
         update_load_sections();

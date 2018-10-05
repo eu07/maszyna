@@ -114,9 +114,6 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
 
         ErrorLog( "Bad track: zero length spline \"" + pOwner->name() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
         fLength = 0.01; // crude workaround TODO: fix this properly
-/*
-        return false; // zerowe nie mogą być
-*/
     }
 
     fStoop = std::atan2((Point2.y - Point1.y), fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
@@ -128,13 +125,12 @@ bool TSegment::Init( Math3D::vector3 &NewPoint1, Math3D::vector3 NewCPointOut, M
         // NOTE: a workaround for too short switches (less than 3 segments) messing up animation/generation of blades
         fStep = fLength / ( 3.0 * Global.SplineFidelity );
     }
-    iSegCount = static_cast<int>( std::ceil( fLength / fStep ) ); // potrzebne do VBO
-/*
+//    iSegCount = static_cast<int>( std::ceil( fLength / fStep ) ); // potrzebne do VBO
     iSegCount = (
         pOwner->eType == tt_Switch ?
             6 * Global.SplineFidelity :
             static_cast<int>( std::ceil( fLength / fStep ) ) ); // potrzebne do VBO
-*/
+
     fStep = fLength / iSegCount; // update step to equalize size of individual pieces
 
     fTsBuffer.resize( iSegCount + 1 );
@@ -378,7 +374,7 @@ Math3D::vector3 TSegment::FastGetPoint(double const t) const
             interpolate( Point1, Point2, t ) );
 }
 
-bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, const gfx::basic_vertex *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, float fOffsetX, glm::vec3 **p, bool bRender)
+bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, const gfx::vertex_array &ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, float fOffsetX, glm::vec3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -459,7 +455,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
                     Output.emplace_back(
                         pt,
                         glm::normalize( norm ),
-                        glm::vec2 { ( jmm1 * ShapePoints[ j ].texture.x + m1 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv1 } );
+                        glm::vec2 { 1.f - ( jmm1 * ShapePoints[ j ].texture.x + m1 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv1 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -479,7 +475,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
                     Output.emplace_back(
                         pt,
                         glm::normalize( norm ),
-                        glm::vec2 { ( jmm2 * ShapePoints[ j ].texture.x + m2 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv2 } );
+                        glm::vec2 { 1.f - ( jmm2 * ShapePoints[ j ].texture.x + m2 * ShapePoints[ j + iNumShapePoints ].texture.x ) / texturescale, tv2 } );
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -503,7 +499,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
                     Output.emplace_back(
                         pt,
                         glm::normalize( norm ),
-                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv1 } );
+                        glm::vec2 { 1.f - ShapePoints[ j ].texture.x / texturescale, tv1 } );
 
                     pt = parallel2 * ShapePoints[ j ].position.x + pos2;
                     pt.y += ShapePoints[ j ].position.y;
@@ -514,7 +510,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
                     Output.emplace_back(
                         pt,
                         glm::normalize( norm ),
-                        glm::vec2 { ShapePoints[ j ].texture.x / texturescale, tv2 } );
+                        glm::vec2 { 1.f - ShapePoints[ j ].texture.x / texturescale, tv2 } );
                 }
             }
         }

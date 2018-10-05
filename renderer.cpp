@@ -2624,7 +2624,9 @@ void
 opengl_renderer::Render( TTrack *Track ) {
 
     if( ( Track->m_material1 == 0 )
-     && ( Track->m_material2 == 0 ) ) {
+     && ( Track->m_material2 == 0 )
+     && ( ( Track->eType != tt_Switch )
+       || ( Track->SwitchExtension->m_material3 == 0 ) ) ) {
         return;
     }
     if( false == Track->m_visible ) {
@@ -2646,6 +2648,11 @@ opengl_renderer::Render( TTrack *Track ) {
                 Bind_Material( Track->m_material2 );
                 m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
             }
+            if( ( Track->eType == tt_Switch )
+             && ( Track->SwitchExtension->m_material3 != 0 ) ) {
+                Bind_Material( Track->SwitchExtension->m_material3 );
+                m_geometry.draw( Track->SwitchExtension->m_geometry3 );
+            }
             setup_environment_light();
             break;
         }
@@ -2665,6 +2672,11 @@ opengl_renderer::Render( TTrack *Track ) {
             if( Track->m_material2 != 0 ) {
                 Bind_Material( Track->m_material2 );
                 m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
+            }
+            if( ( Track->eType == tt_Switch )
+             && ( Track->SwitchExtension->m_material3 != 0 ) ) {
+                Bind_Material( Track->SwitchExtension->m_material3 );
+                m_geometry.draw( Track->SwitchExtension->m_geometry3 );
             }
             break;
         }
@@ -2692,6 +2704,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
         }
     }
 
+    // TODO: render auto generated trackbeds together with regular trackbeds in pass 1, and all rails in pass 2
     // first pass, material 1
     for( auto first { First }; first != Last; ++first ) {
 
@@ -2773,6 +2786,53 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 }
                 Bind_Material( track->m_material2 );
                 m_geometry.draw( std::begin( track->Geometry2 ), std::end( track->Geometry2 ) );
+                break;
+            }
+            case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
+            case rendermode::pickcontrols:
+            default: {
+                break;
+            }
+        }
+    }
+    // third pass, material 3
+    for( auto first { First }; first != Last; ++first ) {
+
+        auto const track { *first };
+
+        if( track->eType != tt_Switch ) {
+            continue;
+        }
+        if( track->SwitchExtension->m_material3 == 0 ) {
+            continue;
+        }
+        if( false == track->m_visible ) {
+            continue;
+        }
+
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::reflections: {
+                if( track->eEnvironment != e_flat ) {
+                    setup_environment_light( track->eEnvironment );
+                }
+                Bind_Material( track->SwitchExtension->m_material3 );
+                m_geometry.draw( track->SwitchExtension->m_geometry3 );
+                if( track->eEnvironment != e_flat ) {
+                    // restore default lighting
+                    setup_environment_light();
+                }
+                break;
+            }
+            case rendermode::shadows: {
+                if( ( std::abs( track->fTexHeight1 ) < 0.35f )
+                 || ( ( track->iCategoryFlag == 1 )
+                   && ( track->eType != tt_Normal ) ) ) {
+                    // shadows are only calculated for high enough trackbeds
+                    continue;
+                }
+                Bind_Material( track->SwitchExtension->m_material3 );
+                m_geometry.draw( track->SwitchExtension->m_geometry3 );
                 break;
             }
             case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
@@ -3058,7 +3118,7 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     ::glLineWidth(
         clamp(
             0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f,
-            1.f, 1.5f ) );
+            1.f, 1.75f ) );
     // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
     ::glColor4fv(
         glm::value_ptr(

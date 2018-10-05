@@ -51,6 +51,7 @@ struct global_settings {
     // settings
     // filesystem
     bool bLoadTraction{ true };
+    bool CreateSwitchTrackbeds { true };
     std::string szTexturesTGA{ ".tga" }; // lista tekstur od TGA
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
