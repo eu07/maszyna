@@ -178,6 +178,11 @@ driver_mode::update() {
 
     // variable step simulation time routines
 
+    if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
+        // intercept cases when the driven train got removed after entering portal
+        InOutKey();
+    }
+
     if( Global.changeDynObj ) {
         // ABu zmiana pojazdu - przejście do innego
         ChangeDynamic();

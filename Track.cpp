@@ -870,6 +870,13 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
             parser->getTokens();
             *parser >> fVerticalRadius;
         }
+        else if( str == "trackbed" ) {
+            // switch trackbed texture
+            auto const trackbedtexture { parser->getToken<std::string>() };
+            if( eType == tt_Switch ) {
+                SwitchExtension->m_material3 = GfxRenderer.Fetch_Material( trackbedtexture );
+            }
+        }
         else
             ErrorLog("Unknown property: \"" + str + "\" in track \"" + m_name + "\"");
         parser->getTokens();
@@ -1138,7 +1145,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
     {
         // zwykla szyna: //Ra: czemu główki są asymetryczne na wysokości 0.140?
         gfx::vertex_array rpts1, rpts2;
-        create_rail_profile( rpts1, rpts2 );
+        create_track_rail_profile( rpts1, rpts2 );
         switch (eType) // dalej zależnie od typu
         {
         case tt_Table: // obrotnica jak zwykły tor, tylko animacja dochodzi
@@ -1146,10 +1153,10 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
             if (m_material2)
             { // podsypka z podkładami jest tylko dla zwykłego toru
                 gfx::vertex_array bpts1;
-                create_trackbed_profile( bpts1, trPrev, trNext );
+                create_track_bed_profile( bpts1, trPrev, trNext );
                 auto const texturelength { texture_length( m_material2 ) };
                 gfx::vertex_array vertices;
-                Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -4 : 4, texturelength);
+                Segment->RenderLoft(vertices, m_origin, bpts1, iTrapezoid ? -5 : 5, texturelength);
                 if( ( Bank != 0 ) && ( true == Geometry2.empty() ) ) {
                     Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
@@ -1183,7 +1190,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
             if( m_material1 || m_material2 ) {
                 // iglice liczone tylko dla zwrotnic
                 gfx::vertex_array rpts3, rpts4;
-                create_blade_profile( rpts3, rpts4 );
+                create_track_blade_profile( rpts3, rpts4 );
                 // TODO, TBD: change all track geometry to triangles, to allow packing data in less, larger buffers
                 auto const bladelength { static_cast<int>( std::ceil( SwitchExtension->Segments[ 0 ]->RaSegCount() * 0.65 ) ) };
                 if (SwitchExtension->RightSwitch)
@@ -1255,7 +1262,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
             if( true == Global.CreateSwitchTrackbeds ) {
                 gfx::vertex_array vertices;
                 create_switch_trackbed( vertices );
-                SwitchExtension->m_geometry3 = GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP );
+                SwitchExtension->Geometry3 = GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP );
                 vertices.clear();
             }
 
@@ -1286,7 +1293,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                 auto const slop{ std::abs( fTexSlope ) }; // brzeg zewnętrzny
                 auto const texturelength { texture_length( m_material2 ) };
                 gfx::vertex_array rpts1, rpts2; // współrzędne przekroju i mapowania dla prawej i lewej strony
-                create_sidewalk_profile( rpts1, rpts2, bpts1 );
+                create_road_side_profile( rpts1, rpts2, bpts1 );
                 gfx::vertex_array vertices;
                 if( iTrapezoid ) // trapez albo przechyłki
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony
@@ -1377,7 +1384,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
             if( m_material2 ) 
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
                 gfx::vertex_array rpts1, rpts2; // współrzędne przekroju i mapowania dla prawej i lewej strony
-                create_sidewalk_profile( rpts1, rpts2, bpts1, true );
+                create_road_side_profile( rpts1, rpts2, bpts1, true );
                 // Ra 2014-07: trzeba to przerobić na pętlę i pobierać profile (przynajmniej 2..4) z sąsiednich dróg
                 bool render = ( m_material2 != 0 ); // renderować nie trzeba, ale trzeba wyznaczyć punkty brzegowe nawierzchni
                 auto const side{ std::abs( fTexWidth ) }; // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -1502,7 +1509,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
             if (m_material2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
                 gfx::vertex_array rpts1, rpts2; // współrzędne przekroju i mapowania dla prawej i lewej strony
-                create_sidewalk_profile( rpts1, rpts2, bpts1 );
+                create_road_side_profile( rpts1, rpts2, bpts1 );
                 gfx::vertex_array vertices;
                 if (iTrapezoid) // trapez albo przechyłki
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
@@ -1784,7 +1791,7 @@ TTrack * TTrack::RaAnimate()
            || ( false == Geometry2.empty() ) ) ) {
             // iglice liczone tylko dla zwrotnic
             gfx::vertex_array rpts3, rpts4;
-            create_blade_profile( rpts3, rpts4 );
+            create_track_blade_profile( rpts3, rpts4 );
             gfx::vertex_array vertices;
             auto const bladelength { static_cast<int>( std::ceil( SwitchExtension->Segments[ 0 ]->RaSegCount() * 0.65 ) ) };
             if (SwitchExtension->RightSwitch)
@@ -2226,9 +2233,10 @@ TTrack::DoubleSlip() const {
         ( iCategoryFlag == 1 )
      && ( eType == tt_Switch )
      && ( m_name.size() > 2 )
-     && ( m_name[ m_name.size() - 2 ] == '_' )
      && ( m_name.back() >= 'a' )
-     && ( m_name.back() <= 'd' ) );
+     && ( m_name.back() <= 'd' )
+     && ( ( m_name[ m_name.size() - 2 ] == '_' )
+       || ( m_name.rfind( '_' ) != std::string::npos ) ) );
 }
 
 
@@ -2284,7 +2292,7 @@ TTrack * TTrack::Connected(int s, double &d) const
 
 // creates rail profile data for current track
 void
-TTrack::create_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left ) {
+TTrack::create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left ) {
 
     auto const fHTW { 0.5f * std::abs( fTrackWidth ) };
 
@@ -2367,7 +2375,7 @@ TTrack::create_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left )
 
 // creates switch blades profile data for current track
 void
-TTrack::create_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left ) {
+TTrack::create_track_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left ) {
 
     auto const fHTW { 0.5f * std::abs( fTrackWidth ) };
     float const fHTW2 { (
@@ -2425,7 +2433,7 @@ TTrack::create_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left 
 
 // creates trackbed profile data for current track
 void
-TTrack::create_trackbed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next ) {
+TTrack::create_track_bed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next ) {
     // geometry parameters
     auto * profilesource = (
         eType != tt_Switch ? this :
@@ -2499,10 +2507,11 @@ TTrack::create_trackbed_profile( gfx::vertex_array &Output, TTrack const *Previo
 
     // profile
     auto const transition { ( iTrapezoid != 0 ) || ( eType == tt_Switch ) };
-    auto const pointcount { transition ? 8 : 4 };
+    auto const pointcount { transition ? 10 : 5 };
     Output.resize( pointcount );
     // potentially retrieve texture length override from the assigned material
-    auto const texturelength { texture_length( profilesource->m_material2 ) };
+    auto const texturelength { texture_length( copy_adjacent_trackbed_material() ) };
+    auto const railheight { 0.18f };
     if( texturelength == 4.f ) {
         // stare mapowanie z różną gęstością pikseli i oddzielnymi teksturami na każdy profil
         auto const normalx = std::cos( glm::radians( 75.f ) );
@@ -2512,54 +2521,66 @@ TTrack::create_trackbed_profile( gfx::vertex_array &Output, TTrack const *Previo
             // ewentualnie poprawić mapowanie, żeby środek mapował się na 1.435/4.671 ((0.3464,0.6536)
             // bo się tekstury podsypki rozjeżdżają po zmianie proporcji profilu
             Output[ 0 ] = {
-                {rozp, -texheight1 - 0.18f, 0.f},
+                {rozp, -texheight1 - railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.00f, 0.f} }; // lewy brzeg
             Output[ 1 ] = {
-                {( fHTW + side ) * cos1, -( fHTW + side ) * sin1 - 0.18f, 0.f},
+                {( fHTW + side ) * cos1, -( fHTW + side ) * sin1 - railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.33f, 0.f} }; // krawędź załamania
             Output[ 2 ] = {
-                {-Output[ 1 ].position.x, +( fHTW + side ) * sin1 - 0.18f, 0.f},
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 3 ] = {
+                {-Output[ 1 ].position.x, +( fHTW + side ) * sin1 - railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {0.67f, 0.f} }; // prawy brzeg początku symetrycznie
-            Output[ 3 ] = {
-                {-rozp, -texheight1 - 0.18f, 0.f},
+            Output[ 4 ] = {
+                {-rozp, -texheight1 - railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {1.f, 0.f} }; // prawy skos
             // końcowy przekrój
-            Output[ 4 ] = {
-                {rozp2, -fTexHeight2 - 0.18f, 0.f},
+            Output[ 5 ] = {
+                {rozp2, -fTexHeight2 - railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.00f, 0.f} }; // lewy brzeg
-            Output[ 5 ] = {
-                {( fHTW2 + side2 ) * cos2, -( fHTW2 + side2 ) * sin2 - 0.18f, 0.f},
+            Output[ 6 ] = {
+                {( fHTW2 + side2 ) * cos2, -( fHTW2 + side2 ) * sin2 - railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.33f, 0.f} }; // krawędź załamania
-            Output[ 6 ] = {
-                {-Output[ 5 ].position.x, +( fHTW2 + side2 ) * sin2 - 0.18f, 0.f},
+            Output[ 7 ] = {
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 8 ] = {
+                {-Output[ 6 ].position.x, +( fHTW2 + side2 ) * sin2 - railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {0.67f, 0.f} }; // prawy brzeg początku symetrycznie
-            Output[ 7 ] = {
-                {-rozp2, -fTexHeight2 - 0.18f, 0.f},
+            Output[ 9 ] = {
+                {-rozp2, -fTexHeight2 - railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {1.00f, 0.f} }; // prawy skos
         }
         else {
             Output[ 0 ] = {
-                {rozp, -texheight1 - 0.18f, 0.f},
+                {rozp, -texheight1 - railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.00f, 0.f} }; // lewy brzeg
             Output[ 1 ] = {
-                {fHTW + side, -0.18f, 0.f},
+                {fHTW + side, -railheight, 0.f},
                 {normalx, normaly, 0.f},
                 {0.33f, 0.f} }; // krawędź załamania
             Output[ 2 ] = {
-                {-fHTW - side, -0.18f, 0.f},
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 3 ] = {
+                {-fHTW - side, -railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {0.67f, 0.f} }; // druga
-            Output[ 3 ] = {
-                {-rozp, -texheight1 - 0.18f, 0.f},
+            Output[ 4 ] = {
+                {-rozp, -texheight1 - railheight, 0.f},
                 {-normalx, normaly, 0.f},
                 {1.00f, 0.f} }; // prawy skos
         }
@@ -2577,55 +2598,67 @@ TTrack::create_trackbed_profile( gfx::vertex_array &Output, TTrack const *Previo
             // ((0.3464,0.6536)
             // bo się tekstury podsypki rozjeżdżają po zmianie proporcji profilu
             Output[ 0 ] = {
-                {rozp, -texheight1 - 0.18f, 0.f},
+                {rozp, -texheight1 - railheight, 0.f},
                 {normal1.x, normal1.y, 0.f},
                 {0.5f - map12, 0.f} }; // lewy brzeg
             Output[ 1 ] = {
-                {( fHTW + side ) * cos1, -( fHTW + side ) * sin1 - 0.18f, 0.f},
+                {( fHTW + side ) * cos1, -( fHTW + side ) * sin1 - railheight, 0.f},
                 {normal1.x, normal1.y, 0.f},
                 {0.5f - map11 , 0.f} }; // krawędź załamania
             Output[ 2 ] = {
-                {-Output[ 1 ].position.x, +( fHTW + side ) * sin1 - 0.18f, 0.f},
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 3 ] = {
+                {-Output[ 1 ].position.x, +( fHTW + side ) * sin1 - railheight, 0.f},
                 {-normal1.x, normal1.y, 0.f},
                 {0.5 + map11, 0.f} }; // prawy brzeg początku symetrycznie
-            Output[ 3 ] = {
-                {-rozp, -texheight1 - 0.18f, 0.f},
+            Output[ 4 ] = {
+                {-rozp, -texheight1 - railheight, 0.f},
                 {-normal1.x, normal1.y, 0.f},
                 {0.5f + map12, 0.f} }; // prawy skos
             // przekrój końcowy
-            Output[ 4 ] = {
-                {rozp2, -fTexHeight2 - 0.18f, 0.f},
+            Output[ 5 ] = {
+                {rozp2, -fTexHeight2 - railheight, 0.f},
                 {normal2.x, normal2.y, 0.f},
                 {0.5f - map22, 0.f} }; // lewy brzeg
-            Output[ 5 ] = {
-                {( fHTW2 + side2 ) * cos2, -( fHTW2 + side2 ) * sin2 - 0.18f, 0.f},
+            Output[ 6 ] = {
+                {( fHTW2 + side2 ) * cos2, -( fHTW2 + side2 ) * sin2 - railheight, 0.f},
                 {normal2.x, normal2.y, 0.f},
                 {0.5f - map21 , 0.f} }; // krawędź załamania
-            Output[ 6 ] = {
-                {-Output[ 5 ].position.x, +( fHTW2 + side2 ) * sin2 - 0.18f, 0.f},
+            Output[ 7 ] = {
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 8 ] = {
+                {-Output[ 6 ].position.x, +( fHTW2 + side2 ) * sin2 - railheight, 0.f},
                 {-normal2.x, normal2.y, 0.f},
                 {0.5f + map21, 0.f} }; // prawy brzeg początku symetrycznie
-            Output[ 7 ] = {
-                {-rozp2, -fTexHeight2 - 0.18f, 0.f},
+            Output[ 9 ] = {
+                {-rozp2, -fTexHeight2 - railheight, 0.f},
                 {-normal2.x, normal2.y, 0.f},
                 {0.5f + map22, 0.f} }; // prawy skos
         }
         else
         {
             Output[ 0 ] = {
-                {rozp, -texheight1 - 0.18f, 0.f},
+                {rozp, -texheight1 - railheight, 0.f},
                 {+normal1.x, normal1.y, 0.f},
                 {0.5f - map12, 0.f} }; // lewy brzeg
             Output[ 1 ] = {
-                {fHTW + side, - 0.18f, 0.f},
+                {fHTW + side, - railheight, 0.f},
                 {+normal1.x, normal1.y, 0.f},
                 {0.5f - map11, 0.f} }; // krawędź załamania
             Output[ 2 ] = {
-                {-fHTW - side, - 0.18f, 0.f},
+                {0.f, -railheight + 0.01f, 0.f},
+                {0.f, 1.f, 0.f},
+                {0.5f, 0.f} }; // middle
+            Output[ 3 ] = {
+                {-fHTW - side, - railheight, 0.f},
                 {-normal1.x, normal1.y, 0.f},
                 {0.5f + map11, 0.f} }; // druga
-            Output[ 3 ] = {
-                {-rozp, -texheight1 - 0.18f, 0.f},
+            Output[ 4 ] = {
+                {-rozp, -texheight1 - railheight, 0.f},
                 {-normal1.x, normal1.y, 0.f},
                 {0.5f + map12, 0.f} }; // prawy skos
         }
@@ -2694,7 +2727,7 @@ TTrack::create_road_profile( gfx::vertex_array &Output, bool const Forcetransiti
 }
 
 void
-TTrack::create_sidewalk_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition ) {
+TTrack::create_road_side_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition ) {
 
     auto const fHTW{ 0.5f * std::abs( fTrackWidth ) };
     auto const side{ std::abs( fTexWidth ) }; // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -2885,54 +2918,67 @@ TTrack::create_sidewalk_profile( gfx::vertex_array &Right, gfx::vertex_array &Le
 void
 TTrack::create_switch_trackbed( gfx::vertex_array &Output ) {
     // try to get trackbed material from a regular track connected to the primary path
-    if( ( trPrev != nullptr )
+    if( ( SwitchExtension->m_material3 == null_handle )
+     && ( trPrev != nullptr )
      && ( trPrev->eType == tt_Normal ) ) {
         SwitchExtension->m_material3 = trPrev->m_material2;
     }
-    else if( ( trNext != nullptr )
-          && ( trNext->eType == tt_Normal ) ) {
+    if( ( SwitchExtension->m_material3 == null_handle )
+     && ( trNext != nullptr )
+     && ( trNext->eType == tt_Normal ) ) {
         SwitchExtension->m_material3 = trNext->m_material2;
     }
     // without material don't bother
     if( SwitchExtension->m_material3 == null_handle ) { return; }
     // generate trackbed for each path of the switch...
-    // TODO: create proper profile for each path
     auto const texturelength { texture_length( SwitchExtension->m_material3 ) };
     gfx::vertex_array trackbedprofile;
     gfx::vertex_array trackbedvertices1, trackbedvertices2;
-    create_trackbed_profile( trackbedprofile, SwitchExtension->pPrevs[ 0 ], SwitchExtension->pNexts[ 0 ] );
-    SwitchExtension->Segments[ 0 ]->RenderLoft( trackbedvertices1, m_origin, trackbedprofile, -4, texturelength );
-    create_trackbed_profile( trackbedprofile, SwitchExtension->pPrevs[ 1 ], SwitchExtension->pNexts[ 1 ] );
-    SwitchExtension->Segments[ 1 ]->RenderLoft( trackbedvertices2, m_origin, trackbedprofile, -4, texturelength );
-//    Output = trackbedvertices1;
-//    return;
-    // ...and take outer edge from each to create combined trackbed
-    auto const segmentsize { 8 };
+    // main trackbed
+    create_track_bed_profile( trackbedprofile, SwitchExtension->pPrevs[ 0 ], SwitchExtension->pNexts[ 0 ] );
+    SwitchExtension->Segments[ 0 ]->RenderLoft( trackbedvertices1, m_origin, trackbedprofile, -5, texturelength );
+    // side trackbed
+    create_track_bed_profile( trackbedprofile, SwitchExtension->pPrevs[ 1 ], SwitchExtension->pNexts[ 1 ] );
+    SwitchExtension->Segments[ 1 ]->RenderLoft( trackbedvertices2, m_origin, trackbedprofile, -5, texturelength );
+    // ...then combine them into a single geometry sequence
+    auto const segmentsize { 10 };
     auto const segmentcount { trackbedvertices1.size() / segmentsize };
-    auto const *sampler1 { trackbedvertices1.data() };
-    auto const *sampler2 { trackbedvertices2.data() };
+    auto *sampler1 { trackbedvertices1.data() };
+    auto *sampler2 { trackbedvertices2.data() };
     auto const isright { SwitchExtension->RightSwitch };
     auto const isleft { false == isright };
     auto const samplersoffset { isright ? 2 : 0 };
+    auto const geometryoffset { 0.025f };
     for( int segment = 0; segment < segmentcount; ++segment ) {
-        Output.emplace_back( *( sampler1 + samplersoffset + 0 ) ); if( isright ) { Output.back().position.y -= 0.02f; }
-        Output.emplace_back( *( sampler1 + samplersoffset + 1 ) ); if( isright ) { Output.back().position.y -= 0.02f; }
-
-        Output.emplace_back( *( sampler1 + samplersoffset + 2 ) );
-        Output.emplace_back( *( sampler1 + samplersoffset + 3 ) );
-
-        Output.emplace_back( *( sampler1 + samplersoffset + 4 ) ); if( isleft ) { Output.back().position.y -= 0.02f; }
-        Output.emplace_back( *( sampler1 + samplersoffset + 5 ) ); if( isleft ) { Output.back().position.y -= 0.02f; }
-
-        Output.emplace_back( *( sampler2 - samplersoffset + 2 ) ); if( isleft ) { Output.back().position.y -= 0.02f; }
-        Output.emplace_back( *( sampler2 - samplersoffset + 3 ) ); if( isleft ) { Output.back().position.y -= 0.02f; }
-
-        Output.emplace_back( *( sampler2 - samplersoffset + 4 ) );
-        Output.emplace_back( *( sampler2 - samplersoffset + 5 ) );
-
-        Output.emplace_back( *( sampler2 - samplersoffset + 6 ) ); if( isright ) { Output.back().position.y -= 0.02f; }
-        Output.emplace_back( *( sampler2 - samplersoffset + 7 ) ); if( isright ) { Output.back().position.y -= 0.02f; }
-
+        // main trackbed
+        // lower outer edge to avoid z-fighting
+        if( isright ) {
+            ( sampler1 + samplersoffset + 0 )->position.y -= geometryoffset;
+            ( sampler1 + samplersoffset + 1 )->position.y -= geometryoffset;
+        }
+        if( isleft ) {
+            ( sampler1 + samplersoffset + 6 )->position.y -= geometryoffset;
+            ( sampler1 + samplersoffset + 7 )->position.y -= geometryoffset;
+        }
+        // copy the data
+        for( auto pointidx = 0; pointidx < segmentsize; ++pointidx ) {
+            Output.emplace_back( *( sampler1 + pointidx ) );
+        }
+        // side trackbed
+        // lower outer edge to avoid z-fighting
+        if( isleft ) {
+            ( sampler2 - samplersoffset + 2 )->position.y -= geometryoffset;
+            ( sampler2 - samplersoffset + 3 )->position.y -= geometryoffset;
+        }
+        if( isright ) {
+            ( sampler2 - samplersoffset + 8 )->position.y -= geometryoffset;
+            ( sampler2 - samplersoffset + 9 )->position.y -= geometryoffset;
+        }
+        // copy the data
+        for( auto pointidx = 0; pointidx < segmentsize; ++pointidx ) {
+            Output.emplace_back( *( sampler2 + pointidx ) );
+        }
+        // switch to next segment data
         sampler1 += segmentsize;
         sampler2 += segmentsize;
     }
@@ -2951,11 +2997,22 @@ TTrack::copy_adjacent_trackbed_material( TTrack const *Exclude ) {
     switch( eType ) {
         case tt_Normal: {
             // for regular tracks don't set the trackbed texture if we aren't sitting next to a part of a double slip
+/*
             auto const hasadjacentdoubleslip {
                 ( trPrev ? trPrev->DoubleSlip() : false )
              || ( trNext ? trNext->DoubleSlip() : false ) };
 
             if( true == hasadjacentdoubleslip ) {
+                adjacents.emplace_back( trPrev );
+                adjacents.emplace_back( trNext );
+            }
+*/
+            auto const hasadjacentswitch {
+                ( trPrev && trPrev->eType == tt_Switch )
+             || ( trNext && trNext->eType == tt_Switch ) };
+
+//            if( true == hasadjacentdoubleslip ) {
+            if( true == hasadjacentswitch ) {
                 adjacents.emplace_back( trPrev );
                 adjacents.emplace_back( trNext );
             }

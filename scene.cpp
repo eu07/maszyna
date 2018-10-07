@@ -1163,7 +1163,10 @@ std::vector<std::string> switchtrackbedtextures {
     "rozkrz34r150-tpd1",
     "rkpd34r190-tpd1",
     "rkpd34r190-tpd2",
-    "rkpd34r190-tpd-oil2" };
+    "rkpd34r190-tpd-oil2",
+    "zwr41r500",
+    "zwrot-tpd-oil1",
+    "zwrot34r300pods-new" };
 
 void
 basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {

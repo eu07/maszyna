@@ -336,6 +336,9 @@
     <ClCompile Include="openglcolor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl2.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">

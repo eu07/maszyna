@@ -94,8 +94,7 @@ class TSwitchExtension
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
     material_handle m_material3 = 0; // texture of auto generated switch trackbed
-    gfx::geometry_handle m_geometry3; // geometry of auto generated switch trackbed
-
+    gfx::geometry_handle Geometry3; // geometry of auto generated switch trackbed
 };
 
 class TIsolated
@@ -306,12 +305,12 @@ private:
     // returns texture length for specified material
     float texture_length( material_handle const Material );
     // creates profile for a part of current path
-    void create_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
-    void create_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
-    void create_trackbed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next );
-    void create_road_profile( gfx::vertex_array &Output, bool const Forcetransition = false );
-    void create_sidewalk_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition = false );
     void create_switch_trackbed( gfx::vertex_array &Output );
+    void create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
+    void create_track_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
+    void create_track_bed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next );
+    void create_road_profile( gfx::vertex_array &Output, bool const Forcetransition = false );
+    void create_road_side_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition = false );
 };
 
 

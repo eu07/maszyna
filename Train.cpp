@@ -447,7 +447,9 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 PyObject *TTrain::GetTrainState() {
 
     auto const *mover = DynamicObject->MoverParameters;
+    PyEval_AcquireLock();
     auto *dict = PyDict_New();
+    PyEval_ReleaseLock();
     if( ( dict == nullptr )
      || ( mover == nullptr ) ) {
         return nullptr;

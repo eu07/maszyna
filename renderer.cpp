@@ -2651,7 +2651,7 @@ opengl_renderer::Render( TTrack *Track ) {
             if( ( Track->eType == tt_Switch )
              && ( Track->SwitchExtension->m_material3 != 0 ) ) {
                 Bind_Material( Track->SwitchExtension->m_material3 );
-                m_geometry.draw( Track->SwitchExtension->m_geometry3 );
+                m_geometry.draw( Track->SwitchExtension->Geometry3 );
             }
             setup_environment_light();
             break;
@@ -2676,7 +2676,7 @@ opengl_renderer::Render( TTrack *Track ) {
             if( ( Track->eType == tt_Switch )
              && ( Track->SwitchExtension->m_material3 != 0 ) ) {
                 Bind_Material( Track->SwitchExtension->m_material3 );
-                m_geometry.draw( Track->SwitchExtension->m_geometry3 );
+                m_geometry.draw( Track->SwitchExtension->Geometry3 );
             }
             break;
         }
@@ -2817,7 +2817,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     setup_environment_light( track->eEnvironment );
                 }
                 Bind_Material( track->SwitchExtension->m_material3 );
-                m_geometry.draw( track->SwitchExtension->m_geometry3 );
+                m_geometry.draw( track->SwitchExtension->Geometry3 );
                 if( track->eEnvironment != e_flat ) {
                     // restore default lighting
                     setup_environment_light();
@@ -2832,7 +2832,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     continue;
                 }
                 Bind_Material( track->SwitchExtension->m_material3 );
-                m_geometry.draw( track->SwitchExtension->m_geometry3 );
+                m_geometry.draw( track->SwitchExtension->Geometry3 );
                 break;
             }
             case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
@@ -3858,8 +3858,13 @@ opengl_renderer::Init_caps() {
         + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
         + " OpenGL Version: " + oglversion );
 
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+    if( !GLEW_VERSION_1_5 ) {
+        ErrorLog( "Requires openGL >= 1.5" );
+#else
     if( !GLEW_VERSION_3_0 ) {
-        ErrorLog( "Requires openGL >= 3.0" ); // technically 1.5 for now, but imgui wants more
+        ErrorLog( "Requires openGL >= 3.0" );
+#endif
         return false;
     }
 

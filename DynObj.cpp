@@ -7069,7 +7069,7 @@ vehicle_table::erase_disabled() {
             if( ( simulation::Train != nullptr )
              && ( simulation::Train->Dynamic() == vehicle ) ) {
                 // clear potential train binding
-                // TBD, TODO: manually eject the driver first ?
+                // TBD, TODO: kill vehicle sounds
                 SafeDelete( simulation::Train );
             }
             // remove potential entries in the light array
