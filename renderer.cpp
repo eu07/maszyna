@@ -2409,7 +2409,20 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // ...colors...
-                        ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        if( Submodel->fVisible < 1.f ) {
+                            // setup
+                            ::glAlphaFunc( GL_GREATER, 0.f );
+                            ::glEnable( GL_BLEND );
+                            ::glColor4f(
+                                Submodel->f4Diffuse.r,
+                                Submodel->f4Diffuse.g,
+                                Submodel->f4Diffuse.b,
+                                Submodel->fVisible );
+                        }
+                        else {
+                            ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        }
+                        // ...specular...
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             // specular strength in legacy models is set uniformly to 150, 150, 150 so we scale it down for opaque elements
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_specularopaquescalefactor ) );
@@ -2441,6 +2454,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
 */
                         // post-draw reset
+                        if( Submodel->fVisible < 1.f ) {
+                            ::glAlphaFunc( GL_GREATER, 0.5f );
+                            ::glDisable( GL_BLEND );
+                        }
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
@@ -2535,7 +2552,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
                         float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
-                        float const precipitationfactor { std::max( 1.f, Global.Overcast - 1.f ) };
+                        float const precipitationfactor { std::max( 1.f, 0.5f * ( Global.Overcast - 1.f ) ) };
 
                         if( lightlevel > 0.f ) {
                             // material configuration:
@@ -2543,9 +2560,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                             Bind_Material( null_handle );
                             ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
-                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], std::min( 1.f, lightlevel * anglefactor * precipitationfactor ) );
+                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], Submodel->fVisible * std::min( 1.f, lightlevel * anglefactor * precipitationfactor ) );
                             ::glDisable( GL_LIGHTING );
+                            ::glDisable( GL_FOG );
                             ::glEnable( GL_BLEND );
+                            ::glAlphaFunc( GL_GREATER, 0.f );
 
                             ::glPushMatrix();
                             ::glLoadIdentity();
@@ -3439,10 +3458,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
                     // only bother if the viewer is inside the visibility cone
-                    auto glarelevel { clamp<float>(
-                        0.6f
-                        - Global.fLuminance // reduce the glare in bright daylight
-                        + std::max( 0.f, Global.Overcast - 1.f ), // increase the glare in rainy/foggy conditions
+                    auto glarelevel { clamp(
+                        std::max<float>(
+                            0.6f - Global.fLuminance, // reduce the glare in bright daylight
+                            Global.Overcast - 1.f ), // ensure some glare in rainy/foggy conditions
                         0.f, 1.f ) };
                     // scale it down based on view angle
                     glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
@@ -3452,8 +3471,9 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
-                        ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
+                        ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], Submodel->fVisible * glarelevel );
                         ::glDisable( GL_LIGHTING );
+                        ::glDisable( GL_FOG );
                         ::glDepthMask( GL_FALSE );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 

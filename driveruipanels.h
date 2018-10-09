@@ -76,7 +76,7 @@ private:
     std::string update_vehicle_coupler( int const Side );
     std::string update_vehicle_brake() const;
     // renders provided lines, under specified collapsing header
-    void render_section( std::string const &Header, std::vector<text_line> const &Lines );
+    bool render_section( std::string const &Header, std::vector<text_line> const &Lines );
 // members
     std::array<char, 1024> m_buffer;
     input_data m_input;
@@ -92,6 +92,7 @@ private:
     int tprev { 0 }; // poprzedni czas
     double VelPrev { 0.0 }; // poprzednia prędkość
     double Acc { 0.0 }; // przyspieszenie styczne
+    bool m_eventqueueactivevehicleonly { false };
 };
 
 class transcripts_panel : public ui_panel {

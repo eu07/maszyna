@@ -565,7 +565,7 @@ TTraction::wire_color() const {
         color.r *= Global.DayLight.ambient[ 0 ];
         color.g *= Global.DayLight.ambient[ 1 ];
         color.b *= Global.DayLight.ambient[ 2 ];
-        color *= 0.5f;
+        color *= 0.35f;
     }
     else {
         // tymczasowo pokazanie zasilanych odcinków

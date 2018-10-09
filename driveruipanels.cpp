@@ -356,7 +356,10 @@ debug_panel::render() {
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
         render_section( "Scenario", m_scenariolines );
-        render_section( "Scenario Event Queue", m_eventqueuelines );
+        if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
+            // event queue filter
+            ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
+        }
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
         // toggles
@@ -764,6 +767,8 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 
     if( m_input.mechanik == nullptr ) { return; }
 
+    Output.emplace_back( "Flags:       Dist:    Vel:  Name:", Global.UITextColor );
+
     auto const &mechanik{ *m_input.mechanik };
 
     std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( mechanik.TableSize() ) - 1, 0, 30 );
@@ -773,8 +778,8 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
         Output.emplace_back( Bezogonkow( scanline ), Global.UITextColor );
         ++i;
     } while( i < speedtablesize );
-    if( Output.empty() ) {
-        Output.emplace_back( "(no points of interest)", Global.UITextColor );
+    if( Output.size() == 1 ) {
+        Output.front().data = "(no points of interest)";
     }
 }
 
@@ -787,7 +792,8 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 
     Output.emplace_back( textline, Global.UITextColor );
     // current luminance level
-    textline = "Light level: " + to_string( Global.fLuminance, 3 );
+    textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
+    textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
     if( Global.FakeLight ) { textline += "(*)"; }
     textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
@@ -799,32 +805,33 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
 
     std::string textline;
 
-            // current event queue
-            auto const time { Timer::GetTime() };
-            auto const *event { simulation::Events.begin() };
-            auto eventtableindex{ 0 };
-            while( ( event != nullptr )
-                && ( eventtableindex < 30 ) ) {
+    // current event queue
+    auto const time { Timer::GetTime() };
+    auto const *event { simulation::Events.begin() };
 
-                if( ( false == event->m_ignored )
-                 && ( false == event->m_passive ) ) {
+    Output.emplace_back( "Delay:   Event:", Global.UITextColor );
 
-                    auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
-                    textline =
-                        "Delay: " + delay.substr( delay.length() - 6 )
-                        + ", Event: " + event->m_name
-                        + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
-                        + ( event->m_sibling ? " (joint event)" : "" );
+    while( ( event != nullptr )
+        && ( Output.size() < 30 ) ) {
 
-                    Output.emplace_back( textline, Global.UITextColor );
-                    ++eventtableindex;
-                }
-                event = event->m_next;
-            }
-            if( Output.empty() ) {
-                textline = "(no queued events)";
-                Output.emplace_back( textline, Global.UITextColor );
-            }
+        if( ( false == event->m_ignored )
+         && ( false == event->m_passive )
+         && ( ( false == m_eventqueueactivevehicleonly )
+           || ( event->m_activator == m_input.vehicle ) ) ) {
+
+            auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
+            textline = delay.substr( delay.length() - 6 )
+                + "   " + event->m_name
+                + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
+                + ( event->m_sibling ? " (joint event)" : "" );
+
+            Output.emplace_back( textline, Global.UITextColor );
+        }
+        event = event->m_next;
+    }
+    if( Output.size() == 1 ) {
+        Output.front().data = "(no queued events)";
+    }
 }
 
 void
@@ -888,15 +895,16 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
 }
 
-void
+bool
 debug_panel::render_section( std::string const &Header, std::vector<text_line> const &Lines ) {
 
-    if( Lines.empty() ) { return; }
-    if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return; }
+    if( true == Lines.empty() ) { return false; }
+    if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
 
     for( auto const &line : Lines ) {
         ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
     }
+    return true;
 }
 
 void

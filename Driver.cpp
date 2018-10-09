@@ -342,8 +342,8 @@ std::string TSpeedPos::TableText() const
 { // pozycja tabelki pr?dko?ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
-		return "Flags:" + to_hex_str(iFlags, 8) + ", Dist:" + to_string(fDist, 1, 6) +
-               ", Vel:" + (fVelNext == -1.0 ? " - " : to_string(static_cast<int>(fVelNext), 0, 3)) + ", Name:" + GetName();
+		return to_hex_str(iFlags, 8) + "   " + to_string(fDist, 1, 6) +
+               "   " + (fVelNext == -1.0 ? "  -" : to_string(static_cast<int>(fVelNext), 0, 3)) + "   " + GetName();
     }
     return "Empty";
 }
