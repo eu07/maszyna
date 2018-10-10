@@ -33,7 +33,6 @@ void gl::glsl_common_setup()
     layout(std140) uniform light_ubo
     {
             vec3 ambient;
-            float fog_density;
 
             vec3 fog_color;
             uint lights_count;
@@ -50,6 +49,8 @@ void gl::glsl_common_setup()
             mat4 future;
             float opacity;
             float emission;
+            float fog_density;
+            float alpha_mult;
     };
 
     layout (std140) uniform scene_ubo

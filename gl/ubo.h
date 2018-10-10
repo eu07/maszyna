@@ -58,7 +58,9 @@ namespace gl
         glm::mat4 future;
         float opacity;
         float emission;
-        UBS_PAD(12);
+        float fog_density;
+        float alpha_mult;
+        UBS_PAD(4);
 
         void set_modelview(const glm::mat4 &mv)
         {
@@ -100,7 +102,7 @@ namespace gl
     struct light_ubs
     {
         glm::vec3 ambient;
-        float fog_density;
+		UBS_PAD(4);
 
         glm::vec3 fog_color;
         uint32_t lights_count;

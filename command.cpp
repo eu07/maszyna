@@ -214,10 +214,13 @@ commanddescription_sequence Commands_descriptions = {
     { "generictoggle9", command_target::vehicle, command_mode::oneoff },
     { "batterytoggle", command_target::vehicle, command_mode::oneoff },
     { "batteryenable", command_target::vehicle, command_mode::oneoff },
-    { "batterydisable", command_target::vehicle, command_mode::oneoff }
+    { "batterydisable", command_target::vehicle, command_mode::oneoff },
+    { "motorblowerstogglefront", command_target::vehicle, command_mode::oneoff },
+    { "motorblowerstogglerear", command_target::vehicle, command_mode::oneoff },
+    { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff }
 };
 
-}
+} // simulation
 
 void command_queue::update()
 {

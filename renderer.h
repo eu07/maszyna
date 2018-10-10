@@ -311,6 +311,8 @@ class opengl_renderer
 	float m_specularopaquescalefactor{1.f};
     float m_speculartranslucentscalefactor{1.f};
 
+	float m_fogrange = 2000.0f;
+
 	renderpass_config m_renderpass; // parameters for current render pass
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;

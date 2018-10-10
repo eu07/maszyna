@@ -965,7 +965,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// modelview
         camera.position() = Global.pCamera.Pos;
         Global.pCamera.SetMatrix(viewmatrix);
-		// projection
+        // projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
@@ -980,7 +980,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         glm::dvec3 const cubefaceupvectors[6] = {{0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}};
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
-        // projection
+		// projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(glm::radians(90.f), 1.f, znear, zfar);
@@ -1306,10 +1306,22 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
                 model_ubs.param[entry.location][entry.offset + j] = src[j];
         }
 
-        if (std::isnan(material.opacity))
-            model_ubs.opacity = m_blendingenabled ? -1.0f : 0.5f;
+		if (m_blendingenabled)
+		{
+			model_ubs.opacity = -1.0f;
+		}
+		else
+		{
+			if (!std::isnan(material.opacity))
+				model_ubs.opacity = material.opacity;
+			else
+                model_ubs.opacity = 0.5f;
+		}
+
+        if (sm)
+            model_ubs.alpha_mult = sm->fVisible;
         else
-            model_ubs.opacity = m_blendingenabled ? -1.0f : material.opacity;
+            model_ubs.alpha_mult = 1.0f;
 
         if (GLEW_ARB_multi_bind)
         {
@@ -2140,29 +2152,11 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				case rendermode::color:
 				case rendermode::reflections:
 				{
-// NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
-// for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
-#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-					switch (Submodel->m_normalizenormals)
-					{
-					case TSubModel::normalize:
-					{
-						::glEnable(GL_NORMALIZE);
-						break;
-					}
-					case TSubModel::rescale:
-					{
-						::glEnable(GL_RESCALE_NORMAL);
-						break;
-					}
-					default:
-					{
-						break;
-					}
-					}
-#else
-#endif
 					// material configuration:
+					// transparency hack
+					if (Submodel->fVisible < 1.0f)
+						setup_drawing(true);
+
 					// textures...
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
@@ -2183,28 +2177,11 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					// main draw call
                     draw(Submodel->m_geometry);
 
+					// post-draw reset
                     model_ubs.emission = 0.0f;
+					if (Submodel->fVisible < 1.0f)
+						setup_drawing(false);
 
-#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-					switch (Submodel->m_normalizenormals)
-					{
-					case TSubModel::normalize:
-					{
-						::glDisable(GL_NORMALIZE);
-						break;
-					}
-					case TSubModel::rescale:
-					{
-						::glDisable(GL_RESCALE_NORMAL);
-						break;
-					}
-					default:
-					{
-						break;
-					}
-					}
-#else
-#endif
 					break;
 				}
 				case rendermode::shadows:
@@ -2264,34 +2241,53 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
 					// view angle attenuation
 					float const anglefactor = clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f);
-					// distance attenuation
-					// we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-					float const distancefactor = std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist);
-                    float const precipitationfactor = std::max(1.f, Global.Overcast - 1.f);
+                    lightlevel *= anglefactor;
+                    float const precipitationfactor{interpolate(1.f, 0.25f, clamp(Global.Overcast * 0.75f - 0.5f, 0.f, 1.f))};
+                    lightlevel *= precipitationfactor;
 
 					if (lightlevel > 0.f)
 					{
 						// material configuration:
+                        // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+                        // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+                        float const distancefactor{std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist)};
+                        auto const pointsize{std::max(3.f, 5.f * distancefactor * anglefactor)};
 
 						::glEnable(GL_BLEND);
 
 						::glPushMatrix();
 						::glLoadIdentity();
 						::glTranslatef(lightcenter.x, lightcenter.y, lightcenter.z); // początek układu zostaje bez zmian
-						/*
-						                            setup_shadow_color( colors::white );
-						*/
-						glPointSize(std::max(3.f, 5.f * distancefactor * anglefactor) * 2.0f);
+
+						// limit impact of dense fog on the lights
+                        model_ubs.fog_density = 1.0f / std::min<float>(Global.fFogEnd, m_fogrange * 2);
 
 						// main draw call
-						model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), 0.0f);
-						model_ubs.emission = std::min(1.f, lightlevel * anglefactor * precipitationfactor);
+                        model_ubs.emission = std::min(1.f, lightlevel * anglefactor * precipitationfactor);
+
 						m_freespot_shader->bind();
+
+						if (Global.Overcast > 1.0f)
+						{
+							// fake fog halo
+                            float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
+							glPointSize(pointsize * fogfactor * 2.0f);
+                            model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse),
+                                                           Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
+
+							glDepthMask(GL_FALSE);
+							draw(Submodel->m_geometry);
+							glDepthMask(GL_TRUE);
+						}
+						glPointSize(pointsize * 2.0f);
+                        model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse),
+                                                       Submodel->fVisible * std::min(1.f, lightlevel));
 
                         draw(Submodel->m_geometry);
 
 						// post-draw reset
                         model_ubs.emission = 0.0f;
+						model_ubs.fog_density = 1.0f / m_fogrange;
 
                         glDisable(GL_BLEND);
 
@@ -2353,8 +2349,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 
 void opengl_renderer::Render(TTrack *Track)
 {
-
-	if ((Track->m_material1 == 0) && (Track->m_material2 == 0))
+    if ((Track->m_material1 == 0) && (Track->m_material2 == 0) && (Track->eType != tt_Switch || Track->SwitchExtension->m_material3 == 0))
 	{
 		return;
 	}
@@ -2382,6 +2377,11 @@ void opengl_renderer::Render(TTrack *Track)
             Bind_Material(Track->m_material2);
             draw(std::begin(Track->Geometry2), std::end(Track->Geometry2));
 		}
+		if (Track->eType == tt_Switch && Track->SwitchExtension->m_material3 != 0)
+		{
+			Bind_Material(Track->SwitchExtension->m_material3);
+			draw(Track->SwitchExtension->Geometry3);
+		}
 		setup_environment_light();
 		break;
 	}
@@ -2399,6 +2399,8 @@ void opengl_renderer::Render(TTrack *Track)
 
         draw(std::begin(Track->Geometry1), std::end(Track->Geometry1));
         draw(std::begin(Track->Geometry2), std::end(Track->Geometry2));
+		if (Track->eType == tt_Switch)
+			draw(Track->SwitchExtension->Geometry3);
 		break;
 	}
 	case rendermode::pickcontrols:
@@ -2428,6 +2430,7 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 	}
 	}
 
+	// TODO: render auto generated trackbeds together with regular trackbeds in pass 1, and all rails in pass 2
 	// first pass, material 1
 	for (auto first{First}; first != Last; ++first)
 	{
@@ -2486,7 +2489,6 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 	// second pass, material 2
 	for (auto first{First}; first != Last; ++first)
 	{
-
 		auto const track{*first};
 
 		if (track->m_material2 == 0)
@@ -2535,6 +2537,64 @@ void opengl_renderer::Render(scene::basic_cell::path_sequence::const_iterator Fi
 		}
 		}
 	}
+
+    // third pass, material 3
+    for (auto first{First}; first != Last; ++first)
+    {
+
+        auto const track{*first};
+
+        if (track->eType != tt_Switch)
+        {
+            continue;
+        }
+        if (track->SwitchExtension->m_material3 == 0)
+        {
+            continue;
+        }
+        if (false == track->m_visible)
+        {
+            continue;
+        }
+
+        switch (m_renderpass.draw_mode)
+        {
+        case rendermode::color:
+        case rendermode::reflections:
+        {
+            if (track->eEnvironment != e_flat)
+            {
+                setup_environment_light(track->eEnvironment);
+            }
+            Bind_Material(track->SwitchExtension->m_material3);
+            draw(track->SwitchExtension->Geometry3);
+            if (track->eEnvironment != e_flat)
+            {
+                // restore default lighting
+                setup_environment_light();
+            }
+            break;
+        }
+        case rendermode::shadows:
+        {
+            if ((std::abs(track->fTexHeight1) < 0.35f) || ((track->iCategoryFlag == 1) && (track->eType != tt_Normal)))
+            {
+                // shadows are only calculated for high enough trackbeds
+                continue;
+            }
+            Bind_Material_Shadow(track->SwitchExtension->m_material3);
+            draw(track->SwitchExtension->Geometry3);
+            break;
+        }
+        case rendermode::pickscenery: // pick scenery mode uses piece-by-piece approach
+        case rendermode::pickcontrols:
+        default:
+        {
+            break;
+        }
+        }
+    }
+
 	// post-render reset
 	switch (m_renderpass.draw_mode)
 	{
@@ -2620,7 +2680,7 @@ void opengl_renderer::Render_precipitation()
 
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
     model_ubs.param[0] = interpolate(0.5f * (Global.DayLight.diffuse + Global.DayLight.ambient), colors::white, 0.5f * clamp<float>(Global.fLuminance, 0.f, 1.f));
-	model_ubs.param[1].x = simulation::Environment.m_precipitation.get_textureoffset();
+    model_ubs.param[1].x = simulation::Environment.m_precipitation.get_textureoffset();
 	model_ubo->update(model_ubs);
 
     // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
@@ -2794,7 +2854,7 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 	auto const distance{static_cast<float>(std::sqrt(distancesquared))};
     auto const linealpha = 20.f * Traction->WireThickness / std::max(0.5f * Traction->radius() + 1.f, distance - (0.5f * Traction->radius()));
 	if (m_widelines_supported)
-		glLineWidth(clamp(0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f, 1.f, 1.5f));
+        glLineWidth(clamp(0.5f * linealpha + Traction->WireThickness * Traction->radius() / 1000.f, 1.f, 1.75f));
 
 	// render
 
@@ -3014,29 +3074,6 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 				{
 				case rendermode::color:
 				{
-
-// NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
-// for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
-#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-					switch (Submodel->m_normalizenormals)
-					{
-					case TSubModel::normalize:
-					{
-						::glEnable(GL_NORMALIZE);
-						break;
-					}
-					case TSubModel::rescale:
-					{
-						::glEnable(GL_RESCALE_NORMAL);
-						break;
-					}
-					default:
-					{
-						break;
-					}
-					}
-#else
-#endif
 					// material configuration:
 					// textures...
 					if (Submodel->m_material < 0)
@@ -3058,27 +3095,6 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
                     draw(Submodel->m_geometry);
 
                     model_ubs.emission = 0.0f;
-
-#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
-					switch (Submodel->m_normalizenormals)
-					{
-					case TSubModel::normalize:
-					{
-						::glDisable(GL_NORMALIZE);
-						break;
-					}
-					case TSubModel::rescale:
-					{
-						::glDisable(GL_RESCALE_NORMAL);
-						break;
-					}
-					default:
-					{
-						break;
-					}
-					}
-#else
-#endif
 					break;
 				}
 				case rendermode::cabshadows:
@@ -3112,16 +3128,17 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 				                                                 static_cast<float>(TSubModel::fSquareDist / Submodel->fSquareMaxDist)); // pozycja punktu świecącego względem kamery
 				Submodel->fCosViewAngle = glm::dot(glm::normalize(modelview * glm::vec4(0.f, 0.f, -1.f, 1.f) - lightcenter), glm::normalize(-lightcenter));
 
-				float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
 				if (Submodel->fCosViewAngle > Submodel->fCosFalloffAngle)
 				{
 					// only bother if the viewer is inside the visibility cone
-                    auto glarelevel{clamp<float>(0.6f - Global.fLuminance // reduce the glare in bright daylight
-                                                     + std::max(0.f, Global.Overcast - 1.f), // increase the glare in rainy/foggy conditions
-                                                 0.f, 1.f)};
+                    // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
+                    auto glarelevel{clamp(std::max<float>(0.6f - Global.fLuminance, // reduce the glare in bright daylight
+                                                          Global.Overcast - 1.f), // ensure some glare in rainy/foggy conditions
+                                          0.f, 1.f)};
+                    // view angle attenuation
+                    float const anglefactor{clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f)};
 
-					// scale it down based on view angle
-					glarelevel *= (Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (1.0f - Submodel->fCosFalloffAngle);
+                    glarelevel *= anglefactor;
 
                     if (glarelevel > 0.0f)
                     {
@@ -3135,7 +3152,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 
                         m_billboard_shader->bind();
                         Bind_Texture(0, m_glaretexture);
-                        model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), glarelevel);
+                        model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * glarelevel);
 
                         // main draw call
                         draw(m_billboardgeometry);
@@ -3463,12 +3480,13 @@ void opengl_renderer::Update_Lights(light_array &Lights)
     light_ubs.fog_color = Global.FogColor;
     if (Global.fFogEnd > 0)
 	{
-        auto const adjustedfogrange{Global.fFogEnd / std::max(1.f, Global.Overcast * 2.f)};
-        light_ubs.fog_density = 1.0f / adjustedfogrange;
+        m_fogrange = Global.fFogEnd / std::max(1.f, Global.Overcast * 2.f);
+        model_ubs.fog_density = 1.0f / m_fogrange;
 	}
     else
-        light_ubs.fog_density = 0.0f;
+        model_ubs.fog_density = 0.0f;
 
+	model_ubo->update(model_ubs);
 	light_ubo->update(light_ubs);
 }
 

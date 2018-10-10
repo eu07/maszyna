@@ -1174,9 +1174,31 @@ basic_region::RadioStop( glm::dvec3 const &Location ) {
     }
 }
 
+std::vector<std::string> switchtrackbedtextures {
+    "rozkrz8r150-1pods-new",
+    "rozkrz8r150-2pods-new",
+    "rozkrz34r150-tpbps-new2",
+    "rozkrz34r150-tpd1",
+    "rkpd34r190-tpd1",
+    "rkpd34r190-tpd2",
+    "rkpd34r190-tpd-oil2",
+    "zwr41r500",
+    "zwrot-tpd-oil1",
+    "zwrot34r300pods-new" };
+
 void
 basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {
 
+    if( Global.CreateSwitchTrackbeds ) {
+
+        auto const materialname{ GfxRenderer.Material( Shape.data().material ).name };
+        for( auto const &switchtrackbedtexture : switchtrackbedtextures ) {
+            if( materialname.find( switchtrackbedtexture ) != std::string::npos ) {
+                // geometry with blacklisted texture, part of old switch trackbed; ignore it
+                return;
+            }
+        }
+    }
     // shape might need to be split into smaller pieces, so we create list of nodes instead of just single one
     // using deque so we can do single pass iterating and addding generated pieces without invalidating anything
     std::deque<shape_node> shapes { Shape };

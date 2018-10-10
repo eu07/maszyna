@@ -19,7 +19,11 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 
 #include "imgui/imgui_impl_glfw.h"
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+#include "imgui/imgui_impl_opengl2.h"
+#else
 #include "imgui/imgui_impl_opengl3.h"
+#endif
 
 GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
@@ -129,11 +133,16 @@ bool ui_layer::init(GLFWwindow *Window)
     if (Global.map_enabled)
         m_map = std::make_unique<map>();
 
-    ImGui_ImplGlfw_InitForOpenGL(m_window);
-    ImGui_ImplOpenGL3_Init("#version 130");
     ImGui::StyleColorsClassic();
-
+    ImGui_ImplGlfw_InitForOpenGL(m_window);
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+    ImGui_ImplOpenGL2_Init();
+    ImGui_ImplOpenGL2_NewFrame();
+#else
+    ImGui_ImplOpenGL3_Init("#version 130");
     ImGui_ImplOpenGL3_NewFrame();
+#endif
+
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
@@ -144,7 +153,11 @@ void ui_layer::shutdown()
 {
     ImGui::EndFrame();
 
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+    ImGui_ImplOpenGL2_Shutdown();
+#else
     ImGui_ImplOpenGL3_Shutdown();
+#endif
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
@@ -229,9 +242,14 @@ void ui_layer::render()
     ImGui::Render();
     Timer::subsystem.gfx_gui.stop();
 
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+    ImGui_ImplOpenGL2_NewFrame();
+#else
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
     ImGui_ImplOpenGL3_NewFrame();
+#endif
+
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }

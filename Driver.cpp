@@ -339,8 +339,8 @@ std::string TSpeedPos::TableText() const
 { // pozycja tabelki pr?dko?ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
-		return "Flags:" + to_hex_str(iFlags, 8) + ", Dist:" + to_string(fDist, 1, 6) +
-               ", Vel:" + (fVelNext == -1.0 ? " - " : to_string(static_cast<int>(fVelNext), 0, 3)) + ", Name:" + GetName();
+		return to_hex_str(iFlags, 8) + "   " + to_string(fDist, 1, 6) +
+               "   " + (fVelNext == -1.0 ? "  -" : to_string(static_cast<int>(fVelNext), 0, 3)) + "   " + GetName();
     }
     return "Empty";
 }
@@ -2437,6 +2437,11 @@ bool TController::PrepareEngine()
                 mvOccupied->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
                 mvOccupied->CompressorSwitch( true );
+                // enable motor blowers
+                mvOccupied->MotorBlowersSwitchOff( false, side::front );
+                mvOccupied->MotorBlowersSwitch( true, side::front );
+                mvOccupied->MotorBlowersSwitchOff( false, side::rear );
+                mvOccupied->MotorBlowersSwitch( true, side::rear );
             }
         }
         else
@@ -4254,123 +4259,6 @@ TController::UpdateSituation(double dt) {
         fMaxProximityDist = 10.0; //[m]
         fVelPlus = 1.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         fVelMinus = 0.5; // margines prędkości powodujący załączenie napędu
-        if (AIControllFlag) {
-            if (iVehicleCount >= 0) {
-                // jeśli była podana ilość wagonów
-                if (iDrivigFlags & movePress) {
-                    // jeśli dociskanie w celu odczepienia
-                    // 3. faza odczepiania.
-                    SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                    if ((mvControlling->MainCtrlPos > 0) ||
-                        (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)) // jeśli jazda
-                    {
-                        WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
-                        TDynamicObject *p =
-                            pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
-                        int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
-                        int n = iVehicleCount; // ile wagonów ma zostać
-                        do
-                        { // szukanie pojazdu do odczepienia
-                            d = p->DirectionGet() > 0 ?
-                                    0 :
-                                    1; // numer sprzęgu od strony czoła składu
-                            // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
-                            // //jeśli sprzęg typu wózek (za mało)
-                            if (p->MoverParameters->Couplers[d].CouplingFlag &
-                                ctrain_depot) // jeżeli sprzęg zablokowany
-                                // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
-                                // (ustalić po czym poznać taki tor)
-                                ++n; // to  liczymy człony jako jeden
-                            p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                            p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
-                            if (n)
-                            { // jeśli jeszcze nie koniec
-                                p = p->Prev(); // kolejny w stronę czoła składu (licząc od
-                                // tyłu), bo dociskamy
-                                if (!p)
-                                    iVehicleCount = -2,
-                                    n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
-                            }
-                        } while (n--);
-                        if( p ? p->MoverParameters->Couplers[ d ].CouplingFlag == coupling::faux : true ) {
-                            // no target, or already just virtual coupling
-                            WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
-                            iVehicleCount = -2; // odczepiono, co było do odczepienia
-                        } else if ( p->Dettach(d) == coupling::faux ) {
-                            // tylko jeśli odepnie
-                            WriteLog( mvOccupied->Name + " odczepiony." );
-                            iVehicleCount = -2;
-                        } // a jak nie, to dociskać dalej
-                    }
-                    if (iVehicleCount >= 0) // zmieni się po odczepieniu
-                        if (!mvOccupied->DecLocalBrakeLevel(1))
-                        { // dociśnij sklad
-                            WriteLog( mvOccupied->Name + " dociskanie..." );
-                            // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
-                            // Ready=true; //zamiast sprawdzenia odhamowania całego składu
-                            IncSpeed(); // dla (Ready)==false nie ruszy
-                        }
-                }
-                if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
-                { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
-                    // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
-                    // powino zostać wyłączone)
-                    // WriteLog("Zahamowanie składu");
-                    mvOccupied->BrakeLevelSet(
-                        mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                            1 :
-                            3 );
-                    double p = mvOccupied->BrakePressureActual.PipePressureVal;
-                    if( p < 3.9 ) {
-                        // tu może być 0 albo -1 nawet
-                        // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
-                        p = 3.9;
-                    }
-                    if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                            mvOccupied->BrakePress > 2 :
-                            mvOccupied->PipePress < p + 0.1)
-                    { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na
-                        // pozycji 3, zwyle 0.37)
-                        if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)
-                            mvOccupied->BrakeLevelSet(0); // wyłączenie EP, gdy wystarczy (może
-                        // nie być potrzebne, bo na początku
-                        // jest)
-                        WriteLog("Luzowanie lokomotywy i zmiana kierunku");
-                        mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
-                        mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
-                        iDrivigFlags |= movePress; // następnie będzie dociskanie
-                        DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
-                        CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
-/*
-                        // NOTE: disabled to prevent closing the door before passengers can disembark
-                        fStopTime = 0.0; // nie ma na co czekać z odczepianiem
-*/
-                    }
-                }
-                else {
-                    if( mvOccupied->Vel > 0.01 ) {
-                        // 1st phase(?)
-                        // bring it to stop if it's not already stopped
-                        SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                    }
-                }
-            } // odczepiania
-            else // to poniżej jeśli ilość wagonów ujemna
-                if (iDrivigFlags & movePress)
-            { // 4. faza odczepiania: zwolnij i zmień kierunek
-                SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
-                if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
-                { // ponowna zmiana kierunku
-                    WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
-                    DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
-                    iDrivigFlags &= ~movePress; // koniec dociskania
-                    JumpToNextOrder(); // zmieni światła
-                    TableClear(); // skanowanie od nowa
-                    iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
-                    SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
-                }
-            }
-        }
         break;
     }
     case Shunt: {
@@ -4585,10 +4473,13 @@ TController::UpdateSituation(double dt) {
         }
 
         // ustalanie zadanej predkosci
-        if (iDrivigFlags & moveActive) // jeśli może skanować sygnały i reagować na komendy
-        { // jeśli jest wybrany kierunek jazdy, można ustalić prędkość jazdy
-            // Ra: tu by jeszcze trzeba było wstawić uzależnienie (VelDesired) od odległości od
-            // przeszkody
+        if (iDrivigFlags & moveActive) {
+
+            SetDriverPsyche(); // ustawia AccPreferred (potrzebne tu?)
+
+            // jeśli może skanować sygnały i reagować na komendy
+            // jeśli jest wybrany kierunek jazdy, można ustalić prędkość jazdy
+            // Ra: tu by jeszcze trzeba było wstawić uzależnienie (VelDesired) od odległości od przeszkody
             // no chyba żeby to uwzgldnić już w (ActualProximityDist)
             VelDesired = fVelMax; // wstępnie prędkość maksymalna dla pojazdu(-ów), będzie
             // następnie ograniczana
@@ -4597,9 +4488,6 @@ TController::UpdateSituation(double dt) {
                 // jeśli ma rozkład i ograniczenie w rozkładzie to nie przekraczać rozkladowej
                 VelDesired = min_speed( VelDesired, TrainParams->TTVmax );
             }
-
-            SetDriverPsyche(); // ustawia AccPreferred (potrzebne tu?)
-
             // szukanie optymalnych wartości
             AccDesired = AccPreferred; // AccPreferred wynika z osobowości mechanika
             VelNext = VelDesired; // maksymalna prędkość wynikająca z innych czynników niż trajektoria ruchu
@@ -4646,6 +4534,126 @@ TController::UpdateSituation(double dt) {
                 break;
             default:
                 break;
+            }
+            // disconnect mode potentially overrides scan results
+            // TBD: when in this mode skip scanning altogether?
+            if( ( OrderCurrentGet() & Disconnect ) != 0 ) {
+
+                if (AIControllFlag) {
+                    if (iVehicleCount >= 0) {
+                        // jeśli była podana ilość wagonów
+                        if (iDrivigFlags & movePress) {
+                            // jeśli dociskanie w celu odczepienia
+                            // 3. faza odczepiania.
+                            SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
+                            if ((mvControlling->MainCtrlPos > 0) ||
+                                (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)) // jeśli jazda
+                            {
+                                WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
+                                TDynamicObject *p =
+                                    pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
+                                int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
+                                int n = iVehicleCount; // ile wagonów ma zostać
+                                do
+                                { // szukanie pojazdu do odczepienia
+                                    d = p->DirectionGet() > 0 ?
+                                            0 :
+                                            1; // numer sprzęgu od strony czoła składu
+                                    // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
+                                    // //jeśli sprzęg typu wózek (za mało)
+                                    if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
+                                        // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
+                                        // (ustalić po czym poznać taki tor)
+                                        ++n; // to  liczymy człony jako jeden
+                                    p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
+                                    p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+                                    if (n)
+                                    { // jeśli jeszcze nie koniec
+                                        p = p->Prev(); // kolejny w stronę czoła składu (licząc od
+                                        // tyłu), bo dociskamy
+                                        if (!p)
+                                            iVehicleCount = -2,
+                                            n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
+                                    }
+                                } while (n--);
+                                if( p ? p->MoverParameters->Couplers[ d ].CouplingFlag == coupling::faux : true ) {
+                                    // no target, or already just virtual coupling
+                                    WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
+                                    iVehicleCount = -2; // odczepiono, co było do odczepienia
+                                } else if ( p->Dettach(d) == coupling::faux ) {
+                                    // tylko jeśli odepnie
+                                    WriteLog( mvOccupied->Name + " odczepiony." );
+                                    iVehicleCount = -2;
+                                } // a jak nie, to dociskać dalej
+                            }
+                            if (iVehicleCount >= 0) // zmieni się po odczepieniu
+                                if (!mvOccupied->DecLocalBrakeLevel(1))
+                                { // dociśnij sklad
+                                    WriteLog( mvOccupied->Name + " dociskanie..." );
+                                    // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
+                                    // Ready=true; //zamiast sprawdzenia odhamowania całego składu
+                                    IncSpeed(); // dla (Ready)==false nie ruszy
+                                }
+                        }
+                        if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
+                        { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
+                            // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
+                            // powino zostać wyłączone)
+                            // WriteLog("Zahamowanie składu");
+                            mvOccupied->BrakeLevelSet(
+                                mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
+                                    1 :
+                                    3 );
+                            double p = mvOccupied->BrakePressureActual.PipePressureVal;
+                            if( p < 3.9 ) {
+                                // tu może być 0 albo -1 nawet
+                                // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
+                                p = 3.9;
+                            }
+                            if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
+                                    mvOccupied->BrakePress > 2 :
+                                    mvOccupied->PipePress < p + 0.1)
+                            { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na
+                                // pozycji 3, zwyle 0.37)
+                                if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)
+                                    mvOccupied->BrakeLevelSet(0); // wyłączenie EP, gdy wystarczy (może
+                                // nie być potrzebne, bo na początku jest)
+                                WriteLog("Luzowanie lokomotywy i zmiana kierunku");
+                                mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
+                                mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
+                                iDrivigFlags |= movePress; // następnie będzie dociskanie
+                                DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
+                                CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
+        /*
+                                // NOTE: disabled to prevent closing the door before passengers can disembark
+                                fStopTime = 0.0; // nie ma na co czekać z odczepianiem
+        */
+                            }
+                        }
+                        else {
+                            if( mvOccupied->Vel > 0.01 ) {
+                                // 1st phase(?)
+                                // bring it to stop if it's not already stopped
+                                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                            }
+                        }
+                    } // odczepiania
+                    else // to poniżej jeśli ilość wagonów ujemna
+                        if (iDrivigFlags & movePress)
+                    { // 4. faza odczepiania: zwolnij i zmień kierunek
+                        SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
+                        if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
+                        { // ponowna zmiana kierunku
+                            WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
+                            DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
+                            iDrivigFlags &= ~movePress; // koniec dociskania
+                            JumpToNextOrder(); // zmieni światła
+                            TableClear(); // skanowanie od nowa
+                            iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
+                            SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
+                        }
+                    }
+                }
             }
 
             if( true == TestFlag( OrderList[ OrderPos ], Change_direction ) ) {

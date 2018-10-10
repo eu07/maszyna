@@ -93,6 +93,8 @@ class TSwitchExtension
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
+    material_handle m_material3 = 0; // texture of auto generated switch trackbed
+    gfx::geometry_handle Geometry3; // geometry of auto generated switch trackbed
 };
 
 class TIsolated
@@ -134,7 +136,7 @@ private:
     // members
     int iAxles { 0 }; // ilość osi na odcinkach obsługiwanych przez obiekt
     TIsolated *pNext { nullptr }; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
-    TIsolated *pParent { nullptr }; // optional parent piece, collecting data from its children
+    TIsolated *pParent { nullptr }; // optional parent piece, receiving data from its children
     static TIsolated *pRoot; // początek listy
 };
 
@@ -222,6 +224,7 @@ public:
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
     void ConnectNextPrev(TTrack *pNewNext, int typ);
     void ConnectNextNext(TTrack *pNewNext, int typ);
+    material_handle copy_adjacent_trackbed_material( TTrack const *Exclude = nullptr );
     inline double Length() const {
         return Segment->GetLength(); };
 	inline std::shared_ptr<TSegment> CurrentSegment() const {
@@ -289,6 +292,7 @@ public:
     void VelocitySet(float v);
     double VelocityGet();
     void ConnectionsLog();
+    bool DoubleSlip() const;
 
 private:
     // radius() subclass details, calculates node's bounding radius
@@ -301,6 +305,13 @@ private:
     void export_as_text_( std::ostream &Output ) const;
     // returns texture length for specified material
     float texture_length( material_handle const Material );
+    // creates profile for a part of current path
+    void create_switch_trackbed( gfx::vertex_array &Output );
+    void create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
+    void create_track_blade_profile( gfx::vertex_array &Right, gfx::vertex_array &Left );
+    void create_track_bed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next );
+    void create_road_profile( gfx::vertex_array &Output, bool const Forcetransition = false );
+    void create_road_side_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition = false );
 };
 
 

@@ -67,14 +67,14 @@ void main()
 		result += light.color * (part.x * param[1].x + part.y * param[1].y);
 	}
 
-	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a);
+	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a * alpha_mult);
 	
 #if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;
         
-        gl_FragData[1] = vec4(a - b, 0.0f, tex_color.a);
+        gl_FragData[1] = vec4(a - b, 0.0f, tex_color.a * alpha_mult);
 	}
 #endif
 }
