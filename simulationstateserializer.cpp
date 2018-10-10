@@ -161,7 +161,15 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
     std::string token { Input.getToken<std::string>() };
     if( token != "endatmo" ) {
         // optional overcast parameter
-        Global.Overcast = clamp( std::stof( token ), 0.f, 2.f );
+        Global.Overcast = std::stof( token );
+        if( Global.Overcast < 0.f ) {
+            // negative overcast means random value in range 0-abs(specified range)
+            Global.Overcast =
+                Random(
+                    clamp(
+                        std::abs( Global.Overcast ),
+                        0.f, 2.f ) );
+        }
         // overcast drives weather so do a calculation here
         // NOTE: ugly, clean it up when we're done with world refactoring
         simulation::Environment.compute_weather();
@@ -432,7 +440,16 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
           || ( nodedata.type == "triangle_strip" )
           || ( nodedata.type == "triangle_fan" ) ) {
 
-        if( false == Scratchpad.binary.terrain ) {
+        auto const skip {
+            // all shapes will be loaded from the binary version of the file
+            ( true == Scratchpad.binary.terrain )
+            // crude way to detect fixed switch trackbed geometry
+         || ( ( true == Global.CreateSwitchTrackbeds )
+           && ( Input.Name().size() >= 15 )
+           && ( Input.Name().substr( 0, 11 ) == "scenery/zwr" )
+           && ( Input.Name().substr( Input.Name().size() - 4 ) == ".inc" ) ) };
+
+        if( false == skip ) {
 
             simulation::Region->insert(
                 scene::shape_node().import(
@@ -441,7 +458,6 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
                 true );
         }
         else {
-            // all shapes were already loaded from the binary version of the file
             skip_until( Input, "endtri" );
         }
     }

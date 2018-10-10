@@ -72,6 +72,23 @@ void TSubModel::Name(std::string const &Name)
 		pName = Name;
 };
 
+// sets visibility level (alpha component) to specified value
+void
+TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
+
+    fVisible = Level;
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->SetVisibilityLevel( Level, Includechildren, false ); // no need for all siblings to duplicate the work
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetVisibilityLevel( Level, Includechildren, true ); // node's children include child's siblings and children
+    }
+}
+
 // sets light level (alpha component of illumination color) to specified value
 void
 TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
@@ -1321,7 +1338,8 @@ void TSubModel::serialize(std::ostream &s,
 	else
 		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, m_materialname));
 
-	sn_utils::ls_float32(s, fVisible);
+//	sn_utils::ls_float32(s, fVisible);
+    sn_utils::ls_float32(s, 1.f);
 	sn_utils::ls_float32(s, fLight);
 
 	sn_utils::s_vec4(s, f4Ambient);
@@ -1441,7 +1459,8 @@ void TSubModel::deserialize(std::istream &s)
 	tVboPtr = sn_utils::ld_int32(s);
 	iTexture = sn_utils::ld_int32(s);
 
-	fVisible = sn_utils::ld_float32(s);
+//	fVisible = sn_utils::ld_float32(s);
+    auto discard = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
 	f4Ambient = sn_utils::d_vec4(s);

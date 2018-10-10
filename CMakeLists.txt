@@ -105,8 +105,16 @@ set(SOURCES
 "imgui/imgui_demo.cpp"
 "imgui/imgui_draw.cpp"
 "imgui/imgui_impl_glfw.cpp"
-"imgui/imgui_impl_opengl3.cpp"
 )
+
+option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" OFF)
+
+if (USE_IMGUI_GL3)
+	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl3.cpp")
+else()
+	add_definitions(-DEU07_USEIMGUIIMPLOPENGL2)
+	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl2.cpp")
+endif()
 
 set (PREFIX "")
 
