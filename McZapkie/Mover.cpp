@@ -142,22 +142,6 @@ double TMoverParameters::Current(double n, double U)
         Mn = RList[ MainCtrlActualPos ].Mn * RList[ MainCtrlActualPos ].Bn;
     }
 
-    //  writepaslog("#",
-    //  "C++-----------------------------------------------------------------------------");
-    //  writepaslog("MCAP           ", IntToStr(MainCtrlActualPos));
-    //  writepaslog("SCAP           ", IntToStr(ScndCtrlActualPos));
-    //  writepaslog("n              ", FloatToStr(n));
-    //  writepaslog("StLinFlag      ", BoolToYN(StLinFlag));
-    //  writepaslog("DelayCtrlFlag  ", booltoYN(DelayCtrlFlag));
-    //  writepaslog("Bn             ", FloatToStr(Bn));
-    //  writepaslog("R              ", FloatToStr(R));
-    //  writepaslog("Mn             ", IntToStr(Mn));
-    //  writepaslog("RList[MCAP].Bn ", FloatToStr(RList[MainCtrlActualPos].Bn));
-    //  writepaslog("RList[MCAP].Mn ", FloatToStr(RList[MainCtrlActualPos].Mn));
-    //  writepaslog("RList[MCAP].R  ", FloatToStr(RList[MainCtrlActualPos].R));
-
-    // z Megapacka ... bylo tutaj zakomentowane    Q: no to usuwam...
-
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
         ConverterFlag && Mains) // hamowanie EP09   //TUHEX
     {
@@ -1298,7 +1282,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 if (SetFlag(DamageFlag, dtrain_out))
                 {
                     EventFlag = true;
-                    Mains = false;
+                    MainSwitch( false, range_t::local );
                     RunningShape.R = 0;
                     if (TestFlag(Track.DamageFlag, dtrack_norail))
                         DerailReason = 1; // Ra: powód wykolejenia: brak szyn
@@ -1310,7 +1294,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 if (SetFlag(DamageFlag, dtrain_out))
                 {
                     EventFlag = true;
-                    Mains = false;
+                    MainSwitch( false, range_t::local );
                     RunningShape.R = 0;
                     DerailReason = 3; // Ra: powód wykolejenia: za szeroki tor
                 }
@@ -1320,7 +1304,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             if (SetFlag(DamageFlag, dtrain_out))
             {
                 EventFlag = true;
-                Mains = false;
+                MainSwitch( false, range_t::local );
                 DerailReason = 4; // Ra: powód wykolejenia: nieodpowiednia trajektoria
             }
         if( ( true == TestFlag( DamageFlag, dtrain_out ) )
@@ -1540,7 +1524,9 @@ void TMoverParameters::WaterPumpCheck( double const Timestep ) {
     WaterPump.is_active = (
         ( true == Battery )
      && ( true == WaterPump.breaker )
-     && ( ( true == WaterPump.is_enabled ) || ( WaterPump.start_type == start_t::battery ) ) ); 
+     && ( false == WaterPump.is_disabled )
+     && ( ( true == WaterPump.is_active )
+       || ( true == WaterPump.is_enabled ) || ( WaterPump.start_type == start_t::battery ) ) ); 
 }
 
 // water heater status check
@@ -1569,10 +1555,12 @@ void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 
     FuelPump.is_active = (
         ( true == Battery )
-     && ( FuelPump.start_type == start_t::manual ? ( FuelPump.is_enabled ) :
-          FuelPump.start_type == start_t::automatic ? ( dizel_startup || Mains ) :
-          FuelPump.start_type == start_t::manualwithautofallback ? ( FuelPump.is_enabled || dizel_startup || Mains ) :
-          false ) ); // shouldn't ever get this far but, eh
+     && ( false == FuelPump.is_disabled )
+     && ( ( FuelPump.is_active )
+       || ( FuelPump.start_type == start_t::manual ? ( FuelPump.is_enabled ) :
+            FuelPump.start_type == start_t::automatic ? ( dizel_startup || Mains ) :
+            FuelPump.start_type == start_t::manualwithautofallback ? ( FuelPump.is_enabled || dizel_startup || Mains ) :
+            false ) ) ); // shouldn't ever get this far but, eh
 }
 
 // oil pump status update
@@ -1580,10 +1568,13 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
 
     OilPump.is_active = (
         ( true == Battery )
-     && ( OilPump.start_type == start_t::manual ? ( OilPump.is_enabled ) :
-          OilPump.start_type == start_t::automatic ? ( dizel_startup || Mains ) :
-          OilPump.start_type == start_t::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup || Mains ) :
-          false ) ); // shouldn't ever get this far but, eh
+     && ( false == Mains )
+     && ( false == OilPump.is_disabled )
+     && ( ( OilPump.is_active )
+       || ( OilPump.start_type == start_t::manual ? ( OilPump.is_enabled ) :
+            OilPump.start_type == start_t::automatic ? ( dizel_startup ) :
+            OilPump.start_type == start_t::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup ) :
+            false ) ) ); // shouldn't ever get this far but, eh
 
     auto const maxrevolutions {
         EngineType == TEngineType::DieselEngine ?
@@ -2417,6 +2408,31 @@ bool TMoverParameters::WaterPumpSwitch( bool State, range_t const Notify ) {
     return ( WaterPump.is_enabled != initialstate );
 }
 
+// water pump state toggle
+bool TMoverParameters::WaterPumpSwitchOff( bool State, range_t const Notify ) {
+
+    if( WaterPump.start_type == start_t::battery ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { WaterPump.is_disabled };
+
+    WaterPump.is_disabled = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "WaterPumpSwitchOff",
+            ( WaterPump.is_disabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( WaterPump.is_disabled != initialstate );
+}
+
 // water heater breaker state toggle
 bool TMoverParameters::WaterHeaterBreakerSwitch( bool State, range_t const Notify ) {
 /*
@@ -2517,6 +2533,30 @@ bool TMoverParameters::FuelPumpSwitch( bool State, range_t const Notify ) {
     return ( FuelPump.is_enabled != initialstate );
 }
 
+bool TMoverParameters::FuelPumpSwitchOff( bool State, range_t const Notify ) {
+
+    if( FuelPump.start_type == start_t::automatic ) {
+        // automatic fuel pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { FuelPump.is_disabled };
+
+    FuelPump.is_disabled = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "FuelPumpSwitchOff",
+            ( FuelPump.is_disabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( FuelPump.is_disabled != initialstate );
+}
+
 // oil pump state toggle
 bool TMoverParameters::OilPumpSwitch( bool State, range_t const Notify ) {
 
@@ -2540,6 +2580,30 @@ bool TMoverParameters::OilPumpSwitch( bool State, range_t const Notify ) {
     }
 
     return ( OilPump.is_enabled != initialstate );
+}
+
+bool TMoverParameters::OilPumpSwitchOff( bool State, range_t const Notify ) {
+
+    if( OilPump.start_type == start_t::automatic ) {
+        // automatic pump ignores 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { OilPump.is_disabled };
+
+    OilPump.is_disabled = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "OilPumpSwitchOff",
+            ( OilPump.is_disabled ? 1 : 0 ),
+            CabNo,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( OilPump.is_disabled != initialstate );
 }
 
 // *************************************************************************************************
@@ -2575,6 +2639,9 @@ bool TMoverParameters::MainSwitch( bool const State, range_t const Notify )
             }
             else {
                 Mains = false;
+                // potentially knock out the pumps if their switch doesn't force them on
+                WaterPump.is_active &= WaterPump.is_enabled;
+                FuelPump.is_active &= FuelPump.is_enabled;
             }
 
             if( ( TrainType == dt_EZT )
@@ -4447,6 +4514,13 @@ double TMoverParameters::TractionForce( double dt ) {
                         && ( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) ); // TODO: check whether we need to send this EMU-wide
             break;
         }
+
+        case TEngineType::DieselElectric: {
+            // TODO: move this to the auto relay check when the electric engine code paths are unified
+            StLinFlag = MotorConnectorsCheck();
+            break;
+        }
+
         default: {
             break;
         }
@@ -4689,7 +4763,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 Voltage = 0;
 
             // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-            if ((MainCtrlPos == 0) || (ShuntMode))
+            if ((MainCtrlPos == 0) || (ShuntMode) || (false==Mains))
                 ScndCtrlPos = 0;
 
             else {
@@ -5391,19 +5465,14 @@ bool TMoverParameters::AutoRelayCheck(void)
     bool OK = false; // b:int;
     bool ARC = false;
 
+    auto const motorconnectors { MotorConnectorsCheck() };
+
     // Ra 2014-06: dla SN61 nie działa prawidłowo
-    // rozlaczanie stycznikow liniowych
-    if( ( false == Mains )
-     || ( true == FuseFlag )
-     || ( true == StLinSwitchOff )
-     || ( MainCtrlPos == 0 )
-     || ( ( TrainType != dt_EZT ) && ( BrakePress > 2.1 ) )
-     || ( ActiveDir == 0 ) ) // hunter-111211: wylacznik cisnieniowy
-    {
-        StLinFlag = false; // yBARC - rozlaczenie stycznikow liniowych
+    // yBARC - rozlaczenie stycznikow liniowych
+    if( false == motorconnectors ) {
+        StLinFlag = false;
         OK = false;
-        if (!DynamicBrakeFlag)
-        {
+        if( false == DynamicBrakeFlag ) {
             Im = 0;
             Itot = 0;
             ResistorsFlag = false;
@@ -5578,17 +5647,11 @@ bool TMoverParameters::AutoRelayCheck(void)
         else // not StLinFlag
         {
             OK = false;
-            // ybARC - tutaj sa wszystkie warunki, jakie musza byc spelnione, zeby mozna byla
-            // zalaczyc styczniki liniowe
-            if (((MainCtrlPos == 1) || ((TrainType == dt_EZT) && (MainCtrlPos > 0))) &&
-                (!FuseFlag) && (Mains) && ((BrakePress < 1.0) || (TrainType == dt_EZT)) &&
-                (MainCtrlActualPos == 0) && (ActiveDir != 0))
-            { //^^ TODO: sprawdzic BUG, prawdopodobnie w CreateBrakeSys()
+            // ybARC - zalaczenie stycznikow liniowych
+            if( true == motorconnectors ) {
                 DelayCtrlFlag = true;
-                if( (LastRelayTime >= InitialCtrlDelay)
-                 && ( false == StLinSwitchOff ) )
-                {
-                    StLinFlag = true; // ybARC - zalaczenie stycznikow liniowych
+                if( LastRelayTime >= InitialCtrlDelay ) {
+                    StLinFlag = true;
                     MainCtrlActualPos = 1;
                     DelayCtrlFlag = false;
                     SetFlag(SoundFlag, sound::relay | sound::loud);
@@ -5659,6 +5722,34 @@ bool TMoverParameters::AutoRelayCheck(void)
 
         return OK;
     }
+}
+
+bool TMoverParameters::MotorConnectorsCheck() {
+
+    // hunter-111211: wylacznik cisnieniowy
+    auto const pressureswitch {
+        ( TrainType != dt_EZT )
+     && ( ( BrakePress > 2.0 )
+       || ( PipePress < 3.6 ) ) };
+
+    if( pressureswitch ) { return false; }
+
+    auto const connectorsoff {
+        ( false == Mains )
+     || ( true == FuseFlag )
+     || ( true == StLinSwitchOff )
+     || ( MainCtrlPos == 0 )
+     || ( ActiveDir == 0 ) };
+
+    if( connectorsoff ) { return false; }
+
+    auto const connectorson {
+        ( true == StLinFlag )
+     || ( ( MainCtrlActualPos == 0 )
+       && ( ( MainCtrlPos == 1 )
+         || ( ( TrainType == dt_EZT ) && ( MainCtrlPos > 0 ) ) ) ) };
+
+    return connectorson;
 }
 
 // *************************************************************************************************
@@ -9136,6 +9227,14 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
+    else if( Command == "WaterPumpSwitchOff" ) {
+
+        if( WaterPump.start_type != start_t::battery ) {
+            // automatic fuel pump ignores 'manual' state commands
+            WaterPump.is_disabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
     else if( Command == "WaterHeaterBreakerSwitch" ) {
 /*
         if( FuelPump.start_type != start::automatic ) {
@@ -9172,10 +9271,24 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
+    else if (Command == "FuelPumpSwitchOff") {
+        if( FuelPump.start_type != start_t::automatic ) {
+            // automatic fuel pump ignores 'manual' state commands
+            FuelPump.is_disabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+	}
     else if (Command == "OilPumpSwitch") {
         if( OilPump.start_type != start_t::automatic ) {
             // automatic pump ignores 'manual' state commands
             OilPump.is_enabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+	}
+    else if (Command == "OilPumpSwitchOff") {
+        if( OilPump.start_type != start_t::automatic ) {
+            // automatic pump ignores 'manual' state commands
+            OilPump.is_disabled = ( CValue1 == 1 );
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
@@ -9193,6 +9306,9 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		}
         else {
             Mains = false;
+            // potentially knock out the pumps if their switch doesn't force them on
+            WaterPump.is_active &= WaterPump.is_enabled;
+            FuelPump.is_active &= FuelPump.is_enabled;
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}

@@ -2012,7 +2012,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                         auto const indexstart { 1 };
                         auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
                         auto const huntingchance { std::atoi( ActPar.substr( indexstart, indexend ).c_str() ) };
-                        MoverParameters->TruckHunting = ( Random( 0, 100 ) <= huntingchance );
+                        MoverParameters->TruckHunting = ( Random( 0, 100 ) < huntingchance );
                         ActPar.erase( 0, indexend );
                         break;
                     }
@@ -2155,7 +2155,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         btShutters1.Init( "shutters1", mdModel, false );
     }
     if( MoverParameters->dizel_heat.water_aux.config.shutters ) {
-        btShutters1.Init( "shutters2", mdModel, false );
+        btShutters2.Init( "shutters2", mdModel, false );
     }
     TurnOff(); // resetowanie zmiennych submodeli
 
@@ -2394,12 +2394,12 @@ void TDynamicObject::Move(double fDistance)
         // normalizacja potrzebna z powodu pochylenia (vFront)
         vUp = CrossProduct(vFront, vLeft); // wektor w górę, będzie jednostkowy
         modelRot.z = atan2(-vFront.x, vFront.z); // kąt obrotu pojazdu [rad]; z ABuBogies()
-        double a = ((Axle1.GetRoll() + Axle0.GetRoll())); // suma przechyłek
-        if (a != 0.0)
+        auto const roll { Roll() }; // suma przechyłek
+        if (roll != 0.0)
         { // wyznaczanie przechylenia tylko jeśli jest przechyłka
             // można by pobrać wektory normalne z toru...
             mMatrix.Identity(); // ta macierz jest potrzebna głównie do wyświetlania
-            mMatrix.Rotation(a * 0.5, vFront); // obrót wzdłuż osi o przechyłkę
+            mMatrix.Rotation(roll * 0.5, vFront); // obrót wzdłuż osi o przechyłkę
             vUp = mMatrix * vUp; // wektor w górę pojazdu (przekręcenie na przechyłce)
             // vLeft=mMatrix*DynamicObject->vLeft;
             // vUp=CrossProduct(vFront,vLeft); //wektor w górę
@@ -2836,7 +2836,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // TTrackParam tp;
     tp.Width = MyTrack->fTrackWidth;
     // McZapkie-250202
-    tp.friction = MyTrack->fFriction * Global.fFriction;
+    tp.friction = MyTrack->fFriction * Global.fFriction * Global.FrictionWeatherFactor;
     tp.CategoryFlag = MyTrack->iCategoryFlag & 15;
     tp.DamageFlag = MyTrack->iDamageFlag;
     tp.QualityFlag = MyTrack->iQualityFlag;
@@ -3985,6 +3985,19 @@ void TDynamicObject::RenderSounds() {
         sSmallCompressor.stop();
     }
 
+    // heater sound
+    if( ( true == MoverParameters->Heating )
+     && ( std::abs( MoverParameters->enrot ) > 0.01 ) ) {
+        // TBD: check whether heating should depend on 'engine rotations' for electric vehicles
+        sHeater
+            .pitch( true == sHeater.is_combined() ?
+                    std::abs( MoverParameters->enrot ) * 60.f * 0.01f :
+                    1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        sHeater.stop();
+    }
 
     // brake system and braking sounds:
 
@@ -4004,8 +4017,7 @@ void TDynamicObject::RenderSounds() {
         }
         else if( quantizedratiochange < 0 ) {
             m_brakecylinderpistonrecede
-                .pitch(
-                    true == m_brakecylinderpistonrecede.is_combined() ?
+                .pitch( true == m_brakecylinderpistonrecede.is_combined() ?
                         quantizedratio * 0.01f :
                         m_brakecylinderpistonrecede.m_frequencyoffset + m_brakecylinderpistonrecede.m_frequencyfactor * 1.f )
                 .play();
@@ -5410,6 +5422,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sConverter.owner( this );
                 }
 
+                else if( token == "heater:" ) {
+                    // train heating device
+                    sHeater.deserialize( parser, sound_type::single );
+                    sHeater.owner( this );
+                }
+
 				else if( token == "turbo:" ) {
 					// pliki z turbogeneratorem
                     m_powertrainsounds.engine_turbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
@@ -5844,7 +5862,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     // other engine compartment sounds
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &sConverter, &sCompressor, &sSmallCompressor
+        &sConverter, &sCompressor, &sSmallCompressor, &sHeater
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {

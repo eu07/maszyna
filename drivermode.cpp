@@ -230,6 +230,8 @@ driver_mode::update() {
 
     update_camera( deltarealtime );
 
+    simulation::Environment.update_precipitation(); // has to be launched after camera step to work properly
+
     Timer::subsystem.sim_total.stop();
 
     simulation::Region->update_sounds();
@@ -323,8 +325,10 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
     Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
     Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
 
+    bool anyModifier = Mods & (GLFW_MOD_SHIFT | GLFW_MOD_CONTROL | GLFW_MOD_ALT);
+
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_key( Key, Action ) ) { return; }
+    if( !anyModifier && true == m_userinterface->on_key( Key, Action ) ) { return; }
     // ...if the input is left untouched, pass it on
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 
@@ -948,6 +952,7 @@ driver_mode::InOutKey( bool const Near )
             train->Dynamic()->ABuSetModelShake( { 0, 0, 0 } );
             train->MechStop();
             FollowView(); // na pozycję mecha
+            train->UpdateMechPosition( m_secondaryupdaterate );
         }
         else
             FreeFlyModeFlag = true; // nadal poza kabiną

@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 (GL3) 20.09.2018, based master-d9020b58, tmj-2448e59"
+#define VERSION_INFO "M7 (GL3) 10.10.2018, based master-c7ef111, tmj-913541b"

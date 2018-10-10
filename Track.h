@@ -299,7 +299,8 @@ private:
     void deserialize_( std::istream &Input );
     // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
     void export_as_text_( std::ostream &Output ) const;
-
+    // returns texture length for specified material
+    float texture_length( material_handle const Material );
 };
 
 

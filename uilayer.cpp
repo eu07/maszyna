@@ -170,6 +170,11 @@ bool ui_layer::on_key(int const Key, int const Action)
             return true;
         }
 
+        if (Key == GLFW_KEY_F10) {
+            m_quit_active = !m_quit_active;
+            return true;
+        }
+
         if (m_quit_active)
         {
             if (Key == GLFW_KEY_Y) {
@@ -319,7 +324,7 @@ void ui_layer::render_menu_contents()
     if (ImGui::BeginMenu(LOC_STR(ui_general)))
     {
         ImGui::MenuItem(LOC_STR(ui_debug_mode), nullptr, &DebugModeFlag);
-        ImGui::MenuItem(LOC_STR(ui_quit), nullptr, &m_quit_active);
+        ImGui::MenuItem(LOC_STR(ui_quit), "F10", &m_quit_active);
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu(LOC_STR(ui_tools)))

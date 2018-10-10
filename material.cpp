@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "utilities.h"
 #include "Logs.h"
+#include "sn_utils.h"
 
 opengl_material::opengl_material()
 {
@@ -171,12 +172,16 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         if( key == Global.Weather ) {
             // weather textures override generic (pri 0) and seasonal (pri 1) textures
             // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, Priority + 2, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
         else if( key == Global.Season ) {
             // seasonal textures override generic textures
+            // skip the opening bracket
+            auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
             while( true == deserialize_mapping( Input, 1, Loadnow ) ) {
                 ; // all work is done in the header
             }
@@ -243,6 +248,12 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             std::string value = deserialize_random_set( Input );
             selfillum = std::stof(value); //m7t: handle exception
             m_selfillum_priority = Priority;
+        }
+        else if( key == "size:" ) {
+            Input.getTokens( 2 );
+            Input
+                >> size.x
+                >> size.y;
         }
         else {
             auto const value = Input.getToken<std::string>( true, "\n\r\t ;" );

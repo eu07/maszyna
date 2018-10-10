@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "mtable.h"
 #include "Console.h"
-#include "sound.h"
+#include "application.h"
 
 namespace input {
 
@@ -454,6 +454,7 @@ PyObject *TTrain::GetTrainState() {
         return nullptr;
     }
 
+    PyDict_SetItemString( dict, "name", PyGetString( DynamicObject->asName.c_str() ) );
     PyDict_SetItemString( dict, "cab", PyGetInt( mover->ActiveCab ) );
     // basic systems state data
     PyDict_SetItemString( dict, "battery", PyGetBool( mvControlled->Battery ) );
@@ -474,7 +475,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
     bool bPN;
     if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
-        || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
 
         TBrake* temp_ham = mvControlled->Hamulec.get();
         bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP() > 0.2 );
@@ -482,6 +483,8 @@ PyObject *TTrain::GetTrainState() {
     else
         bPN = false;
     PyDict_SetItemString( dict, "indir_brake", PyGetBool( bPN ) );
+	PyDict_SetItemString( dict, "brake_delay_flag", PyGetInt( mvControlled->BrakeDelayFlag ));
+	PyDict_SetItemString( dict, "brake_op_mode_flag", PyGetInt( mvControlled->BrakeOpModeFlag ));
     // other controls
     PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
     PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
@@ -532,9 +535,9 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "unit_no", PyGetInt( iUnitNo ) );
 
     for( int i = 0; i < 20; i++ ) {
-        PyDict_SetItemString( dict, ( "doors_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 0 ] ) );
-        PyDict_SetItemString( dict, ( "doors_r_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 1 ] ) );
-        PyDict_SetItemString( dict, ( "doors_l_" + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 2 ] ) );
+        PyDict_SetItemString( dict, ( "doors_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 0 ] ) );
+        PyDict_SetItemString( dict, ( "doors_r_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 1 ] ) );
+        PyDict_SetItemString( dict, ( "doors_l_" + std::to_string( i + 1 ) ).c_str(), PyGetBool( bDoors[ i ][ 2 ] ) );
         PyDict_SetItemString( dict, ( "doors_no_" + std::to_string( i + 1 ) ).c_str(), PyGetInt( iDoorNo[ i ] ) );
         PyDict_SetItemString( dict, ( "code_" + std::to_string( i + 1 ) ).c_str(), PyGetString( ( std::to_string( iUnits[ i ] ) + cCode[ i ] ).c_str() ) );
         PyDict_SetItemString( dict, ( "car_name" + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
@@ -1327,9 +1330,11 @@ void TTrain::OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_da
             // audio feedback
 			Train->dsbPneumaticSwitch.play();
 			// visual feedback
-			// NOTE: there's no button for brake operation mode switch
-			// TBD, TODO: add brake operation mode switch?
-		}
+            Train->ggBrakeOperationModeCtrl.UpdateValue(
+                Train->mvOccupied->BrakeOpModeFlag > 0 ?
+                    std::log2( Train->mvOccupied->BrakeOpModeFlag ) :
+                    0 );
+        }
 	}
 }
 
@@ -1343,8 +1348,10 @@ void TTrain::OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_da
 			// audio feedback
 			Train->dsbPneumaticSwitch.play();
 			// visual feedback
-			// NOTE: there's no button for brake operation mode switch
-			// TBD, TODO: add brake operation mode switch?
+            Train->ggBrakeOperationModeCtrl.UpdateValue(
+                Train->mvOccupied->BrakeOpModeFlag > 0 ?
+                    std::log2( Train->mvOccupied->BrakeOpModeFlag ) :
+                    0 );
 		}
 	}
 }
@@ -2116,8 +2123,17 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_fuelpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->FuelPump.is_enabled ) {
             // turn on
             OnCommand_fuelpumpenable( Train, Command );
@@ -2131,32 +2147,65 @@ void TTrain::OnCommand_fuelpumptoggle( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_fuelpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->FuelPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->FuelPumpSwitch( true );
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( true );
+            Train->mvControlled->FuelPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_fuelpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->FuelPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->FuelPumpSwitch( false );
+    if( Train->ggFuelPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggFuelPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->FuelPumpSwitch( false );
+            Train->mvControlled->FuelPumpSwitchOff( true );
+        }
     }
 }
 
 void TTrain::OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_oilpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->OilPump.is_enabled ) {
             // turn on
             OnCommand_oilpumpenable( Train, Command );
@@ -2170,25 +2219,49 @@ void TTrain::OnCommand_oilpumptoggle( TTrain *Train, command_data const &Command
 
 void TTrain::OnCommand_oilpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->OilPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->OilPumpSwitch( true );
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( true );
+            Train->mvControlled->OilPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_oilpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->OilPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->OilPumpSwitch( false );
+    if( Train->ggOilPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggOilPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OilPumpSwitch( false );
+            Train->mvControlled->OilPumpSwitchOff( true );
+        }
     }
 }
 
@@ -2311,8 +2384,17 @@ void TTrain::OnCommand_waterpumpbreakeropen( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_waterpumptoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no off button so we always try to turn it on
+        OnCommand_waterpumpenable( Train, Command );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
         if( false == Train->mvControlled->WaterPump.is_enabled ) {
             // turn on
             OnCommand_waterpumpenable( Train, Command );
@@ -2326,25 +2408,49 @@ void TTrain::OnCommand_waterpumptoggle( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_waterpumpenable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( true == Train->mvControlled->WaterPump.is_enabled ) { return; } // already enabled
-
-        Train->mvControlled->WaterPumpSwitch( true );
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( false );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 1.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( true );
+            Train->mvControlled->WaterPumpSwitchOff( false );
+        }
     }
 }
 
 void TTrain::OnCommand_waterpumpdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-        if( false == Train->mvControlled->WaterPump.is_enabled ) { return; } // already disabled
-
-        Train->mvControlled->WaterPumpSwitch( false );
+    if( Train->ggWaterPumpButton.type() == TGaugeType::push ) {
+        // impulse switch
+        // currently there's no disable return type switch
+        return;
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggWaterPumpButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->WaterPumpSwitch( false );
+            Train->mvControlled->WaterPumpSwitchOff( true );
+        }
     }
 }
 
@@ -4542,31 +4648,14 @@ void TTrain::UpdateMechPosition(double dt)
         2 :
         DynamicObject->MoverParameters->ActiveCab );
     if( !DebugModeFlag ) { // sprawdzaj więzy //Ra: nie tu!
-        if( pMechPosition.x < Cabine[ iCabn ].CabPos1.x )
-            pMechPosition.x = Cabine[ iCabn ].CabPos1.x;
-        if( pMechPosition.x > Cabine[ iCabn ].CabPos2.x )
-            pMechPosition.x = Cabine[ iCabn ].CabPos2.x;
-        if( pMechPosition.z < Cabine[ iCabn ].CabPos1.z )
-            pMechPosition.z = Cabine[ iCabn ].CabPos1.z;
-        if( pMechPosition.z > Cabine[ iCabn ].CabPos2.z )
-            pMechPosition.z = Cabine[ iCabn ].CabPos2.z;
-        if( pMechPosition.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
-            pMechPosition.y = Cabine[ iCabn ].CabPos1.y + 1.8;
-        if( pMechPosition.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
-            pMechPosition.y = Cabine[ iCabn ].CabPos2.y + 0.5;
 
-        if( pMechOffset.x < Cabine[ iCabn ].CabPos1.x )
-            pMechOffset.x = Cabine[ iCabn ].CabPos1.x;
-        if( pMechOffset.x > Cabine[ iCabn ].CabPos2.x )
-            pMechOffset.x = Cabine[ iCabn ].CabPos2.x;
-        if( pMechOffset.z < Cabine[ iCabn ].CabPos1.z )
-            pMechOffset.z = Cabine[ iCabn ].CabPos1.z;
-        if( pMechOffset.z > Cabine[ iCabn ].CabPos2.z )
-            pMechOffset.z = Cabine[ iCabn ].CabPos2.z;
-        if( pMechOffset.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
-            pMechOffset.y = Cabine[ iCabn ].CabPos1.y + 1.8;
-        if( pMechOffset.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
-            pMechOffset.y = Cabine[ iCabn ].CabPos2.y + 0.5;
+        pMechPosition.x = clamp( pMechPosition.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
+        pMechPosition.y = clamp( pMechPosition.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
+        pMechPosition.z = clamp( pMechPosition.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
+
+        pMechOffset.x = clamp( pMechOffset.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
+        pMechOffset.y = clamp( pMechOffset.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
+        pMechOffset.z = clamp( pMechOffset.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
     }
 };
 
@@ -4706,7 +4795,6 @@ bool TTrain::Update( double const Deltatime )
             }
         }
 
-        tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
         auto const maxtacho { 3.0 };
         fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
@@ -5145,14 +5233,13 @@ bool TTrain::Update( double const Deltatime )
                 ( true == mvControlled->ResistorsFlagCheck() )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
-            if( ( mvControlled->StLinFlag )
-             || ( mvOccupied->BrakePress > 2.0 )
-             || ( mvOccupied->PipePress < 3.6 ) ) {
-                // Ra: czy to jest udawanie działania styczników liniowych?
+            if( mvControlled->StLinFlag ) {
                 btLampkaStyczn.Turn( false );
             }
-            else if( mvOccupied->BrakePress < 1.0 )
-                btLampkaStyczn.Turn( true ); // mozna prowadzic rozruch
+            else {
+                // mozna prowadzic rozruch
+                btLampkaStyczn.Turn( mvOccupied->BrakePress < 1.0 );
+            }
             if( ( ( TestFlag( mvControlled->Couplers[ side::rear ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == 1 ) )
              || ( ( TestFlag( mvControlled->Couplers[ side::front ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == -1 ) ) )
                 btLampkaUkrotnienie.Turn( true );
@@ -5461,7 +5548,7 @@ bool TTrain::Update( double const Deltatime )
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
 						(Global.iFeedbackMode == 4 /*|| (Global.bMWDmasterEnable && Global.bMWDBreakEnable)*/)) :
-                    false) // nie blokujemy AI
+                    false && Global.fCalibrateIn[ 0 ][ 1 ] != 0.0) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
 				if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
@@ -5494,7 +5581,7 @@ bool TTrain::Update( double const Deltatime )
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
              && ( mvOccupied->BrakeLocHandle == TBrakeHandle::FD1 )
-             && ( ( Global.iFeedbackMode == 4 )
+             && ( ( Global.iFeedbackMode == 4 ) && Global.fCalibrateIn[ 1 ][ 1 ] != 0.0
                /*|| ( Global.bMWDmasterEnable && Global.bMWDBreakEnable )*/ ) ) {
                 // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
                 // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -5521,6 +5608,7 @@ bool TTrain::Update( double const Deltatime )
         ggBrakeProfileCtrl.Update();
         ggBrakeProfileG.Update();
         ggBrakeProfileR.Update();
+		ggBrakeOperationModeCtrl.Update();
         ggMaxCurrentCtrl.Update();
         // NBMX wrzesien 2003 - drzwi
         ggDoorLeftButton.Update();
@@ -5628,7 +5716,6 @@ bool TTrain::Update( double const Deltatime )
         ggFuelPumpButton.Update();
         ggOilPumpButton.Update();
         //------
-        pyScreens.update();
     }
     // wyprowadzenie sygnałów dla haslera na PoKeys (zaznaczanie na taśmie)
     btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress > 0.4); // ciśnienie w cylindrach
@@ -5698,8 +5785,8 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 /*
-    // NOTE: disabled while switch state isn't preserved while moving between compartments
     // check whether we should raise the pantographs, based on volume in pantograph tank
+    // NOTE: disabled while switch state isn't preserved while moving between compartments
     if( mvControlled->PantPress > (
             mvControlled->TrainType == dt_EZT ?
                 2.4 :
@@ -5714,7 +5801,15 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 */
-
+    // screens
+    fScreenTimer += Deltatime;
+    if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
+     && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
+        fScreenTimer = 0.f;
+        for( auto const &screen : m_screens ) {
+            Application.request( { screen.first, GetTrainState(), screen.second } );
+        }
+    }
     // sounds
     update_sounds( Deltatime );
 
@@ -5875,7 +5970,6 @@ TTrain::update_sounds( double const Deltatime ) {
             dsbSlipAlarm.stop();
         }
     }
-
     // szum w czasie jazdy
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
@@ -5894,6 +5988,15 @@ TTrain::update_sounds( double const Deltatime ) {
      && ( IsHunting ) ) {
 
         update_sounds_runningnoise( rsHuntingNoise );
+        // modify calculated sound volume by hunting amount
+        auto const huntingamount =
+            interpolate(
+                0.0, 1.0,
+                clamp(
+                ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
+                    0.0, 1.0 ) );
+
+        rsHuntingNoise.gain( rsHuntingNoise.gain() * huntingamount );
     }
     else {
         // don't play the optional ending sound if the listener switches views
@@ -6273,6 +6376,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 {
     m_controlmapper.clear();
+    // clear python screens
+    m_screens.clear();
     // reset sound positions and owner
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> sounds = {
@@ -6290,9 +6395,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pMechViewAngle = { 0.0, 0.0 };
     Global.pCamera.Pitch = pMechViewAngle.x;
     Global.pCamera.Yaw = pMechViewAngle.y;
-
-    pyScreens.reset(this);
-    pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
@@ -6488,9 +6590,32 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // matched the token, grab the next one
                 continue;
             }
+            // TODO: add "pydestination:"
             else if (token == "pyscreen:")
             {
-                pyScreens.init(parser, DynamicObject->mdKabina, DynamicObject->name(), NewCabNo);
+                std::string submodelname, renderername;
+                parser.getTokens( 2 );
+                parser
+                    >> submodelname
+                    >> renderername;
+
+                auto const *submodel { DynamicObject->mdKabina->GetFromName( submodelname ) };
+                if( submodel == nullptr ) {
+                    WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
+                    continue;
+                }
+                auto const material { submodel->GetMaterial() };
+                if( material <= 0 ) {
+                    // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
+                    WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
+                    continue;
+                }
+                // record renderer and material binding for future update requests
+                m_screens.emplace_back(
+                    ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
+                        DynamicObject->asBaseDir + renderername :
+                        renderername ),
+                    material );
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");
@@ -6499,7 +6624,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         return false;
     }
-    pyScreens.start();
     if (DynamicObject->mdKabina)
     {
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
@@ -6739,6 +6863,7 @@ void TTrain::clear_cab_controls()
     ggBrakeProfileCtrl.Clear();
     ggBrakeProfileG.Clear();
     ggBrakeProfileR.Clear();
+	ggBrakeOperationModeCtrl.Clear();
     ggMaxCurrentCtrl.Clear();
     ggMainOffButton.Clear();
     ggMainOnButton.Clear();
@@ -7105,6 +7230,12 @@ void TTrain::set_cab_controls() {
                 1.0 :
                 0.0 );
     }
+	if (ggBrakeOperationModeCtrl.SubModel != nullptr) {
+		ggBrakeOperationModeCtrl.PutValue(
+			(mvOccupied->BrakeOpModeFlag > 0 ?
+				log2(mvOccupied->BrakeOpModeFlag) :
+				0));
+	}
     // alarm chain
     ggAlarmChain.PutValue(
         mvControlled->AlarmChainFlag ?
@@ -7125,10 +7256,12 @@ void TTrain::set_cab_controls() {
         mvControlled->WaterPump.breaker ?
             1.0 :
             0.0 );
-    ggWaterPumpButton.PutValue(
-        mvControlled->WaterPump.is_enabled ?
-            1.0 :
-            0.0 );
+    if( ggWaterPumpButton.type() != TGaugeType::push ) {
+        ggWaterPumpButton.PutValue(
+            mvControlled->WaterPump.is_enabled ?
+                1.0 :
+                0.0 );
+    }
     // water heater
     ggWaterHeaterBreakerButton.PutValue(
         mvControlled->WaterHeater.breaker ?
@@ -7143,15 +7276,19 @@ void TTrain::set_cab_controls() {
             1.0 :
             0.0 );
     // fuel pump
-    ggFuelPumpButton.PutValue(
-        mvControlled->FuelPump.is_enabled ?
-            1.0 :
-            0.0 );
+    if( ggFuelPumpButton.type() != TGaugeType::push ) {
+        ggFuelPumpButton.PutValue(
+            mvControlled->FuelPump.is_enabled ?
+                1.0 :
+                0.0 );
+    }
     // oil pump
-    ggOilPumpButton.PutValue(
-        mvControlled->OilPump.is_enabled ?
+    if( ggOilPumpButton.type() != TGaugeType::push ) {
+        ggOilPumpButton.PutValue(
+            mvControlled->OilPump.is_enabled ?
             1.0 :
             0.0 );
+    }
     
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
@@ -7296,6 +7433,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "brakeprofile_sw:", ggBrakeProfileCtrl },
         { "brakeprofileg_sw:", ggBrakeProfileG },
         { "brakeprofiler_sw:", ggBrakeProfileR },
+		{ "brakeopmode_sw:", ggBrakeOperationModeCtrl },
         { "maxcurrent_sw:", ggMaxCurrentCtrl },
         { "main_off_bt:", ggMainOffButton },
         { "main_on_bt:", ggMainOnButton },
@@ -7558,9 +7696,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), TGaugeType::gt_Rotate, 1.0/60.0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), TGaugeType::gt_Rotate, 1.0/60.0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), TGaugeType::gt_Rotate, 1.0/12.0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), TGaugeAnimation::gt_Rotate, 1.0/60.0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), TGaugeAnimation::gt_Rotate, 1.0/60.0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), TGaugeAnimation::gt_Rotate, 1.0/12.0);
         }
     }
     else if (Label == "evoltage:")

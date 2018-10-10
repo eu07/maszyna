@@ -140,8 +140,10 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
     Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
     Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
 
+    bool anyModifier = Mods & (GLFW_MOD_SHIFT | GLFW_MOD_CONTROL | GLFW_MOD_ALT);
+
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_key( Key, Action ) ) { return; }
+    if( !anyModifier && true == m_userinterface->on_key( Key, Action ) ) { return; }
     // ...if the input is left untouched, pass it on
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 

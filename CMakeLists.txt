@@ -108,6 +108,8 @@ set(SOURCES
 "scenenodegroups.cpp"
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"
+"precipitation.cpp"
+"openglcolor.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

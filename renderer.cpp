@@ -342,15 +342,9 @@ bool opengl_renderer::Render()
 	if (m_gllasttime)
 		m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
 
-    m_debugstatstext =
-        "drawcalls:  " + to_string( m_debugstats.drawcalls ) + "\n"
-        + " vehicles:  " + to_string( m_debugstats.dynamics ) + "\n"
-        + " models:    " + to_string( m_debugstats.models ) + "\n"
-        + " submodels: " + to_string( m_debugstats.submodels ) + "\n"
-        + " paths:     " + to_string( m_debugstats.paths ) + "\n"
-        + " shapes:    " + to_string( m_debugstats.shapes ) + "\n"
-        + " traction:  " + to_string( m_debugstats.traction ) + "\n"
-        + " lines:     " + to_string( m_debugstats.lines );
+    m_debugstatstext = "drawcalls:  " + to_string(m_debugstats.drawcalls) + "\n" + " vehicles:  " + to_string(m_debugstats.dynamics) + "\n" + " models:    " + to_string(m_debugstats.models) + "\n" +
+                       " submodels: " + to_string(m_debugstats.submodels) + "\n" + " paths:     " + to_string(m_debugstats.paths) + "\n" + " shapes:    " + to_string(m_debugstats.shapes) + "\n" +
+                       " traction:  " + to_string(m_debugstats.traction) + "\n" + " lines:     " + to_string(m_debugstats.lines);
 
     if (DebugModeFlag)
         m_debugtimestext += m_textures.info();
@@ -364,7 +358,7 @@ void opengl_renderer::SwapBuffers()
 {
 	Timer::subsystem.gfx_swap.start();
 	glfwSwapBuffers(m_window);
-	// swapbuffers() will unbind current buffers so we prepare for it on our end
+	// swapbuffers() could unbind current buffers so we prepare for it on our end
 	gfx::opengl_vbogeometrybank::reset();
 	Timer::subsystem.gfx_swap.stop();
 }
@@ -401,7 +395,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         else
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
@@ -465,7 +458,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         // opaque parts...
         setup_drawing(false);
 
-        if (false == FreeFlyModeFlag)
+		// without rain/snow we can render the cab early to limit the overdraw
+		// precipitation happens when overcast is in 1-2 range
+        if (!FreeFlyModeFlag && Global.Overcast <= 1.0f)
         {
             glDebug("render cab opaque");
             if (Global.gfx_shadowmap_enabled)
@@ -488,15 +483,26 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         glDebug("render translucent region");
         setup_drawing(true);
         Render_Alpha(simulation::Region);
+
+		// precipitation; done at end, only before cab render
+		Render_precipitation();
+
+		// cab render
         if (false == FreeFlyModeFlag)
         {
             glDebug("render translucent cab");
             model_ubs.future = glm::mat4();
-            // cab render is performed without shadows, due to low resolution and number of models without windows :|
             if (Global.gfx_shadowmap_enabled)
                 setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
             // cache shadow colour in case we need to account for cab light
             auto const *vehicle{simulation::Train->Dynamic()};
+			if (Global.Overcast > 1.0f)
+			{
+				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
+				setup_drawing(false);
+				Render_cab(vehicle, false);
+				setup_drawing(true);
+			}
             Render_cab(vehicle, true);
         }
 
@@ -1152,13 +1158,16 @@ bool opengl_renderer::Render(world_environment *Environment)
 	model_ubo->update(model_ubs);
 
 	// skydome
+	// drawn with 500m radius to blend in if the fog range is low
+	glPushMatrix();
+	glScalef(500.0f, 500.0f, 500.0f);
 	Environment->m_skydome.Render();
+	glPopMatrix();
+
 	// skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
 	gfx::opengl_vbogeometrybank::reset();
 
     // celestial bodies
-    float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
-    glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
 
     opengl_texture::reset_unit_cache();
 
@@ -1181,6 +1190,10 @@ bool opengl_renderer::Render(world_environment *Environment)
 
     m_sunlight.apply_angle();
     m_sunlight.apply_intensity();
+
+    auto const fogfactor{clamp<float>(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
+    float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
+    glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
 
 	// clouds
 	if (Environment->m_clouds.mdCloud)
@@ -1832,7 +1845,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 	++m_debugstats.dynamics;
 
 	// setup
-    TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( Dynamic ); //żeby nie robić cudzych animacji
+    TSubModel::iInstance = reinterpret_cast<std::uintptr_t>(Dynamic); //żeby nie robić cudzych animacji
 	glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
 	// lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
 	float squaredistance;
@@ -1902,7 +1915,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
 
 		if (Dynamic->mdLoad) // renderowanie nieprzezroczystego ładunku
-            Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+            Render_Alpha(Dynamic->mdLoad, Dynamic->Material(), squaredistance, {0.f, Dynamic->LoadOffset, 0.f}, {});
 
 		// post-render cleanup
         // calc_motion = false;
@@ -2251,9 +2264,10 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
 					// view angle attenuation
 					float const anglefactor = clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f);
-					// distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+					// distance attenuation
 					// we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
 					float const distancefactor = std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist);
+                    float const precipitationfactor = std::max(1.f, Global.Overcast - 1.f);
 
 					if (lightlevel > 0.f)
 					{
@@ -2271,7 +2285,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 
 						// main draw call
 						model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), 0.0f);
-						model_ubs.emission = lightlevel * anglefactor;
+						model_ubs.emission = std::min(1.f, lightlevel * anglefactor * precipitationfactor);
 						m_freespot_shader->bind();
 
                         draw(Submodel->m_geometry);
@@ -2567,6 +2581,55 @@ void opengl_renderer::Render(TMemCell *Memcell)
 	}
 
 	::glPopMatrix();
+}
+
+void opengl_renderer::Render_precipitation()
+{
+
+    if (Global.Overcast <= 1.f)
+    {
+        return;
+    }
+
+    ::glPushMatrix();
+    // tilt the precipitation cone against the velocity vector for crude motion blur
+    auto const velocity{simulation::Environment.m_precipitation.m_cameramove * -1.0};
+    if (glm::length2(velocity) > 0.0)
+    {
+        auto const forward{glm::normalize(velocity)};
+        auto left{glm::cross(forward, {0.0, 1.0, 0.0})};
+        auto const rotationangle{std::min(45.0, (FreeFlyModeFlag ? 5 * glm::length(velocity) : simulation::Train->Dynamic()->GetVelocity() * 0.2))};
+        ::glRotated(rotationangle, left.x, 0.0, left.z);
+    }
+    if (false == FreeFlyModeFlag)
+    {
+        // counter potential vehicle roll
+        auto const roll{0.5 * glm::degrees(simulation::Train->Dynamic()->Roll())};
+        if (roll != 0.0)
+        {
+            auto const forward{simulation::Train->Dynamic()->VectorFront()};
+            auto const vehicledirection = simulation::Train->Dynamic()->DirectionGet();
+            ::glRotated(roll, forward.x, 0.0, forward.z);
+        }
+    }
+    if (Global.Weather == "rain:")
+    {
+        // oddly enough random streaks produce more natural looking rain than ones the eye can follow
+        ::glRotated(Random() * 360, 0.0, 1.0, 0.0);
+    }
+
+	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
+    model_ubs.param[0] = interpolate(0.5f * (Global.DayLight.diffuse + Global.DayLight.ambient), colors::white, 0.5f * clamp<float>(Global.fLuminance, 0.f, 1.f));
+	model_ubs.param[1].x = simulation::Environment.m_precipitation.get_textureoffset();
+	model_ubo->update(model_ubs);
+
+    // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
+    ::glDepthMask(GL_FALSE);
+
+    simulation::Environment.m_precipitation.render();
+
+    ::glDepthMask(GL_TRUE);
+    ::glPopMatrix();
 }
 
 void opengl_renderer::Render_Alpha(scene::basic_region *Region)
@@ -3040,8 +3103,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 		}
 		else if (Submodel->eType == TP_FREESPOTLIGHT)
 		{
-
-			if (Global.fLuminance < Submodel->fLight)
+			if (Global.fLuminance < Submodel->fLight || Global.Overcast > 1.0f)
 			{
 				// NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
 				// TODO: separate instance data from reusable geometry
@@ -3054,15 +3116,12 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 				if (Submodel->fCosViewAngle > Submodel->fCosFalloffAngle)
 				{
 					// only bother if the viewer is inside the visibility cone
-					if (Global.Overcast > 1.0)
-					{
-						// increase the glare in rainy/foggy conditions
-						glarelevel += std::max(0.f, 0.5f * (Global.Overcast - 1.f));
-					}
+                    auto glarelevel{clamp<float>(0.6f - Global.fLuminance // reduce the glare in bright daylight
+                                                     + std::max(0.f, Global.Overcast - 1.f), // increase the glare in rainy/foggy conditions
+                                                 0.f, 1.f)};
+
 					// scale it down based on view angle
 					glarelevel *= (Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (1.0f - Submodel->fCosFalloffAngle);
-					// reduce the glare in bright daylight
-					glarelevel = clamp(glarelevel - static_cast<float>(Global.fLuminance), 0.f, 1.f);
 
                     if (glarelevel > 0.0f)
                     {
@@ -3403,7 +3462,10 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 
     light_ubs.fog_color = Global.FogColor;
     if (Global.fFogEnd > 0)
-        light_ubs.fog_density = 1.0f / Global.fFogEnd;
+	{
+        auto const adjustedfogrange{Global.fFogEnd / std::max(1.f, Global.Overcast * 2.f)};
+        light_ubs.fog_density = 1.0f / adjustedfogrange;
+	}
     else
         light_ubs.fog_density = 0.0f;
 

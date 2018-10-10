@@ -395,7 +395,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
 
     float m1, jmm1, m2, jmm2; // pozycje względne na odcinku 0...1 (ale nie parametr Beziera)
     step = fStep;
-    tv1 = 1.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
+    tv1 = 0.0; // Ra: to by można było wyliczać dla odcinka, wyglądało by lepiej
     s = fStep * iSkip; // iSkip - ile odcinków z początku pominąć
     int i = iSkip; // domyślnie 0
     t = fTsBuffer[ i ]; // tabela wattości t dla segmentów
@@ -433,7 +433,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
         while( tv1 < 0.0 ) {
             tv1 += 1.0;
         }
-        tv2 = tv1 - step / texturelength; // mapowanie na końcu segmentu
+        tv2 = tv1 + step / texturelength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
         pos2 = glm::dvec3{ FastGetPoint( t ) - Origin };
@@ -523,55 +523,3 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
     return true;
 };
 
-void TSegment::Render()
-{
-    Math3D::vector3 pt;
-    GfxRenderer.Bind_Material( null_handle );
-
-    //m7t
-    /*
-    if (bCurve)
-    {
-        glColor3f(0, 0, 1.0f);
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(Point1.x, Point1.y, Point1.z);
-        glVertex3f(CPointOut.x, CPointOut.y, CPointOut.z);
-        glEnd();
-
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(Point2.x, Point2.y, Point2.z);
-        glVertex3f(CPointIn.x, CPointIn.y, CPointIn.z);
-        glEnd();
-
-        glColor3f(1.0f, 0, 0);
-        glBegin(GL_LINE_STRIP);
-        for (int i = 0; i <= 8; i++)
-        {
-            pt = FastGetPoint(double(i) / 8.0f);
-            glVertex3f(pt.x, pt.y, pt.z);
-        }
-        glEnd();
-    }
-    else
-    {
-        glColor3f(0, 0, 1.0f);
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(Point1.x, Point1.y, Point1.z);
-        glVertex3f(Point1.x + CPointOut.x, Point1.y + CPointOut.y, Point1.z + CPointOut.z);
-        glEnd();
-
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(Point2.x, Point2.y, Point2.z);
-        glVertex3f(Point2.x + CPointIn.x, Point2.y + CPointIn.y, Point2.z + CPointIn.z);
-        glEnd();
-
-        glColor3f(0.5f, 0, 0);
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(Point1.x + CPointOut.x, Point1.y + CPointOut.y, Point1.z + CPointOut.z);
-        glVertex3f(Point2.x + CPointIn.x, Point2.y + CPointIn.y, Point2.z + CPointIn.z);
-        glEnd();
-    }
-    */
-}
-
-//---------------------------------------------------------------------------

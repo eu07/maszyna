@@ -28,6 +28,7 @@ struct opengl_material {
     float selfillum = std::numeric_limits<float>::quiet_NaN();
 
     std::string name;
+    glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters
 
 // constructors
     opengl_material();

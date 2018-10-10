@@ -9,8 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-int const null_handle = 0;
-
 enum class resource_state {
     none,
     loading,

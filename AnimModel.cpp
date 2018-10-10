@@ -585,7 +585,7 @@ void TAnimModel::RaPrepare()
             case ls_Dark: {
                 // zapalone, gdy ciemno
                 state = (
-                    Global.fLuminance <= (
+                    Global.fLuminance - std::max( 0.f, Global.Overcast - 1.f ) <= (
                         lsLights[ i ] == static_cast<float>( ls_Dark ) ?
                             DefaultDarkThresholdLevel :
                             ( lsLights[ i ] - static_cast<float>( ls_Dark ) ) ) );
@@ -595,7 +595,7 @@ void TAnimModel::RaPrepare()
                 // like ls_dark but off late at night
                 auto const simulationhour { simulation::Time.data().wHour };
                 state = (
-                    Global.fLuminance <= (
+                    Global.fLuminance - std::max( 0.f, Global.Overcast - 1.f ) <= (
                         lsLights[ i ] == static_cast<float>( ls_Home ) ?
                             DefaultDarkThresholdLevel :
                             ( lsLights[ i ] - static_cast<float>( ls_Home ) ) ) );
