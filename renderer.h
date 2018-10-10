@@ -386,6 +386,7 @@ private:
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { colors::shadow };
+    float m_fogrange { 2000.f };
 //    TEnvironmentType m_environment { e_flat };
     float m_specularopaquescalefactor { 1.f };
     float m_speculartranslucentscalefactor { 1.f };

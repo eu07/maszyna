@@ -1058,9 +1058,9 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
             // setup fog
             if( Global.fFogEnd > 0 ) {
                 // fog setup
-                auto const adjustedfogrange { Global.fFogEnd / std::max( 1.f, Global.Overcast * 2.f ) };
+                m_fogrange = Global.fFogEnd / std::max( 1.f, Global.Overcast * 2.f );
                 ::glFogfv( GL_FOG_COLOR, glm::value_ptr( Global.FogColor ) );
-                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / adjustedfogrange ) );
+                ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / m_fogrange ) );
                 ::glEnable( GL_FOG );
             }
             else { ::glDisable( GL_FOG ); }
@@ -2549,44 +2549,65 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         float const anglefactor = clamp(
                             ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle ),
                             0.f, 1.f );
-                        // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
-                        // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                        float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
-                        float const precipitationfactor { std::max( 1.f, 0.5f * ( Global.Overcast - 1.f ) ) };
+                        lightlevel *= anglefactor;
+                        float const precipitationfactor { interpolate( 1.f, 0.25f, clamp( Global.Overcast * 0.75f - 0.5f, 0.f, 1.f ) ) };
+                        lightlevel *= precipitationfactor;
 
                         if( lightlevel > 0.f ) {
-                            // material configuration:
-                            ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
+                            // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+                            // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+                            float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
+                            auto const pointsize { std::max( 3.f, 5.f * distancefactor * anglefactor ) };
 
+                            // material configuration:
                             Bind_Material( null_handle );
-                            ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
-                            ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], Submodel->fVisible * std::min( 1.f, lightlevel * anglefactor * precipitationfactor ) );
+                            // limit impact of dense fog on the lights
+                            ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / std::min<float>( Global.fFogEnd, m_fogrange * 2 ) ) );
+
+                            ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
                             ::glDisable( GL_LIGHTING );
-                            ::glDisable( GL_FOG );
                             ::glEnable( GL_BLEND );
                             ::glAlphaFunc( GL_GREATER, 0.f );
 
                             ::glPushMatrix();
                             ::glLoadIdentity();
                             ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
-/*
-                            setup_shadow_color( colors::white );
-*/
+
                             auto const unitstate = m_unitstate;
                             switch_units( m_unitstate.diffuse, false, false );
 
                             // main draw call
+                            if( Global.Overcast > 1.f ) {
+                                // fake fog halo
+                                float const fogfactor {
+                                    interpolate(
+                                        2.f, 1.f,
+                                        clamp<float>( Global.fFogEnd / 2000, 0.f, 1.f ) )
+                                    * std::max( 1.f, Global.Overcast ) };
+                                ::glPointSize( pointsize * fogfactor );
+                                ::glColor4f(
+                                    Submodel->f4Diffuse[ 0 ],
+                                    Submodel->f4Diffuse[ 1 ],
+                                    Submodel->f4Diffuse[ 2 ],
+                                    Submodel->fVisible * std::min( 1.f, lightlevel ) * 0.5f );
+                                ::glDepthMask( GL_FALSE );
+                                m_geometry.draw( Submodel->m_geometry );
+                                ::glDepthMask( GL_TRUE );
+                            }
+                            ::glPointSize( pointsize );
+                            ::glColor4f(
+                                Submodel->f4Diffuse[ 0 ],
+                                Submodel->f4Diffuse[ 1 ],
+                                Submodel->f4Diffuse[ 2 ],
+                                Submodel->fVisible * std::min( 1.f, lightlevel ) );
                             m_geometry.draw( Submodel->m_geometry );
 
                             // post-draw reset
-                            // re-enable shadows
-/*
-                            setup_shadow_color( m_shadowcolor );
-*/
                             switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                             ::glPopMatrix();
                             ::glPopAttrib();
+                            ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / m_fogrange ) );
                         }
                     }
                     break;
@@ -3455,16 +3476,19 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         static_cast<float>( TSubModel::fSquareDist / Submodel->fSquareMaxDist ) ); // pozycja punktu świecącego względem kamery
                 Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.f, 0.f, -1.f, 1.f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
-                float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
                     // only bother if the viewer is inside the visibility cone
+                    // luminosity at night is at level of ~0.1, so the overall resulting transparency in clear conditions is ~0.5 at full 'brightness'
                     auto glarelevel { clamp(
                         std::max<float>(
                             0.6f - Global.fLuminance, // reduce the glare in bright daylight
                             Global.Overcast - 1.f ), // ensure some glare in rainy/foggy conditions
                         0.f, 1.f ) };
-                    // scale it down based on view angle
-                    glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
+                    // view angle attenuation
+                    float const anglefactor { clamp(
+                        ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle ),
+                        0.f, 1.f ) };
+                    glarelevel *= anglefactor;
 
                     if( glarelevel > 0.0f ) {
                         // setup
