@@ -965,7 +965,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// modelview
         camera.position() = Global.pCamera.Pos;
         Global.pCamera.SetMatrix(viewmatrix);
-        // projection
+		// projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
@@ -980,7 +980,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         glm::dvec3 const cubefaceupvectors[6] = {{0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}};
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
-		// projection
+        // projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(glm::radians(90.f), 1.f, znear, zfar);
@@ -2242,28 +2242,32 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					// view angle attenuation
 					float const anglefactor = clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f);
                     lightlevel *= anglefactor;
-                    float const precipitationfactor{interpolate(1.f, 0.25f, clamp(Global.Overcast * 0.75f - 0.5f, 0.f, 1.f))};
-                    lightlevel *= precipitationfactor;
+
+                    // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+                    // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+                    float const distancefactor{std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist)};
+                    auto const pointsize{std::max(3.f, 5.f * distancefactor * anglefactor)};
+                    // additionally reduce light strength for farther sources in rain or snow
+                    if (Global.Overcast > 0.75f)
+                    {
+                        float const precipitationfactor{interpolate(interpolate(1.f, 0.25f, clamp(Global.Overcast * 0.75f - 0.5f, 0.f, 1.f)), 1.f, distancefactor)};
+                        lightlevel *= precipitationfactor;
+                    }
 
 					if (lightlevel > 0.f)
 					{
-						// material configuration:
-                        // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
-                        // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                        float const distancefactor{std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist)};
-                        auto const pointsize{std::max(3.f, 5.f * distancefactor * anglefactor)};
-
 						::glEnable(GL_BLEND);
 
 						::glPushMatrix();
 						::glLoadIdentity();
 						::glTranslatef(lightcenter.x, lightcenter.y, lightcenter.z); // początek układu zostaje bez zmian
 
+						// material configuration:
 						// limit impact of dense fog on the lights
                         model_ubs.fog_density = 1.0f / std::min<float>(Global.fFogEnd, m_fogrange * 2);
 
 						// main draw call
-                        model_ubs.emission = std::min(1.f, lightlevel * anglefactor * precipitationfactor);
+                        model_ubs.emission = 1.0f;
 
 						m_freespot_shader->bind();
 
@@ -2272,16 +2276,14 @@ void opengl_renderer::Render(TSubModel *Submodel)
 							// fake fog halo
                             float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
 							glPointSize(pointsize * fogfactor * 2.0f);
-                            model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse),
-                                                           Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
+                            model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 
 							glDepthMask(GL_FALSE);
 							draw(Submodel->m_geometry);
 							glDepthMask(GL_TRUE);
 						}
 						glPointSize(pointsize * 2.0f);
-                        model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse),
-                                                       Submodel->fVisible * std::min(1.f, lightlevel));
+                        model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * std::min(1.f, lightlevel));
 
                         draw(Submodel->m_geometry);
 

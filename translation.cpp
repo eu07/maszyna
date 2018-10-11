@@ -310,7 +310,7 @@ init() {
         u8"kurek trójdrogowy pantografow",
         u8"ogrzewanie pociągu",
         u8"sygnalizacja hamowania",
-        u8"sygnalizacja blokady drzwi",
+        u8"blokada drzwi",
         u8"prądy drugiego członu",
         u8"oświetlenie przyrządow",
         u8"oświetlenie pulpitu",

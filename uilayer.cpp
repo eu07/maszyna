@@ -128,7 +128,7 @@ bool ui_layer::init(GLFWwindow *Window)
         0,
     };
 
-    m_imguiio->Fonts->AddFontFromFileTTF("DejaVuSansMono.ttf", 13.0f, nullptr, &ranges[0]);
+    m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f, nullptr, &ranges[0]);
 
     if (Global.map_enabled)
         m_map = std::make_unique<map>();
