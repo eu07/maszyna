@@ -276,7 +276,7 @@ init() {
         "kurek trojdrogowy pantografow",
         "ogrzewanie pociagu",
         "sygnalizacja hamowania",
-        "sygnalizacja blokady drzwi",
+        "blokada drzwi",
         "prady drugiego czlonu",
         "oswietlenie przyrzadow",
         "oswietlenie pulpitu",

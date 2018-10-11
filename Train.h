@@ -541,6 +541,7 @@ public: // reszta może by?publiczna
     TButton btLampkaDoorRight;
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
+    TButton btLampkaDoorLockOff;
     TButton btLampkaHamulecReczny;
     TButton btLampkaForward; // Ra: lampki w przód i w ty?dla komputerowych kabin
     TButton btLampkaBackward;

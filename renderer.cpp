@@ -2575,15 +2575,21 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle ),
                             0.f, 1.f );
                         lightlevel *= anglefactor;
-                        float const precipitationfactor { interpolate( 1.f, 0.25f, clamp( Global.Overcast * 0.75f - 0.5f, 0.f, 1.f ) ) };
-                        lightlevel *= precipitationfactor;
+                        // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+                        // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+                        float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
+                        auto const pointsize { std::max( 3.f, 5.f * distancefactor * anglefactor ) };
+                        // additionally reduce light strength for farther sources in rain or snow
+                        if( Global.Overcast > 0.75f ) {
+                            float const precipitationfactor{
+                                interpolate(
+                                    interpolate( 1.f, 0.25f, clamp( Global.Overcast * 0.75f - 0.5f, 0.f, 1.f ) ),
+                                    1.f,
+                                distancefactor ) };
+                            lightlevel *= precipitationfactor;
+                        }
 
                         if( lightlevel > 0.f ) {
-                            // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
-                            // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                            float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
-                            auto const pointsize { std::max( 3.f, 5.f * distancefactor * anglefactor ) };
-
                             // material configuration:
                             Bind_Material( null_handle );
                             // limit impact of dense fog on the lights
@@ -3418,7 +3424,16 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // ...colors...
-                        ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        if( Submodel->fVisible < 1.f ) {
+                            ::glColor4f(
+                                Submodel->f4Diffuse.r,
+                                Submodel->f4Diffuse.g,
+                                Submodel->f4Diffuse.b,
+                                Submodel->fVisible );
+                        }
+                        else {
+                            ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        }
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_speculartranslucentscalefactor ) );
                         }
