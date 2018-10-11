@@ -91,10 +91,10 @@ Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Lin
 
   Links:
   - http://eu07.pl/theme/MaSzyna1803.zip
-  - http://eu07.pl/theme/MaSzyna1805.zip
-  - http://eu07.pl/theme/MaSzyna1806.zip 
-  - http://eu07.pl/theme/MaSzyna1807.zip 
-  - http://stuff.eu07.pl/maszyna-r2996.zip
+  - http://eu07.pl/theme/MaSzynaP1805.zip
+  - http://eu07.pl/theme/MaSzynaP1806.zip 
+  - http://eu07.pl/theme/MaSzynaP1807.zip 
+  - http://stuff.eu07.pl/MaSzynaP1810.zip
 
   Override every file.
 
@@ -115,11 +115,8 @@ Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Lin
 ![](https://eu07.pl/data/uploads/gallery/2018/cien_2018.png)
 [More...](https://eu07.pl/forum/index.php/topic,14630.0.html)
 ### Minimum Requirements
-- Core 2 Duo E4700 2.6GHz | AMD - AMD APU A4-6300 Dual-Core
-- Radeon R7 250 | nVidia - GeForce GT 740 v3 ; minimum 2 GB VRAM, GDDR5
-- 6 GB RAM
-- 13 GB free disk space
-- sound card, support for OpenAL and stereo
-- requirements for x86 MAY be lower
+- OpenGL 1.5+
+- 15 GB free disk space
+- sound card, support for OpenAL
 
 ### [License](LICENSE)
