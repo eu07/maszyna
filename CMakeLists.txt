@@ -167,6 +167,7 @@ endif()
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	set(SOURCES ${SOURCES} "eu07.rc")
 	set(SOURCES ${SOURCES} "eu07.ico")
+	add_compile_options("/utf-8")
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
