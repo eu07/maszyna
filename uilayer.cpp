@@ -102,7 +102,7 @@ ui_layer::init( GLFWwindow *Window ) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     m_imguiio = &ImGui::GetIO();
-    m_imguiio->Fonts->AddFontFromFileTTF("DejaVuSansMono.ttf", 13.0f);
+    m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f);
 
     ImGui::StyleColorsClassic();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
