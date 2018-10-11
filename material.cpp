@@ -54,7 +54,7 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             // seasonal textures override generic textures
             // skip the opening bracket
             auto const value { Input.getToken<std::string>( true, "\n\r\t ;" ) };
-            while( true == deserialize_mapping( Input, 1, Loadnow ) ) {
+            while( true == deserialize_mapping( Input, Priority + 1, Loadnow ) ) {
                 ; // all work is done in the header
             }
         }
