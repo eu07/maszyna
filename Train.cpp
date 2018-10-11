@@ -5512,6 +5512,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
             btLampkaDoorRight.Turn(mvOccupied->DoorRightOpened);
             btLampkaBlokadaDrzwi.Turn(mvOccupied->DoorBlockedFlag());
+            btLampkaDoorLockOff.Turn( false == mvOccupied->DoorLockEnabled );
             btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
             btLampkaNapNastHam.Turn((mvControlled->ActiveDir != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
             btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
@@ -5570,6 +5571,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaDoorLeft.Turn( false );
             btLampkaDoorRight.Turn( false );
             btLampkaBlokadaDrzwi.Turn( false );
+            btLampkaDoorLockOff.Turn( false );
             btLampkaDepartureSignal.Turn( false );
             btLampkaNapNastHam.Turn( false );
             btLampkaForward.Turn( false );
@@ -7142,6 +7144,7 @@ void TTrain::clear_cab_controls()
     btLampkaRadioStop.Clear();
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
+    btLampkaDoorLockOff.Clear();
     btInstrumentLight.Clear();
     btDashboardLight.Clear();
     btTimetableLight.Clear();
@@ -7503,6 +7506,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-radiostop:", btLampkaRadioStop },
         { "i-manual_brake:", btLampkaHamulecReczny },
         { "i-door_blocked:", btLampkaBlokadaDrzwi },
+        { "i-door_blockedoff:", btLampkaDoorLockOff },
         { "i-slippery:", btLampkaPoslizg },
         { "i-contactors:", btLampkaStyczn },
         { "i-conv_ovld:", btLampkaNadmPrzetw },
