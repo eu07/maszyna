@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "uitranscripts.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "parser.h"
 #include "utilities.h"
 

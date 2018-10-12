@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "PyInt.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "application.h"
 #include "renderer.h"
 #include "Logs.h"

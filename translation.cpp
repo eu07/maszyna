@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "translation.h"
 
-#include "globals.h"
+#include "Globals.h"
 
 namespace locale {
 

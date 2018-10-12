@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "uilayer.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "renderer.h"
 
 #include "imgui_impl_glfw.h"

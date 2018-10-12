@@ -12,9 +12,9 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <functional>
 
-#include "classes.h"
+#include "Classes.h"
 #include "material.h"
-#include "mczapkie/mover.h"
+#include "MOVER.h"
 #include "TrkFoll.h"
 #include "Button.h"
 #include "AirCoupler.h"

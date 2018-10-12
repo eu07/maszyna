@@ -18,8 +18,8 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "openglgeometrybank.h"
 #include "scenenode.h"
-#include "track.h"
-#include "traction.h"
+#include "Track.h"
+#include "Traction.h"
 #include "sound.h"
 
 namespace scene {

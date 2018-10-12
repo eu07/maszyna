@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "uilayer.h"
-#include "classes.h"
+#include "Classes.h"
 
 class itemproperties_panel : public ui_panel {
 

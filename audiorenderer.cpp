@@ -11,9 +11,9 @@ http://mozilla.org/MPL/2.0/.
 #include "audiorenderer.h"
 
 #include "sound.h"
-#include "globals.h"
-#include "camera.h"
-#include "logs.h"
+#include "Globals.h"
+#include "Camera.h"
+#include "Logs.h"
 #include "utilities.h"
 
 namespace audio {

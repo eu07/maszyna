@@ -13,17 +13,17 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "track.h"
+#include "Track.h"
 
 #include "simulation.h"
-#include "globals.h"
-#include "event.h"
+#include "Globals.h"
+#include "Event.h""
 #include "messaging.h"
-#include "dynobj.h"
-#include "animmodel.h"
-#include "track.h"
-#include "timer.h"
-#include "logs.h"
+#include "DynObj.h"
+#include "AnimModel.h"
+#include "Track.h"
+#include "Timer.h"
+#include "Logs.h"
 #include "renderer.h"
 
 // 101206 Ra: trapezoidalne drogi i tory

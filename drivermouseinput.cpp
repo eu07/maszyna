@@ -12,14 +12,14 @@ http://mozilla.org/MPL/2.0/.
 
 #include "application.h"
 #include "utilities.h"
-#include "globals.h"
-#include "timer.h"
+#include "Globals.h"
+#include "Timer.h"
 #include "simulation.h"
-#include "train.h"
-#include "animmodel.h"
+#include "Train.h"
+#include "AnimModel.h"
 #include "renderer.h"
 #include "uilayer.h"
-#include "logs.h"
+#include "Logs.h"
 
 void
 mouse_slider::bind( user_command const &Command ) {

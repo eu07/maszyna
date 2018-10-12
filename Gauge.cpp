@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Model3d.h"
 #include "Timer.h"
-#include "logs.h"
+#include "Logs.h"
 #include "renderer.h"
 
 TGauge::TGauge( sound_source const &Soundtemplate ) :

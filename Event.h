@@ -9,10 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
+#include "Classes.h"
 #include "scene.h"
-#include "names.h"
-#include "evlaunch.h"
+#include "Names.h"
+#include "EvLaunch.h"
 
 // common event interface
 class basic_event {

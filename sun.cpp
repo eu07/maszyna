@@ -1,7 +1,7 @@
 
 #include "stdafx.h"
 #include "sun.h"
-#include "globals.h"
+#include "Globals.h"
 #include "mtable.h"
 #include "utilities.h"
 #include "simulationtime.h"

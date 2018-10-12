@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "utilities.h"
 #include "sn_utils.h"
-#include "globals.h"
+#include "Globals.h"
 
 bool
 opengl_material::deserialize( cParser &Input, bool const Loadnow ) {

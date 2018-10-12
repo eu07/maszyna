@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "texture.h"
+#include "Texture.h""
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 

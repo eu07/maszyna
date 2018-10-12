@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "audio.h"
-#include "resourcemanager.h"
+#include "ResourceManager.h"
 #include "uitranscripts.h"
 
 class opengl_renderer;

@@ -10,9 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "command.h"
 
-#include "globals.h"
-#include "logs.h"
-#include "timer.h"
+#include "Globals.h"
+#include "Logs.h"
+#include "Timer.h"
 #include "utilities.h"
 
 namespace simulation {

@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "frustum.h"
 #include "scene.h"
 #include "simulationenvironment.h"
-#include "memcell.h"
+#include "MemCell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP

@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "applicationmode.h"
-#include "pyint.h"
+#include "PyInt.h"
 
 class eu07_application {
 

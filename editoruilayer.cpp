@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "editoruilayer.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "renderer.h"
 
 editor_ui::editor_ui() {

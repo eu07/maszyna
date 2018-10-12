@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "scenenode.h"
-#include "names.h"
+#include "Names.h"
 
 class TMemCell : public scene::basic_node {
 

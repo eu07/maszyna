@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "globals.h"
+#include "Globals.h"
 
 // encapsulation of the fixed pipeline opengl color
 class opengl_color {

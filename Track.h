@@ -13,11 +13,11 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <deque>
 
-#include "classes.h"
+#include "Classes.h"
 #include "Segment.h"
 #include "material.h"
 #include "scenenode.h"
-#include "names.h"
+#include "Names.h"
 
 namespace scene {
 class basic_cell;

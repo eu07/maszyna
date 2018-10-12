@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
+#include "Classes.h"
 #include "dumb3d.h"
 #include "openglgeometrybank.h"
 #include "utilities.h"

@@ -11,18 +11,18 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 
-#include "globals.h"
-#include "event.h"
-#include "memcell.h"
-#include "track.h"
-#include "traction.h"
-#include "tractionpower.h"
+#include "Globals.h"
+#include "Event.h""
+#include "MemCell.h"
+#include "Track.h"
+#include "Traction.h"
+#include "TractionPower.h"
 #include "sound.h"
-#include "animmodel.h"
-#include "dynobj.h"
+#include "AnimModel.h"
+#include "DynObj.h"
 #include "lightarray.h"
 #include "scene.h"
-#include "train.h"
+#include "Train.h"
 
 namespace simulation {
 

@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
+#include "Classes.h"
 
 // a simple station, performs freight and passenger exchanges with visiting consists
 class basic_station {

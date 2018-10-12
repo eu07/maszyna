@@ -10,15 +10,15 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "messaging.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "application.h"
 #include "simulation.h"
 #include "simulationtime.h"
-#include "event.h"
-#include "dynobj.h"
-#include "driver.h"
+#include "Event.h""
+#include "DynObj.h"
+#include "Driver.h"
 #include "mtable.h"
-#include "logs.h"
+#include "Logs.h"
 
 #ifdef _WIN32
 extern "C"

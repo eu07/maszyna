@@ -18,7 +18,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "stdafx.h"
 
 #include "application.h"
-#include "logs.h"
+#include "Logs.h"
 
 #ifdef _MSC_VER
 #pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")

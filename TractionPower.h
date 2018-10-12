@@ -9,9 +9,9 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
+#include "Classes.h"
 #include "scenenode.h"
-#include "names.h"
+#include "Names.h"
 
 class TTractionPowerSource : public scene::basic_node {
 

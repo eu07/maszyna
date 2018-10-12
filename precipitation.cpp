@@ -10,12 +10,12 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "precipitation.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "openglmatrixstack.h"
 #include "renderer.h"
-#include "timer.h"
+#include "Timer.h"
 #include "simulation.h"
-#include "train.h"
+#include "Train.h"
 
 basic_precipitation::~basic_precipitation() {
     // TODO: release allocated resources

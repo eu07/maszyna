@@ -13,14 +13,14 @@ http://mozilla.org/MPL/2.0/.
 #include "drivermode.h"
 #include "editormode.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "simulation.h"
-#include "train.h"
+#include "Train.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
 #include "translation.h"
-#include "logs.h"
+#include "Logs.h"
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )

@@ -9,10 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
-#include "camera.h"
+#include "Classes.h"
+#include "Camera.h"
 #include "dumb3d.h"
-#include "float3d.h"
+#include "Float3d.h"
 #include "light.h"
 #include "uart.h"
 #include "utilities.h"

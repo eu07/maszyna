@@ -8,13 +8,13 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Mover.h"
+#include "MOVER.h"
 
 #include "Oerlikon_ESt.h"
-#include "../utilities.h"
-#include "../globals.h"
-#include "../logs.h"
-#include "../parser.h"
+#include "utilities.h"
+#include "Globals.h"
+#include "Logs.h"
+#include "parser.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.

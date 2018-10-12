@@ -11,10 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "sound.h"
 #include "parser.h"
-#include "globals.h"
-#include "camera.h"
-#include "train.h"
-#include "dynobj.h"
+#include "Globals.h"
+#include "Camera.h"
+#include "Train.h"
+#include "DynObj.h"
 #include "simulation.h"
 
 // constructors

@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "station.h"
 
-#include "dynobj.h"
+#include "DynObj.h"
 #include "mtable.h"
 
 namespace simulation {

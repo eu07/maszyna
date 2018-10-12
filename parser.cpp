@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "parser.h"
 #include "utilities.h"
-#include "logs.h"
+#include "Logs.h"
 
 #include "scenenodegroups.h"
 

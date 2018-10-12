@@ -15,9 +15,9 @@ http://mozilla.org/MPL/2.0/.
 #include "drivermouseinput.h"
 #include "gamepadinput.h"
 #include "uart.h"
-#include "console.h"
-#include "camera.h"
-#include "classes.h"
+#include "Console.h"
+#include "Camera.h"
+#include "Classes.h"
 
 class driver_mode : public application_mode {
 

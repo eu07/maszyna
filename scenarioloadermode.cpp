@@ -10,14 +10,14 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scenarioloadermode.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
-#include "timer.h"
+#include "Timer.h"
 #include "application.h"
 #include "scenarioloaderuilayer.h"
 #include "renderer.h"
-#include "logs.h"
+#include "Logs.h"
 
 
 scenarioloader_mode::scenarioloader_mode() {

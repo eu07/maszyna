@@ -16,7 +16,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Model3d.h"
 
 #include "Globals.h"
-#include "logs.h"
+#include "Logs.h"
 #include "utilities.h"
 #include "renderer.h"
 #include "Timer.h"

@@ -11,11 +11,11 @@ http://mozilla.org/MPL/2.0/.
 #include "sceneeditor.h"
 #include "scenenodegroups.h"
 
-#include "globals.h"
+#include "Globals.h"
 #include "application.h"
 #include "simulation.h"
-#include "camera.h"
-#include "animmodel.h"
+#include "Camera.h"
+#include "AnimModel.h"
 #include "renderer.h"
 
 namespace scene {

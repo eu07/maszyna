@@ -10,11 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "editoruipanels.h"
 
-#include "globals.h"
-#include "camera.h"
-#include "animmodel.h"
-#include "track.h"
-#include "event.h"
+#include "Globals.h"
+#include "Camera.h"
+#include "AnimModel.h"
+#include "Track.h"
+#include "Event.h""
 #include "renderer.h"
 #include "utilities.h"
 

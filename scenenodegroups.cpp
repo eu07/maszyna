@@ -10,8 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "scenenodegroups.h"
 
-#include "event.h"
-#include "memcell.h"
+#include "Event.h""
+#include "MemCell.h"
 
 namespace scene {
 

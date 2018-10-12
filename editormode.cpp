@@ -12,12 +12,12 @@ http://mozilla.org/MPL/2.0/.
 #include "editoruilayer.h"
 
 #include "application.h"
-#include "globals.h"
+#include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
 #include "simulationenvironment.h"
-#include "timer.h"
-#include "console.h"
+#include "Timer.h"
+#include "Console.h"
 #include "renderer.h"
 
 bool

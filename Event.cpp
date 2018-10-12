@@ -14,21 +14,21 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "event.h"
+#include "Event.h""
 
 #include "simulation.h"
 #include "messaging.h"
-#include "globals.h"
-#include "memcell.h"
-#include "track.h"
-#include "traction.h"
-#include "tractionpower.h"
+#include "Globals.h"
+#include "MemCell.h"
+#include "Track.h"
+#include "Traction.h"
+#include "TractionPower.h"
 #include "sound.h"
-#include "animmodel.h"
-#include "dynobj.h"
-#include "driver.h"
-#include "timer.h"
-#include "logs.h"
+#include "AnimModel.h"
+#include "DynObj.h"
+#include "Driver.h"
+#include "Timer.h"
+#include "Logs.h"
 
 void
 basic_event::event_conditions::bind( basic_event::node_sequence *Nodes ) {

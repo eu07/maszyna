@@ -10,8 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "audiorenderer.h"
-#include "classes.h"
-#include "names.h"
+#include "Classes.h"
+#include "Names.h"
 
 float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };

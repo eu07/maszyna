@@ -14,11 +14,11 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "classes.h"
+#include "Classes.h"
 #include "dumb3d.h"
-#include "float3d.h"
-#include "model3d.h"
-#include "dynobj.h"
+#include "Float3d.h"
+#include "Model3d.h"
+#include "DynObj.h"
 #include "scenenode.h"
 
 const int iMaxNumLights = 8;

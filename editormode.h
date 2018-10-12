@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "applicationmode.h"
 #include "editormouseinput.h"
 #include "editorkeyboardinput.h"
-#include "camera.h"
+#include "Camera.h"
 #include "sceneeditor.h"
 #include "scenenode.h"
 

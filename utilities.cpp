@@ -24,7 +24,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #endif
 
 #include "utilities.h"
-#include "globals.h"
+#include "Globals.h"
 #include "parser.h"
 
 bool DebugModeFlag = false;

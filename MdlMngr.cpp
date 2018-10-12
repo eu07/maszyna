@@ -16,9 +16,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "MdlMngr.h"
 
-#include "model3d.h"
+#include "Model3d.h"
 #include "Globals.h"
-#include "logs.h"
+#include "Logs.h"
 #include "utilities.h"
 
 // wczytanie modelu do kontenerka

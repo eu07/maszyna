@@ -10,10 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 
 #include "audio.h"
-#include "globals.h"
+#include "Globals.h"
 #include "utilities.h"
-#include "logs.h"
-#include "resourcemanager.h"
+#include "Logs.h"
+#include "ResourceManager.h"
 
 #define STB_VORBIS_HEADER_ONLY
 #include "stb_vorbis.c"

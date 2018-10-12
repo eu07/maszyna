@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 #include "Model3d.h"
 #include "Console.h"
-#include "logs.h"
+#include "Logs.h"
 #include "renderer.h"
 
 void TButton::Clear(int i)

@@ -18,8 +18,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "Globals.h"
-#include "dynobj.h"
-#include "driver.h"
+#include "DynObj.h"
+#include "Driver.h"
 #include "Logs.h"
 
 TTrackFollower::~TTrackFollower()

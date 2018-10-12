@@ -9,8 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "gamepadinput.h"
-#include "logs.h"
-#include "timer.h"
+#include "Logs.h"
+#include "Timer.h"
 #include "utilities.h"
 
 glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {

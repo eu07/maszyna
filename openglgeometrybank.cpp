@@ -11,8 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "openglgeometrybank.h"
 
 #include "sn_utils.h"
-#include "logs.h"
-#include "globals.h"
+#include "Logs.h"
+#include "Globals.h"
 
 namespace gfx {
 
