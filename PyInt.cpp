@@ -30,8 +30,22 @@ void render_task::run() {
         // upload texture data
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr ) ) {
+            const opengl_material &material = GfxRenderer.Material(m_target);
+            if (material.textures[0] != null_handle)
+            {
+                GLuint id = GfxRenderer.Texture(material.textures[0]).id;
+                glBindTexture(GL_TEXTURE_2D, id);
+            }
 
-            GfxRenderer.Bind_Material( m_target );
+            // setup texture parameters
+            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+            if( GLEW_EXT_texture_filter_anisotropic ) {
+                // anisotropic filtering
+                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+            }
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
             // build texture
             glTexImage2D(
                 GL_TEXTURE_2D, 0,
