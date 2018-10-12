@@ -239,6 +239,7 @@ void ui_layer::render()
     // template method implementation
     render_();
 
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     ImGui::Render();
     Timer::subsystem.gfx_gui.stop();
 
