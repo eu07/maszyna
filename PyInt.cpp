@@ -48,6 +48,8 @@ void render_task::run() {
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
 			glGenerateMipmap(GL_TEXTURE_2D);
+
+            glFlush();
         }
         Py_DECREF( outputheight );
         Py_DECREF( outputwidth );
