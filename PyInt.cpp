@@ -27,7 +27,7 @@ void render_task::run() {
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr ) ) {
 
-            GfxRenderer.Bind_Material( m_target );
+            ::glBindTexture( GL_TEXTURE_2D, GfxRenderer.Texture( m_target ).id );
             // setup texture parameters
             ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
             ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

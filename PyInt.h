@@ -29,7 +29,7 @@ class render_task {
 
 public:
 // constructors
-    render_task( PyObject *Renderer, PyObject *Input, material_handle Target ) :
+    render_task( PyObject *Renderer, PyObject *Input, texture_handle Target ) :
         m_renderer( Renderer ), m_input( Input ), m_target( Target )
     {}
 // methods
@@ -39,7 +39,7 @@ private:
 // members
     PyObject *m_renderer {nullptr};
     PyObject *m_input { nullptr };
-    material_handle m_target { null_handle };
+    texture_handle m_target { null_handle };
 };
 
 class python_taskqueue {
@@ -50,7 +50,7 @@ public:
 
         std::string const &renderer;
         PyObject *input;
-        material_handle target;
+        texture_handle target;
     };
 // constructors
     python_taskqueue() = default;
