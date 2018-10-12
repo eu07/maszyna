@@ -287,14 +287,12 @@ TTraction::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
     // Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
     if( Wires > 1 ) {
+        auto const flo { static_cast<float>( Wires == 4 ? 0.25f * fHeightDifference : 0 ) };
+        auto const flo1 { static_cast<float>( Wires == 4 ? +0.05 : 0 ) };
         for( int i = 0; i < iNumSections - 1; ++i ) {
-            float flo, flo1;
-            flo = ( Wires == 4 ? 0.25f * fHeightDifference : 0 );
-            flo1 = ( Wires == 4 ? +0.05 : 0 );
             pt3 = pPoint3 + v1 * f;
             pt4 = pPoint1 + v2 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
-
             if( ( i % 2 ) == 0 ) {
                 startvertex.position =
                     glm::vec3(
@@ -319,7 +317,7 @@ TTraction::create_geometry( gfx::geometrybank_handle const &Bank ) {
                     glm::vec3(
                         pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - m_origin.x,
                         pt4.y - m_origin.y,
-                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
+                        pt4.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - m_origin.z );
                 vertices.emplace_back( startvertex );
                 vertices.emplace_back( endvertex );
             }
