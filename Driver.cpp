@@ -502,6 +502,10 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         tLast = nullptr; //żaden nie sprawdzony
         SemNextIndex = -1;
         SemNextStopIndex = -1;
+        if( VelSignalLast == 0.0 ) {
+            // don't allow potential red light overrun keep us from reversing
+            VelSignalLast = -1.0;
+        }
         fTrackLength = pTrack->Length(); //skasowanie zmian w zmiennej żeby poprawnie liczyło w dalszych krokach
         MoveDistanceReset(); // AI startuje 1s po zaczęciu jazdy i mógł już coś przejechać
     }
