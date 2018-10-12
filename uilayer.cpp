@@ -195,6 +195,7 @@ ui_layer::render() {
     // template method implementation
     render_();
 
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     ImGui::Render();
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
