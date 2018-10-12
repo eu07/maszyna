@@ -9,7 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "parser.h"
+#include "utilities.h"
 #include "logs.h"
+
+#include "scenenodegroups.h"
 
 /*
     MaSzyna EU07 locomotive simulator parser
@@ -21,52 +24,113 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction )
-{
-    LoadTraction = Loadtraction;
-    // build comments map
-    mComments.insert(commentmap::value_type("/*", "*/"));
-    mComments.insert(commentmap::value_type("//", "\n"));
-    // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie używane
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction, std::vector<std::string> Parameters ) :
+    mPath(Path),
+    LoadTraction( Loadtraction ) {
     // store to calculate sub-sequent includes from relative path
-    mPath = Path;
-    // reset pointers and attach proper type of buffer
-    switch (Type)
-    {
-    case buffer_FILE:
-        Path.append(Stream);
-        mStream = new std::ifstream(Path.c_str());
-        break;
-    case buffer_TEXT:
-        mStream = new std::istringstream(Stream);
-        break;
-    default:
-        mStream = NULL;
+    if( Type == buffertype::buffer_FILE ) {
+        mFile = Stream;
     }
-    mIncludeParser = NULL;
+    // reset pointers and attach proper type of buffer
+    switch (Type) {
+        case buffer_FILE: {
+            Path.append( Stream );
+            mStream = std::make_shared<std::ifstream>( Path );
+            // content of *.inc files is potentially grouped together
+            if( ( Stream.size() >= 4 )
+             && ( ToLower( Stream.substr( Stream.size() - 4 ) ) == ".inc" ) ) {
+                mIncFile = true;
+                scene::Groups.create();
+            }
+            break;
+        }
+        case buffer_TEXT: {
+            mStream = std::make_shared<std::istringstream>( Stream );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
     // calculate stream size
     if (mStream)
     {
-        mSize = mStream->rdbuf()->pubseekoff(0, std::ios_base::end);
-        mStream->rdbuf()->pubseekoff(0, std::ios_base::beg);
+        if( true == mStream->fail() ) {
+            ErrorLog( "Failed to open file \"" + Path + "\"" );
+        }
+        else {
+            mSize = mStream->rdbuf()->pubseekoff( 0, std::ios_base::end );
+            mStream->rdbuf()->pubseekoff( 0, std::ios_base::beg );
+            mLine = 1;
+        }
     }
-    else
-        mSize = 0;
+    // set parameter set if one was provided
+    if( false == Parameters.empty() ) {
+        parameters.swap( Parameters );
+    }
 }
 
 // destructor
-cParser::~cParser()
-{
-    if (mIncludeParser)
-        delete mIncludeParser;
-    if (mStream)
-        delete mStream;
-    mComments.clear();
+cParser::~cParser() {
+
+    if( true == mIncFile ) {
+        // wrap up the node group holding content of processed file
+        scene::Groups.close();
+    }
+}
+
+template<>
+cParser&
+cParser::operator>>( std::string &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = this->tokens.front();
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( bool &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = ( ( this->tokens.front() == "true" )
+           || ( this->tokens.front() == "yes" )
+           || ( this->tokens.front() == "1" ) );
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template <>
+bool
+cParser::getToken<bool>( bool const ToLower, const char *Break ) {
+
+    auto const token = getToken<std::string>( true, Break );
+    return ( ( token == "true" )
+          || ( token == "yes" )
+          || ( token == "1" ) );
 }
 
 // methods
-bool cParser::getTokens(int Count, bool ToLower, const char *Break)
+cParser &
+cParser::autoclear( bool const Autoclear ) {
+
+    m_autoclear = Autoclear;
+    if( mIncludeParser ) { mIncludeParser->autoclear( Autoclear ); }
+
+    return *this;
+}
+
+bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
 {
+    if( true == m_autoclear ) {
+        // legacy parser behaviour
+        tokens.clear();
+    }
     /*
      if (LoadTraction==true)
       trtest="niemaproblema"; //wczytywać
@@ -78,7 +142,7 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
     this->str("");
     this->clear();
 */
-    for (int i = 0; i < Count; ++i)
+    for (unsigned int i = tokens.size(); i < Count; ++i)
     {
         std::string token = readToken(ToLower, Break);
         if( true == token.empty() ) {
@@ -105,106 +169,120 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
         return true;
 }
 
-std::string cParser::readToken(bool ToLower, const char *Break)
-{
-    std::string token = "";
-    size_t pos; // początek podmienianego ciągu
-    // see if there's include parsing going on. clean up when it's done.
-    if (mIncludeParser)
-    {
-        token = (*mIncludeParser).readToken(ToLower, Break);
-        if (!token.empty())
-        {
-            pos = token.find("(p");
-            // check if the token is a parameter which should be replaced with stored true value
-            if (pos != std::string::npos) //!=npos to znalezione
-            {
-                std::string parameter =
-                    token.substr(pos + 2, token.find(")", pos) - pos + 2); // numer parametru
-                token.erase(pos, token.find(")", pos) - pos + 1); // najpierw usunięcie "(pN)"
-                size_t nr = atoi(parameter.c_str()) - 1;
-                if (nr < parameters.size())
-                {
-                    token.insert(pos, parameters.at(nr)); // wklejenie wartości parametru
-                    if (ToLower)
-                        for (; pos < token.length(); ++pos)
-                            token[pos] = tolower(token[pos]);
-                }
-                else
-                    token.insert(pos, "none"); // zabezpieczenie przed brakiem parametru
-            }
-            return token;
-        }
-        else
-        {
-            delete mIncludeParser;
-            mIncludeParser = NULL;
-            parameters.clear();
+std::string cParser::readToken( bool ToLower, const char *Break ) {
+
+    std::string token;
+    if( mIncludeParser ) {
+        // see if there's include parsing going on. clean up when it's done.
+        token = mIncludeParser->readToken( ToLower, Break );
+        if( true == token.empty() ) {
+            mIncludeParser = nullptr;
         }
     }
-    // get the token yourself if there's no child to delegate it to.
-    char c;
-    do
-    {
-        while (mStream->peek() != EOF && strchr(Break, c = mStream->get()) == NULL)
-        {
-            if (ToLower)
-                c = tolower(c);
-            token += c;
-            if (findQuotes(token)) // do glue together words enclosed in quotes
-                break;
-            if (trimComments(token)) // don't glue together words separated with comment
-                break;
-        }
-    } while (token == "" && mStream->peek() != EOF); // double check to deal with trailing spaces
-    // launch child parser if include directive found.
-    // NOTE: parameter collecting uses default set of token separators.
-    if (token.compare("include") == 0)
-    { // obsługa include
-        std::string includefile = readToken(ToLower); // nazwa pliku
-        if (LoadTraction ? true : ((includefile.find("tr/") == std::string::npos) &&
-                                   (includefile.find("tra/") == std::string::npos)))
-        {
-            // std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
-            // if (trtest=="x") //jeśli nie wczytywać drutów
-            // trtest2=includefile; //kopiowanie ścieżki do pliku
-            std::string parameter = readToken(false); // w parametrach nie zmniejszamy
-            while( (parameter.empty() == false)
-				&& (parameter.compare("end") != 0) )
-            {
-                parameters.push_back(parameter);
-                parameter = readToken(ToLower);
+    if( true == token.empty() ) {
+        // get the token yourself if the delegation attempt failed
+        char c { 0 };
+        do {
+            while( mStream->peek() != EOF && strchr( Break, c = mStream->get() ) == NULL ) {
+                if( ToLower )
+                    c = tolower( c );
+                token += c;
+                if( findQuotes( token ) ) // do glue together words enclosed in quotes
+                    break;
+                if( trimComments( token ) ) // don't glue together words separated with comment
+                    break;
             }
-            // if (trtest2.find("tr/")!=0)
-            mIncludeParser = new cParser(includefile, buffer_FILE, mPath, LoadTraction);
-            if (mIncludeParser->mSize <= 0)
-                ErrorLog("Missed include: " + includefile);
+            if( c == '\n' ) {
+                // update line counter
+                ++mLine;
+            }
+        } while( token == "" && mStream->peek() != EOF ); // double check in case of consecutive separators
+    }
+
+    if( false == parameters.empty() ) {
+        // if there's parameter list, check the token for potential parameters to replace
+        size_t pos; // początek podmienianego ciągu
+        while( ( pos = token.find( "(p" ) ) != std::string::npos ) {
+            // check if the token is a parameter which should be replaced with stored true value
+            auto const parameter{ token.substr( pos + 2, token.find( ")", pos ) - ( pos + 2 ) ) }; // numer parametru
+            token.erase( pos, token.find( ")", pos ) - pos + 1 ); // najpierw usunięcie "(pN)"
+            size_t nr = atoi( parameter.c_str() ) - 1;
+            if( nr < parameters.size() ) {
+                token.insert( pos, parameters.at( nr ) ); // wklejenie wartości parametru
+                if( ToLower )
+                    for( ; pos < parameters.at( nr ).size(); ++pos )
+                        token[ pos ] = tolower( token[ pos ] );
+            }
+            else
+                token.insert( pos, "none" ); // zabezpieczenie przed brakiem parametru
         }
-        else
-            while (token.compare("end") != 0)
-                token = readToken(ToLower);
+    }
+
+    if( token == "include" ) {
+        // launch child parser if include directive found.
+        // NOTE: parameter collecting uses default set of token separators.
+        std::string includefile = readToken(ToLower); // nazwa pliku
+        if( ( true == LoadTraction )
+         || ( ( includefile.find( "tr/" ) == std::string::npos )
+           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+            // get parameter list for the child parser
+            std::vector<std::string> includeparameters;
+            std::string parameter = readToken( false ); // w parametrach nie zmniejszamy
+            while( ( parameter.empty() == false )
+                && ( parameter != "end" ) ) {
+                includeparameters.emplace_back( parameter );
+                parameter = readToken( false );
+            }
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, includeparameters );
+            mIncludeParser->autoclear( m_autoclear );
+            if( mIncludeParser->mSize <= 0 ) {
+                ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
+            }
+        }
+        else {
+            while( token != "end" ) {
+                token = readToken( true ); // minimize risk of case mismatch on comparison
+            }
+        }
         token = readToken(ToLower, Break);
     }
+    // all done
     return token;
 }
 
 std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
     std::string token = "";
-    char c;
+    char c { 0 };
     while( mStream->peek() != EOF && Quote != (c = mStream->get()) ) { // get all chars until the quote mark
+        if( c == '\n' ) {
+            // update line counter
+            ++mLine;
+        }
         token += c;
     }
     return token;
 }
 
-std::string cParser::readComment( std::string const &Break ) { // pobieranie znaków aż do znalezienia znacznika końca
-    std::string token = "";
-    while( mStream->peek() != EOF ) { // o ile nie koniec pliku
-        token += mStream->get(); // pobranie znaku
-        if( token.rfind( Break ) != std::string::npos ) // szukanie znacznika końca
+void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków aż do znalezienia znacznika końca
+    std::string input = "";
+    char c { 0 };
+    auto const endmarksize = Endmark.size();
+    while( mStream->peek() != EOF ) {
+        // o ile nie koniec pliku
+        c = mStream->get(); // pobranie znaku
+        if( c == '\n' ) {
+            // update line counter
+            ++mLine;
+        }
+        input += c;
+        if( input.find( Endmark ) != std::string::npos ) // szukanie znacznika końca
             break;
+        if( input.size() >= endmarksize ) {
+            // keep the read text short, to avoid pointless string re-allocations on longer comments
+            input = input.substr( 1 );
+        }
     }
-    return token;
+    return;
 }
 
 bool cParser::findQuotes( std::string &String ) {
@@ -224,7 +302,7 @@ bool cParser::trimComments(std::string &String)
     {
         if (String.rfind((*cmIt).first) != std::string::npos)
         {
-            readComment((*cmIt).second);
+            skipComment((*cmIt).second);
             String.resize(String.rfind((*cmIt).first));
             return true;
         }
@@ -237,7 +315,48 @@ int cParser::getProgress() const
     return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
 }
 
+int cParser::getFullProgress() const {
+
+    int progress = getProgress();
+    if( mIncludeParser )	return progress + ( ( 100 - progress )*( mIncludeParser->getProgress() ) / 100 );
+    else					return progress;
+}
+
+std::size_t cParser::countTokens( std::string const &Stream, std::string Path ) {
+
+    return cParser( Stream, buffer_FILE, Path ).count();
+}
+
+std::size_t cParser::count() {
+
+    std::string token;
+    size_t count { 0 };
+    do {
+        token = "";
+        token = readToken( false );
+        ++count;
+    } while( false == token.empty() );
+
+    return count - 1;
+}
+
 void cParser::addCommentStyle( std::string const &Commentstart, std::string const &Commentend ) {
 
     mComments.insert( commentmap::value_type(Commentstart, Commentend) );
+}
+
+// returns name of currently open file, or empty string for text type stream
+std::string
+cParser::Name() const {
+
+    if( mIncludeParser ) { return mIncludeParser->Name(); }
+    else                 { return mPath + mFile; }
+}
+
+// returns number of currently processed line
+std::size_t
+cParser::Line() const {
+
+    if( mIncludeParser ) { return mIncludeParser->Line(); }
+    else                 { return mLine; }
 }

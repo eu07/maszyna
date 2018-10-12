@@ -7,15 +7,39 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TractionPowerH
-#define TractionPowerH
-#include "parser.h" //Tolaris-010603
+#pragma once
 
-class TGroundNode;
+#include "classes.h"
+#include "scenenode.h"
+#include "names.h"
 
-class TTractionPowerSource
-{
-  private:
+class TTractionPowerSource : public scene::basic_node {
+
+public:
+// constructor
+    TTractionPowerSource( scene::node_data const &Nodedata );
+// methods
+    void Init(double const u, double const i);
+    bool Load(cParser *parser);
+    bool Update(double dt);
+    double CurrentGet(double res);
+    void VoltageSet(double const v) {
+        NominalVoltage = v; };
+    void PowerSet(TTractionPowerSource *ps);
+// members
+    TTractionPowerSource *psNode[ 2 ] = { nullptr, nullptr }; // zasilanie na końcach dla sekcji
+    bool bSection = false; // czy jest sekcją
+
+private:
+// methods
+    // serialize() subclass details, sends content of the subclass to provided stream
+    void serialize_( std::ostream &Output ) const;
+    // deserialize() subclass details, restores content of the subclass from provided stream
+    void deserialize_( std::istream &Input );
+    // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
+    void export_as_text_( std::ostream &Output ) const;
+
+// members
     double NominalVoltage = 0.0;
     double VoltageFrequency = 0.0;
     double InternalRes = 0.2;
@@ -33,27 +57,18 @@ class TTractionPowerSource
     bool SlowFuse = false;
     double FuseTimer = 0.0;
     int FuseCounter = 0;
-    TGroundNode const *gMyNode = nullptr; // wskaźnik na węzeł rodzica
 
-  protected:
-  public: // zmienne publiczne
-    TTractionPowerSource *psNode[2]; // zasilanie na końcach dla sekcji
-    bool bSection = false; // czy jest sekcją
-  public:
-    // AnsiString asName;
-    TTractionPowerSource(TGroundNode const *node);
-    ~TTractionPowerSource();
-    void Init(double const u, double const i);
-    bool Load(cParser *parser);
-    bool Render();
-    bool Update(double dt);
-    double CurrentGet(double res);
-    void VoltageSet(double const v)
-    {
-        NominalVoltage = v;
-    };
-    void PowerSet(TTractionPowerSource *ps);
+};
+
+
+
+// collection of generators for power grid present in the scene
+class powergridsource_table : public basic_table<TTractionPowerSource> {
+
+public:
+    // legacy method, calculates changes in simulation state over specified time
+    void
+        update( double const Deltatime );
 };
 
 //---------------------------------------------------------------------------
-#endif

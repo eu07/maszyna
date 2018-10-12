@@ -10,7 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "PoKeys55.h"
 #include <setupapi.h>
-#include "mczapkie/mctools.h"
+#include "utilities.h"
+
 //---------------------------------------------------------------------------
 // HIDscaner: http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
 //#define MY_DEVICE_ID  "Vid_04d8&Pid_003F"
@@ -70,7 +71,6 @@ bool TPoKeys55::Connect()
     PBYTE PropertyValueBuffer;
     bool MatchFound;
     DWORD ErrorStatus;
-    HDEVINFO hDevInfo;
     std::string DeviceIDFromRegistry;
     std::string DeviceIDToFind = "Vid_1dc3&Pid_1001&Rev_1000&MI_01";
     // First populate a list of plugged in devices (by specifying "DIGCF_PRESENT"), which are of the
@@ -157,7 +157,7 @@ bool TPoKeys55::Connect()
             // get the structure (after we have allocated enough memory for the structure.)
             DetailedInterfaceDataStructure->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
             // First call populates "StructureSize" with the correct value
-            SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, NULL, NULL,
+            SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, NULL, 0,
                                             &StructureSize, NULL);
             DetailedInterfaceDataStructure =
                 (PSP_DEVICE_INTERFACE_DETAIL_DATA)(malloc(StructureSize)); // Allocate enough memory

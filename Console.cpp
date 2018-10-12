@@ -10,11 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
+#include "application.h"
 #include "LPT.h"
 #include "Logs.h"
-#include "MWD.h" // maciek001: obsluga portu COM
 #include "PoKeys55.h"
-#include "mczapkie/mctools.h"
+#include "utilities.h"
 
 //---------------------------------------------------------------------------
 // Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
@@ -54,57 +54,17 @@ Działanie jest następujące:
 
 /*******************************/
 
-/* //kod do przetrawienia:
-//aby się nie włączacz wygaszacz ekranu, co jakiś czas naciska się wirtualnie ScrollLock
-
-[DllImport("user32.dll")]
-static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-
-private static void PressScrollLock()
-{//przyciska i zwalnia ScrollLock
- const byte vkScroll = 0x91;
- const byte keyeventfKeyup = 0x2;
- keybd_event(vkScroll, 0x45, 0, (UIntPtr)0);
- keybd_event(vkScroll, 0x45, keyeventfKeyup, (UIntPtr)0);
-};
-
-[DllImport("user32.dll")]
-private static extern bool SystemParametersInfo(int uAction,int uParam,int &lpvParam,int flags);
-
-public static Int32 GetScreenSaverTimeout()
-{
- Int32 value=0;
- SystemParametersInfo(14,0,&value,0);
- return value;
-};
-*/
-
 // static class member storage allocation
 TKeyTrans Console::ktTable[4 * 256];
 
-// Ra: do poprawienia
-void SetLedState(char Code, bool bOn){
-    // Ra: bajer do migania LED-ami w klawiaturze
-    // NOTE: disabled for the time being
-    // TODO: find non Borland specific equivalent, or get rid of it
-    /*   if (Win32Platform == VER_PLATFORM_WIN32_NT)
-        {
-            // WriteLog(AnsiString(int(GetAsyncKeyState(Code))));
-            if (bool(GetAsyncKeyState(Code)) != bOn)
-            {
-                keybd_event(Code, MapVirtualKey(Code, 0), KEYEVENTF_EXTENDEDKEY, 0);
-                keybd_event(Code, MapVirtualKey(Code, 0), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
-       0);
-            }
-        }
-        else
-        {
-            TKeyboardState KBState;
-            GetKeyboardState(KBState);
-            KBState[Code] = bOn ? 1 : 0;
-            SetKeyboardState(KBState);
-        };
-    */
+// Ra: bajer do migania LED-ami w klawiaturze
+void SetLedState( unsigned char Code, bool bOn ) {
+#ifdef _WIN32
+    if( bOn != ( ::GetKeyState( Code ) != 0 ) ) {
+        keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | 0, 0 );
+        keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0 );
+    }
+#endif
 };
 
 //---------------------------------------------------------------------------
@@ -114,7 +74,6 @@ int Console::iMode = 0;
 int Console::iConfig = 0;
 TPoKeys55 *Console::PoKeys55[2] = {NULL, NULL};
 TLPT *Console::LPT = NULL;
-TMWDComm *Console::MWDComm = NULL; // maciek001: obiekt dla MWD
 int Console::iSwitch[8]; // bistabilne w kabinie, załączane z [Shift], wyłączane bez
 int Console::iButton[8]; // monostabilne w kabinie, załączane podczas trzymania klawisza
 
@@ -126,14 +85,11 @@ Console::Console()
         iSwitch[i] = 0; // bity 0..127 - bez [Ctrl], 128..255 - z [Ctrl]
         iButton[i] = 0; // bity 0..127 - bez [Shift], 128..255 - z [Shift]
     }
-	MWDComm = NULL;
 };
 
 Console::~Console()
 {
-    delete PoKeys55[0];
-    delete PoKeys55[1];
-    delete MWDComm;
+    Console::Off();
 };
 
 void Console::ModeSet(int m, int h)
@@ -146,7 +102,7 @@ int Console::On()
 { // załączenie konsoli (np. nawiązanie komunikacji)
     iSwitch[0] = iSwitch[1] = iSwitch[2] = iSwitch[3] = 0; // bity 0..127 - bez [Ctrl]
     iSwitch[4] = iSwitch[5] = iSwitch[6] = iSwitch[7] = 0; // bity 128..255 - z [Ctrl]
-    switch (iMode)
+	switch (iMode)
     {
     case 1: // kontrolki klawiatury
     case 2: // kontrolki klawiatury
@@ -176,21 +132,10 @@ int Console::On()
         { // połączenie nie wyszło, ma być NULL
             delete PoKeys55[0];
             PoKeys55[0] = NULL;
+			WriteLog("PoKeys not found!");
         }
         break;
     }
-
-	if (Global::bMWDmasterEnable)
-	{
-		WriteLog("Opening ComPort");
-		MWDComm = new TMWDComm();
-		if (!(MWDComm->Open())) // jeżeli nie otwarł portu
-		{
-			WriteLog("ERROR: ComPort is NOT OPEN!");
-			delete MWDComm;
-			MWDComm = NULL;
-		}
-	}
 
     return 0;
 };
@@ -204,14 +149,9 @@ void Console::Off()
             SetLedState(VK_SCROLL, true); // przyciśnięty
             SetLedState(VK_SCROLL, false); // zwolniony
         }
-    delete PoKeys55[0];
-    PoKeys55[0] = NULL;
-    delete PoKeys55[1];
-    PoKeys55[1] = NULL;
-    delete LPT;
-    LPT = NULL;
-	delete MWDComm;
-	MWDComm = NULL;
+    SafeDelete( PoKeys55[0] );
+    SafeDelete( PoKeys55[1] );
+    SafeDelete( LPT );
 };
 
 void Console::BitsSet(int mask, int entry)
@@ -242,22 +182,24 @@ void Console::BitsUpdate(int mask)
     switch (iMode)
     {
     case 1: // sterowanie światełkami klawiatury: CA/SHP+opory
-        if (mask & 3) // gdy SHP albo CA
-            SetLedState(VK_CAPITAL, iBits & 3);
-        if (mask & 4) // gdy jazda na oporach
-        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyciśnięty
-            SetLedState(VK_SCROLL, false); // zwolniony
+        if( mask & 3 ) {
+            // gdy SHP albo CA
+            SetLedState( VK_CAPITAL, ( iBits & 3 ) != 0 );
+        }
+        if (mask & 4) {
+            // gdy jazda na oporach
+            SetLedState( VK_SCROLL, ( iBits & 4 ) != 0 );
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;
     case 2: // sterowanie światełkami klawiatury: CA+SHP
-        if (mask & 2) // gdy CA
-            SetLedState(VK_CAPITAL, iBits & 2);
-        if (mask & 1) // gdy SHP
-        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyciśnięty
-            SetLedState(VK_SCROLL, false); // zwolniony
+        if( mask & 2 ) {
+            // gdy CA
+            SetLedState( VK_CAPITAL, ( iBits & 2 ) != 0 );
+        }
+        if (mask & 1) {
+            // gdy SHP
+            SetLedState( VK_SCROLL, ( iBits & 1 ) != 0 );
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;
@@ -301,152 +243,67 @@ void Console::BitsUpdate(int mask)
         }
         break;
 	}
-	if (Global::bMWDmasterEnable)
-	{
-		// maciek001: MWDComm lampki i kontrolki
-		// out3: ogrzewanie sk?adu, opory rozruchowe, poslizg, zaluzjewent, -, -, czuwak, shp
-		// out4: stycz.liniowe, pezekaznikr??nicobwpomoc, nadmiarprzetw, roznicowy obw. g?, nadmiarsilniki, wylszybki, zanikpr?duprzyje?dzienaoporach, nadmiarsprezarki
-		// out5: HASLER */
-		if (mask & 0x0001) if (iBits & 1) {
-			MWDComm->WriteDataBuff[4] |= 1 << 7;  	// SHP	HASLER też
-			if (!MWDComm->bSHPstate) {
-				MWDComm->bSHPstate = true;
-				MWDComm->bPrzejazdSHP = true;
-			}
-			else MWDComm->bPrzejazdSHP = false;
-		}
-		else {
-			MWDComm->WriteDataBuff[4] &= ~(1 << 7);
-			MWDComm->bPrzejazdSHP = false;
-			MWDComm->bSHPstate = false;
-		}
-		if (mask & 0x0002) if (iBits & 2) MWDComm->WriteDataBuff[4] |= 1 << 6;  	// CA
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 6);
-		if (mask & 0x0004) if (iBits & 4) MWDComm->WriteDataBuff[4] |= 1 << 1; 		// jazda na oporach rozruchowych
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 1);
-		if (mask & 0x0008) if (iBits & 8)	MWDComm->WriteDataBuff[5] |= 1 << 5; 		// wy??cznik szybki
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 5);
-		if (mask & 0x0010) if (iBits & 0x10) MWDComm->WriteDataBuff[5] |= 1 << 4; 	// nadmiarowy silnik?w trakcyjnych
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 4);
-		if (mask & 0x0020) if (iBits & 0x20) MWDComm->WriteDataBuff[4] |= 1 << 0; 	// styczniki liniowe
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 0);
-		if (mask & 0x0040) if (iBits & 0x40) MWDComm->WriteDataBuff[4] |= 1 << 2; 	// po?lizg
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 2);
-		if (mask & 0x0080) if (iBits & 0x80) MWDComm->WriteDataBuff[5] |= 1 << 2; 	// (nadmiarowy) przetwornicy? ++
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 2);
-		if (mask & 0x0100) if (iBits & 0x100) MWDComm->WriteDataBuff[5] |= 1 << 7; 	// nadmiarowy spr??arki
-		else MWDComm->WriteDataBuff[5] &= ~(1 << 7);
-		if (mask & 0x0200) if (iBits & 0x200) MWDComm->WriteDataBuff[2] |= 1 << 1; 	// wentylatory i opory
-		else MWDComm->WriteDataBuff[2] &= ~(1 << 1);
-		if (mask & 0x0400) if (iBits & 0x400) MWDComm->WriteDataBuff[2] |= 1 << 2; 	// wysoki rozruch
-		else MWDComm->WriteDataBuff[2] &= ~(1 << 2);
-		if (mask & 0x0800) if (iBits & 0x800) MWDComm->WriteDataBuff[4] |= 1 << 0;	// ogrzewanie poci?gu
-		else MWDComm->WriteDataBuff[4] &= ~(1 << 0);
-		if (mask & 0x1000) if (iBits & 0x1000) MWDComm->bHamowanie = true;		// hasler: ci?nienie w hamulcach 	HASLER rysik 2
-		else MWDComm->bHamowanie = false;
-		if (mask & 0x2000) if (iBits & 0x2000) MWDComm->WriteDataBuff[6] |= 1 << 4; 	// hasler: pr?d "na" silnikach 		HASLER rysik 3
-		else MWDComm->WriteDataBuff[6] &= ~(1 << 4);
-		if (mask & 0x4000) if (iBits & 0x4000) MWDComm->WriteDataBuff[6] |= 1 << 7; 	// brz?czyk SHP/CA
-		else MWDComm->WriteDataBuff[6] &= ~(1 << 7);
-		//if(mask & 0x8000) if(iBits & 0x8000) MWDComm->WriteDataBuff[1] |= 1<<7; (puste)
-		//else MWDComm->WriteDataBuff[0] &= ~(1<<7);
-	}
 };
 
 bool Console::Pressed(int x)
 { // na razie tak - czyta się tylko klawiatura
-    return Global::bActive && (GetKeyState(x) < 0);
+	if (glfwGetKey(Application.window(), x) == GLFW_TRUE)
+		return true;
+	else
+		return false;
 };
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartości (y) na kanale analogowym (x)
-    if (iMode == 4)
-        if (PoKeys55[0])
-        {
-            x = Global::iPoKeysPWM[x];
-            if (Global::iCalibrateOutDebugInfo == x)
-                WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y), false);
-            if (Global::fCalibrateOutMax[x] > 0)
-            {
-                y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
-                if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" cutted=" + std::to_string(y), false);
-                y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
-                                                     // maksymalna wartość
-                if (Global::iCalibrateOutDebugInfo == x)
-                    WriteLog(" fraction=" + std::to_string(y), false);
-            }
-            double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
-                             Global::fCalibrateOut[x][3]) *
-                                y +
-                            Global::fCalibrateOut[x][2]) *
-                               y +
-                           Global::fCalibrateOut[x][1]) *
-                              y +
-                          Global::fCalibrateOut[x][0]; // zakres <0;1>
-            if (Global::iCalibrateOutDebugInfo == x)
-                WriteLog(" calibrated=" + std::to_string(temp));
-            PoKeys55[0]->PWM(x, temp);
+    if( iMode != 4 )  { return; }
+
+    if (PoKeys55[0])
+    {
+        x = Global.iPoKeysPWM[x];
+        if( Global.iCalibrateOutDebugInfo == x ) {
+            WriteLog( "CalibrateOutDebugInfo: oryginal=" + std::to_string( y ) );
         }
-	if (Global::bMWDmasterEnable)
-	{
-		unsigned int iliczba;
-		switch (x)
-		{
-		case 0: iliczba = (unsigned int)floor((y / (Global::fMWDzg[0] * 10) * Global::fMWDzg[1]) + 0.5);	// zbiornik g??wny
-			MWDComm->WriteDataBuff[12] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[11] = (unsigned char)iliczba;
-			break;
-		case 1: iliczba = (unsigned int)floor((y / (Global::fMWDpg[0] * 10) * Global::fMWDpg[1]) + 0.5);	// przew?d g??wny
-			MWDComm->WriteDataBuff[10] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[9] = (unsigned char)iliczba;
-			break;
-		case 2: iliczba = (unsigned int)floor((y / (Global::fMWDph[0] * 10) * Global::fMWDph[1]) + 0.5);	// cylinder hamulcowy
-			MWDComm->WriteDataBuff[8] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[7] = (unsigned char)iliczba;
-			break;
-		case 3: iliczba = (unsigned int)floor((y / Global::fMWDvolt[0] * Global::fMWDvolt[1]) + 0.5);	// woltomierz WN
-			MWDComm->WriteDataBuff[14] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[13] = (unsigned char)iliczba;
-			break;
-		case 4: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 1
-			MWDComm->WriteDataBuff[16] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[15] = (unsigned char)iliczba;
-			break;
-		case 5: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 2
-			MWDComm->WriteDataBuff[18] = (unsigned char)(iliczba >> 8);
-			MWDComm->WriteDataBuff[17] = (unsigned char)iliczba;
-			break;
-		case 6: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 3
-			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
-			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
-			break;
-		case 7: MWDComm->WriteDataBuff[0] = (unsigned char)floor(y);	// prędkość
-			break;
-		}
-	}
+        if (Global.fCalibrateOutMax[x] > 0)
+        {
+            y = clamp( y, 0.0, Global.fCalibrateOutMax[x]);
+            if( Global.iCalibrateOutDebugInfo == x ) {
+                WriteLog( " cutted=" + std::to_string( y ) );
+            }
+            // sprowadzenie do <0,1> jeśli podana maksymalna wartość
+            y = y / Global.fCalibrateOutMax[x];
+            if( Global.iCalibrateOutDebugInfo == x ) {
+                WriteLog( " fraction=" + std::to_string( y ) );
+            }
+        }
+        double temp = (((((
+              Global.fCalibrateOut[x][5]  * y)
+            + Global.fCalibrateOut[x][4]) * y
+            + Global.fCalibrateOut[x][3]) * y
+            + Global.fCalibrateOut[x][2]) * y
+            + Global.fCalibrateOut[x][1]) * y
+            + Global.fCalibrateOut[x][0]; // zakres <0;1>
+        if( Global.iCalibrateOutDebugInfo == x ) {
+            WriteLog( " calibrated=" + std::to_string( temp ) );
+        }
+        PoKeys55[0]->PWM(x, temp);
+    }
 };
 
 void Console::Update()
 { // funkcja powinna być wywoływana regularnie, np. raz w każdej ramce ekranowej
     if (iMode == 4)
         if (PoKeys55[0])
-            if (PoKeys55[0]->Update((Global::iPause & 8) > 0))
+            if (PoKeys55[0]->Update((Global.iPause & 8) > 0))
             { // wykrycie przestawionych przełączników?
-                Global::iPause &= ~8;
+                Global.iPause &= ~8;
             }
             else
             { // błąd komunikacji - zapauzować symulację?
-                if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global::iTextMode = VK_F1; // pokazanie czasu/pauzy
-                Global::iPause |= 8; // tak???
+                if (!(Global.iPause & 8)) // jeśli jeszcze nie oflagowana
+                    Global.iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
+                Global.iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }
-	if (Global::bMWDmasterEnable)
-	{
-		if (MWDComm->GetMWDState()) MWDComm->Run();
-		else MWDComm->Close();
-	}
 };
 
 float Console::AnalogGet(int x)
@@ -461,28 +318,17 @@ float Console::AnalogCalibrateGet(int x)
 { // pobranie i kalibracja wartości analogowej, jeśli nie ma PoKeys zwraca NULL
     if (iMode == 4 && PoKeys55[0])
     {
-        float b = PoKeys55[0]->fAnalog[x];
-        return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
-                  Global::fCalibrateIn[x][3]) *
-                     b +
-                 Global::fCalibrateIn[x][2]) *
-                    b +
-                Global::fCalibrateIn[x][1]) *
-                   b +
-               Global::fCalibrateIn[x][0];
-    }
-	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
-	{
-		float b = (float)MWDComm->uiAnalog[x];
-		b = (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
-		switch (x)
-		{
-		case 0: return (b * 8 - 2);
-			break;
-		case 1: return (b * 10);
-			break;
-		default: return 0;
-		}
+		float b = PoKeys55[0]->fAnalog[x];
+		b = (((((
+              Global.fCalibrateIn[x][5]  * b)
+            + Global.fCalibrateIn[x][4]) * b
+            + Global.fCalibrateIn[x][3]) * b
+            + Global.fCalibrateIn[x][2]) * b
+            + Global.fCalibrateIn[x][1]) * b
+            + Global.fCalibrateIn[x][0];
+		if (x == 0) return (b + 2) / 8;
+		if (x == 1) return b/10;
+		else return b;
 	}
     return -1.0; // odcięcie
 };
@@ -518,6 +364,7 @@ void Console::OnKeyDown(int k)
         }
     }
 };
+
 void Console::OnKeyUp(int k)
 { // puszczenie klawisza w zasadzie nie ma znaczenia dla iSwitch, ale zeruje iButton
     if ((k & 0x20000) == 0) // monostabilne tylko bez [Ctrl]
@@ -526,10 +373,12 @@ void Console::OnKeyUp(int k)
         else
             iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wyłącz monostabilny podstawowy
 };
+
 int Console::KeyDownConvert(int k)
 {
     return int(ktTable[k & 0x3FF].iDown);
 };
+
 int Console::KeyUpConvert(int k)
 {
     return int(ktTable[k & 0x3FF].iUp);

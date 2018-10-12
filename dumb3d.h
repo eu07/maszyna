@@ -64,15 +64,17 @@ class vector3
   public:
     vector3(void) :
         x(0.0), y(0.0), z(0.0)
-    {
-    }
-    vector3(scalar_t a, scalar_t b, scalar_t c)
-    {
-        x = a;
-        y = b;
-        z = c;
-    }
-
+    {}
+    vector3( scalar_t X, scalar_t Y, scalar_t Z ) :
+                   x( X ),     y( Y ),     z( Z )
+    {}
+    template <typename Type_, glm::precision Precision_>
+    vector3( glm::tvec3<Type_, Precision_> const &Vector ) :
+        x( Vector.x ), y( Vector.y ), z( Vector.z )
+    {}
+    template <typename Type_, glm::precision Precision_>
+    operator glm::tvec3<Type_, Precision_>() const {
+        return glm::tvec3<Type_, Precision_>{ x, y, z }; }
     // The int parameter is the number of elements to copy from initArray (3 or 4)
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)
     //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }
@@ -83,7 +85,8 @@ class vector3
 
     void inline Normalize();
     void inline SafeNormalize();
-    double inline Length();
+    double inline Length() const;
+    double inline LengthSquared() const;
     void inline Zero()
     {
         x = y = z = 0.0;
@@ -103,14 +106,8 @@ class vector3
         return &x;
     }
 
-    //    union
-    //  {
-    //        struct
-    //        {
     double x, y, z;
-    //        };
-    //    	scalar_t e[3];
-    //    };
+
     bool inline Equal(vector3 *v)
     { // sprawdzenie odległości punktów
         if (std::fabs(x - v->x) > 0.02)
@@ -131,21 +128,22 @@ class matrix4x4
   public:
     matrix4x4(void)
     {
-        ::SecureZeroMemory( e, sizeof( e ) );
+        memset( e, 0, sizeof( e ) );
     }
 
     // When defining matrices in C arrays, it is easiest to define them with
     // the column increasing fastest.  However, some APIs (OpenGL in particular) do this
     // backwards, hence the "constructor" from C matrices, or from OpenGL matrices.
     // Note that matrices are stored internally in OpenGL format.
-    void C_Matrix(scalar_t *initArray)
+    void C_Matrix(scalar_t const *initArray)
     {
         int i = 0;
         for (int y = 0; y < 4; ++y)
             for (int x = 0; x < 4; ++x)
                 (*this)(x)[y] = initArray[i++];
     }
-    void OpenGL_Matrix(scalar_t *initArray)
+    template <typename Type_>
+    void OpenGL_Matrix(Type_ const *initArray)
     {
         int i = 0;
         for (int x = 0; x < 4; ++x)
@@ -165,7 +163,7 @@ class matrix4x4
     }
 
     // Low-level access to the array.
-    const scalar_t *readArray(void)
+    const scalar_t *readArray(void) const 
     {
         return e;
     }
@@ -415,6 +413,11 @@ inline vector3 CrossProduct(const vector3 &v1, const vector3 &v2)
     return vector3(v1.y * v2.z - v1.z * v2.y, v2.x * v1.z - v2.z * v1.x, v1.x * v2.y - v1.y * v2.x);
 }
 
+inline vector3 Interpolate( vector3 const &First, vector3 const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
 inline vector3 operator*(const matrix4x4 &m, const vector3 &v)
 {
     return vector3(v.x * m[0][0] + v.y * m[1][0] + v.z * m[2][0] + m[3][0],
@@ -430,9 +433,14 @@ void inline vector3::Normalize()
     z *= il;
 }
 
-double inline vector3::Length()
+double inline vector3::Length() const
 {
     return SQRT_FUNCTION(x * x + y * y + z * z);
+}
+
+double inline vector3::LengthSquared() const {
+
+    return ( x * x + y * y + z * z );
 }
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)

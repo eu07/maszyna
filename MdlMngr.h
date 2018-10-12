@@ -8,38 +8,35 @@ http://mozilla.org/MPL/2.0/.
 */
 #pragma once
 
-#include "Model3d.h"
-#include "usefull.h"
+#include "classes.h"
 
-class TMdlContainer
-{
+class TMdlContainer {
     friend class TModelsManager;
-    TMdlContainer()
-    {
-        Model = NULL;
-    };
-    ~TMdlContainer()
-    {
-        SafeDelete(Model);
-    };
-    TModel3d * LoadModel(std::string const &NewName, bool dynamic);
-    TModel3d *Model;
-    std::string Name;
+private:
+    TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
+    std::shared_ptr<TModel3d> Model { nullptr };
+    std::string m_name;
 };
 
-class TModelsManager
-{ // klasa statyczna, nie ma obiektu
-  private:
-    static TMdlContainer *Models;
-    static int Count;
-    static TModel3d * LoadModel(std::string const &Name, bool dynamic);
-
-  public:
-    //    TModelsManager();
-    //    ~TModelsManager();
-    static void Init();
-    static void Free();
+// klasa statyczna, nie ma obiektu
+class TModelsManager {
+public:
     // McZapkie: dodalem sciezke, notabene Path!=Patch :)
-    static TModel3d * GetModel(std::string const &Name, bool dynamic = false);
+    static TModel3d *GetModel( std::string const &Name, bool dynamic = false );
+
+private:
+// types:
+    typedef std::deque<TMdlContainer> modelcontainer_sequence;
+    typedef std::unordered_map<std::string, modelcontainer_sequence::size_type> stringmodelcontainerindex_map;
+// members:
+    static modelcontainer_sequence m_models;
+    static stringmodelcontainerindex_map m_modelsmap;
+// methods:
+    static TModel3d *LoadModel( std::string const &Name, bool const Dynamic );
+    static std::pair<bool, TModel3d *> find_in_databank( std::string const &Name );
+    // checks whether specified file exists. returns name of the located file, or empty string.
+    static std::string find_on_disk( std::string const &Name );
+
 };
+
 //---------------------------------------------------------------------------

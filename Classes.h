@@ -12,22 +12,39 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 // Ra: zestaw klas do robienia wskaźników, aby uporządkować nagłówki
 //---------------------------------------------------------------------------
+class opengl_renderer;
 class TTrack; // odcinek trajektorii
-class TEvent;
+class basic_event;
 class TTrain; // pojazd sterowany
 class TDynamicObject; // pojazd w scenerii
-class TGroundNode; // statyczny obiekt scenerii
+struct material_data;
 class TAnimModel; // opakowanie egzemplarz modelu
 class TAnimContainer; // fragment opakowania egzemplarza modelu
 class TModel3d; //siatka modelu wspólna dla egzemplarzy
 class TSubModel; // fragment modelu (tu do wyświetlania terenu)
 class TMemCell; // komórka pamięci
 class cParser;
-class TRealSound; // dźwięk ze współrzędnymi XYZ
-class TTextSound; // dźwięk ze stenogramem
+class sound_source;
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
+class TCamera;
+class scenario_time;
+class TMoverParameters;
+class ui_layer;
+class editor_ui;
+class itemproperties_panel;
+class event_manager;
+class memory_table;
+class powergridsource_table;
+class instance_table;
+class vehicle_table;
+struct light_array;
+
+namespace scene {
+struct node_data;
+class basic_node;
+}
 
 namespace Mtable
 {
@@ -36,11 +53,8 @@ class TMtableTime; // czas dla danego posterunku
 };
 
 class TController; // obiekt sterujący pociągiem (AI)
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-class TNames; // obiekt sortujący nazwy
-#endif
 
-typedef enum
+enum class TCommandType
 { // binarne odpowiedniki komend w komórce pamięci
     cm_Unknown, // ciąg nierozpoznany (nie jest komendą)
     cm_Ready, // W4 zezwala na odjazd, ale semafor może zatrzymać
@@ -54,6 +68,8 @@ typedef enum
     cm_OutsideStation,
     cm_Shunt,
     cm_Command // komenda pobierana z komórki
-} TCommandType;
+};
+
+using material_handle = int;
 
 #endif

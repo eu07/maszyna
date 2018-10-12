@@ -15,11 +15,12 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "TrkFoll.h"
+
+#include "simulation.h"
 #include "Globals.h"
+#include "dynobj.h"
+#include "driver.h"
 #include "Logs.h"
-#include "Driver.h"
-#include "DynObj.h"
-#include "Event.h"
 
 TTrackFollower::~TTrackFollower()
 {
@@ -71,19 +72,11 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
         }
         break;
         }
-    if (!pTrack)
-    { // gdy nie ma toru w kierunku jazdy
-        pTrack = pCurrentTrack->NullCreate(
-            end); // tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+    if (!pTrack) {
+        // gdy nie ma toru w kierunku jazdy tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+        pTrack = pCurrentTrack->NullCreate(end);
         if (!end) // jeśli dodana od strony zero, to zmiana kierunku
             fDirection = -fDirection; // wtórna zmiana
-        // if (pTrack->iCategoryFlag&2)
-        //{//jeśli samochód, zepsuć na miejscu
-        // Owner->MoverParameters->V=0; //zatrzymać
-        // Owner->MoverParameters->Power=0; //ukraść silnik
-        // Owner->MoverParameters->AccS=0; //wchłonąć moc
-        // Global::iPause|=1; //zapauzowanie symulacji
-        //}
     }
     else
     { // najpierw +1, później -1, aby odcinek izolowany wspólny dla tych torów nie wykrył zera
@@ -102,72 +95,68 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
 { // przesuwanie wózka po torach o odległość (fDistance), z wyzwoleniem eventów
     // bPrimary=true - jest pierwszą osią w pojeździe, czyli generuje eventy i przepisuje pojazd
     // Ra: zwraca false, jeśli pojazd ma być usunięty
+    auto const ismoving { ( std::abs( fDistance ) > 0.01 ) && ( Owner->GetVelocity() > 0.01 ) };
+    int const eventfilter { (
+        ( ( true == ismoving ) && ( Owner->ctOwner != nullptr ) ) ?
+            Owner->ctOwner->Direction() * ( Owner->ctOwner->Vehicle()->DirectionGet() == Owner->DirectionGet() ? 1 : -1 ) * ( fDirection > 0 ? 1 : -1 ) :
+            0 ) };
     fDistance *= fDirection; // dystans mnożnony przez kierunek
     double s; // roboczy dystans
     double dir; // zapamiętany kierunek do sprawdzenia, czy się zmienił
     bool bCanSkip; // czy przemieścić pojazd na inny tor
     while (true) // pętla wychodzi, gdy przesunięcie wyjdzie zerowe
     { // pętla przesuwająca wózek przez kolejne tory, aż do trafienia w jakiś
-        if (!pCurrentTrack)
-            return false; // nie ma toru, to nie ma przesuwania
-        if (pCurrentTrack->iEvents) // sumaryczna informacja o eventach
-        { // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
-            if (fDistance < 0)
-            {
-                if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagę sprawdzenia, jak mechanik
-                    // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
-                        // pojazdow z obsada
-                        if (bPrimary && pCurrentTrack->evEvent1 &&
-                            (!pCurrentTrack->evEvent1->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent1, Owner); // dodanie do
-                // kolejki
-                // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                // if (TestFlag(iEventallFlag,1))
-                if (iSetFlag(iEventallFlag,
-                             -1)) // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-                    if (bPrimary && pCurrentTrack->evEventall1 &&
-                        (!pCurrentTrack->evEventall1->iQueued))
-                        Global::AddToQuery(pCurrentTrack->evEventall1, Owner); // dodanie do kolejki
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
+        if( pCurrentTrack == nullptr ) { return false; } // nie ma toru, to nie ma przesuwania
+        // TODO: refactor following block as track method
+        if( pCurrentTrack->m_events ) { // sumaryczna informacja o eventach
+            // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
+            if( false == ismoving ) {
+                //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
+                if( ( Owner->Mechanik != nullptr )
+                 && ( Owner->Mechanik->Primary() ) ) {
+                    // tylko dla jednego członu
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events0, Owner );
+                }
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events0all, Owner );
             }
-            else if (fDistance > 0)
-            {
-                if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagę sprawdzenia, jak mechanik
-                    // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
-                        // warunku
-                        if (bPrimary && pCurrentTrack->evEvent2 &&
-                            (!pCurrentTrack->evEvent2->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                // if (TestFlag(iEventallFlag,2))
-                if (iSetFlag(iEventallFlag,
-                             -2)) // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
-                    if (bPrimary && pCurrentTrack->evEventall2 &&
-                        (!pCurrentTrack->evEventall2->iQueued))
-                        Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
+            else if( (fDistance < 0) && ( eventfilter < 0 ) ) {
+                // event1, eventall1
+                if( SetFlag( iEventFlag, -1 ) ) {
+                    // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
+                        if( true == bPrimary ) {
+                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
+                        }
+                    }
+                }
+                if( SetFlag( iEventallFlag, -1 ) ) {
+                    // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
+                    if( true == bPrimary ) {
+                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner );
+                    }
+                }
             }
-            else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
-            {
-                if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                    if (pCurrentTrack->evEvent0)
-                        if (!pCurrentTrack->evEvent0->iQueued)
-                            Global::AddToQuery(pCurrentTrack->evEvent0, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodać do
-                // kolejki
-                if (pCurrentTrack->evEventall0)
-                    if (!pCurrentTrack->evEventall0->iQueued)
-                        Global::AddToQuery(pCurrentTrack->evEventall0, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodać
-                // do kolejki
+            else if( ( fDistance > 0 ) && ( eventfilter > 0 ) ) {
+                // event2, eventall2
+                if( SetFlag( iEventFlag, -2 ) ) {
+                    // zawsze ustawia flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        if( true == bPrimary ) {
+                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
+                        }
+                    }
+                }
+                if( SetFlag( iEventallFlag, -2 ) ) {
+                    // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
+                    if( true == bPrimary ) {
+                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner );
+                    }
+                }
             }
         }
         if (!pCurrentSegment) // jeżeli nie ma powiązanego segmentu toru?
@@ -191,18 +180,19 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         */
         if (s < 0)
         { // jeśli przekroczenie toru od strony Point1
-            bCanSkip = bPrimary ? pCurrentTrack->CheckDynamicObject(Owner) : false;
-            if (bCanSkip) // tylko główna oś przenosi pojazd do innego toru
-                Owner->MyTrack->RemoveDynamicObject(
-                    Owner); // zdejmujemy pojazd z dotychczasowego toru
+            bCanSkip = ( bPrimary && pCurrentTrack->CheckDynamicObject( Owner ) );
+            if( bCanSkip ) {
+                // tylko główna oś przenosi pojazd do innego toru
+                // zdejmujemy pojazd z dotychczasowego toru
+                Owner->MyTrack->RemoveDynamicObject( Owner );
+            }
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 0))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 0))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(-1, fDirection),
-                                      0)) // ustawia fDirection
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(-1, fDirection), 0)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir == fDirection) //(pCurrentTrack->iPrevDirection)
             { // gdy kierunek bez zmiany (Point1->Point2)
@@ -217,8 +207,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if (bCanSkip)
             { // jak główna oś, to dodanie pojazdu do nowego toru
                 pCurrentTrack->AddDynamicObject(Owner);
-                iEventFlag =
-                    3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
+                iEventFlag = 3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
                 iEventallFlag = 3; // McZapkie-280503: jw, dla eventall1,2
                 if (!Owner->MyTrack)
                     return false;
@@ -227,19 +216,17 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         }
         else if (s > pCurrentSegment->GetLength())
         { // jeśli przekroczenie toru od strony Point2
-            bCanSkip = bPrimary ? pCurrentTrack->CheckDynamicObject(Owner) : false;
+            bCanSkip = ( bPrimary && pCurrentTrack->CheckDynamicObject( Owner ) );
             if (bCanSkip) // tylko główna oś przenosi pojazd do innego toru
-                Owner->MyTrack->RemoveDynamicObject(
-                    Owner); // zdejmujemy pojazd z dotychczasowego toru
+                Owner->MyTrack->RemoveDynamicObject(Owner); // zdejmujemy pojazd z dotychczasowego toru
             fDistance = s - pCurrentSegment->GetLength();
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
-                if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 1))
+                if (!SetCurrentTrack(pCurrentTrack->Connected(iSegment, fDirection), 1))
                     return false; // wyjście z błędem
             }
-            else if (!SetCurrentTrack(pCurrentTrack->Neightbour(1, fDirection),
-                                      1)) // ustawia fDirection
+            else if (!SetCurrentTrack(pCurrentTrack->Connected(1, fDirection), 1)) // ustawia fDirection
                 return false; // wyjście z błędem
             if (dir != fDirection) //(pCurrentTrack->iNextDirection)
             { // gdy zmiana kierunku toru (Point2->Point2)
@@ -251,8 +238,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if (bCanSkip)
             { // jak główna oś, to dodanie pojazdu do nowego toru
                 pCurrentTrack->AddDynamicObject(Owner);
-                iEventFlag =
-                    3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
+                iEventFlag = 3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
                 iEventallFlag = 3;
                 if (!Owner->MyTrack)
                     return false;
@@ -263,21 +249,15 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // gdy zostaje na tym samym torze (przesuwanie już nie zmienia toru)
             if (bPrimary)
             { // tylko gdy początkowe ustawienie, dodajemy eventy stania do kolejki
-                if (Owner->MoverParameters->ActiveCab != 0)
-                // if (Owner->MoverParameters->CabNo!=0)
-                {
-                    if (pCurrentTrack->evEvent1 && pCurrentTrack->evEvent1->fDelay <= -1.0f)
-                        Global::AddToQuery(pCurrentTrack->evEvent1, Owner);
-                    if (pCurrentTrack->evEvent2 && pCurrentTrack->evEvent2->fDelay <= -1.0f)
-                        Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
+                if (Owner->MoverParameters->ActiveCab != 0) {
+
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner, -1.0 );
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner, -1.0 );
                 }
-                if (pCurrentTrack->evEventall1 && pCurrentTrack->evEventall1->fDelay <= -1.0f)
-                    Global::AddToQuery(pCurrentTrack->evEventall1, Owner);
-                if (pCurrentTrack->evEventall2 && pCurrentTrack->evEventall2->fDelay <= -1.0f)
-                    Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner, -1.0 );
+                pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner, -1.0 );
             }
             fCurrentDistance = s;
-            // fDistance=0;
             return ComputatePosition(); // przeliczenie XYZ, true o ile nie wyjechał na NULL
         }
     }
@@ -303,8 +283,8 @@ bool TTrackFollower::ComputatePosition()
     return false;
 }
 #if RENDER_CONE
-#include "opengl/glew.h"
-#include "opengl/glut.h"
+#include "GL/glew.h"
+#include "GL/glut.h"
 void TTrackFollower::Render(float fNr)
 { // funkcja rysująca stożek w miejscu osi
     glPushMatrix(); // matryca kamery

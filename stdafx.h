@@ -18,14 +18,20 @@
 #endif  // _DEBUG
 #endif
 // operating system
+#ifdef _WIN32
 #include "targetver.h"
 #define NOMINMAX
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
 #include <dbghelp.h>
+#include <direct.h>
+#include <strsafe.h>
+#endif
 // stl
+#include <cstddef>
 #include <cstdlib>
+#include <cstdio>
 #include <cassert>
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -35,6 +41,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 #include <deque>
 #include <list>
@@ -43,6 +50,7 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <tuple>
 #include <cctype>
 #include <locale>
 #include <codecvt>
@@ -58,3 +66,54 @@
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>
+
+#ifdef NDEBUG
+#define EU07_BUILD_STATIC
+#endif
+
+#ifdef EU07_BUILD_STATIC
+#define GLEW_STATIC
+#else
+#ifdef _WIN32
+#define GLFW_DLL
+#endif // _windows
+#endif // build_static
+#ifndef __ANDROID__
+#include "GL/glew.h"
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+#ifdef _WIN32
+#include "GL/wglew.h"
+#endif
+#define GLFW_INCLUDE_GLU
+//m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
+#ifndef __ANDROID__
+#include <GLFW/glfw3.h>
+#endif
+
+#define GLM_ENABLE_EXPERIMENTAL 
+#define GLM_FORCE_CTOR_INIT 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/epsilon.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/norm.hpp>
+
+int const null_handle = 0;
+
+#include "openglmatrixstack.h"
+#include "openglcolor.h"
+
+// imgui.h comes with its own operator new which gets wrecked by dbg_new, so we temporarily disable the latter
+#ifdef DBG_NEW
+#pragma push_macro("new")
+#undef new
+#include "imgui.h"
+#pragma pop_macro("new")
+#else
+#include "imgui.h"
+#endif

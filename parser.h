@@ -28,84 +28,89 @@ class cParser //: public std::stringstream
         buffer_TEXT
     };
     // constructors:
-    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true );
+    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true, std::vector<std::string> Parameters = std::vector<std::string>() );
     // destructor:
     virtual ~cParser();
     // methods:
-    template <typename _Type>
-    cParser&
-        operator>>( _Type &Right );
-    template <>
-    cParser&
-        operator>>( std::string &Right );
-    template <>
-    cParser&
-        operator>>( bool &Right );
-    template <typename _Output>
-	_Output
-		getToken( bool const ToLower = true )
-    {
-        getTokens( 1, ToLower );
-		_Output output;
-        *this >> output;
-		return output;
-    };
-	template <>
-	bool
-		getToken<bool>( bool const ToLower ) {
-
-		return ( getToken<std::string>() == "true" );
-	}
-    inline void ignoreToken()
-    {
-        readToken();
-    };
-    inline void ignoreTokens(int count)
-    {
-        for (int i = 0; i < count; i++)
-            readToken();
-    };
-    inline bool expectToken(std::string const &value)
-    {
-        return readToken() == value;
-    };
-    bool eof()
-    {
-        return mStream->eof();
-    };
-    bool ok()
-    {
-        return !mStream->fail();
-    };
-    bool getTokens(int Count = 1, bool ToLower = true, const char *Break = "\n\r\t ;");
+    template <typename Type_>
+    cParser &
+        operator>>( Type_ &Right );
+    template <typename Output_>
+	Output_
+		getToken( bool const ToLower = true, const char *Break = "\n\r\t ;" ) {
+            getTokens( 1, ToLower, Break );
+		    Output_ output;
+            *this >> output;
+		    return output; };
+    inline
+    void
+        ignoreToken() {
+            readToken(); };
+    inline
+    bool
+        expectToken( std::string const &Value ) {
+            return readToken() == Value; };
+    bool
+        eof() {
+            return mStream->eof(); };
+    bool
+        ok() {
+            return !mStream->fail(); };
+    cParser &
+        autoclear( bool const Autoclear );
+    bool
+        autoclear() const {
+            return m_autoclear; }
+    bool
+        getTokens( unsigned int Count = 1, bool ToLower = true, char const *Break = "\n\r\t ;" );
+    // returns next incoming token, if any, without removing it from the set
+    std::string
+        peek() const {
+            return (
+                false == tokens.empty() ?
+                    tokens.front() :
+                    "" ); }
     // returns percentage of file processed so far
     int getProgress() const;
+    int getFullProgress() const;
+    //
+    static std::size_t countTokens( std::string const &Stream, std::string Path = "" );
     // add custom definition of text which should be ignored when retrieving tokens
     void addCommentStyle( std::string const &Commentstart, std::string const &Commentend );
+    // returns name of currently open file, or empty string for text type stream
+    std::string Name() const;
+    // returns number of currently processed line
+    std::size_t Line() const;
 
   private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
     std::string readQuotes( char const Quote = '\"' );
-    std::string readComment( std::string const &Break = "\n\r\t ;" );
-//    std::string trtest;
+    void skipComment( std::string const &Endmark );
     bool findQuotes( std::string &String );
     bool trimComments( std::string &String );
+    std::size_t count();
     // members:
-    bool LoadTraction; // load traction?
-    std::istream *mStream; // relevant kind of buffer is attached on creation.
+    bool m_autoclear { true }; // unretrieved tokens are discarded when another read command is issued (legacy behaviour)
+    bool LoadTraction { true }; // load traction?
+    std::shared_ptr<std::istream> mStream; // relevant kind of buffer is attached on creation.
+    std::string mFile; // name of the open file, if any
     std::string mPath; // path to open stream, for relative path lookups.
-    std::streamoff mSize; // size of open stream, for progress report.
+    std::streamoff mSize { 0 }; // size of open stream, for progress report.
+    std::size_t mLine { 0 }; // currently processed line
+    bool mIncFile { false }; // the parser is processing an *.inc file
     typedef std::map<std::string, std::string> commentmap;
-    commentmap mComments;
-    cParser *mIncludeParser; // child class to handle include directives.
+    commentmap mComments {
+        commentmap::value_type( "/*", "*/" ),
+        commentmap::value_type( "//", "\n" ) };
+    std::shared_ptr<cParser> mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
 };
 
-template<typename _Type>
+template<typename Type_>
 cParser&
-cParser::operator>>( _Type &Right ) {
+cParser::operator>>( Type_ &Right ) {
 
     if( true == this->tokens.empty() ) { return *this; }
 
@@ -118,26 +123,12 @@ cParser::operator>>( _Type &Right ) {
 
 template<>
 cParser&
-cParser::operator>>( std::string &Right ) {
-
-    if( true == this->tokens.empty() ) { return *this; }
-
-    Right = this->tokens.front();
-    this->tokens.pop_front();
-
-    return *this;
-}
+cParser::operator>>( std::string &Right );
 
 template<>
 cParser&
-cParser::operator>>( bool &Right ) {
+cParser::operator>>( bool &Right );
 
-    if( true == this->tokens.empty() ) { return *this; }
-
-    Right = ( ( this->tokens.front() == "true" )
-           || ( this->tokens.front() == "yes" )
-           || ( this->tokens.front() == "1" ) );
-    this->tokens.pop_front();
-
-    return *this;
-}
+template<>
+bool
+cParser::getToken<bool>( bool const ToLower, const char *Break );

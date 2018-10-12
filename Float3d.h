@@ -23,7 +23,8 @@ class float3
         y = b;
         z = c;
     };
-    double inline Length() const;
+    float Length() const;
+    float LengthSquared() const;
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)
@@ -49,17 +50,23 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-double inline float3::Length() const
+inline float float3::Length() const
 {
-    return sqrt(x * x + y * y + z * z);
+    return std::sqrt(LengthSquared());
 };
-inline float3 operator/(const float3 &v, double k)
+inline float float3::LengthSquared() const {
+    return ( x * x + y * y + z * z );
+}
+inline float3 operator*( float3 const &v, float const  k ) {
+    return float3( v.x * k, v.y * k, v.z * k );
+};
+inline float3 operator/( float3 const &v, float const k )
 {
     return float3(v.x / k, v.y / k, v.z / k);
 };
 inline float3 SafeNormalize(const float3 &v)
 { // bezpieczna normalizacja (wektor długości 1.0)
-    double l = v.Length();
+    auto const l = v.Length();
     float3 retVal;
     if (l == 0)
         retVal.x = retVal.y = retVal.z = 0;
@@ -67,9 +74,18 @@ inline float3 SafeNormalize(const float3 &v)
         retVal = v / l;
     return retVal;
 };
-inline float3 CrossProduct(const float3 &v1, const float3 &v2)
+inline float3 CrossProduct( float3 const &v1, float3 const &v2 )
 {
     return float3(v1.y * v2.z - v1.z * v2.y, v2.x * v1.z - v2.z * v1.x, v1.x * v2.y - v1.y * v2.x);
+}
+inline float DotProduct( float3 const &v1, float3 const &v2 ) {
+
+    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+inline float3 Interpolate( float3 const &First, float3 const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
 }
 
 class float4
@@ -88,11 +104,11 @@ class float4
         z = c;
         w = d;
     };
-    double inline float4::LengthSquared() const
+    float inline LengthSquared() const
     {
         return x * x + y * y + z * z + w * w;
     };
-    double inline float4::Length() const
+    float inline Length() const
     {
         return sqrt(x * x + y * y + z * z + w * w);
     };
@@ -116,26 +132,26 @@ inline float4 operator+(const float4 &v1, const float4 &v2)
 {
     return float4(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w);
 };
-inline float4 operator/(const float4 &v, double k)
+inline float4 operator/(const float4 &v, float const k)
 {
     return float4(v.x / k, v.y / k, v.z / k, v.w / k);
 };
 inline float4 Normalize(const float4 &v)
 { // bezpieczna normalizacja (wektor długości 1.0)
-    double l = v.LengthSquared();
-    if (l == 1.0)
+    auto const lengthsquared = v.LengthSquared();
+    if (lengthsquared == 1.0)
         return v;
-    if (l == 0.0)
+    if (lengthsquared == 0.0)
         return float4(); // wektor zerowy, w=1
     else
-        return v / sqrt(l); // pierwiastek liczony tylko jeśli trzeba wykonać dzielenia
+        return v / std::sqrt(lengthsquared); // pierwiastek liczony tylko jeśli trzeba wykonać dzielenia
 };
 inline
 float Dot(const float4 &q1, const float4 &q2)
 { // iloczyn skalarny
     return q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
 }
-inline float4 &operator*=(float4 &v1, double d)
+inline float4 &operator*=(float4 &v1, float const d)
 { // mnożenie przez skalar, jaki ma sens?
     v1.x *= d;
     v1.y *= d;
@@ -156,7 +172,7 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
         new_q1.w = -new_q1.w;
         cosOmega = -cosOmega;
     }
-    double k0, k1;
+    float k0, k1;
     if (cosOmega > 0.9999f)
     { // jeśli jesteśmy z (t) na maksimum kosinusa, to tam prawie liniowo jest
         k0 = 1.0f - t;
@@ -164,9 +180,9 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
     }
     else
     { // a w ogólnym przypadku trzeba liczyć na trygonometrię
-        double sinOmega = sqrt(1.0f - cosOmega * cosOmega); // sinus z jedynki tryg.
-        double omega = atan2(sinOmega, cosOmega); // wyznaczenie kąta
-        double oneOverSinOmega = 1.0f / sinOmega; // odwrotność sinusa, bo sinus w mianowniku
+        auto const sinOmega = std::sqrt(1.0f - cosOmega * cosOmega); // sinus z jedynki tryg.
+        auto const omega = std::atan2(sinOmega, cosOmega); // wyznaczenie kąta
+        auto const oneOverSinOmega = 1.0f / sinOmega; // odwrotność sinusa, bo sinus w mianowniku
         k0 = sin((1.0f - t) * omega) * oneOverSinOmega;
         k1 = sin(t * omega) * oneOverSinOmega;
     }
@@ -184,9 +200,12 @@ struct float8
 
 class float4x4
 { // macierz transformacji pojedynczej precyzji
+public:
     float e[16];
 
-  public:
+	void deserialize_float32(std::istream&);
+	void deserialize_float64(std::istream&);
+	void serialize_float32(std::ostream&);
     float4x4(void){};
     float4x4(float f[16])
     {
@@ -197,7 +216,7 @@ class float4x4
     {
         return &e[i << 2];
     }
-    const float * readArray(void)
+    const float * readArray(void) const
     {
         return e;
     }
@@ -222,7 +241,7 @@ class float4x4
             e[i + 2] = f; // zamiana Y i Z
         }
     };
-    inline float4x4 &Rotation(double angle, float3 axis);
+    inline float4x4 &Rotation(float const angle, float3 const &axis);
     inline bool IdentityIs()
     { // sprawdzenie jednostkowości
         for (int i = 0; i < 16; ++i)
@@ -244,34 +263,37 @@ inline float3 operator*(const float4x4 &m, const float3 &v)
                   v.x * m[0][2] + v.y * m[1][2] + v.z * m[2][2] + m[3][2]);
 }
 
-inline float4x4 &float4x4::Rotation(double angle, float3 axis)
+inline glm::vec3 operator*( const float4x4 &m, const glm::vec3 &v ) { // mnożenie wektora przez macierz
+    return glm::vec3(
+        v.x * m[ 0 ][ 0 ] + v.y * m[ 1 ][ 0 ] + v.z * m[ 2 ][ 0 ] + m[ 3 ][ 0 ],
+        v.x * m[ 0 ][ 1 ] + v.y * m[ 1 ][ 1 ] + v.z * m[ 2 ][ 1 ] + m[ 3 ][ 1 ],
+        v.x * m[ 0 ][ 2 ] + v.y * m[ 1 ][ 2 ] + v.z * m[ 2 ][ 2 ] + m[ 3 ][ 2 ] );
+}
+
+inline float4x4 &float4x4::Rotation(float const Angle, float3 const &Axis)
 {
-    double c = cos(angle);
-    double s = sin(angle);
+    auto const c = std::cos(Angle);
+    auto const s = std::sin(Angle);
     // One minus c (short name for legibility of formulai)
-    double omc = (1 - c);
-    if (axis.Length() != 1.0f)
-        axis = SafeNormalize(axis);
-    double x = axis.x;
-    double y = axis.y;
-    double z = axis.z;
-    double xs = x * s;
-    double ys = y * s;
-    double zs = z * s;
-    double xyomc = x * y * omc;
-    double xzomc = x * z * omc;
-    double yzomc = y * z * omc;
-    e[0] = x * x * omc + c;
+    auto const omc = (1.f - c);
+    auto const axis = SafeNormalize(Axis);
+    auto const xs = axis.x * s;
+    auto const ys = axis.y * s;
+    auto const zs = axis.z * s;
+    auto const xyomc = axis.x * axis.y * omc;
+    auto const xzomc = axis.x * axis.z * omc;
+    auto const yzomc = axis.y * axis.z * omc;
+    e[0] = axis.x * axis.x * omc + c;
     e[1] = xyomc + zs;
     e[2] = xzomc - ys;
     e[3] = 0;
     e[4] = xyomc - zs;
-    e[5] = y * y * omc + c;
+    e[5] = axis.y * axis.y * omc + c;
     e[6] = yzomc + xs;
     e[7] = 0;
     e[8] = xzomc + ys;
     e[9] = yzomc - xs;
-    e[10] = z * z * omc + c;
+    e[10] = axis.z * axis.z * omc + c;
     e[11] = 0;
     e[12] = 0;
     e[13] = 0;
@@ -279,6 +301,16 @@ inline float4x4 &float4x4::Rotation(double angle, float3 axis)
     e[15] = 1;
     return *this;
 };
+
+inline bool operator==(const float4x4& v1, const float4x4& v2)
+{
+	for (size_t i = 0; i < 16; i++)
+	{
+		if (v1.e[i] != v2.e[i])
+			return false;
+	}
+	return true;
+}
 
 inline float4x4 operator*(const float4x4 &m1, const float4x4 &m2)
 { // iloczyn macierzy

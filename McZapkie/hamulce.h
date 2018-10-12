@@ -35,7 +35,6 @@ Knorr/West EP - żeby był
 #pragma once
 
 #include "friction.h" // Pascal unit
-#include "mctools.h" // Pascal unit
 
 static int const LocalBrakePosNo = 10;         /*ilosc nastaw hamulca recznego lub pomocniczego*/
 static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/
@@ -45,7 +44,6 @@ static int const bdelay_G = 1;    //G
 static int const bdelay_P = 2;    //P
 static int const bdelay_R = 4;    //R
 static int const bdelay_M = 8;    //Mg
-static int const bdelay_GR = 128; //G-R
 
 
 /*stan hamulca*/
@@ -137,10 +135,10 @@ static int const i_bcpno = 6;
 //klasa obejmujaca pojedyncze zbiorniki
 class TReservoir {
 
-  protected:
-		double Cap = 1.0;
-		double Vol = 0.0;
-		double dVol = 0.0;
+protected:
+    double Cap{ 1.0 };
+    double Vol{ 0.0 };
+    double dVol{ 0.0 };
 
   public:
     void CreateCap(double Capacity);
@@ -185,7 +183,7 @@ class TBrake {
 		bool DCV = false; //podwojny zawor zwrotny
 		double ASBP = 0.0; //cisnienie hamulca pp
 
-		int BrakeStatus = 0; //flaga stanu
+        int BrakeStatus{ b_off }; //flaga stanu
 		int SoundFlag = 0;
 
   public:
@@ -206,6 +204,7 @@ class TBrake {
         void Releaser( int const state ); //odluzniacz
         virtual void SetEPS( double const nEPS ); //hamulec EP
         virtual void SetRM( double const RMR ) {};   //ustalenie przelozenia rapida
+		virtual void SetRV( double const RVR) {};   //ustalenie przelozenia rapida
 		virtual void SetLP(double const TM, double const LM, double const TBP) {};  //parametry przystawki wazacej
 		virtual void SetLBP(double const P) {};   //cisnienie z hamulca pomocniczego
 		virtual void PLC(double const mass) {};  //wspolczynnik cisnienia przystawki wazacej
@@ -213,7 +212,11 @@ class TBrake {
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
         void SetASBP( double const Press ); //ustalenie cisnienia pp
     virtual void ForceEmptiness();
+    // removes specified amount of air from the reservoirs
+    virtual void ForceLeak( double const Amount );
     int GetSoundFlag();
+    int GetBrakeStatus() const { return BrakeStatus; }
+    void SetBrakeStatus( int const Status ) { BrakeStatus = Status; }
     virtual void SetED( double const EDstate ) {}; //stan hamulca ED do luzowania
 };
 
@@ -259,6 +262,7 @@ class TESt : public TBrake {
 		void CheckReleaser(double dt); //odluzniacz
 		double CVs(double BP);      //napelniacz sterujacego
 		double BVs(double BCP);     //napelniacz pomocniczego
+        void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -330,6 +334,7 @@ class TLSt : public TESt4R {
   protected:
 		double LBP = 0.0;       //cisnienie hamulca pomocniczego
 		double RM = 0.0;        //przelozenie rapida
+		double RV = 0.0;
 		double EDFlag = 0.0; //luzowanie hamulca z powodu zalaczonego ED
 
   public:
@@ -365,6 +370,7 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej        
+		void SetRV(double const RVR);   //ustalenie predkosci przelaczenia rapida
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -409,6 +415,7 @@ public:
     void CheckState( double const BCP, double &dV1 );
     double CVs( double const BP );
     double BVs( double const BCP );
+    void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -481,6 +488,7 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
         void PLC( double const mass );  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
         void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
+        void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
             TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -500,7 +508,7 @@ class TDriverHandle {
   public:
 		bool Time = false;
 		bool TimeEP = false;
-		double Sounds[ 5 ]; //wielkosci przeplywow dla dzwiekow              
+        double Sounds[ 5 ]; //wielkosci przeplywow dla dzwiekow              
 
     virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
     virtual void Init(double Press);
@@ -509,6 +517,8 @@ class TDriverHandle {
     virtual double GetSound(int i);
     virtual double GetPos(int i);
     virtual double GetEP(double pos);
+
+    inline TDriverHandle() { memset( Sounds, 0, sizeof( Sounds ) ); }
 };
 
 class TFV4a : public TDriverHandle {
@@ -548,7 +558,7 @@ class TFV4aM : public TDriverHandle {
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
-
+		double GetCP();
 		inline TFV4aM() :
 			TDriverHandle()
 		{}
@@ -579,6 +589,31 @@ class TMHZ_EN57 : public TDriverHandle {
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
 		{}
+};
+
+class TMHZ_K5P : public TDriverHandle {
+
+private:
+	double CP = 0.0; //zbiornik sterujący
+	double TP = 0.0; //zbiornik czasowy
+	double RP = 0.0; //zbiornik redukcyjny
+	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+	bool Fala = false;
+	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
+
+	bool EQ(double pos, double i_pos);
+
+public:
+	double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
+	void Init(double Press)/*override*/;
+	void SetReductor(double nAdj)/*override*/;
+	double GetSound(int i)/*override*/;
+	double GetPos(int i)/*override*/;
+	double GetCP()/*override*/;
+
+	inline TMHZ_K5P(void) :
+		TDriverHandle()
+	{}
 };
 
 /*    FBS2= class(TTDriverHandle)

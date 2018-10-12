@@ -7,59 +7,54 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef ButtonH
-#define ButtonH
+#pragma once
 
-#include <string>
-#include "Model3d.h"
-#include "parser.h"
+#include "Classes.h"
+#include "sound.h"
 
-class TButton
-{ // animacja dwustanowa, włącza jeden z dwóch submodeli (jednego
-    // z nich może nie być)
-  private:
-    TSubModel *pModelOn, *pModelOff; // submodel dla stanu załączonego i wyłączonego
-    bool bOn;
-    bool *bData;
-    int iFeedbackBit; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
+// animacja dwustanowa, włącza jeden z dwóch submodeli (jednego z nich może nie być)
+class TButton {
 
-  public:
-    TButton();
-    ~TButton();
-    void Clear(int i = -1);
-    inline void FeedbackBitSet(int i)
-    {
-        iFeedbackBit = 1 << i;
-    };
-    inline void Turn(bool to)
-    {
-        bOn = to;
-        Update();
-    };
-    inline void TurnOn()
-    {
-        bOn = true;
-        Update();
-    };
-    inline void TurnOff()
-    {
-        bOn = false;
-        Update();
-    };
-    inline void Switch()
-    {
-        bOn = !bOn;
-        Update();
-    };
-    inline bool Active()
-    {
-        return (pModelOn) || (pModelOff);
-    };
+public:
+// methods
+    TButton() = default;
+    void Clear(int const i = -1);
+    inline
+    void FeedbackBitSet( int const i ) {
+        iFeedbackBit = 1 << i; };
+    void Turn( bool const State );
+    inline
+    bool GetValue() const {
+        return m_state; }
+    inline
+    bool Active() {
+        return ( ( pModelOn != nullptr )
+              || ( pModelOff != nullptr ) ); }
     void Update();
-    void Init(std::string const &asName, TModel3d *pModel, bool bNewOn = false);
-    void Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
-    void AssignBool(bool *bValue);
+    void Init( std::string const &asName, TModel3d *pModel, bool bNewOn = false );
+    void Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pModel1, TModel3d *pModel2 = nullptr );
+    void AssignBool(bool const *bValue);
+    // returns offset of submodel associated with the button from the model centre
+    glm::vec3 model_offset() const;
+
+private:
+// methods
+    // imports member data pair from the config file
+    bool
+        Load_mapping( cParser &Input );
+    // plays the sound associated with current state
+    void
+        play();
+
+// members
+    TSubModel
+        *pModelOn { nullptr },
+        *pModelOff { nullptr }; // submodel dla stanu załączonego i wyłączonego
+    bool m_state { false };
+    bool const *bData { nullptr };
+    int iFeedbackBit { 0 }; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
+    sound_source m_soundfxincrease { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // sound associated with increasing control's value
+    sound_source m_soundfxdecrease { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // sound associated with decreasing control's value
 };
 
 //---------------------------------------------------------------------------
-#endif
