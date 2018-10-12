@@ -44,9 +44,11 @@ void render_task::run() {
             // build texture
             ::glTexImage2D(
                 GL_TEXTURE_2D, 0,
-                GL_RGBA8,
+                GL_RGB8,
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
+
+            glFlush();
         }
         Py_DECREF( outputheight );
         Py_DECREF( outputwidth );
