@@ -30,13 +30,8 @@ void render_task::run() {
         // upload texture data
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr ) ) {
-            const opengl_material &material = GfxRenderer.Material(m_target);
-            if (material.texture1 != null_handle)
-            {
-                GLuint id = GfxRenderer.Texture(material.texture1).id;
-                glBindTexture(GL_TEXTURE_2D, id);
-            }
 
+            ::glBindTexture( GL_TEXTURE_2D, GfxRenderer.Texture( m_target ).id );
             // setup texture parameters
             ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
             ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

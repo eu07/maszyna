@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "Timer.h"
-#include "event.h"
+#include "Event.h"
 #include "Camera.h"
 #include "mtable.h"
 #include "Train.h"

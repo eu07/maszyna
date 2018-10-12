@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "event.h"
+#include "Event.h"
 
 #include "simulation.h"
 #include "messaging.h"
@@ -29,7 +29,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "lua.h"
 
 void
 basic_event::event_conditions::bind( basic_event::node_sequence *Nodes ) {

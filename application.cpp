@@ -14,18 +14,14 @@ http://mozilla.org/MPL/2.0/.
 #include "editormode.h"
 
 #include "Globals.h"
-#include "keyboardinput.h"
-#include "drivermouseinput.h"
-#include "gamepadinput.h"
-#include "Console.h"
 #include "simulation.h"
+#include "Train.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
 #include "Logs.h"
 #include "screenshot.h"
 #include "translation.h"
-#include "Train.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")

@@ -671,7 +671,7 @@ private:
     // McZapkie: do syczenia
     float fPPress, fNPress;
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-    std::vector<std::pair<std::string, material_handle>> m_screens;
+    std::vector<std::pair<std::string, texture_handle>> m_screens;
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

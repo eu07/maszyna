@@ -71,5 +71,6 @@ enum class TCommandType
 };
 
 using material_handle = int;
+using texture_handle = int;
 
 #endif

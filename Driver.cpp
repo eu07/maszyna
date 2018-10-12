@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "Track.h"
 #include "station.h"
 #include "keyboardinput.h"
 
