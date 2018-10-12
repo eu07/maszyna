@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Segment.h"
 #include "material.h"
 #include "Names.h"
-#include "Model3d.h"
 
 class TTractionPowerSource;
 

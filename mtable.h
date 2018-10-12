@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
+
 #include "Classes.h"
 
 namespace Mtable

@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 #include "simulation.h"
 #include "simulationtime.h"
-#include "event.h"
+#include "Event.h"
 #include "DynObj.h"
 #include "Driver.h"
 #include "mtable.h"

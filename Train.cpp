@@ -29,6 +29,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "Console.h"
 #include "application.h"
+#include "renderer.h"
 
 namespace input {
 
@@ -453,9 +454,9 @@ PyObject *TTrain::GetTrainState() {
     auto const *mover = DynamicObject->MoverParameters;
     PyEval_AcquireLock();
     auto *dict = PyDict_New();
-    PyEval_ReleaseLock();
     if( ( dict == nullptr )
      || ( mover == nullptr ) ) {
+        PyEval_ReleaseLock();
         return nullptr;
     }
 
@@ -585,6 +586,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
     PyDict_SetItemString( dict, "air_temperature", PyGetInt( Global.AirTemperature ) );
 
+    PyEval_ReleaseLock();
     return dict;
 }
 
@@ -6810,7 +6812,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
                         DynamicObject->asBaseDir + renderername :
                         renderername ),
-                    material );
+                    GfxRenderer.Material( material ).textures[0] );
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

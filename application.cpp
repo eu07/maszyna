@@ -14,11 +14,8 @@ http://mozilla.org/MPL/2.0/.
 #include "editormode.h"
 
 #include "Globals.h"
-#include "keyboardinput.h"
-#include "drivermouseinput.h"
-#include "gamepadinput.h"
-#include "Console.h"
 #include "simulation.h"
+#include "Train.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"

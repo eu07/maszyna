@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "openglgeometrybank.h"
 #include "material.h"
+#include "light.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
