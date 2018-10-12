@@ -160,6 +160,18 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
     // acquire a lock on the task queue and add a new task
     {
         std::lock_guard<std::mutex> lock( m_tasks.mutex );
+
+        // if task for this target already exists, don't add another
+        for (render_task *task : m_tasks.data)
+            if (task->get_target() == Task.target)
+            {
+                PyEval_AcquireLock();
+                Py_DECREF(Task.input);
+                PyEval_ReleaseLock();
+
+                return false;
+            }
+
         m_tasks.data.emplace_back( new render_task( renderer, Task.input, Task.target ) );
     }
     // potentially wake a worker to handle the new task

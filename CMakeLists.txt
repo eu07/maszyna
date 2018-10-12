@@ -11,7 +11,6 @@ file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
 
 set(SOURCES
 "Texture.cpp"
-"TextureDDS.cpp"
 "Timer.cpp"
 "Track.cpp"
 "Traction.cpp"
@@ -77,14 +76,12 @@ set(SOURCES
 "audiorenderer.cpp"
 "motiontelemetry.cpp"
 "utilities.cpp"
-"light.cpp"
 "uitranscripts.cpp"
 "station.cpp"
 "application.cpp"
 "simulationtime.cpp"
 "sceneeditor.cpp"
 "screenshot.cpp"
-"combustionengine.cpp"
 "driverkeyboardinput.cpp"
 "drivermode.cpp"
 "driveruilayer.cpp"
