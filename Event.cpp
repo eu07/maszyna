@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Event.h""
+#include "Event.h"
 
 #include "simulation.h"
 #include "messaging.h"

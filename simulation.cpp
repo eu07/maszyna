@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 
 #include "Globals.h"
-#include "Event.h""
+#include "Event.h"
 #include "MemCell.h"
 #include "Track.h"
 #include "Traction.h"

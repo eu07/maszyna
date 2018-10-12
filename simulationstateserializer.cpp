@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "scenenodegroups.h"
-#include "Event.h""
+#include "Event.h"
 #include "Driver.h"
 #include "DynObj.h"
 #include "AnimModel.h"

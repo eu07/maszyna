@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Texture.h""
+#include "Texture.h"
 
 #include <ddraw.h>
 #include "GL/glew.h"

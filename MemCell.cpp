@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "Driver.h"
-#include "Event.h""
+#include "Event.h"
 #include "Logs.h"
 
 //---------------------------------------------------------------------------

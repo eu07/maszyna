@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Camera.h"
 #include "AnimModel.h"
-#include "Event.h""
+#include "Event.h"
 #include "EvLaunch.h"
 #include "Timer.h"
 #include "Logs.h"
