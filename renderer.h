@@ -115,6 +115,12 @@ class opengl_renderer {
 
 public:
 // types
+    /// Renderer runtime settings.
+    struct Settings
+    {
+        /** Force normal render of traction, when user is in debug mode. */
+        bool force_normal_traction_render { false };
+    } settings;
 // constructors
     opengl_renderer() = default;
 // destructor
