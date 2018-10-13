@@ -362,6 +362,14 @@ debug_panel::render() {
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
+        if( DebugModeFlag )
+        {
+            ImGui::Indent();
+            ImGui::Checkbox(
+                    "Draw normal traction",
+                    &GfxRenderer.settings.force_normal_traction_render );
+            ImGui::Unindent();
+        }
     }
     ImGui::End();
 }
