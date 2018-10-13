@@ -36,19 +36,25 @@ void render_task::run() {
                 // anisotropic filtering
                 ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
             }
-            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
             // build texture
             ::glTexImage2D(
                 GL_TEXTURE_2D, 0,
                 GL_RGBA8,
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
+            ::glFlush();
         }
-        Py_DECREF( outputheight );
-        Py_DECREF( outputwidth );
+        if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
+        if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
         Py_DECREF( output );
     }
     // clean up after yourself
+    delete this;
+}
+
+void render_task::cancel() {
+
+    Py_DECREF( m_input );
     delete this;
 }
 
@@ -131,7 +137,7 @@ void python_taskqueue::exit() {
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore
     for( auto *task : m_tasks.data ) {
-        delete task;
+        task->cancel();
     }
     // take a bow
     PyEval_AcquireLock();
@@ -148,10 +154,29 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
-    // acquire a lock on the task queue and add a new task
+
+    auto *newtask { new render_task( renderer, Task.input, Task.target ) };
+    bool newtaskinserted { false };
+    // acquire a lock on the task queue and add the new task
     {
         std::lock_guard<std::mutex> lock( m_tasks.mutex );
-        m_tasks.data.emplace_back( new render_task( renderer, Task.input, Task.target ) );
+        // check the task list for a pending request with the same target
+        for( auto &task : m_tasks.data ) {
+            if( task->target() == Task.target ) {
+                // replace pending task in the slot with the more recent one
+                PyEval_AcquireLock();
+                {
+                    task->cancel();
+                }
+                PyEval_ReleaseLock();
+                task = newtask;
+                newtaskinserted = true;
+                break;
+            }
+        }
+        if( false == newtaskinserted ) {
+            m_tasks.data.emplace_back( newtask );
+        }
     }
     // potentially wake a worker to handle the new task
     m_condition.notify_one();

@@ -34,6 +34,8 @@ public:
     {}
 // methods
     void run();
+    void cancel();
+    auto target() const -> texture_handle { return m_target; }
 
 private:
 // members
