@@ -135,7 +135,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
 	// prepare basic geometry chunks
 	auto const geometrybank = m_geometry.create_bank();
-	float const size = 2.5f;
+    float const size = 2.5f / 2.0f;
 	m_billboardgeometry = m_geometry.create_chunk(
 	    gfx::vertex_array{
 	        {{-size, size, 0.f}, glm::vec3(), {1.f, 1.f}}, {{size, size, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-size, -size, 0.f}, glm::vec3(), {1.f, 0.f}}, {{size, -size, 0.f}, glm::vec3(), {0.f, 0.f}}},

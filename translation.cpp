@@ -73,7 +73,7 @@ init() {
         "Tools",
         "Logging to log.txt",
         "Screenshot",
-        "Windows"
+        "Windows",
         "Log",
         "Map",
         "Mode windows",

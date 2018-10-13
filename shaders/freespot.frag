@@ -9,10 +9,10 @@ void main()
 {
 	float x = (gl_PointCoord.x - 0.5f) * 2.0f;
 	float y = (gl_PointCoord.y - 0.5f) * 2.0f;
-	float dist2 = abs(x * x + y * y);
-	if (dist2 > 0.5f * 0.5f)
+	float dist = sqrt(x * x + y * y);
+	if (dist > 0.5f)
 		discard;
-	gl_FragData[0] = vec4(param[0].rgb * emission, param[0].a);
+	gl_FragData[0] = vec4(param[0].rgb * emission, mix(param[0].a, 0.0f, dist * 2.0f));
 #if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
