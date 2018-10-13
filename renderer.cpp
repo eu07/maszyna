@@ -2168,13 +2168,10 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                     }
                 }
             }
-
             if( Dynamic->mdModel )
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-
             if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
                 Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
-
             // post-render cleanup
             m_renderspecular = false;
             if( Dynamic->fShade > 0.0f ) {
@@ -2193,7 +2190,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             if( Dynamic->mdModel )
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
             if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
             // post-render cleanup
             break;
         }
