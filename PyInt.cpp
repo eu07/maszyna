@@ -27,20 +27,13 @@ void render_task::run() {
     if( output != nullptr ) {
         auto *outputwidth { PyObject_CallMethod( m_renderer, "get_width", nullptr ) };
         auto *outputheight { PyObject_CallMethod( m_renderer, "get_height", nullptr ) };
+        opengl_texture &tex = GfxRenderer.Texture( m_target );
         // upload texture data
         if( ( outputwidth != nullptr )
-         && ( outputheight != nullptr ) ) {
+         && ( outputheight != nullptr )
+         && tex.id != -1) {
+             ::glBindTexture( GL_TEXTURE_2D, tex.id );
 
-            ::glBindTexture( GL_TEXTURE_2D, GfxRenderer.Texture( m_target ).id );
-            // setup texture parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-            if( GLEW_EXT_texture_filter_anisotropic ) {
-                // anisotropic filtering
-                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
-            }
-            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
             // build texture
             glTexImage2D(
                 GL_TEXTURE_2D, 0,
@@ -75,6 +68,8 @@ auto python_taskqueue::init() -> bool {
 #endif
     Py_Initialize();
     PyEval_InitThreads();
+
+    m_initialized = true;
 
 	PyObject *stringiomodule { nullptr };
 	PyObject *stringioclassname { nullptr };
@@ -133,12 +128,16 @@ release_and_exit:
 
 // shuts down the module
 void python_taskqueue::exit() {
+    if (!m_initialized)
+        return;
+
     // let the workers know we're done with them
     m_exit = true;
     m_condition.notify_all();
     // let them free up their shit before we proceed
     for( auto const &worker : m_workers ) {
-        worker->join();
+        if (worker)
+            worker->join();
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore

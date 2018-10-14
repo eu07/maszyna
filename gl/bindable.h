@@ -5,7 +5,7 @@ namespace gl
     template <typename T>
     class bindable
     {
-    private:
+    protected:
         static bindable<T>* active;
 
     public:

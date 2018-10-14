@@ -43,7 +43,7 @@ struct opengl_texture {
         height() const {
             return data_height; }
 
-    void alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int samples = 1);
+    void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1);
     void set_components_hint(GLint hint);
     static void reset_unit_cache();
 

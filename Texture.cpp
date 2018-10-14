@@ -747,7 +747,7 @@ opengl_texture::create() {
 				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
 			if (target == GL_TEXTURE_2D)
-				glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, data_type, nullptr);
+                glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_BYTE, nullptr);
 			else if (target == GL_TEXTURE_2D_MULTISAMPLE)
 				glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
         }
@@ -867,13 +867,12 @@ opengl_texture::release() {
     return;
 }
 
-void opengl_texture::alloc_rendertarget(GLint format, GLint components, GLint type, int width, int height, int s)
+void opengl_texture::alloc_rendertarget(GLint format, GLint components, int width, int height, int s)
 {
     data_width = width;
     data_height = height;
     data_format = format;
     data_components = components;
-    data_type = type;
     data_mapcount = 1;
     is_rendertarget = true;
 	samples = s;

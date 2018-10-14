@@ -27,6 +27,7 @@ uniform samplerCube envmap;
 #endif
 
 #include <light_common.glsl>
+#include <tonemapping.glsl>
 
 void main()
 {
@@ -67,7 +68,12 @@ void main()
 		result += light.color * (part.x * param[1].x + part.y * param[1].y);
 	}
 
-	gl_FragData[0] = vec4(apply_fog(result * tex_color.rgb), tex_color.a * alpha_mult);
+	vec4 color = vec4(apply_fog(result * tex_color.rgb), tex_color.a * alpha_mult);
+#if POSTFX_ENABLED
+    gl_FragData[0] = color;
+#else
+    gl_FragData[0] = tonemap(color);
+#endif
 	
 #if MOTIONBLUR_ENABLED
 	{

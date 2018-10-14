@@ -1,6 +1,7 @@
 #version 330
 
 #include <common>
+#include <tonemapping.glsl>
 
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
@@ -12,7 +13,12 @@ void main()
 	float dist = sqrt(x * x + y * y);
 	if (dist > 0.5f)
 		discard;
-	gl_FragData[0] = vec4(param[0].rgb * emission, mix(param[0].a, 0.0f, dist * 2.0f));
+	vec4 color = vec4(param[0].rgb * emission, mix(param[0].a, 0.0f, dist * 2.0f));
+#if POSTFX_ENABLED
+    gl_FragData[0] = color;
+#else
+    gl_FragData[0] = tonemap(color);
+#endif
 #if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;

@@ -10,10 +10,17 @@ uniform sampler2D tex1;
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
 
+#include <tonemapping.glsl>
+
 void main()
 {
 	vec4 tex_color = texture(tex1, vec2(f_coord.x, f_coord.y + param[1].x));
-	gl_FragData[0] = tex_color * param[0];
+	vec4 color = tex_color * param[0];
+#if POSTFX_ENABLED
+    gl_FragData[0] = color;
+#else
+    gl_FragData[0] = tonemap(color);
+#endif
 #if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;

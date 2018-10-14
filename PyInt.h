@@ -93,6 +93,7 @@ private:
     std::atomic<bool> m_exit { false }; // signals the workers to quit
     std::unordered_map<std::string, PyObject *> m_renderers; // cache of python classes
     rendertask_sequence m_tasks;
+    bool m_initialized { false };
 };
 
 #endif

@@ -13,6 +13,7 @@ gl::ubo::ubo(int size, int idx, GLenum hint)
 void gl::ubo::bind_uniform()
 {
     glBindBufferBase(GL_UNIFORM_BUFFER, index, *this);
+    active = this;
 }
 
 gl::ubo::~ubo()

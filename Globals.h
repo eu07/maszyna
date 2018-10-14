@@ -100,8 +100,7 @@ struct global_settings {
     // gfx
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
-    int render_width = -1;
-    int render_height = -1;
+
     float fDistanceFactor{ iWindowHeight / 768.f }; // baza do przeliczania odległości dla LoD
     bool bFullScreen{ false };
     bool VSync{ false };
@@ -177,10 +176,16 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 
+    int gfx_framebuffer_width = -1;
+    int gfx_framebuffer_height = -1;
     bool gfx_shadowmap_enabled = true;
     bool gfx_envmap_enabled = true;
     bool gfx_postfx_motionblur_enabled = true;
     float gfx_postfx_motionblur_shutter = 0.01f;
+    GLenum gfx_postfx_motionblur_format = GL_RG16F;
+    GLenum gfx_format_color = GL_RGB16F;
+    GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    bool gfx_skippipeline = false;
 
     bool map_enabled = true;
 
