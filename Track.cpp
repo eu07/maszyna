@@ -2156,6 +2156,15 @@ TTrack::export_as_text_( std::ostream &Output ) const {
     if( fVerticalRadius != 0.f ) {
         Output << "vradius " << fVerticalRadius << ' ';
     }
+    if( ( eType == tt_Switch )
+     && ( SwitchExtension->m_material3 != null_handle ) ) {
+        auto texturefile { GfxRenderer.Material( m_material2 ).name };
+        if( texturefile.find( szTexturePath ) == 0 ) {
+            // don't include 'textures/' in the path
+            texturefile.erase( 0, std::string{ szTexturePath }.size() );
+        }
+        Output << "trackbed " << texturefile << ' ';
+    }
     // footer
     Output
         << "endtrack"

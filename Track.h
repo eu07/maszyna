@@ -167,6 +167,7 @@ private:
     float fTexSlope = 0.9f;
 
     glm::dvec3 m_origin;
+    // TODO: store material names as strings, for lossless serialization and export
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     using geometryhandle_sequence = std::vector<gfx::geometry_handle>;

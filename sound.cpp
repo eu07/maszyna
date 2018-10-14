@@ -476,6 +476,13 @@ sound_source::stop( bool const Skipend ) {
 void
 sound_source::update( audio::openal_source &Source ) {
 
+    if( ( m_owner != nullptr )
+     && ( false == m_owner->bEnabled ) ) {
+        // terminate the sound if the owner is gone
+        // TBD, TODO: replace with a listener pattern to receive vehicle removal and cab change events and such?
+        m_stop = true;
+    }
+
     if( sound( sound_id::main ).buffer != null_handle ) {
         // basic variant: single main sound, with optional bookends
         update_basic( Source );
