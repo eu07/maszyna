@@ -3481,8 +3481,8 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		l->pos = mv * glm::vec4(renderlight->position, 1.0f);
 		l->dir = mv * glm::vec4(renderlight->direction, 0.0f);
 		l->type = gl::light_element_ubs::SPOT;
-		l->in_cutoff = 0.906f;
-		l->out_cutoff = 0.866f;
+        l->in_cutoff = 0.997f;
+        l->out_cutoff = 0.99f;
 		l->color = renderlight->diffuse * renderlight->factor;
 		l->linear = 0.007f;
 		l->quadratic = 0.0002f;
