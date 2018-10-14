@@ -44,11 +44,17 @@ void render_task::run() {
 
             glFlush();
         }
-        Py_DECREF( outputheight );
-        Py_DECREF( outputwidth );
+        if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
+        if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
         Py_DECREF( output );
     }
     // clean up after yourself
+    delete this;
+}
+
+void render_task::cancel() {
+
+    Py_DECREF( m_input );
     delete this;
 }
 
@@ -142,7 +148,7 @@ void python_taskqueue::exit() {
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore
     for( auto *task : m_tasks.data ) {
-        delete task;
+        task->cancel();
     }
     // take a bow
     PyEval_AcquireLock();
@@ -159,22 +165,29 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
-    // acquire a lock on the task queue and add a new task
+
+    auto *newtask { new render_task( renderer, Task.input, Task.target ) };
+    bool newtaskinserted { false };
+    // acquire a lock on the task queue and add the new task
     {
         std::lock_guard<std::mutex> lock( m_tasks.mutex );
-
-        // if task for this target already exists, don't add another
-        for (render_task *task : m_tasks.data)
-            if (task->get_target() == Task.target)
-            {
+        // check the task list for a pending request with the same target
+        for( auto &task : m_tasks.data ) {
+            if( task->target() == Task.target ) {
+                // replace pending task in the slot with the more recent one
                 PyEval_AcquireLock();
-                Py_DECREF(Task.input);
+                {
+                    task->cancel();
+                }
                 PyEval_ReleaseLock();
-
-                return false;
+                task = newtask;
+                newtaskinserted = true;
+                break;
             }
-
-        m_tasks.data.emplace_back( new render_task( renderer, Task.input, Task.target ) );
+        }
+        if( false == newtaskinserted ) {
+            m_tasks.data.emplace_back( newtask );
+        }
     }
     // potentially wake a worker to handle the new task
     m_condition.notify_one();

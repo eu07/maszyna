@@ -1745,7 +1745,7 @@ int TTrack::CrossSegment(int from, int into)
 
 void TTrack::RaAnimListAdd(TTrack *t)
 { // dodanie toru do listy animacyjnej
-    if (SwitchExtension)
+    if ((t != nullptr) && (SwitchExtension != nullptr))
     {
         if (t == this)
             return; // siebie nie dodajemy drugi raz do listy
