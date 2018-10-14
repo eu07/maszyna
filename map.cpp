@@ -16,7 +16,7 @@ bool map::init()
     m_shader = std::unique_ptr<gl::program>(prog);
 
     m_tex = std::make_unique<opengl_texture>();
-    m_tex->alloc_rendertarget(GL_RGB4, GL_RGB, GL_FLOAT, fb_size, fb_size);
+    m_tex->alloc_rendertarget(GL_RGB4, GL_RGB, fb_size, fb_size);
 
     m_fb = std::make_unique<gl::framebuffer>();
     m_fb->attach(*m_tex, GL_COLOR_ATTACHMENT0);
