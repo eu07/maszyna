@@ -1,7 +1,6 @@
-#version 330 core
-out vec4 FragColor;
-  
 in vec2 f_coords;
+
+layout(location = 0) out vec4 out_color;
 
 #texture (tex1, 0, RGB)
 uniform sampler2D tex1;
@@ -14,5 +13,5 @@ void main()
 	vec3 hdr_color = texture(tex1, texcoord).xyz;
 
 	vec3 mapped = tonemap(hdr_color);
-	gl_FragColor = vec4(mapped, 1.0);
+	out_color = vec4(mapped, 1.0);
 }  

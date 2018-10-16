@@ -6,7 +6,7 @@ set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("." "Console" "McZapkie" "gl")
+include_directories("." "Console" "McZapkie" "gl" "ref/glad/include")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h" "gl/*.h")
 
 set(SOURCES
@@ -95,8 +95,9 @@ set(SOURCES
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"
 "precipitation.cpp"
-"openglcolor.cpp"
 "map.cpp"
+
+"ref/glad/src/glad.c"
 
 "gl/shader.cpp"
 "gl/vao.cpp"
@@ -130,9 +131,7 @@ if (WIN32)
 	add_definitions(-DEU07_BUILD_STATIC) # to make pymath to not redefine round
 
 	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp")
-	set(GLEW_INCLUDE_DIR ${GLEW_INCLUDE_DIR} "${DEPS_DIR}/glew/include/")
 	set(GLFW3_INCLUDE_DIR ${GLFW3_INCLUDE_DIR} "${DEPS_DIR}/glfw/include/")
-	set(GLUT_INCLUDE_DIR ${GLUT_INCLUDE_DIR} "${DEPS_DIR}/freeglut/include/")
 	set(PNG_PNG_INCLUDE_DIR ${PNG_PNG_INCLUDE_DIR} "${DEPS_DIR}/libpng/include/")
 	set(ZLIB_INCLUDE_DIR ${ZLIB_INCLUDE_DIR} "${DEPS_DIR}/zlib/")
 	set(GLM_INCLUDE_DIR ${GLM_INCLUDE_DIR} "${DEPS_DIR}/glm/")
@@ -150,9 +149,7 @@ if (WIN32)
 
 	set (PREFIX "-${ARCH}")
 
-	set(GLEW_LIBRARY ${GLEW_LIBRARY} "${DEPS_DIR}/glew/lib/${ARCH}/glew32s.lib")
 	set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES} "${DEPS_DIR}/glfw/lib/${ARCH}/glfw3.lib")
-	set(GLUT_glut_LIBRARY ${GLFW3_ROOT_PATH} "${DEPS_DIR}/freeglut/lib/${ARCH}/freeglut.lib")
 	set(PNG_LIBRARY ${PNG_LIBRARY} "${DEPS_DIR}/libpng/lib/${ARCH}/libpng16.lib")
 	set(OPENAL_LIBRARY ${OPENAL_LIBRARY} "${DEPS_DIR}/openal/lib/${ARCH}/OpenAL32.lib")
 	set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/${ARCH}/libsndfile-1.lib")
@@ -193,25 +190,9 @@ set_target_properties( ${PROJECT_NAME}
 	DEBUG_POSTFIX "_d"
 )
 
-if (POLICY CMP0072)
-	cmake_policy(SET CMP0072 NEW)
-endif()
-
-find_package(OpenGL REQUIRED)
-include_directories(${OPENGL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
-
-find_package(GLEW REQUIRED)
-include_directories(${GLEW_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARIES})
-
 find_package(GLFW3 REQUIRED)
 include_directories(${GLFW3_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${GLFW3_LIBRARIES})
-
-find_package(GLUT REQUIRED)
-include_directories(${GLUT_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${GLUT_LIBRARIES})
 
 find_package(PythonLibs 2 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})

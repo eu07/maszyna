@@ -16,8 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Texture.h"
 
-#include "GL/glew.h"
-
 #include "utilities.h"
 #include "Globals.h"
 #include "Logs.h"
@@ -32,6 +30,128 @@ texture_manager::texture_manager() {
 
     // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
     m_textures.emplace_back( new opengl_texture(), std::chrono::steady_clock::time_point() );
+}
+
+// convert image to format suitable for given internalformat
+// required for GLES, on desktop GL it will be done by driver
+void opengl_texture::gles_match_internalformat(GLuint internalformat)
+{
+    // don't care about sRGB here
+    if (internalformat == GL_SRGB8)
+        internalformat = GL_RGB8;
+    if (internalformat == GL_SRGB8_ALPHA8)
+        internalformat = GL_RGBA8;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+
+    // ignore compressed formats (and hope that GLES driver will support it)
+    if (precompressed_formats.find(internalformat) != precompressed_formats.end())
+        return;
+
+    // we don't want BGR(A), reverse it
+    if (data_format == GL_BGR)
+    {
+        std::vector<char> reverse;
+        reverse.resize(data.size());
+
+        for (int y = 0; y < data_height; y++)
+            for (int x = 0; x < data_width; x++)
+            {
+                int offset = (y * data_width + x) * 3;
+                reverse[offset + 0] = data[offset + 2];
+                reverse[offset + 1] = data[offset + 1];
+                reverse[offset + 2] = data[offset + 0];
+            }
+
+        data_format = GL_RGB;
+        data = reverse;
+    }
+    else if (data_format == GL_BGRA)
+    {
+        std::vector<char> reverse;
+        reverse.resize(data.size());
+
+        for (int y = 0; y < data_height; y++)
+            for (int x = 0; x < data_width; x++)
+            {
+                int offset = (y * data_width + x) * 4;
+                reverse[offset + 0] = data[offset + 2];
+                reverse[offset + 1] = data[offset + 1];
+                reverse[offset + 2] = data[offset + 0];
+                reverse[offset + 3] = data[offset + 3];
+            }
+
+        data_format = GL_RGBA;
+        data = reverse;
+    }
+
+    // if format matches, we're done
+    if (data_format == GL_RGBA && internalformat == GL_RGBA8)
+        return;
+    if (data_format == GL_RGB && internalformat == GL_RGB8)
+        return;
+    if (data_format == GL_RG && internalformat == GL_RG8)
+        return;
+    if (data_format == GL_RED && internalformat == GL_R8)
+        return;
+
+    // do conversion
+
+    int in_c = 0;
+    if (data_format == GL_RGBA)
+        in_c = 4;
+    else if (data_format == GL_RGB)
+        in_c = 3;
+    else if (data_format == GL_RG)
+        in_c = 2;
+    else if (data_format == GL_RED)
+        in_c = 1;
+
+    int out_c = 0;
+    if (internalformat == GL_RGBA8)
+        out_c = 4;
+    else if (internalformat == GL_RGB8)
+        out_c = 3;
+    else if (internalformat == GL_RG8)
+        out_c = 2;
+    else if (internalformat == GL_R8)
+        out_c = 1;
+
+    if (!in_c || !out_c)
+        return; // conversion not supported
+
+    std::vector<char> out;
+    out.resize(data_width * data_height * out_c);
+
+    for (int y = 0; y < data_height; y++)
+        for (int x = 0; x < data_width; x++)
+        {
+            int pixel = (y * data_width + x);
+            int in_off = pixel * in_c;
+            int out_off = pixel * out_c;
+            for (int i = 0; i < out_c; i++)
+            {
+                if (i < in_c)
+                    out[out_off + i] = data[in_off + i];
+                else
+                    out[out_off + i] = 0xFF;
+            }
+        }
+
+    if (out_c == 4)
+        data_format = GL_RGBA;
+    else if (out_c == 3)
+        data_format = GL_RGB;
+    else if (out_c == 2)
+        data_format = GL_RG;
+    else if (out_c == 1)
+        data_format = GL_RED;
+
+    data = out;
 }
 
 // loads texture data from specified file
@@ -168,12 +288,10 @@ opengl_texture::load_BMP() {
 
     // fill remaining data info
     if( info.bmiHeader.biBitCount == 32 ) {
-
         data_format = GL_BGRA;
         data_components = GL_RGBA;
     }
     else {
-
         data_format = GL_BGR;
         data_components = GL_RGB;
     }
@@ -581,7 +699,7 @@ opengl_texture::bind(size_t unit) {
     if (units[unit] == id)
         return true;
 
-    if (GLEW_ARB_direct_state_access)
+    if (GLAD_GL_ARB_direct_state_access)
     {
         glBindTextureUnit(unit, id);
     }
@@ -602,7 +720,7 @@ opengl_texture::bind(size_t unit) {
 
 void opengl_texture::unbind(size_t unit)
 {
-    if (GLEW_ARB_direct_state_access)
+    if (GLAD_GL_ARB_direct_state_access)
     {
         glBindTextureUnit(unit, 0);
     }
@@ -746,10 +864,21 @@ opengl_texture::create() {
                 float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
-			if (target == GL_TEXTURE_2D)
-                glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_BYTE, nullptr);
-			else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-				glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+
+            if (Global.use_gles)
+            {
+                if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
+                    glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
+                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
+                    glTexStorage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+            }
+            else
+            {
+                if (target == GL_TEXTURE_2D)
+                    glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr);
+                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
+                    glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+            }
         }
         else
         {
@@ -772,6 +901,15 @@ opengl_texture::create() {
                 components_hint = GL_SRGB_ALPHA;
 
             GLint internal_format = mapping[components][components_hint];
+
+            if (Global.use_gles)
+            {
+                // GLES cannot generate mipmaps on SRGB8
+                if (internal_format == GL_SRGB8)
+                    internal_format = GL_SRGB8_ALPHA8;
+
+                gles_match_internalformat(internal_format);
+            }
 
             auto blocksize_it = precompressed_formats.find(internal_format);
 
@@ -887,7 +1025,10 @@ opengl_texture::set_filtering() const
     // default texture mode
     ::glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+    if (GLAD_GL_ARB_texture_filter_anisotropic)
+        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, Global.AnisotropicFiltering );
+    else if (GLAD_GL_EXT_texture_filter_anisotropic)
+        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {

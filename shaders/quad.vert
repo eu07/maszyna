@@ -1,5 +1,3 @@
-#version 330 core
-
 const vec2 vert[4] = vec2[]
 (
   vec2(-1.0,  1.0),

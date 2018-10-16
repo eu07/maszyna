@@ -1,7 +1,5 @@
 #pragma once
 
-#include "GL/glew.h"
-
 // TODO: sun and moon share code as celestial bodies, we could make a base class out of it
 
 class cMoon {
@@ -53,7 +51,6 @@ protected:
     float normalize( const float Value ) const;
 
 // members:
-	GLUquadricObj *moonsphere;	// temporary handler for moon positioning test
 
 	struct celestialbody {	// main planet parameters
 

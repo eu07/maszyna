@@ -142,7 +142,7 @@ void python_taskqueue::exit() {
     m_condition.notify_all();
     // let them free up their shit before we proceed
     for( auto const &worker : m_workers ) {
-        if (worker)
+        if (worker && worker->joinable())
             worker->join();
     }
     // get rid of the leftover tasks

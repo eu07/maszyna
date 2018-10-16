@@ -738,6 +738,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_skippipeline;
         }
+        else if (token == "gfx.usegles")
+        {
+            Parser.getTokens(1);
+            Parser >> use_gles;
+        }
         else if (token == "map.enabled")
         {
             Parser.getTokens(1);

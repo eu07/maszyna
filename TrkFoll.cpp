@@ -282,21 +282,3 @@ bool TTrackFollower::ComputatePosition()
     }
     return false;
 }
-#if RENDER_CONE
-#include "GL/glew.h"
-#include "GL/glut.h"
-void TTrackFollower::Render(float fNr)
-{ // funkcja rysująca stożek w miejscu osi
-    glPushMatrix(); // matryca kamery
-    glTranslatef(pPosition.x, pPosition.y + 6, pPosition.z); // 6m ponad
-    glRotated(RadToDeg(-vAngles.z), 0, 1, 0); // obrót względem osi OY
-    // glRotated(RadToDeg(vAngles.z),0,1,0); //obrót względem osi OY
-    glDisable(GL_LIGHTING);
-    glColor3f(1.0, 1.0 - fNr, 1.0 - fNr); // biały dla 0, czerwony dla 1
-    // glutWireCone(promień podstawy,wysokość,kątność podstawy,ilość segmentów na wysokość)
-    glutWireCone(0.5, 2, 4, 1); // rysowanie stożka (ostrosłupa o podstawie wieloboka)
-    glEnable(GL_LIGHTING);
-    glPopMatrix();
-}
-#endif
-//---------------------------------------------------------------------------

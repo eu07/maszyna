@@ -1,9 +1,12 @@
-#version 330
-
 #include <common>
 #include <tonemapping.glsl>
 
 flat in vec3 f_normal_raw;
+
+layout(location = 0) out vec4 out_color;
+#if MOTIONBLUR_ENABLED
+layout(location = 1) out vec4 out_motion;
+#endif
 
 void main()
 {
@@ -16,11 +19,11 @@ void main()
 	// color data space is shared with normals, ugh
 	vec4 color = vec4(pow(f_normal_raw.bgr, vec3(2.2)), 1.0f);
 #if POSTFX_ENABLED
-    gl_FragData[0] = color;
+    out_color = color;
 #else
-    gl_FragData[0] = tonemap(color);
+    out_color = tonemap(color);
 #endif
 #if MOTIONBLUR_ENABLED
-	gl_FragData[1] = vec4(0.0f);
+	out_motion = vec4(0.0f);
 #endif
 }

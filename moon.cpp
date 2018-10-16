@@ -15,7 +15,9 @@ cMoon::cMoon() {
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 }
 
-cMoon::~cMoon() { gluDeleteQuadric( moonsphere ); }
+cMoon::~cMoon() {
+
+}
 
 void
 cMoon::init() {
@@ -24,9 +26,6 @@ cMoon::init() {
     // NOTE: we're calculating phase just once, because it's unlikely simulation will last a few days,
     // plus a sudden texture change would be pretty jarring
     phase();
-
-    moonsphere = gluNewQuadric();
-    gluQuadricNormals( moonsphere, GLU_SMOOTH );
 }
 
 void

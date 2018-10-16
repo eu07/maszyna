@@ -188,6 +188,7 @@ struct global_settings {
     bool gfx_skippipeline = false;
 
     bool map_enabled = true;
+    bool use_gles = false;
 
 // methods
     void LoadIniFile( std::string asFileName );

@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
 #include "openglgeometrybank.h"
 #include "material.h"
 #include "light.h"
@@ -188,7 +187,7 @@ class opengl_renderer
 	std::string const &info_stats() const;
 
 	// members
-	GLenum static const sunlight{GL_LIGHT0};
+    GLenum static const sunlight{0};
 	std::size_t m_drawcount{0};
 
   private:

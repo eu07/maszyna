@@ -314,6 +314,8 @@ glm::dvec3 LoadPoint( class cParser &Input );
 std::string
 deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );
 
+int count_trailing_zeros(uint32_t val);
+
 namespace threading {
 
 // simple POD pairing of a data item and a mutex

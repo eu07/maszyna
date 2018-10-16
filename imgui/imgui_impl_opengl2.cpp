@@ -34,7 +34,7 @@
 #include <stdint.h>     // intptr_t
 #endif
 
-#include <GL/glew.h>
+#include <glad/glad.h>
 
 // OpenGL Data
 static GLuint       g_FontTexture = 0;

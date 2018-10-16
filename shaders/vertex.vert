@@ -1,5 +1,3 @@
-#version 330
-
 layout(location = 0) in vec3 v_vert;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_coord;
@@ -31,6 +29,7 @@ void main()
 	f_clip_future_pos = (projection * future * modelview) * vec4(v_vert, 1.0f);
 	
 	gl_Position = f_clip_pos;
+	gl_PointSize = param[1].x;
 
 	vec3 T = normalize(modelviewnormal * v_tangent.xyz);
 	vec3 B = normalize(modelviewnormal * cross(v_normal, v_tangent.xyz) * v_tangent.w);

@@ -202,7 +202,18 @@ void gl::shader::log_error(const std::string &str)
 gl::shader::shader(const std::string &filename)
 {
     name = filename;
-    std::string str = read_file(filename);
+    std::string str;
+    if (!Global.use_gles)
+    {
+        str += "#version 330 core\n";
+    }
+    else
+    {
+        str += "#version 300 es\n";
+        str += "precision highp float;\n";
+        str += "precision highp sampler2DShadow;\n";
+    }
+    str += read_file(filename);
     process_source(str);
 
     const GLchar *cstr = str.c_str();
@@ -228,9 +239,10 @@ gl::shader::shader(const std::string &filename)
     {
         GLchar info[512];
         glGetShaderInfoLog(*this, 512, 0, info);
+        ErrorLog(std::string(info));
+        std::cerr << std::string(info) << std::endl;
         throw shader_exception("failed to compile " + filename + ": " + std::string(info));
     }
-
 }
 
 gl::shader::~shader()

@@ -69,6 +69,7 @@ private:
     void set_filtering() const;
     void downsize( GLuint const Format );
     void flip_vertical();
+    void gles_match_internalformat(GLuint format);
 
 // members
     bool is_rendertarget; // is used as postfx rendertarget, without loaded data

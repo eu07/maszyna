@@ -1,5 +1,3 @@
-#version 330
-
 layout(location = 0) in vec3 v_vert;
 layout(location = 2) in vec2 v_coord;
 

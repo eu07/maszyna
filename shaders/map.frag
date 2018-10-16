@@ -1,8 +1,8 @@
-#version 330
-
 #include <common>
+
+layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	gl_FragData[0] = vec4(1.0f);
+	out_color = vec4(1.0f);
 }

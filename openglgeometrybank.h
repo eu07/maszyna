@@ -12,10 +12,6 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "GL/glew.h"
-#ifdef _WIN32
-#include "GL/wglew.h"
-#endif
 #include "ResourceManager.h"
 #include "gl/vao.h"
 

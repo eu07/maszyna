@@ -59,11 +59,15 @@ void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask,
 {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, *this);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, other);
-    if (mask & GL_COLOR_BUFFER_BIT)
-    {
-        glReadBuffer(attachment);
-        glDrawBuffer(attachment);
-    }
+
+    int attachment_n = attachment - GL_COLOR_ATTACHMENT0;
+
+    GLenum outputs[8] = { GL_NONE };
+    outputs[attachment_n] = attachment;
+
+    glReadBuffer(attachment);
+    glDrawBuffers(attachment_n + 1, outputs);
+
 	glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, GL_NEAREST);
 	unbind();
 }

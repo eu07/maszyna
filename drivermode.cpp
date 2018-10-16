@@ -700,14 +700,7 @@ driver_mode::OnKeyDown(int cKey) {
                 }
                 else {
                     // f7: wireframe toggle
-                    // TODO: pass this to renderer instead of making direct calls
                     Global.bWireFrame = !Global.bWireFrame;
-                    if( true == Global.bWireFrame ) {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                    }
-                    else {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                    }
                 }
             }
             break;

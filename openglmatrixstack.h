@@ -15,9 +15,9 @@ http://mozilla.org/MPL/2.0/.
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#ifdef _WIN32
-#include "GL/wglew.h"
-#endif
+
+#define GL_MODELVIEW 1
+#define GL_PROJECTION 2
 
 // encapsulation of the fixed pipeline opengl matrix stack
 class opengl_matrices {

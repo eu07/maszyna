@@ -15,15 +15,15 @@ cSun::cSun() {
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 }
 
-cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
+cSun::~cSun()
+{
+
+}
 
 void
 cSun::init() {
 
     m_observer.timezone = -1.0 * simulation::Time.zone_bias();
-
-    sunsphere = gluNewQuadric();
-    gluQuadricNormals( sunsphere, GLU_SMOOTH );
 }
 
 void

@@ -1,6 +1,5 @@
-#version 330 core
-  
 in vec2 f_coords;
+layout(location = 0) out vec4 out_color;
 
 #texture (color_tex, 0, RGB)
 uniform sampler2D color_tex;
@@ -26,5 +25,5 @@ void main()
     }
     oResult /= float(nSamples);
     
-    gl_FragData[0] = oResult;
+    out_color = oResult;
 }  

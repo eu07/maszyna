@@ -94,11 +94,20 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-    glClearDepth(0.0f);
+    if (!Global.use_gles)
+        glClearDepth(0.0f);
+    else
+        glClearDepthf(0.0f);
+
     glDepthFunc(GL_GEQUAL);
 
-    if (GLEW_ARB_clip_control)
+    if (GLAD_GL_ARB_clip_control)
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+    else if (GLAD_GL_EXT_clip_control)
+        glClipControlEXT(GL_LOWER_LEFT_EXT, GL_ZERO_TO_ONE_EXT);
+
+    if (!Global.use_gles)
+        glEnable(GL_PROGRAM_POINT_SIZE);
 
     gl::glsl_common_setup();
 
@@ -120,7 +129,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	{
 
 		opengl_light light;
-		light.id = GL_LIGHT1 + idx;
+        light.id = 1 + idx;
 
 		light.is_directional = false;
 
@@ -173,7 +182,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	scene_ubo->update(scene_ubs);
 
 	int samples = 1 << Global.iMultisampling;
-    if (samples > 1)
+    if (!Global.use_gles && samples > 1)
         glEnable(GL_MULTISAMPLE);
 
     if (!Global.gfx_skippipeline)
@@ -298,26 +307,29 @@ std::unique_ptr<gl::program> opengl_renderer::make_shader(std::string v, std::st
 
 bool opengl_renderer::Render()
 {
-
 	Timer::subsystem.gfx_total.stop();
 	Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
 	Timer::subsystem.gfx_color.start();
 
-	GLuint gl_time_ready = 0;
-    if (m_gltimequery)
+    GLuint gl_time_ready;
+    if (!Global.use_gles)
     {
-        glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
-        if (gl_time_ready)
-            glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
-    }
-    else
-    {
-        glGenQueries(1, &m_gltimequery);
-        gl_time_ready = 1;
-    }
+        gl_time_ready = 0;
+        if (m_gltimequery)
+        {
+            glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
+            if (gl_time_ready)
+                glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
+        }
+        else
+        {
+            glGenQueries(1, &m_gltimequery);
+            gl_time_ready = 1;
+        }
 
-	if (gl_time_ready)
-		glBeginQuery(GL_TIME_ELAPSED, m_gltimequery);
+        if (gl_time_ready)
+            glBeginQuery(GL_TIME_ELAPSED, m_gltimequery);
+    }
 
 	// fetch simulation data
     if (simulation::is_ready)
@@ -334,17 +346,20 @@ bool opengl_renderer::Render()
 	Render_pass(rendermode::color);
 	Timer::subsystem.gfx_color.stop();
 
-	if (gl_time_ready)
-		glEndQuery(GL_TIME_ELAPSED);
-
 	m_drawcount = m_cellqueue.size();
 	m_debugtimestext.clear();
 	m_debugtimestext += "cpu: " + to_string(Timer::subsystem.gfx_color.average(), 2) + " ms (" + std::to_string(m_cellqueue.size()) + " sectors)\n" +=
 	    "cpu swap: " + to_string(Timer::subsystem.gfx_swap.average(), 2) + " ms\n" += "uilayer: " + to_string(Timer::subsystem.gfx_gui.average(), 2) + "ms\n" +=
 	    "mainloop total: " + to_string(Timer::subsystem.mainloop_total.average(), 2) + "ms\n";
 
-	if (m_gllasttime)
-		m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
+    if (!Global.use_gles)
+    {
+        if (gl_time_ready)
+            glEndQuery(GL_TIME_ELAPSED);
+
+        if (m_gllasttime)
+            m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
+    }
 
     m_debugstatstext = "drawcalls:  " + to_string(m_debugstats.drawcalls) + "\n" + " vehicles:  " + to_string(m_debugstats.dynamics) + "\n" + " models:    " + to_string(m_debugstats.models) + "\n" +
                        " submodels: " + to_string(m_debugstats.submodels) + "\n" + " paths:     " + to_string(m_debugstats.paths) + "\n" + " shapes:    " + to_string(m_debugstats.shapes) + "\n" +
@@ -395,10 +410,13 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
         m_colorpass = m_renderpass;
 
-        if (Global.bWireFrame)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        else
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (!Global.use_gles)
+        {
+            if (Global.bWireFrame)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
 
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
@@ -442,8 +460,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         }
         else
         {
+            if (!Global.use_gles)
+                glEnable(GL_FRAMEBUFFER_SRGB);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glEnable(GL_FRAMEBUFFER_SRGB);
             glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
@@ -523,7 +542,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (!Global.use_gles)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         if (!Global.gfx_skippipeline)
         {
@@ -543,13 +563,15 @@ void opengl_renderer::Render_pass(rendermode const Mode)
                 m_msaa_fb->blit_to(*m_main2_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
             }
 
-            glEnable(GL_FRAMEBUFFER_SRGB);
+            if (!Global.use_gles)
+                glEnable(GL_FRAMEBUFFER_SRGB);
             glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
             m_pfx_tonemapping->apply(*m_main2_tex, nullptr);
             opengl_texture::reset_unit_cache();
         }
 
-        glDisable(GL_FRAMEBUFFER_SRGB);
+        if (!Global.use_gles)
+            glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glDebug("uilayer render");
         Application.render_ui();
@@ -753,7 +775,7 @@ bool opengl_renderer::Render_reflections()
 
 glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, float znear, float zfar)
 {
-    if (GLEW_ARB_clip_control)
+    if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
     {
         const float f = 1.0f / tan(fovy / 2.0f);
 
@@ -786,7 +808,7 @@ glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float 
 glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float znear, float zfar)
 {
     glm::mat4 proj = glm::ortho(l, r, b, t, znear, zfar);
-    if (GLEW_ARB_clip_control)
+    if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
         // when clip_control available, use projection matrix with 1..0 Z range
         return glm::mat4( //
                    1.0f, 0.0f, 0.0f, 0.0f, //
@@ -1078,7 +1100,7 @@ void opengl_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config co
     {
         glm::mat4 coordmove;
 
-        if (GLEW_ARB_clip_control)
+        if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
             // transform 1..-1 NDC xy coordinates to 1..0
             coordmove = glm::mat4( //
                 0.5, 0.0, 0.0, 0.0, //
@@ -1341,7 +1363,7 @@ void opengl_renderer::Bind_Material(material_handle const Material, TSubModel *s
         else
             model_ubs.alpha_mult = 1.0f;
 
-        if (GLEW_ARB_multi_bind)
+        if (GLAD_GL_ARB_multi_bind)
         {
             GLuint lastdiff = 0;
             size_t i;
@@ -2293,14 +2315,14 @@ void opengl_renderer::Render(TSubModel *Submodel)
 						{
 							// fake fog halo
                             float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
-							glPointSize(pointsize * fogfactor * 2.0f);
+                            model_ubs.param[1].x = pointsize * fogfactor * 2.0f;
                             model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 
 							glDepthMask(GL_FALSE);
 							draw(Submodel->m_geometry);
 							glDepthMask(GL_TRUE);
 						}
-						glPointSize(pointsize * 2.0f);
+                        model_ubs.param[1].x = pointsize * 2.0f;
                         model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * std::min(1.f, lightlevel));
 
                         draw(Submodel->m_geometry);
@@ -2336,7 +2358,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
                     Bind_Material(Submodel->m_material, Submodel);
 
 					// main draw call
-                    glPointSize(2.0f * 2.0f);
+                    model_ubs.param[1].x = 2.0f * 2.0f;
 
                     draw(Submodel->m_geometry);
 				}
@@ -3245,11 +3267,11 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
 	glm::ivec2 pickbufferpos;
 	pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
 
-	unsigned char pickreadout[3];
+    unsigned char pickreadout[4];
 
 	// m7t: ! replace with PBO and wait frame or two to improve performance
 	m_pick_fb->bind();
-	::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
+    ::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pickreadout);
 	m_pick_fb->unbind();
 
 	auto const controlindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
@@ -3396,9 +3418,18 @@ void opengl_renderer::Update(double const Deltatime)
 	auto const glerror = ::glGetError();
 	if (glerror != GL_NO_ERROR)
 	{
-		std::string glerrorstring((char *)::gluErrorString(glerror));
-		win1250_to_ascii(glerrorstring);
-		Global.LastGLError = std::to_string(glerror) + " (" + glerrorstring + ")";
+        std::string glerrorstring;
+        if (glerror == GL_INVALID_ENUM)
+            glerrorstring = "GL_INVALID_ENUM";
+        else if (glerror == GL_INVALID_VALUE)
+            glerrorstring = "GL_INVALID_VALUE";
+        else if (glerror == GL_INVALID_OPERATION)
+            glerrorstring = "GL_INVALID_OPERATION";
+        else if (glerror == GL_OUT_OF_MEMORY)
+            glerrorstring = "GL_OUT_OF_MEMORY";
+        else if (glerror == GL_INVALID_FRAMEBUFFER_OPERATION)
+            glerrorstring = "GL_INVALID_FRAMEBUFFER_OPERATION";
+        Global.LastGLError = std::to_string(glerror) + " (" + glerrorstring + ")";
 	}
 }
 
@@ -3512,16 +3543,12 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 
 bool opengl_renderer::Init_caps()
 {
-    WriteLog("MaSzyna GL3.3+ Renderer");
+    WriteLog("MaSzyna OpenGL Renderer");
     WriteLog("Renderer: " + std::string((char *)glGetString(GL_RENDERER)));
     WriteLog("Vendor: " + std::string((char *)glGetString(GL_VENDOR)));
     WriteLog("GL version: " + std::string((char *)glGetString(GL_VERSION)));
 
-	if (!GLEW_VERSION_3_3)
-	{
-        ErrorLog("requires OpenGL >= 3.3!");
-		return false;
-	}
+    WriteLog("--------");
 
 	GLint extCount = 0;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &extCount);
@@ -3534,20 +3561,46 @@ bool opengl_renderer::Init_caps()
 	}
     WriteLog("--------");
 
-    if (!GLEW_EXT_texture_sRGB)
-        ErrorLog("EXT_texture_sRGB not supported!");
+    if (!Global.use_gles)
+    {
+        if (!GLAD_GL_VERSION_3_3)
+        {
+            ErrorLog("requires OpenGL >= 3.3!");
+            return false;
+        }
 
-    if (!GLEW_EXT_texture_compression_s3tc)
-        ErrorLog("EXT_texture_compression_s3tc not supported!");
+        if (!GLAD_GL_EXT_texture_sRGB)
+            ErrorLog("EXT_texture_sRGB not supported!");
 
-    if (GLEW_ARB_multi_bind)
-        WriteLog("ARB_multi_bind supported!");
+        if (!GLAD_GL_EXT_texture_compression_s3tc)
+            ErrorLog("EXT_texture_compression_s3tc not supported!");
 
-    if (GLEW_ARB_direct_state_access)
-        WriteLog("ARB_direct_state_access supported!");
+        if (GLAD_GL_ARB_texture_filter_anisotropic)
+            WriteLog("ARB_texture_filter_anisotropic supported!");
 
-    if (GLEW_ARB_clip_control)
-        WriteLog("ARB_clip_control supported!");
+        if (GLAD_GL_ARB_multi_bind)
+            WriteLog("ARB_multi_bind supported!");
+
+        if (GLAD_GL_ARB_direct_state_access)
+            WriteLog("ARB_direct_state_access supported!");
+
+        if (GLAD_GL_ARB_clip_control)
+            WriteLog("ARB_clip_control supported!");
+    }
+    else
+    {
+        if (!GLAD_GL_ES_VERSION_3_0)
+        {
+            ErrorLog("requires OpenGL ES >= 3.0!");
+            return false;
+        }
+
+        if (GLAD_GL_EXT_texture_filter_anisotropic)
+            WriteLog("EXT_texture_filter_anisotropic supported!");
+
+        if (GLAD_GL_EXT_clip_control)
+            WriteLog("EXT_clip_control supported!");
+    }
 
     glGetError();
     glLineWidth(2.0f);

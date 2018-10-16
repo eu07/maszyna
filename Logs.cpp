@@ -97,7 +97,7 @@ void WriteLog( const char *str, logtype const Type ) {
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
         WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
 #else
-	printf("%s\n", str);
+    printf("%s\n", str);
 #endif
     }
 }

@@ -126,10 +126,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    init_callbacks();
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
+    init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
@@ -156,6 +156,9 @@ eu07_application::run() {
 
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
+
+        if (m_modestack.empty())
+            return 0;
 
         m_modes[ m_modestack.top() ]->on_event_poll();
 
@@ -188,8 +191,8 @@ eu07_application::exit() {
     for( auto *window : m_windows ) {
         glfwDestroyWindow( window );
     }
-    glfwTerminate();
     m_taskqueue.exit();
+    glfwTerminate();
 }
 
 void
@@ -426,12 +429,22 @@ eu07_application::init_glfw() {
     glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
 
 	glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    if (!Global.use_gles)
+    {
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    }
+    else
+    {
+        glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    }
 
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
-    if( Global.iMultisampling > 0 ) {
+    if (Global.gfx_skippipeline && Global.iMultisampling > 0) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
@@ -495,9 +508,21 @@ eu07_application::init_callbacks() {
 int
 eu07_application::init_gfx() {
 
-    if( glewInit() != GLEW_OK ) {
-        ErrorLog( "Bad init: failed to initialize glew" );
-        return -1;
+    if (!Global.use_gles)
+    {
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
+    }
+    else
+    {
+        if (!gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress))
+        {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
     }
 
     if (!ui_layer::init(m_windows.front()))

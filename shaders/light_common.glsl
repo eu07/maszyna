@@ -11,7 +11,7 @@ float calc_shadow()
 
 	//sampler PCF + PCF
 	float shadow = 0.0;
-	vec2 texel = 1.0 / textureSize(shadowmap, 0);
+	vec2 texel = vec2(1.0) / vec2(textureSize(shadowmap, 0));
 	for (float y = -1.5; y <= 1.5; y += 1.0)
 		for (float x = -1.5; x <= 1.5; x += 1.0)
 			shadow += texture(shadowmap, coords.xyz + vec3(vec2(x, y) * texel, 0.0));

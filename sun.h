@@ -1,9 +1,5 @@
 #pragma once
 
-//#include "windows.h"
-#include "GL/glew.h"
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 // cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
 //         given current weather, time and geographic location.
@@ -58,7 +54,6 @@ protected:
 	void irradiance();
 
 // members:
-	GLUquadricObj *sunsphere;	// temporary handler for sun positioning test
 
 	struct celestialbody {	// main planet parameters
 

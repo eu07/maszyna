@@ -4,14 +4,29 @@
 #include "Logs.h"
 #include <png.h>
 
-void screenshot_manager::screenshot_save_thread( char *img )
+void screenshot_manager::screenshot_save_thread( char *img, int w, int h )
 {
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
-	png.width = Global.iWindowWidth;
-	png.height = Global.iWindowHeight;
-	png.format = PNG_FORMAT_RGB;
+    png.width = w;
+    png.height = h;
+
+    int stride;
+    if (Global.use_gles)
+    {
+        png.format = PNG_FORMAT_RGBA;
+        stride = -w * 4;
+
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                img[(y * w + x) * 4 + 3] = 0xFF;
+    }
+    else
+    {
+        png.format = PNG_FORMAT_RGB;
+        stride = -w * 3;
+    }
 
 	char datetime[64];
 	time_t timer;
@@ -32,7 +47,7 @@ void screenshot_manager::screenshot_save_thread( char *img )
 	std::string filename = Global.screenshot_dir + "/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
 
-	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global.iWindowWidth * 3, nullptr) == 1)
+    if (png_image_write_to_file(&png, filename.c_str(), 0, img, stride, nullptr) == 1)
 		WriteLog("saved " + filename);
 	else
 		WriteLog("failed to save " + filename);
@@ -42,11 +57,11 @@ void screenshot_manager::screenshot_save_thread( char *img )
 
 void screenshot_manager::make_screenshot()
 {
-	char *img = new char[Global.iWindowWidth * Global.iWindowHeight * 3];
-	glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+    char *img = new char[Global.iWindowWidth * Global.iWindowHeight * 4];
+    glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, Global.use_gles ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 	//m7t: use pbo
 
-	std::thread t(screenshot_save_thread, img);
+    std::thread t(screenshot_save_thread, img, Global.iWindowWidth, Global.iWindowHeight);
 	t.detach();
 }
 

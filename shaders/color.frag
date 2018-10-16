@@ -1,18 +1,21 @@
-#version 330
-
 in vec3 f_color;
 
 #include <common>
 #include <tonemapping.glsl>
 
+layout(location = 0) out vec4 out_color;
+#if MOTIONBLUR_ENABLED
+layout(location = 1) out vec4 out_motion;
+#endif
+
 void main()
 {
 #if POSTFX_ENABLED
-	gl_FragData[0] = vec4(f_color, 1.0f);
+	out_color = vec4(f_color, 1.0f);
 #else
-    gl_FragData[0] = tonemap(vec4(f_color, 1.0f));
+    out_color = tonemap(vec4(f_color, 1.0f));
 #endif
 #if MOTIONBLUR_ENABLED
-	gl_FragData[1] = vec4(0.0f);
+	out_motion = vec4(0.0f);
 #endif
 }

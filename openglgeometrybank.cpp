@@ -376,8 +376,11 @@ void opengl_vbogeometrybank::draw_(const std::vector<gfx::geometry_handle>::iter
     m_vao->bind();
     if (m_offsets.size() == 1)
         glDrawArrays(type, m_offsets.front(), m_counts.front());
-    else
+    else if (!Global.use_gles)
         glMultiDrawArrays(type, m_offsets.data(), m_counts.data(), m_offsets.size());
+    else
+        for (size_t i = 0; i < m_offsets.size(); i++)
+            glDrawArrays(type, m_offsets[i], m_counts[i]);
 }
 
 // release () subclass details

@@ -76,16 +76,11 @@
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
-#ifndef __ANDROID__
-#include "GL/glew.h"
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-#ifdef _WIN32
-#include "GL/wglew.h"
-#endif
-#define GLFW_INCLUDE_GLU
+
+#include "glad/glad.h"
+
+#define GLFW_INCLUDE_NONE
+//#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -104,8 +99,7 @@ int const null_handle = 0;
 #include "openglmatrixstack.h"
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
-#define glDebug(x) if (GLEW_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
-#include "openglcolor.h"
+#define glDebug(x) if (GLAD_GL_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 
 #ifdef DBG_NEW
 #pragma push_macro("new")
