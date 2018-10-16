@@ -3074,7 +3074,7 @@ path_table::InitTracks() {
         auto const trackname { track->name() };
 
         switch (track->eType) {
-        // TODO: re-enable
+
         case tt_Table: {
             // obrotnicę też łączymy na starcie z innymi torami
             // szukamy modelu o tej samej nazwie
@@ -3169,10 +3169,6 @@ path_table::InitTracks() {
                         break;
                 }
             }
-            if( Global.CreateSwitchTrackbeds ) {
-                // when autogenerating trackbeds, try to restore trackbeds for tracks neighbouring double slips
-                track->copy_adjacent_trackbed_material();
-            }
             break;
         }
         case tt_Switch: {
@@ -3180,10 +3176,6 @@ path_table::InitTracks() {
             track->AssignForcedEvents(
                 simulation::Events.FindEvent( trackname + ":forced+" ),
                 simulation::Events.FindEvent( trackname + ":forced-" ) );
-            if( Global.CreateSwitchTrackbeds ) {
-                // when autogenerating trackbeds, try to restore trackbeds for tracks neighbouring double slips
-                track->copy_adjacent_trackbed_material();
-            }
             break;
         }
         default: {
@@ -3196,6 +3188,25 @@ path_table::InitTracks() {
             // możliwy portal, jeśli nie podłączony od strony 1
             // ustawienie flagi portalu
             track->iCategoryFlag |= 0x100;
+        }
+    }
+
+    if( Global.CreateSwitchTrackbeds ) {
+        // do this after all connections are established, otherwise missing switch connections
+        // may prevent us from obtaining texture data for basic track from 'across' a switch
+        for( auto *track : m_items ) {
+            // try to assign missing trackbed materials for switches and tracks neighbouring switches
+            switch( track->eType ) {
+
+            case tt_Normal:
+            case tt_Switch: {
+                track->copy_adjacent_trackbed_material();
+                break;
+            }
+            default: {
+                break;
+            }
+            } // switch
         }
     }
 

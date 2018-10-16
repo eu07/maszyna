@@ -426,6 +426,8 @@ private:
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
     // moving part and other external sounds
+    sound_source m_startjolt { sound_placement::general }; // movement start jolt, played once on initial acceleration at slow enough speed
+    bool m_startjoltplayed { false };
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
     std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it

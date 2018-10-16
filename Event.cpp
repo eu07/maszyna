@@ -1485,7 +1485,7 @@ lights_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
     }
     while( lightidx < lightcountlimit ) {
         // HACK: mark unspecified lights with magic value
-        m_lights[ lightidx++ ] = -2.f;
+        m_lights[ lightidx++ ] = std::numeric_limits<float>::quiet_NaN();
     }
 }
 
@@ -1498,11 +1498,11 @@ lights_event::run_() {
         if( targetmodel == nullptr ) { continue; }
         // event effect code
         for( auto lightidx = 0; lightidx < iMaxNumLights; ++lightidx ) {
-            if( m_lights[ lightidx ] == -2.f ) {
+            if( m_lights[ lightidx ] == std::numeric_limits<float>::quiet_NaN() ) {
                 // processed all supplied values, bail out
                 break;
             }
-            if( m_lights[ lightidx ] >= 0.f ) {
+            if( m_lights[ lightidx ] != -1.f ) {
                 // -1 zostawia bez zmiany
                 targetmodel->LightSet(
                     lightidx,
@@ -1518,7 +1518,7 @@ lights_event::export_as_text_( std::ostream &Output ) const {
 
     auto lightidx{ 0 };
     while( ( lightidx < iMaxNumLights )
-        && ( m_lights[ lightidx ] > -2.0 ) ) {
+        && ( m_lights[ lightidx ] != std::numeric_limits<float>::quiet_NaN() ) ) {
         Output << m_lights[ lightidx ] << ' ';
         ++lightidx;
     }

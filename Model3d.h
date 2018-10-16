@@ -104,6 +104,7 @@ private:
         f4Diffuse { 1.0f,1.0f,1.0f,1.0f },
         f4Specular { 0.0f,0.0f,0.0f,1.0f },
         f4Emision { 1.0f,1.0f,1.0f,1.0f };
+    glm::vec3 DiffuseOverride { -1.f };
     normalization m_normalizenormals { normalization::none }; // indicates vectors need to be normalized due to scaling etc
     float fWireSize { 0.0f }; // nie używane, ale wczytywane
     float fSquareMaxDist { 10000.0f * 10000.0f };
@@ -192,6 +193,8 @@ public:
 	int Flags() const { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
+    // sets rgb components of diffuse color override to specified value
+    void SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildren = false, bool const Includesiblings = false );
     // sets visibility level (alpha component) to specified value
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value

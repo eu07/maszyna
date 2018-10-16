@@ -71,6 +71,25 @@ void TSubModel::Name(std::string const &Name)
 		pName = Name;
 };
 
+// sets rgb components of diffuse color override to specified value
+void
+TSubModel::SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildren, bool const Includesiblings ) {
+
+    if( eType == TP_FREESPOTLIGHT ) {
+        DiffuseOverride = Color;
+    }
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->SetDiffuseOverride( Color, Includechildren, false ); // no need for all siblings to duplicate the work
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetDiffuseOverride( Color, Includechildren, true ); // node's children include child's siblings and children
+    }
+}
+
 // sets visibility level (alpha component) to specified value
 void
 TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {

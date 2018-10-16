@@ -3932,6 +3932,13 @@ void TDynamicObject::RenderSounds() {
 
     if( Global.iPause != 0 ) { return; }
 
+    if( ( m_startjoltplayed )
+     && ( ( MoverParameters->AccSVBased < 0.01 )
+       || ( GetVelocity() < 0.01 ) ) ) {
+        // if the vehicle comes to a stop set the movement jolt to play when it starts moving again
+        m_startjoltplayed = false;
+    }
+
     double const dt{ Timer::GetDeltaRenderTime() };
     double volume{ 0.0 };
     double frequency{ 1.0 };
@@ -4385,6 +4392,17 @@ void TDynamicObject::RenderSounds() {
     }
     else {
         rscurve.stop();
+    }
+
+    // movement start jolt
+    if( false == m_startjoltplayed ) {
+        auto const velocity { GetVelocity() };
+        if( ( MoverParameters->AccSVBased > 0.2 )
+         && ( velocity >  2.5 )
+         && ( velocity < 15.0 ) ) {
+            m_startjolt.play( sound_flags::exclusive );
+            m_startjoltplayed = true;
+        }
     }
 
     // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
@@ -5798,6 +5816,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     for( auto &couplersounds : m_couplersounds ) {
                         couplersounds.dsbBufferClamp_loud = bufferclash;
                     }
+                }
+                else if( token == "startjolt:" ) {
+                    // movement start jolt
+                    m_startjolt.deserialize( parser, sound_type::single );
+                    m_startjolt.owner( this );
                 }
 
             } while( token != "" );
