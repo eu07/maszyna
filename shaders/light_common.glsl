@@ -38,7 +38,7 @@ vec3 apply_fog(vec3 color)
 vec2 calc_light(vec3 light_dir)
 {
 #ifdef NORMALMAP
-	vec3 normal = f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0);
+	vec3 normal = normalize(f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0));
 #else
 	vec3 normal = normalize(f_normal);
 #endif

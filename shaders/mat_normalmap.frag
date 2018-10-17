@@ -44,7 +44,7 @@ void main()
 	if (tex_color.a < opacity)
 		discard;
 
-	vec3 normal = f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0);
+	vec3 normal = normalize(f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0));
 	vec3 refvec = reflect(f_pos.xyz, normal);
 #if ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
