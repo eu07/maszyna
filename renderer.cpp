@@ -554,6 +554,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 setup_drawing( true );
                 setup_units( true, false, false );
                 Render( &simulation::Environment );
+				gfx::opengl_vbogeometrybank::reset();
+
                 // opaque parts...
                 setup_drawing( false );
                 setup_units( true, true, true );
