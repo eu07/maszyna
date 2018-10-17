@@ -865,7 +865,7 @@ opengl_texture::create() {
 				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
 
-            if (Global.use_gles)
+            if (Global.gfx_usegles)
             {
                 if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
                     glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
@@ -902,7 +902,7 @@ opengl_texture::create() {
 
             GLint internal_format = mapping[components][components_hint];
 
-            if (Global.use_gles)
+            if (Global.gfx_usegles)
             {
                 // GLES cannot generate mipmaps on SRGB8
                 if (internal_format == GL_SRGB8)

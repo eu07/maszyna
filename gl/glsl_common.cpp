@@ -10,7 +10,7 @@ void gl::glsl_common_setup()
     "#define ENVMAP_ENABLED " + std::to_string((int)Global.gfx_envmap_enabled) + "\n" +
     "#define MOTIONBLUR_ENABLED " + std::to_string((int)Global.gfx_postfx_motionblur_enabled) + "\n" +
     "#define POSTFX_ENABLED " + std::to_string((int)!Global.gfx_skippipeline) + "\n" +
-    "#define USE_GLES " + std::to_string((int)Global.use_gles) + "\n" +
+    "#define USE_GLES " + std::to_string((int)Global.gfx_usegles) + "\n" +
     "const uint MAX_LIGHTS = " + std::to_string(MAX_LIGHTS) + "U;\n" +
     "const uint MAX_PARAMS = " + std::to_string(MAX_PARAMS) + "U;\n" +
     R"STRING(

@@ -94,7 +94,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
         glClearDepth(0.0f);
     else
         glClearDepthf(0.0f);
@@ -106,7 +106,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
     else if (GLAD_GL_EXT_clip_control)
         glClipControlEXT(GL_LOWER_LEFT_EXT, GL_ZERO_TO_ONE_EXT);
 
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
         glEnable(GL_PROGRAM_POINT_SIZE);
 
     gl::glsl_common_setup();
@@ -182,7 +182,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	scene_ubo->update(scene_ubs);
 
 	int samples = 1 << Global.iMultisampling;
-    if (!Global.use_gles && samples > 1)
+    if (!Global.gfx_usegles && samples > 1)
         glEnable(GL_MULTISAMPLE);
 
     if (!Global.gfx_skippipeline)
@@ -312,7 +312,7 @@ bool opengl_renderer::Render()
 	Timer::subsystem.gfx_color.start();
 
     GLuint gl_time_ready;
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
     {
         gl_time_ready = 0;
         if (m_gltimequery)
@@ -352,7 +352,7 @@ bool opengl_renderer::Render()
 	    "cpu swap: " + to_string(Timer::subsystem.gfx_swap.average(), 2) + " ms\n" += "uilayer: " + to_string(Timer::subsystem.gfx_gui.average(), 2) + "ms\n" +=
 	    "mainloop total: " + to_string(Timer::subsystem.mainloop_total.average(), 2) + "ms\n";
 
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
     {
         if (gl_time_ready)
             glEndQuery(GL_TIME_ELAPSED);
@@ -410,7 +410,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
         m_colorpass = m_renderpass;
 
-        if (!Global.use_gles)
+        if (!Global.gfx_usegles)
         {
             if (Global.bWireFrame)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -460,7 +460,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         }
         else
         {
-            if (!Global.use_gles)
+            if (!Global.gfx_usegles && !Global.gfx_shadergamma)
                 glEnable(GL_FRAMEBUFFER_SRGB);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
@@ -542,7 +542,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
         setup_shadow_map(nullptr, m_renderpass);
         setup_env_map(nullptr);
 
-        if (!Global.use_gles)
+        if (!Global.gfx_usegles)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         if (!Global.gfx_skippipeline)
@@ -563,14 +563,14 @@ void opengl_renderer::Render_pass(rendermode const Mode)
                 m_msaa_fb->blit_to(*m_main2_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
             }
 
-            if (!Global.use_gles)
+            if (!Global.gfx_usegles && !Global.gfx_shadergamma)
                 glEnable(GL_FRAMEBUFFER_SRGB);
             glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
             m_pfx_tonemapping->apply(*m_main2_tex, nullptr);
             opengl_texture::reset_unit_cache();
         }
 
-        if (!Global.use_gles)
+        if (!Global.gfx_usegles && !Global.gfx_shadergamma)
             glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glDebug("uilayer render");
@@ -3561,7 +3561,7 @@ bool opengl_renderer::Init_caps()
 	}
     WriteLog("--------");
 
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
     {
         if (!GLAD_GL_VERSION_3_3)
         {

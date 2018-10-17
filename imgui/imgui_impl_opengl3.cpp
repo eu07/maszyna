@@ -29,8 +29,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#include "stdafx.h"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
+#include "Globals.h"
 
 #include <glad/glad.h>
 
@@ -101,12 +103,16 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
 
     GLint last_polygon_mode[2];
     GLboolean last_enable_srgb;
-    if (GLAD_GL_VERSION_3_3)
+    if (!Global.gfx_usegles)
     {
         glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
-        last_enable_srgb = glIsEnabled(GL_FRAMEBUFFER_SRGB);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glEnable(GL_FRAMEBUFFER_SRGB);
+
+        if (!Global.gfx_shadergamma)
+        {
+            last_enable_srgb = glIsEnabled(GL_FRAMEBUFFER_SRGB);
+            glEnable(GL_FRAMEBUFFER_SRGB);
+        }
     }
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
@@ -204,10 +210,16 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
     glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
 
-    if (GLAD_GL_VERSION_3_3)
+    if (!Global.gfx_usegles)
     {
-        if (last_enable_srgb) glEnable(GL_FRAMEBUFFER_SRGB); else glDisable(GL_FRAMEBUFFER_SRGB);
         glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+        if (!Global.gfx_shadergamma)
+        {
+            if (last_enable_srgb)
+                glEnable(GL_FRAMEBUFFER_SRGB);
+            else
+                glDisable(GL_FRAMEBUFFER_SRGB);
+        }
     }
 }
 
@@ -279,17 +291,20 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
         "out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-        "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
+        "	Out_Color = FBOUT(Frag_Color * texture( Texture, Frag_UV.st));\n"
         "}\n";
 
+    const GLchar* fbout_copy = "vec4 FBOUT(vec4 x) { return x; }";
+    const GLchar* fbout_gamma = "vec4 FBOUT(vec4 x) { return vec4(pow(x.rgb, vec3(1.0 / 2.2)), x.a); }";
+
     const GLchar* vertex_shader_with_version[2] = { g_GlslVersion, vertex_shader };
-    const GLchar* fragment_shader_with_version[2] = { g_GlslVersion, fragment_shader };
+    const GLchar* fragment_shader_with_version[3] = { g_GlslVersion, Global.gfx_shadergamma ? fbout_gamma : fbout_copy, fragment_shader };
 
     g_ShaderHandle = glCreateProgram();
     g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
     g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(g_VertHandle, 2, vertex_shader_with_version, NULL);
-    glShaderSource(g_FragHandle, 2, fragment_shader_with_version, NULL);
+    glShaderSource(g_FragHandle, 3, fragment_shader_with_version, NULL);
     glCompileShader(g_VertHandle);
     glCompileShader(g_FragHandle);
     glAttachShader(g_ShaderHandle, g_VertHandle);

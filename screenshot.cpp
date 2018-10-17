@@ -13,7 +13,7 @@ void screenshot_manager::screenshot_save_thread( char *img, int w, int h )
     png.height = h;
 
     int stride;
-    if (Global.use_gles)
+    if (Global.gfx_usegles)
     {
         png.format = PNG_FORMAT_RGBA;
         stride = -w * 4;
@@ -58,7 +58,7 @@ void screenshot_manager::screenshot_save_thread( char *img, int w, int h )
 void screenshot_manager::make_screenshot()
 {
     char *img = new char[Global.iWindowWidth * Global.iWindowHeight * 4];
-    glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, Global.use_gles ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+    glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, Global.gfx_usegles ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 	//m7t: use pbo
 
     std::thread t(screenshot_save_thread, img, Global.iWindowWidth, Global.iWindowHeight);

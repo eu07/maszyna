@@ -203,7 +203,7 @@ gl::shader::shader(const std::string &filename)
 {
     name = filename;
     std::string str;
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
     {
         str += "#version 330 core\n";
     }
@@ -213,6 +213,8 @@ gl::shader::shader(const std::string &filename)
         str += "precision highp float;\n";
         str += "precision highp sampler2DShadow;\n";
     }
+    str += "vec4 FBOUT(vec4 x) { return " + (Global.gfx_shadergamma ? std::string("vec4(pow(x.rgb, vec3(1.0 / 2.2)), x.a)") : std::string("x")) + "; }\n";
+
     str += read_file(filename);
     process_source(str);
 
@@ -239,7 +241,6 @@ gl::shader::shader(const std::string &filename)
     {
         GLchar info[512];
         glGetShaderInfoLog(*this, 512, 0, info);
-        ErrorLog(std::string(info));
         std::cerr << std::string(info) << std::endl;
         throw shader_exception("failed to compile " + filename + ": " + std::string(info));
     }

@@ -186,9 +186,10 @@ struct global_settings {
     GLenum gfx_format_color = GL_RGB16F;
     GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
     bool gfx_skippipeline = false;
+    bool gfx_shadergamma = false;
 
     bool map_enabled = true;
-    bool use_gles = false;
+    bool gfx_usegles = false;
 
 // methods
     void LoadIniFile( std::string asFileName );

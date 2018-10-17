@@ -741,7 +741,12 @@ global_settings::ConfigParse(cParser &Parser) {
         else if (token == "gfx.usegles")
         {
             Parser.getTokens(1);
-            Parser >> use_gles;
+            Parser >> gfx_usegles;
+        }
+        else if (token == "gfx.shadergamma")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_shadergamma;
         }
         else if (token == "map.enabled")
         {

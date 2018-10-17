@@ -139,7 +139,7 @@ bool ui_layer::init(GLFWwindow *Window)
     ImGui_ImplOpenGL2_Init();
     ImGui_ImplOpenGL2_NewFrame();
 #else
-    if (Global.use_gles)
+    if (Global.gfx_usegles)
         ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
     else
         ImGui_ImplOpenGL3_Init("#version 330 core");

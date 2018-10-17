@@ -39,7 +39,7 @@ void render_task::run() {
             const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
 
             // build texture
-            if (!Global.use_gles)
+            if (!Global.gfx_usegles)
             {
                 glTexImage2D(
                     GL_TEXTURE_2D, 0,

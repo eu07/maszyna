@@ -31,12 +31,7 @@ vec3 filmic(vec3 x)
 	return filmicF(x) / filmicF(vec3(11.2f));
 }
 
-vec3 tonemap(vec3 x)
-{
-	return ACESFilm(x);
-}
-
 vec4 tonemap(vec4 x)
 {
-	return vec4(tonemap(x.rgb), x.a);
+	return FBOUT(vec4(ACESFilm(x.rgb), x.a));
 }

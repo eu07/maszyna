@@ -428,12 +428,13 @@ eu07_application::init_glfw() {
     glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
     glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
 
-    if (!Global.use_gles)
+    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
+
+    if (!Global.gfx_usegles)
     {
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     }
     else
     {
@@ -441,7 +442,6 @@ eu07_application::init_glfw() {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     }
 
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
@@ -509,7 +509,7 @@ eu07_application::init_callbacks() {
 int
 eu07_application::init_gfx() {
 
-    if (!Global.use_gles)
+    if (!Global.gfx_usegles)
     {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
