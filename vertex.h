@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include <glm/glm.hpp>
 #include "utilities.h"
 
 // geometry vertex with double precision position

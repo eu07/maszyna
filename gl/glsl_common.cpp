@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "glsl_common.h"
 
 std::string gl::glsl_common;

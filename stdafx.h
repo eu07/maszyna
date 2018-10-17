@@ -68,6 +68,7 @@
 #include <condition_variable>
 #include <typeinfo>
 #include <bitset>
+#include <chrono>
 
 #ifdef EU07_BUILD_STATIC
 #define GLEW_STATIC

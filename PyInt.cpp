@@ -34,14 +34,41 @@ void render_task::run() {
          && tex.id != -1) {
              ::glBindTexture( GL_TEXTURE_2D, tex.id );
 
-            // build texture
-            glTexImage2D(
-                GL_TEXTURE_2D, 0,
-                GL_SRGB8,
-                PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
-                GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
-			glGenerateMipmap(GL_TEXTURE_2D);
+            int w = PyInt_AsLong( outputwidth );
+            int h = PyInt_AsLong( outputheight );
+            const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
 
+            // build texture
+            if (!Global.use_gles)
+            {
+                glTexImage2D(
+                    GL_TEXTURE_2D, 0,
+                    GL_SRGB8,
+                    w, h, 0,
+                    GL_RGB, GL_UNSIGNED_BYTE, image);
+            }
+            else
+            {
+                unsigned char *data = new unsigned char[w * h * 4];
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        data[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
+                        data[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
+                        data[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
+                        data[(y * w + x) * 4 + 3] = 0xFF;
+                    }
+
+                glTexImage2D(
+                    GL_TEXTURE_2D, 0,
+                    GL_SRGB8_ALPHA8,
+                    w, h, 0,
+                    GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+                delete[] data;
+            }
+
+            glGenerateMipmap(GL_TEXTURE_2D);
             glFlush();
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }

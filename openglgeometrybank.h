@@ -10,8 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include "ResourceManager.h"
 #include "gl/vao.h"
 

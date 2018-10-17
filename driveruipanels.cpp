@@ -873,9 +873,7 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             Output.emplace_back( textline, Global.UITextColor );
 
-            textline =
-                std::string( "Rendering mode: " )
-                + ( "VBO (legacy)" );
+            textline = "";
             if( false == Global.LastGLError.empty() ) {
                 textline +=
                     "Last openGL error: "
