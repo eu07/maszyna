@@ -143,10 +143,11 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	WriteLog("...gfx data pre-loading done");
 
 	// prepare basic geometry chunks
+    float const size = 2.5f / 2.0f;
 	auto const geometrybank = m_geometry.create_bank();
 	m_billboardgeometry = m_geometry.create_chunk(
 	    gfx::vertex_array{
-            {{-1.f, 1.f, 0.f}, glm::vec3(), {1.f, 1.f}}, {{1.f, 1.f, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-1.f, -1.f, 0.f}, glm::vec3(), {1.f, 0.f}}, {{1.f, -1.f, 0.f}, glm::vec3(), {0.f, 0.f}}},
+            {{-size, size, 0.f}, glm::vec3(), {1.f, 1.f}}, {{size, size, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-size, -size, 0.f}, glm::vec3(), {1.f, 0.f}}, {{size, -size, 0.f}, glm::vec3(), {0.f, 0.f}}},
 	    geometrybank, GL_TRIANGLE_STRIP);
     m_empty_vao = std::make_unique<gl::vao>();
 
@@ -403,7 +404,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             break;
         }
 
-		Update_Lights(simulation::Lights);
+        Update_Lights(simulation::Lights);
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
         scene_ubo->update(scene_ubs);
@@ -1006,7 +1007,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// modelview
         camera.position() = Global.pCamera.Pos;
         Global.pCamera.SetMatrix(viewmatrix);
-		// projection
+        // projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
@@ -1021,7 +1022,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
         glm::dvec3 const cubefaceupvectors[6] = {{0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, -1.0, 0.0}, {0.0, -1.0, 0.0}};
         auto const cubefaceindex = m_environmentcubetextureface;
         viewmatrix *= glm::lookAt(camera.position(), camera.position() + cubefacetargetvectors[cubefaceindex], cubefaceupvectors[cubefaceindex]);
-        // projection
+		// projection
         float znear = 0.1f * Global.ZoomFactor;
         float zfar = Config.draw_range * Global.fDistanceFactor;
         camera.projection() = perspective_projection(glm::radians(90.f), 1.f, znear, zfar);
@@ -1250,7 +1251,7 @@ bool opengl_renderer::Render(world_environment *Environment)
     m_celestial_shader->bind();
     m_empty_vao->bind();
 
-    auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+    auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
 
     // sun
     {
@@ -1269,8 +1270,8 @@ bool opengl_renderer::Render(world_environment *Environment)
         Bind_Texture(0, m_moontexture);
         glm::vec3 mooncolor(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f);
         glm::vec4 color(mooncolor.r, mooncolor.g, mooncolor.b,
-                    // fade the moon if it's near the sun in the sky, especially during the day
-                    std::max<float>(0.f, 1.0 - 0.5 * Global.fLuminance - 0.65 * std::max(0.f, glm::dot(Environment->m_sun.getDirection(), Environment->m_moon.getDirection()))) * fogfactor);
+                        // fade the moon if it's near the sun in the sky, especially during the day
+                        std::max<float>(0.f, 1.0 - 0.5 * Global.fLuminance - 0.65 * std::max(0.f, glm::dot(Environment->m_sun.getDirection(), Environment->m_moon.getDirection()))) * fogfactor);
 
         auto const moonvector = Environment->m_moon.getDirection();
 
@@ -3277,7 +3278,6 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
                         m_billboard_shader->bind();
                         Bind_Texture(0, m_glaretexture);
                         model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * glarelevel);
-                        model_ubs.param[1].x = 2.5f / 2.0f;
 
                         // main draw call
                         draw(m_billboardgeometry);
