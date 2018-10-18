@@ -404,7 +404,6 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             break;
         }
 
-        Update_Lights(simulation::Lights);
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
         scene_ubo->update(scene_ubs);
@@ -431,7 +430,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			Render_pass(rendermode::shadows);
             if (!FreeFlyModeFlag)
                 Render_pass(rendermode::cabshadows);
-			setup_pass(m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
+            setup_pass(m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
 
 			Timer::subsystem.gfx_shadows.stop();
 			glDebug("render shadowmap end");
@@ -1576,6 +1575,8 @@ void opengl_renderer::Render(scene::basic_region *Region)
 	{
 	case rendermode::color:
 	{
+        Update_Lights(simulation::Lights);
+
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
         if (EditorModeFlag)
@@ -3542,7 +3543,7 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 			return false;
 		}
 		if (Right.intensity == 0.f)
-		{
+        {
 			return true;
 		}
 		// ...otherwise prefer closer and/or brigher light sources
