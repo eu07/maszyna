@@ -2157,7 +2157,7 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha
 			}
 
             // restore ambient
-            light_ubs.ambient += old_ambient;
+            light_ubs.ambient = old_ambient;
             light_ubo->update(light_ubs);
 
 			break;
