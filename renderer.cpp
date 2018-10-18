@@ -2797,11 +2797,16 @@ void opengl_renderer::Render_precipitation()
             ::glRotated(roll, forward.x, 0.0, forward.z);
         }
     }
-    if (Global.Weather == "rain:")
+    if (!Global.iPause)
     {
-        // oddly enough random streaks produce more natural looking rain than ones the eye can follow
-        ::glRotated(Random() * 360, 0.0, 1.0, 0.0);
+        if (Global.Weather == "rain:")
+            // oddly enough random streaks produce more natural looking rain than ones the eye can follow
+            m_precipitationrotation = Random() * 360;
+        else
+            m_precipitationrotation = 0.0;
     }
+
+    ::glRotated(m_precipitationrotation, 0.0, 1.0, 0.0);
 
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
     model_ubs.param[0] = interpolate(0.5f * (Global.DayLight.diffuse + Global.DayLight.ambient), colors::white, 0.5f * clamp<float>(Global.fLuminance, 0.f, 1.f));
