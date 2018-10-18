@@ -3933,7 +3933,7 @@ void TDynamicObject::RenderSounds() {
     if( Global.iPause != 0 ) { return; }
 
     if( ( m_startjoltplayed )
-     && ( ( MoverParameters->AccSVBased < 0.01 )
+     && ( ( std::abs( MoverParameters->AccSVBased ) < 0.01 )
        || ( GetVelocity() < 0.01 ) ) ) {
         // if the vehicle comes to a stop set the movement jolt to play when it starts moving again
         m_startjoltplayed = false;
@@ -4397,8 +4397,8 @@ void TDynamicObject::RenderSounds() {
     // movement start jolt
     if( false == m_startjoltplayed ) {
         auto const velocity { GetVelocity() };
-        if( ( MoverParameters->AccSVBased > 0.2 )
-         && ( velocity >  2.5 )
+        if( ( MoverParameters->V > 0.0 ? ( MoverParameters->AccSVBased > 0.1 ) : ( MoverParameters->AccSVBased < 0.1 ) )
+         && ( velocity >  1.0 )
          && ( velocity < 15.0 ) ) {
             m_startjolt.play( sound_flags::exclusive );
             m_startjoltplayed = true;

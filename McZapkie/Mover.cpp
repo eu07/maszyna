@@ -4314,7 +4314,8 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
     else if( ( Couplers[ CouplerN ].CouplingFlag != coupling::faux )
           && ( newdist > 0.001 )
           && ( Couplers[ CouplerN ].Dist <= 0.001 )
-          && ( absdV > 0.005 ) ) {
+          && ( absdV > 0.005 )
+          && ( Vel > 1.0 ) ) {
         // 090503: dzwieki pracy sprzegu
         SetFlag(
             Couplers[ CouplerN ].sounds,

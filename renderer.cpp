@@ -1438,6 +1438,9 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glPushMatrix();
     ::glScalef( 500.f, 500.f, 500.f );
     Environment->m_skydome.Render();
+    if( Global.bUseVBO ) {
+        gfx::opengl_vbogeometrybank::reset();
+    }
     ::glPopMatrix();
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
@@ -2686,30 +2689,7 @@ opengl_renderer::Render( TTrack *Track ) {
     ++m_debugstats.drawcalls;
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::color:
-        case rendermode::reflections: {
-            setup_environment_light( Track->eEnvironment );
-            if( Track->m_material1 != 0 ) {
-                Bind_Material( Track->m_material1 );
-                m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
-            }
-            if( Track->m_material2 != 0 ) {
-                Bind_Material( Track->m_material2 );
-                m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
-            }
-            if( ( Track->eType == tt_Switch )
-             && ( Track->SwitchExtension->m_material3 != 0 ) ) {
-                Bind_Material( Track->SwitchExtension->m_material3 );
-                m_geometry.draw( Track->SwitchExtension->Geometry3 );
-            }
-            setup_environment_light();
-            break;
-        }
-        case rendermode::shadows: {
-            // shadow pass includes trackbeds but not tracks themselves due to low resolution of the map
-            // TODO: implement
-            break;
-        }
+        // single path pieces are rendererd in pick scenery mode only
         case rendermode::pickscenery: {
             // add the node to the pick list
             m_picksceneryitems.emplace_back( Track );
@@ -2729,7 +2709,6 @@ opengl_renderer::Render( TTrack *Track ) {
             }
             break;
         }
-        case rendermode::pickcontrols:
         default: {
             break;
         }
@@ -2824,7 +2803,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // restore default lighting
                     setup_environment_light();
                 }
-                break;
+               break;
             }
             case rendermode::shadows: {
                 if( ( std::abs( track->fTexHeight1 ) < 0.35f )

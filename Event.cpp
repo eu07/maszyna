@@ -1498,7 +1498,7 @@ lights_event::run_() {
         if( targetmodel == nullptr ) { continue; }
         // event effect code
         for( auto lightidx = 0; lightidx < iMaxNumLights; ++lightidx ) {
-            if( m_lights[ lightidx ] == std::numeric_limits<float>::quiet_NaN() ) {
+            if( std::isnan( m_lights[ lightidx ] ) ) {
                 // processed all supplied values, bail out
                 break;
             }
@@ -1518,7 +1518,7 @@ lights_event::export_as_text_( std::ostream &Output ) const {
 
     auto lightidx{ 0 };
     while( ( lightidx < iMaxNumLights )
-        && ( m_lights[ lightidx ] != std::numeric_limits<float>::quiet_NaN() ) ) {
+        && ( false == std::isnan( m_lights[ lightidx ] ) ) ) {
         Output << m_lights[ lightidx ] << ' ';
         ++lightidx;
     }
