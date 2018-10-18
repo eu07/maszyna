@@ -144,11 +144,11 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
 	// prepare basic geometry chunks
 	auto const geometrybank = m_geometry.create_bank();
-    float const size = 2.5f / 2.0f;
 	m_billboardgeometry = m_geometry.create_chunk(
 	    gfx::vertex_array{
-	        {{-size, size, 0.f}, glm::vec3(), {1.f, 1.f}}, {{size, size, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-size, -size, 0.f}, glm::vec3(), {1.f, 0.f}}, {{size, -size, 0.f}, glm::vec3(), {0.f, 0.f}}},
+            {{-1.f, 1.f, 0.f}, glm::vec3(), {1.f, 1.f}}, {{1.f, 1.f, 0.f}, glm::vec3(), {0.f, 1.f}}, {{-1.f, -1.f, 0.f}, glm::vec3(), {1.f, 0.f}}, {{1.f, -1.f, 0.f}, glm::vec3(), {0.f, 0.f}}},
 	    geometrybank, GL_TRIANGLE_STRIP);
+    m_empty_vao = std::make_unique<gl::vao>();
 
     try
     {
@@ -159,6 +159,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         m_alpha_shadow_shader = make_shader("simpleuv.vert", "alphashadowmap.frag");
         m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
         m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
+        m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
         m_invalid_material = Fetch_Material("invalid");
     }
     catch (gl::shader_exception const &e)
@@ -1207,12 +1208,6 @@ bool opengl_renderer::Render(world_environment *Environment)
 	// skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
 	gfx::opengl_vbogeometrybank::reset();
 
-    // celestial bodies
-
-    opengl_texture::reset_unit_cache();
-
-    // m7t: restore celestial bodies
-
     // stars
     if (Environment->m_stars.m_stars != nullptr)
     {
@@ -1227,9 +1222,6 @@ bool opengl_renderer::Render(world_environment *Environment)
         // post-render cleanup
         ::glPopMatrix();
     }
-
-    m_sunlight.apply_angle();
-    m_sunlight.apply_intensity();
 
     auto const fogfactor{clamp<float>(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
     float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
@@ -1253,8 +1245,100 @@ bool opengl_renderer::Render(world_environment *Environment)
 		// post-render cleanup
 	}
 
+    // celestial bodies
+
+    m_celestial_shader->bind();
+    m_empty_vao->bind();
+
+    auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+
+    // sun
+    {
+        Bind_Texture(0, m_suntexture);
+        glm::vec4 color(suncolor.x, suncolor.y, suncolor.z, clamp(1.5f - Global.Overcast, 0.f, 1.f) * fogfactor);
+        auto const sunvector = Environment->m_sun.getDirection();
+
+        model_ubs.param[0] = color;
+        model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(sunvector, 1.0f)), 0.00463f);
+        model_ubs.param[2] = glm::vec4(0.0f, 1.0f, 1.0f, 0.0f);
+        model_ubo->update(model_ubs);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+    // moon
+    {
+        Bind_Texture(0, m_moontexture);
+        glm::vec3 mooncolor(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f);
+        glm::vec4 color(mooncolor.r, mooncolor.g, mooncolor.b,
+                    // fade the moon if it's near the sun in the sky, especially during the day
+                    std::max<float>(0.f, 1.0 - 0.5 * Global.fLuminance - 0.65 * std::max(0.f, glm::dot(Environment->m_sun.getDirection(), Environment->m_moon.getDirection()))) * fogfactor);
+
+        auto const moonvector = Environment->m_moon.getDirection();
+
+        // choose the moon appearance variant, based on current moon phase
+        // NOTE: implementation specific, 8 variants are laid out in 3x3 arrangement
+        // from new moon onwards, top left to right bottom (last spot is left for future use, if any)
+        auto const moonphase = Environment->m_moon.getPhase();
+        float moonu, moonv;
+        if (moonphase < 1.84566f)
+        {
+            moonv = 1.0f - 0.0f;
+            moonu = 0.0f;
+        }
+        else if (moonphase < 5.53699f)
+        {
+            moonv = 1.0f - 0.0f;
+            moonu = 0.333f;
+        }
+        else if (moonphase < 9.22831f)
+        {
+            moonv = 1.0f - 0.0f;
+            moonu = 0.667f;
+        }
+        else if (moonphase < 12.91963f)
+        {
+            moonv = 1.0f - 0.333f;
+            moonu = 0.0f;
+        }
+        else if (moonphase < 16.61096f)
+        {
+            moonv = 1.0f - 0.333f;
+            moonu = 0.333f;
+        }
+        else if (moonphase < 20.30228f)
+        {
+            moonv = 1.0f - 0.333f;
+            moonu = 0.667f;
+        }
+        else if (moonphase < 23.99361f)
+        {
+            moonv = 1.0f - 0.667f;
+            moonu = 0.0f;
+        }
+        else if (moonphase < 27.68493f)
+        {
+            moonv = 1.0f - 0.667f;
+            moonu = 0.333f;
+        }
+        else
+        {
+            moonv = 1.0f - 0.0f;
+            moonu = 0.0f;
+        }
+
+        model_ubs.param[0] = color;
+        model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), 0.00451f);
+        model_ubs.param[2] = glm::vec4(moonu, moonv, 0.333f, 0.0f);
+        model_ubo->update(model_ubs);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    gl::program::unbind();
+    gl::vao::unbind();
     ::glPopMatrix();
 	::glEnable(GL_DEPTH_TEST);
+
+    m_sunlight.apply_angle();
+    m_sunlight.apply_intensity();
 
 	return true;
 }
@@ -1946,20 +2030,15 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
 			{
 				// enable cab light if needed
-				if (Dynamic->InteriorLightLevel > 0.0f)
-				{
-
-					// crude way to light the cabin, until we have something more complete in place
-					// m7t set cabin ambient
-				}
+                glm::vec3 old_ambient = light_ubs.ambient;
+                light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                light_ubo->update(light_ubs);
 
 				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 
-				if (Dynamic->InteriorLightLevel > 0.0f)
-				{
-					// reset the overall ambient
-					// m7t set ambient
-				}
+                // reset the overall ambient
+                light_ubs.ambient = old_ambient;
+                light_ubo->update(light_ubs);
 			}
 		}
 
@@ -2053,10 +2132,12 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha
 				// change light level based on light level of the occupied track
 				m_sunlight.apply_intensity(Dynamic->fShade);
 			}
-			if (Dynamic->InteriorLightLevel > 0.f)
-			{
-				// crude way to light the cabin, until we have something more complete in place
-			}
+
+            // crude way to light the cabin, until we have something more complete in place
+            glm::vec3 old_ambient = light_ubs.ambient;
+            light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+            light_ubo->update(light_ubs);
+
 			// render
 			if (true == Alpha)
 			{
@@ -2074,11 +2155,11 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha
 				// change light level based on light level of the occupied track
 				m_sunlight.apply_intensity();
 			}
-			if (Dynamic->InteriorLightLevel > 0.0f)
-			{
-				// reset the overall ambient
-				// m7t set ambient
-			}
+
+            // restore ambient
+            light_ubs.ambient += old_ambient;
+            light_ubo->update(light_ubs);
+
 			break;
 		}
 		case rendermode::cabshadows:
@@ -3000,15 +3081,16 @@ bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
 		// low poly interior
 		if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
 		{
-			// enable cab light if needed
-			if (Dynamic->InteriorLightLevel > 0.0f)
-			{
-
-				// crude way to light the cabin, until we have something more complete in place
-				// m7t
-			}
+            // crude way to light the cabin, until we have something more complete in place
+            glm::vec3 old_ambient = light_ubs.ambient;
+            light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+            light_ubo->update(light_ubs);
 
 			Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
+
+            // restore ambient
+            light_ubs.ambient = old_ambient;
+            light_ubo->update(light_ubs);
 		}
 	}
 
@@ -3195,6 +3277,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
                         m_billboard_shader->bind();
                         Bind_Texture(0, m_glaretexture);
                         model_ubs.param[0] = glm::vec4(glm::vec3(Submodel->f4Diffuse), Submodel->fVisible * glarelevel);
+                        model_ubs.param[1].x = 2.5f / 2.0f;
 
                         // main draw call
                         draw(m_billboardgeometry);

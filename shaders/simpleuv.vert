@@ -7,6 +7,6 @@ out vec2 f_coord;
 
 void main()
 {
-	gl_Position = (projection * modelview) * vec4(v_vert, 1.0f);
+	gl_Position = (projection * modelview) * vec4(v_vert * param[1].x, 1.0f);
 	f_coord = v_coord;
 }

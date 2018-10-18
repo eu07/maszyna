@@ -349,6 +349,9 @@ class opengl_renderer
 	std::unique_ptr<gl::program> m_line_shader;
 	std::unique_ptr<gl::program> m_freespot_shader;
     std::unique_ptr<gl::program> m_billboard_shader;
+    std::unique_ptr<gl::program> m_celestial_shader;
+
+    std::unique_ptr<gl::vao> m_empty_vao;
 
 	std::unique_ptr<gl::framebuffer> m_msaa_fb;
 	std::unique_ptr<gl::renderbuffer> m_msaa_rbc;
