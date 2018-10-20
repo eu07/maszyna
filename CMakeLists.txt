@@ -108,6 +108,7 @@ set(SOURCES
 "gl/cubemap.cpp"
 "gl/glsl_common.cpp"
 "gl/buffer.cpp"
+"gl/fence.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"
