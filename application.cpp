@@ -151,10 +151,25 @@ eu07_application::run() {
     return 0;
 }
 
+// issues request for a worker thread to perform specified task. returns: true if task was scheduled
 bool
 eu07_application::request( python_taskqueue::task_request const &Task ) {
 
     return m_taskqueue.insert( Task );
+}
+
+// ensures the main thread holds the python gil and can safely execute python calls
+void
+eu07_application::acquire_python_lock() {
+
+    m_taskqueue.acquire_lock();
+}
+
+// frees the python gil and swaps out the main thread
+void
+eu07_application::release_python_lock() {
+
+    m_taskqueue.release_lock();
 }
 
 void

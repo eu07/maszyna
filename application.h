@@ -30,8 +30,15 @@ public:
         init( int Argc, char *Argv[] );
     int
         run();
+    // issues request for a worker thread to perform specified task. returns: true if task was scheduled
     bool
         request( python_taskqueue::task_request const &Task );
+    // ensures the main thread holds the python gil and can safely execute python calls
+    void
+        acquire_python_lock();
+    // frees the python gil and swaps out the main thread
+    void
+        release_python_lock();
     void
         exit();
     void

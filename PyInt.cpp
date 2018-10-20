@@ -27,7 +27,7 @@ void render_task::run() {
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr ) ) {
 
-            ::glBindTexture( GL_TEXTURE_2D, GfxRenderer.Texture( m_target ).id );
+            ::glBindTexture( GL_TEXTURE_2D, m_target );
             // setup texture parameters
             ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
             ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -74,8 +74,6 @@ auto python_taskqueue::init() -> bool {
 #endif
     Py_Initialize();
     PyEval_InitThreads();
-    // save a pointer to the main PyThreadState object
-    m_mainthread = PyThreadState_Get();
     // do the setup work while we hold the lock
     m_main = PyImport_ImportModule("__main__");
     if (m_main == nullptr) {
@@ -101,8 +99,8 @@ auto python_taskqueue::init() -> bool {
 
     if( false == run_file( "abstractscreenrenderer" ) ) { goto release_and_exit; }
 
-    // release the lock
-    PyEval_ReleaseLock();
+    // release the lock, save the state for future use
+    m_mainthread = PyEval_SaveThread();
 
     WriteLog( "Python Interpreter setup complete" );
 
@@ -110,12 +108,11 @@ auto python_taskqueue::init() -> bool {
     for( auto &worker : m_workers ) {
 
         auto *openglcontextwindow { Application.window( -1 ) };
-        worker =
-            std::make_unique<std::thread>(
-                &python_taskqueue::run, this,
-                openglcontextwindow, std::ref( m_tasks ), std::ref( m_condition ), std::ref( m_exit ) );
+        worker = std::thread(
+                    &python_taskqueue::run, this,
+                    openglcontextwindow, std::ref( m_tasks ), std::ref( m_condition ), std::ref( m_exit ) );
 
-        if( worker == nullptr ) { return false; }
+        if( false == worker.joinable() ) { return false; }
     }
 
     return true;
@@ -131,8 +128,8 @@ void python_taskqueue::exit() {
     m_exit = true;
     m_condition.notify_all();
     // let them free up their shit before we proceed
-    for( auto const &worker : m_workers ) {
-        worker->join();
+    for( auto &worker : m_workers ) {
+        worker.join();
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore
@@ -140,8 +137,7 @@ void python_taskqueue::exit() {
         task->cancel();
     }
     // take a bow
-    PyEval_AcquireLock();
-    PyThreadState_Swap( m_mainthread );
+    acquire_lock();
     Py_Finalize();
 }
 
@@ -150,7 +146,7 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
     if( ( Task.renderer.empty() )
      || ( Task.input == nullptr )
-     || ( Task.target == null_handle ) ) { return false; }
+     || ( Task.target == 0 ) ) { return false; }
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
@@ -164,11 +160,11 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
         for( auto &task : m_tasks.data ) {
             if( task->target() == Task.target ) {
                 // replace pending task in the slot with the more recent one
-                PyEval_AcquireLock();
+                acquire_lock();
                 {
                     task->cancel();
                 }
-                PyEval_ReleaseLock();
+                release_lock();
                 task = newtask;
                 newtaskinserted = true;
                 break;
@@ -202,6 +198,18 @@ auto python_taskqueue::run_file( std::string const &File, std::string const &Pat
     return true;
 }
 
+// acquires the python gil and sets the main thread as current
+void python_taskqueue::acquire_lock() {
+
+    PyEval_RestoreThread( m_mainthread );
+}
+
+// releases the python gil and swaps the main thread out
+void python_taskqueue::release_lock() {
+
+    PyEval_SaveThread();
+}
+
 auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject * {
 
     auto const lookup { m_renderers.find( Renderer ) };
@@ -213,7 +221,7 @@ auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject *
     auto const file { Renderer.substr( path.size() ) };
     PyObject *renderer { nullptr };
     PyObject *rendererarguments { nullptr };
-    PyEval_AcquireLock();
+    acquire_lock();
     {
         if( m_main == nullptr ) {
             ErrorLog( "Python Renderer: __main__ module is missing" );
@@ -246,7 +254,7 @@ cache_and_return:
             Py_DECREF( rendererarguments );
         }
     }
-    PyEval_ReleaseLock();
+    release_lock();
     // cache the failures as well so we don't try again on subsequent requests
     m_renderers.emplace( Renderer, renderer );
     return renderer;
@@ -279,14 +287,14 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
             }
             if( task != nullptr ) {
                 // swap in my thread state
-                PyEval_AcquireLock();
-                PyThreadState_Swap( threadstate );
-                // execute python code
-                task->run();
-                error();
+                PyEval_RestoreThread( threadstate );
+                {
+                    // execute python code
+                    task->run();
+                    error();
+                }
                 // clear the thread state
-                PyThreadState_Swap( nullptr );
-                PyEval_ReleaseLock();
+                PyEval_SaveThread();
             }
             // TBD, TODO: add some idle time between tasks in case we're on a single thread cpu?
         } while( task != nullptr );
