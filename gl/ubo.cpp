@@ -3,31 +3,17 @@
 
 gl::ubo::ubo(int size, int idx, GLenum hint)
 {
-    glGenBuffers(1, *this);
-    bind();
-    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, hint);
+    allocate(buffer::UNIFORM_BUFFER, size, hint);
     index = idx;
     bind_uniform();
 }
 
 void gl::ubo::bind_uniform()
 {
-    glBindBufferBase(GL_UNIFORM_BUFFER, index, *this);
-    active = this;
-}
-
-gl::ubo::~ubo()
-{
-    glDeleteBuffers(1, *this);
-}
-
-void gl::ubo::bind(GLuint i)
-{
-    glBindBuffer(GL_UNIFORM_BUFFER, i);
+    bind_base(buffer::UNIFORM_BUFFER, index);
 }
 
 void gl::ubo::update(const uint8_t *data, int offset, int size)
 {
-    bind();
-    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    upload(buffer::UNIFORM_BUFFER, data, offset, size);
 }

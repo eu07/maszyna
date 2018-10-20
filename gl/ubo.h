@@ -2,24 +2,20 @@
 
 #include "object.h"
 #include "bindable.h"
+#include "buffer.h"
 
 #define UBS_PAD(x) uint8_t PAD[x]
 
 namespace gl
 {
-    static GLuint next_binding_point;
-
-    class ubo : public object, public bindable<ubo>
+    class ubo : public buffer
     {
         int index;
 
     public:
         ubo(int size, int index, GLenum hint = GL_DYNAMIC_DRAW);
-        ~ubo();
 
         void bind_uniform();
-        using bindable::bind;
-        static void bind(GLuint i);
 
         void update(const uint8_t *data, int offset, int size);
         template <typename T> void update(const T &data, size_t offset = 0)
