@@ -18,7 +18,12 @@ http://mozilla.org/MPL/2.0/.
 #undef _XOPEN_SOURCE
 #endif
 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 5033 )
+#endif
 #ifdef __GNUC__
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wregister"
 #endif
 
@@ -32,6 +37,9 @@ http://mozilla.org/MPL/2.0/.
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning( pop )
 #endif
 
 #include "Classes.h"
