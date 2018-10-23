@@ -64,4 +64,19 @@ void gl::buffer::upload(targets target, const void *data, int offset, int size)
     glBufferSubData(glenum_target(target), offset, size, data);
 }
 
+void gl::buffer::download(targets target, void *data, int offset, int size)
+{
+    bind(target);
+    if (GLAD_GL_VERSION_3_3)
+    {
+        glGetBufferSubData(glenum_target(target), offset, size, data);
+    }
+    else
+    {
+        void *glbuf = glMapBufferRange(glenum_target(target), offset, size, GL_MAP_READ_BIT);
+        memcpy(data, glbuf, size);
+        glUnmapBuffer(glenum_target(target));
+    }
+}
+
 GLuint gl::buffer::binding_points[13];

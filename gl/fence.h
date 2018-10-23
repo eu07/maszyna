@@ -11,5 +11,8 @@ namespace gl
         ~fence();
 
         bool is_signalled();
+
+        fence(const fence&) = delete;
+        fence& operator=(const fence&) = delete;
     };
 }

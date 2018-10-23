@@ -5,7 +5,7 @@ include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 include_directories("." "Console" "McZapkie" "gl" "ref/glad/include")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h" "gl/*.h")
 
@@ -109,6 +109,7 @@ set(SOURCES
 "gl/glsl_common.cpp"
 "gl/buffer.cpp"
 "gl/fence.cpp"
+"gl/pbo.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

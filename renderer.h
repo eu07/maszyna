@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/shader.h"
 #include "gl/cubemap.h"
 #include "gl/glsl_common.h"
+#include "gl/pbo.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
@@ -321,8 +322,8 @@ class opengl_renderer
 	renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
 	std::vector<TSubModel const *> m_pickcontrolsitems;
 	TSubModel const *m_pickcontrolitem{nullptr};
-	std::vector<scene::basic_node const *> m_picksceneryitems;
-	scene::basic_node const *m_picksceneryitem{nullptr};
+    std::vector<scene::basic_node *> m_picksceneryitems;
+    scene::basic_node *m_picksceneryitem{nullptr};
     glm::vec3 m_worldmousecoordinates { 0.f };
 #ifdef EU07_USE_DEBUG_CAMERA
 	renderpass_config m_worldcamera; // debug item
@@ -388,6 +389,9 @@ class opengl_renderer
     std::unique_ptr<gl::cubemap> m_env_tex;
 
     std::unique_ptr<gl::cubemap> m_empty_cubemap;
+
+    std::unique_ptr<gl::pbo> m_picking_pbo;
+    std::unique_ptr<gl::pbo> m_picking_node_pbo;
 
 	material_handle m_invalid_material;
 

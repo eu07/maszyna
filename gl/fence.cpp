@@ -12,7 +12,8 @@ gl::fence::~fence()
 
 bool gl::fence::is_signalled()
 {
+    GLsizei len = 0;
     GLint val;
-    glGetSynciv(sync, GL_SYNC_STATUS, 1, &val);
-    return val == GL_SIGNALED;
+    glGetSynciv(sync, GL_SYNC_STATUS, 1, &len, &val);
+    return len == 1 && val == GL_SIGNALED;
 }

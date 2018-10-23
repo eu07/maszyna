@@ -18,6 +18,10 @@ http://mozilla.org/MPL/2.0/.
 #undef _XOPEN_SOURCE
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wregister"
+#endif
+
 #ifdef _DEBUG
 #undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
 #include "Python.h"
@@ -25,6 +29,11 @@ http://mozilla.org/MPL/2.0/.
 #else
 #include "Python.h"
 #endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 #include "Classes.h"
 #include "utilities.h"
 

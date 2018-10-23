@@ -294,6 +294,10 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         WriteLog("envmap enabled");
     }
 
+    m_picking_pbo = std::make_unique<gl::pbo>();
+    m_picking_node_pbo = std::make_unique<gl::pbo>();
+    WriteLog("picking pbos created");
+
     WriteLog("renderer initialization finished!");
 
 	return true;
@@ -1784,6 +1788,8 @@ void opengl_renderer::Render(cell_sequence::iterator First, cell_sequence::itera
 				model_ubs.param[0] = glm::vec4(pick_color(m_picksceneryitems.size() + 1), 1.0f);
 				Render(path);
 			}
+            // post-render cleanup
+            ::glPopMatrix();
 			break;
 		}
 		case rendermode::reflections:
@@ -3347,66 +3353,70 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 // utility methods
 TSubModel const *opengl_renderer::Update_Pick_Control()
 {
-	Render_pass(rendermode::pickcontrols);
+    if (!m_picking_pbo->is_busy())
+    {
+        unsigned char pickreadout[4];
+        if (m_picking_pbo->read_data(1, 1, pickreadout))
+        {
+            auto const controlindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
+            TSubModel const *control{nullptr};
+            if ((controlindex > 0) && (controlindex <= m_pickcontrolsitems.size()))
+            {
+                control = m_pickcontrolsitems[controlindex - 1];
+            }
 
-	// determine point to examine
-    glm::dvec2 mousepos = Application.get_cursor_pos();
-	mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
-
-	glm::ivec2 pickbufferpos;
-	pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
-
-    unsigned char pickreadout[4];
-
-	// m7t: ! replace with PBO and wait frame or two to improve performance
-	m_pick_fb->bind();
-    ::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pickreadout);
-	m_pick_fb->unbind();
-
-	auto const controlindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
-	TSubModel const *control{nullptr};
-	if ((controlindex > 0) && (controlindex <= m_pickcontrolsitems.size()))
-	{
-		control = m_pickcontrolsitems[controlindex - 1];
-	}
-
-	m_pickcontrolitem = control;
-	return control;
-}
-
-scene::basic_node *opengl_renderer::Update_Pick_Node()
-{
-    // m7t: restore picking
-    /*
-        Render_pass(rendermode::pickscenery);
+            m_pickcontrolitem = control;
+        }
 
         // determine point to examine
-        glm::dvec2 mousepos;
-        glfwGetCursorPos(m_window, &mousepos.x, &mousepos.y);
+        glm::dvec2 mousepos = Application.get_cursor_pos();
         mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
         glm::ivec2 pickbufferpos;
         pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+        pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
-        unsigned char pickreadout[3];
-
-        // m7t: ! replace with PBO and wait frame or two to improve performance
-        // (and don't clash with control picking)
+        Render_pass(rendermode::pickcontrols);
         m_pick_fb->bind();
-        ::glReadPixels(pickbufferpos.x, pickbufferpos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pickreadout);
+        m_picking_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
         m_pick_fb->unbind();
+    }
 
-        auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
-        scene::basic_node const *node{nullptr};
-        if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
+    return m_pickcontrolitem;
+}
+
+scene::basic_node *opengl_renderer::Update_Pick_Node()
+{
+    if (!m_picking_node_pbo->is_busy())
+    {
+        unsigned char pickreadout[4];
+        if (m_picking_node_pbo->read_data(1, 1, pickreadout))
         {
-            node = m_picksceneryitems[nodeindex - 1];
+            auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
+            scene::basic_node *node{nullptr};
+            if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
+            {
+                node = m_picksceneryitems[nodeindex - 1];
+            }
+
+            m_picksceneryitem = node;
         }
 
-        m_picksceneryitem = node;
-        return node;
-        */
-    return nullptr;
+        // determine point to examine
+        glm::dvec2 mousepos = Application.get_cursor_pos();
+        mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+
+        glm::ivec2 pickbufferpos;
+        pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+        pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
+
+        Render_pass(rendermode::pickscenery);
+        m_pick_fb->bind();
+        m_picking_node_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
+        m_pick_fb->unbind();
+    }
+
+    return m_picksceneryitem;
 }
 
 glm::dvec3 opengl_renderer::Update_Mouse_Position()
@@ -3488,7 +3498,7 @@ void opengl_renderer::Update(double const Deltatime)
 
 	if ((true == Global.ControlPicking) && (false == FreeFlyModeFlag))
 	{
-		Update_Pick_Control();
+        Update_Pick_Control();
 	}
 	else
 	{
@@ -3497,7 +3507,7 @@ void opengl_renderer::Update(double const Deltatime)
 	// temporary conditions for testing. eventually will be coupled with editor mode
 	if ((true == Global.ControlPicking) && (true == DebugModeFlag) && (true == FreeFlyModeFlag))
 	{
-		Update_Pick_Node();
+        Update_Pick_Node();
 	}
 	else
 	{

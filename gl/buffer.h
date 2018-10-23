@@ -40,5 +40,6 @@ namespace gl
 
         void allocate(targets target, int size, GLenum hint);
         void upload(targets target, const void *data, int offset, int size);
+        void download(targets target, void *data, int offset, int size);
     };
 }
