@@ -319,6 +319,7 @@ drivermouse_input::button( int const Button, int const Action ) {
                 mousecommand = user_command::none;
             }
             else {
+                m_pickwaiting = false;
                 if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
                     if( m_slider.command() != user_command::none ) {
                         m_slider.release();
@@ -334,9 +335,12 @@ drivermouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-
+            m_pickwaiting = true;
             GfxRenderer.pick_control([this, Button, Action, &mousecommand](TSubModel const *control)
             {
+                bool pickwaiting = m_pickwaiting;
+                m_pickwaiting = false;
+
                 auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( control ) );
                 if( lookup != m_buttonbindings.end() ) {
                     // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
@@ -390,6 +394,8 @@ drivermouse_input::button( int const Button, int const Action ) {
                     // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                     // TODO: pass correct entity id once the missing systems are in place
                     m_relay.post( mousecommand, 0, 0, Action, 0 );
+                    if (!pickwaiting) // already depressed
+                        m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
                     m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
                 }
                 else {

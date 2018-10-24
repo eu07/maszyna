@@ -104,6 +104,7 @@ private:
     bool m_varyingpollrate { false }; // indicates rate of command repeats is affected by the cursor position
     glm::dvec2 m_varyingpollrateorigin; // helper, cursor position when the command was initiated
     std::array<int, GLFW_MOUSE_BUTTON_LAST> m_buttons;
+    bool m_pickwaiting;
 };
 
 //---------------------------------------------------------------------------
