@@ -38,7 +38,7 @@ editor_ui::update() {
     if( ( true == Global.ControlPicking )
      && ( true == DebugModeFlag ) ) {
 
-        auto const scenerynode = GfxRenderer.Pick_Node();
+        auto const scenerynode = GfxRenderer.get_picked_node();
         set_tooltip(
             ( scenerynode ?
                 scenerynode->name() :

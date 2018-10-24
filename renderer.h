@@ -166,11 +166,11 @@ class opengl_renderer
 	void Bind_Texture(size_t Unit, texture_handle const Texture);
 	opengl_texture &Texture(texture_handle const Texture) const;
 	// utility methods
-	TSubModel const *Pick_Control() const
+    TSubModel const *get_picked_control() const
 	{
 		return m_pickcontrolitem;
 	}
-	scene::basic_node const *Pick_Node() const
+    scene::basic_node const *get_picked_node() const
 	{
 		return m_picksceneryitem;
 	}
@@ -180,12 +180,15 @@ class opengl_renderer
     }
 	// maintenance methods
 	void Update(double const Deltatime);
-	TSubModel const *Update_Pick_Control();
-    scene::basic_node *Update_Pick_Node();
+    void Update_Pick_Control();
+    void Update_Pick_Node();
     glm::dvec3 Update_Mouse_Position();
 	// debug methods
 	std::string const &info_times() const;
 	std::string const &info_stats() const;
+
+    void pick_control(std::function<void(TSubModel const *)> callback);
+    void pick_node(std::function<void(scene::basic_node *)> callback);
 
 	// members
     GLenum static const sunlight{0};
@@ -337,6 +340,9 @@ class opengl_renderer
     glm::mat4 perpsective_frustumtest_projection(float fov, float aspect, float z_near, float z_far);
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
     glm::mat4 ortho_frustumtest_projection(float left, float right, float bottom, float top, float z_near, float z_far);
+
+    std::vector<std::function<void(TSubModel const *)>> m_control_pick_requests;
+    std::vector<std::function<void(scene::basic_node *)>> m_node_pick_requests;
 
 	std::unique_ptr<gl::shader> m_vertex_shader;
 

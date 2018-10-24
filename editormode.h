@@ -82,5 +82,5 @@ private:
     scene::basic_node *m_node; // currently selected scene node
     bool m_takesnapshot { true }; // helper, hints whether snapshot of selected node(s) should be taken before modification
     state_backup m_statebackup; // helper, cached variables to be restored on mode exit
-
+    bool m_dragging = false;
 };

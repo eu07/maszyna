@@ -173,16 +173,16 @@ driver_ui::update() {
     if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
         if( false == DebugModeFlag ) {
             // in regular mode show control functions, for defined controls
-            set_tooltip( locale::label_cab_control( train->GetLabel( GfxRenderer.Pick_Control() ) ) );
+            set_tooltip( locale::label_cab_control( train->GetLabel( GfxRenderer.get_picked_control() ) ) );
         }
         else {
             // in debug mode show names of submodels, to help with cab setup and/or debugging
-            auto const cabcontrol = GfxRenderer.Pick_Control();
+            auto const cabcontrol = GfxRenderer.get_picked_control();
             set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
         }
     }
     if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
-        auto const scenerynode = GfxRenderer.Pick_Node();
+        auto const scenerynode = GfxRenderer.get_picked_node();
         set_tooltip(
             ( scenerynode ?
                 scenerynode->name() :

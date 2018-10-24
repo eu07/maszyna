@@ -230,17 +230,24 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
         if( Action == GLFW_PRESS ) {
             // left button press
-            m_node = GfxRenderer.Update_Pick_Node();
-            if( m_node ) {
-                Application.set_cursor( GLFW_CURSOR_DISABLED );
-            }
-            dynamic_cast<editor_ui*>( m_userinterface.get() )->set_node( m_node );
+            GfxRenderer.pick_node([this](scene::basic_node *node)
+            {
+                if (!m_dragging)
+                    return;
+                m_node = node;
+                if( m_node )
+                    Application.set_cursor( GLFW_CURSOR_DISABLED );
+                else
+                    m_dragging = false;
+                dynamic_cast<editor_ui*>( m_userinterface.get() )->set_node( m_node );
+            });
+            m_dragging = true;
         }
         else {
             // left button release
-            if( m_node ) {
+            if( m_node )
                 Application.set_cursor( GLFW_CURSOR_NORMAL );
-            }
+            m_dragging = false;
             // prime history stack for another snapshot
             m_takesnapshot = true;
         }

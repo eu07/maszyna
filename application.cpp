@@ -147,15 +147,15 @@ eu07_application::run() {
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
+        Timer::subsystem.mainloop_total.start();
+        glfwPollEvents();
+
         if (!m_modes[ m_modestack.top() ]->update())
             break;
         if (!GfxRenderer.Render())
             break;
 
         GfxRenderer.SwapBuffers();
-
-        Timer::subsystem.mainloop_total.start();
-        glfwPollEvents();
 
         if (m_modestack.empty())
             return 0;

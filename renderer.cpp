@@ -3351,7 +3351,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 };
 
 // utility methods
-TSubModel const *opengl_renderer::Update_Pick_Control()
+void opengl_renderer::Update_Pick_Control()
 {
     if (!m_picking_pbo->is_busy())
     {
@@ -3366,26 +3366,31 @@ TSubModel const *opengl_renderer::Update_Pick_Control()
             }
 
             m_pickcontrolitem = control;
+
+            for (auto f : m_control_pick_requests)
+                f(m_pickcontrolitem);
+            m_control_pick_requests.clear();
         }
 
-        // determine point to examine
-        glm::dvec2 mousepos = Application.get_cursor_pos();
-        mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+        if (!m_control_pick_requests.empty())
+        {
+            // determine point to examine
+            glm::dvec2 mousepos = Application.get_cursor_pos();
+            mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-        glm::ivec2 pickbufferpos;
-        pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
-        pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
+            glm::ivec2 pickbufferpos;
+            pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+            pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
-        Render_pass(rendermode::pickcontrols);
-        m_pick_fb->bind();
-        m_picking_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
-        m_pick_fb->unbind();
+            Render_pass(rendermode::pickcontrols);
+            m_pick_fb->bind();
+            m_picking_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
+            m_pick_fb->unbind();
+        }
     }
-
-    return m_pickcontrolitem;
 }
 
-scene::basic_node *opengl_renderer::Update_Pick_Node()
+void opengl_renderer::Update_Pick_Node()
 {
     if (!m_picking_node_pbo->is_busy())
     {
@@ -3400,23 +3405,38 @@ scene::basic_node *opengl_renderer::Update_Pick_Node()
             }
 
             m_picksceneryitem = node;
+
+            for (auto f : m_node_pick_requests)
+                f(m_picksceneryitem);
+            m_node_pick_requests.clear();
         }
 
-        // determine point to examine
-        glm::dvec2 mousepos = Application.get_cursor_pos();
-        mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+        if (!m_picking_node_pbo->is_busy())
+        {
+            // determine point to examine
+            glm::dvec2 mousepos = Application.get_cursor_pos();
+            mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-        glm::ivec2 pickbufferpos;
-        pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
-        pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
+            glm::ivec2 pickbufferpos;
+            pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+            pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
-        Render_pass(rendermode::pickscenery);
-        m_pick_fb->bind();
-        m_picking_node_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
-        m_pick_fb->unbind();
+            Render_pass(rendermode::pickscenery);
+            m_pick_fb->bind();
+            m_picking_node_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
+            m_pick_fb->unbind();
+        }
     }
+}
 
-    return m_picksceneryitem;
+void opengl_renderer::pick_control(std::function<void(TSubModel const *)> callback)
+{
+    m_control_pick_requests.push_back(callback);
+}
+
+void opengl_renderer::pick_node(std::function<void(scene::basic_node *)> callback)
+{
+    m_node_pick_requests.push_back(callback);
 }
 
 glm::dvec3 opengl_renderer::Update_Mouse_Position()
@@ -3446,6 +3466,9 @@ glm::dvec3 opengl_renderer::Update_Mouse_Position()
 
 void opengl_renderer::Update(double const Deltatime)
 {
+    Update_Pick_Control();
+    Update_Pick_Node();
+
 	m_updateaccumulator += Deltatime;
 
 	if (m_updateaccumulator < 1.0)
@@ -3497,22 +3520,11 @@ void opengl_renderer::Update(double const Deltatime)
 	}
 
 	if ((true == Global.ControlPicking) && (false == FreeFlyModeFlag))
-	{
-        Update_Pick_Control();
-	}
-	else
-	{
-		m_pickcontrolitem = nullptr;
-	}
+        pick_control([](const TSubModel*) {});
 	// temporary conditions for testing. eventually will be coupled with editor mode
 	if ((true == Global.ControlPicking) && (true == DebugModeFlag) && (true == FreeFlyModeFlag))
-	{
-        Update_Pick_Node();
-	}
-	else
-	{
-		m_picksceneryitem = nullptr;
-	}
+        pick_node([](scene::basic_node*) {});
+
 	// dump last opengl error, if any
 	auto const glerror = ::glGetError();
 	if (glerror != GL_NO_ERROR)
