@@ -10,8 +10,8 @@ namespace gl {
         bool data_ready;
 
     public:
-        void request_read(int x, int y, int lx, int ly);
-        bool read_data(int lx, int ly, uint8_t *data);
+        void request_read(int x, int y, int lx, int ly, int pixsize = 4, GLenum format = GL_RGBA, GLenum type = GL_UNSIGNED_BYTE);
+        bool read_data(int lx, int ly, void *data, int pixsize = 4);
         bool is_busy();
     };
 }

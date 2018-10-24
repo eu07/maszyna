@@ -182,7 +182,7 @@ class opengl_renderer
 	void Update(double const Deltatime);
     void Update_Pick_Control();
     void Update_Pick_Node();
-    glm::dvec3 Update_Mouse_Position();
+    glm::dvec3 get_mouse_depth();
 	// debug methods
 	std::string const &info_times() const;
 	std::string const &info_stats() const;
@@ -398,6 +398,13 @@ class opengl_renderer
 
     std::unique_ptr<gl::pbo> m_picking_pbo;
     std::unique_ptr<gl::pbo> m_picking_node_pbo;
+
+    std::unique_ptr<gl::pbo> m_depth_pointer_pbo;
+    std::unique_ptr<gl::framebuffer> m_depth_pointer_fb;
+    std::unique_ptr<gl::framebuffer> m_depth_pointer_fb2;
+    std::unique_ptr<gl::renderbuffer> m_depth_pointer_rb;
+    std::unique_ptr<opengl_texture> m_depth_pointer_tex;
+    std::unique_ptr<gl::program> m_depth_pointer_shader;
 
 	material_handle m_invalid_material;
 

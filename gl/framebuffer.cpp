@@ -55,26 +55,34 @@ void gl::framebuffer::clear(GLbitfield mask)
     glClear(mask);
 }
 
-void gl::framebuffer::blit_to(framebuffer &other, int w, int h, GLbitfield mask, GLenum attachment)
+void gl::framebuffer::blit_to(framebuffer *other, int w, int h, GLbitfield mask, GLenum attachment)
 {
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, *this);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, other);
-
-    int attachment_n = attachment - GL_COLOR_ATTACHMENT0;
-
-    GLenum outputs[8] = { GL_NONE };
-    outputs[attachment_n] = attachment;
-
-    glReadBuffer(attachment);
-    glDrawBuffers(attachment_n + 1, outputs);
-
-	glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, GL_NEAREST);
-	unbind();
+    blit(this, other, 0, 0, w, h, mask, attachment);
 }
 
-void gl::framebuffer::blit_from(framebuffer &other, int w, int h, GLbitfield mask, GLenum attachment)
+void gl::framebuffer::blit_from(framebuffer *other, int w, int h, GLbitfield mask, GLenum attachment)
 {
-    other.blit_to(*this, w, h, mask, attachment);
+    blit(other, this, 0, 0, w, h, mask, attachment);
+}
+
+void gl::framebuffer::blit(framebuffer *src, framebuffer *dst, int sx, int sy, int w, int h, GLbitfield mask, GLenum attachment)
+{
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, src ? *src : 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst ? *dst : 0);
+
+    if (mask & GL_COLOR_BUFFER_BIT)
+    {
+        int attachment_n = attachment - GL_COLOR_ATTACHMENT0;
+
+        GLenum outputs[8] = { GL_NONE };
+        outputs[attachment_n] = attachment;
+
+        glReadBuffer(attachment);
+        glDrawBuffers(attachment_n + 1, outputs);
+    }
+
+    glBlitFramebuffer(sx, sy, sx + w, sy + h, 0, 0, w, h, mask, GL_NEAREST);
+    unbind();
 }
 
 void gl::framebuffer::setup_drawing(int attachments)

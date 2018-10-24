@@ -1,8 +1,8 @@
 #include "pbo.h"
 
-void gl::pbo::request_read(int x, int y, int lx, int ly)
+void gl::pbo::request_read(int x, int y, int lx, int ly, int pixsize, GLenum format, GLenum type)
 {
-    int s = lx * ly * 4;
+    int s = lx * ly * pixsize;
     if (s != size)
         allocate(PIXEL_PACK_BUFFER, s, GL_STREAM_DRAW);
     size = s;
@@ -11,20 +11,20 @@ void gl::pbo::request_read(int x, int y, int lx, int ly)
     sync.reset();
 
     bind(PIXEL_PACK_BUFFER);
-    glReadPixels(x, y, lx, ly, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glReadPixels(x, y, lx, ly, format, type, 0);
     unbind(PIXEL_PACK_BUFFER);
 
     sync.emplace();
 }
 
-bool gl::pbo::read_data(int lx, int ly, uint8_t *data)
+bool gl::pbo::read_data(int lx, int ly, void *data, int pixsize)
 {
     is_busy();
 
     if (!data_ready)
         return false;
 
-    int s = lx * ly * 4;
+    int s = lx * ly * pixsize;
     if (s != size)
         return false;
 

@@ -161,6 +161,8 @@ bool opengl_renderer::Init(GLFWwindow *Window)
         m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
         m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
         m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
+        if (Global.gfx_usegles)
+            m_depth_pointer_shader = make_shader("quad.vert", "gles_depthpointer.frag");
         m_invalid_material = Fetch_Material("invalid");
     }
     catch (gl::shader_exception const &e)
@@ -296,7 +298,59 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
     m_picking_pbo = std::make_unique<gl::pbo>();
     m_picking_node_pbo = std::make_unique<gl::pbo>();
-    WriteLog("picking pbos created");
+
+    m_depth_pointer_pbo = std::make_unique<gl::pbo>();
+    if (!Global.gfx_usegles && Global.iMultisampling)
+    {
+        m_depth_pointer_rb = std::make_unique<gl::renderbuffer>();
+        m_depth_pointer_rb->alloc(Global.gfx_format_depth, 1, 1);
+
+        m_depth_pointer_fb = std::make_unique<gl::framebuffer>();
+        m_depth_pointer_fb->attach(*m_depth_pointer_rb, GL_DEPTH_ATTACHMENT);
+
+        if (!m_depth_pointer_fb->is_complete())
+            return false;
+    }
+    else if (Global.gfx_usegles)
+    {
+        m_depth_pointer_tex = std::make_unique<opengl_texture>();
+
+        GLenum format = Global.gfx_format_depth;
+        if (Global.gfx_skippipeline)
+        {
+            gl::framebuffer::unbind();
+            GLint bits, type;
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &bits);
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE, &type);
+            if (type == GL_FLOAT && bits == 32)
+                format = GL_DEPTH_COMPONENT32F;
+            else if (bits == 16)
+                format = GL_DEPTH_COMPONENT16;
+            else if (bits == 24)
+                format = GL_DEPTH_COMPONENT24;
+            else if (bits == 32)
+                format = GL_DEPTH_COMPONENT32;
+        }
+
+        m_depth_pointer_tex->alloc_rendertarget(format, GL_DEPTH_COMPONENT, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+
+        m_depth_pointer_rb = std::make_unique<gl::renderbuffer>();
+        m_depth_pointer_rb->alloc(GL_R16UI, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+
+        m_depth_pointer_fb = std::make_unique<gl::framebuffer>();
+        m_depth_pointer_fb->attach(*m_depth_pointer_tex, GL_DEPTH_ATTACHMENT);
+
+        m_depth_pointer_fb2 = std::make_unique<gl::framebuffer>();
+        m_depth_pointer_fb2->attach(*m_depth_pointer_rb, GL_COLOR_ATTACHMENT0);
+
+        if (!m_depth_pointer_fb->is_complete())
+            return false;
+
+        if (!m_depth_pointer_fb2->is_complete())
+            return false;
+    }
+
+    WriteLog("picking objects created");
 
     WriteLog("renderer initialization finished!");
 
@@ -555,8 +609,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             if (Global.gfx_postfx_motionblur_enabled)
             {
                 m_main_fb->clear(GL_COLOR_BUFFER_BIT);
-                m_msaa_fb->blit_to(*m_main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
-                m_msaa_fb->blit_to(*m_main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
+                m_msaa_fb->blit_to(m_main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+                m_msaa_fb->blit_to(m_main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
 
                 model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
                 model_ubo->update(model_ubs);
@@ -565,7 +619,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
             else
             {
                 m_main2_fb->clear(GL_COLOR_BUFFER_BIT);
-                m_msaa_fb->blit_to(*m_main2_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+                m_msaa_fb->blit_to(m_main2_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
             }
 
             if (!Global.gfx_usegles && !Global.gfx_shadergamma)
@@ -1587,7 +1641,7 @@ void opengl_renderer::Render(scene::basic_region *Region)
         {
             // when editor mode is active calculate world position of the cursor
             // at this stage the z-buffer is filled with only ground geometry
-            Update_Mouse_Position();
+            get_mouse_depth();
         }
 		Render(std::begin(m_cellqueue), std::end(m_cellqueue));
 		break;
@@ -3411,7 +3465,7 @@ void opengl_renderer::Update_Pick_Node()
             m_node_pick_requests.clear();
         }
 
-        if (!m_picking_node_pbo->is_busy())
+        if (!m_node_pick_requests.empty())
         {
             // determine point to examine
             glm::dvec2 mousepos = Application.get_cursor_pos();
@@ -3439,29 +3493,100 @@ void opengl_renderer::pick_node(std::function<void(scene::basic_node *)> callbac
     m_node_pick_requests.push_back(callback);
 }
 
-glm::dvec3 opengl_renderer::Update_Mouse_Position()
+glm::dvec3 opengl_renderer::get_mouse_depth()
 {
-    // m7t: we need to blit multisampled framebuffer into regular one
-    // and better to use PBO and wait frame or two to improve performance
-    /*
-        glm::dvec2 mousepos;
-        glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-        mousepos = glm::ivec2{mousepos.x * Global.render_width / std::max(1, Global.iWindowWidth), mousepos.y * Global.render_height / std::max(1, Global.iWindowHeight)};
-        GLfloat pointdepth;
-        ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
+    if (!m_depth_pointer_pbo->is_busy())
+    {
+        // determine point to examine
+        glm::dvec2 mousepos = Application.get_cursor_pos();
+        mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-        if( pointdepth < 1.0 ) {
-            m_worldmousecoordinates =
-                glm::unProject(
-                    glm::vec3{ mousepos, pointdepth },
-                    glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
-                    m_colorpass.camera.projection(),
-                    glm::vec4{ 0, 0, Global.render_width, Global.render_height } );
+        glm::ivec2 bufferpos;
+        bufferpos = glm::ivec2{mousepos.x * Global.gfx_framebuffer_width / std::max(1, Global.iWindowWidth),
+                               mousepos.y * Global.gfx_framebuffer_height / std::max(1, Global.iWindowHeight)};
+        bufferpos = glm::clamp(bufferpos, glm::ivec2(0, 0), glm::ivec2(Global.gfx_framebuffer_width - 1, Global.gfx_framebuffer_height - 1));
+
+        float pointdepth = std::numeric_limits<float>::max();
+
+        if (!Global.gfx_usegles)
+        {
+            m_depth_pointer_pbo->read_data(1, 1, &pointdepth, 4);
+
+            if (!Global.iMultisampling)
+            {
+                m_depth_pointer_pbo->request_read(bufferpos.x, bufferpos.y, 1, 1, 4, GL_DEPTH_COMPONENT, GL_FLOAT);
+            }
+            else if (Global.gfx_skippipeline)
+            {
+                gl::framebuffer::blit(nullptr, m_depth_pointer_fb.get(), bufferpos.x, bufferpos.y, 1, 1, GL_DEPTH_BUFFER_BIT, 0);
+
+                m_depth_pointer_fb->bind();
+                m_depth_pointer_pbo->request_read(0, 0, 1, 1, 4, GL_DEPTH_COMPONENT, GL_FLOAT);
+                m_depth_pointer_fb->unbind();
+            }
+            else
+            {
+                gl::framebuffer::blit(m_msaa_fb.get(), m_depth_pointer_fb.get(), bufferpos.x, bufferpos.y, 1, 1, GL_DEPTH_BUFFER_BIT, 0);
+
+                m_depth_pointer_fb->bind();
+                m_depth_pointer_pbo->request_read(0, 0, 1, 1, 4, GL_DEPTH_COMPONENT, GL_FLOAT);
+                m_msaa_fb->bind();
+            }
+        }
+        else
+        {
+            unsigned int data[4];
+            if (m_depth_pointer_pbo->read_data(1, 1, data, 16))
+                pointdepth = (double)data[0] / 65535.0;
+
+            if (Global.gfx_skippipeline)
+            {
+                gl::framebuffer::blit(nullptr, m_depth_pointer_fb.get(), 0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_DEPTH_BUFFER_BIT, 0);
+
+                m_empty_vao->bind();
+                m_depth_pointer_tex->bind(0);
+                m_depth_pointer_shader->bind();
+                m_depth_pointer_fb2->bind();
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                m_depth_pointer_pbo->request_read(bufferpos.x, bufferpos.y, 1, 1, 16, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
+                m_depth_pointer_shader->unbind();
+                m_empty_vao->unbind();
+                m_depth_pointer_fb2->unbind();
+            }
+            else
+            {
+                gl::framebuffer::blit(m_msaa_fb.get(), m_depth_pointer_fb.get(), 0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_DEPTH_BUFFER_BIT, 0);
+
+                m_empty_vao->bind();
+                m_depth_pointer_tex->bind(0);
+                m_depth_pointer_shader->bind();
+                m_depth_pointer_fb2->bind();
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                m_depth_pointer_pbo->request_read(bufferpos.x, bufferpos.y, 1, 1, 16, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
+                m_depth_pointer_shader->unbind();
+                m_empty_vao->unbind();
+                m_msaa_fb->bind();
+            }
         }
 
-        return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
-        */
-    return glm::dvec3();
+        if (pointdepth != std::numeric_limits<float>::max())
+        {
+            if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
+                m_worldmousecoordinates = glm::unProjectZO(
+                            glm::vec3(bufferpos, pointdepth),
+                            glm::mat4(glm::mat3(m_colorpass.camera.modelview())),
+                            m_colorpass.camera.projection(),
+                            glm::vec4(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height));
+            else
+                m_worldmousecoordinates = glm::unProjectNO(
+                            glm::vec3(bufferpos, pointdepth),
+                            glm::mat4(glm::mat3(m_colorpass.camera.modelview())),
+                            m_colorpass.camera.projection(),
+                            glm::vec4(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height));
+        }
+    }
+
+    return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
 }
 
 void opengl_renderer::Update(double const Deltatime)

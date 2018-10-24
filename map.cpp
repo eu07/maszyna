@@ -166,7 +166,7 @@ void map::render(scene::basic_region *Region)
         GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
         if (Global.iMultisampling)
-            m_fb->blit_from(*m_msaa_fb, size.x, size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+            m_fb->blit_from(m_msaa_fb.get(), size.x, size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 
         gl::framebuffer::unbind();
         m_shader->unbind();
