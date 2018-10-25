@@ -414,11 +414,9 @@ void TAnimContainer::EventAssign(basic_event *ev)
 //------------------------------------------------------------------------------
 
 TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedata ) {
-    // TODO: wrap these in a tuple and move to underlying model
-    for( int index = 0; index < iMaxNumLights; ++index ) {
-        LightsOn[ index ] = LightsOff[ index ] = nullptr; // normalnie nie ma
-        lsLights[ index ] = ls_Off; // a jeśli są, to wyłączone
-    }
+
+    m_lightcolors.fill( glm::vec3{ -1.f } );
+    m_lightopacities.fill( 1.f );
 }
 
 TAnimModel::~TAnimModel()
@@ -456,7 +454,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
 	std::string name = parser->getToken<std::string>();
-    std::string texture = parser->getToken<std::string>(); // tekstura (zmienia na małe)
+    std::string texture = parser->getToken<std::string>( false ); // tekstura (zmienia na małe)
     replace_slashes( name );
     if (!Init( name, texture ))
     {
@@ -499,20 +497,44 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         if (LightsOn[i] || LightsOff[i]) // Ra: zlikwidowałem wymóg istnienia obu
             iNumLights = i + 1;
 
-    if ( parser->getToken<std::string>() == "lights" )
-    {
-		int i = 0;
-		std::string token = parser->getToken<std::string>();
-		while( ( token != "" )
-			&& ( token != "endmodel" ) ) {
+    std::string token;
+    do {
+        token = parser->getToken<std::string>();
 
-			LightSet( i, std::stof( token ) ); // stan światła jest liczbą z ułamkiem
-            ++i;
+        if( token == "lights" ) {
+            auto i{ 0 };
+            while( ( false == ( token = parser->getToken<std::string>() ).empty() )
+                && ( token != "lightcolors" )
+                && ( token != "endmodel" ) ) {
 
-			token = "";
-			parser->getTokens(); *parser >> token;
-		}
-    }
+                if( i < iNumLights ) {
+                    // stan światła jest liczbą z ułamkiem
+                    LightSet( i, std::stof( token ) );
+                }
+                ++i;
+            }
+        }
+
+        if( token == "lightcolors" ) {
+            auto i{ 0 };
+            while( ( false == ( token = parser->getToken<std::string>() ).empty() )
+                && ( token != "lights" )
+                && ( token != "endmodel" ) ) {
+
+                if( ( i < iNumLights )
+                 && ( token != "-1" ) ) { // -1 leaves the default color intact
+                    auto const lightcolor { std::stoi( token, 0, 16 ) };
+                    m_lightcolors[i] = {
+                        ( ( lightcolor >> 16 ) & 0xff ) / 255.f,
+                        ( ( lightcolor >> 8 )  & 0xff ) / 255.f,
+                        ( ( lightcolor )       & 0xff ) / 255.f };
+                }
+                ++i;
+            }
+        }
+    } while( ( false == token.empty() )
+          && ( token != "endmodel" ) );
+
     return true;
 }
 
@@ -683,6 +705,10 @@ void TAnimModel::RaPrepare()
             }
             if (LightsOff[i])
                 LightsOff[i]->iVisible = !state;
+        }
+        // potentially modify freespot colors
+        if( LightsOn[i] ) {
+            LightsOn[i]->SetDiffuseOverride( m_lightcolors[i], true);
         }
     }
     TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( this ); //żeby nie robić cudzych animacji

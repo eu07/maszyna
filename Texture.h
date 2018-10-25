@@ -46,10 +46,13 @@ struct opengl_texture {
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
+    std::string type; // type of the texture source file
     std::size_t size{ 0 }; // size of the texture data, in kb
 
 private:
 // methods
+    void make_stub();
+    void make_request();
     void load_BMP();
 	void load_PNG();
     void load_DDS();

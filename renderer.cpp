@@ -554,7 +554,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 setup_drawing( true );
                 setup_units( true, false, false );
                 Render( &simulation::Environment );
-				gfx::opengl_vbogeometrybank::reset();
 
                 // opaque parts...
                 setup_drawing( false );
@@ -1465,6 +1464,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glPushMatrix();
     ::glScalef( 500.f, 500.f, 500.f );
     Environment->m_skydome.Render();
+    gfx::opengl_vbogeometrybank::reset();
     ::glPopMatrix();
     // stars
     if( Environment->m_stars.m_stars != nullptr ) {
@@ -2606,6 +2606,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             auto const unitstate = m_unitstate;
                             switch_units( m_unitstate.diffuse, false, false );
 
+                            auto const *lightcolor {
+                                  Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
+                                    glm::value_ptr( Submodel->f4Diffuse ) :
+                                    glm::value_ptr( Submodel->DiffuseOverride ) };
+
                             // main draw call
                             if( Global.Overcast > 1.f ) {
                                 // fake fog halo
@@ -2614,11 +2619,12 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                         2.f, 1.f,
                                         clamp<float>( Global.fFogEnd / 2000, 0.f, 1.f ) )
                                     * std::max( 1.f, Global.Overcast ) };
+
                                 ::glPointSize( pointsize * fogfactor );
                                 ::glColor4f(
-                                    Submodel->f4Diffuse[ 0 ],
-                                    Submodel->f4Diffuse[ 1 ],
-                                    Submodel->f4Diffuse[ 2 ],
+                                    lightcolor[ 0 ],
+                                    lightcolor[ 1 ],
+                                    lightcolor[ 2 ],
                                     Submodel->fVisible * std::min( 1.f, lightlevel ) * 0.5f );
                                 ::glDepthMask( GL_FALSE );
                                 m_geometry.draw( Submodel->m_geometry );
@@ -2626,9 +2632,9 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             }
                             ::glPointSize( pointsize );
                             ::glColor4f(
-                                Submodel->f4Diffuse[ 0 ],
-                                Submodel->f4Diffuse[ 1 ],
-                                Submodel->f4Diffuse[ 2 ],
+                                lightcolor[ 0 ],
+                                lightcolor[ 1 ],
+                                lightcolor[ 2 ],
                                 Submodel->fVisible * std::min( 1.f, lightlevel ) );
                             m_geometry.draw( Submodel->m_geometry );
 
@@ -2707,30 +2713,7 @@ opengl_renderer::Render( TTrack *Track ) {
     ++m_debugstats.drawcalls;
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::color:
-        case rendermode::reflections: {
-            setup_environment_light( Track->eEnvironment );
-            if( Track->m_material1 != 0 ) {
-                Bind_Material( Track->m_material1 );
-                m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
-            }
-            if( Track->m_material2 != 0 ) {
-                Bind_Material( Track->m_material2 );
-                m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
-            }
-            if( ( Track->eType == tt_Switch )
-             && ( Track->SwitchExtension->m_material3 != 0 ) ) {
-                Bind_Material( Track->SwitchExtension->m_material3 );
-                m_geometry.draw( Track->SwitchExtension->Geometry3 );
-            }
-            setup_environment_light();
-            break;
-        }
-        case rendermode::shadows: {
-            // shadow pass includes trackbeds but not tracks themselves due to low resolution of the map
-            // TODO: implement
-            break;
-        }
+        // single path pieces are rendererd in pick scenery mode only
         case rendermode::pickscenery: {
             // add the node to the pick list
             m_picksceneryitems.emplace_back( Track );
@@ -2750,7 +2733,6 @@ opengl_renderer::Render( TTrack *Track ) {
             }
             break;
         }
-        case rendermode::pickcontrols:
         default: {
             break;
         }
@@ -2845,7 +2827,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // restore default lighting
                     setup_environment_light();
                 }
-                break;
+               break;
             }
             case rendermode::shadows: {
                 if( ( std::abs( track->fTexHeight1 ) < 0.35f )
@@ -3534,7 +3516,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT );
 
                         Bind_Texture( m_glaretexture );
-                        ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], Submodel->fVisible * glarelevel );
                         ::glDisable( GL_LIGHTING );
                         ::glDisable( GL_FOG );
                         ::glDepthMask( GL_FALSE );
@@ -3545,11 +3526,18 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
                         ::glRotated( std::atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
                                                                                                                  // disable shadows so they don't obstruct self-lit items
-/*
-                        setup_shadow_color( colors::white );
-*/
                         auto const unitstate = m_unitstate;
                         switch_units( unitstate.diffuse, false, false );
+
+                        auto const *lightcolor {
+                            Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
+                                glm::value_ptr( Submodel->f4Diffuse ) :
+                                glm::value_ptr( Submodel->DiffuseOverride ) };
+                        ::glColor4f(
+                            lightcolor[ 0 ],
+                            lightcolor[ 1 ],
+                            lightcolor[ 2 ],
+                            Submodel->fVisible * glarelevel );
 
                         // main draw call
                         m_geometry.draw( m_billboardgeometry );
@@ -3562,9 +3550,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
                         // post-render cleanup
-/*
-                        setup_shadow_color( m_shadowcolor );
-*/
                         switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                         ::glPopMatrix();

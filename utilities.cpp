@@ -384,6 +384,14 @@ erase_extension( std::string &Filename ) {
     return false;
 }
 
+void
+erase_leading_slashes( std::string &Filename ) {
+
+    while( Filename[ 0 ] == '/' ) {
+        Filename.erase( 0, 1 );
+    }
+}
+
 // potentially replaces backward slashes in provided file path with unix-compatible forward slashes
 void
 replace_slashes( std::string &Filename ) {
