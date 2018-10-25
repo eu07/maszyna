@@ -53,16 +53,20 @@ void texture_window::threadfunc()
 
 	while (!m_exit)
 	{
-		int w, h;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
-		if (m_tex_w != w || m_tex_h != h)
+		// if texture resized, update window size (maybe not necessary?)
+		if (GLAD_GL_VERSION_3_3 || GLAD_GL_ES_VERSION_3_1)
 		{
-			m_tex_w = w;
-			m_tex_h = h;
-			m_win_w = w;
-			m_win_h = h;
-			glfwSetWindowSize(m_window, w, h); // eh, not thread-safe (but works?)
+			int w, h;
+			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
+			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+			if (m_tex_w != w || m_tex_h != h)
+			{
+				m_tex_w = w;
+				m_tex_h = h;
+				m_win_w = w;
+				m_win_h = h;
+				glfwSetWindowSize(m_window, w, h); // eh, not thread-safe (but works?)
+			}
 		}
 
 		glViewport(0, 0, m_win_w, m_win_h);
