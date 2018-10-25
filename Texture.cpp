@@ -88,7 +88,7 @@ void opengl_texture::load_PNG()
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
 
-	png_image_begin_read_from_file(&png, name.c_str());
+	png_image_begin_read_from_file(&png, (name + type).c_str());
 	if (png.warning_or_error)
 	{
 		data_state = resource_state::failed;
