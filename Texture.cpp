@@ -56,7 +56,7 @@ void opengl_texture::gles_match_internalformat(GLuint internalformat)
     // we don't want BGR(A), reverse it
     if (data_format == GL_BGR)
     {
-        std::vector<char> reverse;
+        std::vector<unsigned char> reverse;
         reverse.resize(data.size());
 
         for (int y = 0; y < data_height; y++)
@@ -73,7 +73,7 @@ void opengl_texture::gles_match_internalformat(GLuint internalformat)
     }
     else if (data_format == GL_BGRA)
     {
-        std::vector<char> reverse;
+        std::vector<unsigned char> reverse;
         reverse.resize(data.size());
 
         for (int y = 0; y < data_height; y++)
@@ -125,7 +125,7 @@ void opengl_texture::gles_match_internalformat(GLuint internalformat)
     if (!in_c || !out_c)
         return; // conversion not supported
 
-    std::vector<char> out;
+    std::vector<unsigned char> out;
     out.resize(data_width * data_height * out_c);
 
     for (int y = 0; y < data_height; y++)
@@ -290,11 +290,11 @@ opengl_texture::make_request() {
 void
 opengl_texture::load_BMP() {
 
-    std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
+    std::basic_ifstream<unsigned char> file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
 
     BITMAPFILEHEADER header;
 
-    file.read( (char *)&header, sizeof( BITMAPFILEHEADER ) );
+    file.read( (unsigned char *)&header, sizeof( BITMAPFILEHEADER ) );
     if( file.eof() ) {
 
         data_state = resource_state::failed;
@@ -307,7 +307,7 @@ opengl_texture::load_BMP() {
     if( infosize > sizeof( info ) ) {
         WriteLog( "Warning - BMP header is larger than expected, possible format difference.", logtype::texture );
     }
-    file.read( (char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
+    file.read( (unsigned char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
 
     data_width = info.bmiHeader.biWidth;
     data_height = info.bmiHeader.biHeight;
@@ -995,7 +995,7 @@ opengl_texture::create() {
             if( ( true == Global.ResourceMove )
              || ( false == Global.ResourceSweep ) ) {
                 // if garbage collection is disabled we don't expect having to upload the texture more than once
-                data = std::vector<char>();
+                data = std::vector<unsigned char>();
                 data_state = resource_state::none;
             }
         }
