@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
+#include "texturewindow.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -671,7 +672,7 @@ private:
     // McZapkie: do syczenia
     float fPPress, fNPress;
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-    std::vector<std::pair<std::string, texture_handle>> m_screens;
+	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

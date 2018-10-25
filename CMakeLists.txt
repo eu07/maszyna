@@ -95,6 +95,7 @@ set(SOURCES
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"
 "precipitation.cpp"
+"texturewindow.cpp"
 "map.cpp"
 
 "ref/glad/src/glad.c"

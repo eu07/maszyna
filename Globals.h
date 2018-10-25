@@ -176,6 +176,9 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 
+	bool python_displaywindows = false;
+	bool map_enabled = true;
+
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
     bool gfx_shadowmap_enabled = true;
@@ -187,8 +190,6 @@ struct global_settings {
     GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
     bool gfx_skippipeline = false;
     bool gfx_shadergamma = false;
-
-    bool map_enabled = true;
     bool gfx_usegles = false;
 
 // methods

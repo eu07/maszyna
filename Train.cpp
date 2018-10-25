@@ -6004,7 +6004,7 @@ bool TTrain::Update( double const Deltatime )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
-            Application.request( { screen.first, GetTrainState(), GfxRenderer.Texture( screen.second ).id } );
+			Application.request( { std::get<0>(screen), GetTrainState(), GfxRenderer.Texture( std::get<1>(screen) ).id } );
         }
     }
     // sounds
@@ -6807,12 +6807,19 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
                     continue;
                 }
+
+				texture_handle &tex = GfxRenderer.Material( material ).textures[0];
+
                 // record renderer and material binding for future update requests
                 m_screens.emplace_back(
                     ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
                         DynamicObject->asBaseDir + renderername :
                         renderername ),
-                    GfxRenderer.Material( material ).textures[0] );
+				        tex,
+				        std::nullopt);
+
+				if (Global.python_displaywindows)
+					std::get<2>(m_screens.back()).emplace(tex);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

@@ -753,6 +753,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> map_enabled;
         }
+		else if (token == "python.displaywindows")
+		{
+			Parser.getTokens(1);
+			Parser >> python_displaywindows;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
