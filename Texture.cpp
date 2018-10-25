@@ -208,7 +208,7 @@ void opengl_texture::load_PNG()
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
 
-	png_image_begin_read_from_file(&png, name.c_str());
+	png_image_begin_read_from_file(&png, (name + type).c_str());
 	if (png.warning_or_error)
 	{
 		data_state = resource_state::failed;
@@ -290,11 +290,11 @@ opengl_texture::make_request() {
 void
 opengl_texture::load_BMP() {
 
-    std::basic_ifstream<unsigned char> file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
+	std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
 
     BITMAPFILEHEADER header;
 
-    file.read( (unsigned char *)&header, sizeof( BITMAPFILEHEADER ) );
+	file.read((char *) &header, sizeof( BITMAPFILEHEADER ) );
     if( file.eof() ) {
 
         data_state = resource_state::failed;
@@ -307,7 +307,7 @@ opengl_texture::load_BMP() {
     if( infosize > sizeof( info ) ) {
         WriteLog( "Warning - BMP header is larger than expected, possible format difference.", logtype::texture );
     }
-    file.read( (unsigned char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
+	file.read((char *) &info, std::min( (size_t)infosize, sizeof( info ) ) );
 
     data_width = info.bmiHeader.biWidth;
     data_height = info.bmiHeader.biHeight;
@@ -326,7 +326,7 @@ opengl_texture::load_BMP() {
     }
 
     data.resize( datasize );
-    file.read( &data[0], datasize );
+	file.read((char*) &data[0], datasize );
 	// we're storing texture data internally with bottom-left origin
 	// so BMP origin matches, no flipping needed
 
