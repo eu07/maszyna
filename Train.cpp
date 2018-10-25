@@ -452,11 +452,11 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 PyObject *TTrain::GetTrainState() {
 
     auto const *mover = DynamicObject->MoverParameters;
-    PyEval_AcquireLock();
+    Application.acquire_python_lock();
     auto *dict = PyDict_New();
     if( ( dict == nullptr )
      || ( mover == nullptr ) ) {
-        PyEval_ReleaseLock();
+        Application.release_python_lock();
         return nullptr;
     }
 
@@ -586,7 +586,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
     PyDict_SetItemString( dict, "air_temperature", PyGetInt( Global.AirTemperature ) );
 
-    PyEval_ReleaseLock();
+    Application.release_python_lock();
     return dict;
 }
 
@@ -6004,7 +6004,7 @@ bool TTrain::Update( double const Deltatime )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
-            Application.request( { screen.first, GetTrainState(), screen.second } );
+            Application.request( { screen.first, GetTrainState(), GfxRenderer.Texture( screen.second ).id } );
         }
     }
     // sounds

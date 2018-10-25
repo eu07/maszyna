@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Texture.h"
 
+#include "application.h"
 #include "utilities.h"
 #include "Globals.h"
 #include "Logs.h"
@@ -159,19 +160,24 @@ void opengl_texture::gles_match_internalformat(GLuint internalformat)
 void
 opengl_texture::load() {
 
-    if( name.size() < 3 ) { goto fail; }
+    if( type == "make:" ) {
+        // for generated texture we delay data creation until texture is bound
+        // this ensures the script will receive all simulation data it might potentially want
+        // as any binding will happen after simulation is loaded, initialized and running
+        // until then we supply data for a tiny 2x2 grey stub
+        make_stub();
+    }
+    else {
 
-    WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
+        WriteLog( "Loading texture data from \"" + name + type + "\"", logtype::texture );
 
-    data_state = resource_state::loading;
-    {
-        std::string const extension = name.substr( name.size() - 3, 3 );
+        data_state = resource_state::loading;
 
-             if( extension == "dds" ) { load_DDS(); }
-        else if( extension == "tga" ) { load_TGA(); }
-        else if( extension == "png" ) { load_PNG(); }
-        else if( extension == "bmp" ) { load_BMP(); }
-        else if( extension == "tex" ) { load_TEX(); }
+             if( type == ".dds" ) { load_DDS(); }
+        else if( type == ".tga" ) { load_TGA(); }
+        else if( type == ".png" ) { load_PNG(); }
+        else if( type == ".bmp" ) { load_BMP(); }
+        else if( type == ".tex" ) { load_TEX(); }
         else { goto fail; }
     }
 
@@ -190,7 +196,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + type + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -244,9 +250,47 @@ void opengl_texture::load_PNG()
 }
 
 void
+opengl_texture::make_stub() {
+
+    data_width = 2;
+    data_height = 2;
+    data.resize( data_width * data_height * 3 );
+    std::fill( std::begin( data ), std::end( data ), static_cast<char>( 0xc0 ) );
+    data_mapcount = 1;
+    data_format = GL_RGB;
+    data_components = GL_RGB;
+    data_state = resource_state::good;
+}
+
+void
+opengl_texture::make_request() {
+
+    auto const components { Split( name, '?' ) };
+    auto const query { Split( components.back(), '&' ) };
+
+    PyObject *pythondictionary { nullptr };
+    Application.acquire_python_lock();
+    {
+        pythondictionary = PyDict_New();
+        if( pythondictionary != nullptr ) {
+            for( auto const &querypair : query ) {
+                auto const valuepos { querypair.find( '=' ) };
+                PyDict_SetItemString(
+                    pythondictionary,
+                    ToLower( querypair.substr( 0, valuepos ) ).c_str(),
+                    PyGetString( querypair.substr( valuepos + 1 ).c_str() ) );
+            }
+        }
+    }
+    Application.release_python_lock();
+
+    Application.request( { ToLower( components.front() ), pythondictionary, id } );
+}
+
+void
 opengl_texture::load_BMP() {
 
-    std::ifstream file( name, std::ios::binary ); file.unsetf( std::ios::skipws );
+    std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
 
     BITMAPFILEHEADER header;
 
@@ -368,7 +412,7 @@ DDSURFACEDESC2 opengl_texture::deserialize_ddsd(std::istream &s)
 void
 opengl_texture::load_DDS() {
 
-    std::ifstream file( name, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+    std::ifstream file( name + type, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
     std::size_t filesize = static_cast<size_t>(file.tellg());   // ios::ate already positioned us at the end of the file
     file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
 
@@ -426,12 +470,12 @@ opengl_texture::load_DDS() {
         data_width /= 2;
         data_height /= 2;
         --data_mapcount;
-        WriteLog( "Texture size exceeds specified limits, skipping mipmap level" );
+        WriteLog( "Texture pixelcount exceeds specified limits, skipping mipmap level" );
     };
 
     if( data_mapcount <= 0 ) {
         // there's a chance we've discarded the provided mipmap(s) as too large
-        WriteLog( "Texture \"" + name + "\" has no mipmaps which can fit currently set texture size limits." );
+        WriteLog( "Texture \"" + name + "\" has no mipmaps which can fit currently set texture pixelcount limits." );
         data_state = resource_state::failed;
         return;
     }
@@ -492,7 +536,7 @@ opengl_texture::load_DDS() {
 void
 opengl_texture::load_TEX() {
 
-    std::ifstream file( name, std::ios::binary ); file.unsetf( std::ios::skipws );
+    std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
 
     char head[ 5 ];
     file.read( head, 4 );
@@ -539,7 +583,7 @@ opengl_texture::load_TEX() {
 void
 opengl_texture::load_TGA() {
 
-    std::ifstream file( name, std::ios::binary ); file.unsetf( std::ios::skipws );
+    std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
 
     // Read the header of the TGA, compare it with the known headers for compressed and uncompressed TGAs
     unsigned char tgaheader[ 18 ];
@@ -955,6 +999,12 @@ opengl_texture::create() {
                 data_state = resource_state::none;
             }
         }
+
+        if( type == "make:" ) {
+            // for generated textures send a request to have the actual content of the texture generated
+            make_request();
+        }
+
         is_ready = true;
     }
 
@@ -971,31 +1021,37 @@ opengl_texture::release() {
         // if resource move is enabled we don't keep a cpu side copy after upload
         // so need to re-acquire the data before release
         // TBD, TODO: instead of vram-ram transfer fetch the data 'normally' from the disk using worker thread
-        ::glBindTexture(target, id );
-        GLint datasize {};
-        GLint iscompressed {};
-        ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
-        if( iscompressed == GL_TRUE ) {
-            // texture is compressed on the gpu side
-            // query texture details needed to perform the backup...
-            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
-            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
-            data.resize( datasize );
-            // ...fetch the data...
-            ::glGetCompressedTexImage(target, 0, &data[ 0 ] );
+        if( type == "make:" ) {
+            // auto generated textures only store a stub
+            make_stub();
         }
         else {
-            // for whatever reason texture didn't get compressed during upload
-            // fallback on plain rgba storage...
-            data_format = GL_RGBA;
-            data_type = GL_UNSIGNED_BYTE;
-            data.resize( data_width * data_height * 4 );
-            // ...fetch the data...
-            ::glGetTexImage(target, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
+	        ::glBindTexture(target, id );
+	        GLint datasize {};
+	        GLint iscompressed {};
+	        ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED, &iscompressed );
+	        if( iscompressed == GL_TRUE ) {
+	            // texture is compressed on the gpu side
+	            // query texture details needed to perform the backup...
+	            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_INTERNAL_FORMAT, &data_format );
+	            ::glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &datasize );
+	            data.resize( datasize );
+	            // ...fetch the data...
+	            ::glGetCompressedTexImage(target, 0, &data[ 0 ] );
+	        }
+	        else {
+	            // for whatever reason texture didn't get compressed during upload
+	            // fallback on plain rgba storage...
+	            data_format = GL_RGBA;
+	            data_type = GL_UNSIGNED_BYTE;
+	            data.resize( data_width * data_height * 4 );
+	            // ...fetch the data...
+	            ::glGetTexImage(target, 0, data_format, GL_UNSIGNED_BYTE, &data[ 0 ] );
+	        }
+	        // ...and update texture object state
+	        data_mapcount = 1; // we keep copy of only top mipmap level
+	        data_state = resource_state::good;
         }
-        // ...and update texture object state
-        data_mapcount = 1; // we keep copy of only top mipmap level
-        data_state = resource_state::good;
     }
     // release opengl resources
     ::glDeleteTextures( 1, &id );
@@ -1053,7 +1109,7 @@ opengl_texture::downsize( GLuint const Format ) {
             break;
         }
 
-        WriteLog( "Texture size exceeds specified limits, downsampling data" );
+        WriteLog( "Texture pixelcount exceeds specified limits, downsampling data" );
         // trim potential odd texture sizes
         data_width  -= ( data_width % 2 );
         data_height -= ( data_height % 2 );
@@ -1092,49 +1148,78 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
 
+    std::pair<std::string, std::string> locator; // resource name, resource type
     std::string traits;
-    auto const traitpos = Filename.find( ':' );
-    if( traitpos != std::string::npos ) {
-        // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
-        if( Filename.size() > traitpos + 1 )
-            traits = Filename.substr( traitpos + 1 );
-        Filename.erase( traitpos );
+
+    // discern textures generated by a script
+    // TBD: support file: for file resources?
+    auto const isgenerated { Filename.find( "make:" ) == 0 };
+    // process supplied resource name
+    if( isgenerated ) {
+        // generated resource
+        // scheme:(user@)path?query
+
+        // remove scheme indicator
+        Filename.erase( 0, Filename.find( ':' ) + 1 );
+        // TODO: extract traits specification from the query
+        // clean up slashes
+        erase_leading_slashes( Filename );
     }
+    else {
+        // regular file resource
+        // (filepath/)(#)filename.extension(:traits)
 
-    erase_extension( Filename );
-
-    if( Filename[ 0 ] == '/' ) {
-        // filename can potentially begin with a slash, and we don't need it
-        Filename.erase( 0, 1 );
+        // extract trait specifications
+        auto const traitpos = Filename.rfind( ':' );
+        if( traitpos != std::string::npos ) {
+            // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
+            if( Filename.size() > traitpos + 1 ) {
+                traits = Filename.substr( traitpos + 1 );
+            }
+            Filename.erase( traitpos );
+        }
+        // potentially trim file type indicator since we check for multiple types
+        erase_extension( Filename );
+        // clean up slashes
+        erase_leading_slashes( Filename );
+        // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
+        if( ( Filename[ 0 ] == '#' )
+         || ( Filename.find( "/#" ) != std::string::npos ) ) {
+            traits += '#';
+        }
     }
-
     // try to locate requested texture in the databank
-    auto lookup { find_in_databank( Filename ) };
+    // TBD, TODO: include trait specification in the resource id in the databank?
+    auto const lookup { find_in_databank( Filename ) };
     if( lookup != npos ) {
         return lookup;
     }
-    // if we don't have the texture in the databank, check if it's on disk
-    auto const disklookup { find_on_disk( Filename ) };
-
-    if( true == disklookup.first.empty() ) {
-        // there's nothing matching in the databank nor on the disk, report failure
-        ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
-        return npos;
+    // if the lookup fails...
+    if( isgenerated ) {
+        // TODO: verify presence of the generator script
+        locator.first = Filename;
+        locator.second = "make:";
+    }
+    else {
+        // ...for file resources check if it's on disk
+        locator = find_on_disk( Filename );
+        if( true == locator.first.empty() ) {
+            // there's nothing matching in the databank nor on the disk, report failure
+            ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
+            return npos;
+        }
     }
 
     auto texture = new opengl_texture();
-    texture->name = disklookup.first + disklookup.second;
-    if( Filename.find('#') != std::string::npos ) {
-        // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
-        traits += '#';
-    }
+    texture->name = locator.first;
+    texture->type = locator.second;
     texture->traits = traits;
     texture->components_hint = fh;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
-    m_texturemappings.emplace( disklookup.first, textureindex );
+    m_texturemappings.emplace( locator.first, textureindex );
 
-    WriteLog( "Created texture object for \"" + disklookup.first + disklookup.second + "\"", logtype::texture );
+    WriteLog( "Created texture object for \"" + locator.first + "\"", logtype::texture );
 
     if( true == Loadnow ) {
 

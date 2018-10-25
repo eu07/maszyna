@@ -167,8 +167,10 @@ private:
     float fTexSlope = 0.9f;
 
     glm::dvec3 m_origin;
+    // TODO: store material names as strings, for lossless serialization and export
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
+    std::pair<std::string, int> m_profile1 {}; // profile of geometry chunks textured with texture 1
     using geometryhandle_sequence = std::vector<gfx::geometry_handle>;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
@@ -293,8 +295,13 @@ public:
     double VelocityGet();
     void ConnectionsLog();
     bool DoubleSlip() const;
+    static void fetch_default_profiles();
 
 private:
+// types
+    using profiles_array = std::vector<gfx::vertex_array>;
+    using profiles_map = std::unordered_map<std::string, int>;
+// methods
     // radius() subclass details, calculates node's bounding radius
     float radius_();
     // serialize() subclass details, sends content of the subclass to provided stream
@@ -303,6 +310,12 @@ private:
     void deserialize_( std::istream &Input );
     // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
     void export_as_text_( std::ostream &Output ) const;
+    // locates specified profile in the profile database, potentially loading it from a file
+    static std::pair<std::string, int> fetch_track_rail_profile( std::string const &Profile );
+    // loads content of specified file and converts it into a vertex array
+    static gfx::vertex_array deserialize_profile( std::string const &Profile );
+    // provides direct access to vertex data of specified profile
+    static gfx::vertex_array const & track_rail_profile( int const Profile );
     // returns texture length for specified material
     float texture_length( material_handle const Material );
     // creates profile for a part of current path
@@ -312,6 +325,9 @@ private:
     void create_track_bed_profile( gfx::vertex_array &Output, TTrack const *Previous, TTrack const *Next );
     void create_road_profile( gfx::vertex_array &Output, bool const Forcetransition = false );
     void create_road_side_profile( gfx::vertex_array &Right, gfx::vertex_array &Left, gfx::vertex_array const &Road, bool const Forcetransition = false );
+// members
+    static profiles_array m_profiles; // shared database of path element profiles
+    static profiles_map m_profilesmap;
 };
 
 

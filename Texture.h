@@ -53,6 +53,7 @@ struct opengl_texture {
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
+    std::string type; // type of the texture source file
     std::size_t size{ 0 }; // size of the texture data, in kb
     GLint components_hint = 0; // components that material wants
 
@@ -61,6 +62,8 @@ struct opengl_texture {
 
 private:
 // methods
+    void make_stub();
+    void make_request();
     void load_BMP();
 	void load_PNG();
     void load_DDS();
@@ -72,8 +75,8 @@ private:
     void gles_match_internalformat(GLuint format);
 
 // members
-    bool is_rendertarget; // is used as postfx rendertarget, without loaded data
-	int samples;
+	bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
+	int samples = 1;
 
     std::vector<char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data

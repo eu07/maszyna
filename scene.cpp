@@ -1175,16 +1175,21 @@ basic_region::RadioStop( glm::dvec3 const &Location ) {
 }
 
 std::vector<std::string> switchtrackbedtextures {
+    "rkpd34r190-tpd1",
+    "rkpd34r190-tpd2",
+    "rkpd34r190-tpd-oil2",
     "rozkrz8r150-1pods-new",
     "rozkrz8r150-2pods-new",
     "rozkrz34r150-tpbps-new2",
     "rozkrz34r150-tpd1",
-    "rkpd34r190-tpd1",
-    "rkpd34r190-tpd2",
-    "rkpd34r190-tpd-oil2",
+    "rz-1200-185",
     "zwr41r500",
     "zwrot-tpd-oil1",
-    "zwrot34r300pods-new" };
+    "zwrot34r300pods",
+    "zwrot34r300pods-new",
+    "zwrot34r300pods-old",
+    "zwrotl65r1200pods-new",
+    "zwrotp65r1200pods-new" };
 
 void
 basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Transform ) {

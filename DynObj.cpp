@@ -3946,6 +3946,13 @@ void TDynamicObject::RenderSounds() {
 
     if( Global.iPause != 0 ) { return; }
 
+    if( ( m_startjoltplayed )
+     && ( ( std::abs( MoverParameters->AccSVBased ) < 0.01 )
+       || ( GetVelocity() < 0.01 ) ) ) {
+        // if the vehicle comes to a stop set the movement jolt to play when it starts moving again
+        m_startjoltplayed = false;
+    }
+
     double const dt{ Timer::GetDeltaRenderTime() };
     double volume{ 0.0 };
     double frequency{ 1.0 };
@@ -4116,6 +4123,10 @@ void TDynamicObject::RenderSounds() {
         volume = rsPisk.m_amplitudeoffset + interpolate( -1.0, 1.0, brakeforceratio ) * rsPisk.m_amplitudefactor;
         if( volume > 0.075 ) {
             rsPisk
+                .pitch(
+                    true == rsPisk.is_combined() ?
+                        MoverParameters->Vel * 0.01f :
+                        rsPisk.m_frequencyoffset + rsPisk.m_frequencyfactor * 1.f )
                 .gain( volume )
                 .play( sound_flags::exclusive | sound_flags::looping );
         }
@@ -4145,19 +4156,22 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX sygnal odjazdu
     if( MoverParameters->DoorClosureWarning ) {
-        if( ( MoverParameters->DepartureSignal )
+        for( auto &door : m_doorsounds ) {
+            // TBD, TODO: per-location door state triggers?
+            if( ( MoverParameters->DepartureSignal )
 /*
-         || ( ( MoverParameters->DoorCloseCtrl = control::autonomous )
-           && ( ( ( false == MoverParameters->DoorLeftOpened )  && ( dDoorMoveL > 0.0 ) )
-             || ( ( false == MoverParameters->DoorRightOpened ) && ( dDoorMoveR > 0.0 ) ) ) )
+             || ( ( MoverParameters->DoorCloseCtrl = control::autonomous )
+               && ( ( ( false == MoverParameters->DoorLeftOpened )  && ( dDoorMoveL > 0.0 ) )
+                 || ( ( false == MoverParameters->DoorRightOpened ) && ( dDoorMoveR > 0.0 ) ) ) )
 */
-             ) {
-            // for the autonomous doors play the warning automatically whenever a door is closing
-            // MC: pod warunkiem ze jest zdefiniowane w chk
-            sDepartureSignal.play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            sDepartureSignal.stop();
+                 ) {
+                // for the autonomous doors play the warning automatically whenever a door is closing
+                // MC: pod warunkiem ze jest zdefiniowane w chk
+                door.sDepartureSignal.play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                door.sDepartureSignal.stop();
+            }
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
@@ -4399,6 +4413,17 @@ void TDynamicObject::RenderSounds() {
     }
     else {
         rscurve.stop();
+    }
+
+    // movement start jolt
+    if( false == m_startjoltplayed ) {
+        auto const velocity { GetVelocity() };
+        if( ( MoverParameters->V > 0.0 ? ( MoverParameters->AccSVBased > 0.1 ) : ( MoverParameters->AccSVBased < 0.1 ) )
+         && ( velocity >  1.0 )
+         && ( velocity < 15.0 ) ) {
+            m_startjolt.play( sound_flags::exclusive );
+            m_startjoltplayed = true;
+        }
     }
 
     // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
@@ -5413,12 +5438,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sHorn3.owner( this );
                 }
 
-				else if( token == "departuresignal:" ) {
-					// pliki z sygnalem odjazdu
-                    sDepartureSignal.deserialize( parser, sound_type::multipart, sound_parameters::range );
-                    sDepartureSignal.owner( this );
-                }
-
 				else if( token == "pantographup:" ) {
 					// pliki dzwiekow pantografow
                     sound_source pantographup { sound_placement::external };
@@ -5468,6 +5487,19 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					// pliki z przetwornica
                     sSmallCompressor.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sSmallCompressor.owner( this );
+                }
+
+                else if( token == "departuresignal:" ) {
+					// pliki z sygnalem odjazdu
+                    sound_source soundtemplate { sound_placement::general, 25.f };
+                    soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.lock.offset() };
+                        door.sDepartureSignal = soundtemplate;
+                        door.sDepartureSignal.offset( dooroffset );
+                    }
                 }
 
 				else if( token == "dooropen:" ) {
@@ -5619,6 +5651,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                          || ( sides == "left" ) ) {
                             // left...
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5631,6 +5664,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                          || ( sides == "right" ) ) {
                             // ...and right
                             auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5815,6 +5849,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     for( auto &couplersounds : m_couplersounds ) {
                         couplersounds.dsbBufferClamp_loud = bufferclash;
                     }
+                }
+                else if( token == "startjolt:" ) {
+                    // movement start jolt
+                    m_startjolt.deserialize( parser, sound_type::single );
+                    m_startjolt.owner( this );
                 }
 
             } while( token != "" );
