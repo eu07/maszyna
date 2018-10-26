@@ -106,13 +106,13 @@ TIsolated * TIsolated::Find(std::string const &n)
     return pRoot;
 };
 
-bool
+void
 TIsolated::AssignEvents() {
 
     evBusy = simulation::Events.FindEvent( asName + ":busy" );
     evFree = simulation::Events.FindEvent( asName + ":free" );
-
-    return ( evBusy != nullptr ) && ( evFree != nullptr );
+    evInc = simulation::Events.FindEvent( asName + ":inc" );
+    evDec = simulation::Events.FindEvent( asName + ":dec" );
 }
 
 void TIsolated::Modify(int i, TDynamicObject *o)
@@ -144,6 +144,12 @@ void TIsolated::Modify(int i, TDynamicObject *o)
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value_2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
     }
+
+	if (i > 0 && evInc)
+		simulation::Events.AddToQuery(evInc, o);
+	if (i < 0 && evDec)
+		simulation::Events.AddToQuery(evDec, o);
+
     // pass the event to the parent
     if( pParent != nullptr ) {
         pParent->Modify( i, o );

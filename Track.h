@@ -105,7 +105,7 @@ public:
     // methods
     static void DeleteAll();
     static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
-    bool AssignEvents();
+    void AssignEvents();
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
     inline
     bool
@@ -131,6 +131,8 @@ public:
     std::string asName; // nazwa obiektu, baza do nazw eventów
     basic_event *evBusy { nullptr }; // zdarzenie wyzwalane po zajęciu grupy
     basic_event *evFree { nullptr }; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
+	basic_event *evInc { nullptr }; // wyzwalane po wjeździe na grupę
+	basic_event *evDec { nullptr }; // wyzwalane po zjazdu z grupy
     TMemCell *pMemCell { nullptr }; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
 private:
     // members
