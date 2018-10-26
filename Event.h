@@ -530,6 +530,7 @@ private:
     void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
     void run_() override;
     void export_as_text_( std::ostream &Output ) const override;
+    bool is_instant() const override;
 
     lua::eventhandler_t lua_func = nullptr;
 };
