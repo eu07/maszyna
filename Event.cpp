@@ -1855,6 +1855,10 @@ lua_event::export_as_text_( std::ostream &Output ) const {
     // nothing to do here
 }
 
+bool lua_event::is_instant() const {
+	return m_delay == 0.0 && m_delayrandom == 0.0;
+}
+
 // prepares event for use
 void
 message_event::init() {
