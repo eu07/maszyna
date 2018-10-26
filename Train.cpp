@@ -898,14 +898,13 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 }
 
 void TTrain::OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command ) {
-
     auto const targetposition { std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
-    while( ( targetposition < Train->mvControlled->ScndCtrlPos )
+    while( ( targetposition < Train->mvControlled->GetVirtualScndPos() )
         && ( true == Train->mvControlled->DecScndCtrl( 1 ) ) ) {
         // all work is done in the header
         ;
     }
-    while( ( targetposition > Train->mvControlled->ScndCtrlPos )
+    while( ( targetposition > Train->mvControlled->GetVirtualScndPos() )
         && ( true == Train->mvControlled->IncScndCtrl( 1 ) ) ) {
         // all work is done in the header
         ;
