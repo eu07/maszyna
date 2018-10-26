@@ -195,7 +195,7 @@ extern "C"
             return;
         TLocation loc;
         if (dyn->Mechanik)
-            dyn->Mechanik->PutCommand(std::string(str), num1, num2, nullptr);
+            dyn->Mechanik->PutCommand(std::string(str), num1, num2, loc);
         else
             dyn->MoverParameters->PutCommand(std::string(str), num1, num2, loc);
     }
