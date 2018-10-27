@@ -4709,13 +4709,10 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
 
 // cab movement update, fixed step part
 void TTrain::UpdateMechPosition(double dt)
-{ // Ra: mechanik powinien być
-    // telepany niezależnie od pozycji
-    // pojazdu
+{ // Ra: mechanik powinien być telepany niezależnie od pozycji pojazdu
     // Ra: trzeba zrobić model bujania głową i wczepić go do pojazdu
 
-    // DynamicObject->vFront=DynamicObject->GetDirection(); //to jest już
-    // policzone
+    // DynamicObject->vFront=DynamicObject->GetDirection(); //to jest już policzone
 
     // Ra: tu by się przydało uwzględnić rozkład sił:
     // - na postoju horyzont prosto, kabina skosem
@@ -4792,7 +4789,6 @@ void TTrain::UpdateMechPosition(double dt)
         shake *= 0.85;
 
         vMechVelocity -= ( shake + vMechVelocity * 100 ) * ( fMechSpringX + fMechSpringY + fMechSpringZ ) / ( 200 );
-        //        shake *= 0.95 * dt; // shake damping
 
         // McZapkie:
         pMechShake += vMechVelocity * dt;
@@ -4804,8 +4800,6 @@ void TTrain::UpdateMechPosition(double dt)
         pMechOffset += vMechMovement * dt;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pMechPosition = pMechOffset + Math3D::vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
-
-//        pMechShake = interpolate( pMechShake, Math3D::vector3(), clamp( dt, 0.0, 1.0 ) );
     }
     else { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
@@ -5911,11 +5905,12 @@ bool TTrain::Update( double const Deltatime )
 
     // calculate current level of interior illumination
     // TODO: organize it along with rest of train update in a more sensible arrangement
+    auto interiorlightlevel { 0.f };
     switch( iCabLightFlag ) // Ra: uzeleżnic od napięcia w obwodzie sterowania
     { // hunter-091012: uzaleznienie jasnosci od przetwornicy
         case 0: {
             //światło wewnętrzne zgaszone
-            DynamicObject->InteriorLightLevel = 0.0f;
+            interiorlightlevel = 0.0f;
             break;
         }
         case 1: {
@@ -5925,7 +5920,7 @@ bool TTrain::Update( double const Deltatime )
              || ( ( ( mvOccupied->Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::front ].Connected->ConverterFlag )
              || ( ( ( mvOccupied->Couplers[ side::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::rear  ].Connected->ConverterFlag ) ) };
 
-            DynamicObject->InteriorLightLevel = (
+            interiorlightlevel = (
                 converteractive ?
                     0.4f :
                     0.2f );
@@ -5938,13 +5933,14 @@ bool TTrain::Update( double const Deltatime )
              || ( ( ( mvOccupied->Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::front ].Connected->ConverterFlag )
              || ( ( ( mvOccupied->Couplers[ side::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ side::rear  ].Connected->ConverterFlag ) ) };
 
-            DynamicObject->InteriorLightLevel = (
+            interiorlightlevel = (
                 converteractive ?
                     1.0f :
                     0.5f );
             break;
         }
     }
+    DynamicObject->set_cab_lights( interiorlightlevel );
 
     // anti slip system activation, maintained while the control button is down
     if( mvOccupied->BrakeSystem != TBrakeSystem::ElectroPneumatic ) {

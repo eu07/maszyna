@@ -647,6 +647,22 @@ TDynamicObject::toggle_lights() {
     }
 }
 
+void
+TDynamicObject::set_cab_lights( float const Level ) {
+
+    if( Level == InteriorLightLevel ) { return; }
+
+    InteriorLightLevel = Level;
+
+    for( auto &section : Sections ) {
+        // cab compartments are placed at the beginning of the list, so we can bail out as soon as we find different compartment type
+        auto const sectionname { section.compartment->pName };
+        if( sectionname.find( "cab" ) != 0 ) { return; }
+
+        section.light_level = Level;
+    }
+}
+
 // ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 { // ABu290105: pozbierane i uporzadkowane powtarzajace

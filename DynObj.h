@@ -612,8 +612,9 @@ private:
     void CouplersDettach(double MinDist, int MyScanDir);
     void RadioStop();
 	void Damage(char flag);
-	void RaLightsSet(int head, int rear);
+    void RaLightsSet(int head, int rear);
     int LightList( side const Side ) const { return iInventory[ Side ]; }
+    void set_cab_lights( float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie
