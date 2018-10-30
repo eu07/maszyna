@@ -13,33 +13,26 @@ http://mozilla.org/MPL/2.0/.
 #include "command.h"
 
 //---------------------------------------------------------------------------
-enum class TCameraType
-{ // tryby pracy kamery
-    tp_Follow, // jazda z pojazdem
-    tp_Free, // stoi na scenerii
-    tp_Satelite // widok z góry (nie używany)
-};
 
 class TCamera {
 
   public: // McZapkie: potrzebuje do kiwania na boki
-    void Init( Math3D::vector3 const &Location, Math3D::vector3 const &Angle, TCameraType const Type );
+    void Init( Math3D::vector3 const &Location, Math3D::vector3 const &Angle, TDynamicObject *Owner );
     void Reset();
     void OnCursorMove(double const x, double const y);
     bool OnCommand( command_data const &Command );
     void Update();
-    Math3D::vector3 GetDirection();
     bool SetMatrix(glm::dmat4 &Matrix);
     void RaLook();
 
-    TCameraType Type;
-    double Pitch;
-    double Yaw; // w środku: 0=do przodu; na zewnątrz: 0=na południe
-    double Roll;
+    Math3D::vector3 Angle; // pitch, yaw, roll
     Math3D::vector3 Pos; // współrzędne obserwatora
     Math3D::vector3 LookAt; // współrzędne punktu, na który ma patrzeć
     Math3D::vector3 vUp;
     Math3D::vector3 Velocity;
+
+    TDynamicObject *m_owner { nullptr }; // TODO: change to const when shake calculations are part of vehicles update
+    Math3D::vector3 m_owneroffset {};
 
 private:
     glm::dvec3 m_moverate;

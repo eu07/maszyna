@@ -365,8 +365,6 @@ TTrain::TTrain() {
     fPPress = fNPress = 0;
 
     // asMessage="";
-    pMechShake = Math3D::vector3(0, 0, 0);
-    vMechMovement = Math3D::vector3(0, 0, 0);
     pMechOffset = Math3D::vector3(0, 0, 0);
     fBlinkTimer = 0;
     fHaslerTimer = 0;
@@ -415,15 +413,6 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
     DynamicObject->MechInside = true;
 
-    MechSpring.Init(125.0);
-    vMechVelocity = Math3D::vector3(0, 0, 0);
-    pMechOffset = Math3D::vector3( 0, 0, 0 );
-    fMechSpringX = 0.2;
-    fMechSpringY = 0.2;
-    fMechSpringZ = 0.1;
-    fMechMaxSpring = 0.15;
-    fMechRoll = 0.05;
-    fMechPitch = 0.1;
     fMainRelayTimer = 0; // Hunter, do k...y nędzy, ustawiaj wartości początkowe zmiennych!
 
 	if( false == LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
@@ -4708,138 +4697,25 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
 }
 
 // cab movement update, fixed step part
-void TTrain::UpdateMechPosition(double dt)
-{ // Ra: mechanik powinien być telepany niezależnie od pozycji pojazdu
-    // Ra: trzeba zrobić model bujania głową i wczepić go do pojazdu
+void TTrain::UpdateCab() {
 
-    // DynamicObject->vFront=DynamicObject->GetDirection(); //to jest już policzone
+    // Ra: przesiadka, jeśli AI zmieniło kabinę (a człon?)...
+    if( ( DynamicObject->Mechanik ) // może nie być?
+     && ( DynamicObject->Mechanik->AIControllFlag ) ) { 
+        
+        if( iCabn != ( // numer kabiny (-1: kabina B)
+                DynamicObject->MoverParameters->ActiveCab == -1 ?
+                    2 :
+                    DynamicObject->MoverParameters->ActiveCab ) ) {
 
-    // Ra: tu by się przydało uwzględnić rozkład sił:
-    // - na postoju horyzont prosto, kabina skosem
-    // - przy szybkiej jeździe kabina prosto, horyzont pochylony
-
-    Math3D::vector3 shake;
-    // McZapkie: najpierw policzę pozycję w/m kabiny
-
-    // ABu: rzucamy kabina tylko przy duzym FPS!
-    // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
-    // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    double const iVel = std::min( DynamicObject->GetVelocity(), 150.0 );
-
-    if( ( false == Global.iSlowMotion ) // musi być pełna prędkość
-     && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
-    {
-        Math3D::vector3 shakevector;
-        if( ( mvOccupied->EngineType == TEngineType::DieselElectric )
-         || ( mvOccupied->EngineType == TEngineType::DieselEngine ) ) {
-            if( std::abs( mvOccupied->enrot ) > 0.0 ) {
-                // engine vibration
-                shakevector.x +=
-                    ( std::sin( mvOccupied->eAngle * 4.0 ) * dt * EngineShake.scale )
-                    // fade in with rpm above threshold
-                    * clamp(
-                        ( mvOccupied->enrot - EngineShake.fadein_offset ) * EngineShake.fadein_factor,
-                        0.0, 1.0 )
-                    // fade out with rpm above threshold
-                    * interpolate(
-                        1.0, 0.0,
-                        clamp(
-                            ( mvOccupied->enrot - EngineShake.fadeout_offset ) * EngineShake.fadeout_factor,
-                            0.0, 1.0 ) );
-            }
+            InitializeCab(
+                DynamicObject->MoverParameters->ActiveCab,
+                DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" );
         }
-
-        if( ( HuntingShake.fadein_begin > 0.f )
-         && ( true == mvOccupied->TruckHunting ) ) {
-            // hunting oscillation
-            HuntingAngle = clamp_circular( HuntingAngle + 4.0 * HuntingShake.frequency * dt * mvOccupied->Vel, 360.0 );
-            auto const huntingamount =
-                interpolate(
-                    0.0, 1.0,
-                    clamp(
-                        ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
-                        0.0, 1.0 ) );
-            shakevector.x +=
-                ( std::sin( glm::radians( HuntingAngle ) ) * dt * HuntingShake.scale )
-                * huntingamount;
-            IsHunting = ( huntingamount > 0.025 );
-        }
-
-        if( iVel > 0.5 ) {
-            // acceleration-driven base shake
-            shakevector += Math3D::vector3(
-                -mvOccupied->AccN * dt * 5.0, // highlight side sway
-                -mvOccupied->AccVert * dt,
-                -mvOccupied->AccSVBased * dt * 1.25 ); // accent acceleration/deceleration
-        }
-
-        shake += 1.25 * MechSpring.ComputateForces( shakevector, pMechShake );
-
-        if( Random( iVel ) > 25.0 ) {
-            // extra shake at increased velocity
-            shake += MechSpring.ComputateForces(
-                Math3D::vector3(
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
-                * 1.25,
-                pMechShake );
-            //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
-        }
-        shake *= 0.85;
-
-        vMechVelocity -= ( shake + vMechVelocity * 100 ) * ( fMechSpringX + fMechSpringY + fMechSpringZ ) / ( 200 );
-
-        // McZapkie:
-        pMechShake += vMechVelocity * dt;
-        if( ( pMechShake.y >  fMechMaxSpring )
-         || ( pMechShake.y < -fMechMaxSpring ) ) {
-            vMechVelocity.y = -vMechVelocity.y;
-        }
-        // Ra 2015-01: dotychczasowe rzucanie
-        pMechOffset += vMechMovement * dt;
-        // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
-        pMechPosition = pMechOffset + Math3D::vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
     }
-    else { // hamowanie rzucania przy spadku FPS
-        pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
-        pMechOffset += vMechMovement * dt;
-        vMechVelocity.y = 0.5 * vMechVelocity.y;
-        pMechPosition = pMechOffset + Math3D::vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
-    }
-    // numer kabiny (-1: kabina B)
-    if( DynamicObject->Mechanik ) // może nie być?
-        if( DynamicObject->Mechanik->AIControllFlag ) // jeśli prowadzi AI
-        { // Ra: przesiadka, jeśli AI zmieniło kabinę (a człon?)...
-            if( iCabn != ( DynamicObject->MoverParameters->ActiveCab == -1 ?
-                2 :
-                DynamicObject->MoverParameters->ActiveCab ) )
-                InitializeCab( DynamicObject->MoverParameters->ActiveCab,
-                DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
-                ".mmd" );
-        }
     iCabn = ( DynamicObject->MoverParameters->ActiveCab == -1 ?
         2 :
         DynamicObject->MoverParameters->ActiveCab );
-    if( !DebugModeFlag ) { // sprawdzaj więzy //Ra: nie tu!
-
-        pMechPosition.x = clamp( pMechPosition.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
-        pMechPosition.y = clamp( pMechPosition.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
-        pMechPosition.z = clamp( pMechPosition.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
-
-        pMechOffset.x = clamp( pMechOffset.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x );
-        pMechOffset.y = clamp( pMechOffset.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 );
-        pMechOffset.z = clamp( pMechOffset.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z );
-    }
-};
-
-// returns position of the mechanic in the scene coordinates
-Math3D::vector3
-TTrain::GetWorldMechPosition() {
-
-    auto position = DynamicObject->mMatrix * pMechPosition; // położenie względem środka pojazdu w układzie scenerii
-    position += DynamicObject->GetPosition();
-    return position;
 }
 
 bool TTrain::Update( double const Deltatime )
@@ -4920,17 +4796,7 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 
-    // update driver's position
-    {
-        auto Vec = Global.pCamera.Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
-        Vec.y = -Vec.y;
-        if( mvOccupied->ActiveCab < 0 ) {
-            Vec *= -1.0f;
-            Vec.y = -Vec.y;
-        }
-        Vec.RotateY( Global.pCamera.Yaw );
-        vMechMovement = Vec;
-    }
+    UpdateCab();
 
     if (DynamicObject->mdKabina)
     { // Ra: TODO: odczyty klawiatury/pulpitu nie powinny być uzależnione od istnienia modelu kabiny
@@ -6169,7 +6035,7 @@ TTrain::update_sounds( double const Deltatime ) {
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
      && ( DynamicObject->GetVelocity() > 0.5 )
-     && ( IsHunting ) ) {
+     && ( DynamicObject->IsHunting ) ) {
 
         update_sounds_runningnoise( rsHuntingNoise );
         // modify calculated sound volume by hunting amount
@@ -6177,7 +6043,7 @@ TTrain::update_sounds( double const Deltatime ) {
             interpolate(
                 0.0, 1.0,
                 clamp(
-                ( mvOccupied->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
+                ( mvOccupied->Vel - DynamicObject->HuntingShake.fadein_begin ) / ( DynamicObject->HuntingShake.fadein_end - DynamicObject->HuntingShake.fadein_begin ),
                     0.0, 1.0 ) );
 
         rsHuntingNoise.gain( rsHuntingNoise.gain() * huntingamount );
@@ -6489,44 +6355,6 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
-            else if (token == "mechspring:")
-            {
-                // parametry bujania kamery:
-                double ks, kd;
-                parser.getTokens(2, false);
-                parser
-                    >> ks
-                    >> kd;
-                MechSpring.Init(ks, kd);
-                parser.getTokens(6, false);
-                parser
-                    >> fMechSpringX
-                    >> fMechSpringY
-                    >> fMechSpringZ
-                    >> fMechMaxSpring
-                    >> fMechRoll
-                    >> fMechPitch;
-            }
-            else if( token == "enginespring:" ) {
-                parser.getTokens( 5, false );
-                parser
-                    >> EngineShake.scale
-                    >> EngineShake.fadein_offset
-                    >> EngineShake.fadein_factor
-                    >> EngineShake.fadeout_offset
-                    >> EngineShake.fadeout_factor;
-                // offsets values are provided as rpm for convenience
-                EngineShake.fadein_offset /= 60.f;
-                EngineShake.fadeout_offset /= 60.f;
-            }
-            else if( token == "huntingspring:" ) {
-                parser.getTokens( 4, false );
-                parser
-                    >> HuntingShake.scale
-                    >> HuntingShake.frequency
-                    >> HuntingShake.fadein_begin
-                    >> HuntingShake.fadein_end;
-            }
 
         } while (token != "");
     }
@@ -6571,8 +6399,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     }
     // reset view angles
     pMechViewAngle = { 0.0, 0.0 };
-    Global.pCamera.Pitch = pMechViewAngle.x;
-    Global.pCamera.Yaw = pMechViewAngle.y;
     bool parse = false;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
@@ -6670,9 +6496,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 >> viewangle.y // yaw first, then pitch
                 >> viewangle.x;
             pMechViewAngle = glm::radians( viewangle );
+/*
             Global.pCamera.Pitch = pMechViewAngle.x;
             Global.pCamera.Yaw = pMechViewAngle.y;
-
+*/
             parser.getTokens();
             parser >> token;
         }
@@ -6862,14 +6689,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     return (token == "none");
 }
 
-void TTrain::MechStop()
-{ // likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
-    pMechPosition = Math3D::vector3(0, 0, 0);
-    pMechShake = Math3D::vector3(0, 0, 0);
-    vMechMovement = Math3D::vector3(0, 0, 0);
-    vMechVelocity = Math3D::vector3(0, 0, 0); // tu zostawały jakieś ułamki, powodujące uciekanie kamery
-};
-
 Math3D::vector3 TTrain::MirrorPosition(bool lewe)
 { // zwraca współrzędne widoku kamery z lusterka
     switch (iCabn)
@@ -6946,6 +6765,26 @@ void TTrain::DynamicSet(TDynamicObject *d)
                     (TMoverParameters *)mvOccupied->Couplers[0].Connected; // wskaźnik na drugiego
         }
 };
+
+// checks whether specified point is within boundaries of the active cab
+bool
+TTrain::point_inside( Math3D::vector3 const Point ) const {
+
+    return ( Point.x >= Cabine[ iCabn ].CabPos1.x )       && ( Point.x <= Cabine[ iCabn ].CabPos2.x )
+        && ( Point.y >= Cabine[ iCabn ].CabPos1.y + 0.5 ) && ( Point.y <= Cabine[ iCabn ].CabPos2.y + 1.8 )
+        && ( Point.z >= Cabine[ iCabn ].CabPos1.z )       && ( Point.z <= Cabine[ iCabn ].CabPos2.z );
+}
+
+Math3D::vector3
+TTrain::clamp_inside( Math3D::vector3 const &Point ) const {
+
+    if( DebugModeFlag ) { return Point; }
+
+    return {
+        clamp( Point.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x ),
+        clamp( Point.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 ),
+        clamp( Point.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z ) };
+}
 
 void
 TTrain::radio_message( sound_source *Message, int const Channel ) {

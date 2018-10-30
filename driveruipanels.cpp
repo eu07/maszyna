@@ -852,10 +852,10 @@ debug_panel::update_section_camera( std::vector<text_line> &Output ) {
 
     textline =
         "Azimuth: "
-        + to_string( 180.0 - glm::degrees( camera.Yaw ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+        + to_string( 180.0 - glm::degrees( camera.Angle.y ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
         + " "
         + std::string( "S SEE NEN NWW SW" )
-        .substr( 0 + 2 * floor( fmod( 8 + ( camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+        .substr( 0 + 2 * floor( fmod( 8 + ( camera.Angle.y + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
 
     Output.emplace_back( textline, Global.UITextColor );
 }

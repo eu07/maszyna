@@ -428,4 +428,6 @@ private:
         return iDirection; }
     TDynamicObject const *Vehicle() const {
         return pVehicle; }
+    TDynamicObject *Vehicle( side const Side ) const {
+        return pVehicles[ Side ]; }
 };
