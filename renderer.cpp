@@ -504,6 +504,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+		setup_drawing(false);
 		if (!Global.gfx_skippipeline)
 		{
 			m_msaa_fb->bind();
