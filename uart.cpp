@@ -197,7 +197,7 @@ void uart_input::poll()
             // second controller
             relay.post(
                 user_command::secondcontrollerset,
-                buffer[ 7 ],
+                static_cast<int8_t>(buffer[ 7 ]),
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place

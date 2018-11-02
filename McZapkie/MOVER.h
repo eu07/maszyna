@@ -1289,7 +1289,7 @@ public:
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
-
+	int GetVirtualScndPos();
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 

@@ -2064,6 +2064,16 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
     return OK;
 }
 
+int TMoverParameters::GetVirtualScndPos()
+{
+	if (TrainType == dt_ET42)
+	{
+		if (DynamicBrakeFlag && !ScndCtrlPos)
+			return -1;
+	}
+	return ScndCtrlPos;
+}
+
 // *************************************************************************************************
 // Q: 20160710
 // załączenie rozrządu
