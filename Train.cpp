@@ -657,7 +657,6 @@ void TTrain::set_master_controller( double const Position ) {
 void TTrain::set_train_brake( double const Position ) {
 
     auto const originalbrakeposition { static_cast<int>( 100.0 * mvOccupied->fBrakeCtrlPos ) };
-
     mvOccupied->BrakeLevelSet( Position );
 
     if( static_cast<int>( 100.0 * mvOccupied->fBrakeCtrlPos ) == originalbrakeposition ) { return; }
@@ -1020,14 +1019,14 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
 	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
-		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta );
+		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos + Global.fBrakeStep );
 }
 
 void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
 	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
-		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta );
+		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep );
 
@@ -4970,18 +4969,6 @@ bool TTrain::Update( double const Deltatime )
                         // Ra 15-01: a to nie miało być tylko cofanie?
                         mvOccupied->IncMainCtrl( 1 );
                     }
-                }
-            }
-
-            if( ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
-             && ( mvOccupied->fBrakeCtrlPos < 0.0 )
-             && ( Global.iFeedbackMode < 3 ) ) {
-                // Odskakiwanie hamulce EP
-                if( false == (
-                    ( input::command == user_command::trainbrakeset )
-                 || ( input::command == user_command::trainbrakedecrease )
-                 || ( input::command == user_command::trainbrakecharging ) ) ) {
-                    set_train_brake( 0 );
                 }
             }
         }

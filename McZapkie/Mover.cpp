@@ -7453,6 +7453,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             // guard against malformed config files with leading spaces
             inputline.erase( 0, inputline.find_first_not_of( ' ' ) );
         }
+
+		// trim CR at end (mainly for linux)
+		if (!inputline.empty() && inputline.back() == '\r')
+			inputline.pop_back();
+
 		if( inputline.length() == 0 ) {
 			startBPT = false;
 			continue;
