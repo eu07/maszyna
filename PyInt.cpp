@@ -80,7 +80,15 @@ void render_task::upload()
 
 		delete[] m_image;
 
-		glGenerateMipmap(GL_TEXTURE_2D);
+		if (Global.python_mipmaps)
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
 
 		if (Global.python_threadedupload)
 			glFlush();

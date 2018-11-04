@@ -763,6 +763,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_threadedupload;
 		}
+		else if (token == "python.mipmaps")
+		{
+			Parser.getTokens(1);
+			Parser >> python_mipmaps;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
