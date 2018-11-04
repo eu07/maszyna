@@ -31,51 +31,62 @@ void render_task::run() {
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr )
          && m_target != -1) {
-             ::glBindTexture( GL_TEXTURE_2D, m_target );
+			m_width = PyInt_AsLong( outputwidth );
+			m_height = PyInt_AsLong( outputheight );
 
-            int w = PyInt_AsLong( outputwidth );
-            int h = PyInt_AsLong( outputheight );
             const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
+			if (!Global.gfx_usegles)
+			{
+				int size = m_width * m_height * 3;
+				m_format = GL_SRGB8;
+				m_components = GL_RGB;
+				m_image = new unsigned char[size];
+				memcpy(m_image, image, size);
+			}
+			else
+			{
+				m_format = GL_SRGB8_ALPHA8;
+				m_components = GL_RGBA;
+				m_image = new unsigned char[m_width * m_height * 4];
 
-            // build texture
-            if (!Global.gfx_usegles)
-            {
-                glTexImage2D(
-                    GL_TEXTURE_2D, 0,
-                    GL_SRGB8,
-                    w, h, 0,
-                    GL_RGB, GL_UNSIGNED_BYTE, image);
-            }
-            else
-            {
-                unsigned char *data = new unsigned char[w * h * 4];
-                for (int y = 0; y < h; y++)
-                    for (int x = 0; x < w; x++)
-                    {
-                        data[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
-                        data[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
-                        data[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
-                        data[(y * w + x) * 4 + 3] = 0xFF;
-                    }
-
-                glTexImage2D(
-                    GL_TEXTURE_2D, 0,
-                    GL_SRGB8_ALPHA8,
-                    w, h, 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-                delete[] data;
-            }
-
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glFlush();
+				int w = m_width;
+				int h = m_height;
+				for (int y = 0; y < h; y++)
+					for (int x = 0; x < w; x++)
+					{
+						m_image[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
+						m_image[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
+						m_image[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
+						m_image[(y * w + x) * 4 + 3] = 0xFF;
+					}
+			}
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
         if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
         Py_DECREF( output );
     }
-    // clean up after yourself
-    delete this;
+}
+
+void render_task::upload()
+{
+	if (m_image)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_target);
+		glTexImage2D(
+		    GL_TEXTURE_2D, 0,
+		    m_format,
+		    m_width, m_height, 0,
+		    m_components, GL_UNSIGNED_BYTE, m_image);
+
+		delete[] m_image;
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		if (Global.python_threadedupload)
+			glFlush();
+	}
+
+	delete this;
 }
 
 void render_task::cancel() {
@@ -140,10 +151,12 @@ auto python_taskqueue::init() -> bool {
     // init workers
     for( auto &worker : m_workers ) {
 
-        auto *openglcontextwindow { Application.window( -1 ) };
+		GLFWwindow *openglcontextwindow = nullptr;
+		if (Global.python_threadedupload)
+			openglcontextwindow = Application.window( -1 );
         worker = std::thread(
                     &python_taskqueue::run, this,
-                    openglcontextwindow, std::ref( m_tasks ), std::ref( m_condition ), std::ref( m_exit ) );
+		            openglcontextwindow, std::ref( m_tasks ), std::ref(m_uploadtasks), std::ref( m_condition ), std::ref( m_exit ) );
 
         if( false == worker.joinable() ) { return false; }
     }
@@ -297,9 +310,11 @@ cache_and_return:
     return renderer;
 }
 
-void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit ) {
+void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, uploadtask_sequence &Upload_Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit ) {
 
-    glfwMakeContextCurrent( Context );
+	if (Context)
+		glfwMakeContextCurrent( Context );
+
     // create a state object for this thread
     PyEval_AcquireLock();
     auto *threadstate { PyThreadState_New( m_mainthread->interp ) };
@@ -328,6 +343,13 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
                 {
                     // execute python code
                     task->run();
+					if (Context)
+						task->upload();
+					else
+					{
+						std::lock_guard<std::mutex> lock(Upload_Tasks.mutex);
+						Upload_Tasks.data.push_back(task);
+					}
                     error();
                 }
                 // clear the thread state
@@ -345,6 +367,16 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
     PyThreadState_Clear( threadstate );
     PyThreadState_Delete( threadstate );
     PyEval_ReleaseLock();
+}
+
+void python_taskqueue::update()
+{
+	std::lock_guard<std::mutex> lock(m_uploadtasks.mutex);
+
+	for (auto &task : m_uploadtasks.data)
+		task->upload();
+
+	m_uploadtasks.data.clear();
 }
 
 void
