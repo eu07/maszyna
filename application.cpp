@@ -152,6 +152,10 @@ eu07_application::run() {
 
         if (!m_modes[ m_modestack.top() ]->update())
             break;
+
+		m_taskqueue.update();
+		opengl_texture::reset_unit_cache();
+
         if (!GfxRenderer.Render())
             break;
 

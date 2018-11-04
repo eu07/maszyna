@@ -56,22 +56,25 @@ class render_task {
 
 public:
 // constructors
-    render_task( PyObject *Renderer, PyObject *Input, GLuint Target ) :
-        m_renderer( Renderer ), m_input( Input ), m_target( Target )
+	render_task( PyObject *Renderer, PyObject *Input, GLuint Target ) :
+	    m_renderer( Renderer ), m_input( Input ), m_target( Target )
     {}
 // methods
-    void run();
+	void run();
+	void upload();
     void cancel();
     auto target() const -> texture_handle { return m_target; }
 
 private:
 // members
     PyObject *m_renderer {nullptr};
-    PyObject *m_input { nullptr };
+	PyObject *m_input { nullptr };
     GLuint m_target { 0 };
+
+	unsigned char *m_image = nullptr;
+	int m_width, m_height;
+	GLenum m_components, m_format;
 };
-
-
 
 class python_taskqueue {
 
@@ -99,14 +102,17 @@ public:
     // releases the python gil and swaps the main thread out
     void release_lock();
 
+	void update();
+
 private:
 // types
     static int const WORKERCOUNT { 1 };
     using worker_array = std::array<std::thread, WORKERCOUNT >;
     using rendertask_sequence = threading::lockable< std::deque<render_task *> >;
+	using uploadtask_sequence = threading::lockable< std::deque<render_task *> >;
 // methods
     auto fetch_renderer( std::string const Renderer ) -> PyObject *;
-    void run( GLFWwindow *Context, rendertask_sequence &Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit );
+	void run(GLFWwindow *Context, rendertask_sequence &Tasks, uploadtask_sequence &Upload_Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit );
     void error();
 // members
     PyObject *m_main { nullptr };
@@ -117,6 +123,7 @@ private:
     std::atomic<bool> m_exit { false }; // signals the workers to quit
     std::unordered_map<std::string, PyObject *> m_renderers; // cache of python classes
     rendertask_sequence m_tasks;
+	uploadtask_sequence m_uploadtasks;
     bool m_initialized { false };
 };
 

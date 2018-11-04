@@ -758,6 +758,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_displaywindows;
 		}
+		else if (token == "python.threadedupload")
+		{
+			Parser.getTokens(1);
+			Parser >> python_threadedupload;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

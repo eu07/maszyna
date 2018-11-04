@@ -177,6 +177,7 @@ struct global_settings {
     bool captureonstart = true;
 
 	bool python_displaywindows = false;
+	bool python_threadedupload = true;
 	bool map_enabled = true;
 
     int gfx_framebuffer_width = -1;
