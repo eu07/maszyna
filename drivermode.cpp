@@ -169,12 +169,9 @@ driver_mode::update() {
                 iPause = Global.iPause;
             }
 
-        // fixed step part of the camera update
-        if( ( simulation::Train != nullptr )
-         && ( Camera.Type == TCameraType::tp_Follow )
-         && ( false == DebugCameraFlag ) ) {
-            // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
-            simulation::Train->UpdateMechPosition( m_secondaryupdaterate );
+        // TODO: generic shake update pass for vehicles within view range
+        if( Camera.m_owner != nullptr ) {
+            Camera.m_owner->update_shake( m_secondaryupdaterate );
         }
 
         m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
@@ -253,14 +250,14 @@ driver_mode::update() {
 void
 driver_mode::enter() {
 
-    Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], ( FreeFlyModeFlag ? TCameraType::tp_Free : TCameraType::tp_Follow ) );
-    Global.pCamera = Camera;
-    Global.pDebugCamera = DebugCamera;
-
     TDynamicObject *nPlayerTrain { (
         ( Global.asHumanCtrlVehicle != "ghostview" ) ?
             simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
             nullptr ) };
+
+    Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nPlayerTrain );
+    Global.pCamera = Camera;
+    Global.pDebugCamera = DebugCamera;
 
     if (nPlayerTrain)
     {
@@ -275,14 +272,14 @@ driver_mode::enter() {
 
             Application.set_title( Global.AppName + " (" + simulation::Train->Controlled()->Name + " @ " + Global.SceneryFile + ")" );
 
-            FollowView();
+            CabView();
         }
         else
         {
             Error("Bad init: player train initialization failed");
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
             SafeDelete( simulation::Train );
-            Camera.Type = TCameraType::tp_Free;
+            Camera.m_owner = nullptr;
         }
     }
     else
@@ -292,7 +289,7 @@ driver_mode::enter() {
             Error("Bad scenario: failed to locate player train, \"" + Global.asHumanCtrlVehicle + "\"" );
         }
         FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-        Camera.Type = TCameraType::tp_Free;
+        Camera.m_owner = nullptr;
         DebugCamera = Camera;
     }
 
@@ -395,34 +392,42 @@ driver_mode::update_camera( double const Deltatime ) {
             nullptr );
 
     if( false == Global.ControlPicking ) {
+
         if( m_input.mouse.button( GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
             Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-            if( controlled && LengthSquared3( controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
-                // gdy bliżej niż 1.5km
-                Camera.LookAt = controlled->GetPosition();
+            if( Camera.m_owner == nullptr ) {
+                if( controlled && LengthSquared3( controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
+                    // gdy bliżej niż 1.5km
+                    Camera.LookAt = controlled->GetPosition();
+                }
+                else {
+                    TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
+                    if( !d )
+                        d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
+
+                    if( d && pDynamicNearest ) {
+                        // jeśli jakiś jest znaleziony wcześniej
+                        if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
+                            d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+                        }
+                    }
+                    // poprzedni najbliższy, zostaje poprzedni
+                    if( d )
+                        pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
+                    if( pDynamicNearest )
+                        Camera.LookAt = pDynamicNearest->GetPosition();
+                }
+                Camera.RaLook(); // jednorazowe przestawienie kamery
             }
             else {
-                TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
-                if( !d )
-                    d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
-
-                if( d && pDynamicNearest ) {
-                    // jeśli jakiś jest znaleziony wcześniej
-                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
-                        d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
-                    }
+                if( false == FreeFlyModeFlag ) {
+                // reset cached view angle in the cab
+                    simulation::Train->pMechViewAngle = { Camera.Angle.x, Camera.Angle.y };
                 }
-                // poprzedni najbliższy, zostaje poprzedni
-                if( d )
-                    pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
-                if( pDynamicNearest )
-                    Camera.LookAt = pDynamicNearest->GetPosition();
             }
-            if( FreeFlyModeFlag )
-                Camera.RaLook(); // jednorazowe przestawienie kamery
         }
         else if( m_input.mouse.button( GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
-            FollowView( false ); // bez wyciszania dźwięków
+            CabView();
         }
     }
 
@@ -436,28 +441,49 @@ driver_mode::update_camera( double const Deltatime ) {
         Global.ZoomFactor = std::max( 1.0f, Global.ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
     }
 
-    if( DebugCameraFlag ) { DebugCamera.Update(); }
-    else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
-                                               
-    if( ( false == FreeFlyModeFlag )
-     && ( false == Global.CabWindowOpen )
-     && ( simulation::Train != nullptr ) ) {
-        // cache cab camera view angles in case of view type switch
-        simulation::Train->pMechViewAngle = { Camera.Pitch, Camera.Yaw };
-    }
+    // uwzględnienie ruchu wywołanego klawiszami
+    if( false == DebugCameraFlag ) {
+        // regular camera
+        if( ( false == FreeFlyModeFlag )
+         && ( false == Global.CabWindowOpen ) ) {
+            // if in cab potentially alter camera placement based on changes in train object
+            Camera.m_owneroffset = simulation::Train->pMechOffset;
+            Camera.Angle.x = simulation::Train->pMechViewAngle.x;
+            Camera.Angle.y = simulation::Train->pMechViewAngle.y;
+        }
 
+        Camera.Update();
+
+        if( false == FreeFlyModeFlag ) {
+            // keep the camera within cab boundaries
+            Camera.m_owneroffset = simulation::Train->clamp_inside( Camera.m_owneroffset );
+        }
+
+        if( ( false == FreeFlyModeFlag )
+         && ( false == Global.CabWindowOpen ) ) {
+            // cache cab camera in case of view type switch
+            simulation::Train->pMechViewAngle = { Camera.Angle.x, Camera.Angle.y };
+            simulation::Train->pMechOffset = Camera.m_owneroffset;
+        }
+    }
+    else {
+        // debug camera
+        DebugCamera.Update();
+    }
+                                               
     // reset window state, it'll be set again if applicable in a check below
     Global.CabWindowOpen = false;
 
     if( ( simulation::Train != nullptr )
-     && ( Camera.Type == TCameraType::tp_Follow )
+     && ( Camera.m_owner != nullptr )
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
 /*
         auto tempangle = controlled->VectorFront() * ( controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
 */
-        if( ( true == Global.ctrlState )
+        if( ( false == FreeFlyModeFlag )
+         && ( true == Global.ctrlState )
          && ( ( m_input.keyboard.key( GLFW_KEY_LEFT ) != GLFW_RELEASE )
            || ( m_input.keyboard.key( GLFW_KEY_RIGHT ) != GLFW_RELEASE ) ) ) {
             // jeśli lusterko lewe albo prawe (bez rzucania na razie)
@@ -466,9 +492,11 @@ driver_mode::update_camera( double const Deltatime ) {
             auto const lr { m_input.keyboard.key( GLFW_KEY_LEFT ) != GLFW_RELEASE };
             // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
             Camera.Pos = controlled->GetPosition() + simulation::Train->MirrorPosition( lr ); // pozycja lusterka
-            Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
-            if( simulation::Train->Occupied()->ActiveCab == 0 )
-                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection(); // gdy w korytarzu
+            Camera.Angle.y = 0; // odchylenie na bok od Camera.LookAt
+            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+                // gdy w korytarzu
+                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection();
+            }
             else if( Global.shiftState ) {
                 // patrzenie w bok przez szybę
                 Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * controlled->VectorLeft() * simulation::Train->Occupied()->ActiveCab;
@@ -477,25 +505,47 @@ driver_mode::update_camera( double const Deltatime ) {
                 // ale bez odbicia
                 Camera.LookAt = Camera.Pos - simulation::Train->GetDirection() * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
             }
-            Camera.Roll = std::atan( simulation::Train->pMechShake.x * simulation::Train->fMechRoll ); // hustanie kamery na boki
-            Camera.Pitch = 0.5 * std::atan( simulation::Train->vMechVelocity.z * simulation::Train->fMechPitch ); // hustanie kamery przod tyl
+            auto const shakeangles { simulation::Train->Dynamic()->shake_angles() };
+            Camera.Angle.x = 0.5 * shakeangles.second; // hustanie kamery przod tyl
+            Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+/*
+            Camera.Roll = std::atan( simulation::Train->pMechShake.x * simulation::Train->BaseShake.angle_scale.x ); // hustanie kamery na boki
+            Camera.Pitch = 0.5 * std::atan( simulation::Train->vMechVelocity.z * simulation::Train->BaseShake.angle_scale.z ); // hustanie kamery przod tyl
+*/
             Camera.vUp = controlled->VectorUp();
         }
         else {
             // patrzenie standardowe
-            // potentially restore view angle after returning from external view
-            // TODO: mirror view toggle as separate method
-            Camera.Pitch = simulation::Train->pMechViewAngle.x;
-            Camera.Yaw = simulation::Train->pMechViewAngle.y;
+            if( false == FreeFlyModeFlag ) {
+                // potentially restore view angle after returning from external view
+                // TODO: mirror view toggle as separate method
+                Camera.Angle.x = simulation::Train->pMechViewAngle.x;
+                Camera.Angle.y = simulation::Train->pMechViewAngle.y;
+            }
 
-            Camera.Pos = simulation::Train->GetWorldMechPosition(); // Train.GetPosition1();
+            auto const shakescale { FreeFlyModeFlag ? 5.0 : 1.0 };
+            auto shakencamerapos {
+                    Camera.m_owneroffset
+                    + shakescale * Math3D::vector3(
+                        1.5 * Camera.m_owner->ShakeState.offset.x,
+                        2.0 * Camera.m_owner->ShakeState.offset.y,
+                        1.5 * Camera.m_owner->ShakeState.offset.z ) };
+
+            Camera.Pos = (
+                Camera.m_owner->GetWorldPosition (
+                    FreeFlyModeFlag ?
+                        shakencamerapos : // TODO: vehicle collision box for the external vehicle camera
+                        simulation::Train->clamp_inside( shakencamerapos ) ) );
+
             if( !Global.iPause ) {
                 // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
-                // hustanie kamery na boki
-                Camera.Roll = atan( simulation::Train->vMechVelocity.x * simulation::Train->fMechRoll );
-                // hustanie kamery przod tyl
-                // Ra: tu jest uciekanie kamery w górę!!!
-                Camera.Pitch -= 0.5 * atan( simulation::Train->vMechVelocity.z * simulation::Train->fMechPitch );
+                auto const shakeangles { Camera.m_owner->shake_angles() };
+                Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
+                Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+/*
+                Camera.Roll = std::atan( simulation::Train->vMechVelocity.x * simulation::Train->BaseShake.angle_scale.x ); // hustanie kamery na boki
+                Camera.Pitch -= 0.5 * atan( simulation::Train->vMechVelocity.z * simulation::Train->BaseShake.angle_scale.z ); // hustanie kamery przod tyl
+*/
             }
 /*
             // ABu011104: rzucanie pudlem
@@ -510,10 +560,19 @@ driver_mode::update_camera( double const Deltatime ) {
                 Controlled->ABuSetModelShake( temp );
             // ABu: koniec rzucania
 */
-            if( simulation::Train->Occupied()->ActiveCab == 0 )
-                Camera.LookAt = simulation::Train->GetWorldMechPosition() + simulation::Train->GetDirection() * 5.0; // gdy w korytarzu
-            else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
-                Camera.LookAt = simulation::Train->GetWorldMechPosition() + simulation::Train->GetDirection() * 5.0 * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+                // gdy w korytarzu
+                Camera.LookAt =
+                    Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
+                    + simulation::Train->GetDirection() * 5.0;
+            }
+            else {
+                // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
+                Camera.LookAt =
+                    Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
+                    + simulation::Train->GetDirection() * 5.0
+                    * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+            }
             Camera.vUp = simulation::Train->GetUp();
         }
     }
@@ -588,9 +647,7 @@ driver_mode::OnKeyDown(int cKey) {
                  && ( Global.FreeCameraInit[ i ].z == 0.0 ) ) {
                     // jeśli kamera jest w punkcie zerowym, zapamiętanie współrzędnych i kątów
                     Global.FreeCameraInit[ i ] = Camera.Pos;
-                    Global.FreeCameraInitAngle[ i ].x = Camera.Pitch;
-                    Global.FreeCameraInitAngle[ i ].y = Camera.Yaw;
-                    Global.FreeCameraInitAngle[ i ].z = Camera.Roll;
+                    Global.FreeCameraInitAngle[ i ] = Camera.Angle;
                     // logowanie, żeby można było do scenerii przepisać
                     WriteLog(
                         "camera " + std::to_string( Global.FreeCameraInit[ i ].x ) + " "
@@ -604,7 +661,7 @@ driver_mode::OnKeyDown(int cKey) {
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global.pCameraPosition) jest trochę bez sensu
                     Global.pCamera.Pos = Global.FreeCameraInit[ i ]; // nowa pozycja dla generowania obiektów
-                    Camera.Init( Global.FreeCameraInit[ i ], Global.FreeCameraInitAngle[ i ], TCameraType::tp_Free ); // przestawienie
+                    Camera.Init( Global.FreeCameraInit[ i ], Global.FreeCameraInitAngle[ i ], nullptr ); // przestawienie
                 }
             }
         }
@@ -630,8 +687,9 @@ driver_mode::OnKeyDown(int cKey) {
         }
             
         case GLFW_KEY_F4: {
-
-            InOutKey( !Global.shiftState ); // distant view with Shift, short distance step out otherwise
+            
+            if( Global.shiftState ) { ExternalView(); } // with Shift, cycle through external views 
+            else                    { InOutKey(); } // without, step out of the cab or return to it
             break;
         }
         case GLFW_KEY_F5: {
@@ -820,52 +878,150 @@ driver_mode::DistantView( bool const Near ) {
             + Math3D::vector3( -10.0 * left.x, 1.6, -10.0 * left.z );
     }
 
+    Camera.m_owner = nullptr;
     Camera.LookAt = vehicle->GetPosition();
     Camera.RaLook(); // jednorazowe przestawienie kamery
 }
 
-// ustawienie śledzenia pojazdu
 void
-driver_mode::FollowView(bool wycisz) {
-
-    Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
+driver_mode::ExternalView() {
 
     auto *train { simulation::Train };
+    if( train == nullptr ) { return; }
 
-    if (train != nullptr ) // jest pojazd do prowadzenia?
-    {
-        if (FreeFlyModeFlag)
-        { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
-                // wyłączenie trzęsienia na siłę?
-                train->Dynamic()->ABuSetModelShake( {} );
+    auto *vehicle { train->Dynamic() };
 
-            DistantView(); // przestawienie kamery
+    // disable detailed cab in external view modes
+    vehicle->bDisplayCab = false;
+
+    if( true == m_externalview ) {
+        // we're already in some external view mode, so select next one on the list
+        m_externalviewmode = clamp_circular( ++m_externalviewmode, static_cast<int>( view::count_ ) );
+    }
+
+    FreeFlyModeFlag = true;
+    m_externalview = true;
+
+    Camera.Reset();
+    // configure camera placement for the selected view mode
+    switch( m_externalviewmode ) {
+        case view::consistfront: {
+            // bind camera with the vehicle
+            auto *owner { vehicle->Mechanik->Vehicle( side::front ) };
+
+            Camera.m_owner = owner;
+
+            auto const offsetflip {
+                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+
+            Camera.m_owneroffset = {
+                  1.5 * owner->MoverParameters->Dim.W * offsetflip,
+                  std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
+                - 0.4 * owner->MoverParameters->Dim.L * offsetflip };
+
+            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+
+            auto const shakeangles { owner->shake_angles() };
+            Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
+            Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+
+            break;
         }
-        else {
-            Camera.Pos = train->pMechPosition;
-            // potentially restore cached camera angles
-            Camera.Pitch = train->pMechViewAngle.x;
-            Camera.Yaw = train->pMechViewAngle.y;
+        case view::consistrear: {
+            // bind camera with the vehicle
+            auto *owner { vehicle->Mechanik->Vehicle( side::rear ) };
 
-            Camera.Roll = std::atan(train->pMechShake.x * train->fMechRoll); // hustanie kamery na boki
-            Camera.Pitch -= 0.5 * std::atan(train->vMechVelocity.z * train->fMechPitch); // hustanie kamery przod tyl
+            Camera.m_owner = owner;
 
-            if( train->Occupied()->ActiveCab == 0 ) {
-                Camera.LookAt =
-                      train->pMechPosition
-                    + train->GetDirection() * 5.0;
-            }
-            else {
-                // patrz w strone wlasciwej kabiny
-                Camera.LookAt =
-                      train->pMechPosition
-                    + train->GetDirection() * 5.0 * train->Occupied()->ActiveCab;
-            }
-            train->pMechOffset = train->pMechSittingPosition;
+            auto const offsetflip {
+                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir )
+              * -1 };
+
+            Camera.m_owneroffset = {
+                1.5 * owner->MoverParameters->Dim.W * offsetflip,
+                std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
+                0.2 * owner->MoverParameters->Dim.L * offsetflip };
+
+            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 0.0 : 180.0 ) );
+
+            auto const shakeangles { owner->shake_angles() };
+            Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
+            Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+            break;
+        }
+        case view::bogie: {
+            auto *owner { vehicle->Mechanik->Vehicle( side::front ) };
+
+            Camera.m_owner = owner;
+
+            auto const offsetflip {
+                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+
+            Camera.m_owneroffset = {
+                - 0.65 * owner->MoverParameters->Dim.W * offsetflip,
+                  0.90,
+                  0.15 * owner->MoverParameters->Dim.L * offsetflip };
+
+            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+
+            auto const shakeangles { owner->shake_angles() };
+            Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
+            Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+
+            break;
+        }
+        case view::driveby: {
+            DistantView( false );
+            break;
+        }
+        default: {
+            break;
         }
     }
-    else
-        DistantView();
+}
+
+// ustawienie śledzenia pojazdu
+void
+driver_mode::CabView() {
+
+    // TODO: configure owner and camera placement depending on the view mode
+    if( true == FreeFlyModeFlag ) { return; }
+
+    auto *train { simulation::Train };
+    if( train == nullptr ) { return; }
+
+    m_externalview = false;
+
+    // likwidacja obrotów - patrzy horyzontalnie na południe
+    Camera.Reset(); 
+
+    // bind camera with the vehicle
+    Camera.m_owner = train->Dynamic();
+    // potentially restore cached camera setup
+    Camera.m_owneroffset = train->pMechSittingPosition;
+    Camera.Angle.x = train->pMechViewAngle.x;
+    Camera.Angle.y = train->pMechViewAngle.y;
+
+    auto const shakeangles { Camera.m_owner->shake_angles() };
+    Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
+    Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
+
+    if( train->Occupied()->ActiveCab == 0 ) {
+        Camera.LookAt =
+            Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
+            + Camera.m_owner->VectorFront() * 5.0;
+    }
+    else {
+        // patrz w strone wlasciwej kabiny
+        Camera.LookAt =
+            Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
+            + Camera.m_owner->VectorFront() * 5.0
+            * Camera.m_owner->MoverParameters->ActiveCab;
+    }
+    train->pMechOffset = Camera.m_owneroffset;
 }
 
 void
@@ -922,43 +1078,41 @@ driver_mode::ChangeDynamic() {
     if( false == FreeFlyModeFlag ) {
         vehicle->bDisplayCab = true;
         vehicle->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
-        train->MechStop();
-        FollowView(); // na pozycję mecha
+        CabView(); // na pozycję mecha
     }
     Global.changeDynObj = nullptr;
 }
 
 void
-driver_mode::InOutKey( bool const Near )
+driver_mode::InOutKey()
 { // przełączenie widoku z kabiny na zewnętrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
 
     auto *train { simulation::Train };
 
+    if( train == nullptr ) {
+        FreeFlyModeFlag = true; // nadal poza kabiną
+        return;
+    }
+
+    auto *vehicle { train->Dynamic() };
+
     if (FreeFlyModeFlag) {
         // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
-        if (train) {
-            // cache current cab position so there's no need to set it all over again after each out-in switch
-            train->pMechSittingPosition = train->pMechOffset;
+        // cache current cab position so there's no need to set it all over again after each out-in switch
+        train->pMechSittingPosition = train->pMechOffset;
 
-            train->Dynamic()->bDisplayCab = false;
-            DistantView( Near );
-        }
+        vehicle->bDisplayCab = false;
+        DistantView( true );
+
         DebugCamera = Camera;
     }
-    else
-    { // jazda w kabinie
-        if (train)
-        {
-            train->Dynamic()->bDisplayCab = true;
-            // zerowanie przesunięcia przed powrotem?
-            train->Dynamic()->ABuSetModelShake( { 0, 0, 0 } );
-            train->MechStop();
-            FollowView(); // na pozycję mecha
-            train->UpdateMechPosition( m_secondaryupdaterate );
-        }
-        else
-            FreeFlyModeFlag = true; // nadal poza kabiną
+    else {
+        // jazda w kabinie
+        // zerowanie przesunięcia przed powrotem?
+        vehicle->ABuSetModelShake( { 0, 0, 0 } );
+        vehicle->bDisplayCab = true;
+        CabView(); // na pozycję mecha
     }
     // update window title to reflect the situation
     Application.set_title( Global.AppName + " (" + ( train != nullptr ? train->Occupied()->Name : "" ) + " @ " + Global.SceneryFile + ")" );

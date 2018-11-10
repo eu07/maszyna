@@ -43,7 +43,7 @@ editor_mode::editor_mode() {
 bool
 editor_mode::init() {
 
-    Camera.Init( { 0, 15, 0 }, { glm::radians( -30.0 ), glm::radians( 180.0 ), 0 }, TCameraType::tp_Free );
+    Camera.Init( { 0, 15, 0 }, { glm::radians( -30.0 ), glm::radians( 180.0 ), 0 }, nullptr );
 
     return m_input.init();
 }

@@ -13,7 +13,6 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "Button.h"
 #include "Gauge.h"
-#include "Spring.h"
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
@@ -106,10 +105,8 @@ class TTrain
     inline Math3D::vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline Math3D::vector3 GetUp() { return DynamicObject->VectorUp(); };
     inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
-    void UpdateMechPosition(double dt);
-    Math3D::vector3 GetWorldMechPosition();
+    void UpdateCab();
     bool Update( double const Deltatime );
-    void MechStop();
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
@@ -423,6 +420,7 @@ public: // reszta może by?publiczna
     TGauge ggHornLowButton;
     TGauge ggHornHighButton;
     TGauge ggWhistleButton;
+	TGauge ggHelperButton;
     TGauge ggNextCurrentButton;
 
     std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
@@ -565,40 +563,6 @@ public: // reszta może by?publiczna
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
-/*
-    vector3 pPosition;
-*/
-    Math3D::vector3 pMechOffset; // driverNpos
-    Math3D::vector3 vMechMovement;
-    Math3D::vector3 pMechPosition;
-    Math3D::vector3 pMechShake;
-    Math3D::vector3 vMechVelocity;
-    // McZapkie: do poruszania sie po kabinie
-    // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
-    TCab Cabine[maxcab + 1]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
-    int iCabn;
-    TSpring MechSpring;
-    double fMechSpringX; // McZapkie-250303: parametry bujania
-    double fMechSpringY;
-    double fMechSpringZ;
-    double fMechMaxSpring;
-    double fMechRoll;
-    double fMechPitch;
-    struct engineshake_config {
-        float scale { 2.f };
-        float fadein_offset { 1.5f }; // 90 rpm
-        float fadein_factor { 0.3f };
-        float fadeout_offset { 10.f }; // 600 rpm
-        float fadeout_factor { 0.5f };
-    } EngineShake;
-    struct huntingshake_config {
-        float scale { 1.f };
-        float frequency { 1.f };
-        float fadein_begin { 0.f }; // effect start speed in km/h
-        float fadein_end { 0.f }; // full effect speed in km/h
-    } HuntingShake;
-    float HuntingAngle { 0.f }; // crude approximation of hunting oscillation; current angle of sine wave
-    bool IsHunting { false };
 
     sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
     sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
@@ -631,8 +595,13 @@ public: // reszta może by?publiczna
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 
+    // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
+    TCab Cabine[ maxcab + 1 ]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
+    int iCabn;
+    // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
-    Math3D::vector3 MirrorPosition(bool lewe);
+    Math3D::vector3 MirrorPosition( bool lewe );
+    Math3D::vector3 pMechOffset; // base position of the driver in the cab
     glm::vec2 pMechViewAngle { 0.0, 0.0 }; // camera pitch and yaw values, preserved while in external view
 
 private:
@@ -687,6 +656,9 @@ private:
     inline TMoverParameters *Occupied() { return mvOccupied; };
     inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
+    // checks whether specified point is within boundaries of the active cab
+    bool point_inside( Math3D::vector3 const Point ) const;
+    Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
 
 	float get_tacho();
 	float get_tank_pressure();

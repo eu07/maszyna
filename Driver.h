@@ -255,6 +255,7 @@ private:
     sound_source tsGuardSignal { sound_placement::internal };
     std::array<int, 2> m_lighthints { -1 }; // suggested light patterns
   public:
+	int HelperState = 0; //stan pomocnika maszynisty
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
     double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
     double VelDesired = 0.0; // predkość, z jaką ma jechać, wynikająca z analizy tableki; <=VelSignal
@@ -427,4 +428,6 @@ private:
         return iDirection; }
     TDynamicObject const *Vehicle() const {
         return pVehicle; }
+    TDynamicObject *Vehicle( side const Side ) const {
+        return pVehicles[ Side ]; }
 };

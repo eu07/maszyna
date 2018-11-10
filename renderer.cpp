@@ -1512,7 +1512,10 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glLoadIdentity(); // macierz jedynkowa
         ::glTranslatef( sunposition.x, sunposition.y, sunposition.z ); // początek układu zostaje bez zmian
 
-        float const size = 0.045f;
+        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
+            0.0325f,
+            0.0275f,
+            clamp( Environment->m_sun.getAngle(), 0.f, 90.f ) / 90.f );
         ::glBegin( GL_TRIANGLE_STRIP );
         ::glMultiTexCoord2f( m_diffusetextureunit, 1.f, 1.f ); ::glVertex3f( -size,  size, 0.f );
         ::glMultiTexCoord2f( m_diffusetextureunit, 1.f, 0.f ); ::glVertex3f( -size, -size, 0.f );
@@ -1542,8 +1545,8 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glTranslatef( moonposition.x, moonposition.y, moonposition.z );
 
         float const size = interpolate( // TODO: expose distance/scale factor from the moon object
-            0.0175f,
-            0.015f,
+            0.0160f,
+            0.0135f,
             clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
         // choose the moon appearance variant, based on current moon phase
         // NOTE: implementation specific, 8 variants are laid out in 3x3 arrangement
@@ -2180,19 +2183,21 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             if( Dynamic->mdLowPolyInt ) {
                 // low poly interior
                 if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+/*
                     // enable cab light if needed
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                         // crude way to light the cabin, until we have something more complete in place
                         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
                     }
-
+*/
                     Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-
+/*
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
                         // reset the overall ambient
                         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
                     }
+*/
                 }
             }
             if( Dynamic->mdModel )
@@ -3265,19 +3270,21 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     if( Dynamic->mdLowPolyInt ) {
         // low poly interior
         if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+/*
             // enable cab light if needed
             if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
             }
-
+*/
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-
+/*
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
                 ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
             }
+*/
         }
     }
 
