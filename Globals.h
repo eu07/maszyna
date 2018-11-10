@@ -176,6 +176,7 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 
+	bool python_mipmaps = true;
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;
 	bool map_enabled = true;

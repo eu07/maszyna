@@ -47,7 +47,7 @@ void render_task::run() {
 			{
 				m_format = GL_SRGB8_ALPHA8;
 				m_components = GL_RGBA;
-				m_image = new unsigned char[m_width * m_width * 4];
+				m_image = new unsigned char[m_width * m_height * 4];
 
 				int w = m_width;
 				int h = m_height;
@@ -80,7 +80,15 @@ void render_task::upload()
 
 		delete[] m_image;
 
-		glGenerateMipmap(GL_TEXTURE_2D);
+		if (Global.python_mipmaps)
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
 
 		if (Global.python_threadedupload)
 			glFlush();
