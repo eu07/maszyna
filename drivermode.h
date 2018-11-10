@@ -52,6 +52,14 @@ public:
 
 private:
 // types
+    enum view {
+        consistfront,
+        consistrear,
+        bogie,
+        driveby,
+        count_
+    };
+
     struct drivermode_input {
 
         gamepad_input gamepad;
@@ -73,8 +81,9 @@ private:
     // handles vehicle change flag
     void OnKeyDown( int cKey );
     void ChangeDynamic();
-    void InOutKey( bool const Near = true );
-    void FollowView( bool wycisz = true );
+    void InOutKey();
+    void CabView();
+    void ExternalView();
     void DistantView( bool const Near = false );
     void set_picking( bool const Picking );
 
@@ -83,6 +92,8 @@ private:
     std::array<basic_event *, 10> KeyEvents { nullptr }; // eventy wyzwalane z klawiaury
     TCamera Camera;
     TCamera DebugCamera;
+    int m_externalviewmode { view::consistfront }; // selected external view mode
+    bool m_externalview { false };
     TDynamicObject *pDynamicNearest { nullptr }; // vehicle nearest to the active camera. TODO: move to camera
     double fTime50Hz { 0.0 }; // bufor czasu dla komunikacji z PoKeys
     double const m_primaryupdaterate { 1.0 / 100.0 };

@@ -646,6 +646,22 @@ TDynamicObject::toggle_lights() {
     }
 }
 
+void
+TDynamicObject::set_cab_lights( float const Level ) {
+
+    if( Level == InteriorLightLevel ) { return; }
+
+    InteriorLightLevel = Level;
+
+    for( auto &section : Sections ) {
+        // cab compartments are placed at the beginning of the list, so we can bail out as soon as we find different compartment type
+        auto const sectionname { section.compartment->pName };
+        if( sectionname.find( "cab" ) != 0 ) { return; }
+
+        section.light_level = Level;
+    }
+}
+
 // ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 { // ABu290105: pozbierane i uporzadkowane powtarzajace
@@ -2090,6 +2106,10 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
 
     create_controller( DriverType, !TrainName.empty() );
+
+    ShakeSpring.Init( 125.0 );
+    BaseShake = baseshake_config {};
+    ShakeState = shake_state {};
 
     // McZapkie-250202
 /*
@@ -4401,7 +4421,8 @@ void TDynamicObject::RenderSounds() {
                 0.0, 1.0,
                 clamp(
                     MoverParameters->Vel / 40.0,
-                    0.0, 1.0 ) );
+                    0.0, 1.0 ) )
+            + ( MyTrack->eType == tt_Switch ? 0.25 : 0.0 );
     }
     else {
         volume = 0;
@@ -5856,6 +5877,46 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_startjolt.owner( this );
                 }
 
+                else if (token == "mechspring:")
+                {
+                    // parametry bujania kamery:
+                    double ks, kd;
+                    parser.getTokens(2, false);
+                    parser
+                        >> ks
+                        >> kd;
+                    ShakeSpring.Init(ks, kd);
+                    parser.getTokens(6, false);
+                    parser
+                        >> BaseShake.jolt_scale.x
+                        >> BaseShake.jolt_scale.y
+                        >> BaseShake.jolt_scale.z
+                        >> BaseShake.jolt_limit
+                        >> BaseShake.angle_scale.x
+                        >> BaseShake.angle_scale.z;
+                }
+                else if( token == "enginespring:" ) {
+                    parser.getTokens( 5, false );
+                    parser
+                        >> EngineShake.scale
+                        >> EngineShake.fadein_offset
+                        >> EngineShake.fadein_factor
+                        >> EngineShake.fadeout_offset
+                        >> EngineShake.fadeout_factor;
+                    // offsets values are provided as rpm for convenience
+                    EngineShake.fadein_offset /= 60.f;
+                    EngineShake.fadeout_offset /= 60.f;
+                }
+                else if( token == "huntingspring:" ) {
+                    parser.getTokens( 4, false );
+                    parser
+                        >> HuntingShake.scale
+                        >> HuntingShake.frequency
+                        >> HuntingShake.fadein_begin
+                        >> HuntingShake.fadein_end;
+                }
+
+
             } while( token != "" );
 
         } // internaldata:
@@ -6470,6 +6531,102 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     return MoverParameters->EnginePowerSource.SourceType;
 }
 
+void
+TDynamicObject::update_shake( double const Timedelta ) {
+    // Ra: mechanik powinien być telepany niezależnie od pozycji pojazdu
+    // Ra: trzeba zrobić model bujania głową i wczepić go do pojazdu
+
+    // Ra: tu by się przydało uwzględnić rozkład sił:
+    // - na postoju horyzont prosto, kabina skosem
+    // - przy szybkiej jeździe kabina prosto, horyzont pochylony
+
+    // McZapkie: najpierw policzę pozycję w/m kabiny
+
+    // ABu: rzucamy kabina tylko przy duzym FPS!
+    // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
+    // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
+    if( false == Global.iSlowMotion ) { // musi być pełna prędkość
+
+        Math3D::vector3 shakevector;
+        if( ( MoverParameters->EngineType == TEngineType::DieselElectric )
+         || ( MoverParameters->EngineType == TEngineType::DieselEngine ) ) {
+            if( std::abs( MoverParameters->enrot ) > 0.0 ) {
+                // engine vibration
+                shakevector.x +=
+                    ( std::sin( MoverParameters->eAngle * 4.0 ) * Timedelta * EngineShake.scale )
+                    // fade in with rpm above threshold
+                    * clamp(
+                        ( MoverParameters->enrot - EngineShake.fadein_offset ) * EngineShake.fadein_factor,
+                        0.0, 1.0 )
+                    // fade out with rpm above threshold
+                    * interpolate(
+                        1.0, 0.0,
+                        clamp(
+                            ( MoverParameters->enrot - EngineShake.fadeout_offset ) * EngineShake.fadeout_factor,
+                            0.0, 1.0 ) );
+            }
+        }
+
+        if( ( HuntingShake.fadein_begin > 0.f )
+         && ( true == MoverParameters->TruckHunting ) ) {
+            // hunting oscillation
+            HuntingAngle = clamp_circular( HuntingAngle + 4.0 * HuntingShake.frequency * Timedelta * MoverParameters->Vel, 360.0 );
+            auto const huntingamount =
+                interpolate(
+                    0.0, 1.0,
+                    clamp(
+                        ( MoverParameters->Vel - HuntingShake.fadein_begin ) / ( HuntingShake.fadein_end - HuntingShake.fadein_begin ),
+                        0.0, 1.0 ) );
+            shakevector.x +=
+                ( std::sin( glm::radians( HuntingAngle ) ) * Timedelta * HuntingShake.scale )
+                * huntingamount;
+            IsHunting = ( huntingamount > 0.025 );
+        }
+
+        auto const iVel { std::min( GetVelocity(), 150.0 ) };
+        if( iVel > 0.5 ) {
+            // acceleration-driven base shake
+            shakevector += Math3D::vector3(
+                -MoverParameters->AccN * Timedelta * 5.0, // highlight side sway
+                -MoverParameters->AccVert * Timedelta,
+                -MoverParameters->AccSVBased * Timedelta * 1.25 ); // accent acceleration/deceleration
+        }
+
+        auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };
+
+        if( Random( iVel ) > 25.0 ) {
+            // extra shake at increased velocity
+            shake += ShakeSpring.ComputateForces(
+                Math3D::vector3(
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.x,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.y,
+                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.z )
+//                * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ) // scale to 75-150% based on track quality
+                * 1.25,
+                ShakeState.offset );
+        }
+        shake *= 0.85;
+
+        ShakeState.velocity -= ( shake + ShakeState.velocity * 100 ) * ( BaseShake.jolt_scale.x + BaseShake.jolt_scale.y + BaseShake.jolt_scale.z ) / ( 200 );
+
+        // McZapkie:
+        ShakeState.offset += ShakeState.velocity * Timedelta;
+        if( std::abs( ShakeState.offset.y ) >  std::abs( BaseShake.jolt_limit ) ) {
+            ShakeState.velocity.y = -ShakeState.velocity.y;
+        }
+    }
+    else { // hamowanie rzucania przy spadku FPS
+        ShakeState.offset -= ShakeState.offset * std::min( Timedelta, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
+    }
+}
+
+std::pair<double, double>
+TDynamicObject::shake_angles() const {
+
+    return {
+        std::atan( ShakeState.velocity.x * BaseShake.angle_scale.x ),
+        std::atan( ShakeState.velocity.z * BaseShake.angle_scale.z ) };
+}
 
 void
 TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {

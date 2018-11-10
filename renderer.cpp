@@ -2092,16 +2092,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			// low poly interior
 			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
 			{
-				// enable cab light if needed
-				glm::vec3 old_ambient = light_ubs.ambient;
-				light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-				light_ubo->update(light_ubs);
-
 				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-
-				// reset the overall ambient
-				light_ubs.ambient = old_ambient;
-				light_ubo->update(light_ubs);
 			}
 		}
 
@@ -3125,16 +3116,7 @@ bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
 		// low poly interior
 		if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
 		{
-			// crude way to light the cabin, until we have something more complete in place
-			glm::vec3 old_ambient = light_ubs.ambient;
-			light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-			light_ubo->update(light_ubs);
-
 			Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-
-			// restore ambient
-			light_ubs.ambient = old_ambient;
-			light_ubo->update(light_ubs);
 		}
 	}
 

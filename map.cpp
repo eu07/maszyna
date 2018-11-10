@@ -110,9 +110,9 @@ void map::render(scene::basic_region *Region)
         {
             float rot;
             if (FreeFlyModeFlag)
-                rot = glm::pi<float>() - Global.pCamera.Yaw;
+                rot = glm::pi<float>() - Global.pCamera.Angle.y;
             else
-                rot = get_vehicle_rotation() - Global.pCamera.Yaw;
+                rot = get_vehicle_rotation() - Global.pCamera.Angle.y;
 
             transform = glm::rotate(transform, rot, glm::vec3(0.0f, 1.0f, 0.0f));
 
