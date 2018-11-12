@@ -319,6 +319,7 @@ drivermouse_input::button( int const Button, int const Action ) {
             else {
                 if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
                     if( m_slider.command() != user_command::none ) {
+                        m_relay.post( m_slider.command(), 0, 0, Action, 0 );
                         m_slider.release();
                     }
                 }

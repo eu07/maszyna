@@ -109,9 +109,12 @@ TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bo
 
 // sets light level (alpha component of illumination color) to specified value
 void
-TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
-
-    f4Emision.a = Level;
+TSubModel::SetLightLevel( glm::vec4 const &Level, bool const Includechildren, bool const Includesiblings ) {
+    /*
+    f4Emision = Level;
+    */
+    f4Diffuse = { Level.r, Level.g, Level.b, f4Diffuse.a };
+    f4Emision.a = Level.a;
     if( true == Includesiblings ) {
         auto sibling { this };
         while( ( sibling = sibling->Next ) != nullptr ) {

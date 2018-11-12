@@ -38,7 +38,7 @@ public:
     void Clear() {
         *this = TGauge(); }
     void Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
-    bool Load(cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, TModel3d *md2 = nullptr, double mul = 1.0);
+    void Load(cParser &Parser, TDynamicObject const *Owner, double const mul = 1.0);
     void UpdateValue( float fNewDesired );
     void UpdateValue( float fNewDesired, sound_source &Fallbacksound );
     void PutValue(float fNewDesired);

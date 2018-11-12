@@ -198,7 +198,7 @@ public:
     // sets visibility level (alpha component) to specified value
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value
-    void SetLightLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
+    void SetLightLevel( glm::vec4 const &Level, bool const Includechildren = false, bool const Includesiblings = false );
 	inline float3 Translation1Get() {
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {

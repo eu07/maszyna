@@ -648,16 +648,14 @@ TDynamicObject::toggle_lights() {
 }
 
 void
-TDynamicObject::set_cab_lights( float const Level ) {
-
-    if( Level == InteriorLightLevel ) { return; }
-
-    InteriorLightLevel = Level;
+TDynamicObject::set_cab_lights( int const Cab, float const Level ) {
 
     for( auto &section : Sections ) {
         // cab compartments are placed at the beginning of the list, so we can bail out as soon as we find different compartment type
         auto const sectionname { section.compartment->pName };
+        if( sectionname.size() < 4 ) { return; }
         if( sectionname.find( "cab" ) != 0 ) { return; }
+        if( sectionname[ 3 ] != Cab + '0' ) { continue; } // match the cab with correct index
 
         section.light_level = Level;
     }
@@ -985,7 +983,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         
-		if( ( Mechanik != nullptr )
+		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
+         && ( Mechanik != nullptr )
          && ( ( Mechanik->GetAction() != TAction::actSleep )
            || ( MoverParameters->Battery ) ) ) {
             // rysowanie figurki mechanika
@@ -1040,10 +1039,19 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // else btHeadSignals23.TurnOff();
     }
     // interior light levels
+    auto sectionlightcolor { glm::vec4( 1.f ) };
     for( auto const &section : Sections ) {
-        section.compartment->SetLightLevel( section.light_level, true );
+        /*
+        sectionlightcolor = glm::vec4( InteriorLight, section.light_level );
+        */
+        sectionlightcolor = glm::vec4(
+            ( ( ( section.light_level == 0.f ) || ( Global.fLuminance > section.compartment->fLight ) ) ?
+                glm::vec3( 240.f / 255.f ) : // TBD: save and restore initial submodel diffuse instead of enforcing one?
+                InteriorLight ), // TODO: per-compartment (type) light color
+            section.light_level );
+        section.compartment->SetLightLevel( sectionlightcolor, true );
         if( section.load != nullptr ) {
-            section.load->SetLightLevel( section.light_level, true );
+            section.load->SetLightLevel( sectionlightcolor, true );
         }
     }
     // load chunks visibility
@@ -1062,7 +1070,17 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             sectionchunk = sectionchunk->NextGet();
         }
     }
-
+    // driver cabs visibility
+    for( int cabidx = 0; cabidx < LowPolyIntCabs.size(); ++cabidx ) {
+        if( LowPolyIntCabs[ cabidx ] == nullptr ) { continue; }
+        LowPolyIntCabs[ cabidx ]->iVisible = (
+            mdKabina == nullptr ? true : // there's no hi-fi cab
+            bDisplayCab == false ? true : // we're in external view
+            simulation::Train == nullptr ? true : // not a player-driven vehicle, implies external view
+            simulation::Train->Dynamic() != this ? true : // not a player-driven vehicle, implies external view
+            JointCabs ? false : // internal view, all cabs share the model so hide them 'all'
+            ( simulation::Train->iCabn != cabidx ) ); // internal view, hide occupied cab and show others
+    }
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
 
@@ -2185,9 +2203,18 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         // check the low poly interior for potential compartments of interest, ie ones which can be individually lit
         // TODO: definition of relevant compartments in the .mmd file
         TSubModel *submodel { nullptr };
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 0 ] = submodel;
+        }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 1 ] = submodel;
+        }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 2 ] = submodel;
+        }
         // passenger car compartments
         std::vector<std::string> nameprefixes = { "corridor", "korytarz", "compartment", "przedzial" };
         for( auto const &nameprefix : nameprefixes ) {
@@ -5899,6 +5926,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         >> HuntingShake.fadein_end;
                 }
 
+                else if( token == "jointcabs:" ) {
+                    parser.getTokens();
+                    parser >> JointCabs;
+                }
 
             } while( token != "" );
 

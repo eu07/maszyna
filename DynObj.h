@@ -197,6 +197,8 @@ public:
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
+    std::array<TSubModel *, 3> LowPolyIntCabs {}; // pointers to low fidelity version of individual driver cabs
+    bool JointCabs{ false }; // flag for vehicles with multiple virtual 'cabs' sharing location and 3d model(s)
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
     float LoadOffset { 0.f };
     glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
@@ -616,7 +618,7 @@ private:
 	void Damage(char flag);
     void RaLightsSet(int head, int rear);
     int LightList( side const Side ) const { return iInventory[ Side ]; }
-    void set_cab_lights( float const Level );
+    void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie

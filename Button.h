@@ -31,8 +31,8 @@ public:
         return ( ( pModelOn != nullptr )
               || ( pModelOff != nullptr ) ); }
     void Update();
-    void Init( std::string const &asName, TModel3d *pModel, bool bNewOn = false );
-    void Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pModel1, TModel3d *pModel2 = nullptr );
+    bool Init( std::string const &asName, TModel3d const *pModel, bool bNewOn = false );
+    void Load( cParser &Parser, TDynamicObject const *Owner );
     void AssignBool(bool const *bValue);
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
