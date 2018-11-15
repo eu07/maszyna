@@ -139,7 +139,7 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
     Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
 
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_key( Key, Action ) ) { return; }
+    if( true == m_userinterface->on_key( Key, Scancode, Action, Mods ) ) { return; }
     // ...if the input is left untouched, pass it on
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 
@@ -222,6 +222,9 @@ editor_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
 void
 editor_mode::on_mouse_button( int const Button, int const Action, int const Mods ) {
 
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_mouse_button( Button, Action, Mods ) ) { return; }
+
     if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
 
         if( Action == GLFW_PRESS ) {
@@ -243,6 +246,15 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
     }
 
     m_input.mouse.button( Button, Action );
+}
+
+void
+editor_mode::on_scroll( double const Xoffset, double const Yoffset ) {
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_scroll( Xoffset, Yoffset ) ) { return; }
+
+    // TBD, TODO: implement scroll wheel handling
 }
 
 void

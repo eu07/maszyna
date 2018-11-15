@@ -24,9 +24,6 @@ public:
 // constructors
     editor_ui();
 // methods
-    // potentially processes provided input key. returns: true if the input was processed, false otherwise
-    bool
-        on_key( int const Key, int const Action ) override;
     // updates state of UI elements
     void
         update() override;

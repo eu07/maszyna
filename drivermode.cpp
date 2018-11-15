@@ -322,7 +322,7 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
     Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
 
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_key( Key, Action ) ) { return; }
+    if( true == m_userinterface->on_key( Key, Scancode, Action, Mods ) ) { return; }
     // ...if the input is left untouched, pass it on
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 
@@ -370,7 +370,7 @@ void
 driver_mode::on_mouse_button( int const Button, int const Action, int const Mods ) {
 
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_mouse_button( Button, Action ) ) { return; }
+    if( true == m_userinterface->on_mouse_button( Button, Action, Mods ) ) { return; }
 
     // give the potential event recipient a shot at it, in the virtual z order
     m_input.mouse.button( Button, Action );
@@ -378,6 +378,9 @@ driver_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
 void
 driver_mode::on_scroll( double const Xoffset, double const Yoffset ) {
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_scroll( Xoffset, Yoffset ) ) { return; }
 
     m_input.mouse.scroll( Xoffset, Yoffset );
 }

@@ -21,4 +21,11 @@ public:
 
     void update( scene::basic_node const *Node );
     void render() override;
+
+private:
+// methods
+    bool render_group();
+
+// members
+    scene::basic_node const *m_node { nullptr }; // scene node bound to the panel
 };

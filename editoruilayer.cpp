@@ -20,13 +20,6 @@ editor_ui::editor_ui() {
     push_back( &m_itempropertiespanel );
 }
 
-// potentially processes provided input key. returns: true if key was processed, false otherwise
-bool
-editor_ui::on_key( int const Key, int const Action ) {
-
-    return false;
-}
-
 // updates state of UI elements
 void
 editor_ui::update() {

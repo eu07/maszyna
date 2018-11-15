@@ -137,21 +137,37 @@ ui_layer::shutdown() {
 }
 
 bool
-ui_layer::on_key( int const Key, int const Action ) {
+ui_layer::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 
-    return false;
+    ImGui_ImplGlfw_KeyCallback( m_window, Key, Scancode, Action, Mods );
+    if( m_imguiio->WantTextInput ) { return true; }
+
+    return on_key_( Key, Scancode, Action, Mods );
 }
 
 bool
 ui_layer::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
-    return false;
+    return on_cursor_pos_( Horizontal, Vertical );
 }
 
 bool
-ui_layer::on_mouse_button( int const Button, int const Action ) {
+ui_layer::on_mouse_button( int const Button, int const Action, int const Mods ) {
 
-    return false;
+    ImGui_ImplGlfw_MouseButtonCallback( m_window, Button, Action, Mods );
+    if( m_imguiio->WantCaptureMouse ) { return true; }
+
+    return on_mouse_button_( Button, Action, Mods );
+}
+
+// potentially processes provided mouse scroll event. returns: true if the input was processed, false otherwise
+bool
+ui_layer::on_scroll( double const Xoffset, double const Yoffset ) {
+
+    ImGui_ImplGlfw_ScrollCallback( m_window, Xoffset, Yoffset );
+    if( m_imguiio->WantCaptureMouse ) { return true; }
+
+    return on_scroll_( Xoffset, Yoffset );
 }
 
 void

@@ -40,9 +40,7 @@ driver_ui::driver_ui() {
 
 // potentially processes provided input key. returns: true if key was processed, false otherwise
 bool
-driver_ui::on_key( int const Key, int const Action ) {
-    // TODO: pass the input first through an active ui element if there's any
-    // if the ui element shows no interest or we don't have one, try to interpret the input yourself:
+driver_ui::on_key_( int const Key, int const Scancode, int const Action, int const Mods ) {
 
     if( Key == GLFW_KEY_ESCAPE ) {
         // toggle pause
@@ -130,14 +128,14 @@ driver_ui::on_key( int const Key, int const Action ) {
 
 // potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
 bool
-driver_ui::on_cursor_pos( double const Horizontal, double const Vertical ) {
+driver_ui::on_cursor_pos_( double const Horizontal, double const Vertical ) {
     // intercept mouse movement when the pause window is on
     return m_paused;
 }
 
 // potentially processes provided mouse button. returns: true if the input was processed, false otherwise
 bool
-driver_ui::on_mouse_button( int const Button, int const Action ) {
+driver_ui::on_mouse_button_( int const Button, int const Action, int const Mods ) {
     // intercept mouse movement when the pause window is on
     return m_paused;
 }

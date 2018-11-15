@@ -17,9 +17,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "renderer.h"
 #include "utilities.h"
+#include "scenenodegroups.h"
 
 void
 itemproperties_panel::update( scene::basic_node const *Node ) {
+
+    m_node = Node;
 
     if( false == is_open ) { return; }
 
@@ -196,6 +199,26 @@ itemproperties_panel::render() {
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
         }
+        // group section
+        render_group();
     }
     ImGui::End();
+}
+
+bool
+itemproperties_panel::render_group() {
+
+    if( m_node == nullptr ) { return false; }
+    if( m_node->group() == null_handle ) { return false; }
+
+    if( false == ImGui::CollapsingHeader( "Parent Group" ) ) { return false; }
+
+    auto const &nodegroup { scene::Groups.group( m_node->group() ) };
+    auto const &linecolor { Global.UITextColor };
+
+    ImGui::TextColored( ImVec4( linecolor.r, linecolor.g, linecolor.b, linecolor.a ),
+        ( "Nodes: " + to_string( static_cast<int>( nodegroup.nodes.size() ) )
+        + "\nEvents: " + to_string( static_cast<int>( nodegroup.events.size() ) ) ).c_str() );
+
+    return true;
 }

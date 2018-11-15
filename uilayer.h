@@ -66,17 +66,17 @@ public:
     void
         shutdown();
     // potentially processes provided input key. returns: true if the input was processed, false otherwise
-    virtual
     bool
-        on_key( int const Key, int const Action );
+        on_key( int const Key, int const Scancode, int const Action, int const Mods );
     // potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
-    virtual
     bool
         on_cursor_pos( double const Horizontal, double const Vertical );
     // potentially processes provided mouse button. returns: true if the input was processed, false otherwise
-    virtual
     bool
-        on_mouse_button( int const Button, int const Action );
+        on_mouse_button( int const Button, int const Action, int const Mods );
+    // potentially processes provided mouse scroll event. returns: true if the input was processed, false otherwise
+    bool
+        on_scroll( double const Xoffset, double const Yoffset );
     // updates state of UI elements
     virtual
     void
@@ -135,6 +135,20 @@ private:
     // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
     void
         quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
+    // input methods subclass details
+    virtual
+    bool
+        on_key_( int const Key, int const Scancode, int const Action, int const Mods ) { return false; }
+    virtual
+    bool
+        on_cursor_pos_( double const Horizontal, double const Vertical ) { return false; }
+    virtual
+    bool
+        on_mouse_button_( int const Button, int const Action, int const Mods ) { return false; }
+    virtual
+    bool
+        on_scroll_( double const Xoffset, double const Yoffset ) { return false; }
+    
 // members
     static GLint m_textureunit;
 

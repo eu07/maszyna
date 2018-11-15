@@ -18,15 +18,6 @@ public:
 // constructors
     driver_ui();
 // methods
-    // potentially processes provided input key. returns: true if the input was processed, false otherwise
-    bool
-        on_key( int const Key, int const Action ) override;
-    // potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
-    bool
-        on_cursor_pos( double const Horizontal, double const Vertical ) override;
-    // potentially processes provided mouse button. returns: true if the input was processed, false otherwise
-    bool
-        on_mouse_button( int const Button, int const Action ) override;
     // updates state of UI elements
     void
         update() override;
@@ -39,6 +30,15 @@ private:
     // render() subclass details
     void
         render_() override;
+    // on_key() subclass details
+    bool
+        on_key_( int const Key, int const Scancode, int const Action, int const Mods ) override;
+    // on_cursor_pos() subclass details
+    bool
+        on_cursor_pos_( double const Horizontal, double const Vertical ) override;
+    // on_mouse_button() subclass details
+    bool
+        on_mouse_button_( int const Button, int const Action, int const Mods ) override;
 // members
     drivingaid_panel m_aidpanel { "Driving Aid", true };
     timetable_panel m_timetablepanel { "Timetable", false };
