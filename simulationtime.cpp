@@ -68,6 +68,9 @@ scenario_time::init() {
         ::RegQueryValueEx( timezonekey, "TZI", NULL, NULL, (BYTE *)&registrytimezoneinfo, &size );
     }
 #endif
+    convert_transition_time( registrytimezoneinfo.StandardDate );
+    convert_transition_time( registrytimezoneinfo.DaylightDate );
+
     TIME_ZONE_INFORMATION timezoneinfo { 0 };
     timezoneinfo.Bias = registrytimezoneinfo.Bias;
     timezoneinfo.DaylightBias = registrytimezoneinfo.DaylightBias;
@@ -118,7 +121,7 @@ scenario_time::update( double const Deltatime ) {
         }
         m_time.wHour -= 24;
     }
-    int leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
+    int leap { ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 ) };
     while( m_time.wDay > m_monthdaycounts[ leap ][ m_time.wMonth ] ) {
 
         m_time.wDay -= m_monthdaycounts[ leap ][ m_time.wMonth ];
@@ -141,7 +144,7 @@ scenario_time::year_day( int Day, const int Month, const int Year ) const {
         { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
     };
 
-    int leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+    int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
     for( int i = 1; i < Month; ++i )
         Day += daytab[ leap ][ i ];
 
@@ -156,7 +159,7 @@ scenario_time::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yea
         { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
     };
 
-    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
+    int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
     WORD idx = 1;
     while( ( idx < 13 ) && ( Yearday >= daytab[ leap ][ idx ] ) ) {
 
@@ -187,6 +190,62 @@ scenario_time::julian_day() const {
     }
 
     return JD;
+}
+
+// calculates day of week for provided date
+int
+scenario_time::day_of_week( int const Day, int const Month, int const Year ) const {
+
+	// using Zeller's congruence, http://en.wikipedia.org/wiki/Zeller%27s_congruence
+	int const q = Day;
+	int const m = Month > 2 ? Month : Month + 12;
+	int const y = Month > 2 ? Year : Year - 1;
+
+	int const h = ( q + ( 26 * ( m + 1 ) / 10 ) + y + ( y / 4 ) + 6 * ( y / 100 ) + ( y / 400 ) ) % 7;
+	
+/*	return ( (h + 5) % 7 ) + 1; // iso week standard, with monday = 1
+*/	return ( (h + 6) % 7 ) + 1; // sunday = 1 numbering method, used in north america, japan 
+}
+
+// calculates day of month for specified weekday of specified month of the year
+int
+scenario_time::day_of_month( int const Week, int const Weekday, int const Month, int const Year ) const {
+
+	int day = 0;
+	int dayoffset = weekdays( day_of_week( 1, Month, Year ), Weekday );
+
+    day = ( Week - 1 ) * 7 + 1 + dayoffset;
+
+    if( Week == 5 ) {
+        // 5th week potentially indicates last week in the month, not necessarily actual 5th
+        char const daytab[ 2 ][ 13 ] = {
+            { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+            { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+        };
+        int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+
+        while( day > daytab[ leap ][ Month ] ) {
+            day -= 7;
+        }
+    }
+
+	return day;
+}
+
+// returns number of days between specified days of week
+int
+scenario_time::weekdays( int const First, int const Second ) const {
+
+    if( Second >= First ) { return Second - First; }
+    else { return 7 - First + Second; }
+}
+
+// helper, converts provided time transition date to regular date
+void
+scenario_time::convert_transition_time( SYSTEMTIME &Time ) const {
+
+    // NOTE: windows uses 0-6 range for days of week numbering, our methods use 1-7
+    Time.wDay = day_of_month( Time.wDay, Time.wDayOfWeek + 1, Time.wMonth, m_time.wYear );
 }
 
 //---------------------------------------------------------------------------
