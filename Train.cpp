@@ -7775,6 +7775,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.Load( Parser, DynamicObject );
         gauge.AssignFloat( &mvControlled->dizel_heat.temperatura2 );
     }
+    else if( Label == "pantpress:" ) {
+        // pantograph tank pressure
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, 0.1 );
+        gauge.AssignDouble( &mvOccupied->PantPress );
+    }
     // yB - dla drugiej sekcji
     else if (Label == "hvbcurrent1:")
     {

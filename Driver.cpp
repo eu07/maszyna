@@ -966,8 +966,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                                 // perform loading/unloading
                                 auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
-                                auto const exchangetime = std::max( 5.0, simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside ) );
-                                WaitingSet( std::max( -fStopTime, exchangetime ) ); // na końcu rozkładu się ustawia 60s i tu by było skrócenie
+                                auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
+                                WaitingSet( exchangetime );
 
                                 if( TrainParams->CheckTrainLatency() < 0.0 ) {
                                     // odnotowano spóźnienie
@@ -1007,6 +1007,21 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     sSpeedTable[i].fVelNext = -1;
                                     // nie analizować prędkości
                                     continue;
+                                }
+                            }
+                            else {
+                                // sitting at passenger stop
+                                if( fStopTime < 0 ) {
+                                // verify progress of load exchange
+                                    auto exchangetime { 0.f };
+                                    auto *vehicle { pVehicles[ 0 ] };
+                                    while( vehicle != nullptr ) {
+                                        exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
+                                        vehicle = vehicle->Next();
+                                    }
+                                    if( exchangetime > 0 ) {
+                                        WaitingSet( exchangetime );
+                                    }
                                 }
                             }
 

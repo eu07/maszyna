@@ -289,7 +289,7 @@ private:
     struct exchange_data {
         float unload_count { 0.f }; // amount to unload
         float load_count { 0.f }; // amount to load
-        float speed_factor { 1.f }; // operation speed modifier
+        int platforms { 0 }; // platforms which may take part in the exchange
         float time { 0.f }; // time spent on the operation
     };
 
@@ -529,6 +529,10 @@ private:
     bool UpdateForce(double dt, double dt1, bool FullVer);
     // initiates load change by specified amounts, with a platform on specified side
     void LoadExchange( int const Disembark, int const Embark, int const Platform );
+    // calculates time needed to complete current load change
+    float LoadExchangeTime() const;
+    // calculates current load exchange factor, where 1 = nominal rate, higher = faster
+    float LoadExchangeSpeed() const; // TODO: make private when cleaning up
     void LoadUpdate();
     void update_load_sections();
     void update_load_visibility();

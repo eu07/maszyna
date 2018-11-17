@@ -2636,11 +2636,37 @@ void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int co
     }
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
-    m_exchange.speed_factor = (
-        Platform == 3 ?
-            2.0 :
-            1.0 );
+    m_exchange.platforms = Platform;
     m_exchange.time = 0.0;
+}
+
+// calculates time needed to complete current load change
+float TDynamicObject::LoadExchangeTime() const {
+
+    if( ( m_exchange.unload_count < 0.01 ) && ( m_exchange.load_count < 0.01 ) ) { return 0.f; }
+
+    auto const baseexchangetime { m_exchange.unload_count / MoverParameters->UnLoadSpeed + m_exchange.load_count / MoverParameters->LoadSpeed };
+    auto const nominalexchangespeedfactor { ( m_exchange.platforms == 3 ? 2.f : 1.f ) };
+    auto const actualexchangespeedfactor { LoadExchangeSpeed() };
+
+    return baseexchangetime / ( actualexchangespeedfactor > 0.f ? actualexchangespeedfactor : nominalexchangespeedfactor );
+}
+
+// calculates current load exchange rate
+float TDynamicObject::LoadExchangeSpeed() const {
+    // platforms (1:left, 2:right, 3:both)
+    // with exchange performed on both sides waiting times are halved
+    auto exchangespeedfactor { 0.f };
+    auto const lewe { ( DirectionGet() > 0 ) ? 1 : 2 };
+    auto const prawe { 3 - lewe };
+    if( m_exchange.platforms & lewe ) {
+        exchangespeedfactor += ( MoverParameters->DoorLeftOpened ? 1.f : 0.f );
+    }
+    if( m_exchange.platforms & prawe ) {
+        exchangespeedfactor += ( MoverParameters->DoorRightOpened ? 1.f : 0.f );
+    }
+
+    return exchangespeedfactor;
 }
 
 // update state of load exchange operation
@@ -2660,7 +2686,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
             && ( m_exchange.time >= 1.0 ) ) {
             
             m_exchange.time -= 1.0;
-            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * m_exchange.speed_factor );
+            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * LoadExchangeSpeed() );
             m_exchange.unload_count -= exchangesize;
             MoverParameters->LoadStatus = 1;
             MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
@@ -2674,7 +2700,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 && ( m_exchange.time >= 1.0 ) ) {
 
                 m_exchange.time -= 1.0;
-                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * m_exchange.speed_factor );
+                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * LoadExchangeSpeed() );
                 m_exchange.load_count -= exchangesize;
                 MoverParameters->LoadStatus = 2;
                 MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
