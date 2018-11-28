@@ -323,6 +323,7 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         >> nodedata.range_min
         >> nodedata.name
         >> nodedata.type;
+    if( nodedata.name == "none" ) { nodedata.name.clear(); }
     // type-based deserialization. not elegant but it'll do
     if( nodedata.type == "dynamic" ) {
 

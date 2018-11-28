@@ -2072,6 +2072,14 @@ bool TController::CheckVehicles(TOrders user)
         p = pVehicles[0];
         while (p)
         {
+            // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
+            if( ( p != pVehicle )
+             && ( ( p->MoverParameters->Couplers[ side::front ].CouplingFlag & ( coupling::control | coupling::permanent ) ) == 0 )
+             && ( ( p->MoverParameters->Couplers[ side::rear ].CouplingFlag  & ( coupling::control | coupling::permanent ) ) == 0 ) ) {
+                // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
+                p->MoverParameters->BatterySwitch( true );
+            }
+
             if (p->asDestination == "none")
                 p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeśli nie było
             if (AIControllFlag) // jeśli prowadzi komputer
@@ -3212,8 +3220,6 @@ void TController::Doors( bool const Open, int const Side ) {
         // tu będzie jeszcze długość peronu zaokrąglona do 10m (20m bezpieczniej, bo nie modyfikuje bitu 1)
         auto *vehicle = pVehicles[0]; // pojazd na czole składu
         while( vehicle != nullptr ) {
-            // wagony muszą mieć baterię załączoną do otwarcia drzwi...
-            vehicle->MoverParameters->BatterySwitch( true );
             // otwieranie drzwi w pojazdach - flaga zezwolenia była by lepsza
             if( vehicle->MoverParameters->DoorOpenCtrl != control_t::passenger ) {
                 // if the door are controlled by the driver, we let the user operate them...

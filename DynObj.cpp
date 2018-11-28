@@ -1374,8 +1374,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     coupling::coupler ) ) {
-                // tmp->MoverParameters->Couplers[CouplNr].Render=true; //podłączony sprzęg będzie widoczny
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1393,9 +1391,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::brakehose ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
-
                 SetPneumatic( Side != 0, true );
                 if( Side == side::front ) {
                     PrevConnected->SetPneumatic( Side != 0, true );
@@ -1417,9 +1412,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::mainhose ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
-
                 SetPneumatic( Side != 0, false );
                 if( Side == side::front ) {
                     PrevConnected->SetPneumatic( Side != 0, false );
@@ -1441,8 +1433,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::control ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1457,8 +1447,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::gangway ) ) ) {
-                // TODO: dedicated gangway sound
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1473,9 +1461,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::heating ) ) ) {
-
-                // TODO: dedicated 'click' sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1494,11 +1479,6 @@ TDynamicObject::uncouple( int const Side ) {
     }
     // jeżeli sprzęg niezablokowany, jest co odczepić i się da
     auto const couplingflag { Dettach( Side ) };
-    if( couplingflag == coupling::faux ) {
-        // dźwięk odczepiania
-        m_couplersounds[ Side ].dsbCouplerAttach.play();
-        m_couplersounds[ Side ].dsbCouplerDetach.play();
-    }
     return couplingflag;
 }
 
@@ -2565,9 +2545,9 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
     loc.Z=Object->vPosition.y;
     Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
     */
-    MoverParameters->Attach(iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true);
+    MoverParameters->Attach(iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true, false);
     MoverParameters->Couplers[iDirection].Render = false;
-    Object->MoverParameters->Attach(Object->iDirection ^ 1, iDirection, MoverParameters, iType, true);
+    Object->MoverParameters->Attach(Object->iDirection ^ 1, iDirection, MoverParameters, iType, true, false);
     Object->MoverParameters->Couplers[Object->iDirection ^ 1].Render = true; // rysowanie sprzęgu w dołączanym
     if (iDirection)
     { //łączenie standardowe
@@ -4503,6 +4483,11 @@ void TDynamicObject::RenderSounds() {
 
         auto &coupler { MoverParameters->Couplers[ couplerindex ] };
 
+        if( coupler.sounds == sound::none ) {
+            ++couplerindex;
+            continue;
+        }
+
         if( true == TestFlag( coupler.sounds, sound::bufferclash ) ) {
             // zderzaki uderzaja o siebie
             if( true == TestFlag( coupler.sounds, sound::loud ) ) {
@@ -4527,6 +4512,7 @@ void TDynamicObject::RenderSounds() {
                     .play( sound_flags::exclusive );
             }
         }
+
         if( true == TestFlag( coupler.sounds, sound::couplerstretch ) ) {
             // sprzegi sie rozciagaja
             if( true == TestFlag( coupler.sounds, sound::loud ) ) {
@@ -4552,8 +4538,22 @@ void TDynamicObject::RenderSounds() {
             }
         }
 
-        coupler.sounds = 0;
+        // TODO: dedicated sound for each connection type
+        // until then, play legacy placeholders:
+        if( ( coupler.sounds & ( sound::attachcoupler | sound::attachcontrol | sound::attachgangway ) ) != 0 ) {
+            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
+        }
+        if( ( coupler.sounds & ( sound::attachbrakehose | sound::attachmainhose | sound::attachheating ) ) != 0 ) {
+            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+        }
+        if( true == TestFlag( coupler.sounds, sound::detachall ) ) {
+            // TODO: dedicated disconnect sounds
+            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
+            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+        }
+
         ++couplerindex;
+        coupler.sounds = 0;
     }
 
     MoverParameters->SoundFlag = 0;

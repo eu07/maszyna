@@ -89,11 +89,11 @@ struct openal_source {
 
 private:
 // members
-    double update_deltatime; // time delta of most current update
+    double update_deltatime { 0.0 }; // time delta of most current update
     float pitch_variation { 1.f }; // emitter-specific variation of the base pitch
     float sound_range { 50.f }; // cached audible range of the emitted samples
-    glm::vec3 sound_distance; // cached distance between sound and the listener
-    glm::vec3 sound_velocity; // sound movement vector
+    glm::vec3 sound_distance { 0.f }; // cached distance between sound and the listener
+    glm::vec3 sound_velocity { 0.f }; // sound movement vector
     bool is_in_range { false }; // helper, indicates the source was recently within audible range
     bool is_multipart { false }; // multi-part sounds are kept alive at longer ranges
 };
