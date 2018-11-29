@@ -8208,6 +8208,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 { "D2", TBrakeHandle::D2 },
                 { "MHZ_EN57", TBrakeHandle::MHZ_EN57 },
 				{ "MHZ_K5P", TBrakeHandle::MHZ_K5P },
+				{ "MHZ_K8P", TBrakeHandle::MHZ_K8P },
                 { "M394", TBrakeHandle::M394 },
                 { "Knorr", TBrakeHandle::Knorr },
                 { "Westinghouse", TBrakeHandle::West },
@@ -8998,6 +8999,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             Handle = std::make_shared<TFV4aM>();
             break;
         case TBrakeHandle::MHZ_EN57:
+		case TBrakeHandle::MHZ_K8P:
             Handle = std::make_shared<TMHZ_EN57>();
             break;
         case TBrakeHandle::FVel6:
