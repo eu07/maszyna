@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "applicationmode.h"
 #include "PyInt.h"
+#include "network/manager.h"
 
 class eu07_application {
 
@@ -89,6 +90,7 @@ private:
     int  init_gfx();
     int  init_audio();
     int  init_modes();
+	bool init_network();
 // members
 
     bool m_screenshot_queued = false;
@@ -97,6 +99,8 @@ private:
     mode_stack m_modestack; // current behaviour mode
     python_taskqueue m_taskqueue;
     std::vector<GLFWwindow *> m_windows;
+
+	std::optional<network::manager> m_network;
 };
 
 extern eu07_application Application;

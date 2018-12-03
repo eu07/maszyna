@@ -138,6 +138,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
         return result;
     }
 
+	if (!init_network())
+		return -1;
+
     return result;
 }
 
@@ -173,6 +176,8 @@ eu07_application::run() {
         }
 
         Timer::subsystem.mainloop_total.stop();
+
+		m_network->poll();
     }
 
     return 0;
@@ -584,4 +589,9 @@ eu07_application::init_modes() {
     push_mode( mode::scenarioloader );
 
     return 0;
+}
+
+bool eu07_application::init_network() {
+	m_network.emplace();
+	return true;
 }
