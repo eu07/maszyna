@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Button.h"
 #include "parser.h"
 #include "Model3d.h"
+#include "DynObj.h"
 #include "Console.h"
 #include "Logs.h"
 #include "renderer.h"
@@ -25,17 +26,19 @@ void TButton::Clear(int i)
     Update(); // kasowanie bitu Feedback, o ile jakiś ustawiony
 };
 
-void TButton::Init( std::string const &asName, TModel3d *pModel, bool bNewOn ) {
+bool TButton::Init( std::string const &asName, TModel3d const *pModel, bool bNewOn ) {
 
-    if( pModel == nullptr ) { return; }
+    if( pModel == nullptr ) { return false; }
 
     pModelOn = pModel->GetFromName( asName + "_on" );
     pModelOff = pModel->GetFromName( asName + "_off" );
     m_state = bNewOn;
     Update();
+
+    return( ( pModelOn != nullptr ) || ( pModelOff != nullptr ) );
 };
 
-void TButton::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pModel1, TModel3d *pModel2 ) {
+void TButton::Load( cParser &Parser, TDynamicObject const *Owner ) {
 
     std::string submodelname;
 
@@ -57,21 +60,17 @@ void TButton::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *pMod
     m_soundfxincrease.owner( Owner );
     m_soundfxdecrease.owner( Owner );
 
-    if( pModel1 ) {
-        // poszukiwanie submodeli w modelu
-        Init( submodelname, pModel1, false );
+    std::array<TModel3d *, 3> sources { Owner->mdKabina, Owner->mdLowPolyInt, Owner->mdModel };
+    for( auto const *source : sources ) {
+        if( true == Init( submodelname, source, false ) ) {
+            // got what we wanted, bail out
+            break;
+        }
     }
-    if( ( pModelOn  == nullptr )
-     && ( pModelOff == nullptr )
-     && ( pModel2   != nullptr ) ) {
-        // poszukiwanie submodeli w modelu
-        Init( submodelname, pModel2, false );
-    }
-
     if( ( pModelOn  == nullptr )
      && ( pModelOff == nullptr ) ) {
         // if we failed to locate even one state submodel, cry
-        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + ( pModel1 != nullptr ? pModel1->NameGet() : pModel2 != nullptr ? pModel2->NameGet() : "NULL" ) + "\"", logtype::model );
+        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model(s) of \"" + Owner->name() + "\"", logtype::model );
     }
 
     // pass submodel location to defined sounds

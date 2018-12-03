@@ -1019,7 +1019,7 @@ multi_event::init() {
 
     auto const conditiontchecksmemcell { m_conditions.flags & ( flags::text | flags::value_1 | flags::value_2 ) };
     // not all multi-events have memory cell checks, for the ones which don't we can keep quiet about it
-    init_targets( simulation::Memory, "memory cell", ( false == conditiontchecksmemcell ) );
+    init_targets( simulation::Memory, "memory cell", conditiontchecksmemcell );
     if( m_ignored ) {
         // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
         m_conditions.flags &= ~( flags::text | flags::value_1 | flags::value_2 );

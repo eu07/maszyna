@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "editoruipanels.h"
+#include "scenenodegroups.h"
 
 #include "Globals.h"
 #include "Camera.h"
@@ -24,6 +25,8 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
     if( false == is_open ) { return; }
 
     text_lines.clear();
+    m_grouplines.clear();
+
     std::string textline;
 
     // scenario inspector
@@ -38,7 +41,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
     }
 
     textline =
-        "node name: " + node->name()
+        "name: " + ( node->name().empty() ? "(none)" : node->name() )
         + "\nlocation: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
         + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ camera.Pos.x, 0.0, camera.Pos.z } ), 1 ) + " m)";
     text_lines.emplace_back( textline, Global.UITextColor );
@@ -62,7 +65,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
             textline += ']';
         }
         else {
-            textline += "none";
+            textline += "(none)";
         }
         text_lines.emplace_back( textline, Global.UITextColor );
 
@@ -70,7 +73,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         auto modelfile { (
             ( subnode->pModel != nullptr ) ?
                 subnode->pModel->NameGet() :
-                "none" ) };
+                "(none)" ) };
         if( modelfile.find( szModelPath ) == 0 ) {
             // don't include 'models/' in the path
             modelfile.erase( 0, std::string{ szModelPath }.size() );
@@ -79,7 +82,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         auto texturefile { (
             ( subnode->Material()->replacable_skins[ 1 ] != null_handle ) ?
                 GfxRenderer.Material( subnode->Material()->replacable_skins[ 1 ] ).name :
-                "none" ) };
+                "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
@@ -92,7 +95,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         auto const *subnode = static_cast<TTrack const *>( node );
         // basic attributes
         textline =
-            "isolated: " + ( ( subnode->pIsolated != nullptr ) ? subnode->pIsolated->asName : "none" )
+            "isolated: " + ( ( subnode->pIsolated != nullptr ) ? subnode->pIsolated->asName : "(none)" )
             + "\nvelocity: " + to_string( subnode->SwitchExtension ? subnode->SwitchExtension->fVelocity : subnode->fVelocity )
             + "\nwidth: " + to_string( subnode->fTrackWidth ) + " m"
             + "\nfriction: " + to_string( subnode->fFriction, 2 )
@@ -102,14 +105,14 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         auto texturefile { (
             ( subnode->m_material1 != null_handle ) ?
                 GfxRenderer.Material( subnode->m_material1 ).name :
-                "none" ) };
+                "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
         }
         auto texturefile2{ (
             ( subnode->m_material2 != null_handle ) ?
                 GfxRenderer.Material( subnode->m_material2 ).name :
-                "none" ) };
+                "(none)" ) };
         if( texturefile2.find( szTexturePath ) == 0 ) {
             texturefile2.erase( 0, std::string{ szTexturePath }.size() );
         }
@@ -164,10 +167,71 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
             + " [" + to_string( subnode->Value1(), 2 ) + "]"
             + " [" + to_string( subnode->Value2(), 2 ) + "]";
         text_lines.emplace_back( textline, Global.UITextColor );
-        textline = "track: " + ( subnode->asTrackName.empty() ? "none" : subnode->asTrackName );
+        textline = "track: " + ( subnode->asTrackName.empty() ? "(none)" : subnode->asTrackName );
         text_lines.emplace_back( textline, Global.UITextColor );
     }
+
+    update_group();
 }
+
+void
+itemproperties_panel::update_group() {
+
+    auto const grouphandle { m_node->group() };
+
+    if( grouphandle == null_handle ) {
+        m_grouphandle = null_handle;
+        m_groupprefix.clear();
+        return;
+    }
+
+    auto const &nodegroup { scene::Groups.group( grouphandle ) };
+
+    if( m_grouphandle != grouphandle ) {
+        // calculate group name from shared prefix of item names
+        std::vector<std::reference_wrapper<std::string const>> names;
+        // build list of custom item and event names
+        for( auto const *node : nodegroup.nodes ) {
+            auto const &name { node->name() };
+            if( name.empty() || name == "none" ) { continue; }
+            names.emplace_back( name );
+        }
+        for( auto const *event : nodegroup.events ) {
+            auto const &name { event->m_name };
+            if( name.empty() || name == "none" ) { continue; }
+            names.emplace_back( name );
+        }
+        // find the common prefix
+        if( names.size() > 1 ) {
+            m_groupprefix = names.front();
+            for( auto const &name : names ) {
+                // NOTE: first calculation runs over two instances of the same name, but, eh
+                auto const prefixlength{ len_common_prefix( m_groupprefix, name ) };
+                if( prefixlength > 0 ) {
+                    m_groupprefix = m_groupprefix.substr( 0, prefixlength );
+                }
+                else {
+                    m_groupprefix.clear();
+                    break;
+                }
+            }
+        }
+        else {
+            // less than two names to compare means no prefix
+            m_groupprefix.clear();
+        }
+        m_grouphandle = grouphandle;
+    }
+
+    m_grouplines.emplace_back(
+        "nodes: " + to_string( static_cast<int>( nodegroup.nodes.size() ) )
+        + "\nevents: " + to_string( static_cast<int>( nodegroup.events.size() ) ),
+        Global.UITextColor );
+    m_grouplines.emplace_back(
+        "names prefix: " + ( m_groupprefix.empty() ? "(none)" : m_groupprefix ),
+        Global.UITextColor );
+}
+
 
 void
 itemproperties_panel::render() {
@@ -196,6 +260,23 @@ itemproperties_panel::render() {
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
         }
+        // group section
+        render_group();
     }
     ImGui::End();
+}
+
+bool
+itemproperties_panel::render_group() {
+
+    if( m_node == nullptr ) { return false; }
+    if( m_grouplines.empty() ) { return false; }
+
+    if( false == ImGui::CollapsingHeader( "Parent Group" ) ) { return false; }
+
+    for( auto const &line : m_grouplines ) {
+        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+    }
+
+    return true;
 }

@@ -39,9 +39,6 @@ public:
     int
         year_day() const {
             return m_yearday; }
-    // helper, calculates day of year from given date
-    int
-        year_day( int Day, int const Month, int const Year ) const;
     int
         julian_day() const;
     inline
@@ -52,9 +49,24 @@ public:
     /** Returns std::string in format: `"mm:ss"`. */
     operator std::string();
 private:
+    // converts provided time transition date to regular date
+    void
+        convert_transition_time( SYSTEMTIME &Time ) const;
     // calculates day and month from given day of year
     void
         daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
+    // calculates day of year from given date
+    int
+        year_day( int Day, int const Month, int const Year ) const;
+    // calculates day of week for provided date
+    int
+        day_of_week( int const Day, int const Month, int const Year ) const;
+    // calculates day of month for specified weekday of specified month of the year
+    int
+        day_of_month( int const Week, int const Weekday, int const Month, int const Year ) const;
+    // returns number of days between specified days of week
+    int
+        weekdays( int const First, int const Second ) const;
 
     SYSTEMTIME m_time;
     double m_milliseconds{ 0.0 };

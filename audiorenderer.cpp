@@ -74,7 +74,13 @@ openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity
     if( sound_range < 0.0 ) {
         sound_velocity = Listenervelocity; // cached for doppler shift calculation
     }
-
+/*
+    // HACK: if the application gets stuck for long time loading assets the audio can gone awry.
+    // terminate all sources when it happens to stay on the safe side
+    if( Deltatime > 1.0 ) {
+        stop();
+    }
+*/
     if( id != audio::null_resource ) {
 
         sound_change = false;
@@ -439,6 +445,14 @@ openal_renderer::fetch_source() {
             newsource.id = leastimportantsource->id;
             m_sources.erase( leastimportantsource );
         }
+    }
+
+    if( newsource.id == audio::null_resource ) {
+        // for sources with functional emitter reset emitter parameters from potential last use
+        ::alSourcef( newsource.id, AL_PITCH, 1.f );
+        ::alSourcef( newsource.id, AL_GAIN, 1.f );
+        ::alSourcefv( newsource.id, AL_POSITION, glm::value_ptr( glm::vec3{ 0.f } ) );
+        ::alSourcefv( newsource.id, AL_VELOCITY, glm::value_ptr( glm::vec3{ 0.f } ) );
     }
 
     return newsource;

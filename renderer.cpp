@@ -588,7 +588,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
                     }
-                    Render_cab( vehicle, false );
+                    Render_cab( vehicle, vehicle->InteriorLightLevel, false );
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( shadowcolor );
                     }
@@ -607,17 +607,17 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor{ m_shadowcolor };
-                    auto const *vehicle{ simulation::Train->Dynamic() };
+                    auto const *vehicle { simulation::Train->Dynamic() };
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
                     }
                     if( Global.Overcast > 1.f ) {
                         // with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
                         setup_drawing( false );
-                        Render_cab( vehicle, false );
+                        Render_cab( vehicle, vehicle->InteriorLightLevel, false );
                         setup_drawing( true );
                     }
-                    Render_cab( vehicle, true );
+                    Render_cab( vehicle, vehicle->InteriorLightLevel, true );
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( shadowcolor );
                     }
@@ -707,8 +707,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #else
                 setup_units( false, false, false );
 #endif
-                Render_cab( simulation::Train->Dynamic(), false );
-                Render_cab( simulation::Train->Dynamic(), true );
+                Render_cab( simulation::Train->Dynamic(), 0.f, false );
+                Render_cab( simulation::Train->Dynamic(), 0.f, true );
                 m_cabshadowpass = m_renderpass;
 
                 // post-render restore
@@ -771,7 +771,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 setup_drawing( false );
                 setup_units( false, false, false );
                 // cab render skips translucent parts, so we can do it here
-                if( simulation::Train != nullptr ) { Render_cab( simulation::Train->Dynamic() ); }
+                if( simulation::Train != nullptr ) {
+                    Render_cab( simulation::Train->Dynamic(), 0.f );
+                    Render( simulation::Train->Dynamic() );
+                }
                 // post-render cleanup
             }
             break;
@@ -842,7 +845,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
     switch( Mode ) {
         case rendermode::color:        { Config.draw_range = Global.BaseDrawRange; break; }
         case rendermode::shadows:      { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
-        case rendermode::cabshadows:   { Config.draw_range = ( simulation::Train->Occupied()->ActiveCab != 0 ? 10.f : 20.f ); break; }
+        case rendermode::cabshadows:   { Config.draw_range = simulation::Train->Occupied()->Dim.L; break; }
         case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
         case rendermode::pickscenery:  { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
@@ -2182,7 +2185,10 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             // render
             if( Dynamic->mdLowPolyInt ) {
                 // low poly interior
-                if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+                /*
+                if( ( true == FreeFlyModeFlag )
+                 || ( ( Dynamic->mdKabina == nullptr ) || ( false == Dynamic->bDisplayCab ) ) ) {
+                 */
 /*
                     // enable cab light if needed
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
@@ -2198,7 +2204,9 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
                     }
 */
+                /*
                 }
+                */
             }
             if( Dynamic->mdModel )
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
@@ -2215,9 +2223,9 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
         case rendermode::shadows: {
             if( Dynamic->mdLowPolyInt ) {
                 // low poly interior
-                if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+//                if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
                     Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-                }
+//                }
             }
             if( Dynamic->mdModel )
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
@@ -2226,7 +2234,13 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             // post-render cleanup
             break;
         }
-        case rendermode::pickcontrols:
+        case rendermode::pickcontrols: {
+            if( Dynamic->mdLowPolyInt ) {
+                // low poly interior
+                Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+            }
+            break;
+        }
         case rendermode::pickscenery:
         default: {
             break;
@@ -2244,7 +2258,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 bool
-opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
+opengl_renderer::Render_cab( TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha ) {
 
     if( Dynamic == nullptr ) {
 
@@ -2276,9 +2290,9 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                     // change light level based on light level of the occupied track
                     m_sunlight.apply_intensity( Dynamic->fShade );
                 }
-                if( Dynamic->InteriorLightLevel > 0.f ) {
+                if( Lightlevel > 0.f ) {
                     // crude way to light the cabin, until we have something more complete in place
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Lightlevel ) );
                 }
                 // render
                 if( true == Alpha ) {
@@ -2294,7 +2308,7 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, bool const Alpha ) {
                     // change light level based on light level of the occupied track
                     m_sunlight.apply_intensity();
                 }
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
+                if( Lightlevel > 0.f ) {
                     // reset the overall ambient
                     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
                 }
@@ -2459,9 +2473,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
                         // ...luminance
                         auto const unitstate = m_unitstate;
-                        if( Global.fLuminance < Submodel->fLight ) {
+                        auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+                        if( isemissive ) {
                             // zeby swiecilo na kolorowo
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
+                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( /* Submodel->f4Emision */ Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                             // disable shadows so they don't obstruct self-lit items
 /*
                             setup_shadow_color( colors::white );
@@ -2490,7 +2505,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
-                        if( Global.fLuminance < Submodel->fLight ) {
+                        if( isemissive ) {
                             // restore default (lack of) brightness
                             ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
 /*
@@ -3269,7 +3284,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     // render
     if( Dynamic->mdLowPolyInt ) {
         // low poly interior
-        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+//        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
 /*
             // enable cab light if needed
             if( Dynamic->InteriorLightLevel > 0.0f ) {
@@ -3285,7 +3300,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
                 ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
             }
 */
-        }
+//        }
     }
 
     if( Dynamic->mdModel )
@@ -3427,9 +3442,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         }
                         // ...luminance
                         auto const unitstate = m_unitstate;
-                        if( Global.fLuminance < Submodel->fLight ) {
+                        auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+                        if( isemissive ) {
                             // zeby swiecilo na kolorowo
-                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
+                            ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( /* Submodel->f4Emision */ Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                             // disable shadows so they don't obstruct self-lit items
 /*
                             setup_shadow_color( colors::white );
@@ -3444,7 +3460,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
-                        if( Global.fLuminance < Submodel->fLight ) {
+                        if( isemissive ) {
                             // restore default (lack of) brightness
                             ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
 /*

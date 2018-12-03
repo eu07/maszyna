@@ -466,7 +466,7 @@ sound_source::stop( bool const Skipend ) {
     if( ( false == Skipend )
      && ( sound( sound_id::end ).buffer != null_handle )
 /*     && ( sound( sound_id::end ).buffer != sound( sound_id::main ).buffer ) */ // end == main can happen in malformed legacy cases
-/*     && ( sound( sound_id::end ).playing == 0 ) */ ) {
+     && ( sound( sound_id::end ).playing < 2 ) ) { // allows potential single extra instance to account for longer overlapping sounds
         // spawn potentially defined sound end sample, if the emitter is currently active
         insert( sound_id::end );
     }

@@ -37,12 +37,6 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
     // go through all vehicles and update their load
     // NOTE: for the time being we limit ourselves to passenger-carrying cars only
     auto exchangetime { 0.f };
-    // platform (1:left, 2:right, 3:both)
-    // with exchange performed on both sides waiting times are halved
-    auto const exchangetimemodifier { (
-        Platform == 3 ?
-            0.5f :
-            1.0f ) };
 
     auto *vehicle { First };
     while( vehicle != nullptr ) {
@@ -69,18 +63,14 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
                     0 :
                     Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) );
             if( true == firststop ) {
-                // slightly larger group at the initial station
+                // larger group at the initial station
                 loadcount *= 2;
             }
 
             if( ( unloadcount > 0 ) || ( loadcount > 0 ) ) {
 
                 vehicle->LoadExchange( unloadcount, loadcount, Platform );
-/*
-                vehicle->LoadUpdate();
-                vehicle->update_load_visibility();
-*/
-                exchangetime = std::max( exchangetime, exchangetimemodifier * ( unloadcount / parameters.UnLoadSpeed + loadcount / parameters.LoadSpeed ) );
+                exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
             }
         }
         vehicle = vehicle->Next();

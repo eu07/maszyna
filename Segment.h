@@ -116,7 +116,7 @@ public:
             r2 = fRoll2; }
 
     bool
-        RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, gfx::vertex_array const &ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, std::pair<float, float> fOffsetX = {0.f, 0.f}, glm::vec3 **p = nullptr, bool bRender = true );
+        RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, gfx::vertex_array const &ShapePoints, bool const Transition, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, std::pair<float, float> fOffsetX = {0.f, 0.f}, glm::vec3 **p = nullptr, bool bRender = true );
 /*
     void
         Render();

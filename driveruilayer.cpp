@@ -41,6 +41,9 @@ driver_ui::driver_ui() {
 // potentially processes provided input key. returns: true if key was processed, false otherwise
 bool
 driver_ui::on_key( int const Key, int const Action ) {
+    // TODO: pass the input first through an active ui element if there's any
+    // if the ui element shows no interest or we don't have one, try to interpret the input yourself:
+
     if( Key == GLFW_KEY_ESCAPE ) {
         // toggle pause
         if( Action != GLFW_PRESS ) { return true; } // recognized, but ignored
@@ -193,23 +196,27 @@ driver_ui::set_cursor( bool const Visible ) {
 // render() subclass details
 void
 driver_ui::render_() {
-
-    if( m_paused ) {
-        // pause/quit modal
-        auto const popupheader { locale::strings[ locale::string::driver_pause_header ].c_str() };
-        ImGui::OpenPopup( popupheader );
-        if( ImGui::BeginPopupModal( popupheader, nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
-            auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
-            if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
-                ImGui::CloseCurrentPopup();
-                auto const pausemask { 1 | 2 };
-                Global.iPause &= ~pausemask;
-            }
-            if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
-                ImGui::CloseCurrentPopup();
-                glfwSetWindowShouldClose( m_window, 1 );
-            }
-            ImGui::EndPopup();
+    // pause/quit modal
+    auto const popupheader { locale::strings[ locale::string::driver_pause_header ].c_str() };
+	if (m_paused && !m_pause_modal_opened)
+	{
+		m_pause_modal_opened = true;
+		ImGui::OpenPopup(popupheader);
+	}
+    if( ImGui::BeginPopupModal( popupheader, &m_pause_modal_opened, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+        auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
+        if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
+            auto const pausemask { 1 | 2 };
+            Global.iPause &= ~pausemask;
         }
+        if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
+            glfwSetWindowShouldClose( m_window, 1 );
+        }
+		if (!m_paused)
+		{
+			m_pause_modal_opened = false;
+			ImGui::CloseCurrentPopup();
+		}
+        ImGui::EndPopup();
     }
 }

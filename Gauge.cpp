@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Gauge.h"
 #include "parser.h"
 #include "Model3d.h"
+#include "DynObj.h"
 #include "Timer.h"
 #include "Logs.h"
 #include "renderer.h"
@@ -76,7 +77,7 @@ void TGauge::Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale, float 
     }
 };
 
-bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, TModel3d *md2, double mul ) {
+void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mul ) {
 
     std::string submodelname, gaugetypename;
     float scale, endscale, endvalue, offset, friction;
@@ -138,13 +139,17 @@ bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, 
     if( interpolatescale ) {
         endscale *= mul;
     }
-    TSubModel *submodel = md1->GetFromName( submodelname );
-    if (submodel) // jeśli nie znaleziony
-        md2 = nullptr; // informacja, że znaleziony
-    else if (md2) // a jest podany drugi model (np. zewnętrzny)
-        submodel = md2->GetFromName(submodelname); // to może tam będzie, co za różnica gdzie
+    TSubModel *submodel { nullptr };
+    std::array<TModel3d *, 2> sources { Owner->mdKabina, Owner->mdLowPolyInt };
+    for( auto const *source : sources ) {
+        if( ( source != nullptr )
+         && ( submodel = source->GetFromName( submodelname ) ) != nullptr ) {
+            // got what we wanted, bail out
+            break;
+        }
+    }
     if( submodel == nullptr ) {
-        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"", logtype::model );
+        ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model(s) of \"" + Owner->name() + "\"", logtype::model );
     }
 
     std::map<std::string, TGaugeAnimation> gaugetypes {
@@ -163,7 +168,7 @@ bool TGauge::Load( cParser &Parser, TDynamicObject const *Owner, TModel3d *md1, 
 
     Init( submodel, type, scale, offset, friction, 0, endvalue, endscale, interpolatescale );
 
-    return md2 != nullptr; // true, gdy podany model zewnętrzny, a w kabinie nie było
+//    return md2 != nullptr; // true, gdy podany model zewnętrzny, a w kabinie nie było
 };
 
 bool

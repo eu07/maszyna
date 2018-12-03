@@ -64,7 +64,7 @@ struct bounding_area {
         deserialize( std::istream &Input );
 };
 
-using group_handle = std::size_t;
+//using group_handle = std::size_t;
 
 struct node_data {
 
