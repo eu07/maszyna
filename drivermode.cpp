@@ -27,13 +27,13 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "utilities.h"
 #include "Logs.h"
-
+/*
 namespace input {
 
 user_command command; // currently issued control command, if any
 
 }
-
+*/
 void
 driver_mode::drivermode_input::poll() {
     if (telemetry)
@@ -48,11 +48,13 @@ driver_mode::drivermode_input::poll() {
     if( uart != nullptr ) {
         uart->poll();
     }
+/*
     // TBD, TODO: wrap current command in object, include other input sources?
     input::command = (
         mouse.command() != user_command::none ?
             mouse.command() :
             keyboard.command() );
+*/
 }
 
 bool
@@ -467,6 +469,15 @@ driver_mode::update_camera( double const Deltatime ) {
             simulation::Train->pMechViewAngle = { Camera.Angle.x, Camera.Angle.y };
             simulation::Train->pMechOffset = Camera.m_owneroffset;
         }
+
+        if( ( true == FreeFlyModeFlag )
+         && ( Camera.m_owner != nullptr ) ) {
+            // cache external view config
+            auto &externalviewconfig { m_externalviewconfigs[ m_externalviewmode ] };
+            externalviewconfig.owner = Camera.m_owner;
+            externalviewconfig.offset = Camera.m_owneroffset;
+            externalviewconfig.angle = Camera.Angle;
+        }
     }
     else {
         // debug camera
@@ -566,13 +577,13 @@ driver_mode::update_camera( double const Deltatime ) {
                 // gdy w korytarzu
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
-                    + simulation::Train->GetDirection() * 5.0;
+                    + Camera.m_owner->VectorFront() * 5.0;
             }
             else {
                 // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
-                    + simulation::Train->GetDirection() * 5.0
+                    + Camera.m_owner->VectorFront() * 5.0
                     * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
             }
             Camera.vUp = simulation::Train->GetUp();
@@ -906,18 +917,26 @@ driver_mode::ExternalView() {
 
             Camera.m_owner = owner;
 
-            auto const offsetflip {
-                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+            auto const &viewconfig { m_externalviewconfigs[ m_externalviewmode ] };
+            if( owner == viewconfig.owner ) {
+                // restore view config for previous owner
+                Camera.m_owneroffset = viewconfig.offset;
+                Camera.Angle = viewconfig.angle;
+            }
+            else {
+                // default view setup
+                auto const offsetflip{
+                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
 
-            Camera.m_owneroffset = {
-                  1.5 * owner->MoverParameters->Dim.W * offsetflip,
-                  std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
-                - 0.4 * owner->MoverParameters->Dim.L * offsetflip };
+                Camera.m_owneroffset = {
+                      1.5 * owner->MoverParameters->Dim.W * offsetflip,
+                      std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
+                    -0.4 * owner->MoverParameters->Dim.L * offsetflip };
 
-            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
-
-            auto const shakeangles { owner->shake_angles() };
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+            }
+            auto const shakeangles{ owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
             Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
 
@@ -929,18 +948,26 @@ driver_mode::ExternalView() {
 
             Camera.m_owner = owner;
 
-            auto const offsetflip {
-                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir )
-              * -1 };
+            auto const &viewconfig{ m_externalviewconfigs[ m_externalviewmode ] };
+            if( owner == viewconfig.owner ) {
+                // restore view config for previous owner
+                Camera.m_owneroffset = viewconfig.offset;
+                Camera.Angle = viewconfig.angle;
+            }
+            else {
+                // default view setup
+                auto const offsetflip{
+                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir )
+                  * -1 };
 
-            Camera.m_owneroffset = {
-                1.5 * owner->MoverParameters->Dim.W * offsetflip,
-                std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
-                0.2 * owner->MoverParameters->Dim.L * offsetflip };
+                Camera.m_owneroffset = {
+                    1.5 * owner->MoverParameters->Dim.W * offsetflip,
+                    std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
+                    0.2 * owner->MoverParameters->Dim.L * offsetflip };
 
-            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 0.0 : 180.0 ) );
-
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 0.0 : 180.0 ) );
+            }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
             Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
@@ -951,17 +978,25 @@ driver_mode::ExternalView() {
 
             Camera.m_owner = owner;
 
-            auto const offsetflip {
-                ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-              * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+            auto const &viewconfig{ m_externalviewconfigs[ m_externalviewmode ] };
+            if( owner == viewconfig.owner ) {
+                // restore view config for previous owner
+                Camera.m_owneroffset = viewconfig.offset;
+                Camera.Angle = viewconfig.angle;
+            }
+            else {
+                // default view setup
+                auto const offsetflip{
+                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
+                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
 
-            Camera.m_owneroffset = {
-                - 0.65 * owner->MoverParameters->Dim.W * offsetflip,
-                  0.90,
-                  0.15 * owner->MoverParameters->Dim.L * offsetflip };
+                Camera.m_owneroffset = {
+                    -0.65 * owner->MoverParameters->Dim.W * offsetflip,
+                      0.90,
+                      0.15 * owner->MoverParameters->Dim.L * offsetflip };
 
-            Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
-
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+            }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
             Camera.Angle.z = shakeangles.first; // hustanie kamery na boki

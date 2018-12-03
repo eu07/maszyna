@@ -647,16 +647,14 @@ TDynamicObject::toggle_lights() {
 }
 
 void
-TDynamicObject::set_cab_lights( float const Level ) {
-
-    if( Level == InteriorLightLevel ) { return; }
-
-    InteriorLightLevel = Level;
+TDynamicObject::set_cab_lights( int const Cab, float const Level ) {
 
     for( auto &section : Sections ) {
         // cab compartments are placed at the beginning of the list, so we can bail out as soon as we find different compartment type
         auto const sectionname { section.compartment->pName };
+        if( sectionname.size() < 4 ) { return; }
         if( sectionname.find( "cab" ) != 0 ) { return; }
+        if( sectionname[ 3 ] != Cab + '0' ) { continue; } // match the cab with correct index
 
         section.light_level = Level;
     }
@@ -984,7 +982,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         
-		if( ( Mechanik != nullptr )
+		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
+         && ( Mechanik != nullptr )
          && ( ( Mechanik->GetAction() != TAction::actSleep )
            || ( MoverParameters->Battery ) ) ) {
             // rysowanie figurki mechanika
@@ -1039,10 +1038,19 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // else btHeadSignals23.TurnOff();
     }
     // interior light levels
+    auto sectionlightcolor { glm::vec4( 1.f ) };
     for( auto const &section : Sections ) {
-        section.compartment->SetLightLevel( section.light_level, true );
+        /*
+        sectionlightcolor = glm::vec4( InteriorLight, section.light_level );
+        */
+        sectionlightcolor = glm::vec4(
+            ( ( ( section.light_level == 0.f ) || ( Global.fLuminance > section.compartment->fLight ) ) ?
+                glm::vec3( 240.f / 255.f ) : // TBD: save and restore initial submodel diffuse instead of enforcing one?
+                InteriorLight ), // TODO: per-compartment (type) light color
+            section.light_level );
+        section.compartment->SetLightLevel( sectionlightcolor, true );
         if( section.load != nullptr ) {
-            section.load->SetLightLevel( section.light_level, true );
+            section.load->SetLightLevel( sectionlightcolor, true );
         }
     }
     // load chunks visibility
@@ -1061,7 +1069,17 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             sectionchunk = sectionchunk->NextGet();
         }
     }
-
+    // driver cabs visibility
+    for( int cabidx = 0; cabidx < LowPolyIntCabs.size(); ++cabidx ) {
+        if( LowPolyIntCabs[ cabidx ] == nullptr ) { continue; }
+        LowPolyIntCabs[ cabidx ]->iVisible = (
+            mdKabina == nullptr ? true : // there's no hi-fi cab
+            bDisplayCab == false ? true : // we're in external view
+            simulation::Train == nullptr ? true : // not a player-driven vehicle, implies external view
+            simulation::Train->Dynamic() != this ? true : // not a player-driven vehicle, implies external view
+            JointCabs ? false : // internal view, all cabs share the model so hide them 'all'
+            ( simulation::Train->iCabn != cabidx ) ); // internal view, hide occupied cab and show others
+    }
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
 
@@ -1355,8 +1373,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     coupling::coupler ) ) {
-                // tmp->MoverParameters->Couplers[CouplNr].Render=true; //podłączony sprzęg będzie widoczny
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1374,9 +1390,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::brakehose ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
-
                 SetPneumatic( Side != 0, true );
                 if( Side == side::front ) {
                     PrevConnected->SetPneumatic( Side != 0, true );
@@ -1398,9 +1411,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::mainhose ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
-
                 SetPneumatic( Side != 0, false );
                 if( Side == side::front ) {
                     PrevConnected->SetPneumatic( Side != 0, false );
@@ -1422,8 +1432,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::control ) ) ) {
-                // TODO: dedicated sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1438,8 +1446,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::gangway ) ) ) {
-                // TODO: dedicated gangway sound
-                m_couplersounds[ Side ].dsbCouplerAttach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1454,9 +1460,6 @@ TDynamicObject::couple( int const Side ) {
                     Side, 2,
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::heating ) ) ) {
-
-                // TODO: dedicated 'click' sound for connecting cable-type connections
-                m_couplersounds[ Side ].dsbCouplerDetach.play();
                 // one coupling type per key press
                 return;
             }
@@ -1475,11 +1478,6 @@ TDynamicObject::uncouple( int const Side ) {
     }
     // jeżeli sprzęg niezablokowany, jest co odczepić i się da
     auto const couplingflag { Dettach( Side ) };
-    if( couplingflag == coupling::faux ) {
-        // dźwięk odczepiania
-        m_couplersounds[ Side ].dsbCouplerAttach.play();
-        m_couplersounds[ Side ].dsbCouplerDetach.play();
-    }
     return couplingflag;
 }
 
@@ -2183,9 +2181,18 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         // check the low poly interior for potential compartments of interest, ie ones which can be individually lit
         // TODO: definition of relevant compartments in the .mmd file
         TSubModel *submodel { nullptr };
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
-        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) { Sections.push_back( { submodel, nullptr, 0.0f } ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 0 ] = submodel;
+        }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 1 ] = submodel;
+        }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) {
+            Sections.push_back( { submodel, nullptr, 0.0f } );
+            LowPolyIntCabs[ 2 ] = submodel;
+        }
         // passenger car compartments
         std::vector<std::string> nameprefixes = { "corridor", "korytarz", "compartment", "przedzial" };
         for( auto const &nameprefix : nameprefixes ) {
@@ -2536,9 +2543,9 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
     loc.Z=Object->vPosition.y;
     Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
     */
-    MoverParameters->Attach(iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true);
+    MoverParameters->Attach(iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true, false);
     MoverParameters->Couplers[iDirection].Render = false;
-    Object->MoverParameters->Attach(Object->iDirection ^ 1, iDirection, MoverParameters, iType, true);
+    Object->MoverParameters->Attach(Object->iDirection ^ 1, iDirection, MoverParameters, iType, true, false);
     Object->MoverParameters->Couplers[Object->iDirection ^ 1].Render = true; // rysowanie sprzęgu w dołączanym
     if (iDirection)
     { //łączenie standardowe
@@ -2607,11 +2614,37 @@ void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int co
     }
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
-    m_exchange.speed_factor = (
-        Platform == 3 ?
-            2.0 :
-            1.0 );
+    m_exchange.platforms = Platform;
     m_exchange.time = 0.0;
+}
+
+// calculates time needed to complete current load change
+float TDynamicObject::LoadExchangeTime() const {
+
+    if( ( m_exchange.unload_count < 0.01 ) && ( m_exchange.load_count < 0.01 ) ) { return 0.f; }
+
+    auto const baseexchangetime { m_exchange.unload_count / MoverParameters->UnLoadSpeed + m_exchange.load_count / MoverParameters->LoadSpeed };
+    auto const nominalexchangespeedfactor { ( m_exchange.platforms == 3 ? 2.f : 1.f ) };
+    auto const actualexchangespeedfactor { LoadExchangeSpeed() };
+
+    return baseexchangetime / ( actualexchangespeedfactor > 0.f ? actualexchangespeedfactor : nominalexchangespeedfactor );
+}
+
+// calculates current load exchange rate
+float TDynamicObject::LoadExchangeSpeed() const {
+    // platforms (1:left, 2:right, 3:both)
+    // with exchange performed on both sides waiting times are halved
+    auto exchangespeedfactor { 0.f };
+    auto const lewe { ( DirectionGet() > 0 ) ? 1 : 2 };
+    auto const prawe { 3 - lewe };
+    if( m_exchange.platforms & lewe ) {
+        exchangespeedfactor += ( MoverParameters->DoorLeftOpened ? 1.f : 0.f );
+    }
+    if( m_exchange.platforms & prawe ) {
+        exchangespeedfactor += ( MoverParameters->DoorRightOpened ? 1.f : 0.f );
+    }
+
+    return exchangespeedfactor;
 }
 
 // update state of load exchange operation
@@ -2631,7 +2664,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
             && ( m_exchange.time >= 1.0 ) ) {
             
             m_exchange.time -= 1.0;
-            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * m_exchange.speed_factor );
+            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * LoadExchangeSpeed() );
             m_exchange.unload_count -= exchangesize;
             MoverParameters->LoadStatus = 1;
             MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
@@ -2645,7 +2678,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 && ( m_exchange.time >= 1.0 ) ) {
 
                 m_exchange.time -= 1.0;
-                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * m_exchange.speed_factor );
+                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * LoadExchangeSpeed() );
                 m_exchange.load_count -= exchangesize;
                 MoverParameters->LoadStatus = 2;
                 MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
@@ -4464,6 +4497,11 @@ void TDynamicObject::RenderSounds() {
 
         auto &coupler { MoverParameters->Couplers[ couplerindex ] };
 
+        if( coupler.sounds == sound::none ) {
+            ++couplerindex;
+            continue;
+        }
+
         if( true == TestFlag( coupler.sounds, sound::bufferclash ) ) {
             // zderzaki uderzaja o siebie
             if( true == TestFlag( coupler.sounds, sound::loud ) ) {
@@ -4488,6 +4526,7 @@ void TDynamicObject::RenderSounds() {
                     .play( sound_flags::exclusive );
             }
         }
+
         if( true == TestFlag( coupler.sounds, sound::couplerstretch ) ) {
             // sprzegi sie rozciagaja
             if( true == TestFlag( coupler.sounds, sound::loud ) ) {
@@ -4513,8 +4552,22 @@ void TDynamicObject::RenderSounds() {
             }
         }
 
-        coupler.sounds = 0;
+        // TODO: dedicated sound for each connection type
+        // until then, play legacy placeholders:
+        if( ( coupler.sounds & ( sound::attachcoupler | sound::attachcontrol | sound::attachgangway ) ) != 0 ) {
+            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
+        }
+        if( ( coupler.sounds & ( sound::attachbrakehose | sound::attachmainhose | sound::attachheating ) ) != 0 ) {
+            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+        }
+        if( true == TestFlag( coupler.sounds, sound::detachall ) ) {
+            // TODO: dedicated disconnect sounds
+            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
+            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+        }
+
         ++couplerindex;
+        coupler.sounds = 0;
     }
 
     MoverParameters->SoundFlag = 0;
@@ -5916,6 +5969,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         >> HuntingShake.fadein_end;
                 }
 
+                else if( token == "jointcabs:" ) {
+                    parser.getTokens();
+                    parser >> JointCabs;
+                }
 
             } while( token != "" );
 

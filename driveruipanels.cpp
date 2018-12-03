@@ -117,7 +117,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( -1.0 * controlled->Mechanik->fStopTime ) };
+            auto const stoptime { static_cast<int>( std::ceil( -1.0 * controlled->Mechanik->fStopTime ) ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
@@ -172,10 +172,10 @@ timetable_panel::update() {
         text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
     }
 
-    auto *vehicle {
-        ( FreeFlyModeFlag ?
-            std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) :
-            controlled ) }; // w trybie latania lokalizujemy wg mapy
+    auto *vehicle { (
+        false == FreeFlyModeFlag ? controlled :
+        camera.m_owner != nullptr ? camera.m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ) }; // w trybie latania lokalizujemy wg mapy
 
     if( vehicle == nullptr ) { return; }
     // if the nearest located vehicle doesn't have a direct driver, try to query its owner
@@ -285,10 +285,10 @@ debug_panel::update() {
     m_input.train = simulation::Train;
     m_input.controlled = ( m_input.train ? m_input.train->Dynamic() : nullptr );
     m_input.camera = &( Global.pCamera );
-    m_input.vehicle =
-        ( FreeFlyModeFlag ?
-            std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) :
-            m_input.controlled ); // w trybie latania lokalizujemy wg mapy
+    m_input.vehicle = (
+        false == FreeFlyModeFlag ? m_input.controlled :
+        m_input.camera->m_owner != nullptr ? m_input.camera->m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
     m_input.mover =
         ( m_input.vehicle != nullptr ?
             m_input.vehicle->MoverParameters :

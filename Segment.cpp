@@ -372,7 +372,7 @@ Math3D::vector3 TSegment::FastGetPoint(double const t) const
             interpolate( Point1, Point2, t ) );
 }
 
-bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, const gfx::vertex_array &ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, std::pair<float, float> fOffsetX, glm::vec3 **p, bool bRender)
+bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Origin, const gfx::vertex_array &ShapePoints, bool const Transition, double fTextureLength, double Texturescale, int iSkip, int iEnd, std::pair<float, float> fOffsetX, glm::vec3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli podany jest przekrój końcowy
@@ -382,8 +382,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
 
     glm::vec3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
     float s, step, fOffset, tv1, tv2, t, fEnd;
-    bool const trapez = iNumShapePoints < 0; // sygnalizacja trapezowatości
-    iNumShapePoints = std::abs( iNumShapePoints );
+    auto const iNumShapePoints = Transition ? ShapePoints.size() / 2 : ShapePoints.size();
     float const texturelength = fTextureLength * Texturescale;
     float const texturescale = Texturescale;
 
@@ -448,7 +447,7 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
         parallel2 = glm::normalize( parallel2 );
 
         // TODO: refactor the loop, there's no need to calculate starting points for each segment when we can copy the end points of the previous one
-        if( trapez ) {
+        if( Transition ) {
             for( int j = 0; j < iNumShapePoints; ++j ) {
                 pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].position.x - fOffsetX.first ) + m1 * ( ShapePoints[ j + iNumShapePoints ].position.x - fOffsetX.second ) ) + pos1;
                 pt.y += jmm1 * ShapePoints[ j ].position.y + m1 * ShapePoints[ j + iNumShapePoints ].position.y;

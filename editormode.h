@@ -75,12 +75,12 @@ private:
     bool
         mode_snap() const;
 // members
+    state_backup m_statebackup; // helper, cached variables to be restored on mode exit
     editormode_input m_input;
     TCamera Camera;
     double fTime50Hz { 0.0 }; // bufor czasu dla komunikacji z PoKeys
     scene::basic_editor m_editor;
     scene::basic_node *m_node; // currently selected scene node
     bool m_takesnapshot { true }; // helper, hints whether snapshot of selected node(s) should be taken before modification
-    state_backup m_statebackup; // helper, cached variables to be restored on mode exit
     bool m_dragging = false;
 };

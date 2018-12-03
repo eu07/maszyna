@@ -560,7 +560,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
 
 			auto const *vehicle = simulation::Train->Dynamic();
-			Render_cab(vehicle, false);
+			Render_cab(vehicle, vehicle->InteriorLightLevel, false);
 		}
 
 		glDebug("render opaque region");
@@ -593,10 +593,10 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			{
 				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
 				setup_drawing(false);
-				Render_cab(vehicle, false);
+				Render_cab(vehicle, vehicle->InteriorLightLevel, false);
 				setup_drawing(true);
 			}
-			Render_cab(vehicle, true);
+			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
 		}
 
 		setup_shadow_map(nullptr, m_renderpass);
@@ -700,8 +700,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 
-		Render_cab(simulation::Train->Dynamic(), false);
-		Render_cab(simulation::Train->Dynamic(), true);
+		Render_cab(simulation::Train->Dynamic(), 0.0f, false);
+		Render_cab(simulation::Train->Dynamic(), 0.0f, true);
 		m_cabshadowpass = m_renderpass;
 
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -771,7 +771,10 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render_cab(simulation::Train->Dynamic());
+		if (simulation::Train != nullptr) {
+			Render_cab(simulation::Train->Dynamic(), 0.0f);
+			Render(simulation::Train->Dynamic());
+		}
 
 		m_pick_fb->unbind();
 
@@ -919,7 +922,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	}
 	case rendermode::cabshadows:
 	{
-		Config.draw_range = (simulation::Train->Occupied()->ActiveCab != 0 ? 10.f : 20.f);
+		Config.draw_range = simulation::Train->Occupied()->Dim.L;
 		break;
 	}
 	case rendermode::reflections:
@@ -2088,13 +2091,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 
 		// render
 		if (Dynamic->mdLowPolyInt)
-		{
-			// low poly interior
-			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-			{
-				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-			}
-		}
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 
 		if (Dynamic->mdModel)
 			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
@@ -2117,10 +2114,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 		if (Dynamic->mdLowPolyInt)
 		{
 			// low poly interior
-			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-			{
-				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-			}
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 		}
 		if (Dynamic->mdModel)
 			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
@@ -2130,6 +2124,13 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 		break;
 	}
 	case rendermode::pickcontrols:
+	{
+		if (Dynamic->mdLowPolyInt) {
+			// low poly interior
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
+		}
+		break;
+	}
 	case rendermode::pickscenery:
 	default:
 	{
@@ -2149,7 +2150,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 }
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha)
+bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha)
 {
 
 	if (Dynamic == nullptr)
@@ -2189,7 +2190,7 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha
 
 			// crude way to light the cabin, until we have something more complete in place
 			glm::vec3 old_ambient = light_ubs.ambient;
-			light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+			light_ubs.ambient += Dynamic->InteriorLight * Lightlevel;
 			light_ubo->update(light_ubs);
 
 			// render
@@ -2344,10 +2345,9 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					}
 
 					// ...luminance
-					if (Global.fLuminance < Submodel->fLight)
-					{
+					auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+					if (isemissive)
 						model_ubs.emission = Submodel->f4Emision.a;
-					}
 
 					// main draw call
 					draw(Submodel->m_geometry);
@@ -3114,10 +3114,7 @@ bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
 	if (Dynamic->mdLowPolyInt)
 	{
 		// low poly interior
-		if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-		{
-			Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-		}
+		Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 	}
 
 	if (Dynamic->mdModel)
@@ -3236,10 +3233,9 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 					}
 					// ...luminance
 
-					if (Global.fLuminance < Submodel->fLight)
-					{
+					auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+					if (isemissive)
 						model_ubs.emission = Submodel->f4Emision.a;
-					}
 
 					// main draw call
 					draw(Submodel->m_geometry);

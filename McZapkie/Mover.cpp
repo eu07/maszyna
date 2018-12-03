@@ -406,7 +406,7 @@ double TMoverParameters::CouplerDist(int Coupler)
     return Couplers[ Coupler ].CoupleDist;
 };
 
-bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced)
+bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced, bool Audible)
 { //łączenie do swojego sprzęgu (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla każdego pojazdu oddzielnie
     // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do
@@ -433,12 +433,32 @@ bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *
                 coupler.Render = true; // tego rysować
                 othercoupler.Render = false; // a tego nie
             };
+            auto const couplingchange { CouplingType ^ coupler.CouplingFlag };
             coupler.CouplingFlag = CouplingType; // ustawienie typu sprzęgu
             // if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie łączymy zwrotnie!
             //{//jeśli łączenie sprzęgiem niewirtualnym, ustawiamy połączenie zwrotne
             othercoupler.CouplingFlag = CouplingType;
             othercoupler.Connected = this;
             othercoupler.CoupleDist = coupler.CoupleDist;
+
+            if( ( true == Audible ) && ( couplingchange != 0 ) ) {
+            // set sound event flag
+                int soundflag{ sound::none };
+                std::vector<std::pair<coupling, sound>> const soundmappings = {
+                    { coupling::coupler, sound::attachcoupler },
+                    { coupling::brakehose, sound::attachbrakehose },
+                    { coupling::mainhose, sound::attachmainhose },
+                    { coupling::control, sound::attachcontrol},
+                    { coupling::gangway, sound::attachgangway},
+                    { coupling::heating, sound::attachheating} };
+                for( auto const &soundmapping : soundmappings ) {
+                    if( ( couplingchange & soundmapping.first ) != 0 ) {
+                        soundflag |= soundmapping.second;
+                    }
+                }
+                SetFlag( coupler.sounds, soundflag );
+            }
+
             return true;
             //}
             // podłączenie nie udało się - jest wirtualne
@@ -489,6 +509,10 @@ bool TMoverParameters::Dettach(int ConnectNo)
         Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag =
             0; // pozostaje sprzęg wirtualny
         Couplers[ConnectNo].CouplingFlag = 0; // pozostaje sprzęg wirtualny
+
+        // set sound event flag
+        SetFlag( Couplers[ ConnectNo ].sounds, sound::detachall );
+
         return true;
     }
     else if (i > 0)
@@ -4405,7 +4429,8 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
                     // sprzeganie wagonow z samoczynnymi sprzegami}
                     // CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll+ctrain_passenger+ctrain_scndpneumatic;
                     // EN57
-                    Couplers[ CouplerN ].CouplingFlag = coupling::coupler | coupling::brakehose | coupling::mainhose | coupling::control;
+                    Couplers[ CouplerN ].CouplingFlag = coupling::coupler /*| coupling::brakehose | coupling::mainhose | coupling::control*/;
+                    SetFlag( Couplers[ CouplerN ].sounds, sound::attachcoupler );
                 }
             }
         }
@@ -4857,9 +4882,13 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 EnginePower = Voltage * Im / 1000.0;
 /*
-                // NOTE: this part is experimentally disabled, as it generated early traction force drop for undetermined purpose
-                if ((tmpV > 2) && (EnginePower < tmp))
-                    Ft = Ft * EnginePower / tmp;
+                // power curve drop
+                // NOTE: disabled for the time being due to side-effects
+                if( ( tmpV > 1 ) && ( EnginePower < tmp ) ) {
+                    Ft = interpolate(
+                        Ft, EnginePower / tmp,
+                        clamp( tmpV - 1.0, 0.0, 1.0 ) );
+                }
 */
             }
 

@@ -60,6 +60,12 @@ private:
         count_
     };
 
+    struct view_config {
+        TDynamicObject const *owner { nullptr };
+        Math3D::vector3 offset {};
+        Math3D::vector3 angle {};
+    };
+
     struct drivermode_input {
 
         gamepad_input gamepad;
@@ -94,6 +100,7 @@ private:
     TCamera DebugCamera;
     int m_externalviewmode { view::consistfront }; // selected external view mode
     bool m_externalview { false };
+    std::array<view_config, view::count_> m_externalviewconfigs;
     TDynamicObject *pDynamicNearest { nullptr }; // vehicle nearest to the active camera. TODO: move to camera
     double fTime50Hz { 0.0 }; // bufor czasu dla komunikacji z PoKeys
     double const m_primaryupdaterate { 1.0 / 100.0 };
