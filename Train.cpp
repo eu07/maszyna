@@ -742,11 +742,20 @@ void TTrain::OnCommand_aidriverdisable( TTrain *Train, command_data const &Comma
     }
 }
 
+auto const EU07_CONTROLLER_BASERETURNDELAY { 0.5f };
+auto const EU07_CONTROLLER_KEYBOARDETURNDELAY { 1.5f };
+
 void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         Train->mvControlled->IncMainCtrl( 1 );
+        Train->m_mastercontrollerinuse = true;
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -768,6 +777,7 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
     else {
         // release
         Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -789,6 +799,7 @@ void TTrain::OnCommand_mastercontrollerset( TTrain *Train, command_data const &C
     else {
         // release
         Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_BASERETURNDELAY; // NOTE: keyboard return delay is omitted for other input sources
     }
 }
 
@@ -797,19 +808,11 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
-         && ( true == Train->mvControlled->ShuntMode ) ) {
+            && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos + 0.025,
                 0.0, 1.0 );
         }
-        else {
-            Train->mvControlled->IncScndCtrl( 1 );
-        }
-        Train->m_mastercontrollerinuse = true;
-    }
-    else {
-        // release
-        Train->m_mastercontrollerinuse = false;
     }
 }
 
@@ -3698,7 +3701,7 @@ void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Comm
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
+                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > Math3D::LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -3724,7 +3727,7 @@ void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Comm
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
+                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > Math3D::LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -4878,12 +4881,16 @@ bool TTrain::Update( double const Deltatime )
                  || ( input::command == user_command::mastercontrollerdecrease ) ) ) {
 */
                 if( false == m_mastercontrollerinuse ) {
-                    if( mvOccupied->MainCtrlPos > mvOccupied->MainCtrlActualPos ) {
-                        mvOccupied->DecMainCtrl( 1 );
-                    }
-                    else if( mvOccupied->MainCtrlPos < mvOccupied->MainCtrlActualPos ) {
-                        // Ra 15-01: a to nie miało być tylko cofanie?
-                        mvOccupied->IncMainCtrl( 1 );
+                    m_mastercontrollerreturndelay -= Deltatime;
+                    if( m_mastercontrollerreturndelay < 0.f ) {
+                        m_mastercontrollerreturndelay = EU07_CONTROLLER_BASERETURNDELAY;
+                        if( mvOccupied->MainCtrlPos > mvOccupied->MainCtrlActualPos ) {
+                            mvOccupied->DecMainCtrl( 1 );
+                        }
+                        else if( mvOccupied->MainCtrlPos < mvOccupied->MainCtrlActualPos ) {
+                            // Ra 15-01: a to nie miało być tylko cofanie?
+                            mvOccupied->IncMainCtrl( 1 );
+                        }
                     }
                 }
             }

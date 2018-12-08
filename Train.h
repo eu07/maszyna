@@ -644,6 +644,7 @@ private:
     // McZapkie: do syczenia
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
+    float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     std::vector<std::pair<std::string, texture_handle>> m_screens;
 
