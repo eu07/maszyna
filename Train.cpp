@@ -1031,18 +1031,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
 		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep );
-
-    if (Command.action == GLFW_RELEASE) {
-        // release
-        if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
-         && ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
-         && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global.iFeedbackMode < 3 ) ) {
-            // Odskakiwanie hamulce EP
-            Train->set_train_brake( 0 );
-        }
-    }
-    else {
+    else if (Command.action == GLFW_RELEASE) {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
