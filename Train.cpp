@@ -750,6 +750,11 @@ void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         Train->mvControlled->IncMainCtrl( 1 );
+        Train->m_mastercontrollerinuse = true;
+    }
+    else if (Command.action == GLFW_RELEASE) {
+        // release
+        Train->m_mastercontrollerinuse = false;
     }
 }
 
@@ -768,7 +773,7 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
         Train->mvControlled->DecMainCtrl( 1 );
         Train->m_mastercontrollerinuse = true;
     }
-    else {
+    else if (Command.action == GLFW_RELEASE) {
         // release
         Train->m_mastercontrollerinuse = false;
     }
@@ -808,11 +813,6 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         else {
             Train->mvControlled->IncScndCtrl( 1 );
         }
-        Train->m_mastercontrollerinuse = true;
-    }
-    else {
-        // release
-        Train->m_mastercontrollerinuse = false;
     }
 }
 
