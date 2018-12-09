@@ -17,12 +17,13 @@ namespace network
 		std::string m_body_buffer;
 
 		void read_header();
-		void handle_header(const asio::error_code &err);
-		void handle_data(const asio::error_code &err);
+		void handle_send(std::shared_ptr<std::string> buf, const asio::error_code &err, size_t bytes_transferred);
+		void handle_header(const asio::error_code &err, size_t bytes_transferred);
+		void handle_data(const asio::error_code &err, size_t bytes_transferred);
 
 	protected:
 		void disconnect() override;
-		void send_data(uint8_t *buffer, size_t len) override;
+		void send_data(std::shared_ptr<std::string> buffer) override;
 
 	public:
 		tcp_conn(asio::io_context &io_ctx);

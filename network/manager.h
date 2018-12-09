@@ -9,10 +9,13 @@ namespace network
 	{
 		asio::io_context io_context;
 		std::vector<std::shared_ptr<server>> servers;
+		//std::shared_ptr<client> client;
 
 	public:
 		manager();
 
+		void create_server();
+		void connect();
 		void poll();
 	};
 }
