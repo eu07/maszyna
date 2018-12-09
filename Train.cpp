@@ -750,6 +750,11 @@ void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         Train->mvControlled->IncMainCtrl( 1 );
+        Train->m_mastercontrollerinuse = true;
+    }
+    else if (Command.action == GLFW_RELEASE) {
+        // release
+        Train->m_mastercontrollerinuse = false;
     }
 }
 
@@ -768,7 +773,7 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
         Train->mvControlled->DecMainCtrl( 1 );
         Train->m_mastercontrollerinuse = true;
     }
-    else {
+    else if (Command.action == GLFW_RELEASE) {
         // release
         Train->m_mastercontrollerinuse = false;
     }
@@ -808,11 +813,6 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         else {
             Train->mvControlled->IncScndCtrl( 1 );
         }
-        Train->m_mastercontrollerinuse = true;
-    }
-    else {
-        // release
-        Train->m_mastercontrollerinuse = false;
     }
 }
 
@@ -1031,18 +1031,7 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
 		Train->mvOccupied->BrakeLevelAdd( -Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
 	else if (Command.action == GLFW_PRESS && Train->mvOccupied->BrakeHandle != TBrakeHandle::FV4a)
 		Train->set_train_brake( Train->mvOccupied->fBrakeCtrlPos - Global.fBrakeStep );
-
-    if (Command.action == GLFW_RELEASE) {
-        // release
-        if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
-         && ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
-         && ( Train->DynamicObject->Controller != AIdriver )
-         && ( Global.iFeedbackMode < 3 ) ) {
-            // Odskakiwanie hamulce EP
-            Train->set_train_brake( 0 );
-        }
-    }
-    else {
+    else if (Command.action == GLFW_RELEASE) {
         // release
         if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
          && ( Train->mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
