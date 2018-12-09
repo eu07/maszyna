@@ -363,7 +363,7 @@ enum class TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 /*podtypy hamulcow zespolonych*/
 enum class TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
 enum class TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P };
+enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P, MHZ_K8P };
 /*typy hamulcow indywidualnych*/
 enum class TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
 /*dla osob/towar: opoznienie hamowania/odhamowania*/
