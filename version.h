@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 (GL3) 03.12.2018, based on milek-0b152db, tmj-3fbf5bf8"
+#define VERSION_INFO "M7 (GL3) 09.12.2018, based on milek-574e2cf3, tmj-57327f96"
