@@ -119,6 +119,8 @@ private:
     float fCosHotspotAngle { 0.3f }; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie światła
     float fCosViewAngle { 0.0f }; // cos kata pod jakim sie teraz patrzy
 
+	bool m_rotation_init_done = false;
+
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
 public: // temporary access, clean this up during refactoring
