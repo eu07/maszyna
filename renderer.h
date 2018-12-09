@@ -411,6 +411,8 @@ class opengl_renderer
     bool m_blendingenabled;
 
 	bool m_widelines_supported;
+
+	float in_cutoff=0.997f, out_cutoff=0.99f, linear=0.07f, quadratic=0.02f, ambient=0.25f;
 };
 
 extern opengl_renderer GfxRenderer;

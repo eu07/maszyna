@@ -44,7 +44,7 @@ vec2 calc_light(vec3 light_dir)
 #endif
 	vec3 view_dir = normalize(vec3(0.0f, 0.0f, 0.0f) - f_pos.xyz);
 	vec3 halfway_dir = normalize(light_dir + view_dir);
-	
+
 	float diffuse_v = max(dot(normal, light_dir), 0.0);
 	float specular_v = pow(max(dot(normal, halfway_dir), 0.0), 15.0);
 
@@ -55,6 +55,7 @@ vec2 calc_point_light(light_s light)
 {
 	vec3 light_dir = normalize(light.pos - f_pos.xyz);
 	vec2 val = calc_light(light_dir);
+	val.x += light.ambient;
 	
 	float distance = length(light.pos - f_pos.xyz);
 	float atten = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));

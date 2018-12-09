@@ -31,6 +31,7 @@ void gl::glsl_common_setup()
 
             float linear;
             float quadratic;
+	        float ambient;
     };
 
     layout(std140) uniform light_ubo

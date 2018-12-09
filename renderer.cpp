@@ -633,6 +633,17 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 			glDisable(GL_FRAMEBUFFER_SRGB);
 
+		if (DebugModeFlag)
+		{
+			ImGui::Begin("light conf");
+			ImGui::SliderFloat("in_cutoff", &in_cutoff, 0.9f, 1.1f);
+			ImGui::SliderFloat("out_cutoff", &out_cutoff, 0.9f, 1.1f);
+			ImGui::SliderFloat("linear", &linear, 0.0f, 1.0f, "%.3f", 2.0f);
+			ImGui::SliderFloat("quadratic", &quadratic, 0.0f, 1.0f, "%.3f", 2.0f);
+			ImGui::SliderFloat("ambient", &ambient, 0.0f, 1.0f);
+			ImGui::End();
+		}
+
 		glDebug("uilayer render");
 		Application.render_ui();
 
@@ -3700,11 +3711,12 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		l->pos = mv * glm::vec4(renderlight->position, 1.0f);
 		l->dir = mv * glm::vec4(renderlight->direction, 0.0f);
 		l->type = gl::light_element_ubs::SPOT;
-		l->in_cutoff = 0.997f;
-		l->out_cutoff = 0.99f;
+		l->in_cutoff = in_cutoff;
+		l->out_cutoff = out_cutoff;
 		l->color = renderlight->diffuse * renderlight->factor;
-		l->linear = 0.007f;
-		l->quadratic = 0.0002f;
+		l->linear = linear / 10.0f;
+		l->quadratic = quadratic / 100.0f;
+		l->ambient = ambient;
 		light_i++;
 
 		++renderlight;
@@ -3714,6 +3726,7 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 	light_ubs.lights[0].type = gl::light_element_ubs::DIR;
 	light_ubs.lights[0].dir = mv * glm::vec4(m_sunlight.direction, 0.0f);
 	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor;
+	light_ubs.lights[0].ambient = 0.0f;
 	light_ubs.lights_count = light_i;
 
 	light_ubs.fog_color = Global.FogColor;
