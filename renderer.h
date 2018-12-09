@@ -194,6 +194,8 @@ class opengl_renderer
     GLenum static const sunlight{0};
 	std::size_t m_drawcount{0};
 
+	bool debug_ui_active = false;
+
   private:
 	// types
 	enum class rendermode
@@ -276,6 +278,8 @@ class opengl_renderer
 
     void draw(const gfx::geometry_handle &handle);
     void draw(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
+
+	void draw_debug_ui();
 
 	// members
 	GLFWwindow *m_window{nullptr};
@@ -412,7 +416,19 @@ class opengl_renderer
 
 	bool m_widelines_supported;
 
-	float in_cutoff=0.997f, out_cutoff=0.99f, linear=0.07f, quadratic=0.02f, ambient=0.25f;
+	struct headlight_config_s
+	{
+		float in_cutoff = 1.005f;
+		float out_cutoff = 0.993f;
+
+		float falloff_linear = 0.069f;
+		float falloff_quadratic = 0.03f;
+
+		float intensity = 1.0f;
+		float ambient = 0.184f;
+	};
+
+	headlight_config_s headlight_config;
 };
 
 extern opengl_renderer GfxRenderer;

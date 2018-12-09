@@ -442,6 +442,28 @@ void opengl_renderer::SwapBuffers()
 	Timer::subsystem.gfx_swap.stop();
 }
 
+void opengl_renderer::draw_debug_ui()
+{
+	if (!debug_ui_active)
+		return;
+
+	if (ImGui::Begin("headlight config", &debug_ui_active))
+	{
+		ImGui::SetWindowSize(ImVec2(0, 0));
+
+		headlight_config_s &conf = headlight_config;
+		ImGui::SliderFloat("in_cutoff", &conf.in_cutoff, 0.9f, 1.1f);
+		ImGui::SliderFloat("out_cutoff", &conf.out_cutoff, 0.9f, 1.1f);
+
+		ImGui::SliderFloat("falloff_linear", &conf.falloff_linear, 0.0f, 1.0f, "%.3f", 2.0f);
+		ImGui::SliderFloat("falloff_quadratic", &conf.falloff_quadratic, 0.0f, 1.0f, "%.3f", 2.0f);
+
+		ImGui::SliderFloat("ambient", &conf.ambient, 0.0f, 3.0f);
+		ImGui::SliderFloat("intensity", &conf.intensity, 0.0f, 10.0f);
+	}
+	ImGui::End();
+}
+
 // runs jobs needed to generate graphics for specified render pass
 void opengl_renderer::Render_pass(rendermode const Mode)
 {
@@ -633,18 +655,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 			glDisable(GL_FRAMEBUFFER_SRGB);
 
-		if (DebugModeFlag)
-		{
-			ImGui::Begin("light conf");
-			ImGui::SliderFloat("in_cutoff", &in_cutoff, 0.9f, 1.1f);
-			ImGui::SliderFloat("out_cutoff", &out_cutoff, 0.9f, 1.1f);
-			ImGui::SliderFloat("linear", &linear, 0.0f, 1.0f, "%.3f", 2.0f);
-			ImGui::SliderFloat("quadratic", &quadratic, 0.0f, 1.0f, "%.3f", 2.0f);
-			ImGui::SliderFloat("ambient", &ambient, 0.0f, 1.0f);
-			ImGui::End();
-		}
-
 		glDebug("uilayer render");
+		draw_debug_ui();
 		Application.render_ui();
 
 		// restore binding
@@ -3711,12 +3723,13 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		l->pos = mv * glm::vec4(renderlight->position, 1.0f);
 		l->dir = mv * glm::vec4(renderlight->direction, 0.0f);
 		l->type = gl::light_element_ubs::SPOT;
-		l->in_cutoff = in_cutoff;
-		l->out_cutoff = out_cutoff;
+		l->in_cutoff = headlight_config.in_cutoff;
+		l->out_cutoff = headlight_config.out_cutoff;
 		l->color = renderlight->diffuse * renderlight->factor;
-		l->linear = linear / 10.0f;
-		l->quadratic = quadratic / 100.0f;
-		l->ambient = ambient;
+		l->linear = headlight_config.falloff_linear / 10.0f;
+		l->quadratic = headlight_config.falloff_quadratic / 100.0f;
+		l->ambient = headlight_config.ambient;
+		l->intensity = headlight_config.intensity;
 		light_i++;
 
 		++renderlight;
@@ -3727,6 +3740,7 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 	light_ubs.lights[0].dir = mv * glm::vec4(m_sunlight.direction, 0.0f);
 	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor;
 	light_ubs.lights[0].ambient = 0.0f;
+	light_ubs.lights[0].intensity = 1.0f;
 	light_ubs.lights_count = light_i;
 
 	light_ubs.fog_color = Global.FogColor;

@@ -368,6 +368,8 @@ void ui_layer::render_menu_contents()
         ImGui::MenuItem(LOC_STR(ui_log), "F9", &m_logpanel.is_open);
         if (Global.map_enabled && m_map)
             ImGui::MenuItem(LOC_STR(ui_map), "Tab", &m_map->map_opened);
+		if (DebugModeFlag)
+			ImGui::MenuItem("Headlight config", nullptr, &GfxRenderer.debug_ui_active);
         ImGui::EndMenu();
     }
 }

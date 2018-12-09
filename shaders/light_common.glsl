@@ -56,6 +56,7 @@ vec2 calc_point_light(light_s light)
 	vec3 light_dir = normalize(light.pos - f_pos.xyz);
 	vec2 val = calc_light(light_dir);
 	val.x += light.ambient;
+	val *= light.intensity;
 	
 	float distance = length(light.pos - f_pos.xyz);
 	float atten = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));

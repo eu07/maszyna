@@ -31,6 +31,8 @@ void gl::glsl_common_setup()
 
             float linear;
             float quadratic;
+
+	        float intensity;
 	        float ambient;
     };
 
