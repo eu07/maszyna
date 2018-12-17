@@ -490,7 +490,7 @@ int TMoverParameters::DettachStatus(int ConnectNo)
     // if (CouplerType==Articulated) return false; //sprzęg nie do rozpięcia - może być tylko urwany
     // Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
     CouplerDist(ConnectNo);
-    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Couplers[ConnectNo].CoupleDist < 0.0 : true)
+    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Couplers[ConnectNo].CoupleDist < 0.01 : true)
         return -Couplers[ConnectNo].CouplingFlag; // można rozłączać, jeśli dociśnięty
     return (Couplers[ConnectNo].CoupleDist > 0.2) ? -Couplers[ConnectNo].CouplingFlag :
                                                     Couplers[ConnectNo].CouplingFlag;
@@ -2729,64 +2729,73 @@ bool TMoverParameters::MotorBlowersSwitchOff( bool State, side const Side, range
 // Q: 20160713
 // włączenie / wyłączenie obwodu głownego
 // *************************************************************************************************
-bool TMoverParameters::MainSwitch( bool const State, range_t const Notify )
-{
+bool TMoverParameters::MainSwitch( bool const State, range_t const Notify ) {
+
     bool const initialstate { Mains || dizel_startup };
 
-    if( ( Mains != State )
-     && ( MainCtrlPosNo > 0 ) ) {
+    MainSwitch_( State );
 
-        if( ( false == State )
-         || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
-           && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
-           && ( true == NoVoltRelay )
-           && ( true == OvervoltageRelay )
-           && ( LastSwitchingTime > CtrlDelay )
-           && ( false == TestFlag( DamageFlag, dtrain_out ) )
-           && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
-
-            if( true == State ) {
-                // switch on
-                if( ( EngineType == TEngineType::DieselEngine )
-                 || ( EngineType == TEngineType::DieselElectric ) ) {
-                    // launch diesel engine startup procedure
-                    dizel_startup = true;
-                }
-                else {
-                    Mains = true;
-                }
-            }
-            else {
-                Mains = false;
-                // potentially knock out the pumps if their switch doesn't force them on
-                WaterPump.is_active &= WaterPump.is_enabled;
-                FuelPump.is_active &= FuelPump.is_enabled;
-            }
-
-            if( ( TrainType == dt_EZT )
-             && ( false == State ) ) {
-
-                ConvOvldFlag = true;
-            }
-
-            if( Mains != initialstate ) {
-                LastSwitchingTime = 0;
-            }
-
-            if( Notify != range_t::local ) {
-                // pass the command to other vehicles
-                SendCtrlToNext(
-                    "MainSwitch",
-                    ( State ? 1 : 0 ),
-                    CabNo,
-                    ( Notify == range_t::unit ?
-                        coupling::control | coupling::permanent :
-                        coupling::control ) );
-            }
-        }
+    if( Notify != range_t::local ) {
+    // pass the command to other vehicles
+    SendCtrlToNext(
+        "MainSwitch",
+        ( State ? 1 : 0 ),
+        CabNo,
+        ( Notify == range_t::unit ?
+            coupling::control | coupling::permanent :
+            coupling::control ) );
     }
 
     return ( ( Mains || dizel_startup ) != initialstate );
+}
+
+void TMoverParameters::MainSwitch_( bool const State ) {
+
+    if( ( Mains == State )
+     || ( MainCtrlPosNo == 0 ) ) {
+        // nothing to do
+        return;
+    }
+
+    bool const initialstate { Mains || dizel_startup };
+
+    if( ( false == State )
+     || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
+       && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+       && ( true == NoVoltRelay )
+       && ( true == OvervoltageRelay )
+       && ( LastSwitchingTime > CtrlDelay )
+       && ( false == TestFlag( DamageFlag, dtrain_out ) )
+       && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
+
+        if( true == State ) {
+            // switch on
+            if( ( EngineType == TEngineType::DieselEngine )
+             || ( EngineType == TEngineType::DieselElectric ) ) {
+                // launch diesel engine startup procedure
+                dizel_startup = true;
+            }
+            else {
+                Mains = true;
+            }
+        }
+        else {
+            Mains = false;
+            // potentially knock out the pumps if their switch doesn't force them on
+            WaterPump.is_active &= WaterPump.is_enabled;
+            FuelPump.is_active &= FuelPump.is_enabled;
+        }
+
+        if( ( TrainType == dt_EZT )
+         && ( false == State ) ) {
+
+            ConvOvldFlag = true;
+        }
+
+        if( Mains != initialstate ) {
+            LastSwitchingTime = 0;
+        }
+    }
 }
 
 // *************************************************************************************************
@@ -9446,22 +9455,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
     }
     else if (Command == "MainSwitch")
 	{
-		if (CValue1 == 1) {
-
-            if( ( EngineType == TEngineType::DieselEngine )
-             || ( EngineType == TEngineType::DieselElectric ) ) {
-                dizel_startup = true;
-            }
-            else {
-                Mains = true;
-            }
-		}
-        else {
-            Mains = false;
-            // potentially knock out the pumps if their switch doesn't force them on
-            WaterPump.is_active &= WaterPump.is_enabled;
-            FuelPump.is_active &= FuelPump.is_enabled;
-        }
+        MainSwitch_( CValue1 > 0.0 );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Direction")

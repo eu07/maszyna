@@ -620,8 +620,12 @@ void
 TDynamicObject::toggle_lights() {
 
     if( true == SectionLightsActive ) {
-        // switch all lights off
+        // switch all lights off...
         for( auto &section : Sections ) {
+            // ... but skip cab sections, their lighting ignores battery state
+            auto const sectionname { section.compartment->pName };
+            if( sectionname.find( "cab" ) == 0 ) { continue; }
+
             section.light_level = 0.0f;
         }
         SectionLightsActive = false;

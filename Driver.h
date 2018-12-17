@@ -222,6 +222,7 @@ public:
     double BrakingLevelIncrease{ 0.25 };
     bool IsCargoTrain{ false };
     bool IsHeavyCargoTrain{ false };
+    bool IsLineBreakerClosed{ false }; // state of line breaker in all powered vehicles under control
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca

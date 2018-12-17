@@ -2430,7 +2430,7 @@ bool TController::PrepareEngine()
                     ; // zerowanie napędu
                 mvControlling->ConvOvldFlag = false; // reset nadmiarowego
             }
-            else if (false == mvControlling->Mains) {
+            else if (false == IsLineBreakerClosed) {
                 while (DecSpeed(true))
                     ; // zerowanie napędu
                 if( mvOccupied->TrainType == dt_SN61 ) {
@@ -3206,8 +3206,8 @@ void TController::SpeedCntrl(double DesiredSpeed)
 	else if (mvControlling->ScndCtrlPosNo > 1)
 	{
 		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
-		while (mvControlling->ScndCtrlPos > DesiredPos) mvControlling->DecScndCtrl(1);
-		while (mvControlling->ScndCtrlPos < DesiredPos) mvControlling->IncScndCtrl(1);
+        while( ( mvControlling->ScndCtrlPos > DesiredPos ) && ( true == mvControlling->DecScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
+        while( ( mvControlling->ScndCtrlPos < DesiredPos ) && ( true == mvControlling->IncScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
 	}
 };
 
@@ -3826,37 +3826,47 @@ TController::UpdateSituation(double dt) {
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     double dy; // składowa styczna grawitacji, w przedziale <0,1>
     double AbsAccS = 0;
+    IsLineBreakerClosed = true; // presume things are in working order
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
+        auto *vehicle { p->MoverParameters };
         if (Ready) {
             // bo jak coś nie odhamowane, to dalej nie ma co sprawdzać
-            if (p->MoverParameters->BrakePress >= 0.4) // wg UIC określone sztywno na 0.04
+            if (vehicle->BrakePress >= 0.4) // wg UIC określone sztywno na 0.04
             {
                 Ready = false; // nie gotowy
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
                 if (AIControllFlag) // skład jak dotąd był wyluzowany
                 {
                     if( ( mvOccupied->BrakeCtrlPos == 0 ) // jest pozycja jazdy
-                     && ( ( p->MoverParameters->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) // brake isn't broken
-                     && ( p->MoverParameters->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
-                     && ( p->MoverParameters->Hamulec->GetCRP() > p->MoverParameters->PipePress + 0.12 ) ) { // za dużo w zbiorniku
+                     && ( ( vehicle->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) // brake isn't broken
+                     && ( vehicle->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
+                     && ( vehicle->Hamulec->GetCRP() > vehicle->PipePress + 0.12 ) ) { // za dużo w zbiorniku
                         // indywidualne luzowanko
-                        p->MoverParameters->BrakeReleaser( 1 );
+                        vehicle->BrakeReleaser( 1 );
                     }
-                    if (p->MoverParameters->Power > 0.01) // jeśli ma silnik
-                        if (p->MoverParameters->FuseFlag) // wywalony nadmiarowy
-                            Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
+                    if( ( vehicle->Power > 0.01 ) // jeśli ma silnik
+                     && ( vehicle->FuseFlag ) ) { // wywalony nadmiarowy
+                        Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
+                    }
                 }
             }
         }
-        if (fReady < p->MoverParameters->BrakePress)
-            fReady = p->MoverParameters->BrakePress; // szukanie najbardziej zahamowanego
+        if (fReady < vehicle->BrakePress)
+            fReady = vehicle->BrakePress; // szukanie najbardziej zahamowanego
         if( ( dy = p->VectorFront().y ) != 0.0 ) {
             // istotne tylko dla pojazdów na pochyleniu
             // ciężar razy składowa styczna grawitacji
-            fAccGravity -= p->MoverParameters->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
+            fAccGravity -= vehicle->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
         }
+        // test state of main switch in all powered vehicles under control
+        if( ( vehicle->Power > 0.01 )
+         && ( ( vehicle == mvControlling )
+           || ( p->PrevC( coupling::control ) != nullptr ) ) ) {
+            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
+        }
+
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
     if( iDirection ) {
@@ -5221,10 +5231,10 @@ TController::UpdateSituation(double dt) {
                     return; // ...and don't touch any other controls
                 }
 
-                if (mvControlling->ConvOvldFlag ||
-                    !mvControlling->Mains) // WS może wywalić z powodu błędu w drutach
-                { // wywalił bezpiecznik nadmiarowy przetwornicy
-                    PrepareEngine(); // próba ponownego załączenia
+                if( ( true == mvControlling->ConvOvldFlag ) // wywalił bezpiecznik nadmiarowy przetwornicy
+                 || ( false == IsLineBreakerClosed ) ) { // WS może wywalić z powodu błędu w drutach
+                    // próba ponownego załączenia
+                    PrepareEngine();
                 }
                 // włączanie bezpiecznika
                 if ((mvControlling->EngineType == TEngineType::ElectricSeriesMotor) ||

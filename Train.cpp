@@ -808,10 +808,13 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
-            && ( true == Train->mvControlled->ShuntMode ) ) {
+         && ( true == Train->mvControlled->ShuntMode ) ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos + 0.025,
                 0.0, 1.0 );
+        }
+        else {
+            Train->mvControlled->IncScndCtrl( 1 );
         }
     }
 }
@@ -900,16 +903,19 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command ) {
 
-    auto const targetposition { std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
-    while( ( targetposition < Train->mvControlled->ScndCtrlPos )
-        && ( true == Train->mvControlled->DecScndCtrl( 1 ) ) ) {
-        // all work is done in the header
-        ;
-    }
-    while( ( targetposition > Train->mvControlled->ScndCtrlPos )
-        && ( true == Train->mvControlled->IncScndCtrl( 1 ) ) ) {
-        // all work is done in the header
-        ;
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        auto const targetposition{ std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
+        while( ( targetposition < Train->mvControlled->ScndCtrlPos )
+            && ( true == Train->mvControlled->DecScndCtrl( 1 ) ) ) {
+            // all work is done in the header
+            ;
+        }
+        while( ( targetposition > Train->mvControlled->ScndCtrlPos )
+            && ( true == Train->mvControlled->IncScndCtrl( 1 ) ) ) {
+            // all work is done in the header
+            ;
+        }
     }
 }
 
@@ -961,10 +967,13 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &Command ) {
 
-    Train->mvControlled->LocalBrakePosA = (
-        clamp(
-            Command.param1,
-            0.0, 1.0 ) );
+    if( Command.action != GLFW_RELEASE ) {
+
+        Train->mvControlled->LocalBrakePosA = (
+            clamp(
+                Command.param1,
+                0.0, 1.0 ) );
+    }
 /*
     Train->mvControlled->LocalBrakePos = (
         std::round(

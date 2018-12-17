@@ -243,24 +243,10 @@ void TAnimContainer::UpdateModel() {
         }
         if (fRotateSpeed != 0.0)
         {
-
-            /*
-               double dif= fDesiredAngle-fAngle;
-               double s= fRotateSpeed*sign(dif)*Timer::GetDeltaTime();
-               if ((abs(s)-abs(dif))>0)
-                   fAngle= fDesiredAngle;
-               else
-                   fAngle+= s;
-
-               while (fAngle>360) fAngle-= 360;
-               while (fAngle<-360) fAngle+= 360;
-               pSubModel->SetRotate(vRotateAxis,fAngle);
-            */
-
             bool anim = false;
             auto dif = vDesiredAngles - vRotateAngles;
             double s;
-            s = fRotateSpeed * sign(dif.x) * Timer::GetDeltaTime();
+            s = std::abs( fRotateSpeed ) * sign(dif.x) * Timer::GetDeltaTime();
             if (fabs(s) >= fabs(dif.x))
                 vRotateAngles.x = vDesiredAngles.x;
             else
@@ -268,7 +254,7 @@ void TAnimContainer::UpdateModel() {
                 vRotateAngles.x += s;
                 anim = true;
             }
-            s = fRotateSpeed * sign(dif.y) * Timer::GetDeltaTime();
+            s = std::abs( fRotateSpeed ) * sign(dif.y) * Timer::GetDeltaTime();
             if (fabs(s) >= fabs(dif.y))
                 vRotateAngles.y = vDesiredAngles.y;
             else
@@ -276,7 +262,7 @@ void TAnimContainer::UpdateModel() {
                 vRotateAngles.y += s;
                 anim = true;
             }
-            s = fRotateSpeed * sign(dif.z) * Timer::GetDeltaTime();
+            s = std::abs( fRotateSpeed ) * sign(dif.z) * Timer::GetDeltaTime();
             if (fabs(s) >= fabs(dif.z))
                 vRotateAngles.z = vDesiredAngles.z;
             else
@@ -284,22 +270,27 @@ void TAnimContainer::UpdateModel() {
                 vRotateAngles.z += s;
                 anim = true;
             }
-            while (vRotateAngles.x >= 360)
-                vRotateAngles.x -= 360;
-            while (vRotateAngles.x <= -360)
-                vRotateAngles.x += 360;
-            while (vRotateAngles.y >= 360)
-                vRotateAngles.y -= 360;
-            while (vRotateAngles.y <= -360)
-                vRotateAngles.y += 360;
-            while (vRotateAngles.z >= 360)
-                vRotateAngles.z -= 360;
-            while (vRotateAngles.z <= -360)
-                vRotateAngles.z += 360;
-            if (vRotateAngles.x == 0.0)
-                if (vRotateAngles.y == 0.0)
-                    if (vRotateAngles.z == 0.0)
-                        iAnim &= ~1; // kąty są zerowe
+            // HACK: negative speed allows to work around legacy behaviour, where desired angle > 360 meant permanent rotation
+            if( fRotateSpeed > 0.0 ) {
+                while( vRotateAngles.x >= 360 )
+                    vRotateAngles.x -= 360;
+                while( vRotateAngles.x <= -360 )
+                    vRotateAngles.x += 360;
+                while( vRotateAngles.y >= 360 )
+                    vRotateAngles.y -= 360;
+                while( vRotateAngles.y <= -360 )
+                    vRotateAngles.y += 360;
+                while( vRotateAngles.z >= 360 )
+                    vRotateAngles.z -= 360;
+                while( vRotateAngles.z <= -360 )
+                    vRotateAngles.z += 360;
+            }
+
+            if( ( vRotateAngles.x == 0.0 )
+             && ( vRotateAngles.y == 0.0 )
+             && ( vRotateAngles.z == 0.0 ) ) {
+                iAnim &= ~1; // kąty są zerowe
+            }
             if (!anim)
             { // nie potrzeba przeliczać już
                 fRotateSpeed = 0.0;
