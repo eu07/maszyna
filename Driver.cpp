@@ -154,6 +154,7 @@ const double EasyAcceleration = 0.85; //[m/ss]
 const double HardAcceleration = 9.81;
 const double PrepareTime = 2.0; //[s] przebłyski świadomości przy odpalaniu
 bool WriteLogFlag = false;
+double const deltalog = 0.05; // przyrost czasu
 
 std::string StopReasonTable[] = {
     // przyczyny zatrzymania ruchu AI
@@ -1672,11 +1673,6 @@ void TController::CloseLog()
     if (WriteLogFlag)
     {
         LogFile.close();
-        // if WriteLogFlag)
-        // CloseFile(AILogFile);
-        /*  append(AIlogFile);
-          writeln(AILogFile,ElapsedTime5:2,": QUIT");
-          close(AILogFile); */
     }
 };
 
@@ -1739,11 +1735,8 @@ void TController::Activation()
             mvOccupied->DirectionForward(); // kierunek na 0
         while (mvOccupied->ActiveDir > 0)
             mvOccupied->DirectionBackward();
-        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag,
-                     ctrain_controll))
-        {
-            mvControlling->MainSwitch(
-                false); // dezaktywacja czuwaka, jeśli przejście do innego członu
+        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag, ctrain_controll)) {
+            mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
             //   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odcięcie na
             //   zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
@@ -1753,8 +1746,7 @@ void TController::Activation()
         mvOccupied->ActiveCab = mvOccupied->CabNo; // użytkownik moze zmienić ActiveCab wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
         // przejście AI na drugą stronę EN57, ET41 itp.
-        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? 1 : 0].CouplingFlag,
-                        ctrain_controll))
+        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? 1 : 0].CouplingFlag, ctrain_controll))
         { // jeśli pojazd z przodu jest ukrotniony, to przechodzimy do niego
             d = iDirection * d->DirectionGet() < 0 ? d->Next() :
                                                      d->Prev(); // przechodzimy do następnego członu
@@ -1818,8 +1810,7 @@ void TController::AutoRewident()
     //   · masa (jako suma) -> jest w (fMass)
     while (d)
     { // klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
-        if (d->MoverParameters->Power <
-            1) // - lokomotywa - Power>1 - ale może być nieczynna na końcu...
+        if (d->MoverParameters->Power < 1) // - lokomotywa - Power>1 - ale może być nieczynna na końcu...
             if (TestFlag(d->MoverParameters->BrakeDelays, bdelay_R))
                 ++r; // - wagon pospieszny - jest R
             else if (TestFlag(d->MoverParameters->BrakeDelays, bdelay_G))
@@ -2085,13 +2076,11 @@ bool TController::CheckVehicles(TOrders user)
             if (AIControllFlag) // jeśli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy światła
             if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
-            { // jeśli pojazd posiada pantograf, to przydzielamy mu maskę, którą będzie informował o
-                // jeździe bezprądowej
+            { // jeśli pojazd posiada pantograf, to przydzielamy mu maskę, którą będzie informował o jeździe bezprądowej
                 p->iOverheadMask = pantmask;
                 pantmask = pantmask << 1; // przesunięcie bitów, max. 32 pojazdy z pantografami w składzie
             }
-            d = p->DirectionSet(d ? 1 : -1); // zwraca położenie następnego (1=zgodny,0=odwrócony -
-            // względem czoła składu)
+            d = p->DirectionSet(d ? 1 : -1); // zwraca położenie następnego (1=zgodny,0=odwrócony - względem czoła składu)
             p->ctOwner = this; // dominator oznacza swoje terytorium
             p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
         }
@@ -2111,9 +2100,8 @@ bool TController::CheckVehicles(TOrders user)
                 Lights(
                     frontlights,
                     rearlights );
-#if LOGPRESS == 0
-                AutoRewident(); // nastawianie hamulca do jazdy pociągowej
-#endif
+                // nastawianie hamulca do jazdy pociągowej
+                AutoRewident();
             }
             else if (OrderCurrentGet() & (Shunt | Connect))
             {
@@ -2147,45 +2135,54 @@ bool TController::CheckVehicles(TOrders user)
                 }
             }
         }
-        else // Ra 2014-02: lepiej tu niż w pętli obsługującej komendy, bo tam się zmieni informacja
-            // o składzie
-            switch (user) // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
-            {
-            case Change_direction:
-                while (OrderCurrentGet() & (Change_direction))
-                    JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
-                // skanowania!
+        else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
+               // Ra 2014-02: lepiej tu niż w pętli obsługującej komendy, bo tam się zmieni informacja o składzie
+            switch (user) {
+            case Change_direction: {
+                while (OrderCurrentGet() & (Change_direction)) {
+                    // zmianę kierunku też można olać, ale zmienić kierunek skanowania!
+                    JumpToNextOrder();
+                }
                 break;
-            case Connect:
-                while (OrderCurrentGet() & (Change_direction))
-                    JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
-                // skanowania!
-                if (OrderCurrentGet() & (Connect))
-                { // jeśli miało być łączenie, zakładamy, że jest dobrze (sprawdzić?)
+            }
+            case Connect: {
+                while (OrderCurrentGet() & (Change_direction)) {
+                    // zmianę kierunku też można olać, ale zmienić kierunek skanowania!
+                    JumpToNextOrder();
+                }
+                if (OrderCurrentGet() & (Connect)) {
+                    // jeśli miało być łączenie, zakładamy, że jest dobrze (sprawdzić?)
                     iCoupler = 0; // koniec z doczepianiem
                     iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
                     JumpToNextOrder(); // wykonanie następnej komendy
-                    if (OrderCurrentGet() & (Change_direction))
-                        JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
-                    // skanowania!
+                    if (OrderCurrentGet() & (Change_direction)) {
+                        // zmianę kierunku też można olać, ale zmienić kierunek skanowania!
+                        JumpToNextOrder();
+                    }
+                        
                 }
-                break;
-            case Disconnect:
-                while (OrderCurrentGet() & (Change_direction))
-                    JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
-                // skanowania!
-                if (OrderCurrentGet() & (Disconnect))
-                { // wypadało by sprawdzić, czy odczepiono wagony w odpowiednim miejscu
-                    // (iVehicleCount)
-                    JumpToNextOrder(); // wykonanie następnej komendy
-                    if (OrderCurrentGet() & (Change_direction))
-                        JumpToNextOrder(); // zmianę kierunku też można olać, ale zmienić kierunek
-                    // skanowania!
-                }
-                break;
-            default:
                 break;
             }
+            case Disconnect: {
+                while (OrderCurrentGet() & (Change_direction)) {
+                    // zmianę kierunku też można olać, ale zmienić kierunek skanowania!
+                    JumpToNextOrder();
+                }
+                if (OrderCurrentGet() & (Disconnect)) {
+                    // wypadało by sprawdzić, czy odczepiono wagony w odpowiednim miejscu (iVehicleCount)
+                    JumpToNextOrder(); // wykonanie następnej komendy
+                    if (OrderCurrentGet() & (Change_direction)) {
+                        // zmianę kierunku też można olać, ale zmienić kierunek skanowania!
+                        JumpToNextOrder();
+                    }
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+            } // switch
+        }
         // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
         if( ( mvOccupied->TrainType == dt_EZT )
          || ( mvOccupied->TrainType == dt_DMU )
@@ -2443,24 +2440,6 @@ bool TController::PrepareEngine()
                  || ( std::max( mvControlling->GetTrainsetVoltage(), std::abs( mvControlling->RunningTraction.TractionVoltage ) ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
                     mvControlling->MainSwitch( true );
                 }
-/*
-                if (mvControlling->EngineType == DieselEngine) {
-                    // Ra 2014-06: dla SN61 trzeba wrzucić pierwszą pozycję - nie wiem, czy tutaj...
-                    // kiedyś działało...
-                    if (!mvControlling->MainCtrlPos) {
-                        if( mvControlling->RList[ 0 ].R == 0.0 ) {
-                            // gdy na pozycji 0 dawka paliwa jest zerowa, to zgaśnie dlatego trzeba zwiększyć pozycję
-                            mvControlling->IncMainCtrl( 1 );
-                        }
-                        if( ( !mvControlling->ScndCtrlPos ) // jeśli bieg nie został ustawiony
-                         && ( !mvControlling->MotorParam[ 0 ].AutoSwitch ) // gdy biegi ręczne
-                         && ( mvControlling->MotorParam[ 0 ].mIsat == 0.0 ) ) { // bl,mIsat,fi,mfi
-                            // pierwszy bieg
-                            mvControlling->IncScndCtrl( 1 );
-                        }
-                    }
-                }
-*/
             }
             else { 
                 OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
@@ -5796,7 +5775,7 @@ void TController::OrdersInit(double fVel)
     // Ale mozna by je zapodac ze scenerii
 };
 
-std::string TController::StopReasonText()
+std::string TController::StopReasonText() const
 { // informacja tekstowa o przyczynie zatrzymania
     if (eStopReason != 7) // zawalidroga będzie inaczej
         return StopReasonTable[eStopReason];
