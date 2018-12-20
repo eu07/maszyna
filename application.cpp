@@ -177,7 +177,8 @@ eu07_application::run() {
 
         Timer::subsystem.mainloop_total.stop();
 
-		m_network->poll();
+		if (Global.network_conf.enabled)
+			m_network->poll();
     }
 
     return 0;
@@ -592,6 +593,14 @@ eu07_application::init_modes() {
 }
 
 bool eu07_application::init_network() {
+	if (!Global.network_conf.enabled)
+		return true;
+
 	m_network.emplace();
+	if (Global.network_conf.is_server)
+		m_network->create_server();
+	else
+		m_network->connect();
+
 	return true;
 }

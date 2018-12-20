@@ -43,4 +43,14 @@ namespace network
 
 		asio::ip::tcp::acceptor m_acceptor;
 	};
+
+	class tcp_client : public client
+	{
+	private:
+		std::shared_ptr<tcp_conn> conn;
+		void handle_accept(const asio::error_code &err);
+
+	public:
+		tcp_client(asio::io_context &io_ctx);
+	};
 }

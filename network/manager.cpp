@@ -3,7 +3,6 @@
 
 network::manager::manager()
 {
-	create_server();
 }
 
 void network::manager::create_server()
@@ -18,5 +17,5 @@ void network::manager::poll()
 
 void network::manager::connect()
 {
-
+	client = std::make_shared<tcp_client>(io_context);
 }

@@ -194,6 +194,11 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
 
+	struct network_conf_t {
+		bool enabled = false;
+		bool is_server;
+	} network_conf;
+
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );

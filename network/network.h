@@ -31,7 +31,5 @@ namespace network
 
 	class client
 	{
-	protected:
-		std::shared_ptr<connection> srv;
 	};
 }

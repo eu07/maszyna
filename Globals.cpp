@@ -768,6 +768,16 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
 		}
+		else if (token == "network.enabled")
+		{
+			Parser.getTokens(1);
+			Parser >> network_conf.enabled;
+		}
+		else if (token == "network.server")
+		{
+			Parser.getTokens(1);
+			Parser >> network_conf.is_server;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
