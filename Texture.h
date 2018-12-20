@@ -43,7 +43,7 @@ struct opengl_texture {
         height() const {
             return data_height; }
 
-    void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1);
+	void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_BORDER);
     void set_components_hint(GLint hint);
     static void reset_unit_cache();
 
@@ -87,6 +87,8 @@ private:
         data_components{ 0 };
 
     GLint data_type = GL_UNSIGNED_BYTE;
+	GLint wrap_mode_s = GL_REPEAT;
+	GLint wrap_mode_t = GL_REPEAT;
 /*
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors

@@ -208,7 +208,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 			m_msaa_fb->attach(*m_msaa_rbv, GL_COLOR_ATTACHMENT1);
 
 			m_main_tex = std::make_unique<opengl_texture>();
-			m_main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+			m_main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, 1, GL_CLAMP_TO_EDGE);
 
 			m_main_fb = std::make_unique<gl::framebuffer>();
 			m_main_fb->attach(*m_main_tex, GL_COLOR_ATTACHMENT0);
@@ -555,9 +555,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		setup_drawing(true);
 
 		glm::mat4 future;
-		if (!FreeFlyModeFlag)
+		if (Global.pCamera.m_owner != nullptr)
 		{
-			auto const *vehicle = simulation::Train->Dynamic();
+			auto const *vehicle = Global.pCamera.m_owner;
 			glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
 			future = glm::translate(mv, -glm::vec3(vehicle->get_future_movement())) * glm::inverse(mv);
 		}
