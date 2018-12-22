@@ -17,7 +17,7 @@ void main()
 		discard;
 
 	// color data space is shared with normals, ugh
-	vec4 color = vec4(pow(f_normal_raw.bgr, vec3(2.2)), 1.0f);
+	vec4 color = vec4(pow(f_normal_raw.rgb, vec3(2.2)), 1.0f);
 #if POSTFX_ENABLED
     out_color = color;
 #else
