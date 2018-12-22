@@ -47,8 +47,6 @@ vec3 normal_d;
 
 void main()
 {
-
-	vec4 tex_color = texture(diffuse, f_coord);
 //wave distortion
 	move_factor += (param[2].z * time);
 	move_factor = mod(move_factor, 1);
@@ -65,6 +63,7 @@ void main()
 #else
 	vec3 envcolor = vec3(0.5);
 #endif
+	vec4 tex_color = texture(diffuse, texture_coords);
 //Fresnel effect
 	vec3 view_dir = normalize(vec3(0.0f, 0.0f, 0.0f) - f_pos.xyz);
 	float fresnel = pow ( dot (f_normal, view_dir), 0.2 );
@@ -79,7 +78,7 @@ void main()
 			result += mix(c, envcolor, param[1].z * texture(normalmap, texture_coords ).a);
 	}
 	//result = mix(result, param[0].rgb, param[1].z);
-	result = (result * param[0].rgb * param[1].z) + (result * (1.0 - param[1].z)); //multiply
+	result = (result * tex_color.rgb * param[1].z) + (result * (1.0 - param[1].z)); //multiply
 	//result = ( max(result + param[0].rgb -1.0,0.0) * param[1].z + result * (1.0 - param[1].z)); //linear burn
 	//result = ( min(param[0].rgb,result) * param[1].z + result * (1.0 - param[1].z)); //darken
 	
