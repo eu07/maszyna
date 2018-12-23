@@ -173,10 +173,26 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 /*
     iVboPtr = Pos; // pozycja w VBO
 */
-    if (!parser.expectToken("type:"))
-        ErrorLog("Bad model: expected submodel type definition not found while loading model \"" + Model->NameGet() + "\"" );
+    auto token { parser.getToken<std::string>() };
+    if( token != "type:" ) {
+        std::string errormessage {
+            "Bad model: expected submodel type definition not found while loading model \"" + Model->NameGet() + "\""
+            + "\ncurrent model data stream content: \"" };
+        auto count { 10 };
+        while( ( true == parser.getTokens() )
+            && ( false == ( token = parser.peek() ).empty() )
+            && ( token != "parent:" ) ) {
+            // skip data until next submodel, dump first few tokens in the error message
+            if( --count > 0 ) {
+                errormessage += token + " ";
+            }
+        }
+        errormessage += "(...)\"";
+        ErrorLog( errormessage );
+        return 0;
+    }
     {
-        std::string type = parser.getToken<std::string>();
+        auto const type { parser.getToken<std::string>() };
         if (type == "mesh")
             eType = GL_TRIANGLES; // submodel - trójkaty
         else if (type == "point")
@@ -189,7 +205,6 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             eType = TP_STARS; // wiele punktów świetlnych
     };
     parser.ignoreToken();
-    std::string token;
     parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
     parser >> token;
     Name(token);

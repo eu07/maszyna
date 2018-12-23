@@ -563,7 +563,7 @@ bool TMoverParameters::DirectionForward()
         SendCtrlToNext("Direction", ActiveDir, CabNo);
         return true;
     }
-    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT))
+    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType == TEngineType::ElectricSeriesMotor))
         return MinCurrentSwitch(true); //"wysoki rozruch" EN57
     return false;
 };
@@ -2389,7 +2389,7 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 bool TMoverParameters::DirectionBackward(void)
 {
     bool DB = false;
-    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT))
+    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType == TEngineType::ElectricSeriesMotor))
         if (MinCurrentSwitch(false))
         {
             DB = true; //
@@ -2737,6 +2737,7 @@ bool TMoverParameters::MainSwitch( bool const State, range_t const Notify ) {
 
     if( Notify != range_t::local ) {
     // pass the command to other vehicles
+    // TBD: pass the requested state, or the actual state?
     SendCtrlToNext(
         "MainSwitch",
         ( State ? 1 : 0 ),
@@ -4626,14 +4627,6 @@ double TMoverParameters::TractionForce( double dt ) {
     switch( EngineType ) {
 
         case TEngineType::ElectricSeriesMotor: {
-/*
-			if ((Mains)) // nie wchodzić w funkcję bez potrzeby
-				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
-					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
-						EnginePowerSource.CollectorParameters.MaxV))
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) // TODO: check whether we need to send this EMU-wide
-						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
-*/
             // update the state of voltage relays
             auto const voltage { std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) };
             NoVoltRelay = ( voltage >= EnginePowerSource.CollectorParameters.MinV );
@@ -4642,6 +4635,18 @@ double TMoverParameters::TractionForce( double dt ) {
             EventFlag |= ( ( true == Mains )
                         && ( ( false == NoVoltRelay ) || ( false == OvervoltageRelay ) )
                         && ( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) ); // TODO: check whether we need to send this EMU-wide
+            break;
+        }
+
+        case TEngineType::ElectricInductionMotor: {
+            // TODO: check if we can use instead the code for electricseriesmotor
+            if( ( Mains ) ) {
+                // nie wchodzić w funkcję bez potrzeby
+                if( ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                    MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
+                }
+            }
             break;
         }
 
@@ -5061,13 +5066,6 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricInductionMotor:
         {
-            if( ( Mains ) ) {
-                // nie wchodzić w funkcję bez potrzeby
-                if( ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) < EnginePowerSource.CollectorParameters.MinV )
-                 || ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
-                    MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
-                }
-            }
             if( true == Mains ) {
 				//tempomat
 				if (ScndCtrlPosNo > 1)

@@ -3805,7 +3805,6 @@ TController::UpdateSituation(double dt) {
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     double dy; // składowa styczna grawitacji, w przedziale <0,1>
     double AbsAccS = 0;
-    IsLineBreakerClosed = true; // presume things are in working order
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
@@ -3839,15 +3838,28 @@ TController::UpdateSituation(double dt) {
             // ciężar razy składowa styczna grawitacji
             fAccGravity -= vehicle->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
         }
-        // test state of main switch in all powered vehicles under control
-        if( ( vehicle->Power > 0.01 )
-         && ( ( vehicle == mvControlling )
-           || ( p->PrevC( coupling::control ) != nullptr ) ) ) {
-            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
-        }
-
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
+
+    // test state of main switch in all powered vehicles under control
+    IsLineBreakerClosed = ( mvOccupied->Power > 0.01 ? mvOccupied->Mains : true );
+    p = pVehicle;
+    while( ( true == IsLineBreakerClosed )
+        && ( ( p = p->PrevC( coupling::control) ) != nullptr ) ) {
+        auto const *vehicle { p->MoverParameters };
+        if( vehicle->Power > 0.01 ) {
+            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
+        }
+    }
+    p = pVehicle;
+    while( ( true == IsLineBreakerClosed )
+        && ( ( p = p->NextC( coupling::control ) ) != nullptr ) ) {
+        auto const *vehicle { p->MoverParameters };
+        if( vehicle->Power > 0.01 ) {
+            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
+        }
+    }
+
     if( iDirection ) {
         // siłę generują pojazdy na pochyleniu ale działa ona całość składu, więc a=F/m
         fAccGravity *= iDirection;
