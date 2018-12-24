@@ -6,9 +6,11 @@ layout(location = 2) in vec2 v_coord;
 
 out vec4 f_clip_pos;
 out vec4 f_clip_future_pos;
+out vec4 f_pos;
 
 void main()
 {
+	f_pos = modelview * vec4(v_vert, 1.0f);
 	f_clip_pos = (projection * modelview) * vec4(v_vert, 1.0f);
 	f_clip_future_pos = (projection * future * modelview) * vec4(v_vert, 1.0f);
 	
