@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 
 void
 itemproperties_panel::update( scene::basic_node const *Node ) {
+	m_node = Node;
 
     if( false == is_open ) { return; }
 
