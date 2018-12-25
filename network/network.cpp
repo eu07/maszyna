@@ -1,10 +1,15 @@
 #include "network/network.h"
 #include "network/message.h"
 #include "Logs.h"
+#include "sn_utils.h"
 
 void network::connection::connected()
 {
 	WriteLog("net: socket connected", logtype::net);
+
+	message hello;
+	hello.type = message::CONNECT_REQUEST;
+	send_message(hello);
 }
 
 void network::connection::message_received(message &msg)
@@ -18,6 +23,8 @@ void network::connection::message_received(message &msg)
 	if (msg.type == message::CONNECT_REQUEST)
 	{
 		message reply({message::CONNECT_ACCEPT});
+
+		WriteLog("client accepted", logtype::net);
 
 		std::string reply_buf;
 		std::ostringstream stream(reply_buf);
@@ -35,10 +42,12 @@ void network::connection::data_received(std::string &buffer)
 
 void network::connection::send_message(message &msg)
 {
-	std::shared_ptr<std::string> buf = std::make_shared<std::string>();
-	std::ostringstream stream(*buf.get());
+	std::ostringstream stream;
+	sn_utils::ls_uint32(stream, 0x37305545);
+	sn_utils::ls_uint32(stream, 2);
 	msg.serialize(stream);
 	stream.flush();
 
+	std::shared_ptr<std::string> buf = std::make_shared<std::string>(stream.str());
 	send_data(buf);
 }

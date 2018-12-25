@@ -5,7 +5,7 @@
 network::tcp_conn::tcp_conn(asio::io_context &io_ctx)
     : m_socket(io_ctx)
 {
-	m_header_buffer.resize(12);
+	m_header_buffer.resize(8);
 }
 
 void network::tcp_conn::disconnect()
@@ -16,6 +16,7 @@ void network::tcp_conn::disconnect()
 
 void network::tcp_conn::connected()
 {
+	connection::connected();
 	read_header();
 }
 
