@@ -1,5 +1,6 @@
 #include <common>
 
+in vec4 f_pos;
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
 
@@ -9,10 +10,11 @@ layout(location = 1) out vec4 out_motion;
 #endif
 
 #include <tonemapping.glsl>
+#include <apply_fog.glsl>
 
 void main()
 {
-	vec4 color = vec4(pow(param[0].rgb, vec3(2.2)), param[0].a);
+	vec4 color = vec4(apply_fog(pow(param[0].rgb, vec3(2.2))), param[0].a);
 #if POSTFX_ENABLED
     out_color = color;
 #else

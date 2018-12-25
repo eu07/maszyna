@@ -21,7 +21,7 @@ layout(location = 1) out vec4 out_motion;
 #texture (diffuse, 0, sRGB_A)
 uniform sampler2D diffuse;
 
-#texture (reflmap, 1, R)
+#texture (reflmap, 1, RGBA)
 uniform sampler2D reflmap;
 
 #if SHADOWMAP_ENABLED
@@ -56,7 +56,7 @@ void main()
 	{
 		vec2 part = calc_dir_light(lights[0]);
 		vec3 c = (part.x * param[1].x + part.y * param[1].y) * calc_shadow() * lights[0].color;
-		result += mix(c, envcolor, param[1].z * texture(reflmap, f_coord).r);
+		result += mix(c, envcolor, param[1].z * texture(reflmap, f_coord).a);
 	}
 
 	for (uint i = 1U; i < lights_count; i++)
