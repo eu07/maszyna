@@ -836,7 +836,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double v; // prędkość
     double d; // droga
 	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej niż widzi AI
-    bool isatpassengerstop { false }; // true if the consist is within acceptable range of w4 post
+    IsAtPassengerStop = false; 
     TCommandType go = TCommandType::cm_Unknown;
     eSignNext = NULL;
     // te flagi są ustawiane tutaj, w razie potrzeby
@@ -924,7 +924,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 								sSpeedTable[i].iFlags = 0;
 							}
 						}
-                        isatpassengerstop = (
+                        IsAtPassengerStop = (
                             ( sSpeedTable[ i ].fDist <= passengerstopmaxdistance )
                             // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
                             // peronu, chyba że pociąg jest dłuższy, to wtedy minimalna.
@@ -944,7 +944,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( mvOccupied->Vel > 0.3 ) {
                             // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                             sSpeedTable[ i ].fVelNext = 0;
-                        } else if( true == isatpassengerstop ) {
+                        } else if( true == IsAtPassengerStop ) {
                             // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
                             if( !AIControllFlag ) {
                                 // w razie przełączenia na AI ma nie podciągać do W4, gdy użytkownik zatrzymał za daleko
@@ -1035,7 +1035,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 // jeśli są dalsze stacje, czekamy do godziny odjazdu
                                 if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute)) {
                                     // z dalszą akcją czekamy do godziny odjazdu
-                                    isatpassengerstop = false;
+                                    IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                                     fLastStopExpDist = mvOccupied->DistCounter + 0.050 + 0.001 * fLength;
                                     TrainParams->StationIndexInc(); // przejście do następnej
@@ -1376,7 +1376,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
                     if( ( mvOccupied->Vel < 0.01 )
                      && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) )
-                     && ( false == isatpassengerstop ) ) {
+                     && ( false == IsAtPassengerStop ) ) {
                         // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
                         a = ( ( d > passengerstopmaxdistance ) || ( ( iDrivigFlags & moveStopCloser ) != 0 ) ?
                                 fAcc :
@@ -1457,7 +1457,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     }
 
     //analiza spisanych z tabelki ograniczeń i nadpisanie aktualnego
-    if( ( true == isatpassengerstop ) && ( mvOccupied->Vel < 0.01 ) ) {
+    if( ( true == IsAtPassengerStop ) && ( mvOccupied->Vel < 0.01 ) ) {
         // if stopped at a valid passenger stop, hold there
         fVelDes = 0.0;
     }
@@ -1625,6 +1625,11 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
             mvOccupied->TrainType == dt_EZT ? -0.55 :
             mvOccupied->TrainType == dt_DMU ? -0.45 :
             -0.2 );
+        // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
+        if( ( mvOccupied->TrainType == dt_EZT )
+         && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) ) {
+            fAccThreshold += 0.10;
+        }
     }
     // TrainParams=NewTrainParams;
     // if (TrainParams)
@@ -1944,7 +1949,13 @@ void TController::AutoRewident()
                             0.25 );
 
     if( mvOccupied->TrainType == dt_EZT ) {
-        fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+        if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
+            // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
+            fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+        }
+        else {
+            fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+        }       
 		fBrakeReaction = 0.25;
 	}
     else if( mvOccupied->TrainType == dt_DMU ) {
@@ -2100,8 +2111,6 @@ bool TController::CheckVehicles(TOrders user)
                 Lights(
                     frontlights,
                     rearlights );
-                // nastawianie hamulca do jazdy pociągowej
-                AutoRewident();
             }
             else if (OrderCurrentGet() & (Shunt | Connect))
             {
@@ -2133,6 +2142,10 @@ bool TController::CheckVehicles(TOrders user)
                     // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
                     Lights( 0, light::headlight_right );
                 }
+            }
+            // nastawianie hamulca do jazdy pociągowej
+            if( OrderCurrentGet() & ( Obey_train | Shunt ) ) {
+                AutoRewident();
             }
         }
         else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
@@ -2841,7 +2854,7 @@ bool TController::IncSpeed()
                     auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
-                    auto const useseriesmodevoltage { 0.80 * mvControlling->EnginePowerSource.CollectorParameters.MaxV };
+                    auto const useseriesmodevoltage { mvControlling->EnginePowerSource.CollectorParameters.MaxV * ( IsHeavyCargoTrain ? 0.70 : 0.80 ) };
                     auto const useseriesmode = (
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
@@ -3824,10 +3837,6 @@ TController::UpdateSituation(double dt) {
                         // indywidualne luzowanko
                         vehicle->BrakeReleaser( 1 );
                     }
-                    if( ( vehicle->Power > 0.01 ) // jeśli ma silnik
-                     && ( vehicle->FuseFlag ) ) { // wywalony nadmiarowy
-                        Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
-                    }
                 }
             }
         }
@@ -3837,6 +3846,10 @@ TController::UpdateSituation(double dt) {
             // istotne tylko dla pojazdów na pochyleniu
             // ciężar razy składowa styczna grawitacji
             fAccGravity -= vehicle->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
+        }
+        if( ( vehicle->Power > 0.01 ) // jeśli ma silnik
+         && ( vehicle->FuseFlag ) ) { // wywalony nadmiarowy
+            Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
         }
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
@@ -4089,6 +4102,12 @@ TController::UpdateSituation(double dt) {
     if( mvOccupied->BrakeDelayFlag == bdelay_G ) {
         // dla nastawienia G koniecznie należy wydłużyć drogę na czas reakcji
         fBrakeDist += 2 * mvOccupied->Vel;
+    }
+    if( ( mvOccupied->Vel > 0.05 )
+     && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor )
+     && ( ( mvControlling->TrainType & dt_EZT ) != 0 ) ) {
+        // HACK: make the induction motor powered EMUs start braking slightly earlier
+        fBrakeDist += 10.0;
     }
 /*
     // take into account effect of gravity (but to stay on safe side of calculations, only downhill)
@@ -4746,14 +4765,34 @@ TController::UpdateSituation(double dt) {
                                 fMinProximityDist : // cars can bunch up tighter
                                 fMaxProximityDist ) ); // other vehicle types less so
 */
-                    double k = coupler->Connected->Vel; // prędkość pojazdu z przodu (zakładając,
-                    // że jedzie w tę samą stronę!!!)
+                    // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
+                    double k = coupler->Connected->Vel;
                     if( k - vel < 5 ) {
                         // porównanie modułów prędkości [km/h]
                         // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
                         ActualProximityDist = std::min(
                             ActualProximityDist,
                             vehicle->fTrackBlock );
+
+                        if( ActualProximityDist <= (
+                            ( mvOccupied->CategoryFlag & 2 ) ?
+                                100.0 : // cars
+                                250.0 ) ) { // others
+                            // regardless of driving mode at close distance take precaution measures:
+                            // match the other vehicle's speed or slow down if the other vehicle is stopped
+                            VelDesired =
+                                min_speed(
+                                    VelDesired,
+                                    std::max(
+                                        k,
+                                        ( mvOccupied->CategoryFlag & 2 ) ?
+                                            40.0 : // cars
+                                            20.0 ) ); // others
+                            if( vel > VelDesired + fVelPlus ) {
+                                // if going too fast force some prompt braking
+                                AccPreferred = std::min( -0.65, AccPreferred );
+                            }
+                        }
 
                         double const distance = vehicle->fTrackBlock - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
                         if( distance < 0.0 ) {
@@ -4804,7 +4843,7 @@ TController::UpdateSituation(double dt) {
                                 }
                             }
                             ReactionTime = (
-                                vel != 0.0 ?
+                                mvOccupied->Vel > 0.01 ?
                                     0.1 : // orientuj się, bo jest goraco
                                     2.0 ); // we're already standing still, so take it easy
                         }

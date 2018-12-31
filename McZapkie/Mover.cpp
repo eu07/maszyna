@@ -563,7 +563,7 @@ bool TMoverParameters::DirectionForward()
         SendCtrlToNext("Direction", ActiveDir, CabNo);
         return true;
     }
-    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType == TEngineType::ElectricSeriesMotor))
+    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         return MinCurrentSwitch(true); //"wysoki rozruch" EN57
     return false;
 };
@@ -635,8 +635,9 @@ bool TMoverParameters::ChangeCab(int direction)
     {
         //  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
         ActiveCab = ActiveCab + direction;
-        if ((BrakeSystem == TBrakeSystem::Pneumatic) && (BrakeCtrlPosNo > 0))
-        {
+        if( ( BrakeCtrlPosNo > 0 )
+         && ( ( BrakeSystem == TBrakeSystem::Pneumatic )
+           || ( BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) ) {
             //    if (BrakeHandle==FV4a)   //!!!POBIERAĆ WARTOŚĆ Z KLASY ZAWORU!!!
             //     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
             //    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
@@ -2389,7 +2390,7 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 bool TMoverParameters::DirectionBackward(void)
 {
     bool DB = false;
-    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType == TEngineType::ElectricSeriesMotor))
+    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         if (MinCurrentSwitch(false))
         {
             DB = true; //
@@ -3555,9 +3556,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     dpMainValve = 0;
 
-    if ((BrakeCtrlPosNo > 1) /*&& (ActiveCab != 0)*/)
-    // with BrakePressureTable[BrakeCtrlPos] do
-    {
+    if( BrakeCtrlPosNo > 1 ) {
+
 		if ((EngineType != TEngineType::ElectricInductionMotor))
 			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
 		else
@@ -3573,13 +3573,21 @@ void TMoverParameters::UpdatePipePressure(double dt)
             temp = ScndPipePress;
         }
         Handle->SetReductor(BrakeCtrlPos2);
+                
+        if( ( ( BrakeOpModes & bom_PS ) == 0 )
+         || ( ( ActiveCab != 0 )
+           && ( BrakeOpModeFlag != bom_PS ) ) ) {
 
-		if ((BrakeOpModeFlag != bom_PS))
-			if ((BrakeOpModeFlag < bom_EP) || ((Handle->GetPos(bh_EB) - 0.5) < BrakeCtrlPosR) ||
-				(BrakeHandle != TBrakeHandle::MHZ_EN57))
-				dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
-			else
-				dpMainValve = Handle->GetPF(0, PipePress, temp, dt, EqvtPipePress);
+            if( ( BrakeOpModeFlag < bom_EP )
+             || ( ( Handle->GetPos( bh_EB ) - 0.5 ) < BrakeCtrlPosR )
+             || ( ( BrakeHandle != TBrakeHandle::MHZ_EN57 )
+               && ( BrakeHandle != TBrakeHandle::MHZ_K8P ) ) ) {
+                dpMainValve = Handle->GetPF( BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress );
+            }
+            else {
+                dpMainValve = Handle->GetPF( 0, PipePress, temp, dt, EqvtPipePress );
+            }
+        }
 		
 		if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
             if (Compressor > ScndPipePress)
@@ -5528,8 +5536,9 @@ bool TMoverParameters::MaxCurrentSwitch(bool State)
 bool TMoverParameters::MinCurrentSwitch(bool State)
 {
     bool MCS = false;
-    if (((EngineType == TEngineType::ElectricSeriesMotor) && (IminHi > IminLo)) || (TrainType == dt_EZT))
-    {
+    if( ( ( EngineType == TEngineType::ElectricSeriesMotor ) && ( IminHi > IminLo ) )
+     || ( ( TrainType == dt_EZT ) && ( EngineType != TEngineType::ElectricInductionMotor ) ) ) {
+
         if (State && (Imin == IminLo))
         {
             Imin = IminHi;

@@ -261,6 +261,7 @@ private:
     int iDriverFailCount = 0; // licznik błędów AI
     bool Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
     bool Need_BrakeRelease = true;
+    bool IsAtPassengerStop{ false }; // true if the consist is within acceptable range of w4 post
     double fMinProximityDist = 30.0; // stawanie między 30 a 60 m przed przeszkodą // minimalna oległość do przeszkody, jaką należy zachować
     double fOverhead1 = 3000.0; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
     double fOverhead2 = -1.0; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z opuszczonym i ograniczeniem prędkości)

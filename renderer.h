@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 //#define EU07_USE_DEBUG_CAMERA
 //#define EU07_USE_DEBUG_SOUNDEMITTERS
 //#define EU07_USEIMGUIIMPLOPENGL2
+//#define EU07_DISABLECABREFLECTIONS
 
 struct opengl_light : public basic_light {
 

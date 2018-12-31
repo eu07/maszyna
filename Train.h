@@ -508,7 +508,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };

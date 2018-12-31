@@ -443,8 +443,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
-        mover.MotorBlowers[side::front].revolutions,
-        mover.MotorBlowers[side::rear].revolutions,
+        std::abs( mover.MotorBlowers[side::front].revolutions ),
+        std::abs( mover.MotorBlowers[side::rear].revolutions ),
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 
@@ -470,6 +470,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // brakes
         mover.fBrakeCtrlPos,
         mover.LocalBrakePosA,
+        mover.BrakeOpModeFlag,
         update_vehicle_brake().c_str(),
         mover.LoadFlag,
         // cylinders
@@ -482,7 +483,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.ScndPipePress,
         mover.CntrlPipePress,
         // tanks
-        mover.Volume,
+        mover.Hamulec->GetBRP(),
         mover.Compressor,
         mover.Hamulec->GetCRP() );
 

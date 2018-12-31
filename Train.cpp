@@ -543,13 +543,18 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "velnext", PyGetFloat( driver->VelNext ) );
     PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( driver->ActualProximityDist ) );
     // train data
+    auto const *timetable{ driver->TrainTimetable() };
+
     PyDict_SetItemString( dict, "trainnumber", PyGetString( driver->TrainName().c_str() ) );
+    PyDict_SetItemString( dict, "train_brakingmassratio", PyGetFloat( timetable->BrakeRatio ) );
+    PyDict_SetItemString( dict, "train_enginetype", PyGetString( timetable->LocSeries.c_str() ) );
+    PyDict_SetItemString( dict, "train_engineload", PyGetFloat( timetable->LocLoad ) );
+
     PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->StationIndex() ) );
     auto const stationcount { driver->StationCount() };
     PyDict_SetItemString( dict, "train_stationcount", PyGetInt( stationcount ) );
     if( stationcount > 0 ) {
         // timetable stations data, if there's any
-        auto const *timetable { driver->TrainTimetable() };
         for( auto stationidx = 1; stationidx <= stationcount; ++stationidx ) {
             auto const stationlabel { "train_station" + std::to_string( stationidx ) + "_" };
             auto const &timetableline { timetable->TimeTable[ stationidx ] };
@@ -563,7 +568,9 @@ PyObject *TTrain::GetTrainState() {
             PyDict_SetItemString( dict, ( stationlabel + "dm" ).c_str(), PyGetInt( timetableline.Dm ) );
         }
     }
+    PyDict_SetItemString( dict, "train_atpassengerstop", PyGetBool( driver->IsAtPassengerStop ) );
     // world state data
+    PyDict_SetItemString( dict, "scenario", PyGetString( Global.SceneryFile.c_str() ) );
     PyDict_SetItemString( dict, "hours", PyGetInt( simulation::Time.data().wHour ) );
     PyDict_SetItemString( dict, "minutes", PyGetInt( simulation::Time.data().wMinute ) );
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
@@ -1367,13 +1374,11 @@ void TTrain::OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_da
         if( ( ( Train->mvOccupied->BrakeOpModeFlag << 1 ) & Train->mvOccupied->BrakeOpModes ) != 0 ) {
             // next mode
             Train->mvOccupied->BrakeOpModeFlag <<= 1;
-            // audio feedback
-			Train->dsbPneumaticSwitch.play();
 			// visual feedback
             Train->ggBrakeOperationModeCtrl.UpdateValue(
                 Train->mvOccupied->BrakeOpModeFlag > 0 ?
                     std::log2( Train->mvOccupied->BrakeOpModeFlag ) :
-                    0 );
+                    0 ); // audio fallback
         }
 	}
 }
@@ -1385,8 +1390,6 @@ void TTrain::OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_da
         if( ( ( Train->mvOccupied->BrakeOpModeFlag >> 1 ) & Train->mvOccupied->BrakeOpModes ) != 0 ) {
 			// previous mode
 			Train->mvOccupied->BrakeOpModeFlag >>= 1;
-			// audio feedback
-			Train->dsbPneumaticSwitch.play();
 			// visual feedback
             Train->ggBrakeOperationModeCtrl.UpdateValue(
                 Train->mvOccupied->BrakeOpModeFlag > 0 ?
@@ -5443,8 +5446,8 @@ bool TTrain::Update( double const Deltatime )
             btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
             btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
             // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
-            btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
-            btLampkaDoorRight.Turn(mvOccupied->DoorRightOpened);
+            btLampkaDoorLeft.Turn( DynamicObject->dDoorMoveL > 0.0 );// mvOccupied->DoorLeftOpened);
+            btLampkaDoorRight.Turn( DynamicObject->dDoorMoveR > 0.0 ); //mvOccupied ->DoorRightOpened);
             btLampkaBlokadaDrzwi.Turn(mvOccupied->DoorBlockedFlag());
             btLampkaDoorLockOff.Turn( false == mvOccupied->DoorLockEnabled );
             btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
@@ -5754,7 +5757,12 @@ bool TTrain::Update( double const Deltatime )
             InstrumentLightType == 0 ? mvControlled->Battery || mvControlled->ConverterFlag :
             InstrumentLightType == 1 ? mvControlled->Mains :
             InstrumentLightType == 2 ? mvControlled->ConverterFlag :
+            InstrumentLightType == 3 ? mvControlled->Battery || mvControlled->ConverterFlag :
             false ) };
+        if( InstrumentLightType == 3 ) {
+            // TODO: link the light state with the state of the master key
+            InstrumentLightActive = true;
+        }
         btInstrumentLight.Turn( InstrumentLightActive && lightpower );
         btDashboardLight.Turn( DashboardLightActive && lightpower );
         btTimetableLight.Turn( TimetableLightActive && lightpower );
@@ -5812,7 +5820,9 @@ bool TTrain::Update( double const Deltatime )
         ggHornLowButton.Update();
         ggHornHighButton.Update();
         ggWhistleButton.Update();
-		ggHelperButton.UpdateValue(DynamicObject->Mechanik->HelperState);
+        if( DynamicObject->Mechanik != nullptr ) {
+            ggHelperButton.UpdateValue( DynamicObject->Mechanik->HelperState );
+        }
 		ggHelperButton.Update();
         for( auto &universal : ggUniversals ) {
             universal.Update();
@@ -5880,7 +5890,8 @@ bool TTrain::Update( double const Deltatime )
 
     // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( false == DynamicObject->Mechanik->AIControllFlag ) {
+    if( ( DynamicObject->Mechanik == nullptr )
+     || ( false == DynamicObject->Mechanik->AIControllFlag ) ) {
         // don't mess with the ai driving, at least not while switches don't follow ai-set vehicle state
         if( ( mvControlled->Battery )
          || ( mvControlled->ConverterFlag ) ) {
@@ -7298,8 +7309,8 @@ void TTrain::set_cab_controls( int const Cab ) {
             0.f ) );
     // doors
     // NOTE: we're relying on the cab models to have switches reversed for the rear cab(?)
-    ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened ? 1.f : 0.f );
-    ggDoorRightButton.PutValue( mvOccupied->DoorRightOpened ? 1.f : 0.f );
+    ggDoorLeftButton.PutValue( /*mvOccupied->DoorLeftOpened*/ DynamicObject->dDoorMoveL > 0.0 ? 1.f : 0.f );
+    ggDoorRightButton.PutValue( /*mvOccupied->DoorRightOpened*/ DynamicObject->dDoorMoveR > 0.0 ? 1.f : 0.f );
     // door lock
     ggDoorSignallingButton.PutValue(
         mvOccupied->DoorLockEnabled ?
@@ -7505,13 +7516,17 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         btInstrumentLight.Load( Parser, DynamicObject );
         InstrumentLightType = 0;
     }
-    else if( Label == "i-instrumentlight_M:" ) {
+    else if( Label == "i-instrumentlight_m:" ) {
         btInstrumentLight.Load( Parser, DynamicObject );
         InstrumentLightType = 1;
     }
-    else if( Label == "i-instrumentlight_C:" ) {
+    else if( Label == "i-instrumentlight_c:" ) {
         btInstrumentLight.Load( Parser, DynamicObject );
         InstrumentLightType = 2;
+    }
+    else if( Label == "i-instrumentlight_a:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject );
+        InstrumentLightType = 3;
     }
     else if (Label == "i-doors:")
     {
@@ -7747,6 +7762,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, 0.1);
         gauge.AssignDouble(&mvOccupied->PipePress);
+    }
+    else if( Label == "scndpress:" ) {
+        // manometr przewodu hamulcowego
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, 0.1 );
+        gauge.AssignDouble( &mvOccupied->ScndPipePress );
     }
     else if (Label == "limpipepress:")
     {

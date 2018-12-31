@@ -554,7 +554,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // without rain/snow we can render the cab early to limit the overdraw
                 if( ( false == FreeFlyModeFlag )
                  && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
+#ifdef EU07_DISABLECABREFLECTIONS
                     switch_units( true, true, false );
+#endif
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor { m_shadowcolor };
@@ -577,7 +579,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 Render_precipitation();
                 // cab render
                 if( false == FreeFlyModeFlag ) {
+#ifdef EU07_DISABLECABREFLECTIONS
                     switch_units( true, true, false );
+#endif
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor{ m_shadowcolor };

@@ -83,7 +83,7 @@ private:
     void error();
 // members
     PyObject *m_main { nullptr };
-    PyObject *m_error { nullptr };
+    PyObject *m_stderr { nullptr };
     PyThreadState *m_mainthread{ nullptr };
     worker_array m_workers;
     threading::condition_variable m_condition; // wakes up the workers

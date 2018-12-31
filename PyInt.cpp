@@ -90,12 +90,10 @@ auto python_taskqueue::init() -> bool {
         stringioclassname != nullptr ?
             PyObject_CallObject( stringioclassname, nullptr ) :
             nullptr ) };
-    m_error = { (
+    m_stderr = { (
         stringioobject == nullptr ? nullptr :
         PySys_SetObject( "stderr", stringioobject ) != 0 ? nullptr :
         stringioobject ) };
-
-    if( m_error == nullptr ) { goto release_and_exit; }
 
     if( false == run_file( "abstractscreenrenderer" ) ) { goto release_and_exit; }
 
@@ -315,13 +313,13 @@ python_taskqueue::error() {
 
     if( PyErr_Occurred() == nullptr ) { return; }
 
-    if( m_error != nullptr ) {
+    if( m_stderr != nullptr ) {
         // std err pythona jest buforowane
         PyErr_Print();
-        auto *errortext { PyObject_CallMethod( m_error, "getvalue", nullptr ) };
+        auto *errortext { PyObject_CallMethod( m_stderr, "getvalue", nullptr ) };
         ErrorLog( PyString_AsString( errortext ) );
         // czyscimy bufor na kolejne bledy
-        PyObject_CallMethod( m_error, "truncate", "i", 0 );
+        PyObject_CallMethod( m_stderr, "truncate", "i", 0 );
     }
     else {
         // nie dziala buffor pythona
@@ -343,7 +341,7 @@ python_taskqueue::error() {
         }
         auto *tracebacktext { PyObject_Str( traceback ) };
         if( tracebacktext != nullptr ) {
-            WriteLog( PyString_AsString( tracebacktext ) );
+            ErrorLog( PyString_AsString( tracebacktext ) );
         }
         else {
             WriteLog( "Python Interpreter: failed to retrieve the stack traceback" );
