@@ -59,7 +59,11 @@ keyboard_input::recall_bindings() {
         { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
         { "num_4", GLFW_KEY_KP_4 }, { "num_5", GLFW_KEY_KP_5 }, { "num_6", GLFW_KEY_KP_6 },
         { "num_1", GLFW_KEY_KP_1 }, { "num_2", GLFW_KEY_KP_2 }, { "num_3", GLFW_KEY_KP_3 }, { "num_enter", GLFW_KEY_KP_ENTER },
-        { "num_0", GLFW_KEY_KP_0 }, { "num_.", GLFW_KEY_KP_DECIMAL }
+	    { "num_0", GLFW_KEY_KP_0 }, { "num_.", GLFW_KEY_KP_DECIMAL },
+	    // misc
+	    { "f1", GLFW_KEY_F1 }, { "f2", GLFW_KEY_F2 }, { "f3", GLFW_KEY_F3 }, { "f4", GLFW_KEY_F4 }, { "f5", GLFW_KEY_F5 },
+	    { "f6", GLFW_KEY_F6 }, { "f7", GLFW_KEY_F7 }, { "f8", GLFW_KEY_F8 }, { "f9", GLFW_KEY_F9 }, { "f10", GLFW_KEY_F10 },
+	    { "f11", GLFW_KEY_F11 }, { "f12", GLFW_KEY_F12 }, { "tab", GLFW_KEY_TAB }
     };
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
@@ -167,7 +171,7 @@ keyboard_input::key( int const Key, int const Action ) {
     // NOTE: basic keyboard controls don't have any parameters
     // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
     // TODO: pass correct entity id once the missing systems are in place
-    m_relay.post( lookup->second, 0, 0, Action, 0 );
+	m_relay.post( lookup->second, 0, 0, Action, 0 );
     m_command = (
         Action == GLFW_RELEASE ?
             user_command::none :
@@ -247,7 +251,7 @@ keyboard_input::poll() {
             movementhorizontal.x,
             movementhorizontal.y,
             GLFW_PRESS,
-            0 );
+		    0 );
     }
 
     m_movementhorizontal = movementhorizontal;
@@ -268,7 +272,7 @@ keyboard_input::poll() {
             movementvertical,
             0,
             GLFW_PRESS,
-            0 );
+		    0 );
     }
 
     m_movementvertical = movementvertical;

@@ -34,6 +34,7 @@ traction_table Traction;
 powergridsource_table Powergrid;
 instance_table Instances;
 vehicle_table Vehicles;
+train_table Trains;
 light_array Lights;
 sound_table Sounds;
 lua Lua;
@@ -64,12 +65,34 @@ state_manager::update( double const Deltatime, int Iterationcount ) {
         return;
     }
 
+	process_commands();
+
     auto const totaltime { Deltatime * Iterationcount };
     // NOTE: we perform animations first, as they can determine factors like contact with powergrid
     TAnimModel::AnimUpdate( totaltime ); // wykonanie zakolejkowanych animacji
 
     simulation::Powergrid.update( totaltime );
     simulation::Vehicles.update( Deltatime, Iterationcount );
+}
+
+void state_manager::process_commands() {
+	command_data commanddata;
+	while( Commands.pop( commanddata, (uint32_t)command_target::simulation )) {
+		if (commanddata.action == GLFW_RELEASE)
+			continue;
+
+		if (DebugModeFlag) {
+			if (commanddata.command == user_command::timejump) {
+				Time.update(commanddata.param1);
+			}
+			else if (commanddata.command == user_command::timejumplarge) {
+				Time.update(20.0 * 60.0);
+			}
+			else if (commanddata.command == user_command::timejumpsmall) {
+				Time.update(5.0 * 60.0);
+			}
+		}
+	}
 }
 
 void

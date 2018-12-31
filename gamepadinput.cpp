@@ -201,9 +201,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
             turnx,
             turny,
             GLFW_PRESS,
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-            0 );
+		    0 );
     }
 
     // left stick, either movement or controls, depending on currently active mode
@@ -216,7 +214,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
                 Leftstick.x,
                 Leftstick.y,
                 GLFW_PRESS,
-                0 );
+			    0 );
         }
     }
     else {

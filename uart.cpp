@@ -180,7 +180,7 @@ void uart_input::poll()
                         std::get<3>( entry ) ) ) };
 
             // TODO: pass correct entity id once the missing systems are in place
-            relay.post( command, 0, 0, action, 0 );
+			relay.post( command, 0, 0, action, 0 );
         }
 
         if( true == conf.mainenable ) {
@@ -191,7 +191,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.scndenable ) {
             // second controller
@@ -201,7 +201,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.trainenable ) {
             // train brake
@@ -212,7 +212,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.localenable ) {
             // independent brake
@@ -223,7 +223,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
 
         old_packet = buffer;

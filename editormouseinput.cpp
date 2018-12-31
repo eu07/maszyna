@@ -32,9 +32,8 @@ editormouse_input::position( double Horizontal, double Vertical ) {
         viewoffset.x,
         viewoffset.y,
         GLFW_PRESS,
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
         // TODO: pass correct entity id once the missing systems are in place
-        0 );
+	    0 );
     m_cursorposition = cursorposition;
 }
 

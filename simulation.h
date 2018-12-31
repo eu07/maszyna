@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "lua.h"
 #include "Event.h"
+#include "Train.h"
 
 namespace simulation {
 
@@ -35,6 +36,8 @@ public:
 private:
 // members
     state_serializer m_serializer;
+
+	void process_commands();
 };
 
 // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel
@@ -48,6 +51,7 @@ extern traction_table Traction;
 extern powergridsource_table Powergrid;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
+extern train_table Trains;
 extern light_array Lights;
 extern sound_table Sounds;
 extern lua Lua;

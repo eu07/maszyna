@@ -348,7 +348,12 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::generictoggle6, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle7, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle8, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle }
+    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle },
+
+    { user_command::vehiclemove, &TTrain::OnCommand_vehiclemove },
+    { user_command::vehiclemoveforwards, &TTrain::OnCommand_vehiclemoveforwards },
+    { user_command::vehiclemovebackwards, &TTrain::OnCommand_vehiclemovebackwards },
+    { user_command::vehicleboost, &TTrain::OnCommand_vehicleboost },
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -4706,6 +4711,52 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
     }
 }
 
+void TTrain::OnCommand_vehiclemove(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	TDynamicObject *d = Train->DynamicObject;
+	while( d ) {
+		d->Move( Command.param1 * d->DirectionGet() );
+		d = d->Next(); // pozostałe też
+	}
+	d = Train->DynamicObject->Prev();
+	while( d ) {
+		d->Move( Command.param1 * d->DirectionGet() );
+		d = d->Prev(); // w drugą stronę też
+	}
+}
+
+void TTrain::OnCommand_vehiclemoveforwards(TTrain *Train, const command_data &Command) {
+	command_data modified = Command;
+	modified.param1 = 100.0;
+	OnCommand_vehiclemove(Train, modified);
+}
+
+void TTrain::OnCommand_vehiclemovebackwards(TTrain *Train, const command_data &Command) {
+	command_data modified = Command;
+	modified.param1 = -100.0;
+	OnCommand_vehiclemove(Train, modified);
+}
+
+void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	double boost = Command.param1 != 0.0 ? Command.param1 : 2.78;
+
+	TDynamicObject *d = Train->DynamicObject;
+	while( d ) {
+		d->MoverParameters->V += d->DirectionGet() * boost;
+		d = d->Next(); // pozostałe też
+	}
+	d = Train->DynamicObject->Prev();
+	while( d ) {
+		d->MoverParameters->V += d->DirectionGet() * boost;
+		d = d->Prev(); // w drugą stronę też
+	}
+}
+
 // cab movement update, fixed step part
 void TTrain::UpdateCab() {
 
@@ -4791,9 +4842,7 @@ bool TTrain::Update( double const Deltatime )
     // eventually commands are going to be retrieved directly by the vehicle, filtered through active control stand
     // and ultimately executed, provided the stand allows it.
     command_data commanddata;
-    // NOTE: currently we're only storing commands for local vehicle and there's no id system in place,
-    // so we're supplying 'default' vehicle id of 0
-    while( simulation::Commands.pop( commanddata, static_cast<std::size_t>( command_target::vehicle ) | 0 ) ) {
+	while( simulation::Commands.pop( commanddata, (uint32_t)command_target::vehicle | id() )) {
 
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {
@@ -7905,4 +7954,20 @@ void TTrain::set_localbrake(float val)
 int TTrain::get_drive_direction()
 {
 	return mvOccupied->ActiveDir * mvOccupied->CabNo;
+}
+
+uint16_t TTrain::id() {
+	static uint16_t i = 0; // todo: do something better
+	if (vid == 0) {
+		vid = ++i;
+		WriteLog("assigning id " + std::to_string(vid) + " to vehicle " + Dynamic()->name());
+	}
+	return vid;
+}
+
+void train_table::update(double dt)
+{
+	for (TTrain *train : m_items) {
+		train->Update(dt);
+	}
 }

@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 enum class user_command {
 
-    aidriverenable,
+	aidriverenable = 0,
     aidriverdisable,
     mastercontrollerincrease,
     mastercontrollerincreasefast,
@@ -213,13 +213,18 @@ enum class user_command {
     motorblowerstogglerear,
     motorblowersdisableall,
 
+	timejump,
+	timejumplarge,
+	timejumpsmall,
+	vehiclemove,
+	vehiclemoveforwards,
+	vehiclemovebackwards,
+	vehicleboost,
+
     none = -1
 };
 
 enum class command_target {
-
-    userinterface,
-    simulation,
 /*
     // NOTE: there's no need for consist- and unit-specific commands at this point, but it's a possibility.
     // since command targets are mutually exclusive these don't reduce ranges for individual vehicles etc
@@ -229,7 +234,9 @@ enum class command_target {
     // values are combined with object id. 0xffff objects of each type should be quite enough ("for everyone")
     vehicle = 0x10000,
     signal  = 0x20000,
-    entity  = 0x40000
+	entity  = 0x40000,
+
+	simulation = 0x8000,
 };
 
 enum class command_mode {
@@ -259,6 +266,10 @@ struct command_data {
 class command_queue {
 
 public:
+// types
+	typedef std::deque<command_data> commanddata_sequence;
+	typedef std::unordered_map<std::size_t, commanddata_sequence> commanddatasequence_map;
+
 // methods
     // posts specified command for specified recipient
     void
@@ -268,16 +279,33 @@ public:
         pop( command_data &Command, std::size_t const Recipient );
 	void update();
 
+	commanddatasequence_map peek_command_sequences() const {
+		commanddatasequence_map map(m_commands);
+		for (auto &kv : map) {
+			if (kv.first & 0)
+				kv.second.clear();
+		}
+		return map;
+	}
+
+	void merge_command_sequences(commanddatasequence_map map) {
+		for (auto const &kv : map)
+			for (command_data const &data : kv.second)
+				push(data, kv.first);
+	}
+
 private:
 // types
-    typedef std::queue<command_data> commanddata_sequence;
-    typedef std::unordered_map<std::size_t, commanddata_sequence> commanddatasequence_map;
 // members
     commanddatasequence_map m_commands;
 
-	// TODO: this set should contain more than just user_command
-	// also, maybe that and all continuous input logic should be in command_relay?
-	std::unordered_set<user_command> m_active_continuous;
+	struct command_set_hash {
+		uint64_t operator() (const std::pair<user_command, uint32_t> &pair) const {
+			return ((uint64_t)pair.first << 32) | ((uint64_t) pair.second);
+		}
+	};
+
+	std::unordered_set<std::pair<user_command, uint32_t>, command_set_hash> m_active_continuous;
 };
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
@@ -299,11 +327,10 @@ class command_relay {
 public:
 // constructors
 // methods
-    // posts specified command for the specified recipient
-    // TODO: replace uint16_t with recipient handle, based on item id
+	// posts specified command for the specified recipient
     void
-        post( user_command const Command, double const Param1, double const Param2,
-            int const Action, std::uint16_t const Recipient ) const;
+	    post(user_command const Command, double const Param1, double const Param2,
+	        int const Action, uint16_t Recipient ) const;
 private:
 // types
 // members

@@ -100,106 +100,106 @@ driver_mode::update() {
 
     double const deltatime = Timer::GetDeltaTime(); // 0.0 gdy pauza
 
-    if( Global.iPause == 0 ) {
+	simulation::State.update_clocks();
+	simulation::Environment.update();
+
+	if (deltatime != 0.0)
+	{
         // jak pauza, to nie ma po co tego przeliczać
         simulation::Time.update( deltatime );
-    }
-    simulation::State.update_clocks();
-    simulation::Environment.update();
 
     // fixed step, simulation time based updates
-//  m_primaryupdateaccumulator += dt; // unused for the time being
-    m_secondaryupdateaccumulator += deltatime;
-/*
-    // NOTE: until we have no physics state interpolation during render, we need to rely on the old code,
-    // as doing fixed step calculations but flexible step render results in ugly mini jitter
-    // core routines (physics)
-    int updatecount = 0;
-    while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
-         &&( updatecount < 20 ) ) {
-        // no more than 20 updates per single pass, to keep physics from hogging up all run time
-        Ground.Update( m_primaryupdaterate, 1 );
-        ++updatecount;
-        m_primaryupdateaccumulator -= m_primaryupdaterate;
-    }
-*/
-    int updatecount = 1;
-    if( deltatime > m_primaryupdaterate ) // normalnie 0.01s
-    {
-/*
-        // NOTE: experimentally disabled physics update cap
-        auto const iterations = std::ceil(dt / m_primaryupdaterate);
-        updatecount = std::min( 20, static_cast<int>( iterations ) );
-*/
-        updatecount = std::ceil( deltatime / m_primaryupdaterate );
-/*
-        // NOTE: changing dt wrecks things further down the code. re-acquire proper value later or cleanup here
-        dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
-*/
-    }
-    auto const stepdeltatime { deltatime / updatecount };
-    // NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
-    // this means at count > 20 simulation and render are going to desync. is that right?
-    // NOTE: experimentally changing this to prevent the desync.
-    // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
-    Timer::subsystem.sim_dynamics.start();
-    if( true == Global.FullPhysics ) {
-        // mixed calculation mode, steps calculated in ~0.05s chunks
-        while( updatecount >= 5 ) {
-            simulation::State.update( stepdeltatime, 5 );
-            updatecount -= 5;
-        }
-        if( updatecount ) {
-            simulation::State.update( stepdeltatime, updatecount );
-        }
-    }
-    else {
-        // simplified calculation mode; faster but can lead to errors
-        simulation::State.update( stepdeltatime, updatecount );
-    }
-    Timer::subsystem.sim_dynamics.stop();
+	//  m_primaryupdateaccumulator += dt; // unused for the time being
+		m_secondaryupdateaccumulator += deltatime;
+	/*
+		// NOTE: until we have no physics state interpolation during render, we need to rely on the old code,
+		// as doing fixed step calculations but flexible step render results in ugly mini jitter
+		// core routines (physics)
+		int updatecount = 0;
+		while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
+			 &&( updatecount < 20 ) ) {
+			// no more than 20 updates per single pass, to keep physics from hogging up all run time
+			Ground.Update( m_primaryupdaterate, 1 );
+			++updatecount;
+			m_primaryupdateaccumulator -= m_primaryupdaterate;
+		}
+	*/
+		int updatecount = 1;
+		if( deltatime > m_primaryupdaterate ) // normalnie 0.01s
+		{
+	/*
+			// NOTE: experimentally disabled physics update cap
+			auto const iterations = std::ceil(dt / m_primaryupdaterate);
+			updatecount = std::min( 20, static_cast<int>( iterations ) );
+	*/
+			updatecount = std::ceil( deltatime / m_primaryupdaterate );
+	/*
+			// NOTE: changing dt wrecks things further down the code. re-acquire proper value later or cleanup here
+			dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
+	*/
+		}
+		auto const stepdeltatime { deltatime / updatecount };
+		// NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
+		// this means at count > 20 simulation and render are going to desync. is that right?
+		// NOTE: experimentally changing this to prevent the desync.
+		// TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
+		Timer::subsystem.sim_dynamics.start();
+		if( true == Global.FullPhysics ) {
+			// mixed calculation mode, steps calculated in ~0.05s chunks
+			while( updatecount >= 5 ) {
+				simulation::State.update( stepdeltatime, 5 );
+				updatecount -= 5;
+			}
+			if( updatecount ) {
+				simulation::State.update( stepdeltatime, updatecount );
+			}
+		}
+		else {
+			// simplified calculation mode; faster but can lead to errors
+			simulation::State.update( stepdeltatime, updatecount );
+		}
+		Timer::subsystem.sim_dynamics.stop();
 
-    // secondary fixed step simulation time routines
-    while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
+		// secondary fixed step simulation time routines
+		while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
 
-        // awaria PoKeys mogła włączyć pauzę - przekazać informację
-        if( Global.iMultiplayer ) // dajemy znać do serwera o wykonaniu
-            if( iPause != Global.iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
-                multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
-                iPause = Global.iPause;
-            }
+			// awaria PoKeys mogła włączyć pauzę - przekazać informację
+			if( Global.iMultiplayer ) // dajemy znać do serwera o wykonaniu
+				if( iPause != Global.iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
+					multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
+					iPause = Global.iPause;
+				}
 
-        // TODO: generic shake update pass for vehicles within view range
-        if( Camera.m_owner != nullptr ) {
-            Camera.m_owner->update_shake( m_secondaryupdaterate );
-        }
+			// TODO: generic shake update pass for vehicles within view range
+			if( Camera.m_owner != nullptr ) {
+				Camera.m_owner->update_shake( m_secondaryupdaterate );
+			}
 
-        m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
-    }
+			m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
+		}
 
-    // variable step simulation time routines
+		// variable step simulation time routines
 
-    if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
-        // intercept cases when the driven train got removed after entering portal
-        InOutKey();
-    }
+		if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
+			// intercept cases when the driven train got removed after entering portal
+			InOutKey();
+		}
 
-    if( Global.changeDynObj ) {
-        // ABu zmiana pojazdu - przejście do innego
-        ChangeDynamic();
-    }
+		if( Global.changeDynObj ) {
+			// ABu zmiana pojazdu - przejście do innego
+			ChangeDynamic();
+		}
 
-    if( simulation::Train != nullptr ) {
-        TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( simulation::Train->Dynamic() );
-        simulation::Train->Update( deltatime );
-    }
-    else {
-        TSubModel::iInstance = 0;
-    }
+		if( simulation::Train != nullptr )
+			TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( simulation::Train->Dynamic() );
+		else
+			TSubModel::iInstance = 0;
 
-    simulation::Events.update();
-    simulation::Region->update_events();
-    simulation::Lights.update();
+		simulation::Trains.update(deltatime);
+		simulation::Events.update();
+		simulation::Region->update_events();
+		simulation::Lights.update();
+	}
 
     // render time routines follow:
 
@@ -263,24 +263,22 @@ driver_mode::enter() {
     {
         WriteLog( "Initializing player train, \"" + Global.asHumanCtrlVehicle + "\"" );
 
-        if( simulation::Train == nullptr ) {
-            simulation::Train = new TTrain();
-        }
-        if( simulation::Train->Init( nPlayerTrain ) )
-        {
-            WriteLog("Player train initialization OK");
+		TTrain *train = new TTrain();
+		if (train->Init(nPlayerTrain)) {
+			simulation::Trains.insert(train, nPlayerTrain->name());
+			simulation::Train = train;
 
-            Application.set_title( Global.AppName + " (" + simulation::Train->Controlled()->Name + " @ " + Global.SceneryFile + ")" );
+			WriteLog("Player train initialization OK");
+			Application.set_title( Global.AppName + " (" + simulation::Train->Controlled()->Name + " @ " + Global.SceneryFile + ")" );
+			CabView();
+		}
+		else {
+			delete train;
 
-            CabView();
-        }
-        else
-        {
-            Error("Bad init: player train initialization failed");
-            FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-            SafeDelete( simulation::Train );
-            Camera.m_owner = nullptr;
-        }
+			Error("Bad init: player train initialization failed");
+			FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
+			Camera.m_owner = nullptr;
+		}
     }
     else
     {
@@ -672,22 +670,6 @@ driver_mode::OnKeyDown(int cKey) {
 
     switch (cKey) {
 
-        case GLFW_KEY_F1: {
-
-            if( DebugModeFlag ) {
-                // additional simulation clock jump keys in debug mode
-                if( Global.ctrlState ) {
-                    // ctrl-f1
-                    simulation::Time.update( 20.0 * 60.0 );
-                }
-                else if( Global.shiftState ) {
-                    // shift-f1
-                    simulation::Time.update( 5.0 * 60.0 );
-                }
-            }
-            break;
-        }
-            
         case GLFW_KEY_F4: {
             
             if( Global.shiftState ) { ExternalView(); } // with Shift, cycle through external views 
@@ -713,19 +695,22 @@ driver_mode::OnKeyDown(int cKey) {
 
                 if( ( true == DebugModeFlag )
                  || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
-                    // works always in debug mode, or for stopped/slow moving vehicles otherwise
-                    if( simulation::Train == nullptr ) {
-                        simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
-                    }
-                    if( simulation::Train->Init( tmp ) ) { // przejmujemy sterowanie
-                        simulation::Train->Dynamic()->Mechanik->TakeControl( false );
-                    }
-                    else {
-                        SafeDelete( simulation::Train ); // i nie ma czym sterować
-                    }
-                    if( simulation::Train ) {
-                        InOutKey(); // do kabiny
-                    }
+					TTrain *train = simulation::Trains.find(tmp->name());
+					if (train == nullptr) {
+						train = new TTrain();
+						if (train->Init(tmp)) {
+							simulation::Trains.insert(train, tmp->name());
+						}
+						else {
+							delete train;
+							train = nullptr;
+						}
+					}
+					if (train != nullptr) {
+						train->Dynamic()->Mechanik->TakeControl( false );
+						simulation::Train = train;
+						InOutKey();
+					}
                 }
             }
             break;
@@ -776,58 +761,6 @@ driver_mode::OnKeyDown(int cKey) {
             if( Global.ctrlState
              && Global.shiftState ) {
                 DebugModeFlag = !DebugModeFlag;
-            }
-            break;
-        }
-
-        case GLFW_KEY_LEFT_BRACKET:
-        case GLFW_KEY_RIGHT_BRACKET:
-        case GLFW_KEY_TAB: {
-            // consist movement in debug mode
-            if( ( true == DebugModeFlag )
-             && ( false == Global.shiftState )
-             && ( true == Global.ctrlState )
-             && ( simulation::Train != nullptr )
-             && ( simulation::Train->Dynamic()->Controller == Humandriver ) ) {
-
-                if( DebugModeFlag ) {
-                    // przesuwanie składu o 100m
-                    auto *vehicle { simulation::Train->Dynamic() };
-                    TDynamicObject *d = vehicle;
-                    if( cKey == GLFW_KEY_LEFT_BRACKET ) {
-                        while( d ) {
-                            d->Move( 100.0 * d->DirectionGet() );
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->Move( 100.0 * d->DirectionGet() );
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                    else if( cKey == GLFW_KEY_RIGHT_BRACKET ) {
-                        while( d ) {
-                            d->Move( -100.0 * d->DirectionGet() );
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->Move( -100.0 * d->DirectionGet() );
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                    else if( cKey == GLFW_KEY_TAB ) {
-                        while( d ) {
-                            d->MoverParameters->V += d->DirectionGet()*2.78;
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->MoverParameters->V += d->DirectionGet()*2.78;
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                }
             }
             break;
         }

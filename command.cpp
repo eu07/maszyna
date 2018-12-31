@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Timer.h"
 #include "utilities.h"
+#include "simulation.h"
 
 namespace simulation {
 
@@ -217,7 +218,14 @@ commanddescription_sequence Commands_descriptions = {
     { "batterydisable", command_target::vehicle, command_mode::oneoff },
     { "motorblowerstogglefront", command_target::vehicle, command_mode::oneoff },
     { "motorblowerstogglerear", command_target::vehicle, command_mode::oneoff },
-    { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff }
+    { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff },
+    { "timejump", command_target::simulation, command_mode::oneoff },
+    { "timejumplarge", command_target::simulation, command_mode::oneoff },
+    { "timejumpsmall", command_target::simulation, command_mode::oneoff },
+    { "vehiclemove", command_target::vehicle, command_mode::oneoff },
+    { "vehiclemoveforwards", command_target::vehicle, command_mode::oneoff },
+    { "vehiclemovebackwards", command_target::vehicle, command_mode::oneoff },
+    { "vehicleboost", command_target::vehicle, command_mode::oneoff },
 };
 
 } // simulation
@@ -225,12 +233,12 @@ commanddescription_sequence Commands_descriptions = {
 void command_queue::update()
 {
 	double delta = Timer::GetDeltaTime();
-	for (user_command c : m_active_continuous)
+	for (auto c : m_active_continuous)
 	{
-	    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( c ) ];
-		command_data data { c, GLFW_REPEAT, 0, 0, delta };
-	    auto lookup = m_commands.emplace((size_t)desc.target, commanddata_sequence() );
-	    lookup.first->second.emplace( data );
+		auto lookup = m_commands.emplace(c.second, commanddata_sequence() );
+
+		command_data data({c.first, GLFW_REPEAT, 0.0, 0.0, delta});
+		lookup.first->second.emplace_back(data);
 	}
 }
 
@@ -241,16 +249,16 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 	if (desc.mode == command_mode::continuous)
 	{
 		if (Command.action == GLFW_PRESS)
-			m_active_continuous.emplace(Command.command);
+			m_active_continuous.emplace(std::make_pair(Command.command, Recipient));
 		else if (Command.action == GLFW_RELEASE)
-			m_active_continuous.erase(Command.command);
+			m_active_continuous.erase(std::make_pair(Command.command, Recipient));
 		else if (Command.action == GLFW_REPEAT)
 			return;
 	}
 
     auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
     // recipient stack was either located or created, so we can add to it quite safely
-    lookup.first->second.emplace( Command );
+	lookup.first->second.emplace_back( Command );
 }
 
 // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
@@ -269,16 +277,24 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
     }
     // we have command stack with command(s) on it, retrieve and pop the first one
     Command = commands.front();
-    commands.pop();
+	commands.pop_front();
 
     return true;
 }
 
 void
 command_relay::post( user_command const Command, double const Param1, double const Param2,
-                     int const Action, std::uint16_t const Recipient) const {
+                     int const Action, uint16_t Recipient) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];
+
+	if (command.target == command_target::vehicle && Recipient == 0) {
+		// default 0 recipient is currently controlled train
+		if (simulation::Train == nullptr)
+			return;
+		Recipient = simulation::Train->id();
+	}
+
     if( ( command.target == command_target::vehicle )
      && ( true == FreeFlyModeFlag )
      && ( ( false == DebugModeFlag )

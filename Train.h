@@ -327,6 +327,10 @@ class TTrain
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemove( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemoveforwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
 
 
 // members
@@ -642,6 +646,7 @@ private:
     float fPPress, fNPress;
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
 	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
+	uint16_t vid = 0;
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
@@ -674,5 +679,11 @@ private:
     void set_scndctrl(int);
     void set_trainbrake(float);
     void set_localbrake(float);
+
+	uint16_t id();
 };
-//---------------------------------------------------------------------------
+
+class train_table : public basic_table<TTrain> {
+public:
+	void update(double dt);
+};

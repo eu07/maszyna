@@ -153,8 +153,35 @@ eu07_application::run() {
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
 
-        if (!m_modes[ m_modestack.top() ]->update())
-            break;
+		if (!m_network)
+		{
+			if (!m_modes[ m_modestack.top() ]->update())
+				break;
+		}
+		else if (!Global.network_conf.is_server) {
+			double delta;
+			do {
+				auto tup = m_network->get_next_delta();
+				delta = std::get<0>(tup);
+				simulation::Commands.merge_command_sequences(std::get<1>(tup));
+				Timer::set_delta_override(delta);
+
+				simulation::Commands.update();
+				if (!m_modes[ m_modestack.top() ]->update())
+					break;
+			}
+			while (delta != 0.0);
+		}
+		else {
+			auto commands = simulation::Commands.peek_command_sequences();
+
+			simulation::Commands.update();
+			if (!m_modes[ m_modestack.top() ]->update())
+				break;
+
+			double delta = Timer::GetDeltaTime();
+			m_network->push_delta(delta, commands);
+		}
 
 		m_taskqueue.update();
 		opengl_texture::reset_unit_cache();
@@ -169,7 +196,6 @@ eu07_application::run() {
 
         m_modes[ m_modestack.top() ]->on_event_poll();
 
-        simulation::Commands.update();
         if (m_screenshot_queued) {
             m_screenshot_queued = false;
             screenshot_man.make_screenshot();
@@ -177,7 +203,7 @@ eu07_application::run() {
 
         Timer::subsystem.mainloop_total.stop();
 
-		if (Global.network_conf.enabled)
+		if (m_network)
 			m_network->poll();
     }
 

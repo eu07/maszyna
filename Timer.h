@@ -16,11 +16,7 @@ double GetTime();
 double GetDeltaTime();
 double GetDeltaRenderTime();
 
-void SetDeltaTime(double v);
-
-bool GetSoundTimer();
-
-double GetFPS();
+void set_delta_override(double v);
 
 void ResetTimers();
 

@@ -47,7 +47,6 @@ namespace network
 	class tcp_client : public client
 	{
 	private:
-		std::shared_ptr<tcp_conn> conn;
 		void handle_accept(const asio::error_code &err);
 
 	public:

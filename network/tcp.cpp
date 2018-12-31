@@ -117,10 +117,11 @@ void network::tcp_server::handle_accept(std::shared_ptr<tcp_conn> conn, const as
 network::tcp_client::tcp_client(asio::io_context &io_ctx)
 {
 	conn = std::make_shared<tcp_conn>(io_ctx);
+	auto tcpconn = std::static_pointer_cast<tcp_conn>(conn);
 
 	asio::ip::tcp::endpoint endpoint(
 	            asio::ip::address::from_string("127.0.0.1"), 7424);
-	conn->socket().async_connect(endpoint,
+	tcpconn->socket().async_connect(endpoint,
 	                    std::bind(&tcp_client::handle_accept, this, std::placeholders::_1));
 }
 

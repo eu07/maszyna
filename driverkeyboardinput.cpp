@@ -219,8 +219,14 @@ driverkeyboard_input::default_bindings() {
         // batterydisable,
         { user_command::motorblowerstogglefront, GLFW_KEY_N | keymodifier::shift },
         { user_command::motorblowerstogglerear, GLFW_KEY_M | keymodifier::shift },
-        { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control }
-
+	    { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control },
+	    // admin_timejump,
+	    { user_command::timejumplarge, GLFW_KEY_F1 | keymodifier::control },
+	    { user_command::timejumpsmall, GLFW_KEY_F1 | keymodifier::shift },
+	    // admin_vehiclemove,
+	    { user_command::vehiclemoveforwards, GLFW_KEY_LEFT_BRACKET | keymodifier::control },
+	    { user_command::vehiclemovebackwards, GLFW_KEY_RIGHT_BRACKET | keymodifier::control },
+	    { user_command::vehicleboost, GLFW_KEY_TAB | keymodifier::control },
     };
 }
 

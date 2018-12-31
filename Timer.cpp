@@ -23,6 +23,7 @@ DWORD dwFrames{ 0 };
 double fSimulationTime{ 0.0 };
 double fSoundTimer{ 0.0 };
 double fSinceStart{ 0.0 };
+double override_delta = -1.0f;
 
 double GetTime()
 {
@@ -39,19 +40,9 @@ double GetDeltaRenderTime()
     return DeltaRenderTime;
 }
 
-void SetDeltaTime(double t)
+void set_delta_override(double t)
 {
-    DeltaTime = t;
-}
-
-bool GetSoundTimer()
-{ // Ra: być może, by dźwięki nie modyfikowały się zbyt często, po 0.1s zeruje się ten licznik
-    return (fSoundTimer == 0.0f);
-}
-
-double GetFPS()
-{
-    return fFPS;
+	override_delta = t;
 }
 
 void ResetTimers()
@@ -59,8 +50,7 @@ void ResetTimers()
     UpdateTimers( Global.iPause != 0 );
     DeltaTime = 0.1;
     DeltaRenderTime = 0.0;
-    fSoundTimer = 0.0;
-};
+}
 
 uint64_t fr, count, oldCount;
 
@@ -89,6 +79,11 @@ void UpdateTimers(bool pause)
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
 
+	if (override_delta != -1.0f)
+		DeltaTime = override_delta;
+
+	fSimulationTime += DeltaTime;
+
     oldCount = count;
     // Keep track of the time lapse and frame count
 #if __linux__
@@ -106,7 +101,6 @@ void UpdateTimers(bool pause)
         fLastTime = fTime;
         dwFrames = 0L;
     }
-    fSimulationTime += DeltaTime;
 };
 
 }; // namespace timer
