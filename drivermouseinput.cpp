@@ -491,6 +491,9 @@ drivermouse_input::default_bindings() {
         { "brakeprofiler_sw:", {
             user_command::brakeactingspeedsetrapid,
             user_command::brakeactingspeedsetpassenger } },
+        { "brakeopmode_sw:", {
+            user_command::trainbrakeoperationmodeincrease,
+            user_command::trainbrakeoperationmodedecrease } },
         { "maxcurrent_sw:", {
             user_command::motoroverloadrelaythresholdtoggle,
             user_command::none } },

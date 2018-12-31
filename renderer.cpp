@@ -2462,7 +2462,8 @@ void opengl_renderer::Render(TSubModel *Submodel)
 
 						// material configuration:
 						// limit impact of dense fog on the lights
-						model_ubs.fog_density = 1.0f / std::min<float>(Global.fFogEnd, m_fogrange * 2);
+						auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+						model_ubs.fog_density = 1.0 / lightrange;
 
 						// main draw call
 						model_ubs.emission = 1.0f;
@@ -3007,16 +3008,7 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 {
 	glDebug("Render_Alpha TTraction");
 
-	double distancesquared;
-	switch (m_renderpass.draw_mode)
-	{
-	case rendermode::shadows:
-	default:
-	{
-		distancesquared = glm::length2((Traction->location() - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
-		break;
-	}
-	}
+	auto const distancesquared { glm::length2( ( Traction->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
 	if ((distancesquared < Traction->m_rangesquaredmin) || (distancesquared >= Traction->m_rangesquaredmax))
 	{
 		return;
@@ -3060,16 +3052,7 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 
 	auto const &data{Lines.data()};
 
-	double distancesquared;
-	switch (m_renderpass.draw_mode)
-	{
-	case rendermode::shadows:
-	default:
-	{
-		distancesquared = glm::length2((data.area.center - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
-		break;
-	}
-	}
+	auto const distancesquared { glm::length2( ( data.area.center - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
 	if ((distancesquared < data.rangesquared_min) || (distancesquared >= data.rangesquared_max))
 	{
 		return;
