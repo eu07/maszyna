@@ -490,7 +490,7 @@ int TMoverParameters::DettachStatus(int ConnectNo)
     // if (CouplerType==Articulated) return false; //sprzęg nie do rozpięcia - może być tylko urwany
     // Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
     CouplerDist(ConnectNo);
-    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Couplers[ConnectNo].CoupleDist < 0.0 : true)
+    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Couplers[ConnectNo].CoupleDist < 0.01 : true)
         return -Couplers[ConnectNo].CouplingFlag; // można rozłączać, jeśli dociśnięty
     return (Couplers[ConnectNo].CoupleDist > 0.2) ? -Couplers[ConnectNo].CouplingFlag :
                                                     Couplers[ConnectNo].CouplingFlag;
@@ -563,7 +563,7 @@ bool TMoverParameters::DirectionForward()
         SendCtrlToNext("Direction", ActiveDir, CabNo);
         return true;
     }
-    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT))
+    else if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         return MinCurrentSwitch(true); //"wysoki rozruch" EN57
     return false;
 };
@@ -635,8 +635,9 @@ bool TMoverParameters::ChangeCab(int direction)
     {
         //  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
         ActiveCab = ActiveCab + direction;
-        if ((BrakeSystem == TBrakeSystem::Pneumatic) && (BrakeCtrlPosNo > 0))
-        {
+        if( ( BrakeCtrlPosNo > 0 )
+         && ( ( BrakeSystem == TBrakeSystem::Pneumatic )
+           || ( BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) ) {
             //    if (BrakeHandle==FV4a)   //!!!POBIERAĆ WARTOŚĆ Z KLASY ZAWORU!!!
             //     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
             //    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
@@ -2399,7 +2400,7 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 bool TMoverParameters::DirectionBackward(void)
 {
     bool DB = false;
-    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT))
+    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         if (MinCurrentSwitch(false))
         {
             DB = true; //
@@ -2739,64 +2740,74 @@ bool TMoverParameters::MotorBlowersSwitchOff( bool State, side const Side, range
 // Q: 20160713
 // włączenie / wyłączenie obwodu głownego
 // *************************************************************************************************
-bool TMoverParameters::MainSwitch( bool const State, range_t const Notify )
-{
+bool TMoverParameters::MainSwitch( bool const State, range_t const Notify ) {
+
     bool const initialstate { Mains || dizel_startup };
 
-    if( ( Mains != State )
-     && ( MainCtrlPosNo > 0 ) ) {
+    MainSwitch_( State );
 
-        if( ( false == State )
-         || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
-           && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
-           && ( true == NoVoltRelay )
-           && ( true == OvervoltageRelay )
-           && ( LastSwitchingTime > CtrlDelay )
-           && ( false == TestFlag( DamageFlag, dtrain_out ) )
-           && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
-
-            if( true == State ) {
-                // switch on
-                if( ( EngineType == TEngineType::DieselEngine )
-                 || ( EngineType == TEngineType::DieselElectric ) ) {
-                    // launch diesel engine startup procedure
-                    dizel_startup = true;
-                }
-                else {
-                    Mains = true;
-                }
-            }
-            else {
-                Mains = false;
-                // potentially knock out the pumps if their switch doesn't force them on
-                WaterPump.is_active &= WaterPump.is_enabled;
-                FuelPump.is_active &= FuelPump.is_enabled;
-            }
-
-            if( ( TrainType == dt_EZT )
-             && ( false == State ) ) {
-
-                ConvOvldFlag = true;
-            }
-
-            if( Mains != initialstate ) {
-                LastSwitchingTime = 0;
-            }
-
-            if( Notify != range_t::local ) {
-                // pass the command to other vehicles
-                SendCtrlToNext(
-                    "MainSwitch",
-                    ( State ? 1 : 0 ),
-                    CabNo,
-                    ( Notify == range_t::unit ?
-                        coupling::control | coupling::permanent :
-                        coupling::control ) );
-            }
-        }
+    if( Notify != range_t::local ) {
+    // pass the command to other vehicles
+    // TBD: pass the requested state, or the actual state?
+    SendCtrlToNext(
+        "MainSwitch",
+        ( State ? 1 : 0 ),
+        CabNo,
+        ( Notify == range_t::unit ?
+            coupling::control | coupling::permanent :
+            coupling::control ) );
     }
 
     return ( ( Mains || dizel_startup ) != initialstate );
+}
+
+void TMoverParameters::MainSwitch_( bool const State ) {
+
+    if( ( Mains == State )
+     || ( MainCtrlPosNo == 0 ) ) {
+        // nothing to do
+        return;
+    }
+
+    bool const initialstate { Mains || dizel_startup };
+
+    if( ( false == State )
+     || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
+       && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+       && ( true == NoVoltRelay )
+       && ( true == OvervoltageRelay )
+       && ( LastSwitchingTime > CtrlDelay )
+       && ( false == TestFlag( DamageFlag, dtrain_out ) )
+       && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
+
+        if( true == State ) {
+            // switch on
+            if( ( EngineType == TEngineType::DieselEngine )
+             || ( EngineType == TEngineType::DieselElectric ) ) {
+                // launch diesel engine startup procedure
+                dizel_startup = true;
+            }
+            else {
+                Mains = true;
+            }
+        }
+        else {
+            Mains = false;
+            // potentially knock out the pumps if their switch doesn't force them on
+            WaterPump.is_active &= WaterPump.is_enabled;
+            FuelPump.is_active &= FuelPump.is_enabled;
+        }
+
+        if( ( TrainType == dt_EZT )
+         && ( false == State ) ) {
+
+            ConvOvldFlag = true;
+        }
+
+        if( Mains != initialstate ) {
+            LastSwitchingTime = 0;
+        }
+    }
 }
 
 // *************************************************************************************************
@@ -3555,9 +3566,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     dpMainValve = 0;
 
-    if ((BrakeCtrlPosNo > 1) /*&& (ActiveCab != 0)*/)
-    // with BrakePressureTable[BrakeCtrlPos] do
-    {
+    if( BrakeCtrlPosNo > 1 ) {
+
 		if ((EngineType != TEngineType::ElectricInductionMotor))
 			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
 		else
@@ -3573,13 +3583,21 @@ void TMoverParameters::UpdatePipePressure(double dt)
             temp = ScndPipePress;
         }
         Handle->SetReductor(BrakeCtrlPos2);
+                
+        if( ( ( BrakeOpModes & bom_PS ) == 0 )
+         || ( ( ActiveCab != 0 )
+           && ( BrakeOpModeFlag != bom_PS ) ) ) {
 
-		if ((BrakeOpModeFlag != bom_PS))
-			if ((BrakeOpModeFlag < bom_EP) || ((Handle->GetPos(bh_EB) - 0.5) < BrakeCtrlPosR) ||
-				(BrakeHandle != TBrakeHandle::MHZ_EN57))
-				dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
-			else
-				dpMainValve = Handle->GetPF(0, PipePress, temp, dt, EqvtPipePress);
+            if( ( BrakeOpModeFlag < bom_EP )
+             || ( ( Handle->GetPos( bh_EB ) - 0.5 ) < BrakeCtrlPosR )
+             || ( ( BrakeHandle != TBrakeHandle::MHZ_EN57 )
+               && ( BrakeHandle != TBrakeHandle::MHZ_K8P ) ) ) {
+                dpMainValve = Handle->GetPF( BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress );
+            }
+            else {
+                dpMainValve = Handle->GetPF( 0, PipePress, temp, dt, EqvtPipePress );
+            }
+        }
 		
 		if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
             if (Compressor > ScndPipePress)
@@ -4627,14 +4645,6 @@ double TMoverParameters::TractionForce( double dt ) {
     switch( EngineType ) {
 
         case TEngineType::ElectricSeriesMotor: {
-/*
-			if ((Mains)) // nie wchodzić w funkcję bez potrzeby
-				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
-					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
-						EnginePowerSource.CollectorParameters.MaxV))
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) // TODO: check whether we need to send this EMU-wide
-						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
-*/
             // update the state of voltage relays
             auto const voltage { std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) };
             NoVoltRelay = ( voltage >= EnginePowerSource.CollectorParameters.MinV );
@@ -4643,6 +4653,18 @@ double TMoverParameters::TractionForce( double dt ) {
             EventFlag |= ( ( true == Mains )
                         && ( ( false == NoVoltRelay ) || ( false == OvervoltageRelay ) )
                         && ( MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ) ) ); // TODO: check whether we need to send this EMU-wide
+            break;
+        }
+
+        case TEngineType::ElectricInductionMotor: {
+            // TODO: check if we can use instead the code for electricseriesmotor
+            if( ( Mains ) ) {
+                // nie wchodzić w funkcję bez potrzeby
+                if( ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                    MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
+                }
+            }
             break;
         }
 
@@ -5062,13 +5084,6 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricInductionMotor:
         {
-            if( ( Mains ) ) {
-                // nie wchodzić w funkcję bez potrzeby
-                if( ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) < EnginePowerSource.CollectorParameters.MinV )
-                 || ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
-                    MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
-                }
-            }
             if( true == Mains ) {
 				//tempomat
 				if (ScndCtrlPosNo > 1)
@@ -5531,8 +5546,9 @@ bool TMoverParameters::MaxCurrentSwitch(bool State)
 bool TMoverParameters::MinCurrentSwitch(bool State)
 {
     bool MCS = false;
-    if (((EngineType == TEngineType::ElectricSeriesMotor) && (IminHi > IminLo)) || (TrainType == dt_EZT))
-    {
+    if( ( ( EngineType == TEngineType::ElectricSeriesMotor ) && ( IminHi > IminLo ) )
+     || ( ( TrainType == dt_EZT ) && ( EngineType != TEngineType::ElectricInductionMotor ) ) ) {
+
         if (State && (Imin == IminLo))
         {
             Imin = IminHi;
@@ -9461,22 +9477,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
     }
     else if (Command == "MainSwitch")
 	{
-		if (CValue1 == 1) {
-
-            if( ( EngineType == TEngineType::DieselEngine )
-             || ( EngineType == TEngineType::DieselElectric ) ) {
-                dizel_startup = true;
-            }
-            else {
-                Mains = true;
-            }
-		}
-        else {
-            Mains = false;
-            // potentially knock out the pumps if their switch doesn't force them on
-            WaterPump.is_active &= WaterPump.is_enabled;
-            FuelPump.is_active &= FuelPump.is_enabled;
-        }
+        MainSwitch_( CValue1 > 0.0 );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Direction")

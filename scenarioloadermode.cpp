@@ -36,7 +36,7 @@ scenarioloader_mode::init() {
 bool
 scenarioloader_mode::update() {
 
-    WriteLog( "\nLoading scenario..." );
+    WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
 
     auto timestart = std::chrono::system_clock::now();
 

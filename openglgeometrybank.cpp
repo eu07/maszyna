@@ -190,11 +190,13 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
         m_buffercapacity = datasize;
     }
     // actual draw procedure starts here
+    auto &chunkrecord { m_chunkrecords[ Geometry.chunk - 1 ] };
+    // sanity check; shouldn't be needed but, eh
+    if( chunkrecord.size == 0 ) { return; }
     // setup...
     if( m_activebuffer != m_buffer ) {
         bind_buffer();
     }
-    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
         // we may potentially need to upload new buffer data before we can draw it

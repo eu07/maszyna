@@ -580,7 +580,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // without rain/snow we can render the cab early to limit the overdraw
                 if( ( false == FreeFlyModeFlag )
                  && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
+#ifdef EU07_DISABLECABREFLECTIONS
                     switch_units( true, true, false );
+#endif
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor { m_shadowcolor };
@@ -603,7 +605,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 Render_precipitation();
                 // cab render
                 if( false == FreeFlyModeFlag ) {
+#ifdef EU07_DISABLECABREFLECTIONS
                     switch_units( true, true, false );
+#endif
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor{ m_shadowcolor };
@@ -2612,7 +2616,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // material configuration:
                             Bind_Material( null_handle );
                             // limit impact of dense fog on the lights
-                            ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / std::min<float>( Global.fFogEnd, m_fogrange * 2 ) ) );
+                            auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+                            ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / lightrange ) );
 
                             ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
                             ::glDisable( GL_LIGHTING );
@@ -3147,7 +3152,8 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
 
 void
 opengl_renderer::Render_Alpha( TTraction *Traction ) {
-
+/*
+// NOTE: test disabled as this call is only executed as part of the colour pass
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
@@ -3160,6 +3166,8 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
             break;
         }
     }
+*/
+    auto const distancesquared { glm::length2( ( Traction->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
     if( ( distancesquared <  Traction->m_rangesquaredmin )
      || ( distancesquared >= Traction->m_rangesquaredmax ) ) {
         return;
@@ -3208,7 +3216,8 @@ void
 opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
 
     auto const &data { Lines.data() };
-
+/*
+    // NOTE: test disabled as this call is only executed as part of the colour pass
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
@@ -3221,6 +3230,8 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
             break;
         }
     }
+*/
+    auto const distancesquared { glm::length2( ( data.area.center - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
     if( ( distancesquared <  data.rangesquared_min )
      || ( distancesquared >= data.rangesquared_max ) ) {
         return;

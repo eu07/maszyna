@@ -1370,6 +1370,7 @@ public:
     bool MotorBlowersSwitch( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
     bool MotorBlowersSwitchOff( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
+    void MainSwitch_( bool const State );
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 

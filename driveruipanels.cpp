@@ -443,8 +443,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
-        mover.MotorBlowers[side::front].revolutions,
-        mover.MotorBlowers[side::rear].revolutions,
+        std::abs( mover.MotorBlowers[side::front].revolutions ),
+        std::abs( mover.MotorBlowers[side::rear].revolutions ),
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 
@@ -470,6 +470,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // brakes
         mover.fBrakeCtrlPos,
         mover.LocalBrakePosA,
+        mover.BrakeOpModeFlag,
         update_vehicle_brake().c_str(),
         mover.LoadFlag,
         // cylinders
@@ -482,7 +483,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.ScndPipePress,
         mover.CntrlPipePress,
         // tanks
-        mover.Volume,
+        mover.Hamulec->GetBRP(),
         mover.Compressor,
         mover.Hamulec->GetCRP() );
 
@@ -526,37 +527,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         vehicle.GetPosition().z );
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
-/*
-        textline = " TC:" + to_string( mover.TotalCurrent, 0 );
-*/
-/*
-        if( mover.ManualBrakePos > 0 ) {
 
-            textline += "; manual brake on";
-        }
-*/
-/*
-        // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-            switch(
-                mover.ActiveDir *
-                ( mover.Imin == mover.IminLo ?
-                    1 :
-                    2 ) ) {
-                case  2: { textline += " >> "; break; }
-                case  1: { textline += " -> "; break; }
-                case  0: { textline += " -- "; break; }
-                case -1: { textline += " <- "; break; }
-                case -2: { textline += " << "; break; }
-            }
-
-        // McZapkie: komenda i jej parametry
-        if( mover.CommandIn.Command != ( "" ) ) {
-            textline =
-                "C:" + mover.CommandIn.Command
-                + " V1=" + to_string( mover.CommandIn.Value1, 0 )
-                + " V2=" + to_string( mover.CommandIn.Value2, 0 );
-        }
-*/
 }
 
 std::string
@@ -899,7 +870,10 @@ debug_panel::render_section( std::string const &Header, std::vector<text_line> c
     if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
 
     for( auto const &line : Lines ) {
-        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
+        ImGui::TextUnformatted( line.data.c_str() );
+        ImGui::PopStyleColor();
+//        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
     }
     return true;
 }
