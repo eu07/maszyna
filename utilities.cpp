@@ -411,6 +411,18 @@ substr_path( std::string const &Filename ) {
             "" );
 }
 
+// returns length of common prefix between two provided strings
+std::ptrdiff_t
+len_common_prefix( std::string const &Left, std::string const &Right ) {
+
+    auto const *left  { Left.data() };
+    auto const *right { Right.data() };
+    // compare up to the length of the shorter string
+    return ( Right.size() <= Left.size() ?
+        std::distance( right, std::mismatch( right, right + Right.size(), left ).first ) :
+        std::distance( left,  std::mismatch( left,  left + Left.size(),  right ).first ) );
+}
+
 // helper, restores content of a 3d vector from provided input stream
 // TODO: review and clean up the helper routines, there's likely some redundant ones
 

@@ -117,7 +117,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( -1.0 * controlled->Mechanik->fStopTime ) };
+            auto const stoptime { static_cast<int>( std::ceil( -1.0 * controlled->Mechanik->fStopTime ) ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
@@ -172,10 +172,10 @@ timetable_panel::update() {
         text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
     }
 
-    auto *vehicle {
-        ( FreeFlyModeFlag ?
-            std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) :
-            controlled ) }; // w trybie latania lokalizujemy wg mapy
+    auto *vehicle { (
+        false == FreeFlyModeFlag ? controlled :
+        camera.m_owner != nullptr ? camera.m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ) }; // w trybie latania lokalizujemy wg mapy
 
     if( vehicle == nullptr ) { return; }
     // if the nearest located vehicle doesn't have a direct driver, try to query its owner
@@ -285,10 +285,10 @@ debug_panel::update() {
     m_input.train = simulation::Train;
     m_input.controlled = ( m_input.train ? m_input.train->Dynamic() : nullptr );
     m_input.camera = &( Global.pCamera );
-    m_input.vehicle =
-        ( FreeFlyModeFlag ?
-            std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) :
-            m_input.controlled ); // w trybie latania lokalizujemy wg mapy
+    m_input.vehicle = (
+        false == FreeFlyModeFlag ? m_input.controlled :
+        m_input.camera->m_owner != nullptr ? m_input.camera->m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
     m_input.mover =
         ( m_input.vehicle != nullptr ?
             m_input.vehicle->MoverParameters :
@@ -440,8 +440,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
-        mover.MotorBlowers[side::front].revolutions,
-        mover.MotorBlowers[side::rear].revolutions,
+        std::abs( mover.MotorBlowers[side::front].revolutions ),
+        std::abs( mover.MotorBlowers[side::rear].revolutions ),
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 
@@ -467,6 +467,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // brakes
         mover.fBrakeCtrlPos,
         mover.LocalBrakePosA,
+        mover.BrakeOpModeFlag,
         update_vehicle_brake().c_str(),
         mover.LoadFlag,
         // cylinders
@@ -479,7 +480,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.ScndPipePress,
         mover.CntrlPipePress,
         // tanks
-        mover.Volume,
+        mover.Hamulec->GetBRP(),
         mover.Compressor,
         mover.Hamulec->GetCRP() );
 
@@ -523,37 +524,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         vehicle.GetPosition().z );
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
-/*
-        textline = " TC:" + to_string( mover.TotalCurrent, 0 );
-*/
-/*
-        if( mover.ManualBrakePos > 0 ) {
 
-            textline += "; manual brake on";
-        }
-*/
-/*
-        // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-            switch(
-                mover.ActiveDir *
-                ( mover.Imin == mover.IminLo ?
-                    1 :
-                    2 ) ) {
-                case  2: { textline += " >> "; break; }
-                case  1: { textline += " -> "; break; }
-                case  0: { textline += " -- "; break; }
-                case -1: { textline += " <- "; break; }
-                case -2: { textline += " << "; break; }
-            }
-
-        // McZapkie: komenda i jej parametry
-        if( mover.CommandIn.Command != ( "" ) ) {
-            textline =
-                "C:" + mover.CommandIn.Command
-                + " V1=" + to_string( mover.CommandIn.Value1, 0 )
-                + " V2=" + to_string( mover.CommandIn.Value2, 0 );
-        }
-*/
 }
 
 std::string
@@ -894,7 +865,10 @@ debug_panel::render_section( std::string const &Header, std::vector<text_line> c
     if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
 
     for( auto const &line : Lines ) {
-        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
+        ImGui::TextUnformatted( line.data.c_str() );
+        ImGui::PopStyleColor();
+//        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
     }
     return true;
 }

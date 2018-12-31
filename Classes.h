@@ -44,6 +44,7 @@ struct light_array;
 namespace scene {
 struct node_data;
 class basic_node;
+using group_handle = std::size_t;
 }
 
 namespace Mtable

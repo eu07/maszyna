@@ -201,6 +201,9 @@ replace_slashes( std::string &Filename );
 // returns potential path part from provided file name
 std::string substr_path( std::string const &Filename );
 
+// returns common prefix of two provided strings
+std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Right );
+
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
     delete Pointer;

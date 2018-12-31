@@ -88,7 +88,8 @@ namespace gl
         float linear;
         float quadratic;
 
-        UBS_PAD(8);
+		float intensity;
+		float ambient;
     };
 
     static_assert(sizeof(light_element_ubs) == 64, "bad size of ubs");

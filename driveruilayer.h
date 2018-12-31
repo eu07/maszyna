@@ -49,5 +49,5 @@ private:
     debug_panel m_debugpanel { "Debug Data", false };
     transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts
     bool m_paused { false };
-
+	bool m_pause_modal_opened { false };
 };

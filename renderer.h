@@ -28,12 +28,6 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/glsl_common.h"
 #include "gl/pbo.h"
 
-#define EU07_USE_PICKING_FRAMEBUFFER
-//#define EU07_USE_DEBUG_SHADOWMAP
-//#define EU07_USE_DEBUG_CABSHADOWMAP
-//#define EU07_USE_DEBUG_CAMERA
-//#define EU07_USE_DEBUG_SOUNDEMITTERS
-
 struct opengl_light : public basic_light
 {
 
@@ -194,6 +188,8 @@ class opengl_renderer
     GLenum static const sunlight{0};
 	std::size_t m_drawcount{0};
 
+	bool debug_ui_active = false;
+
   private:
 	// types
 	enum class rendermode
@@ -258,7 +254,7 @@ class opengl_renderer
 	void Render(TSubModel *Submodel);
 	void Render(TTrack *Track);
 	void Render(scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last);
-	bool Render_cab(TDynamicObject const *Dynamic, bool const Alpha = false);
+	bool Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha = false);
 	void Render(TMemCell *Memcell);
 	void Render_precipitation();
 	void Render_Alpha(scene::basic_region *Region);
@@ -276,6 +272,8 @@ class opengl_renderer
 
     void draw(const gfx::geometry_handle &handle);
     void draw(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
+
+	void draw_debug_ui();
 
 	// members
 	GLFWwindow *m_window{nullptr};
@@ -411,6 +409,20 @@ class opengl_renderer
     bool m_blendingenabled;
 
 	bool m_widelines_supported;
+
+	struct headlight_config_s
+	{
+		float in_cutoff = 1.005f;
+		float out_cutoff = 0.993f;
+
+		float falloff_linear = 0.069f;
+		float falloff_quadratic = 0.03f;
+
+		float intensity = 1.0f;
+		float ambient = 0.184f;
+	};
+
+	headlight_config_s headlight_config;
 };
 
 extern opengl_renderer GfxRenderer;

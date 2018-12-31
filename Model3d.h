@@ -121,6 +121,8 @@ private:
     float fCosHotspotAngle { 0.3f }; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie światła
     float fCosViewAngle { 0.0f }; // cos kata pod jakim sie teraz patrzy
 
+	bool m_rotation_init_done = false;
+
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
 public: // temporary access, clean this up during refactoring
@@ -201,7 +203,7 @@ public:
     // sets visibility level (alpha component) to specified value
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value
-    void SetLightLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
+    void SetLightLevel( glm::vec4 const &Level, bool const Includechildren = false, bool const Includesiblings = false );
 	inline float3 Translation1Get() {
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {

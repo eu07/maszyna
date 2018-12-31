@@ -34,16 +34,21 @@ public:
 // methods
     void Load(cParser &Parser);
     void Update();
+    TGauge &Gauge( int n = -1 ); // pobranie adresu obiektu
+    TButton &Button( int n = -1 ); // pobranie adresu obiektu
 // members
     Math3D::vector3 CabPos1 { 0, 1, 1 };
     Math3D::vector3 CabPos2 { 0, 1, -1 };
     bool bEnabled { false };
     bool bOccupied { true };
+/*
     glm::vec3 dimm; // McZapkie-120503: tlumienie swiatla
     glm::vec3 intlit; // McZapkie-120503: oswietlenie kabiny
     glm::vec3 intlitlow; // McZapkie-120503: przyciemnione oswietlenie kabiny
-    TGauge &Gauge( int n = -1 ); // pobranie adresu obiektu
-    TButton &Button( int n = -1 ); // pobranie adresu obiektu
+*/
+    bool bLight { false }; // hunter-091012: czy swiatlo jest zapalone?
+    bool bLightDim { false }; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
+    float LightLevel{ 0.f }; // last calculated interior light level
 
 private:
 // members
@@ -123,7 +128,7 @@ class TTrain
     void clear_cab_controls();
     // sets cabin controls based on current state of the vehicle
     // NOTE: we can get rid of this function once we have per-cab persistent state
-    void set_cab_controls();
+    void set_cab_controls( int const Cab );
     // initializes a gauge matching provided label. returns: true if the label was found, false otherwise
     bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
     // initializes a button matching provided label. returns: true if the label was found, false otherwise
@@ -509,7 +514,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };
@@ -595,14 +600,14 @@ public: // reszta może by?publiczna
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
     sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-
+/*
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
-
+*/
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
-    TCab Cabine[ maxcab + 1 ]; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
-    int iCabn;
+    std::array<TCab, maxcab + 1> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
+    int iCabn { 0 };
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
     Math3D::vector3 MirrorPosition( bool lewe );
@@ -644,6 +649,8 @@ private:
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
+    bool m_mastercontrollerinuse { false };
+    float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
 	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
 	uint16_t vid = 0;

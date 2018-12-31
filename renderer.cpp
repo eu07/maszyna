@@ -208,7 +208,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 			m_msaa_fb->attach(*m_msaa_rbv, GL_COLOR_ATTACHMENT1);
 
 			m_main_tex = std::make_unique<opengl_texture>();
-			m_main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+			m_main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, 1, GL_CLAMP_TO_EDGE);
 
 			m_main_fb = std::make_unique<gl::framebuffer>();
 			m_main_fb->attach(*m_main_tex, GL_COLOR_ATTACHMENT0);
@@ -442,6 +442,28 @@ void opengl_renderer::SwapBuffers()
 	Timer::subsystem.gfx_swap.stop();
 }
 
+void opengl_renderer::draw_debug_ui()
+{
+	if (!debug_ui_active)
+		return;
+
+	if (ImGui::Begin("headlight config", &debug_ui_active))
+	{
+		ImGui::SetWindowSize(ImVec2(0, 0));
+
+		headlight_config_s &conf = headlight_config;
+		ImGui::SliderFloat("in_cutoff", &conf.in_cutoff, 0.9f, 1.1f);
+		ImGui::SliderFloat("out_cutoff", &conf.out_cutoff, 0.9f, 1.1f);
+
+		ImGui::SliderFloat("falloff_linear", &conf.falloff_linear, 0.0f, 1.0f, "%.3f", 2.0f);
+		ImGui::SliderFloat("falloff_quadratic", &conf.falloff_quadratic, 0.0f, 1.0f, "%.3f", 2.0f);
+
+		ImGui::SliderFloat("ambient", &conf.ambient, 0.0f, 3.0f);
+		ImGui::SliderFloat("intensity", &conf.intensity, 0.0f, 10.0f);
+	}
+	ImGui::End();
+}
+
 // runs jobs needed to generate graphics for specified render pass
 void opengl_renderer::Render_pass(rendermode const Mode)
 {
@@ -533,9 +555,9 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		setup_drawing(true);
 
 		glm::mat4 future;
-		if (!FreeFlyModeFlag)
+		if (Global.pCamera.m_owner != nullptr)
 		{
-			auto const *vehicle = simulation::Train->Dynamic();
+			auto const *vehicle = Global.pCamera.m_owner;
 			glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
 			future = glm::translate(mv, -glm::vec3(vehicle->get_future_movement())) * glm::inverse(mv);
 		}
@@ -560,7 +582,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
 
 			auto const *vehicle = simulation::Train->Dynamic();
-			Render_cab(vehicle, false);
+			Render_cab(vehicle, vehicle->InteriorLightLevel, false);
 		}
 
 		glDebug("render opaque region");
@@ -593,10 +615,10 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			{
 				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
 				setup_drawing(false);
-				Render_cab(vehicle, false);
+				Render_cab(vehicle, vehicle->InteriorLightLevel, false);
 				setup_drawing(true);
 			}
-			Render_cab(vehicle, true);
+			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
 		}
 
 		setup_shadow_map(nullptr, m_renderpass);
@@ -634,6 +656,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glDebug("uilayer render");
+		draw_debug_ui();
 		Application.render_ui();
 
 		// restore binding
@@ -700,8 +723,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 
-		Render_cab(simulation::Train->Dynamic(), false);
-		Render_cab(simulation::Train->Dynamic(), true);
+		Render_cab(simulation::Train->Dynamic(), 0.0f, false);
+		Render_cab(simulation::Train->Dynamic(), 0.0f, true);
 		m_cabshadowpass = m_renderpass;
 
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -771,7 +794,10 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render_cab(simulation::Train->Dynamic());
+		if (simulation::Train != nullptr) {
+			Render_cab(simulation::Train->Dynamic(), 0.0f);
+			Render(simulation::Train->Dynamic());
+		}
 
 		m_pick_fb->unbind();
 
@@ -919,7 +945,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	}
 	case rendermode::cabshadows:
 	{
-		Config.draw_range = (simulation::Train->Occupied()->ActiveCab != 0 ? 10.f : 20.f);
+		Config.draw_range = simulation::Train->Occupied()->Dim.L;
 		break;
 	}
 	case rendermode::reflections:
@@ -2088,13 +2114,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 
 		// render
 		if (Dynamic->mdLowPolyInt)
-		{
-			// low poly interior
-			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-			{
-				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-			}
-		}
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 
 		if (Dynamic->mdModel)
 			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
@@ -2117,10 +2137,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 		if (Dynamic->mdLowPolyInt)
 		{
 			// low poly interior
-			if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-			{
-				Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-			}
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 		}
 		if (Dynamic->mdModel)
 			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
@@ -2130,6 +2147,13 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 		break;
 	}
 	case rendermode::pickcontrols:
+	{
+		if (Dynamic->mdLowPolyInt) {
+			// low poly interior
+			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
+		}
+		break;
+	}
 	case rendermode::pickscenery:
 	default:
 	{
@@ -2149,7 +2173,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 }
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha)
+bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha)
 {
 
 	if (Dynamic == nullptr)
@@ -2189,7 +2213,7 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, bool const Alpha
 
 			// crude way to light the cabin, until we have something more complete in place
 			glm::vec3 old_ambient = light_ubs.ambient;
-			light_ubs.ambient += Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+			light_ubs.ambient += Dynamic->InteriorLight * Lightlevel;
 			light_ubo->update(light_ubs);
 
 			// render
@@ -2344,10 +2368,9 @@ void opengl_renderer::Render(TSubModel *Submodel)
 					}
 
 					// ...luminance
-					if (Global.fLuminance < Submodel->fLight)
-					{
+					auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+					if (isemissive)
 						model_ubs.emission = Submodel->f4Emision.a;
-					}
 
 					// main draw call
 					draw(Submodel->m_geometry);
@@ -2439,7 +2462,8 @@ void opengl_renderer::Render(TSubModel *Submodel)
 
 						// material configuration:
 						// limit impact of dense fog on the lights
-						model_ubs.fog_density = 1.0f / std::min<float>(Global.fFogEnd, m_fogrange * 2);
+						auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+						model_ubs.fog_density = 1.0 / lightrange;
 
 						// main draw call
 						model_ubs.emission = 1.0f;
@@ -2984,16 +3008,7 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 {
 	glDebug("Render_Alpha TTraction");
 
-	double distancesquared;
-	switch (m_renderpass.draw_mode)
-	{
-	case rendermode::shadows:
-	default:
-	{
-		distancesquared = glm::length2((Traction->location() - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
-		break;
-	}
-	}
+	auto const distancesquared { glm::length2( ( Traction->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
 	if ((distancesquared < Traction->m_rangesquaredmin) || (distancesquared >= Traction->m_rangesquaredmax))
 	{
 		return;
@@ -3037,16 +3052,7 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 
 	auto const &data{Lines.data()};
 
-	double distancesquared;
-	switch (m_renderpass.draw_mode)
-	{
-	case rendermode::shadows:
-	default:
-	{
-		distancesquared = glm::length2((data.area.center - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
-		break;
-	}
-	}
+	auto const distancesquared { glm::length2( ( data.area.center - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor };
 	if ((distancesquared < data.rangesquared_min) || (distancesquared >= data.rangesquared_max))
 	{
 		return;
@@ -3114,10 +3120,7 @@ bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
 	if (Dynamic->mdLowPolyInt)
 	{
 		// low poly interior
-		if (FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab)
-		{
-			Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-		}
+		Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
 	}
 
 	if (Dynamic->mdModel)
@@ -3236,10 +3239,9 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 					}
 					// ...luminance
 
-					if (Global.fLuminance < Submodel->fLight)
-					{
+					auto const isemissive { ( Submodel->f4Emision.a > 0.f ) && ( Global.fLuminance < Submodel->fLight ) };
+					if (isemissive)
 						model_ubs.emission = Submodel->f4Emision.a;
-					}
 
 					// main draw call
 					draw(Submodel->m_geometry);
@@ -3704,11 +3706,13 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		l->pos = mv * glm::vec4(renderlight->position, 1.0f);
 		l->dir = mv * glm::vec4(renderlight->direction, 0.0f);
 		l->type = gl::light_element_ubs::SPOT;
-		l->in_cutoff = 0.997f;
-		l->out_cutoff = 0.99f;
+		l->in_cutoff = headlight_config.in_cutoff;
+		l->out_cutoff = headlight_config.out_cutoff;
 		l->color = renderlight->diffuse * renderlight->factor;
-		l->linear = 0.007f;
-		l->quadratic = 0.0002f;
+		l->linear = headlight_config.falloff_linear / 10.0f;
+		l->quadratic = headlight_config.falloff_quadratic / 100.0f;
+		l->ambient = headlight_config.ambient;
+		l->intensity = headlight_config.intensity;
 		light_i++;
 
 		++renderlight;
@@ -3718,6 +3722,8 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 	light_ubs.lights[0].type = gl::light_element_ubs::DIR;
 	light_ubs.lights[0].dir = mv * glm::vec4(m_sunlight.direction, 0.0f);
 	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor;
+	light_ubs.lights[0].ambient = 0.0f;
+	light_ubs.lights[0].intensity = 1.0f;
 	light_ubs.lights_count = light_i;
 
 	light_ubs.fog_color = Global.FogColor;

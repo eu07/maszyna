@@ -880,14 +880,12 @@ opengl_texture::create() {
         ::glBindTexture( target, id );
 
         // analyze specified texture traits
-        bool wraps{ true };
-        bool wrapt{ true };
         for( auto const &trait : traits ) {
 
             switch( trait ) {
 
-                case 's': { wraps = false; break; }
-                case 't': { wrapt = false; break; }
+			    case 's': { wrap_mode_s = GL_CLAMP_TO_EDGE; break; }
+			    case 't': { wrap_mode_t = GL_CLAMP_TO_EDGE; break; }
             }
         }
 
@@ -900,8 +898,8 @@ opengl_texture::create() {
         {
             glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
+			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
 			if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
@@ -926,8 +924,8 @@ opengl_texture::create() {
         }
         else
         {
-			::glTexParameteri(target, GL_TEXTURE_WRAP_S, (wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
-			::glTexParameteri(target, GL_TEXTURE_WRAP_T, (wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE));
+			::glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
+			::glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
             set_filtering();
 
             // data_format and data_type specifies how image is laid out in memory
@@ -1061,7 +1059,7 @@ opengl_texture::release() {
     return;
 }
 
-void opengl_texture::alloc_rendertarget(GLint format, GLint components, int width, int height, int s)
+void opengl_texture::alloc_rendertarget(GLint format, GLint components, int width, int height, int s, GLint wrap)
 {
     data_width = width;
     data_height = height;
@@ -1069,6 +1067,8 @@ void opengl_texture::alloc_rendertarget(GLint format, GLint components, int widt
     data_components = components;
     data_mapcount = 1;
     is_rendertarget = true;
+	wrap_mode_s = wrap;
+	wrap_mode_t = wrap;
 	samples = s;
 	if (samples > 1)
 		target = GL_TEXTURE_2D_MULTISAMPLE;

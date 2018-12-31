@@ -78,6 +78,7 @@ enum string {
     cab_brakeprofile_sw,
     cab_brakeprofileg_sw,
     cab_brakeprofiler_sw,
+    cab_brakeopmode_sw,
     cab_maxcurrent_sw,
     cab_waterpump_sw,
     cab_waterpumpbreaker_sw,
