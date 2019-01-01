@@ -206,6 +206,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         // Ra 2014-09: ustalić zasady wyznaczenia pierwotnego pliku przy przesuniętych rozkładach
         // (kolejny pociąg dostaje numer +2)
         fin.open(s.c_str()); // otwieranie pliku
+		replace_slashes(s);
 
         if (!fin.is_open())
         { // jeśli nie ma pliku
