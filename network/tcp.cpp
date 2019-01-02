@@ -86,6 +86,7 @@ network::tcp_server::tcp_server(asio::io_context &io_ctx)
 	m_acceptor.open(endpoint.protocol());
 	m_acceptor.set_option(asio::socket_base::reuse_address(true));
 	m_acceptor.set_option(asio::ip::v6_only(false));
+	m_acceptor.set_option(asio::ip::tcp::no_delay(true));
 	m_acceptor.bind(endpoint);
 	m_acceptor.listen(10);
 
@@ -120,7 +121,9 @@ network::tcp_client::tcp_client(asio::io_context &io_ctx)
 	auto tcpconn = std::static_pointer_cast<tcp_conn>(conn);
 
 	asio::ip::tcp::endpoint endpoint(
-	            asio::ip::address::from_string("127.0.0.1"), 7424);
+	            asio::ip::address::from_string("192.168.0.20"), 7424);
+	tcpconn->socket().open(endpoint.protocol());
+	tcpconn->socket().set_option(asio::ip::tcp::no_delay(true));
 	tcpconn->socket().async_connect(endpoint,
 	                    std::bind(&tcp_client::handle_accept, this, std::placeholders::_1));
 }
