@@ -4909,7 +4909,7 @@ bool TTrain::Update( double const Deltatime )
     // eventually commands are going to be retrieved directly by the vehicle, filtered through active control stand
     // and ultimately executed, provided the stand allows it.
     command_data commanddata;
-	while( simulation::Commands.pop( commanddata, (uint32_t)command_target::vehicle | id() )) {
+	while( simulation::Commands->pop( commanddata, (uint32_t)command_target::vehicle | id() )) {
 
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {
@@ -5076,9 +5076,9 @@ bool TTrain::Update( double const Deltatime )
                     iPowerNo = in;
                 }
                 //                p = p->NextC(4);                                       //prev
-                if ((kier ? p->NextC(128) : p->PrevC(128)) != (kier ? p->NextC(4) : p->PrevC(4)))
+                if ((kier ? p->Next(128) : p->Prev(128)) != (kier ? p->Next(4) : p->Prev(4)))
                     iUnitNo++;
-                p = (kier ? p->NextC(4) : p->PrevC(4));
+                p = (kier ? p->Next(4) : p->Prev(4));
                 iCarNo = i + 1;
             }
             else
@@ -6954,14 +6954,14 @@ void TTrain::SetLights()
     TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);
     bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
     int xs = (kier ? 0 : 1);
-    if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
+    if (kier ? p->Next(1) : p->Prev(1)) // jesli jest nastepny, to tylko przod
     {
         p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * (1 - xs),
                        mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * xs);
-        p = (kier ? p->NextC(4) : p->PrevC(4));
+        p = (kier ? p->Next(4) : p->Prev(4));
         while (p)
         {
-            if (kier ? p->NextC(1) : p->PrevC(1))
+            if (kier ? p->Next(1) : p->Prev(1))
             {
                 p->RaLightsSet(0, 0);
             }
@@ -6970,7 +6970,7 @@ void TTrain::SetLights()
                 p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * xs,
                                mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * (1 - xs));
             }
-            p = (kier ? p->NextC(4) : p->PrevC(4));
+            p = (kier ? p->Next(4) : p->Prev(4));
         }
     }
     else // calosc

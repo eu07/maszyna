@@ -11,10 +11,8 @@ void network::message::deserialize(std::istream &stream)
 
 }
 
-void::network::delta_message::serialize(std::ostream &stream)
+void::network::command_message::serialize(std::ostream &stream)
 {
-	sn_utils::ls_float64(stream, dt);
-
 	sn_utils::ls_uint32(stream, commands.size());
 	for (auto const &kv : commands) {
 		sn_utils::ls_uint32(stream, kv.first);
@@ -29,10 +27,8 @@ void::network::delta_message::serialize(std::ostream &stream)
 	}
 }
 
-void network::delta_message::deserialize(std::istream &stream)
+void network::command_message::deserialize(std::istream &stream)
 {
-	dt = sn_utils::ld_float64(stream);
-
 	uint32_t commands_size = sn_utils::ld_uint32(stream);
 	for (uint32_t i = 0; i < commands_size; i++) {
 		uint32_t recipient = sn_utils::ld_uint32(stream);
@@ -54,7 +50,7 @@ void network::delta_message::deserialize(std::istream &stream)
 	}
 }
 
-size_t network::delta_message::get_size()
+size_t network::command_message::get_size()
 {
 	size_t cmd_size = 4;
 
@@ -65,7 +61,41 @@ size_t network::delta_message::get_size()
 		}
 	}
 
-	return message::get_size() + cmd_size + 8;
+	return message::get_size() + cmd_size;
+}
+
+size_t network::delta_message::get_size()
+{
+	return command_message::get_size() + 8;
+}
+
+void network::delta_message::serialize(std::ostream &stream)
+{
+	sn_utils::ls_float64(stream, dt);
+
+	command_message::serialize(stream);
+}
+
+void network::delta_message::deserialize(std::istream &stream)
+{
+	dt = sn_utils::ld_float64(stream);
+
+	command_message::deserialize(stream);
+}
+
+void network::string_message::serialize(std::ostream &stream)
+{
+	sn_utils::s_str(stream, name);
+}
+
+void network::string_message::deserialize(std::istream &stream)
+{
+	name = sn_utils::d_str(stream);
+}
+
+size_t network::string_message::get_size()
+{
+	return message::get_size() + name.size() + 1;
 }
 
 std::shared_ptr<network::message> network::deserialize_message(std::istream &stream)
@@ -75,6 +105,18 @@ std::shared_ptr<network::message> network::deserialize_message(std::istream &str
 	std::shared_ptr<message> msg;
 	if (type == message::STEP_INFO) {
 		auto m = std::make_shared<delta_message>();
+		m->type = type;
+		m->deserialize(stream);
+		msg = m;
+	}
+	else if (type == message::CLIENT_COMMAND) {
+		auto m = std::make_shared<command_message>();
+		m->type = type;
+		m->deserialize(stream);
+		msg = m;
+	}
+	else if (type == message::REQUEST_SPAWN_TRAIN || type == message::SPAWN_TRAIN) {
+		auto m = std::make_shared<string_message>(type);
 		m->type = type;
 		m->deserialize(stream);
 		msg = m;

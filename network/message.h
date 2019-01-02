@@ -12,7 +12,9 @@ namespace network
 			CONNECT_REQUEST = 0,
 			CONNECT_ACCEPT,
 			STEP_INFO,
-			VEHICLE_COMMAND,
+			CLIENT_COMMAND,
+			REQUEST_SPAWN_TRAIN,
+			SPAWN_TRAIN,
 			TYPE_MAX
 		};
 
@@ -24,12 +26,34 @@ namespace network
 		virtual size_t get_size() { return 2; }
 	};
 
-	struct delta_message : public message
+	struct command_message : public message
 	{
-		delta_message() : message(STEP_INFO) {}
+		command_message() : message(CLIENT_COMMAND) {}
+		command_message(type_e type) : message(type) {}
+
+		command_queue::commands_map commands;
+
+		virtual void serialize(std::ostream &stream) override;
+		virtual void deserialize(std::istream &stream) override;
+		virtual size_t get_size() override;
+	};
+
+	struct delta_message : public command_message
+	{
+		delta_message() : command_message(STEP_INFO) {}
 
 		double dt;
-		command_queue::commanddatasequence_map commands;
+
+		virtual void serialize(std::ostream &stream) override;
+		virtual void deserialize(std::istream &stream) override;
+		virtual size_t get_size() override;
+	};
+
+	struct string_message : public message
+	{
+		string_message(type_e type) : message(type) {}
+
+		std::string name;
 
 		virtual void serialize(std::ostream &stream) override;
 		virtual void deserialize(std::istream &stream) override;

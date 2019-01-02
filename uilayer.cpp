@@ -133,7 +133,7 @@ bool ui_layer::init(GLFWwindow *Window)
     if (Global.map_enabled)
         m_map = std::make_unique<map>();
 
-    ImGui::StyleColorsClassic();
+	ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     ImGui_ImplOpenGL2_Init();

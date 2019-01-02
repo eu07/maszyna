@@ -3856,7 +3856,7 @@ TController::UpdateSituation(double dt) {
     IsLineBreakerClosed = ( mvOccupied->Power > 0.01 ? mvOccupied->Mains : true );
     p = pVehicle;
     while( ( true == IsLineBreakerClosed )
-        && ( ( p = p->PrevC( coupling::control) ) != nullptr ) ) {
+        && ( ( p = p->Prev( coupling::control) ) != nullptr ) ) {
         auto const *vehicle { p->MoverParameters };
         if( vehicle->Power > 0.01 ) {
             IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
@@ -3864,7 +3864,7 @@ TController::UpdateSituation(double dt) {
     }
     p = pVehicle;
     while( ( true == IsLineBreakerClosed )
-        && ( ( p = p->NextC( coupling::control ) ) != nullptr ) ) {
+        && ( ( p = p->Next( coupling::control ) ) != nullptr ) ) {
         auto const *vehicle { p->MoverParameters };
         if( vehicle->Power > 0.01 ) {
             IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );

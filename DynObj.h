@@ -473,11 +473,9 @@ private:
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
-    TDynamicObject * PrevAny();
-    TDynamicObject * Prev();
-    TDynamicObject * Next();
-	TDynamicObject * PrevC(int C);
-	TDynamicObject * NextC(int C);
+	TDynamicObject * PrevAny() const;
+	TDynamicObject * Prev(int C = -1) const;
+	TDynamicObject * Next(int C = -1) const;
     double NextDistance(double d = -1.0);
     void SetdMoveLen(double dMoveLen) {
         MoverParameters->dMoveLen = dMoveLen; }

@@ -18,6 +18,8 @@ namespace network
 		    std::pair<std::chrono::high_resolution_clock::time_point,
 		    std::shared_ptr<delta_message>>> delta_queue;
 
+		command_queue::commands_map client_commands_queue;
+
 		//std::chrono::high_resolution_clock::time_point last_time;
 		//double accum = -1.0;
 
@@ -31,7 +33,8 @@ namespace network
 		void send_message(std::shared_ptr<message> msg);
 		virtual void connected();
 
-		std::tuple<double, command_queue::commanddatasequence_map> get_next_delta();
+		std::tuple<double, command_queue::commands_map> get_next_delta();
+		command_queue::commands_map pop_commands();
 	};
 
 	class server
@@ -40,7 +43,9 @@ namespace network
 		std::vector<std::shared_ptr<connection>> clients;
 
 	public:
-		void push_delta(double dt, command_queue::commanddatasequence_map commands);
+		void push_delta(double dt, command_queue::commands_map commands);
+		command_queue::commands_map pop_commands();
+		void notify_train(std::string name);
 	};
 
 	class client
@@ -49,6 +54,8 @@ namespace network
 		std::shared_ptr<connection> conn;
 
 	public:
-		std::tuple<double, command_queue::commanddatasequence_map> get_next_delta();
+		std::tuple<double, command_queue::commands_map> get_next_delta();
+		void send_commands(command_queue::commands_map commands);
+		void request_train(std::string name);
 	};
 }

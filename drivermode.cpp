@@ -248,6 +248,27 @@ driver_mode::update() {
     return true;
 }
 
+TTrain* driver_mode::request_train(TDynamicObject *dynamic) {
+	TTrain *train = simulation::Trains.find(dynamic->name());
+	if (train)
+		return train;
+
+	if (!Global.network_conf.enabled) {
+		train = new TTrain();
+		if (train->Init(dynamic)) {
+			simulation::Trains.insert(train, dynamic->name());
+		}
+		else {
+			delete train;
+			train = nullptr;
+		}
+		return train;
+	} else {
+		Application.request_train(dynamic->name());
+	}
+	return train;
+}
+
 // maintenance method, called when the mode is activated
 void
 driver_mode::enter() {
@@ -265,9 +286,8 @@ driver_mode::enter() {
     {
         WriteLog( "Initializing player train, \"" + Global.asHumanCtrlVehicle + "\"" );
 
-		TTrain *train = new TTrain();
+		TTrain *train = request_train(nPlayerTrain);
 		if (train->Init(nPlayerTrain)) {
-			simulation::Trains.insert(train, nPlayerTrain->name());
 			simulation::Train = train;
 
 			WriteLog("Player train initialization OK");
@@ -698,26 +718,15 @@ driver_mode::OnKeyDown(int cKey) {
 
             if( tmp != nullptr ) {
 
-                if( simulation::Train ) {// jeśli mielismy pojazd
-                    if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-                        simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-                    }
-                }
-
                 if( ( true == DebugModeFlag )
                  || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
-					TTrain *train = simulation::Trains.find(tmp->name());
-					if (train == nullptr) {
-						train = new TTrain();
-						if (train->Init(tmp)) {
-							simulation::Trains.insert(train, tmp->name());
-						}
-						else {
-							delete train;
-							train = nullptr;
-						}
-					}
+					TTrain *train = request_train(tmp);
 					if (train != nullptr) {
+						if( simulation::Train ) {// jeśli mielismy pojazd
+							if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
+								simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
+							}
+						}
 						train->Dynamic()->Mechanik->TakeControl( false );
 						simulation::Train = train;
 						InOutKey();

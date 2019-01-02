@@ -27,6 +27,7 @@ driver_ui::driver_ui() {
     push_back( &m_debugpanel );
     push_back( &m_transcriptspanel );
 
+	push_back( &m_vehiclelist );
     push_back( &m_logpanel );
     m_logpanel.is_open = false;
 

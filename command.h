@@ -236,7 +236,7 @@ enum class command_target {
     signal  = 0x20000,
 	entity  = 0x40000,
 
-	simulation = 0x8000,
+	simulation = 0x80000,
 };
 
 enum class command_mode {
@@ -268,44 +268,56 @@ class command_queue {
 public:
 // types
 	typedef std::deque<command_data> commanddata_sequence;
-	typedef std::unordered_map<std::size_t, commanddata_sequence> commanddatasequence_map;
+	typedef std::unordered_map<uint32_t, commanddata_sequence> commands_map;
 
 // methods
     // posts specified command for specified recipient
-    void
-        push( command_data const &Command, std::size_t const Recipient );
+	virtual void
+	    push( command_data const &Command, uint32_t const Recipient );
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
-        pop( command_data &Command, std::size_t const Recipient );
+	    pop( command_data &Command, uint32_t const Recipient );
 	void update();
-
-	commanddatasequence_map peek_command_sequences() const {
-		commanddatasequence_map map(m_commands);
-		for (auto &kv : map) {
-			if (kv.first & 0)
-				kv.second.clear();
-		}
-		return map;
-	}
-
-	void merge_command_sequences(commanddatasequence_map map) {
-		for (auto const &kv : map)
-			for (command_data const &data : kv.second)
-				push(data, kv.first);
-	}
+	bool is_network_target(const uint32_t Recipient);
 
 private:
-// types
 // members
-    commanddatasequence_map m_commands;
+	// main command queue
+	commands_map m_commands;
 
+	// hash operator for m_active_continuous
 	struct command_set_hash {
 		uint64_t operator() (const std::pair<user_command, uint32_t> &pair) const {
 			return ((uint64_t)pair.first << 32) | ((uint64_t) pair.second);
 		}
 	};
 
+	// currently pressed continuous commands
 	std::unordered_set<std::pair<user_command, uint32_t>, command_set_hash> m_active_continuous;
+};
+
+class command_queue_server : public command_queue {
+public:
+	void push( command_data const &Command, uint32_t const Recipient ) override;
+
+	commands_map pop_queued_commands();
+	void push_client_commands(const commands_map &commands);
+
+private:
+	// contains copies of commands to be sent to clients
+	commands_map network_queue;
+};
+
+class command_queue_client : public command_queue {
+public:
+	void push( command_data const &Command, uint32_t const Recipient ) override;
+
+	commands_map pop_queued_commands();
+	void push_server_commands(const commands_map &commands);
+
+private:
+	// contains intercepted commands to be sent for execution to server
+	commands_map network_queue;
 };
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
@@ -314,7 +326,7 @@ namespace simulation {
 
 typedef std::vector<command_description> commanddescription_sequence;
 
-extern command_queue Commands;
+extern std::unique_ptr<command_queue> Commands;
 // TODO: add name to command map, and wrap these two into helper object
 extern commanddescription_sequence Commands_descriptions;
 
@@ -325,15 +337,11 @@ extern commanddescription_sequence Commands_descriptions;
 class command_relay {
 
 public:
-// constructors
 // methods
 	// posts specified command for the specified recipient
     void
 	    post(user_command const Command, double const Param1, double const Param2,
 	        int const Action, uint16_t Recipient ) const;
-private:
-// types
-// members
 };
 
 //---------------------------------------------------------------------------

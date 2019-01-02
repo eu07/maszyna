@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
-command_queue Commands;
+std::unique_ptr<command_queue> Commands;
 commanddescription_sequence Commands_descriptions = {
 
     { "aidriverenable", command_target::vehicle, command_mode::oneoff },
@@ -230,22 +230,25 @@ commanddescription_sequence Commands_descriptions = {
 
 } // simulation
 
+// --------------------
+// command_queue
+
 void command_queue::update()
 {
 	double delta = Timer::GetDeltaTime();
 	for (auto c : m_active_continuous)
 	{
-		auto lookup = m_commands.emplace(c.second, commanddata_sequence() );
-
 		command_data data({c.first, GLFW_REPEAT, 0.0, 0.0, delta});
-		lookup.first->second.emplace_back(data);
+		auto lookup = m_commands.emplace( c.second, commanddata_sequence() );
+		// recipient stack was either located or created, so we can add to it quite safely
+		lookup.first->second.emplace_back( data );
 	}
 }
 
 // posts specified command for specified recipient
 void
-command_queue::push( command_data const &Command, std::size_t const Recipient ) {
-    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
+command_queue::push( command_data const &Command, uint32_t const Recipient ) {
+	auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
 	if (desc.mode == command_mode::continuous)
 	{
 		if (Command.action == GLFW_PRESS)
@@ -256,14 +259,14 @@ command_queue::push( command_data const &Command, std::size_t const Recipient ) 
 			return;
 	}
 
-    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
-    // recipient stack was either located or created, so we can add to it quite safely
+	auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
+	// recipient stack was either located or created, so we can add to it quite safely
 	lookup.first->second.emplace_back( Command );
 }
 
 // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
 bool
-command_queue::pop( command_data &Command, std::size_t const Recipient ) {
+command_queue::pop( command_data &Command, uint32_t const Recipient ) {
 
     auto lookup = m_commands.find( Recipient );
     if( lookup == m_commands.end() ) {
@@ -281,6 +284,65 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
 
     return true;
 }
+
+bool command_queue::is_network_target(uint32_t const Recipient) {
+	const command_target target = (command_target)(Recipient & ~0xffff);
+
+	if (target == command_target::entity)
+		return false;
+
+	return true;
+}
+
+// --------------------
+// command_queue_server
+
+void command_queue_server::push(const command_data &Command, const uint32_t Recipient) {
+	if (is_network_target(Recipient)) {
+		auto lookup = network_queue.emplace(Recipient, commanddata_sequence());
+		lookup.first->second.emplace_back(Command);
+	}
+	command_queue::push(Command, Recipient);
+}
+
+command_queue_server::commands_map command_queue_server::pop_queued_commands() {
+	commands_map map(network_queue);
+	network_queue.clear();
+	return map;
+}
+
+void command_queue_server::push_client_commands(const commands_map &commands) {
+	for (auto const &kv : commands)
+		for (command_data const &data : kv.second)
+			push(data, kv.first);
+}
+
+// --------------------
+// command_queue_client
+
+void command_queue_client::push(const command_data &Command, const uint32_t Recipient) {
+	if (is_network_target(Recipient)) {
+		auto lookup = network_queue.emplace(Recipient, commanddata_sequence());
+		lookup.first->second.emplace_back(Command);
+	}
+	else
+		command_queue::push(Command, Recipient);
+}
+
+command_queue_client::commands_map command_queue_client::pop_queued_commands() {
+	commands_map map(network_queue);
+	network_queue.clear();
+	return map;
+}
+
+void command_queue_client::push_server_commands(const commands_map &commands) {
+	for (auto const &kv : commands)
+		for (command_data const &data : kv.second)
+			command_queue::push(data, kv.first);
+	update();
+}
+
+// --------------------
 
 void
 command_relay::post( user_command const Command, double const Param1, double const Param2,
@@ -303,44 +365,8 @@ command_relay::post( user_command const Command, double const Param1, double con
         return;
     }
 
-    simulation::Commands.push(
-        command_data{
-            Command,
-            Action,
-            Param1,
-            Param2,
-            Timer::GetDeltaTime()},
-        static_cast<std::size_t>( command.target ) | Recipient );
-/*
-#ifdef _DEBUG
-    if( Action != GLFW_RELEASE ) {
-    // key was pressed or is still held
-        if( false == command.name.empty() ) {
-            if( false == (
-                ( Command == user_command::moveleft )
-             || ( Command == user_command::moveleftfast )
-             || ( Command == user_command::moveright )
-             || ( Command == user_command::moverightfast )
-             || ( Command == user_command::moveforward )
-             || ( Command == user_command::moveforwardfast )
-             || ( Command == user_command::moveback )
-             || ( Command == user_command::movebackfast )
-             || ( Command == user_command::moveup )
-             || ( Command == user_command::moveupfast )
-             || ( Command == user_command::movedown )
-             || ( Command == user_command::movedownfast )
-             || ( Command == user_command::movevector )
-             || ( Command == user_command::viewturn ) ) ) {
-                WriteLog( "Command issued: " + command.name );
-            }
-        }
-    }
-    else {
-    // key was released (but we don't log this)
-        WriteLog( "Key released: " + command.name );
-    }
-#endif
-*/
-}
+	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
+	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime() });
 
-//---------------------------------------------------------------------------
+	simulation::Commands->push(commanddata, combined_recipient);
+}

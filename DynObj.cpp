@@ -3002,7 +3002,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 2. ustal mozliwa do realizacji sile hamowania ED
             //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-				(kier ? p = p->NextC(4) : p = p->PrevC(4)))
+			    (kier ? p = p->Next(4) : p = p->Prev(4)))
             {
                 ++np;
                 masamax +=
@@ -3122,7 +3122,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 1. najpierw daj kazdemu tyle samo
             int i = 0;
 			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-				p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
+			    p = (kier == true ? p->Next(4) : p->Prev(4)) )
 			{
                 auto const Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -3150,7 +3150,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 float przek = 0;
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
+				     p = (kier == true ? p->Next(4) : p->Prev(4)) )
                 {
                     if ((FzEP[i] > 0.01) &&
                         (FzEP[i] >
@@ -3176,7 +3176,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 przek = przek / (np - nPrzekrF);
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
+				     (true == kier ? p = p->Next(4) : p = p->Prev(4)))
                 {
                     if (!PrzekrF[i])
                     {
@@ -3187,7 +3187,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
             i = 0;
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                 (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
+			     (true == kier ? p = p->Next(4) : p = p->Prev(4)))
             {
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -3235,7 +3235,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				MEDLogFile << MEDLogTime << "\t" << MoverParameters->Vel << "\t" << masa*0.001 << "\t" << osie << "\t" << FmaxPN*0.001 << "\t" << FmaxED*0.001 << "\t"
 					<< FfulED*0.001 << "\t" << FrED*0.001 << "\t" << Fzad*0.001 << "\t" << FzadED*0.001 << "\t" << FzadPN*0.001;
 				for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-					(true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
+				    (true == kier ? p = p->Next(4) : p = p->Prev(4)))
 				{
 					MEDLogFile << "\t" << p->MoverParameters->BrakePress;
 				}
@@ -6278,34 +6278,22 @@ int TDynamicObject::DirectionSet(int d)
     // następnego
 };
 
-TDynamicObject * TDynamicObject::PrevAny()
+TDynamicObject * TDynamicObject::PrevAny() const
 { // wskaźnik na poprzedni,
     // nawet wirtualny
     return iDirection ? PrevConnected : NextConnected;
 };
-TDynamicObject * TDynamicObject::Prev()
+TDynamicObject * TDynamicObject::Prev(int C) const
 {
-    if (MoverParameters->Couplers[iDirection ^ 1].CouplingFlag)
+	if (MoverParameters->Couplers[iDirection ^ 1].CouplingFlag & C)
         return iDirection ? PrevConnected : NextConnected;
     return NULL; // gdy sprzęg wirtualny, to jakby nic nie było
 };
-TDynamicObject * TDynamicObject::Next()
+TDynamicObject * TDynamicObject::Next(int C) const
 {
-    if (MoverParameters->Couplers[iDirection].CouplingFlag)
+	if (MoverParameters->Couplers[iDirection].CouplingFlag & C)
         return iDirection ? NextConnected : PrevConnected;
     return NULL; // gdy sprzęg wirtualny, to jakby nic nie było
-};
-TDynamicObject * TDynamicObject::PrevC(int C)
-{
-	if (MoverParameters->Couplers[iDirection ^ 1].CouplingFlag & C)
-		return iDirection ? PrevConnected : NextConnected;
-	return NULL; // gdy sprzęg wirtualny, to jakby nic nie było
-};
-TDynamicObject * TDynamicObject::NextC(int C)
-{
-    if (MoverParameters->Couplers[iDirection].CouplingFlag & C)
-        return iDirection ? NextConnected : PrevConnected;
-    return NULL; // gdy sprzęg inny, to jakby nic nie było
 };
 double TDynamicObject::NextDistance(double d)
 { // ustalenie odległości do

@@ -22,7 +22,8 @@ file(GLOB HEADERS "*.h"
 "Console/*.h"
 "McZapkie/*.h"
 "gl/*.h"
-"network/*.h")
+"network/*.h"
+"widgets/*.h")
 
 set(SOURCES
 "Texture.cpp"
@@ -117,6 +118,8 @@ set(SOURCES
 "network/message.cpp"
 "network/tcp.cpp"
 "network/manager.cpp"
+
+"widgets/vehiclelist.cpp"
 
 "ref/glad/src/glad.c"
 

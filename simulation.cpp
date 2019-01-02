@@ -77,7 +77,7 @@ state_manager::update( double const Deltatime, int Iterationcount ) {
 
 void state_manager::process_commands() {
 	command_data commanddata;
-	while( Commands.pop( commanddata, (uint32_t)command_target::simulation )) {
+	while( Commands->pop( commanddata, (uint32_t)command_target::simulation )) {
 		if (commanddata.action == GLFW_RELEASE)
 			continue;
 

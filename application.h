@@ -76,6 +76,9 @@ public:
     GLFWwindow *
         window( int const Windowindex = 0 );
 
+	void request_train(std::string name);
+	void spawn_train(std::string name);
+
 private:
 // types
     using modeptr_array = std::array<std::shared_ptr<application_mode>, static_cast<std::size_t>( mode::count_ )>;

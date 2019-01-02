@@ -144,6 +144,29 @@ eu07_application::init( int Argc, char *Argv[] ) {
     return result;
 }
 
+void eu07_application::request_train(std::string name) {
+	m_network->request_train(name);
+}
+
+void eu07_application::spawn_train(std::string name) {
+	TTrain *train = simulation::Trains.find(name);
+	if (train)
+		return;
+
+	TDynamicObject *dynobj = simulation::Vehicles.find(name);
+	if (!dynobj)
+		return;
+
+	train = new TTrain();
+	if (train->Init(dynobj)) {
+		simulation::Trains.insert(train, name);
+	}
+	else {
+		delete train;
+		train = nullptr;
+	}
+}
+
 int
 eu07_application::run() {
 
@@ -159,23 +182,26 @@ eu07_application::run() {
 				break;
 		}
 		else if (!Global.network_conf.is_server) {
+			command_queue_client *queue = dynamic_cast<command_queue_client*>(simulation::Commands.get());
 			double delta;
 			do {
-				auto tup = m_network->get_next_delta();
-				delta = std::get<0>(tup);
-				simulation::Commands.merge_command_sequences(std::get<1>(tup));
-				Timer::set_delta_override(delta);
+			   auto tup = m_network->get_next_delta();
+			   delta = std::get<0>(tup);
+			   queue->push_server_commands(std::get<1>(tup));
+			   m_network->send_commands(queue->pop_queued_commands());
+			   Timer::set_delta_override(delta);
 
-				simulation::Commands.update();
 				if (!m_modes[ m_modestack.top() ]->update())
 					break;
 			}
 			while (delta != 0.0);
 		}
 		else {
-			auto commands = simulation::Commands.peek_command_sequences();
+			command_queue_server *queue = dynamic_cast<command_queue_server*>(simulation::Commands.get());
+			auto commands = queue->pop_queued_commands();
 
-			simulation::Commands.update();
+			queue->push_client_commands(m_network->pop_commands());
+			queue->update();
 			if (!m_modes[ m_modestack.top() ]->update())
 				break;
 
@@ -619,14 +645,19 @@ eu07_application::init_modes() {
 }
 
 bool eu07_application::init_network() {
-	if (!Global.network_conf.enabled)
-		return true;
-
-	m_network.emplace();
-	if (Global.network_conf.is_server)
-		m_network->create_server();
+	if (Global.network_conf.enabled) {
+		m_network.emplace();
+		if (Global.network_conf.is_server) {
+			m_network->create_server();
+			simulation::Commands = std::make_unique<command_queue_server>();
+		}
+		else {
+			m_network->connect();
+			simulation::Commands = std::make_unique<command_queue_client>();
+		}
+	}
 	else
-		m_network->connect();
+		simulation::Commands = std::make_unique<command_queue>();
 
 	return true;
 }
