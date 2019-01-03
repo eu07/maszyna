@@ -384,6 +384,14 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> ResourceMove;
         }
+        else if( token == "gfx.reflections.framerate" ) {
+
+            auto const updatespersecond { std::abs( Parser.getToken<double>() ) };
+            ReflectionUpdatesPerSecond = (
+                updatespersecond > 0 ?
+                    1000 / std::min( 30.0, updatespersecond ) :
+                    0 );
+        }
         else if (token == "timespeed")
         {
             // przyspieszenie czasu, zmienna do testów

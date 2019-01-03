@@ -550,7 +550,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "train_enginetype", PyGetString( timetable->LocSeries.c_str() ) );
     PyDict_SetItemString( dict, "train_engineload", PyGetFloat( timetable->LocLoad ) );
 
-    PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->StationIndex() ) );
+    PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->iStationStart ) );
     auto const stationcount { driver->StationCount() };
     PyDict_SetItemString( dict, "train_stationcount", PyGetInt( stationcount ) );
     if( stationcount > 0 ) {
@@ -5009,8 +5009,10 @@ bool TTrain::Update( double const Deltatime )
                 iUnits[i] = iUnitNo;
                 cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length() - 1];
                 asCarName[i] = p->name();
-				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
-                bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
+                if( p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+				    bPants[iUnitNo - 1][side::front] = ( bPants[iUnitNo - 1][side::front] || p->MoverParameters->PantFrontUp );
+                    bPants[iUnitNo - 1][side::rear]  = ( bPants[iUnitNo - 1][side::rear]  || p->MoverParameters->PantRearUp );
+                }
 				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)

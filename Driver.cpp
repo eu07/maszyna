@@ -2885,10 +2885,12 @@ bool TController::IncSpeed()
                         if( usefieldshunting ) {
                             // to dać bocznik
                             // engage the shuntfield only if there's sufficient power margin to draw from
+                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 50.0 ) };
+
                             OK = (
-                                fVoltage > useseriesmodevoltage + 0.0125 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ?
+                                sufficientpowermargin ?
                                     mvControlling->IncScndCtrl( 1 ) :
-                                    false );
+                                    true );
                         }
                         else {
                             // jeśli ustawiony bocznik to bocznik na zero po chamsku
@@ -2896,10 +2898,12 @@ bool TController::IncSpeed()
                                 mvControlling->DecScndCtrl( 2 );
                             }
                             // kręcimy nastawnik jazdy
+                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 80.0 : 40.0 ) };
+
                             OK = (
-                                mvControlling->DelayCtrlFlag ?
-                                    true :
-                                    mvControlling->IncMainCtrl( 1 ) );
+                                ( sufficientpowermargin && ( false == mvControlling->DelayCtrlFlag ) ) ?
+                                    mvControlling->IncMainCtrl( 1 ) :
+                                    true );
                             // czekaj na 1 pozycji, zanim się nie włączą liniowe
                             if( true == mvControlling->StLinFlag ) {
                                 iDrivigFlags |= moveIncSpeed;
@@ -4008,7 +4012,10 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                if( fVoltage < 0.75 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ) {
+
+                auto const useseriesmodevoltage { mvControlling->EnginePowerSource.CollectorParameters.MaxV * ( IsHeavyCargoTrain ? 0.70 : 0.80 ) };
+
+                if( fVoltage <= useseriesmodevoltage ) {
                     // if the power station is heavily burdened try to reduce the load
                     switch( mvControlling->EngineType ) {
 

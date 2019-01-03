@@ -168,7 +168,7 @@ init() {
         "Nastawnik: %2d+%d %c%s",
         " Predkosc: %d km/h (limit %d km/h%s)%s",
         ", nowy limit: %d km/h za %.1f km",
-        " Pochylenie: %.1f%%%%",
+        " Nachylenie: %.1f%%%%",
         "Hamulce: %4.1f+%-2.0f%c%s",
         " Cisnienie: %.2f kPa (przewod glowny: %.2f kPa)",
         "!CZUWAK!  ",

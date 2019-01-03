@@ -316,12 +316,6 @@ ActiveCab( Cab )
         Couplers[b].DmaxC = 0.1;
         Couplers[b].FmaxC = 1000.0;
     }
-#ifdef EU07_USE_OLD_HVCOUPLERS
-    for( int side = 0; side < 2; ++side ) {
-        HVCouplers[ side ][ hvcoupler::current ] = 0.0;
-        HVCouplers[ side ][ hvcoupler::voltage ] = 0.0;
-    }
-#endif
     for( int b = 0; b < 3; ++b ) {
         BrakeCylMult[ b ] = 0.0;
     }
@@ -816,13 +810,20 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
      && ( EngineType != TEngineType::WheelsDriven )
      && ( NominalBatteryVoltage > 0 ) ) {
 
+        // HACK: allow to draw power also from adjacent converter, applicable for EMUs
+        // TODO: expand power cables system to include low voltage power transfers
+        auto const converteractive{ (
+            ( ConverterFlag )
+         || ( ( ( Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && Couplers[ side::front ].Connected->ConverterFlag )
+         || ( ( ( Couplers[ side::rear ].CouplingFlag & coupling::permanent )  != 0 ) && Couplers[ side::rear ].Connected->ConverterFlag ) ) };
+
         if ((NominalBatteryVoltage / BatteryVoltage < 1.22) && Battery)
         { // 110V
-            if (!ConverterFlag)
+            if (!converteractive)
                 sn1 = (dt * 2.0); // szybki spadek do ok 90V
             else
                 sn1 = 0;
-            if (ConverterFlag)
+            if (converteractive)
                 sn2 = -(dt * 2.0); // szybki wzrost do 110V
             else
                 sn2 = 0;
@@ -846,7 +847,7 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
                 sn1 = (dt * 0.0046);
             else
                 sn1 = 0;
-            if (ConverterFlag)
+            if (converteractive)
                 sn2 = -(dt * 50); // szybki wzrost do 110V
             else
                 sn2 = 0;
@@ -1120,33 +1121,18 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         if( ( Couplers[ side ].CouplingFlag & ctrain_power )
          || ( ( Heating )
            && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
-#ifdef EU07_USE_OLD_HVCOUPLERS
-            HVCouplers[ oppositeside ][ hvcoupler::voltage ] =
-                std::max(
-                    std::abs( hvc ),
-                    Couplers[ side ].Connected->HVCouplers[ Couplers[ side ].ConnectedNr ][ hvcoupler::voltage ] - HVCouplers[ side ][ hvcoupler::current ] * 0.02 );
-#else
             auto const &connectedcoupler = Couplers[ side ].Connected->Couplers[ Couplers[ side ].ConnectedNr ];
             Couplers[ oppositeside ].power_high.voltage =
                 std::max(
                     std::abs( hvc ),
                     connectedcoupler.power_high.voltage - Couplers[ side ].power_high.current * 0.02 );
-#endif
         }
         else {
-#ifdef EU07_USE_OLD_HVCOUPLERS
-            HVCouplers[ oppositeside ][ hvcoupler::voltage ] = std::abs( hvc ) - HVCouplers[ side ][ hvcoupler::current ] * 0.02;
-#else
             Couplers[ oppositeside ].power_high.voltage = std::abs( hvc ) - Couplers[ side ].power_high.current * 0.02;
-#endif
         }
     }
 
-#ifdef EU07_USE_OLD_HVCOUPLERS
-    hvc = HVCouplers[ side::front ][ hvcoupler::voltage ] + HVCouplers[ side::rear ][ hvcoupler::voltage ];
-#else
     hvc = Couplers[ side::front ].power_high.voltage + Couplers[ side::rear ].power_high.voltage;
-#endif
 
     if( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) < 1.0 ) {
         // bez napiecia...
@@ -1160,29 +1146,17 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 if( ( Couplers[ side ].CouplingFlag & ctrain_power )
                  || ( ( Heating )
                    && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                    auto const oppositeside = ( Couplers[side].ConnectedNr == side::front ? side::rear : side::front );
-                    HVCouplers[ side ][ hvcoupler::current ] =
-					    Couplers[side].Connected->HVCouplers[oppositeside][hvcoupler::current] +
-					    Itot * HVCouplers[side][hvcoupler::voltage] / hvc; // obciążenie rozkladane stosownie do napiec
-#else
-                    auto const &connectedsothercoupler =
+                    auto const &connectedcoupler =
                         Couplers[ side ].Connected->Couplers[
                             ( Couplers[ side ].ConnectedNr == side::front ?
                                 side::rear :
                                 side::front ) ];
                     Couplers[ side ].power_high.current =
-                        connectedsothercoupler.power_high.current
+                        connectedcoupler.power_high.current
                         + Itot * Couplers[ side ].power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
-#endif
                 }
 			    else {
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                    // pierwszy pojazd
-				    HVCouplers[side][hvcoupler::current] = Itot * HVCouplers[side][hvcoupler::voltage] / hvc;
-#else
                     Couplers[ side ].power_high.current = Itot * Couplers[ side ].power_high.voltage / hvc;
-#endif
                 }
             }
         }
@@ -1196,19 +1170,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             if( ( Couplers[ side ].CouplingFlag & ctrain_power )
              || ( ( Heating )
                && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                auto const oppositeside = ( Couplers[ side ].ConnectedNr == side::front ? side::rear : side::front );
-                TotalCurrent += Couplers[ side ].Connected->HVCouplers[ oppositeside ][ hvcoupler::current ];
-                HVCouplers[ side ][ hvcoupler::current ] = 0.0;
-#else
-                auto const &connectedsothercoupler =
+                auto const &connectedcoupler =
                     Couplers[ side ].Connected->Couplers[
                         ( Couplers[ side ].ConnectedNr == side::front ?
                             side::rear :
                             side::front ) ];
-                TotalCurrent += connectedsothercoupler.power_high.current;
+                TotalCurrent += connectedcoupler.power_high.current;
                 Couplers[ side ].power_high.current = 0.0;
-#endif
             }
         }
 	}
@@ -4007,11 +3975,9 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
             Voltage =
                 std::max(
                     RunningTraction.TractionVoltage,
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                    std::max( HVCouplers[side::front][hvcoupler::voltage], HVCouplers[side::rear][hvcoupler::voltage] ) );
-#else
-                    std::max( Couplers[ side::front ].power_high.voltage, Couplers[ side::rear ].power_high.voltage ) );
-#endif
+                    std::max(
+                        Couplers[ side::front ].power_high.voltage,
+                        Couplers[ side::rear ].power_high.voltage ) );
         }
         else {
             Voltage = 0;
@@ -7023,16 +6989,6 @@ std::string TMoverParameters::EngineDescription(int what) const
 // *************************************************************************************************
 double TMoverParameters::GetTrainsetVoltage(void)
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
-#ifdef EU07_USE_OLD_HVCOUPLERS
-    return std::max(
-        HVCouplers[ side::front ][ hvcoupler::voltage ],
-        HVCouplers[ side::rear ][ hvcoupler::voltage ] );
-#else
-/*
-    return std::max(
-        Couplers[ side::front ].power_high.voltage,
-        Couplers[ side::rear ].power_high.voltage );
-*/
     return std::max(
         ( ( ( Couplers[side::front].Connected )
          && ( ( Couplers[ side::front ].CouplingFlag & ctrain_power )
@@ -7046,7 +7002,6 @@ double TMoverParameters::GetTrainsetVoltage(void)
              && ( Couplers[ side::rear ].CouplingFlag & ctrain_heating ) ) ) ) ?
             Couplers[ side::rear ].Connected->Couplers[ Couplers[ side::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
-#endif
 }
 
 // *************************************************************************************************

@@ -115,6 +115,7 @@ struct global_settings {
         float depth{ 250.f };
         float distance{ 500.f }; // no longer used
     } shadowtune;
+    int ReflectionUpdatesPerSecond{ static_cast<int>( 1000 / ( 1.0 / 300.0 ) ) };
     bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
