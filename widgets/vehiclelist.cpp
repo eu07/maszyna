@@ -27,5 +27,5 @@ void ui::vehiclelist_panel::render_contents() {
 		}
 	}
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 }

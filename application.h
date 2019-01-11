@@ -78,6 +78,7 @@ public:
 
 	void request_train(std::string name);
 	void spawn_train(std::string name);
+	double generate_sync();
 
 private:
 // types

@@ -56,6 +56,7 @@ inline long Round(double const f)
 }
 
 double Random(double a, double b);
+double LocalRandom(double a, double b);
 
 inline double Random()
 {
@@ -65,6 +66,16 @@ inline double Random()
 inline double Random(double b)
 {
 	return Random(0.0, b);
+}
+
+inline double LocalRandom()
+{
+	return LocalRandom(0.0,1.0);
+}
+
+inline double LocalRandom(double b)
+{
+	return LocalRandom(0.0, b);
 }
 
 inline double BorlandTime()

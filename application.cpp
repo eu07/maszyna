@@ -109,6 +109,11 @@ eu07_application::init( int Argc, char *Argv[] ) {
 
     int result { 0 };
 
+	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
+	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
+	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
+
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
@@ -117,11 +122,6 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_locale() ) != 0 ) {
         return result;
     }
-
-    WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
-    WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
-    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     if( ( result = init_glfw() ) != 0 ) {
         return result;
@@ -137,6 +137,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_modes() ) != 0 ) {
         return result;
     }
+
+	//Global.random_seed = std::time(nullptr);
+	//Global.random_engine.seed(Global.random_seed);
 
 	if (!init_network())
 		return -1;
@@ -167,6 +170,18 @@ void eu07_application::spawn_train(std::string name) {
 	}
 }
 
+double eu07_application::generate_sync() {
+	if (Timer::GetDeltaTime() == 0.0)
+		return 0.0;
+	double sync = 0.0;
+	for (const TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
+		 glm::vec3 pos = vehicle->GetPosition();
+		 sync += pos.x + pos.y + pos.z;
+	}
+	sync += Random(1.0, 100.0);
+	return sync;
+}
+
 int
 eu07_application::run() {
 
@@ -180,6 +195,7 @@ eu07_application::run() {
 		{
 			if (!m_modes[ m_modestack.top() ]->update())
 				break;
+			simulation::Commands->update();
 		}
 		else if (!Global.network_conf.is_server) {
 			command_queue_client *queue = dynamic_cast<command_queue_client*>(simulation::Commands.get());
@@ -187,26 +203,35 @@ eu07_application::run() {
 			do {
 			   auto tup = m_network->get_next_delta();
 			   delta = std::get<0>(tup);
-			   queue->push_server_commands(std::get<1>(tup));
-			   m_network->send_commands(queue->pop_queued_commands());
 			   Timer::set_delta_override(delta);
+			   queue->push_server_commands(std::get<2>(tup));
+
+			   m_network->send_commands(queue->pop_queued_commands());
 
 				if (!m_modes[ m_modestack.top() ]->update())
 					break;
+
+				queue->update();
+
+				double sync = generate_sync();
+				if (sync != std::get<1>(tup)) {
+					WriteLog("net: DESYNC!", logtype::net);
+				}
 			}
 			while (delta != 0.0);
 		}
 		else {
 			command_queue_server *queue = dynamic_cast<command_queue_server*>(simulation::Commands.get());
+			queue->push_client_commands(m_network->pop_commands());
 			auto commands = queue->pop_queued_commands();
 
-			queue->push_client_commands(m_network->pop_commands());
-			queue->update();
 			if (!m_modes[ m_modestack.top() ]->update())
 				break;
 
+			queue->update();
+
 			double delta = Timer::GetDeltaTime();
-			m_network->push_delta(delta, commands);
+			m_network->push_delta(delta, generate_sync(), commands);
 		}
 
 		m_taskqueue.update();

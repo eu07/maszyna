@@ -11,6 +11,21 @@ void network::message::deserialize(std::istream &stream)
 
 }
 
+void network::accept_message::serialize(std::ostream &stream)
+{
+	sn_utils::ls_uint32(stream, seed);
+}
+
+void network::accept_message::deserialize(std::istream &stream)
+{
+	seed = sn_utils::ld_uint32(stream);
+}
+
+size_t network::accept_message::get_size()
+{
+	return message::get_size() + 4;
+}
+
 void::network::command_message::serialize(std::ostream &stream)
 {
 	sn_utils::ls_uint32(stream, commands.size());
@@ -66,12 +81,13 @@ size_t network::command_message::get_size()
 
 size_t network::delta_message::get_size()
 {
-	return command_message::get_size() + 8;
+	return command_message::get_size() + 16;
 }
 
 void network::delta_message::serialize(std::ostream &stream)
 {
 	sn_utils::ls_float64(stream, dt);
+	sn_utils::ls_float64(stream, sync);
 
 	command_message::serialize(stream);
 }
@@ -79,6 +95,7 @@ void network::delta_message::serialize(std::ostream &stream)
 void network::delta_message::deserialize(std::istream &stream)
 {
 	dt = sn_utils::ld_float64(stream);
+	sync = sn_utils::ld_float64(stream);
 
 	command_message::deserialize(stream);
 }
@@ -103,7 +120,13 @@ std::shared_ptr<network::message> network::deserialize_message(std::istream &str
 	message::type_e type = (message::type_e)sn_utils::ld_uint16(stream);
 
 	std::shared_ptr<message> msg;
-	if (type == message::STEP_INFO) {
+	if (type == message::CONNECT_ACCEPT) {
+		auto m = std::make_shared<accept_message>();
+		m->type = type;
+		m->deserialize(stream);
+		msg = m;
+	}
+	else if (type == message::STEP_INFO) {
 		auto m = std::make_shared<delta_message>();
 		m->type = type;
 		m->deserialize(stream);

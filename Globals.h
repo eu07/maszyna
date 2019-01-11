@@ -26,7 +26,9 @@ struct global_settings {
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
-    std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
+	std::mt19937 random_engine;
+	std::mt19937 local_random_engine;
+	uint32_t random_seed;
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;

@@ -21,14 +21,14 @@ void network::manager::connect()
 	client = std::make_shared<tcp_client>(io_context);
 }
 
-std::tuple<double, command_queue::commands_map> network::manager::get_next_delta()
+std::tuple<double, double, command_queue::commands_map> network::manager::get_next_delta()
 {
 	return client->get_next_delta();
 }
 
-void network::manager::push_delta(double delta, command_queue::commands_map commands)
+void network::manager::push_delta(double delta, double sync, command_queue::commands_map commands)
 {
-	server->push_delta(delta, commands);
+	server->push_delta(delta, sync, commands);
 }
 
 command_queue::commands_map network::manager::pop_commands()

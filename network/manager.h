@@ -19,8 +19,8 @@ namespace network
 		void connect();
 		void poll();
 
-		std::tuple<double, command_queue::commands_map> get_next_delta();
-		void push_delta(double delta, command_queue::commands_map commands);
+		std::tuple<double, double, command_queue::commands_map> get_next_delta();
+		void push_delta(double delta, double sync, command_queue::commands_map commands);
 		command_queue::commands_map pop_commands();
 		void send_commands(command_queue::commands_map commands);
 		void request_train(std::string name);

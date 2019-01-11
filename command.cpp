@@ -339,7 +339,6 @@ void command_queue_client::push_server_commands(const commands_map &commands) {
 	for (auto const &kv : commands)
 		for (command_data const &data : kv.second)
 			command_queue::push(data, kv.first);
-	update();
 }
 
 // --------------------

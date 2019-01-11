@@ -9,8 +9,10 @@ void network::connection::connected()
 {
 	WriteLog("net: socket connected", logtype::net);
 
-	std::shared_ptr<message> hello = std::make_shared<message>(message::CONNECT_REQUEST);
-	send_message(hello);
+	if (!Global.network_conf.is_server) {
+		std::shared_ptr<message> hello = std::make_shared<message>(message::CONNECT_REQUEST);
+		send_message(hello);
+	}
 }
 
 void network::connection::message_received(std::shared_ptr<message> &msg)
@@ -23,7 +25,8 @@ void network::connection::message_received(std::shared_ptr<message> &msg)
 
 	if (msg->type == message::CONNECT_REQUEST)
 	{
-		std::shared_ptr<message> reply = std::make_shared<message>(message::CONNECT_ACCEPT);
+		std::shared_ptr<accept_message> reply = std::make_shared<accept_message>();
+		reply->seed = Global.random_seed;
 
 		WriteLog("client accepted", logtype::net);
 
@@ -31,7 +34,9 @@ void network::connection::message_received(std::shared_ptr<message> &msg)
 	}
 	else if (msg->type == message::CONNECT_ACCEPT)
 	{
+		auto cmd = std::dynamic_pointer_cast<accept_message>(msg);
 		WriteLog("accept received", logtype::net);
+		//Global.random_engine.seed(cmd->seed);
 	}
 	else if (msg->type == message::CLIENT_COMMAND)
 	{
@@ -57,11 +62,11 @@ void network::connection::message_received(std::shared_ptr<message> &msg)
 	}
 }
 
-std::tuple<double, command_queue::commands_map> network::connection::get_next_delta()
+std::tuple<double, double, command_queue::commands_map> network::connection::get_next_delta()
 {
 	if (delta_queue.empty()) {
-		return std::tuple<double,
-		        command_queue::commands_map>(0.0, command_queue::commands_map());
+		return std::tuple<double, double,
+		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
 	}
 
 	///auto now = std::chrono::high_resolution_clock::now();
@@ -76,7 +81,7 @@ std::tuple<double, command_queue::commands_map> network::connection::get_next_de
 	    //accum -= remote_dt;
 
 	    delta_queue.pop();
-		return std::make_tuple(entry.second->dt, entry.second->commands);
+		return std::make_tuple(entry.second->dt, entry.second->sync, entry.second->commands);
 	//}
 	//else {
 		//return 0.0;
@@ -111,10 +116,11 @@ void network::connection::send_message(std::shared_ptr<message> msg)
 	send_data(buf);
 }
 
-void network::server::push_delta(double dt, command_queue::commands_map commands)
+void network::server::push_delta(double dt, double sync, command_queue::commands_map commands)
 {
 	std::shared_ptr<delta_message> msg = std::make_shared<delta_message>();
 	msg->dt = dt;
+	msg->sync = sync;
 	msg->commands = commands;
 
 	for (auto c : clients)
@@ -144,7 +150,7 @@ command_queue::commands_map network::server::pop_commands()
 	return map;
 }
 
-std::tuple<double, command_queue::commands_map> network::client::get_next_delta()
+std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
 {
 	return conn->get_next_delta();
 }

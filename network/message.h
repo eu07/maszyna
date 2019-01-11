@@ -26,6 +26,17 @@ namespace network
 		virtual size_t get_size() { return 2; }
 	};
 
+	struct accept_message : public message
+	{
+		accept_message() : message(CONNECT_ACCEPT) {}
+
+		uint32_t seed;
+
+		virtual void serialize(std::ostream &stream) override;
+		virtual void deserialize(std::istream &stream) override;
+		virtual size_t get_size() override;
+	};
+
 	struct command_message : public message
 	{
 		command_message() : message(CLIENT_COMMAND) {}
@@ -43,6 +54,7 @@ namespace network
 		delta_message() : command_message(STEP_INFO) {}
 
 		double dt;
+		double sync;
 
 		virtual void serialize(std::ostream &stream) override;
 		virtual void deserialize(std::istream &stream) override;

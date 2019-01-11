@@ -2853,7 +2853,7 @@ void opengl_renderer::Render_precipitation()
 	{
 		if (Global.Weather == "rain:")
 			// oddly enough random streaks produce more natural looking rain than ones the eye can follow
-			m_precipitationrotation = Random() * 360;
+			m_precipitationrotation = LocalRandom() * 360;
 		else
 			m_precipitationrotation = 0.0;
 	}

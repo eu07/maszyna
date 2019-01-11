@@ -109,6 +109,12 @@ double Random(double a, double b)
     return dis(Global.random_engine);
 }
 
+double LocalRandom(double a, double b)
+{
+	std::uniform_real_distribution<> dis(a, b);
+	return dis(Global.local_random_engine);
+}
+
 bool FuzzyLogic(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold) && (!DebugModeFlag))

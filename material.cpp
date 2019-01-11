@@ -378,8 +378,9 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 		// if we have material name and shader it means resource was processed succesfully
 		material.finalize(Loadnow);
         materialhandle = m_materials.size();
+		m_materialmappings.emplace( material.name, materialhandle );
 		m_materials.emplace_back( std::move(material) );
-        m_materialmappings.emplace( material.name, materialhandle );
+		std::cout << m_materials.size() << std::endl;
     }
     else {
         // otherwise record our failure to process the resource, to speed up subsequent attempts

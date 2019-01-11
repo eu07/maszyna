@@ -6643,13 +6643,13 @@ TDynamicObject::update_shake( double const Timedelta ) {
 
         auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };
 
-        if( Random( iVel ) > 25.0 ) {
+		if( LocalRandom( iVel ) > 25.0 ) {
             // extra shake at increased velocity
             shake += ShakeSpring.ComputateForces(
                 Math3D::vector3(
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.x,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.y,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.z )
+			    ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.x,
+			    ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.y,
+			    ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.z )
 //                * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ) // scale to 75-150% based on track quality
                 * 1.25,
                 ShakeState.offset );
@@ -6960,7 +6960,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 if( ( volume < 1.0 )
                  && ( Vehicle.EnginePower < 100 ) ) {
 
-                    auto const volumevariation { Random( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
+					auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
                     if( volumevariation < 2 ) {
                         volume += volumevariation / 200;
                     }
