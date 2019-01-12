@@ -60,17 +60,19 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
         }
         else if( ( key == "texture1:" )
               || ( key == "texture_diffuse:" ) ) {
+            auto const value { deserialize_random_set( Input ) };
             if( ( texture1 == null_handle )
              || ( Priority > priority1 ) ) {
-                texture1 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
+                texture1 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority1 = Priority;
             }
         }
         else if( ( key == "texture2:" )
               || ( key == "texture_normalmap:" ) ) {
+            auto const value { deserialize_random_set( Input ) };
             if( ( texture2 == null_handle )
              || ( Priority > priority2 ) ) {
-                texture2 = GfxRenderer.Fetch_Texture( deserialize_random_set( Input ), Loadnow );
+                texture2 = GfxRenderer.Fetch_Texture( value, Loadnow );
                 priority2 = Priority;
             }
         }

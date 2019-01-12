@@ -812,10 +812,13 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
 
         // HACK: allow to draw power also from adjacent converter, applicable for EMUs
         // TODO: expand power cables system to include low voltage power transfers
+        // HACK: emulate low voltage generator powered directly by the diesel engine
         auto const converteractive{ (
             ( ConverterFlag )
          || ( ( ( Couplers[ side::front ].CouplingFlag & coupling::permanent ) != 0 ) && Couplers[ side::front ].Connected->ConverterFlag )
-         || ( ( ( Couplers[ side::rear ].CouplingFlag & coupling::permanent )  != 0 ) && Couplers[ side::rear ].Connected->ConverterFlag ) ) };
+         || ( ( ( Couplers[ side::rear ].CouplingFlag & coupling::permanent )  != 0 ) && Couplers[ side::rear ].Connected->ConverterFlag ) )
+         || ( ( EngineType == TEngineType::DieselElectric ) && ( true == Mains ) )
+         || ( ( EngineType == TEngineType::DieselEngine )   && ( true == Mains ) ) };
 
         if ((NominalBatteryVoltage / BatteryVoltage < 1.22) && Battery)
         { // 110V
@@ -1529,18 +1532,18 @@ void TMoverParameters::WaterPumpCheck( double const Timestep ) {
 // water heater status check
 void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
 
-    WaterHeater.is_damaged = (
-        ( true == WaterHeater.is_damaged )
-     || ( ( true == WaterHeater.is_active )
-       && ( false == WaterPump.is_active ) ) );
-
     WaterHeater.is_active = (
         ( false == WaterHeater.is_damaged )
      && ( true == Battery )
      && ( true == WaterHeater.is_enabled )
      && ( true == WaterHeater.breaker )
      && ( ( WaterHeater.is_active ) || ( WaterHeater.config.temp_min < 0 ) || ( dizel_heat.temperatura1 < WaterHeater.config.temp_min ) ) );
-    
+
+    WaterHeater.is_damaged = (
+        ( true == WaterHeater.is_damaged )
+     || ( ( true == WaterHeater.is_active )
+       && ( false == WaterPump.is_active ) ) );
+
     if( ( WaterHeater.config.temp_max > 0 )
      && ( dizel_heat.temperatura1 > WaterHeater.config.temp_max ) ) {
         WaterHeater.is_active = false;
@@ -6664,7 +6667,7 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
     for( auto const &loadattributes : LoadAttributes ) {
         if( Name == loadattributes.name ) {
             LoadType = loadattributes;
-            LoadAmount = Amount;
+            LoadAmount = clamp( Amount, 0.f, MaxLoad ) ;
             return true;
         }
     }
@@ -6702,7 +6705,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
             if( ( LoadAmount <= 0 ) || ( CommandIn.Value1 <= 0 ) ) {
                 // pusto lub rozładowano żądaną ilość
                 LoadStatus = 4; // skończony rozładunek
-                LoadAmount = std::max( 0.f, LoadAmount ); //ładunek nie może być ujemny
+                LoadAmount = clamp( LoadAmount, 0.f, MaxLoad); //ładunek nie może być ujemny
             }
             if( LoadAmount == 0.f ) {
                 AssignLoad(""); // jak nic nie ma, to nie ma też nazwy

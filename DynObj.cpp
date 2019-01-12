@@ -2782,7 +2782,7 @@ TDynamicObject::update_load_visibility() {
     }
 */
     auto loadpercentage { (
-        MoverParameters->MaxLoad == 0.0 ?
+        MoverParameters->MaxLoad == 0.f ?
             0.0 :
             100.0 * MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
     auto const sectionloadpercentage { (
@@ -2816,7 +2816,7 @@ TDynamicObject::update_load_offset() {
     if( MoverParameters->LoadType.offset_min == 0.f ) { return; }
 
     auto const loadpercentage { (
-        MoverParameters->MaxLoad == 0.0 ?
+        MoverParameters->MaxLoad == 0.f ?
             0.0 :
             100.0 * MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
 
