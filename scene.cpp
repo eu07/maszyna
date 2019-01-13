@@ -771,7 +771,7 @@ basic_section::insert( shape_node Shape ) {
     // re-calculate section radius, in case shape geometry extends outside the section's boundaries
     m_area.radius = std::max<float>(
         m_area.radius,
-        static_cast<float>( glm::length( m_area.center - shapedata.area.center ) + shapedata.area.radius ) );
+	    static_cast<float>( glm::length( m_area.center - shapedata.area.center ) + Shape.radius() ) );
 
     if( ( true == shapedata.translucent )
      || ( shapedata.rangesquared_max <= 90000.0 )
