@@ -719,15 +719,14 @@ void TTrain::set_paired_open_motor_connectors_button( bool const State ) {
 
 // locates nearest vehicle belonging to the consist
 TDynamicObject *
-TTrain::find_nearest_consist_vehicle() const {
+TTrain::find_nearest_consist_vehicle(bool freefly, glm::vec3 pos) const {
+	if (!freefly)
+		return DynamicObject;
 
-    if( false == FreeFlyModeFlag ) {
-        return DynamicObject;
-    }
     auto coupler { -2 }; // scan for vehicle, not any specific coupler
-    auto *vehicle{ DynamicObject->ABuScanNearestObject( DynamicObject->GetTrack(), 1, 1500, coupler ) };
+	auto *vehicle{ DynamicObject->ABuScanNearestObject( pos, DynamicObject->GetTrack(), 1, 1500, coupler ) };
     if( vehicle == nullptr )
-        vehicle = DynamicObject->ABuScanNearestObject( DynamicObject->GetTrack(), -1, 1500, coupler );
+		vehicle = DynamicObject->ABuScanNearestObject( pos, DynamicObject->GetTrack(), -1, 1500, coupler );
     // TBD, TODO: perform owner test for the located vehicle
     return vehicle;
 }
@@ -1029,7 +1028,7 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
     }
     else {
         // car brake handling, while in walk mode
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle != nullptr ) {
             if( Command.action == GLFW_PRESS ) {
                 // press or hold
@@ -1212,7 +1211,7 @@ void TTrain::OnCommand_trainbrakeoperationtoggle( TTrain *Train, command_data co
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         vehicle->MoverParameters->Hamulec->SetBrakeStatus( vehicle->MoverParameters->Hamulec->GetBrakeStatus() ^ b_dmg );
@@ -1223,7 +1222,7 @@ void TTrain::OnCommand_manualbrakeincrease( TTrain *Train, command_data const &C
 
     if( Command.action != GLFW_RELEASE ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         if( ( vehicle->MoverParameters->LocalBrake == TLocalBrake::ManualBrake )
@@ -1238,7 +1237,7 @@ void TTrain::OnCommand_manualbrakedecrease( TTrain *Train, command_data const &C
 
     if( Command.action != GLFW_RELEASE ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         if( ( vehicle->MoverParameters->LocalBrake == TLocalBrake::ManualBrake )
@@ -1398,7 +1397,7 @@ void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data con
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         if( ( vehicle->MoverParameters->BrakeDelayFlag & bdelay_M ) != 0 ) {
@@ -1418,7 +1417,7 @@ void TTrain::OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data con
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         if( vehicle->MoverParameters->BrakeDelayFlag == bdelay_G ) {
@@ -1438,7 +1437,7 @@ void TTrain::OnCommand_brakeactingspeedsetcargo( TTrain *Train, command_data con
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         Train->set_train_brake_speed( vehicle, bdelay_G );
@@ -1449,7 +1448,7 @@ void TTrain::OnCommand_brakeactingspeedsetpassenger( TTrain *Train, command_data
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         Train->set_train_brake_speed( vehicle, bdelay_P );
@@ -1460,7 +1459,7 @@ void TTrain::OnCommand_brakeactingspeedsetrapid( TTrain *Train, command_data con
 
     if( Command.action == GLFW_PRESS ) {
 
-        auto *vehicle{ Train->find_nearest_consist_vehicle() };
+		auto *vehicle{ Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle == nullptr ) { return; }
 
         Train->set_train_brake_speed( vehicle, bdelay_R );
@@ -1471,7 +1470,7 @@ void TTrain::OnCommand_brakeloadcompensationincrease( TTrain *Train, command_dat
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle != nullptr ) {
             vehicle->MoverParameters->IncBrakeMult();
         }
@@ -1482,7 +1481,7 @@ void TTrain::OnCommand_brakeloadcompensationdecrease( TTrain *Train, command_dat
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
-        auto *vehicle { Train->find_nearest_consist_vehicle() };
+		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle != nullptr ) {
             vehicle->MoverParameters->DecBrakeMult();
         }
@@ -4485,13 +4484,13 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
 
 void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+	if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
         // tryb freefly, press only
         auto coupler { -1 };
-        auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
+		auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Command.location, Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
         if( vehicle == nullptr )
-            vehicle = Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), -1, 1500, coupler );
+			vehicle = Train->DynamicObject->ABuScanNearestObject( Command.location, Train->DynamicObject->GetTrack(), -1, 1500, coupler );
 
         if( ( coupler != -1 )
          && ( vehicle != nullptr ) ) {
@@ -4507,13 +4506,13 @@ void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+	if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
         // tryb freefly, press only
         auto coupler { -1 };
-        auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
+		auto *vehicle { Train->DynamicObject->ABuScanNearestObject( Command.location, Train->DynamicObject->GetTrack(), 1, 1500, coupler ) };
         if( vehicle == nullptr )
-            vehicle = Train->DynamicObject->ABuScanNearestObject( Train->DynamicObject->GetTrack(), -1, 1500, coupler );
+			vehicle = Train->DynamicObject->ABuScanNearestObject( Command.location, Train->DynamicObject->GetTrack(), -1, 1500, coupler );
 
         if( ( coupler != -1 )
          && ( vehicle != nullptr ) ) {

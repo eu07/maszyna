@@ -220,6 +220,7 @@ enum class user_command {
 	vehiclemoveforwards,
 	vehiclemovebackwards,
 	vehicleboost,
+	debugtoggle,
 
     none = -1
 };
@@ -257,6 +258,9 @@ struct command_data {
     double param1;
     double param2;
     double time_delta;
+
+	bool freefly;
+	glm::vec3 location;
 };
 
 // command_queues: collects and holds commands from input sources, for processing by their intended recipients

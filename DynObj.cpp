@@ -1087,9 +1087,9 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
 
-TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer, int &CouplNr)
+TDynamicObject * TDynamicObject::ABuFindNearestObject(glm::vec3 pos, TTrack *Track, TDynamicObject *MyPointer, int &CouplNr)
 {
-    // zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzęg jest najblizszy kamerze
+	// zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzęg jest najblizszy punktowi
     // służy np. do łączenia i rozpinania sprzęgów
     // WE: Track      - tor, na ktorym odbywa sie poszukiwanie
     //    MyPointer  - wskaznik do obiektu szukajacego
@@ -1100,19 +1100,19 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
 
         if( CouplNr == -2 ) {
             // wektor [kamera-obiekt] - poszukiwanie obiektu
-            if( Math3D::LengthSquared3( Global.pCamera.Pos - dynamic->vPosition ) < 100.0 ) {
+			if( Math3D::LengthSquared3( pos - dynamic->vPosition ) < 100.0 ) {
                 // 10 metrów
                 return dynamic;
             }
         }
         else {
             // jeśli (CouplNr) inne niz -2, szukamy sprzęgu
-            if( Math3D::LengthSquared3( Global.pCamera.Pos - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
+			if( Math3D::LengthSquared3( pos - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 0;
                 return dynamic;
             }
-            if( Math3D::LengthSquared3( Global.pCamera.Pos - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
+			if( Math3D::LengthSquared3( pos - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
                 // 5 metrów
                 CouplNr = 1;
                 return dynamic;
@@ -1123,13 +1123,13 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
     return nullptr;
 }
 
-TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
-{ // skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
+TDynamicObject * TDynamicObject::ABuScanNearestObject(glm::vec3 pos, TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
+{ // skanowanie toru w poszukiwaniu obiektu najblizszego punktowi
     if (ABuGetDirection() < 0)
         ScanDir = -ScanDir;
     TDynamicObject *FoundedObj;
     FoundedObj =
-        ABuFindNearestObject(Track, this, CouplNr); // zwraca numer sprzęgu znalezionego pojazdu
+	    ABuFindNearestObject(pos, Track, this, CouplNr); // zwraca numer sprzęgu znalezionego pojazdu
     if (FoundedObj == NULL)
     {
         double ActDist; // Przeskanowana odleglosc.
@@ -1165,7 +1165,7 @@ TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double Scan
             if (Track != NULL)
             { // jesli jest kolejny odcinek toru
                 CurrDist = Track->Length();
-                FoundedObj = ABuFindNearestObject(Track, this, CouplNr);
+				FoundedObj = ABuFindNearestObject(pos, Track, this, CouplNr);
                 if (FoundedObj != NULL)
                     ActDist = ScanDist;
             }

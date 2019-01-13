@@ -136,7 +136,7 @@ class TTrain
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // locates nearest vehicle belonging to the consist
-    TDynamicObject *find_nearest_consist_vehicle() const;
+	TDynamicObject *find_nearest_consist_vehicle(bool freefly, glm::vec3 pos) const;
     // mover master controller to specified position
     void set_master_controller( double const Position );
     // moves train brake lever to specified position, potentially emits switch sound if conditions are met

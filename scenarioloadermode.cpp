@@ -43,6 +43,8 @@ scenarioloader_mode::update() {
     if( true == simulation::State.deserialize( Global.SceneryFile ) ) {
         WriteLog( "Scenario loading time: " + std::to_string( std::chrono::duration_cast<std::chrono::seconds>( ( std::chrono::system_clock::now() - timestart ) ).count() ) + " seconds" );
         // TODO: implement and use next mode cue
+		Global.random_seed = std::random_device{}();
+		Global.random_engine.seed(Global.random_seed);
         Application.pop_mode();
         Application.push_mode( eu07_application::mode::driver );
     }

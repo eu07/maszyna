@@ -226,6 +226,7 @@ commanddescription_sequence Commands_descriptions = {
     { "vehiclemoveforwards", command_target::vehicle, command_mode::oneoff },
     { "vehiclemovebackwards", command_target::vehicle, command_mode::oneoff },
     { "vehicleboost", command_target::vehicle, command_mode::oneoff },
+    { "debugtoggle", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation
@@ -238,7 +239,7 @@ void command_queue::update()
 	double delta = Timer::GetDeltaTime();
 	for (auto c : m_active_continuous)
 	{
-		command_data data({c.first, GLFW_REPEAT, 0.0, 0.0, delta});
+		command_data data({c.first, GLFW_REPEAT, 0.0, 0.0, delta, false, glm::vec3()}); // todo: improve
 		auto lookup = m_commands.emplace( c.second, commanddata_sequence() );
 		// recipient stack was either located or created, so we can add to it quite safely
 		lookup.first->second.emplace_back( data );
@@ -365,7 +366,7 @@ command_relay::post( user_command const Command, double const Param1, double con
     }
 
 	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
-	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime() });
+	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Global.pCamera.Pos });
 
 	simulation::Commands->push(commanddata, combined_recipient);
 }

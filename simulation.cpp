@@ -81,6 +81,9 @@ void state_manager::process_commands() {
 		if (commanddata.action == GLFW_RELEASE)
 			continue;
 
+		if (commanddata.command == user_command::debugtoggle)
+			DebugModeFlag = !DebugModeFlag;
+
 		if (DebugModeFlag) {
 			if (commanddata.command == user_command::timejump) {
 				Time.update(commanddata.param1);

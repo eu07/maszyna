@@ -227,6 +227,7 @@ driverkeyboard_input::default_bindings() {
 	    { user_command::vehiclemoveforwards, GLFW_KEY_LEFT_BRACKET | keymodifier::control },
 	    { user_command::vehiclemovebackwards, GLFW_KEY_RIGHT_BRACKET | keymodifier::control },
 	    { user_command::vehicleboost, GLFW_KEY_TAB | keymodifier::control },
+	    { user_command::debugtoggle, GLFW_KEY_F12 | keymodifier::control | keymodifier::shift },
     };
 }
 

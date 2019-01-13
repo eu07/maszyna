@@ -35,8 +35,10 @@ void network::connection::message_received(std::shared_ptr<message> &msg)
 	else if (msg->type == message::CONNECT_ACCEPT)
 	{
 		auto cmd = std::dynamic_pointer_cast<accept_message>(msg);
+
 		WriteLog("accept received", logtype::net);
-		//Global.random_engine.seed(cmd->seed);
+		Global.random_seed = cmd->seed;
+		Global.random_engine.seed(Global.random_seed);
 	}
 	else if (msg->type == message::CLIENT_COMMAND)
 	{

@@ -176,7 +176,7 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oś wiążąca pojazd z torem i wyzwalająca eventy)
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
-    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
+	TDynamicObject * ABuFindNearestObject(glm::vec3 pos, TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
     glm::dvec3 m_future_movement;
     glm::dvec3 m_future_wheels_angle;
@@ -498,8 +498,8 @@ private:
     // float EmR;
     // vector3 smokeoffset;
 
-    TDynamicObject * ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
-                                                    int &CouplNr);
+	TDynamicObject * ABuScanNearestObject(glm::vec3 pos, TTrack *Track, double ScanDir, double ScanDist,
+	                                                int &CouplNr);
     TDynamicObject * GetFirstDynamic(int cpl_type, int cf = 1);
     void ABuSetModelShake( Math3D::vector3 mShake);
 

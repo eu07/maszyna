@@ -107,13 +107,6 @@ driver_mode::update() {
 
 	if (deltatime != 0.0)
 	{
-		static uint32_t fcount = 0;
-		fcount ++;
-		if (fcount > 500) {
-			fcount = 0;
-			WriteLog(std::to_string(Random(1.0, 100.0)));
-		}
-
         // jak pauza, to nie ma po co tego przeliczać
         simulation::Time.update( deltatime );
 
@@ -785,15 +778,6 @@ driver_mode::OnKeyDown(int cKey) {
             }
             break;
         }
-        case GLFW_KEY_F12: {
-            // quick debug mode toggle
-            if( Global.ctrlState
-             && Global.shiftState ) {
-                DebugModeFlag = !DebugModeFlag;
-            }
-            break;
-        }
-
         default: {
             break;
         }

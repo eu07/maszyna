@@ -38,6 +38,9 @@ void::network::command_message::serialize(std::ostream &stream)
 			sn_utils::ls_float64(stream, data.param1);
 			sn_utils::ls_float64(stream, data.param2);
 			sn_utils::ls_float64(stream, data.time_delta);
+
+			sn_utils::s_bool(stream, data.freefly);
+			sn_utils::s_vec3(stream, data.location);
 		}
 	}
 }
@@ -58,6 +61,9 @@ void network::command_message::deserialize(std::istream &stream)
 			data.param2 = sn_utils::ld_float64(stream);
 			data.time_delta = sn_utils::ld_float64(stream);
 
+			data.freefly = sn_utils::d_bool(stream);
+			data.location = sn_utils::d_vec3(stream);
+
 			sequence.emplace_back(data);
 		}
 
@@ -72,7 +78,7 @@ size_t network::command_message::get_size()
 	for (auto const &kv : commands) {
 		cmd_size += 8;
 		for (command_data const &data : kv.second) {
-			cmd_size += 8 + 3 * 8;
+			cmd_size += 8 + 3 * 8 + 2 + 4 * 3;
 		}
 	}
 

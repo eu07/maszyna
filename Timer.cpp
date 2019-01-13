@@ -16,7 +16,7 @@ namespace Timer {
 
 subsystem_stopwatches subsystem;
 
-double DeltaTime, DeltaRenderTime;
+double DeltaTime = 0.0, DeltaRenderTime = 0.0;
 double fFPS{ 0.0f };
 double fLastTime{ 0.0f };
 DWORD dwFrames{ 0 };
@@ -48,7 +48,7 @@ void set_delta_override(double t)
 void ResetTimers()
 {
     UpdateTimers( Global.iPause != 0 );
-    DeltaTime = 0.1;
+	DeltaTime = 0.0;
     DeltaRenderTime = 0.0;
 }
 

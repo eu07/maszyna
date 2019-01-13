@@ -138,9 +138,6 @@ eu07_application::init( int Argc, char *Argv[] ) {
         return result;
     }
 
-	//Global.random_seed = std::time(nullptr);
-	//Global.random_engine.seed(Global.random_seed);
-
 	if (!init_network())
 		return -1;
 
