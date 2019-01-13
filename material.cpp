@@ -380,7 +380,6 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         materialhandle = m_materials.size();
 		m_materialmappings.emplace( material.name, materialhandle );
 		m_materials.emplace_back( std::move(material) );
-		std::cout << m_materials.size() << std::endl;
     }
     else {
         // otherwise record our failure to process the resource, to speed up subsequent attempts

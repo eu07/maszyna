@@ -41,8 +41,10 @@ namespace network
 	{
 	protected:
 		std::vector<std::shared_ptr<connection>> clients;
+		std::fstream recorder;
 
 	public:
+		server();
 		void push_delta(double dt, double sync, command_queue::commands_map commands);
 		command_queue::commands_map pop_commands();
 		void notify_train(std::string name);

@@ -140,7 +140,7 @@ void TCamera::Update()
     command_data command;
     // NOTE: currently we're only storing commands for local entity and there's no id system in place,
     // so we're supplying 'default' entity id of 0
-    while( simulation::Commands->pop( command, static_cast<std::size_t>( command_target::entity ) | 0 ) ) {
+	while( simulation::Commands.pop( command, static_cast<std::size_t>( command_target::entity ) | 0 ) ) {
 
         OnCommand( command );
     }

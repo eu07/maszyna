@@ -4908,7 +4908,7 @@ bool TTrain::Update( double const Deltatime )
     // eventually commands are going to be retrieved directly by the vehicle, filtered through active control stand
     // and ultimately executed, provided the stand allows it.
     command_data commanddata;
-	while( simulation::Commands->pop( commanddata, (uint32_t)command_target::vehicle | id() )) {
+	while( simulation::Commands.pop( commanddata, (uint32_t)command_target::vehicle | id() )) {
 
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {

@@ -275,19 +275,35 @@ public:
 	typedef std::unordered_map<uint32_t, commanddata_sequence> commands_map;
 
 // methods
-    // posts specified command for specified recipient
-	virtual void
+	// posts specified command for specified recipient into m_intercept_queue
+	void
 	    push( command_data const &Command, uint32_t const Recipient );
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
 	    pop( command_data &Command, uint32_t const Recipient );
-	void update();
-	bool is_network_target(const uint32_t Recipient);
+	// generates active continuous commands
+	void
+	    update();
+
+	// checks if given command must be scheduled on server
+	bool
+	    is_network_target(const uint32_t Recipient);
+
+	// pops commands from intercept queue
+	commands_map pop_intercept_queue();
+
+	// pushes commands into main queue
+	void push_commands(const commands_map &commands);
 
 private:
 // members
-	// main command queue
+	// contains command ready to execution
 	commands_map m_commands;
+
+	// contains intercepted commands to be read by application layer
+	commands_map m_intercept_queue;
+
+	void push_direct( command_data const &Command, uint32_t const Recipient );
 
 	// hash operator for m_active_continuous
 	struct command_set_hash {
@@ -300,29 +316,14 @@ private:
 	std::unordered_set<std::pair<user_command, uint32_t>, command_set_hash> m_active_continuous;
 };
 
-class command_queue_server : public command_queue {
-public:
-	void push( command_data const &Command, uint32_t const Recipient ) override;
-
-	commands_map pop_queued_commands();
-	void push_client_commands(const commands_map &commands);
-
-private:
-	// contains copies of commands to be sent to clients
-	commands_map network_queue;
-};
-
-class command_queue_client : public command_queue {
-public:
-	void push( command_data const &Command, uint32_t const Recipient ) override;
-
-	commands_map pop_queued_commands();
-	void push_server_commands(const commands_map &commands);
-
-private:
-	// contains intercepted commands to be sent for execution to server
-	commands_map network_queue;
-};
+template<typename A, typename B>
+void add_to_dequemap(std::unordered_map<A, std::deque<B>> &lhs, const std::unordered_map<A, std::deque<B>> &rhs) {
+	for (auto const &kv : rhs) {
+		auto lookup = lhs.emplace(kv.first, std::deque<B>());
+		for (B const &data : kv.second)
+			lookup.first->second.emplace_back(data);
+	}
+}
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
 //       but realistically it's not like we're going to run more than one simulation at a time
@@ -330,7 +331,7 @@ namespace simulation {
 
 typedef std::vector<command_description> commanddescription_sequence;
 
-extern std::unique_ptr<command_queue> Commands;
+extern command_queue Commands;
 // TODO: add name to command map, and wrap these two into helper object
 extern commanddescription_sequence Commands_descriptions;
 

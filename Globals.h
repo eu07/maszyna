@@ -198,7 +198,8 @@ struct global_settings {
 
 	struct network_conf_t {
 		bool enabled = false;
-		bool is_server;
+		bool is_server = false;
+		bool is_client = false;
 	} network_conf;
 
 // methods

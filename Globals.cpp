@@ -788,6 +788,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> network_conf.is_server;
 		}
+		else if (token == "network.client")
+		{
+			Parser.getTokens(1);
+			Parser >> network_conf.is_client;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

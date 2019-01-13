@@ -188,48 +188,89 @@ eu07_application::run() {
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
 
-		if (!m_network)
+		// -------------------------------------------------------------------
+		// multiplayer command relaying logic can seem a bit complex
+		//
+		// we are simultaneously:
+		// => master (not client) OR slave (client)
+		// => server OR not
+		//
+		// trivia: being client and server is possible
+
+		bool nextloop = true;
+		while (nextloop)
 		{
+			command_queue::commands_map commands_to_exec;
+			command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
+			double slave_sync;
+
+			// if we're the server
+			if (m_network && m_network->server)
+			{
+				// fetch from network layer command requests received from clients
+				command_queue::commands_map remote_commands = m_network->server->pop_commands();
+
+				// push these into local queue
+				add_to_dequemap(local_commands, remote_commands);
+			}
+
+			// if we're slave
+			if (m_network && m_network->client)
+			{
+				// fetch frame info from network layer,
+				auto frame_info = m_network->client->get_next_delta();
+
+				// use delta and commands received from master
+				double delta = std::get<0>(frame_info);
+				Timer::set_delta_override(delta);
+				slave_sync = std::get<1>(frame_info);
+				add_to_dequemap(commands_to_exec, std::get<2>(frame_info));
+
+				// and send our local commands to master
+				m_network->client->send_commands(local_commands);
+
+				if (delta == 0.0)
+					nextloop = false;
+			}
+			// if we're master
+			else {
+				// just push local commands to execution
+				add_to_dequemap(commands_to_exec, local_commands);
+
+				nextloop = false;
+			}
+
+			// send commands to command queue
+			simulation::Commands.push_commands(commands_to_exec);
+
+			// do actual frame processing
 			if (!m_modes[ m_modestack.top() ]->update())
-				break;
-			simulation::Commands->update();
-		}
-		else if (!Global.network_conf.is_server) {
-			command_queue_client *queue = dynamic_cast<command_queue_client*>(simulation::Commands.get());
-			double delta;
-			do {
-			   auto tup = m_network->get_next_delta();
-			   delta = std::get<0>(tup);
-			   Timer::set_delta_override(delta);
-			   queue->push_server_commands(std::get<2>(tup));
+				goto die;
 
-			   m_network->send_commands(queue->pop_queued_commands());
+			// update continuous commands
+			simulation::Commands.update();
 
-				if (!m_modes[ m_modestack.top() ]->update())
-					break;
+			double sync = generate_sync();
 
-				queue->update();
-
-				double sync = generate_sync();
-				if (sync != std::get<1>(tup)) {
+			// if we're slave
+			if (m_network && m_network->client)
+			{
+				// verify sync
+				if (sync != slave_sync) {
 					WriteLog("net: DESYNC!", logtype::net);
 				}
 			}
-			while (delta != 0.0);
+
+			// if we're the server
+			if (m_network && m_network->server)
+			{
+				// send delta, sync, and commands we just executed to clients
+				double delta = Timer::GetDeltaTime();
+				m_network->server->push_delta(delta, sync, commands_to_exec);
+			}
 		}
-		else {
-			command_queue_server *queue = dynamic_cast<command_queue_server*>(simulation::Commands.get());
-			queue->push_client_commands(m_network->pop_commands());
-			auto commands = queue->pop_queued_commands();
 
-			if (!m_modes[ m_modestack.top() ]->update())
-				break;
-
-			queue->update();
-
-			double delta = Timer::GetDeltaTime();
-			m_network->push_delta(delta, generate_sync(), commands);
-		}
+		// -------------------------------------------------------------------
 
 		m_taskqueue.update();
 		opengl_texture::reset_unit_cache();
@@ -254,6 +295,7 @@ eu07_application::run() {
 		if (m_network)
 			m_network->poll();
     }
+    die:
 
     return 0;
 }
@@ -671,15 +713,11 @@ bool eu07_application::init_network() {
 		m_network.emplace();
 		if (Global.network_conf.is_server) {
 			m_network->create_server();
-			simulation::Commands = std::make_unique<command_queue_server>();
 		}
-		else {
+		if (Global.network_conf.is_client) {
 			m_network->connect();
-			simulation::Commands = std::make_unique<command_queue_client>();
 		}
 	}
-	else
-		simulation::Commands = std::make_unique<command_queue>();
 
 	return true;
 }

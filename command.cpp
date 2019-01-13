@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
-std::unique_ptr<command_queue> Commands;
+command_queue Commands;
 commanddescription_sequence Commands_descriptions = {
 
     { "aidriverenable", command_target::vehicle, command_mode::oneoff },
@@ -231,9 +231,6 @@ commanddescription_sequence Commands_descriptions = {
 
 } // simulation
 
-// --------------------
-// command_queue
-
 void command_queue::update()
 {
 	double delta = Timer::GetDeltaTime();
@@ -249,6 +246,15 @@ void command_queue::update()
 // posts specified command for specified recipient
 void
 command_queue::push( command_data const &Command, uint32_t const Recipient ) {
+	if (is_network_target(Recipient)) {
+		auto lookup = m_intercept_queue.emplace(Recipient, commanddata_sequence());
+		lookup.first->second.emplace_back(Command);
+	} else {
+		push_direct(Command, Recipient);
+	}
+}
+
+void command_queue::push_direct(const command_data &Command, const uint32_t Recipient) {
 	auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
 	if (desc.mode == command_mode::continuous)
 	{
@@ -295,54 +301,17 @@ bool command_queue::is_network_target(uint32_t const Recipient) {
 	return true;
 }
 
-// --------------------
-// command_queue_server
-
-void command_queue_server::push(const command_data &Command, const uint32_t Recipient) {
-	if (is_network_target(Recipient)) {
-		auto lookup = network_queue.emplace(Recipient, commanddata_sequence());
-		lookup.first->second.emplace_back(Command);
-	}
-	command_queue::push(Command, Recipient);
-}
-
-command_queue_server::commands_map command_queue_server::pop_queued_commands() {
-	commands_map map(network_queue);
-	network_queue.clear();
+command_queue::commands_map command_queue::pop_intercept_queue() {
+	commands_map map(m_intercept_queue);
+	m_intercept_queue.clear();
 	return map;
 }
 
-void command_queue_server::push_client_commands(const commands_map &commands) {
+void command_queue::push_commands(const commands_map &commands) {
 	for (auto const &kv : commands)
 		for (command_data const &data : kv.second)
-			push(data, kv.first);
+			push_direct(data, kv.first);
 }
-
-// --------------------
-// command_queue_client
-
-void command_queue_client::push(const command_data &Command, const uint32_t Recipient) {
-	if (is_network_target(Recipient)) {
-		auto lookup = network_queue.emplace(Recipient, commanddata_sequence());
-		lookup.first->second.emplace_back(Command);
-	}
-	else
-		command_queue::push(Command, Recipient);
-}
-
-command_queue_client::commands_map command_queue_client::pop_queued_commands() {
-	commands_map map(network_queue);
-	network_queue.clear();
-	return map;
-}
-
-void command_queue_client::push_server_commands(const commands_map &commands) {
-	for (auto const &kv : commands)
-		for (command_data const &data : kv.second)
-			command_queue::push(data, kv.first);
-}
-
-// --------------------
 
 void
 command_relay::post( user_command const Command, double const Param1, double const Param2,
@@ -368,5 +337,5 @@ command_relay::post( user_command const Command, double const Param1, double con
 	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
 	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Global.pCamera.Pos });
 
-	simulation::Commands->push(commanddata, combined_recipient);
+	simulation::Commands.push(commanddata, combined_recipient);
 }

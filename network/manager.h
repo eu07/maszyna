@@ -9,11 +9,12 @@ namespace network
     class manager
 	{
 		asio::io_context io_context;
-		std::shared_ptr<network::server> server;
-		std::shared_ptr<network::client> client;
 
 	public:
 		manager();
+
+		std::shared_ptr<network::server> server;
+		std::shared_ptr<network::client> client;
 
 		void create_server();
 		void connect();

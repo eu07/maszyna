@@ -118,12 +118,23 @@ void network::connection::send_message(std::shared_ptr<message> msg)
 	send_data(buf);
 }
 
+network::server::server()
+{
+	recorder.open("recorder.bin", std::ios::trunc | std::ios::out | std::ios::binary);
+}
+
 void network::server::push_delta(double dt, double sync, command_queue::commands_map commands)
 {
 	std::shared_ptr<delta_message> msg = std::make_shared<delta_message>();
 	msg->dt = dt;
 	msg->sync = sync;
 	msg->commands = commands;
+
+	sn_utils::ls_uint32(recorder, 0x37305545);
+	sn_utils::ls_uint32(recorder, msg->get_size());
+	sn_utils::ls_uint16(recorder, (uint16_t)msg->type);
+	msg->serialize(recorder);
+	recorder.flush();
 
 	for (auto c : clients)
 		c->send_message(msg);
@@ -159,6 +170,9 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 
 void network::client::send_commands(command_queue::commands_map commands)
 {
+	if (commands.empty())
+		return;
+
 	std::shared_ptr<command_message> msg = std::make_shared<command_message>();
 	msg->commands = commands;
 
