@@ -127,7 +127,10 @@ public:
         create_geometry( gfx::geometrybank_handle const &Bank );
     // calculates shape's bounding radius
     void
-        compute_radius();
+	    compute_radius();
+	// invalidates shape's bounding radius
+	void
+	    invalidate_radius();
     // set visibility
     void
         visible( bool State );
@@ -137,6 +140,8 @@ public:
     // data access
     shapenode_data const &
         data() const;
+	// get bounding radius
+	float radius();
 
 private:
 // members

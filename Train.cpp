@@ -457,9 +457,9 @@ PyObject *TTrain::GetTrainState() {
     // basic systems state data
     PyDict_SetItemString( dict, "battery", PyGetBool( mvControlled->Battery ) );
     PyDict_SetItemString( dict, "linebreaker", PyGetBool( mvControlled->Mains ) );
-    PyDict_SetItemString( dict, "converter", PyGetBool( mover->ConverterFlag ) );
-    PyDict_SetItemString( dict, "converter_overload", PyGetBool( mover->ConvOvldFlag ) );
-    PyDict_SetItemString( dict, "compress", PyGetBool( mover->CompressorFlag ) );
+    PyDict_SetItemString( dict, "converter", PyGetBool( mvControlled->ConverterFlag ) );
+    PyDict_SetItemString( dict, "converter_overload", PyGetBool( mvControlled->ConvOvldFlag ) );
+    PyDict_SetItemString( dict, "compress", PyGetBool( mvControlled->CompressorFlag ) );
     // reverser
     PyDict_SetItemString( dict, "direction", PyGetInt( mover->ActiveDir ) );
     // throttle
@@ -472,34 +472,35 @@ PyObject *TTrain::GetTrainState() {
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
     PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
     bool bPN;
-    if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
-     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+    if( ( typeid( *mvOccupied->Hamulec ) == typeid( TLSt ) )
+     || ( typeid( *mvOccupied->Hamulec ) == typeid( TEStED ) ) ) {
 
-        TBrake* temp_ham = mvControlled->Hamulec.get();
+        TBrake* temp_ham = mvOccupied->Hamulec.get();
         bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP() > 0.2 );
     }
     else
         bPN = false;
     PyDict_SetItemString( dict, "indir_brake", PyGetBool( bPN ) );
-	PyDict_SetItemString( dict, "brake_delay_flag", PyGetInt( mvControlled->BrakeDelayFlag ));
-	PyDict_SetItemString( dict, "brake_op_mode_flag", PyGetInt( mvControlled->BrakeOpModeFlag ));
+	PyDict_SetItemString( dict, "brake_delay_flag", PyGetInt( mvOccupied->BrakeDelayFlag ));
+	PyDict_SetItemString( dict, "brake_op_mode_flag", PyGetInt( mvOccupied->BrakeOpModeFlag ));
     // other controls
     PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
     PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
     PyDict_SetItemString( dict, "pantpress", PyGetFloat( mvControlled->PantPress ) );
     PyDict_SetItemString( dict, "universal3", PyGetBool( InstrumentLightActive ) );
     PyDict_SetItemString( dict, "radio_channel", PyGetInt( iRadioChannel ) );
+    PyDict_SetItemString( dict, "door_lock", PyGetInt( mvOccupied->DoorLockEnabled ) );
     // movement data
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
     PyDict_SetItemString( dict, "slipping_wheels", PyGetBool( mover->SlippingWheels ) );
     PyDict_SetItemString( dict, "sanding", PyGetBool( mover->SandDose ) );
     // electric current data
-    PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mover->RunningTraction.TractionVoltage ) );
-    PyDict_SetItemString( dict, "voltage", PyGetFloat( mover->Voltage ) );
-    PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
-    PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
-    PyDict_SetItemString( dict, "epfuse", PyGetBool( mover->EpFuse ) );
+    PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mvControlled->RunningTraction.TractionVoltage ) );
+    PyDict_SetItemString( dict, "voltage", PyGetFloat( mvControlled->Voltage ) );
+    PyDict_SetItemString( dict, "im", PyGetFloat( mvControlled->Im ) );
+    PyDict_SetItemString( dict, "fuse", PyGetBool( mvControlled->FuseFlag ) );
+    PyDict_SetItemString( dict, "epfuse", PyGetBool( mvOccupied->EpFuse ) );
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
@@ -559,7 +560,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "train_enginetype", PyGetString( timetable->LocSeries.c_str() ) );
     PyDict_SetItemString( dict, "train_engineload", PyGetFloat( timetable->LocLoad ) );
 
-    PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->StationIndex() ) );
+    PyDict_SetItemString( dict, "train_stationindex", PyGetInt( driver->iStationStart ) );
     auto const stationcount { driver->StationCount() };
     PyDict_SetItemString( dict, "train_stationcount", PyGetInt( stationcount ) );
     if( stationcount > 0 ) {
@@ -584,6 +585,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "minutes", PyGetInt( simulation::Time.data().wMinute ) );
     PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
     PyDict_SetItemString( dict, "air_temperature", PyGetInt( Global.AirTemperature ) );
+    PyDict_SetItemString( dict, "light_level", PyGetFloat( Global.fLuminance - std::max( 0.f, Global.Overcast - 1.f ) ) );
 
     Application.release_python_lock();
     return dict;
@@ -4088,14 +4090,14 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
 
     auto const itemindex = static_cast<int>( Command.command ) - static_cast<int>( user_command::generictoggle0 );
     auto &item = Train->ggUniversals[ itemindex ];
-
+/*
     if( item.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Train generic item " + std::to_string( itemindex ) + " is missing, or wasn't defined" );
         }
         return;
     }
-
+*/
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( item.GetDesiredValue() < 0.5 ) {
@@ -5043,8 +5045,10 @@ bool TTrain::Update( double const Deltatime )
                 iUnits[i] = iUnitNo;
                 cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length() - 1];
                 asCarName[i] = p->name();
-				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
-                bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
+                if( p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+				    bPants[iUnitNo - 1][side::front] = ( bPants[iUnitNo - 1][side::front] || p->MoverParameters->PantFrontUp );
+                    bPants[iUnitNo - 1][side::rear]  = ( bPants[iUnitNo - 1][side::rear]  || p->MoverParameters->PantRearUp );
+                }
 				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
                 if (p->MoverParameters->CompressorSpeed > 0.00001)
@@ -5507,6 +5511,10 @@ bool TTrain::Update( double const Deltatime )
             // others
             btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
             btLampkaMotorBlowers.Turn( ( mvControlled->MotorBlowers[ side::front ].is_active ) && ( mvControlled->MotorBlowers[ side::rear ].is_active ) );
+            // universal devices state indicators
+            for( auto idx = 0; idx < btUniversals.size(); ++idx ) {
+                btUniversals[ idx ].Turn( ggUniversals[ idx ].GetValue() > 0.5 );
+            }
         }
         else {
             // wylaczone
@@ -5562,6 +5570,10 @@ bool TTrain::Update( double const Deltatime )
             // others
             btLampkaMalfunction.Turn( false );
             btLampkaMotorBlowers.Turn( false );
+            // universal devices state indicators
+            for( auto &universal : btUniversals ) {
+                universal.Turn( false );
+            }
         }
 
         { // yB - wskazniki drugiego czlonu
@@ -6221,7 +6233,9 @@ void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
     // volume calculation
     auto volume =
         Sound.m_amplitudeoffset
-        + Sound.m_amplitudefactor * mvOccupied->Vel;
+        + Sound.m_amplitudefactor * interpolate(
+            mvOccupied->Vel / ( 1 + mvOccupied->Vmax ), 1.0,
+            0.5 ); // scale base volume between 0.5-1.0
     if( std::abs( mvOccupied->nrot ) > 0.01 ) {
         // hamulce wzmagaja halas
         auto const brakeforceratio { (
@@ -6245,7 +6259,7 @@ void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
             interpolate(
                 0.0, 1.0,
                 clamp(
-                    mvOccupied->Vel / 40.0,
+                    mvOccupied->Vel / 25.0,
                     0.0, 1.0 ) );
     }
 
@@ -7120,6 +7134,9 @@ void TTrain::clear_cab_controls()
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
     btLampkaDoorLockOff.Clear();
+    for( auto &universal : btUniversals ) {
+        universal.Clear();
+    }
     btInstrumentLight.Clear();
     btDashboardLight.Clear();
     btTimetableLight.Clear();
@@ -7552,7 +7569,17 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-rearrightend:",  btLampkaRearRightEndLight },
         { "i-dashboardlight:",  btDashboardLight },
         { "i-timetablelight:",  btTimetableLight },
-        { "i-cablight:", btCabLight }
+        { "i-cablight:", btCabLight },
+        { "i-universal0:", btUniversals[ 0 ] },
+        { "i-universal1:", btUniversals[ 1 ] },
+        { "i-universal2:", btUniversals[ 2 ] },
+        { "i-universal3:", btUniversals[ 3 ] },
+        { "i-universal4:", btUniversals[ 4 ] },
+        { "i-universal5:", btUniversals[ 5 ] },
+        { "i-universal6:", btUniversals[ 6 ] },
+        { "i-universal7:", btUniversals[ 7 ] },
+        { "i-universal8:", btUniversals[ 8 ] },
+        { "i-universal9:", btUniversals[ 9 ] }
     };
     auto lookup = lights.find( Label );
     if( lookup != lights.end() ) {

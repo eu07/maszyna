@@ -97,7 +97,7 @@ basic_event::event_conditions::test() const {
                     match_value_2,
                     flags );
 
-            std::string comparisonlog = "Test: MemCompare - ";
+            std::string comparisonlog = "Test: MemCompare - " + cell->name() + " - ";
 
             comparisonlog +=
                    "[" + cell->Text() + "]"

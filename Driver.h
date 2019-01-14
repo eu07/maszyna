@@ -141,7 +141,7 @@ class TSpeedPos
 
   public:
     TSpeedPos(TTrack *track, double dist, int flag);
-    TSpeedPos(basic_event *event, double dist, TOrders order);
+    TSpeedPos(basic_event *event, double dist, double length, TOrders order);
     TSpeedPos() = default;
     void Clear();
     bool Update();
@@ -150,7 +150,7 @@ class TSpeedPos
     void
         UpdateDistance( double dist ) {
             fDist -= dist; }
-    bool Set(basic_event *e, double d, TOrders order = Wait_for_orders);
+    bool Set(basic_event *e, double d, double length, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText() const;
     std::string GetName() const;

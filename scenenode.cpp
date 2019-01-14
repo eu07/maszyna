@@ -407,8 +407,7 @@ shape_node::merge( shape_node &Shape ) {
     m_data.vertices.insert(
         std::end( m_data.vertices ),
         std::begin( Shape.m_data.vertices ), std::end( Shape.m_data.vertices ) );
-    // NOTE: we could recalculate radius with something other than brute force, but it'll do
-    compute_radius();
+	invalidate_radius();
 
     return true;
 }
@@ -442,7 +441,16 @@ shape_node::compute_radius() {
     m_data.area.radius = static_cast<float>( std::sqrt( squaredradius ) );
 }
 
+void shape_node::invalidate_radius() {
+	m_data.area.radius = -1.0f;
+}
 
+float shape_node::radius() {
+	if (m_data.area.radius == -1.0f)
+		compute_radius();
+
+	return m_data.area.radius;
+}
 
 // sends content of the struct to provided stream
 void
