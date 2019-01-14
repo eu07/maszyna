@@ -1122,6 +1122,7 @@ driver_mode::InOutKey()
 
     if( train == nullptr ) {
         FreeFlyModeFlag = true; // nadal poza kabiną
+        Camera.m_owner = nullptr; // detach camera from the vehicle
         return;
     }
 
