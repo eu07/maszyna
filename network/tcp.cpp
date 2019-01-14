@@ -1,9 +1,10 @@
 #include "network/tcp.h"
 #include "Logs.h"
 #include "sn_utils.h"
+#include "Globals.h"
 
-network::tcp_conn::tcp_conn(asio::io_context &io_ctx)
-    : m_socket(io_ctx)
+network::tcp_conn::tcp_conn(asio::io_context &io_ctx, bool client)
+    : connection(client), m_socket(io_ctx)
 {
 	m_header_buffer.resize(8);
 }
@@ -82,10 +83,9 @@ asio::ip::tcp::socket& network::tcp_conn::socket()
 network::tcp_server::tcp_server(asio::io_context &io_ctx)
     : m_acceptor(io_ctx)
 {
-	auto endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 7424);
+	auto endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(Global.network_conf.server_host), Global.network_conf.server_port);
 	m_acceptor.open(endpoint.protocol());
 	m_acceptor.set_option(asio::socket_base::reuse_address(true));
-	m_acceptor.set_option(asio::ip::v6_only(false));
 	m_acceptor.set_option(asio::ip::tcp::no_delay(true));
 	m_acceptor.bind(endpoint);
 	m_acceptor.listen(10);
@@ -117,11 +117,11 @@ void network::tcp_server::handle_accept(std::shared_ptr<tcp_conn> conn, const as
 
 network::tcp_client::tcp_client(asio::io_context &io_ctx)
 {
-	conn = std::make_shared<tcp_conn>(io_ctx);
+	conn = std::make_shared<tcp_conn>(io_ctx, true);
 	auto tcpconn = std::static_pointer_cast<tcp_conn>(conn);
 
 	asio::ip::tcp::endpoint endpoint(
-	            asio::ip::address::from_string("192.168.0.20"), 7424);
+	            asio::ip::address::from_string(Global.network_conf.client_host), Global.network_conf.client_port);
 	tcpconn->socket().open(endpoint.protocol());
 	tcpconn->socket().set_option(asio::ip::tcp::no_delay(true));
 	tcpconn->socket().async_connect(endpoint,

@@ -228,6 +228,7 @@ driverkeyboard_input::default_bindings() {
 	    { user_command::vehiclemovebackwards, GLFW_KEY_RIGHT_BRACKET | keymodifier::control },
 	    { user_command::vehicleboost, GLFW_KEY_TAB | keymodifier::control },
 	    { user_command::debugtoggle, GLFW_KEY_F12 | keymodifier::control | keymodifier::shift },
+	    { user_command::pausetoggle, GLFW_KEY_ESCAPE }
     };
 }
 

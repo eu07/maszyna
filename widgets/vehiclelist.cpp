@@ -4,7 +4,7 @@
 #include "Driver.h"
 
 void ui::vehiclelist_panel::render_contents() {
-	for (const TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
+	for (TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
 		if (vehicle->Prev())
 			continue;
 

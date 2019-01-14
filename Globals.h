@@ -197,9 +197,13 @@ struct global_settings {
     bool gfx_usegles = false;
 
 	struct network_conf_t {
-		bool enabled = false;
 		bool is_server = false;
+		std::string server_host;
+		uint32_t server_port;
+
 		bool is_client = false;
+		std::string client_host;
+		uint32_t client_port;
 	} network_conf;
 
 // methods

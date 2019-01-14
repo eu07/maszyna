@@ -63,7 +63,7 @@ keyboard_input::recall_bindings() {
 	    // misc
 	    { "f1", GLFW_KEY_F1 }, { "f2", GLFW_KEY_F2 }, { "f3", GLFW_KEY_F3 }, { "f4", GLFW_KEY_F4 }, { "f5", GLFW_KEY_F5 },
 	    { "f6", GLFW_KEY_F6 }, { "f7", GLFW_KEY_F7 }, { "f8", GLFW_KEY_F8 }, { "f9", GLFW_KEY_F9 }, { "f10", GLFW_KEY_F10 },
-	    { "f11", GLFW_KEY_F11 }, { "f12", GLFW_KEY_F12 }, { "tab", GLFW_KEY_TAB }
+	    { "f11", GLFW_KEY_F11 }, { "f12", GLFW_KEY_F12 }, { "tab", GLFW_KEY_TAB }, { "esc", GLFW_KEY_ESCAPE }
     };
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line

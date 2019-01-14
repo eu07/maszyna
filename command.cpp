@@ -227,6 +227,9 @@ commanddescription_sequence Commands_descriptions = {
     { "vehiclemovebackwards", command_target::vehicle, command_mode::oneoff },
     { "vehicleboost", command_target::vehicle, command_mode::oneoff },
     { "debugtoggle", command_target::simulation, command_mode::oneoff },
+    { "pausetoggle", command_target::simulation, command_mode::oneoff },
+    { "entervehicle", command_target::simulation, command_mode::oneoff },
+    { "queueevent", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation

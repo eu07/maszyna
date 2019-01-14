@@ -5,11 +5,15 @@
 #include "Timer.h"
 #include "application.h"
 
+network::connection::connection(bool client) {
+	is_client = client;
+}
+
 void network::connection::connected()
 {
 	WriteLog("net: socket connected", logtype::net);
 
-	if (!Global.network_conf.is_server) {
+	if (is_client) {
 		std::shared_ptr<message> hello = std::make_shared<message>(message::CONNECT_REQUEST);
 		send_message(hello);
 	}
@@ -51,16 +55,6 @@ void network::connection::message_received(std::shared_ptr<message> &msg)
 		auto delta = std::dynamic_pointer_cast<delta_message>(msg);
 		auto now = std::chrono::high_resolution_clock::now();
 		delta_queue.push(std::make_pair(now, delta));
-	}
-	else if (msg->type == message::REQUEST_SPAWN_TRAIN)
-	{
-		auto req = std::dynamic_pointer_cast<string_message>(msg);
-		Application.request_train(req->name);
-	}
-	else if (msg->type == message::SPAWN_TRAIN)
-	{
-		auto req = std::dynamic_pointer_cast<string_message>(msg);
-		Application.spawn_train(req->name);
 	}
 }
 
@@ -125,6 +119,9 @@ network::server::server()
 
 void network::server::push_delta(double dt, double sync, command_queue::commands_map commands)
 {
+	if (dt == 0.0 && commands.empty())
+		return;
+
 	std::shared_ptr<delta_message> msg = std::make_shared<delta_message>();
 	msg->dt = dt;
 	msg->sync = sync;
@@ -135,15 +132,6 @@ void network::server::push_delta(double dt, double sync, command_queue::commands
 	sn_utils::ls_uint16(recorder, (uint16_t)msg->type);
 	msg->serialize(recorder);
 	recorder.flush();
-
-	for (auto c : clients)
-		c->send_message(msg);
-}
-
-void network::server::notify_train(std::string name)
-{
-	std::shared_ptr<string_message> msg = std::make_shared<string_message>(message::SPAWN_TRAIN);
-	msg->name = name;
 
 	for (auto c : clients)
 		c->send_message(msg);
@@ -175,14 +163,6 @@ void network::client::send_commands(command_queue::commands_map commands)
 
 	std::shared_ptr<command_message> msg = std::make_shared<command_message>();
 	msg->commands = commands;
-
-	conn->send_message(msg);
-}
-
-void network::client::request_train(std::string name)
-{
-	std::shared_ptr<string_message> msg = std::make_shared<string_message>(message::REQUEST_SPAWN_TRAIN);
-	msg->name = name;
 
 	conn->send_message(msg);
 }

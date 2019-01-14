@@ -26,7 +26,7 @@ namespace network
 		void send_data(std::shared_ptr<std::string> buffer) override;
 
 	public:
-		tcp_conn(asio::io_context &io_ctx);
+		tcp_conn(asio::io_context &io_ctx, bool client = false);
 		asio::ip::tcp::socket& socket();
 
 		void connected() override;

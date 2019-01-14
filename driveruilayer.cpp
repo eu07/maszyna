@@ -60,22 +60,6 @@ driver_ui::on_key( int const Key, int const Action ) {
     if (ui_layer::on_key(Key, Action))
         return true;
 
-    if( Key == GLFW_KEY_ESCAPE ) {
-        // toggle pause
-        if( Action != GLFW_PRESS ) { return true; } // recognized, but ignored
-
-        if( Global.iPause & 1 ) {
-            // jeśli pauza startowa
-            // odpauzowanie, gdy po wczytaniu miało nie startować
-            Global.iPause ^= 1;
-        }
-        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
-            // w multiplayerze pauza nie ma sensu
-            Global.iPause ^= 2; // zmiana stanu zapauzowania
-        }
-        return true;
-    }
-
     switch( Key ) {
 
         case GLFW_KEY_F1:
@@ -219,8 +203,7 @@ driver_ui::render_() {
     if( ImGui::BeginPopupModal( popupheader, &m_pause_modal_opened, ImGuiWindowFlags_AlwaysAutoResize ) ) {
         auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
         if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
-            auto const pausemask { 1 | 2 };
-            Global.iPause &= ~pausemask;
+			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
         if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
             glfwSetWindowShouldClose( m_window, 1 );

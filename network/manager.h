@@ -24,6 +24,5 @@ namespace network
 		void push_delta(double delta, double sync, command_queue::commands_map commands);
 		command_queue::commands_map pop_commands();
 		void send_commands(command_queue::commands_map commands);
-		void request_train(std::string name);
 	};
 }

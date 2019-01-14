@@ -144,12 +144,6 @@ std::shared_ptr<network::message> network::deserialize_message(std::istream &str
 		m->deserialize(stream);
 		msg = m;
 	}
-	else if (type == message::REQUEST_SPAWN_TRAIN || type == message::SPAWN_TRAIN) {
-		auto m = std::make_shared<string_message>(type);
-		m->type = type;
-		m->deserialize(stream);
-		msg = m;
-	}
 	else {
 		msg = std::make_shared<message>(type);
 	}

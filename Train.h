@@ -653,7 +653,7 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
 	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
-	uint16_t vid = 0;
+	uint16_t vid { 0 };
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

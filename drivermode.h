@@ -91,8 +91,7 @@ private:
     void CabView();
     void ExternalView();
     void DistantView( bool const Near = false );
-    void set_picking( bool const Picking );
-	TTrain* request_train(TDynamicObject *dynamic);
+	void set_picking( bool const Picking );
 
 // members
     drivermode_input m_input;
@@ -109,4 +108,5 @@ private:
     double m_primaryupdateaccumulator { m_secondaryupdaterate }; // keeps track of elapsed simulation time, for core fixed step routines
     double m_secondaryupdateaccumulator { m_secondaryupdaterate }; // keeps track of elapsed simulation time, for less important fixed step routines
     int iPause { 0 }; // wykrywanie zmian w zapauzowaniu
+	command_relay m_relay;
 };

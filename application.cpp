@@ -144,29 +144,6 @@ eu07_application::init( int Argc, char *Argv[] ) {
     return result;
 }
 
-void eu07_application::request_train(std::string name) {
-	m_network->request_train(name);
-}
-
-void eu07_application::spawn_train(std::string name) {
-	TTrain *train = simulation::Trains.find(name);
-	if (train)
-		return;
-
-	TDynamicObject *dynobj = simulation::Vehicles.find(name);
-	if (!dynobj)
-		return;
-
-	train = new TTrain();
-	if (train->Init(dynobj)) {
-		simulation::Trains.insert(train, name);
-	}
-	else {
-		delete train;
-		train = nullptr;
-	}
-}
-
 double eu07_application::generate_sync() {
 	if (Timer::GetDeltaTime() == 0.0)
 		return 0.0;
@@ -709,7 +686,7 @@ eu07_application::init_modes() {
 }
 
 bool eu07_application::init_network() {
-	if (Global.network_conf.enabled) {
+	if (Global.network_conf.is_server || Global.network_conf.is_client) {
 		m_network.emplace();
 		if (Global.network_conf.is_server) {
 			m_network->create_server();

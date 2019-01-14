@@ -41,6 +41,18 @@ public:
 	{
 		return insert(Item, Item->name());
 	}
+	void purge (std::string const &Name)
+	{
+		auto lookup = m_itemmap.find( Name );
+		if (lookup == m_itemmap.end())
+			return;
+
+		delete m_items[lookup->second];
+		m_items[lookup->second] = nullptr;
+		// TBD, TODO: remove from m_items?
+
+		m_itemmap.erase(lookup);
+	}
     // locates item with specified name. returns pointer to the item, or nullptr
     Type_ *
         find( std::string const &Name ) const {

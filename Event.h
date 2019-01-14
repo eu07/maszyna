@@ -590,6 +590,12 @@ public:
     basic_event *
         begin() {
             return QueryRootEvent; }
+
+	basic_event*
+	    FindEventById(uint32_t id);
+	uint32_t GetEventId(const basic_event *ev);
+	uint32_t GetEventId(std::string const &Name);
+
     // legacy method, returns pointer to specified event, or null
     basic_event *
         FindEvent( std::string const &Name );

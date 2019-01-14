@@ -13,8 +13,6 @@ namespace network
 			CONNECT_ACCEPT,
 			STEP_INFO,
 			CLIENT_COMMAND,
-			REQUEST_SPAWN_TRAIN,
-			SPAWN_TRAIN,
 			TYPE_MAX
 		};
 

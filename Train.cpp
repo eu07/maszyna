@@ -8050,10 +8050,9 @@ int TTrain::get_drive_direction()
 }
 
 uint16_t TTrain::id() {
-	static uint16_t i = 0; // todo: do something better
 	if (vid == 0) {
-		vid = ++i;
-		WriteLog("assigning id " + std::to_string(vid) + " to vehicle " + Dynamic()->name());
+		vid = ++simulation::prev_train_id;
+		WriteLog("net: assigning id " + std::to_string(vid) + " to vehicle " + Dynamic()->name(), logtype::net);
 	}
 	return vid;
 }
@@ -8061,6 +8060,8 @@ uint16_t TTrain::id() {
 void train_table::update(double dt)
 {
 	for (TTrain *train : m_items) {
+		if (!train)
+			continue;
 		train->Update(dt);
 	}
 }

@@ -42,6 +42,7 @@ lua Lua;
 scene::basic_region *Region { nullptr };
 TTrain *Train { nullptr };
 
+uint16_t prev_train_id { 0 };
 bool is_ready { false };
 
 bool
@@ -60,13 +61,6 @@ state_manager::export_as_text( std::string const &Scenariofile ) const {
 // legacy method, calculates changes in simulation state over specified time
 void
 state_manager::update( double const Deltatime, int Iterationcount ) {
-    // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeń
-    if (Deltatime == 0.0) {
-        return;
-    }
-
-	process_commands();
-
     auto const totaltime { Deltatime * Iterationcount };
     // NOTE: we perform animations first, as they can determine factors like contact with powergrid
     TAnimModel::AnimUpdate( totaltime ); // wykonanie zakolejkowanych animacji
@@ -83,6 +77,51 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::debugtoggle)
 			DebugModeFlag = !DebugModeFlag;
+
+		if (commanddata.command == user_command::pausetoggle) {
+			if( Global.iPause & 1 ) {
+				// jeśli pauza startowa
+				// odpauzowanie, gdy po wczytaniu miało nie startować
+				Global.iPause ^= 1;
+			}
+			else {
+				Global.iPause ^= 2; // zmiana stanu zapauzowania
+			}
+		}
+
+		if (commanddata.command == user_command::entervehicle) {
+			// przesiadka do innego pojazdu
+			if (!commanddata.freefly)
+				// only available in free fly mode
+				continue;
+
+			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, true, false ) );
+
+			if (!dynamic)
+				continue;
+
+			TTrain *train = simulation::Trains.find(dynamic->name());
+			if (train)
+				continue;
+
+			if( ( true == DebugModeFlag )
+			 || ( dynamic->MoverParameters->Vel <= 5.0 ) ) {
+				train = new TTrain();
+				if (train->Init(dynamic)) {
+					simulation::Trains.insert(train, dynamic->name());
+				}
+				else {
+					delete train;
+					train = nullptr;
+				}
+			}
+		}
+
+		if (commanddata.command == user_command::queueevent) {
+			uint32_t id = std::round(commanddata.param1);
+			basic_event *ev = Events.FindEventById(id);
+			Events.AddToQuery(ev, nullptr);
+		}
 
 		if (DebugModeFlag) {
 			if (commanddata.command == user_command::timejump) {

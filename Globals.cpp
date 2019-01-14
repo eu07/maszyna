@@ -778,20 +778,25 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
 		}
-		else if (token == "network.enabled")
-		{
-			Parser.getTokens(1);
-			Parser >> network_conf.enabled;
-		}
 		else if (token == "network.server")
 		{
 			Parser.getTokens(1);
 			Parser >> network_conf.is_server;
+			if (network_conf.is_server) {
+				Parser.getTokens(2);
+				Parser >> network_conf.server_host;
+				Parser >> network_conf.server_port;
+			}
 		}
 		else if (token == "network.client")
 		{
 			Parser.getTokens(1);
 			Parser >> network_conf.is_client;
+			if (network_conf.is_client) {
+				Parser.getTokens(2);
+				Parser >> network_conf.client_host;
+				Parser >> network_conf.client_port;
+			}
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

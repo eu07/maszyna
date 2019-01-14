@@ -7333,8 +7333,11 @@ vehicle_table::erase_disabled() {
              && ( simulation::Train->Dynamic() == vehicle ) ) {
                 // clear potential train binding
                 // TBD, TODO: kill vehicle sounds
-                SafeDelete( simulation::Train );
+				simulation::Train = nullptr;
             }
+
+			simulation::Trains.purge(vehicle->name());
+
             // remove potential entries in the light array
             simulation::Lights.remove( vehicle );
 /*

@@ -221,6 +221,9 @@ enum class user_command {
 	vehiclemovebackwards,
 	vehicleboost,
 	debugtoggle,
+	pausetoggle,
+	entervehicle,
+	queueevent,
 
     none = -1
 };

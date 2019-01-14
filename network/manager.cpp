@@ -40,29 +40,3 @@ void network::manager::send_commands(command_queue::commands_map commands)
 {
 	client->send_commands(commands);
 }
-
-void network::manager::request_train(std::string name)
-{
-	if (server) {
-		TTrain *train = simulation::Trains.find(name);
-		if (train)
-			return;
-
-		TDynamicObject *dynobj = simulation::Vehicles.find(name);
-		if (!dynobj)
-			return;
-
-		train = new TTrain();
-		if (train->Init(dynobj)) {
-			simulation::Trains.insert(train, name);
-			server->notify_train(name);
-		}
-		else {
-			delete train;
-			train = nullptr;
-		}
-	}
-	if (client) {
-		client->request_train(name);
-	}
-}

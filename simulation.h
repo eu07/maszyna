@@ -32,12 +32,13 @@ public:
     // stores class data in specified file, in legacy (text) format
     void
         export_as_text( std::string const &Scenariofile ) const;
+	// process input commands
+	void
+	    process_commands();
 
 private:
 // members
     state_serializer m_serializer;
-
-	void process_commands();
 };
 
 // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel
@@ -59,6 +60,7 @@ extern lua Lua;
 extern scene::basic_region *Region;
 extern TTrain *Train;
 
+extern uint16_t prev_train_id;
 extern bool is_ready;
 
 } // simulation

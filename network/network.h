@@ -19,6 +19,7 @@ namespace network
 		    std::shared_ptr<delta_message>>> delta_queue;
 
 		command_queue::commands_map client_commands_queue;
+		bool is_client;
 
 		//std::chrono::high_resolution_clock::time_point last_time;
 		//double accum = -1.0;
@@ -30,6 +31,7 @@ namespace network
 		void data_received(std::string &buffer);
 
 	public:
+		connection(bool client = false);
 		void send_message(std::shared_ptr<message> msg);
 		virtual void connected();
 
@@ -47,7 +49,6 @@ namespace network
 		server();
 		void push_delta(double dt, double sync, command_queue::commands_map commands);
 		command_queue::commands_map pop_commands();
-		void notify_train(std::string name);
 	};
 
 	class client
@@ -58,6 +59,5 @@ namespace network
 	public:
 		std::tuple<double, double, command_queue::commands_map> get_next_delta();
 		void send_commands(command_queue::commands_map commands);
-		void request_train(std::string name);
 	};
 }

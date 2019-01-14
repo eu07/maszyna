@@ -2032,17 +2032,32 @@ event_manager::insert( basic_event *Event ) {
     return true;
 }
 
+basic_event * event_manager::FindEventById(uint32_t id)
+{
+	if (id < m_eventmap.size())
+		return m_events[id];
+	else
+		return nullptr;
+}
+
+uint32_t event_manager::GetEventId(const basic_event *ev) {
+	return GetEventId(ev->m_name);
+}
+
+uint32_t event_manager::GetEventId(const std::string &Name)
+{
+	if (Name.empty())
+		return -1;
+
+	auto const lookup = m_eventmap.find(Name);
+	return lookup != m_eventmap.end() ? lookup->second : -1;
+}
+
 // legacy method, returns pointer to specified event, or null
 basic_event *
-event_manager::FindEvent( std::string const &Name ) {
-
-    if( Name.empty() ) { return nullptr; }
-
-    auto const lookup = m_eventmap.find( Name );
-    return (
-        lookup != m_eventmap.end() ?
-            m_events[ lookup->second ] :
-            nullptr );
+event_manager::FindEvent( std::string const &Name )
+{
+	return FindEventById(GetEventId(Name));
 }
 
 // legacy method, inserts specified event in the event query

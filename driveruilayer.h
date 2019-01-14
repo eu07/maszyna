@@ -53,5 +53,6 @@ private:
     bool m_paused { false };
 	bool m_pause_modal_opened { false };
 
+	command_relay m_relay;
 	ui::vehiclelist_panel m_vehiclelist;
 };

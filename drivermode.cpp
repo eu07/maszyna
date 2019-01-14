@@ -206,6 +206,7 @@ driver_mode::update() {
     // render time routines follow:
 
     auto const deltarealtime = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
+	simulation::State.process_commands();
 
     // fixed step render time routines
 
@@ -248,27 +249,6 @@ driver_mode::update() {
     return true;
 }
 
-TTrain* driver_mode::request_train(TDynamicObject *dynamic) {
-	TTrain *train = simulation::Trains.find(dynamic->name());
-	if (train)
-		return train;
-
-	if (!Global.network_conf.enabled) {
-		train = new TTrain();
-		if (train->Init(dynamic)) {
-			simulation::Trains.insert(train, dynamic->name());
-		}
-		else {
-			delete train;
-			train = nullptr;
-		}
-		return train;
-	} else {
-		Application.request_train(dynamic->name());
-	}
-	return train;
-}
-
 // maintenance method, called when the mode is activated
 void
 driver_mode::enter() {
@@ -280,27 +260,21 @@ driver_mode::enter() {
 
     Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nPlayerTrain );
     Global.pCamera = Camera;
-    Global.pDebugCamera = DebugCamera;
+	Global.pDebugCamera = DebugCamera;
 
     if (nPlayerTrain)
     {
+		// M7TODO: restore
+		/*
         WriteLog( "Initializing player train, \"" + Global.asHumanCtrlVehicle + "\"" );
 
-		TTrain *train = request_train(nPlayerTrain);
-		if (train->Init(nPlayerTrain)) {
-			simulation::Train = train;
+		Global.pCamera.Pos = nPlayerTrain->GetPosition();
+		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
+		*/
 
-			WriteLog("Player train initialization OK");
-			Application.set_title( Global.AppName + " (" + simulation::Train->Controlled()->Name + " @ " + Global.SceneryFile + ")" );
-			CabView();
-		}
-		else {
-			delete train;
-
-			Error("Bad init: player train initialization failed");
-			FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-			Camera.m_owner = nullptr;
-		}
+		FreeFlyModeFlag = true;
+		Camera.m_owner = nullptr;
+		DebugCamera = Camera;
     }
     else
     {
@@ -326,8 +300,6 @@ driver_mode::enter() {
         KeyEvents[ 8 ] = simulation::Events.FindEvent( "keyctrl08" );
         KeyEvents[ 9 ] = simulation::Events.FindEvent( "keyctrl09" );
     }
-
-    //ui_log->enabled = false;
 
     Timer::ResetTimers();
 
@@ -666,7 +638,7 @@ driver_mode::OnKeyDown(int cKey) {
             // z [Shift] uruchomienie eventu
             if( ( false == Global.iPause ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
-                simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
+				m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(KeyEvents[i]), 0.0, GLFW_PRESS, 0);
             }
         }
         else if( Global.ctrlState ) {
@@ -708,33 +680,20 @@ driver_mode::OnKeyDown(int cKey) {
             break;
         }
         case GLFW_KEY_F5: {
-            // przesiadka do innego pojazdu
-            if( false == FreeFlyModeFlag ) {
-                // only available in free fly mode
-                break;
-            }
+		    // przesiadka do innego pojazdu
+		    if (!FreeFlyModeFlag)
+				// only available in free fly mode
+				break;
 
-            TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
+			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
+			TTrain *train = simulation::Trains.find(dynamic->name());
+			if (train) {
+				simulation::Train = train;
+				InOutKey();
+			} else {
+				m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
+			}
 
-            if( tmp != nullptr ) {
-
-                if( ( true == DebugModeFlag )
-                 || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
-					TTrain *train = request_train(tmp);
-					if (train != nullptr) {
-						/*
-						if( simulation::Train ) {// jeśli mielismy pojazd
-							if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-								simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-							}
-						}
-						train->Dynamic()->Mechanik->TakeControl( false );
-						*/
-						simulation::Train = train;
-						InOutKey();
-					}
-                }
-            }
             break;
         }
         case GLFW_KEY_F6: {

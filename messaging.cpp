@@ -68,7 +68,8 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                      || ( typeid( *event ) == typeid( lights_event ) )
                      || ( event->m_sibling != 0 ) ) {
                         // tylko jawne albo niejawne Multiple
-                        simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
+						command_relay relay;
+						relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(event), 0.0, GLFW_PRESS, 0);
                     }
                 }
             }

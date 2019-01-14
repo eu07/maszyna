@@ -76,8 +76,6 @@ public:
     GLFWwindow *
         window( int const Windowindex = 0 );
 
-	void request_train(std::string name);
-	void spawn_train(std::string name);
 	double generate_sync();
 
 private:
