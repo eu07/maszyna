@@ -506,6 +506,7 @@ public: // reszta może by?publiczna
     TButton btLampkaHamowanie2zes;
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
+    std::array<TButton, 10> btUniversals; // NOTE: temporary arrangement until we have dynamically built control table
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;

@@ -180,9 +180,9 @@ TSpeedPos::TSpeedPos(TTrack *track, double dist, int flag)
     Set(track, dist, flag);
 };
 
-TSpeedPos::TSpeedPos(basic_event *event, double dist, TOrders order)
+TSpeedPos::TSpeedPos(basic_event *event, double dist, double length, TOrders order)
 {
-    Set(event, dist, order);
+    Set(event, dist, length, order);
 };
 
 void TSpeedPos::Clear()
@@ -364,13 +364,20 @@ bool TSpeedPos::IsProperSemaphor(TOrders order)
 	return false; // true gdy zatrzymanie, wtedy nie ma po co skanować dalej
 }
 
-bool TSpeedPos::Set(basic_event *event, double dist, TOrders order)
+bool TSpeedPos::Set(basic_event *event, double dist, double length, TOrders order)
 { // zapamiętanie zdarzenia
     fDist = dist;
-    iFlags = spEnabled | spEvent; // event+istotny
+    iFlags = spEvent;
     evEvent = event;
     vPos = event->input_location(); // współrzędne eventu albo komórki pamięci (zrzutować na tor?)
-    CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
+    if( dist + length >= 0 ) {
+        iFlags |= spEnabled;
+        CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
+    }
+    else {
+        // located behind the tracking consist, don't bother with it
+        return false;
+    }
 	// zależnie od trybu sprawdzenie czy jest tutaj gdzieś semafor lub tarcza manewrowa
 	// jeśli wskazuje stop wtedy wystawiamy true jako koniec sprawdzania
 	// WriteLog("EventSet: Vel=" + AnsiString(fVelNext) + " iFlags=" + AnsiString(iFlags) + " order="+AnsiString(order));
@@ -580,6 +587,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                         if( newspeedpoint.Set(
                             pEvent,
                             GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
+                            fLength,
                             OrderCurrentGet() ) ) {
 
                             fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
@@ -1909,72 +1917,83 @@ void TController::AutoRewident()
             mvOccupied->BrakeOpModeFlag = i;
         }
     }
+
 	// teraz zerujemy tabelkę opóźnienia hamowania
 	for (int i = 0; i < BrakeAccTableSize; ++i)
 	{
 		fBrake_a0[i+1] = 0;
 		fBrake_a1[i+1] = 0;
 	}
-    // 4. Przeliczanie siły hamowania
-    double const velstep = ( mvOccupied->Vmax*0.5 ) / BrakeAccTableSize;
-    d = pVehicles[0]; // pojazd na czele składu
-	while (d) { 
-        for( int i = 0; i < BrakeAccTableSize; ++i ) {
-            fBrake_a0[ i + 1 ] += d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
-            fBrake_a1[ i + 1 ] += d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
-		}
-		d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
-	}
-	for (int i = 0; i < BrakeAccTableSize; ++i)
-	{
-		fBrake_a1[i+1] -= fBrake_a0[i+1];
-		fBrake_a0[i+1] /= fMass;
-		fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
-		fBrake_a1[i+1] /= (12*fMass);
-	}
 
-    IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
-    IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 );
-
-    BrakingInitialLevel = (
-        IsHeavyCargoTrain ? 1.25 :
-        IsCargoTrain      ? 1.25 :
-                            1.00 );
-
-    BrakingLevelIncrease = (
-        IsHeavyCargoTrain ? 0.25 :
-        IsCargoTrain      ? 0.25 :
-                            0.25 );
-
-    if( mvOccupied->TrainType == dt_EZT ) {
-        if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
-            // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
-            fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+    if( OrderCurrentGet() & Shunt ) {
+        // for uniform behaviour and compatibility with older scenarios set default acceleration table values for shunting
+        fAccThreshold = (
+            mvOccupied->TrainType == dt_EZT ? -0.55 :
+            mvOccupied->TrainType == dt_DMU ? -0.45 :
+            -0.2 );
+        // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
+        if( ( mvOccupied->TrainType == dt_EZT )
+         && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) ) {
+            fAccThreshold += 0.10;
         }
-        else {
-            fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
-        }       
-		fBrakeReaction = 0.25;
-	}
-    else if( mvOccupied->TrainType == dt_DMU ) {
-        fNominalAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
-        fBrakeReaction = 0.25;
     }
-    else if (ustaw > 16) {
-        fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 4 * fBrake_a1[ BrakeAccTableSize ];
-		fBrakeReaction = 1.00 + fLength*0.004;
-	}
-	else {
-        fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 1 * fBrake_a1[ BrakeAccTableSize ];
-		fBrakeReaction = 1.00 + fLength*0.005;
-	}
-	fAccThreshold = fNominalAccThreshold;
-/*
-    if( IsHeavyCargoTrain ) {
-        // HACK: heavy cargo trains don't activate brakes early enough
-        fAccThreshold = std::max( -0.2, fAccThreshold );
+
+    if( OrderCurrentGet() & Obey_train ) {
+        // 4. Przeliczanie siły hamowania
+        double const velstep = ( mvOccupied->Vmax*0.5 ) / BrakeAccTableSize;
+        d = pVehicles[0]; // pojazd na czele składu
+	    while (d) { 
+            for( int i = 0; i < BrakeAccTableSize; ++i ) {
+                fBrake_a0[ i + 1 ] += d->MoverParameters->BrakeForceR( 0.25, velstep*( 1 + 2 * i ) );
+                fBrake_a1[ i + 1 ] += d->MoverParameters->BrakeForceR( 1.00, velstep*( 1 + 2 * i ) );
+		    }
+		    d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+	    }
+	    for (int i = 0; i < BrakeAccTableSize; ++i)
+	    {
+		    fBrake_a1[i+1] -= fBrake_a0[i+1];
+		    fBrake_a0[i+1] /= fMass;
+		    fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
+		    fBrake_a1[i+1] /= (12*fMass);
+	    }
+
+        IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
+        IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 );
+
+        BrakingInitialLevel = (
+            IsHeavyCargoTrain ? 1.25 :
+            IsCargoTrain      ? 1.25 :
+                                1.00 );
+
+        BrakingLevelIncrease = (
+            IsHeavyCargoTrain ? 0.25 :
+            IsCargoTrain      ? 0.25 :
+                                0.25 );
+
+        if( mvOccupied->TrainType == dt_EZT ) {
+            if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
+                // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
+                fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            }
+            else {
+                fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            }       
+		    fBrakeReaction = 0.25;
+	    }
+        else if( mvOccupied->TrainType == dt_DMU ) {
+            fNominalAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            fBrakeReaction = 0.25;
+        }
+        else if (ustaw > 16) {
+            fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 4 * fBrake_a1[ BrakeAccTableSize ];
+		    fBrakeReaction = 1.00 + fLength*0.004;
+	    }
+	    else {
+            fNominalAccThreshold = -fBrake_a0[ BrakeAccTableSize ] - 1 * fBrake_a1[ BrakeAccTableSize ];
+		    fBrakeReaction = 1.00 + fLength*0.005;
+	    }
+	    fAccThreshold = fNominalAccThreshold;
     }
-*/
 }
 
 double TController::ESMVelocity(bool Main)
@@ -2852,7 +2871,11 @@ bool TController::IncSpeed()
                     auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
-                    auto const useseriesmodevoltage { mvControlling->EnginePowerSource.CollectorParameters.MaxV * ( IsHeavyCargoTrain ? 0.70 : 0.80 ) };
+                    auto const useseriesmodevoltage {
+                        interpolate(
+                            mvControlling->EnginePowerSource.CollectorParameters.MinV,
+                            mvControlling->EnginePowerSource.CollectorParameters.MaxV,
+                            ( IsHeavyCargoTrain ? 0.35 : 0.40 ) ) };
                     auto const useseriesmode = (
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
@@ -2883,10 +2906,12 @@ bool TController::IncSpeed()
                         if( usefieldshunting ) {
                             // to dać bocznik
                             // engage the shuntfield only if there's sufficient power margin to draw from
+                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) };
+
                             OK = (
-                                fVoltage > useseriesmodevoltage + 0.0125 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ?
+                                sufficientpowermargin ?
                                     mvControlling->IncScndCtrl( 1 ) :
-                                    false );
+                                    true );
                         }
                         else {
                             // jeśli ustawiony bocznik to bocznik na zero po chamsku
@@ -2894,10 +2919,19 @@ bool TController::IncSpeed()
                                 mvControlling->DecScndCtrl( 2 );
                             }
                             // kręcimy nastawnik jazdy
+                            // don't draw too much power;
+                            // keep from dropping into series mode when entering/using parallel mode, and from shutting down in the series mode
+                            auto const sufficientpowermargin {
+                                fVoltage - (
+                                    mvControlling->RList[ std::min( mvControlling->MainCtrlPos + 1, mvControlling->MainCtrlPosNo ) ].Bn == 1 ? 
+                                        mvControlling->EnginePowerSource.CollectorParameters.MinV :
+                                        useseriesmodevoltage )
+                                > ( IsHeavyCargoTrain ? 80.0 : 60.0 ) };
+
                             OK = (
-                                mvControlling->DelayCtrlFlag ?
-                                    true :
-                                    mvControlling->IncMainCtrl( 1 ) );
+                                ( sufficientpowermargin && ( false == mvControlling->DelayCtrlFlag ) ) ?
+                                    mvControlling->IncMainCtrl( 1 ) :
+                                    true );
                             // czekaj na 1 pozycji, zanim się nie włączą liniowe
                             if( true == mvControlling->StLinFlag ) {
                                 iDrivigFlags |= moveIncSpeed;
@@ -3903,12 +3937,13 @@ TController::UpdateSituation(double dt) {
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
 
-    // crude way to deal with automatic door opening on W4 preventing further ride
+    // HACK: crude way to deal with automatic door opening on W4 preventing further ride
     // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
+    // TODO: check if this situation still happens and the hack is still needed
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
      && ( mvOccupied->DoorCloseCtrl != control_t::driver )
-     && ( mvControlling->MainCtrlPos > 0 ) ) {
+     && ( mvControlling->MainCtrlPos > ( mvControlling->EngineType != TEngineType::DieselEngine ? 0 : 1 ) ) ) { // for diesel 1st position is effectively 0
         Doors( false );
     }
 
@@ -4006,7 +4041,15 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                if( fVoltage < 0.75 * mvControlling->EnginePowerSource.CollectorParameters.MaxV ) {
+
+                // TODO: refactor this calculation into a subroutine
+                auto const useseriesmodevoltage {
+                    interpolate(
+                        mvControlling->EnginePowerSource.CollectorParameters.MinV,
+                        mvControlling->EnginePowerSource.CollectorParameters.MaxV,
+                        ( IsHeavyCargoTrain ? 0.35 : 0.40 ) ) };
+
+                if( fVoltage <= useseriesmodevoltage ) {
                     // if the power station is heavily burdened try to reduce the load
                     switch( mvControlling->EngineType ) {
 
@@ -5856,12 +5899,20 @@ basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Tr
 { // sprawdzanie eventu w torze, czy jest sygnałowym - skanowanie do tyłu
     // NOTE: this method returns only one event which meets the conditions, due to limitations in the caller
     // TBD, TODO: clean up the caller and return all suitable events, as in theory things will go awry if the track has more than one signal
+    auto const dir{ pVehicles[ 0 ]->VectorFront() * pVehicles[ 0 ]->DirectionGet() };
+    auto const pos{ pVehicles[ 0 ]->HeadPosition() };
     auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
     for( auto const &event : eventsequence ) {
         if( ( event.second != nullptr )
          && ( event.second->m_passive )
          && ( typeid(*(event.second)) == typeid( getvalues_event ) ) ) {
-            return event.second;
+            // since we're checking for events behind us discard the sources in front of the scanning vehicle
+            auto const sl{ event.second->input_location() }; // położenie komórki pamięci
+            auto const sem{ sl - pos }; // wektor do komórki pamięci od końca składu
+            if( dir.x * sem.x + dir.z * sem.z < 0 ) {
+                // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
+                return event.second;
+            }
         }
     }
     return nullptr;
