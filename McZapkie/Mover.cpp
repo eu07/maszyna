@@ -3173,18 +3173,7 @@ bool TMoverParameters::DecBrakePress(double &brake, double PressLimit, double dp
 bool TMoverParameters::BrakeDelaySwitch(int BDS)
 {
     bool rBDS;
-    //  if (BrakeCtrlPosNo > 0)
-	if (BrakeHandle == TBrakeHandle::MHZ_EN57)
-	{
-		if ((BDS != BrakeOpModeFlag) && ((BDS & BrakeOpModes) > 0))
-		{
-			BrakeOpModeFlag = BDS;
-			rBDS = true;
-		}
-		else
-			rBDS = false;
-	}
-	else if (Hamulec->SetBDF(BDS))
+	if (Hamulec->SetBDF(BDS))
     {
         BrakeDelayFlag = BDS;
         rBDS = true;
