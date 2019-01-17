@@ -19,9 +19,9 @@ namespace network::tcp
 		virtual void send_data(std::shared_ptr<std::string> buffer) override;
 		virtual void send_message(const message &msg) override;
 
-	private:
 		asio::ip::tcp::socket m_socket;
 
+	private:
 		std::string m_header_buffer;
 		std::string m_body_buffer;
 

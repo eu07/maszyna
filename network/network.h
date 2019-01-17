@@ -11,9 +11,6 @@ namespace network
 {
     class connection
 	{
-		friend class server;
-		friend class client;
-
 	private:
 		/*
 		std::queue<
@@ -29,9 +26,10 @@ namespace network
 		bool is_client;
 
 	protected:
-		std::function<void(const message &msg)> message_handler;
 
 	public:
+		std::function<void(const message &msg)> message_handler;
+
 		virtual void connected() = 0;
 		virtual void send_message(const message &msg) = 0;
 
