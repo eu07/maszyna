@@ -20,7 +20,9 @@ void ui::vehiclelist_panel::render_contents() {
 		else if (ImGui::TreeNode(vehicle, label.c_str())) {
 			vehicle = vehicle->Next();
 			while (vehicle) {
-				ImGui::TextUnformatted(vehicle->name().c_str());
+				if (ImGui::Button(vehicle->name().c_str())) {
+					Global.pCamera.Pos = vehicle->GetPosition();
+				}
 				vehicle = vehicle->Next();
 			}
 			ImGui::TreePop();

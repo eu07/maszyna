@@ -23,6 +23,7 @@ file(GLOB HEADERS "*.h"
 "McZapkie/*.h"
 "gl/*.h"
 "network/*.h"
+"network/backend/*.h"
 "widgets/*.h")
 
 set(SOURCES
@@ -116,8 +117,8 @@ set(SOURCES
 
 "network/network.cpp"
 "network/message.cpp"
-"network/tcp.cpp"
 "network/manager.cpp"
+"network/backend/asio.cpp"
 
 "widgets/vehiclelist.cpp"
 

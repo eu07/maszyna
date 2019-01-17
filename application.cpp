@@ -182,10 +182,10 @@ eu07_application::run() {
 			double slave_sync;
 
 			// if we're the server
-			if (m_network && m_network->server)
+			if (m_network && m_network->servers)
 			{
 				// fetch from network layer command requests received from clients
-				command_queue::commands_map remote_commands = m_network->server->pop_commands();
+				command_queue::commands_map remote_commands = m_network->servers->pop_commands();
 
 				// push these into local queue
 				add_to_dequemap(local_commands, remote_commands);
@@ -239,11 +239,11 @@ eu07_application::run() {
 			}
 
 			// if we're the server
-			if (m_network && m_network->server)
+			if (m_network && m_network->servers)
 			{
 				// send delta, sync, and commands we just executed to clients
 				double delta = Timer::GetDeltaTime();
-				m_network->server->push_delta(delta, sync, commands_to_exec);
+				m_network->servers->push_delta(delta, sync, commands_to_exec);
 			}
 		}
 
@@ -689,10 +689,10 @@ bool eu07_application::init_network() {
 	if (Global.network_conf.is_server || Global.network_conf.is_client) {
 		m_network.emplace();
 		if (Global.network_conf.is_server) {
-			m_network->create_server();
+			m_network->create_server(Global.network_conf.server_host, Global.network_conf.server_port);
 		}
 		if (Global.network_conf.is_client) {
-			m_network->connect();
+			m_network->connect(Global.network_conf.client_host, Global.network_conf.client_port);
 		}
 	}
 

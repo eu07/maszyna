@@ -5,70 +5,66 @@
 
 namespace network
 {
-    struct message
+struct message
+{
+	enum type_e
 	{
-		enum type_e
-		{
-			CONNECT_REQUEST = 0,
-			CONNECT_ACCEPT,
-			STEP_INFO,
-			CLIENT_COMMAND,
-			TYPE_MAX
-		};
-
-		type_e type;
-
-		message(type_e t) : type(t) {}
-		virtual void serialize(std::ostream &stream);
-		virtual void deserialize(std::istream &stream);
-		virtual size_t get_size() { return 2; }
+		CLIENT_HELLO = 0,
+		SERVER_HELLO,
+		FRAME_INFO,
+		REQUEST_COMMAND,
+		TYPE_MAX
 	};
 
-	struct accept_message : public message
-	{
-		accept_message() : message(CONNECT_ACCEPT) {}
+	type_e type;
 
-		uint32_t seed;
+	message(type_e t) : type(t) {}
+	virtual void serialize(std::ostream &stream) const {}
+	virtual void deserialize(std::istream &stream) {}
+};
 
-		virtual void serialize(std::ostream &stream) override;
-		virtual void deserialize(std::istream &stream) override;
-		virtual size_t get_size() override;
-	};
+struct client_hello : public message
+{
+	client_hello() : message(CLIENT_HELLO) {}
 
-	struct command_message : public message
-	{
-		command_message() : message(CLIENT_COMMAND) {}
-		command_message(type_e type) : message(type) {}
+	virtual void serialize(std::ostream &stream) const override;
+	virtual void deserialize(std::istream &stream) override;
 
-		command_queue::commands_map commands;
+	int32_t version;
+};
 
-		virtual void serialize(std::ostream &stream) override;
-		virtual void deserialize(std::istream &stream) override;
-		virtual size_t get_size() override;
-	};
+struct server_hello : public message
+{
+	server_hello() : message(SERVER_HELLO) {}
 
-	struct delta_message : public command_message
-	{
-		delta_message() : command_message(STEP_INFO) {}
+	uint32_t seed;
 
-		double dt;
-		double sync;
+	virtual void serialize(std::ostream &stream) const override;
+	virtual void deserialize(std::istream &stream) override;
+};
 
-		virtual void serialize(std::ostream &stream) override;
-		virtual void deserialize(std::istream &stream) override;
-		virtual size_t get_size() override;
-	};
+struct request_command : public message
+{
+	request_command(type_e type) : message(type) {}
+	request_command() : message(REQUEST_COMMAND) {}
 
-	struct string_message : public message
-	{
-		string_message(type_e type) : message(type) {}
+	command_queue::commands_map commands;
 
-		std::string name;
+	virtual void serialize(std::ostream &stream) const override;
+	virtual void deserialize(std::istream &stream) override;
+};
 
-		virtual void serialize(std::ostream &stream) override;
-		virtual void deserialize(std::istream &stream) override;
-		virtual size_t get_size() override;
-	};
+struct frame_info : public request_command
+{
+	frame_info() : request_command(FRAME_INFO) {}
 
-	std::shared_ptr<message> deserialize_message(std::istream &stream);
-}
+	double dt;
+	double sync;
+
+	virtual void serialize(std::ostream &stream) const override;
+	virtual void deserialize(std::istream &stream) override;
+};
+
+std::shared_ptr<message> deserialize_message(std::istream &stream);
+void serialize_message(const message &msg, std::ostream &stream);
+} // namespace network

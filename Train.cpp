@@ -5973,7 +5973,7 @@ bool TTrain::Update( double const Deltatime )
     // screens
     fScreenTimer += Deltatime;
     if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
-     && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
+	 && !FreeFlyModeFlag && simulation::Train == this ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
 			Application.request( { std::get<0>(screen), GetTrainState(), GfxRenderer.Texture( std::get<1>(screen) ).id } );

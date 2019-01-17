@@ -5,8 +5,20 @@
 #include "Timer.h"
 #include "application.h"
 
+// connection
+
+void network::connection::disconnect() {
+	WriteLog("net: peer dropped", logtype::net);
+	state = DEAD;
+}
+
+void network::connection::set_handler(std::function<void (const message &)> handler) {
+	message_handler = handler;
+}
+
 network::connection::connection(bool client) {
 	is_client = client;
+	state = AWAITING_HELLO;
 }
 
 void network::connection::connected()
@@ -14,50 +26,57 @@ void network::connection::connected()
 	WriteLog("net: socket connected", logtype::net);
 
 	if (is_client) {
-		std::shared_ptr<message> hello = std::make_shared<message>(message::CONNECT_REQUEST);
-		send_message(hello);
+		client_hello msg;
+		msg.version = 1;
+		send_message(msg);
 	}
 }
 
-void network::connection::message_received(std::shared_ptr<message> &msg)
-{
+    /*
 	if (msg->type == message::TYPE_MAX)
 	{
 		disconnect();
 		return;
 	}
 
-	if (msg->type == message::CONNECT_REQUEST)
-	{
-		std::shared_ptr<accept_message> reply = std::make_shared<accept_message>();
-		reply->seed = Global.random_seed;
+	if (is_client) {
+		if (msg->type == message::SERVER_HELLO) {
+			auto cmd = std::dynamic_pointer_cast<server_hello>(msg);
 
-		WriteLog("client accepted", logtype::net);
+			state = ACTIVE;
+			Global.random_seed = cmd->seed;
+			Global.random_engine.seed(Global.random_seed);
 
-		send_message(reply);
-	}
-	else if (msg->type == message::CONNECT_ACCEPT)
-	{
-		auto cmd = std::dynamic_pointer_cast<accept_message>(msg);
+			WriteLog("net: accept received", logtype::net);
+		}
+		else if (msg->type == message::FRAME_INFO) {
+			auto delta = std::dynamic_pointer_cast<frame_info>(msg);
+			auto now = std::chrono::high_resolution_clock::now();
+			delta_queue.push(std::make_pair(now, delta));
+		}
 
-		WriteLog("accept received", logtype::net);
-		Global.random_seed = cmd->seed;
-		Global.random_engine.seed(Global.random_seed);
-	}
-	else if (msg->type == message::CLIENT_COMMAND)
-	{
-		auto cmd = std::dynamic_pointer_cast<command_message>(msg);
-		for (auto const &kv : cmd->commands)
-			client_commands_queue.emplace(kv);
-	}
-	else if (msg->type == message::STEP_INFO)
-	{
-		auto delta = std::dynamic_pointer_cast<delta_message>(msg);
-		auto now = std::chrono::high_resolution_clock::now();
-		delta_queue.push(std::make_pair(now, delta));
-	}
-}
+	} else {
+		if (msg->type == message::CLIENT_HELLO) {
+			server_hello reply;
+			reply.seed = Global.random_seed;
+			state = ACTIVE;
 
+			send_message(reply);
+
+			WriteLog("net: client accepted", logtype::net);
+		}
+		else if (msg->type == message::REQUEST_COMMAND) {
+			auto cmd = std::dynamic_pointer_cast<request_command>(msg);
+
+			for (auto const &kv : cmd->commands)
+				client_commands_queue.emplace(kv);
+		}
+	}
+	*/
+
+// --------------
+
+/*
 std::tuple<double, double, command_queue::commands_map> network::connection::get_next_delta()
 {
 	if (delta_queue.empty()) {
@@ -90,70 +109,83 @@ command_queue::commands_map network::connection::pop_commands()
 	client_commands_queue.clear();
 	return map;
 }
+*/
 
-void network::connection::data_received(std::string &buffer)
-{
-	std::istringstream body(buffer);
-	std::shared_ptr<message> msg = deserialize_message(body);
-
-	message_received(msg);
-}
-
-void network::connection::send_message(std::shared_ptr<message> msg)
-{
-	std::ostringstream stream;
-	sn_utils::ls_uint32(stream, 0x37305545);
-	sn_utils::ls_uint32(stream, msg->get_size());
-	sn_utils::ls_uint16(stream, (uint16_t)msg->type);
-	msg->serialize(stream);
-	stream.flush();
-
-	std::shared_ptr<std::string> buf = std::make_shared<std::string>(stream.str());
-	send_data(buf);
-}
+// server
 
 network::server::server()
 {
 	recorder.open("recorder.bin", std::ios::trunc | std::ios::out | std::ios::binary);
 }
 
-void network::server::push_delta(double dt, double sync, command_queue::commands_map commands)
+void network::server::push_delta(double dt, double sync, const command_queue::commands_map &commands)
 {
 	if (dt == 0.0 && commands.empty())
 		return;
 
-	std::shared_ptr<delta_message> msg = std::make_shared<delta_message>();
-	msg->dt = dt;
-	msg->sync = sync;
-	msg->commands = commands;
+	frame_info msg;
+	msg.dt = dt;
+	msg.sync = sync;
+	msg.commands = commands;
 
 	sn_utils::ls_uint32(recorder, 0x37305545);
-	sn_utils::ls_uint32(recorder, msg->get_size());
-	sn_utils::ls_uint16(recorder, (uint16_t)msg->type);
-	msg->serialize(recorder);
+	sn_utils::ls_uint32(recorder, 0);
+	sn_utils::ls_uint16(recorder, (uint16_t)msg.type);
+	msg.serialize(recorder);
 	recorder.flush();
 
 	for (auto c : clients)
-		c->send_message(msg);
+		if (c->state == connection::ACTIVE)
+			c->send_message(msg);
 }
 
 command_queue::commands_map network::server::pop_commands()
 {
-	command_queue::commands_map map;
-	for (auto c : clients) {
-		command_queue::commands_map cmap = c->pop_commands();
-		for (auto const &kv : cmap) {
-			auto lookup = map.emplace(kv.first, command_queue::commanddata_sequence());
-			for (command_data const &data : kv.second)
-				lookup.first->second.emplace_back(data);
-		}
-	}
+	command_queue::commands_map map(client_commands_queue);
+	client_commands_queue.clear();
 	return map;
 }
 
+void network::server::handle_message(connection &conn, const message &msg)
+{
+	if (msg.type == message::TYPE_MAX)
+	{
+		conn.disconnect();
+		return;
+	}
+
+	if (msg.type == message::CLIENT_HELLO) {
+		server_hello reply;
+		reply.seed = Global.random_seed;
+		conn.state = connection::ACTIVE;
+
+		conn.send_message(reply);
+
+		WriteLog("net: client accepted", logtype::net);
+	}
+	else if (msg.type == message::REQUEST_COMMAND) {
+		auto cmd = dynamic_cast<const request_command&>(msg);
+
+		for (auto const &kv : cmd.commands)
+			client_commands_queue.emplace(kv);
+	}
+}
+
+// ------------
+
+// client
+
 std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
 {
-	return conn->get_next_delta();
+	if (delta_queue.empty()) {
+		return std::tuple<double, double,
+		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
+	}
+
+	auto entry = delta_queue.front();
+	delta_queue.pop();
+
+	return std::make_tuple(entry.second.dt, entry.second.sync, entry.second.commands);
 }
 
 void network::client::send_commands(command_queue::commands_map commands)
@@ -161,8 +193,34 @@ void network::client::send_commands(command_queue::commands_map commands)
 	if (commands.empty())
 		return;
 
-	std::shared_ptr<command_message> msg = std::make_shared<command_message>();
-	msg->commands = commands;
+	request_command msg;
+	msg.commands = commands;
 
 	conn->send_message(msg);
 }
+
+void network::client::handle_message(connection &conn, const message &msg)
+{
+	if (msg.type == message::TYPE_MAX)
+	{
+		conn.disconnect();
+		return;
+	}
+
+	if (msg.type == message::SERVER_HELLO) {
+		auto cmd = dynamic_cast<const server_hello&>(msg);
+
+		conn.state = connection::ACTIVE;
+		Global.random_seed = cmd.seed;
+		Global.random_engine.seed(Global.random_seed);
+
+		WriteLog("net: accept received", logtype::net);
+	}
+	else if (msg.type == message::FRAME_INFO) {
+		auto delta = dynamic_cast<const frame_info&>(msg);
+		auto now = std::chrono::high_resolution_clock::now();
+		delta_queue.push(std::make_pair(now, delta));
+	}
+}
+
+// --------------

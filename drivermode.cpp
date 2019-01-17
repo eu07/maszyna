@@ -379,6 +379,7 @@ driver_mode::on_event_poll() {
 
 void
 driver_mode::update_camera( double const Deltatime ) {
+	Camera.Pos = Global.pCamera.Pos; // M7TODO
 
     auto *controlled = (
         simulation::Train ?
@@ -686,12 +687,14 @@ driver_mode::OnKeyDown(int cKey) {
 				break;
 
 			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
-			TTrain *train = simulation::Trains.find(dynamic->name());
-			if (train) {
-				simulation::Train = train;
-				InOutKey();
-			} else {
-				m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
+			if (dynamic) {
+				TTrain *train = simulation::Trains.find(dynamic->name());
+				if (train) {
+					simulation::Train = train;
+					InOutKey();
+				} else {
+					m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
+				}
 			}
 
             break;

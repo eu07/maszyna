@@ -1,14 +1,30 @@
 #include "network/manager.h"
-#include "network/tcp.h"
 #include "simulation.h"
+#include "network/backend/asio.h"
+
+command_queue::commands_map network::server_manager::pop_commands()
+{
+	command_queue::commands_map map;
+
+	for (auto srv : servers)
+		add_to_dequemap(map, srv->pop_commands());
+
+	return map;
+}
+
+void network::server_manager::push_delta(double dt, double sync, const command_queue::commands_map &commands)
+{
+	for (auto srv : servers)
+		srv->push_delta(dt, sync, commands);
+}
+
+void network::server_manager::create_server(asio::io_context &ctx, const std::string &host, uint32_t port)
+{
+	servers.emplace_back(std::make_shared<tcp::server>(ctx, host, port));
+}
 
 network::manager::manager()
 {
-}
-
-void network::manager::create_server()
-{
-	server = std::make_shared<tcp_server>(io_context);
 }
 
 void network::manager::poll()
@@ -16,27 +32,13 @@ void network::manager::poll()
 	io_context.poll();
 }
 
-void network::manager::connect()
+void network::manager::create_server(const std::string &host, uint32_t port)
 {
-	client = std::make_shared<tcp_client>(io_context);
+	servers.emplace();
+	servers->create_server(io_context, host, port);
 }
 
-std::tuple<double, double, command_queue::commands_map> network::manager::get_next_delta()
+void network::manager::connect(const std::string &host, uint32_t port)
 {
-	return client->get_next_delta();
-}
-
-void network::manager::push_delta(double delta, double sync, command_queue::commands_map commands)
-{
-	server->push_delta(delta, sync, commands);
-}
-
-command_queue::commands_map network::manager::pop_commands()
-{
-	return server->pop_commands();
-}
-
-void network::manager::send_commands(command_queue::commands_map commands)
-{
-	client->send_commands(commands);
+	client = std::make_shared<tcp::client>(io_context, host, port);
 }

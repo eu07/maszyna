@@ -6,6 +6,17 @@
 
 namespace network
 {
+    class server_manager
+	{
+	private:
+		std::vector<std::shared_ptr<server>> servers;
+
+	public:
+		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
+		command_queue::commands_map pop_commands();
+		void create_server(asio::io_context &ctx, const std::string &host, uint32_t port);
+	};
+
     class manager
 	{
 		asio::io_context io_context;
@@ -13,16 +24,11 @@ namespace network
 	public:
 		manager();
 
-		std::shared_ptr<network::server> server;
+		std::optional<server_manager> servers;
 		std::shared_ptr<network::client> client;
 
-		void create_server();
-		void connect();
+		void create_server(const std::string &host, uint32_t port);
+		void connect(const std::string &host, uint32_t port);
 		void poll();
-
-		std::tuple<double, double, command_queue::commands_map> get_next_delta();
-		void push_delta(double delta, double sync, command_queue::commands_map commands);
-		command_queue::commands_map pop_commands();
-		void send_commands(command_queue::commands_map commands);
 	};
 }

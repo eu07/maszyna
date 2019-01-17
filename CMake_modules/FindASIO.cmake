@@ -27,11 +27,7 @@ else()
   else()
     find_path(ASIO_ROOT include/asio.hpp
       PATHS
-        # Where asio lives relative to it's official repository
-        ${CMAKE_CURRENT_LIST_DIR}/../../asio/asio
-
-        # Where asio should live
-        ${CMAKE_CURRENT_LIST_DIR}/../../asio
+        ${CMAKE_CURRENT_LIST_DIR}/../ref/asio/asio
     )
     if(NOT ASIO_ROOT)
       if(ASIO_FIND_REQUIRED)
