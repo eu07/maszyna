@@ -93,9 +93,12 @@ Used in:  PY_LONG_LONG
  * uint32_t to be such a type unless stdint.h or inttypes.h defines uint32_t.
  * However, it doesn't set HAVE_UINT32_T, so we do that here.
  */
-#if (defined UINT32_MAX || defined uint32_t)
-#ifndef PY_UINT32_T
+#ifdef uint32_t
 #define HAVE_UINT32_T 1
+#endif
+
+#ifdef HAVE_UINT32_T
+#ifndef PY_UINT32_T
 #define PY_UINT32_T uint32_t
 #endif
 #endif
@@ -103,23 +106,33 @@ Used in:  PY_LONG_LONG
 /* Macros for a 64-bit unsigned integer type; used for type 'twodigits' in the
  * long integer implementation, when 30-bit digits are enabled.
  */
-#if (defined UINT64_MAX || defined uint64_t)
-#ifndef PY_UINT64_T
+#ifdef uint64_t
 #define HAVE_UINT64_T 1
+#endif
+
+#ifdef HAVE_UINT64_T
+#ifndef PY_UINT64_T
 #define PY_UINT64_T uint64_t
 #endif
 #endif
 
 /* Signed variants of the above */
-#if (defined INT32_MAX || defined int32_t)
-#ifndef PY_INT32_T
+#ifdef int32_t
 #define HAVE_INT32_T 1
+#endif
+
+#ifdef HAVE_INT32_T
+#ifndef PY_INT32_T
 #define PY_INT32_T int32_t
 #endif
 #endif
-#if (defined INT64_MAX || defined int64_t)
-#ifndef PY_INT64_T
+
+#ifdef int64_t
 #define HAVE_INT64_T 1
+#endif
+
+#ifdef HAVE_INT64_T
+#ifndef PY_INT64_T
 #define PY_INT64_T int64_t
 #endif
 #endif
@@ -252,7 +265,7 @@ typedef Py_intptr_t     Py_ssize_t;
  * for platforms that support that.
  *
  * If PY_LOCAL_AGGRESSIVE is defined before python.h is included, more
- * "aggressive" inlining/optimizaion is enabled for the entire module.  This
+ * "aggressive" inlining/optimization is enabled for the entire module.  This
  * may lead to code bloat, and may slow things down for those reasons.  It may
  * also lead to errors, if the code relies on pointer aliasing.  Use with
  * care.
@@ -272,8 +285,8 @@ typedef Py_intptr_t     Py_ssize_t;
 /* ignore warnings if the compiler decides not to inline a function */
 #pragma warning(disable: 4710)
 /* fastest possible local call under MSVC */
-#define Py_LOCAL(type) static type 
-#define Py_LOCAL_INLINE(type) static __inline type 
+#define Py_LOCAL(type) static type __fastcall
+#define Py_LOCAL_INLINE(type) static __inline type __fastcall
 #elif defined(USE_INLINE)
 #define Py_LOCAL(type) static type
 #define Py_LOCAL_INLINE(type) static inline type
@@ -549,6 +562,30 @@ extern "C" {
         _Py_set_387controlword(old_387controlword)
 #endif
 
+/* get and set x87 control word for VisualStudio/x86 */
+#if defined(_MSC_VER) && !defined(_WIN64) /* x87 not supported in 64-bit */
+#define HAVE_PY_SET_53BIT_PRECISION 1
+#define _Py_SET_53BIT_PRECISION_HEADER \
+    unsigned int old_387controlword, new_387controlword, out_387controlword
+/* We use the __control87_2 function to set only the x87 control word.
+   The SSE control word is unaffected. */
+#define _Py_SET_53BIT_PRECISION_START                                   \
+    do {                                                                \
+        __control87_2(0, 0, &old_387controlword, NULL);                 \
+        new_387controlword =                                            \
+          (old_387controlword & ~(_MCW_PC | _MCW_RC)) | (_PC_53 | _RC_NEAR); \
+        if (new_387controlword != old_387controlword)                   \
+            __control87_2(new_387controlword, _MCW_PC | _MCW_RC,        \
+                          &out_387controlword, NULL);                   \
+    } while (0)
+#define _Py_SET_53BIT_PRECISION_END                                     \
+    do {                                                                \
+        if (new_387controlword != old_387controlword)                   \
+            __control87_2(old_387controlword, _MCW_PC | _MCW_RC,        \
+                          &out_387controlword, NULL);                   \
+    } while (0)
+#endif
+
 /* default definitions are empty */
 #ifndef HAVE_PY_SET_53BIT_PRECISION
 #define _Py_SET_53BIT_PRECISION_HEADER
@@ -622,7 +659,7 @@ extern char * _getpty(int *, int, mode_t, int);
 /* On QNX 6, struct termio must be declared by including sys/termio.h
    if TCGETA, TCSETA, TCSETAW, or TCSETAF are used.  sys/termio.h must
    be included before termios.h or it will generate an error. */
-#ifdef HAVE_SYS_TERMIO_H
+#if defined(HAVE_SYS_TERMIO_H) && !defined(__hpux)
 #include <sys/termio.h>
 #endif
 
@@ -665,7 +702,9 @@ extern int fdatasync(int);
 
 #ifdef __FreeBSD__
 #include <osreldate.h>
-#if __FreeBSD_version > 500039
+#if (__FreeBSD_version >= 500040 && __FreeBSD_version < 602113) || \
+    (__FreeBSD_version >= 700000 && __FreeBSD_version < 700054) || \
+    (__FreeBSD_version >= 800000 && __FreeBSD_version < 800001)
 # define _PY_PORT_CTYPE_UTF8_ISSUE
 #endif
 #endif
@@ -676,6 +715,12 @@ extern int fdatasync(int);
 #endif
 
 #ifdef _PY_PORT_CTYPE_UTF8_ISSUE
+#ifndef __cplusplus
+   /* The workaround below is unsafe in C++ because
+    * the <locale> defines these symbols as real functions,
+    * with a slightly different signature.
+    * See issue #10910
+    */
 #include <ctype.h>
 #include <wctype.h>
 #undef isalnum
@@ -692,6 +737,7 @@ extern int fdatasync(int);
 #define tolower(c) towlower(btowc(c))
 #undef toupper
 #define toupper(c) towupper(btowc(c))
+#endif
 #endif
 
 
@@ -900,5 +946,24 @@ typedef struct fd_set {
 #ifndef Py_ULL
 #define Py_ULL(x) Py_LL(x##U)
 #endif
+#ifdef Py_BUILD_CORE 
+/*
+ * Macros to protect CRT calls against instant termination when passed an
+ * invalid parameter (issue23524).
+ */
+#if defined _MSC_VER && _MSC_VER >= 1900
+
+extern _invalid_parameter_handler _Py_silent_invalid_parameter_handler;
+#define _Py_BEGIN_SUPPRESS_IPH { _invalid_parameter_handler _Py_old_handler = \
+    _set_thread_local_invalid_parameter_handler(_Py_silent_invalid_parameter_handler);
+#define _Py_END_SUPPRESS_IPH _set_thread_local_invalid_parameter_handler(_Py_old_handler); }
+
+#else
+
+#define _Py_BEGIN_SUPPRESS_IPH
+#define _Py_END_SUPPRESS_IPH
+
+#endif /* _MSC_VER >= 1900 */
+#endif /* Py_BUILD_CORE */
 
 #endif /* Py_PYPORT_H */
