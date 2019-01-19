@@ -388,6 +388,8 @@ private:
     int StationCount() const;
     bool IsStop() const;
     std::string NextStop() const;
+    // tests whether the train is delayed and sets accordingly a driving flag
+    void UpdateDelayFlag();
 // members
     Mtable::TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu

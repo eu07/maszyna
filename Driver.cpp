@@ -892,10 +892,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 + 0.001 * fLength;
                             TrainParams->UpdateMTable( simulation::Time, asNextStop );
+                            UpdateDelayFlag();
                             TrainParams->StationIndexInc(); // przejście do następnej
                             asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
-                            // TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to nie
-                            // jest dobry pomysł
                             sSpeedTable[i].iFlags = 0; // nie liczy się już
                             continue; // nie analizować prędkości
                         }
@@ -970,20 +969,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // also ignore any horn cue that may be potentially set below 1 km/h and before the actual full stop
                                     iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
                                 }
+                                UpdateDelayFlag();
 
                                 // perform loading/unloading
                                 auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
                                 auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
                                 WaitingSet( exchangetime );
-
-                                if( TrainParams->CheckTrainLatency() < 0.0 ) {
-                                    // odnotowano spóźnienie
-                                    iDrivigFlags |= moveLate;
-                                }
-                                else {
-                                    // przyjazd o czasie
-                                    iDrivigFlags &= ~moveLate;
-                                }
 
                                 if (TrainParams->DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
@@ -1912,9 +1903,12 @@ void TController::AutoRewident()
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
     //ustawianie trybu pracy zadajnika hamulca, wystarczy raz po inicjalizacji AI
-    for( int i = 1; i <= 8; i *= 2 ) {
-        if( ( mvOccupied->BrakeOpModes & i ) > 0 ) {
-            mvOccupied->BrakeOpModeFlag = i;
+    if( true == AIControllFlag ) {
+        // if a human is in charge leave the brake mode up to them, otherwise do as you like
+        for( int i = 1; i <= 8; i *= 2 ) {
+            if( ( mvOccupied->BrakeOpModes & i ) > 0 ) {
+                mvOccupied->BrakeOpModeFlag = i;
+            }
         }
     }
 
@@ -6207,6 +6201,18 @@ std::string TController::NextStop() const
     }
     return nextstop;
 };
+
+void TController::UpdateDelayFlag() {
+
+    if( TrainParams->CheckTrainLatency() < 0.0 ) {
+        // odnotowano spóźnienie
+        iDrivigFlags |= moveLate;
+    }
+    else {
+        // przyjazd o czasie
+        iDrivigFlags &= ~moveLate;
+    }
+}
 
 //-----------koniec skanowania semaforow
 
