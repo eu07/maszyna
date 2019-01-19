@@ -514,13 +514,19 @@ getvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
 void
 getvalues_event::run_() {
 
-    WriteLog( "Type: GetValues" );
+    auto const *cell { m_input.data_cell() };
+
+    WriteLog( "Type: GetValues - "
+        + cell->name() + " - ["
+        + cell->Text() + "] ["
+        + to_string( cell->Value1(), 2 ) + "] ["
+        + to_string( cell->Value2(), 2 ) + "]" );
 
     if( m_activator == nullptr ) { return; }
 
-    m_input.data_cell()->PutCommand(
+    cell->PutCommand(
         m_activator->Mechanik,
-        &( m_input.data_cell()->location() ) );
+        &( cell->location() ) );
 
     // potwierdzenie wykonania dla serwera (odczyt semafora już tak nie działa)
     if( Global.iMultiplayer ) {
