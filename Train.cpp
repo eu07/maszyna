@@ -6433,7 +6433,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
                 rsRunningNoise.owner( DynamicObject );
 
-                rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
+//                rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsRunningNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
             else if( token == "huntingnoise:" ) {
@@ -6441,7 +6441,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsHuntingNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
                 rsHuntingNoise.owner( DynamicObject );
 
-                rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
+//                rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
 
@@ -7359,7 +7359,7 @@ void TTrain::set_cab_controls( int const Cab ) {
 	if (ggBrakeOperationModeCtrl.SubModel != nullptr) {
 		ggBrakeOperationModeCtrl.PutValue(
 			(mvOccupied->BrakeOpModeFlag > 0 ?
-				log2(mvOccupied->BrakeOpModeFlag) :
+				std::log2(mvOccupied->BrakeOpModeFlag) :
 				0));
 	}
     // alarm chain
