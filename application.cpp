@@ -174,6 +174,8 @@ eu07_application::run() {
 		//
 		// trivia: being client and server is possible
 
+		double frameStartTime = Timer::GetTime();
+
 		bool nextloop = true;
 		while (nextloop)
 		{
@@ -229,6 +231,14 @@ eu07_application::run() {
 
 			double sync = generate_sync();
 
+			// if we're the server
+			if (m_network && m_network->servers)
+			{
+				// send delta, sync, and commands we just executed to clients
+				double delta = Timer::GetDeltaTime();
+				m_network->servers->push_delta(delta, sync, commands_to_exec);
+			}
+
 			// if we're slave
 			if (m_network && m_network->client)
 			{
@@ -236,14 +246,10 @@ eu07_application::run() {
 				if (sync != slave_sync) {
 					WriteLog("net: DESYNC!", logtype::net);
 				}
-			}
 
-			// if we're the server
-			if (m_network && m_network->servers)
-			{
-				// send delta, sync, and commands we just executed to clients
-				double delta = Timer::GetDeltaTime();
-				m_network->servers->push_delta(delta, sync, commands_to_exec);
+				// set total delta for rendering code
+				double totalDelta = Timer::GetTime() - frameStartTime;
+				Timer::set_delta_override(totalDelta);
 			}
 		}
 

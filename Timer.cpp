@@ -32,6 +32,8 @@ double GetTime()
 
 double GetDeltaTime()
 { // czas symulacji (stoi gdy pauza)
+	if (override_delta != -1.0f)
+		return override_delta;
     return DeltaTime;
 }
 
@@ -79,10 +81,7 @@ void UpdateTimers(bool pause)
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
 
-	if (override_delta != -1.0f)
-		DeltaTime = override_delta;
-
-	fSimulationTime += DeltaTime;
+	fSimulationTime += GetDeltaTime();
 
     oldCount = count;
     // Keep track of the time lapse and frame count
