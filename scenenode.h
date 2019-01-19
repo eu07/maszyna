@@ -141,6 +141,7 @@ public:
     shapenode_data const &
         data() const;
 	// get bounding radius
+    // NOTE: use this method instead of direct access to the data member, due to lazy radius evaluation
 	float radius();
 
 private:

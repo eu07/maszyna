@@ -4450,7 +4450,7 @@ void TDynamicObject::RenderSounds() {
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek
     if( ( ts.R * ts.R > 1 )
-     && ( MoverParameters->Vel > 0 ) ) {
+     && ( MoverParameters->Vel > 5.0 ) ) {
         // scale volume with curve radius and vehicle speed
         volume =
             MoverParameters->AccN * MoverParameters->AccN
@@ -4652,11 +4652,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
             mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none")
             {
-                std::string nowheretexture = TextureTest( "nowhere" ); // na razie prymitywnie
-                if( false == nowheretexture.empty() ) {
-                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( nowheretexture );
-                }
-
                 if (m_materialdata.multi_textures > 0) {
                     // jeśli model ma 4 tekstury
                     // check for the pipe method first
@@ -4694,6 +4689,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 else {
                     m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
                 }
+
+                // potentially set blank destination texture
+                DestinationSet( {}, {} );
 
                 if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
