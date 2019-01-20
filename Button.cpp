@@ -18,11 +18,10 @@ http://mozilla.org/MPL/2.0/.
 
 void TButton::Clear(int i)
 {
-    pModelOn = nullptr;
-    pModelOff = nullptr;
-    m_state = false;
-    if (i >= 0)
-        FeedbackBitSet(i);
+    *this = TButton();
+    if( i >= 0 ) {
+        FeedbackBitSet( i );
+    }
     Update(); // kasowanie bitu Feedback, o ile jakiś ustawiony
 };
 
@@ -63,7 +62,7 @@ void TButton::Load( cParser &Parser, TDynamicObject const *Owner ) {
     std::array<TModel3d *, 3> sources { Owner->mdKabina, Owner->mdLowPolyInt, Owner->mdModel };
     for( auto const *source : sources ) {
         if( true == Init( submodelname, source, false ) ) {
-            // got what we wanted, bail out
+            // got what we wanted, don't need to search further
             break;
         }
     }
