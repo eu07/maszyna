@@ -1138,9 +1138,33 @@ void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, g
 */
 };
 
-void TSubModel::ParentMatrix( float4x4 *m ) const { // pobranie transformacji względem wstawienia modelu
-  // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D),
-  // to dodatkowy obrót obrót T3D jest wymagany np. do policzenia wysokości pantografów
+// pobranie transformacji względem wstawienia modelu
+void TSubModel::ParentMatrix( float4x4 *m ) const {
+
+    m->Identity();
+
+    float4x4 submodelmatrix;
+    auto *submodel = this;
+    do {
+        // for given step in hierarchy there can be custom transformation matrix, or no transformation
+        // retrieve it...
+        submodelmatrix.Identity();
+        if( submodel->GetMatrix() ) {
+            submodelmatrix = float4x4( *submodel->GetMatrix() );
+        }
+        // ...potentially adjust transformations of the root matrix if the model wasn't yet initialized...
+        if( ( submodel->Parent == nullptr )
+         && ( false == submodel->m_rotation_init_done ) ) {
+            // dla ostatniego może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, a nie obrócono jeszcze
+            submodelmatrix.InitialRotate();
+        }
+        // ...combine the transformations...
+        *m = submodelmatrix * ( *m );
+        // ...and move up the transformation chain for the iteration...
+        submodel = submodel->Parent;
+        // ... until we hit the root
+    } while( submodel != nullptr );
+/*
     if( fMatrix != nullptr ) {
         // skopiowanie, bo będziemy mnożyć
         *m = float4x4( *fMatrix );
@@ -1155,8 +1179,7 @@ void TSubModel::ParentMatrix( float4x4 *m ) const { // pobranie transformacji wz
 			*m = *sm->Parent->GetMatrix() * *m;
 		sm = sm->Parent;
 	}
-	// dla ostatniego może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, a
-	// nie obrócono jeszcze
+*/	
 };
 
 // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
@@ -1258,7 +1281,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
 
     float4x4 parentmatrix;
     ParentMatrix( &parentmatrix );
-    
+
     auto offset { glm::vec3 { glm::make_mat4( parentmatrix.readArray() ) * glm::vec4 { 0, 0, 0, 1 } } };
 
     if( glm::length( offset ) < Geometrytestoffsetthreshold ) {
@@ -1280,11 +1303,6 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
             }
         }
     }
-
-	if (!m_rotation_init_done)
-		    // NOTE, HACK: results require flipping if the model wasn't yet initialized,
-		    // TODO: sort out this mess, maybe try unify offset lookups to take place before (or after) initialization,
-		    offset = { -offset.x, offset.z, offset.y };
 
     return offset;
 }
