@@ -4883,8 +4883,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                                 sm->WillBeAnimated();
                                 sm->ParentMatrix(&m); // pobranie macierzy transformacji
                                 // m(3)[1]=m[3][1]+0.054; //w górę o wysokość ślizgu (na razie tak)
-                                if ((mdModel->Flags() & 0x8000) == 0) // jeśli wczytano z T3D
-                                    m.InitialRotate(); // może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, tzn. przed wykonaniem Init()
                                 pants[i].fParamPants->vPos.z = m[3][0]; // przesunięcie w bok (asymetria)
                                 pants[i].fParamPants->vPos.y = m[3][1]; // przesunięcie w górę odczytane z modelu
                                 if ((sm = pants[i].smElement[0]->ChildGet()) != NULL)
@@ -4921,8 +4919,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                                         pants[i].fParamPants->fAngleU = pants[i].fParamPants->fAngleU0; // początkowy kąt
                                         // Ra: ze względu na to, że niektóre modele pantografów są zrąbane, ich mierzenie ma obecnie ograniczony sens
                                         sm->ParentMatrix(&m); // pobranie macierzy transformacji pivota ślizgu względem wstawienia pojazdu
-                                        if ((mdModel->Flags() & 0x8000) == 0) // jeśli wczytano z T3D
-                                            m.InitialRotate(); // może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, tzn. przed wykonaniem Init()
                                         float det = Det(m);
                                         if (std::fabs(det - 1.0) < 0.001) // dopuszczamy 1 promil błędu na skalowaniu ślizgu
                                         { // skalowanie jest w normie, można pobrać wymiary z modelu
