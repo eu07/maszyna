@@ -182,6 +182,16 @@ driver_mode::update() {
 
 		// variable step simulation time routines
 
+		if (!change_train.empty()) {
+			TTrain *train = simulation::Trains.find(change_train);
+			if (train) {
+				simulation::Train = train;
+				InOutKey();
+				m_relay.post(user_command::aidriverdisable, 0.0, 0.0, GLFW_PRESS, 0);
+				change_train.clear();
+			}
+		}
+
 		if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
 			// intercept cases when the driven train got removed after entering portal
 			InOutKey();
@@ -258,33 +268,23 @@ driver_mode::enter() {
             simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
             nullptr ) };
 
-    Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nPlayerTrain );
+	Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nullptr );
     Global.pCamera = Camera;
 	Global.pDebugCamera = DebugCamera;
 
+	FreeFlyModeFlag = true;
+	DebugCamera = Camera;
+
     if (nPlayerTrain)
     {
-		// M7TODO: restore
-		/*
-        WriteLog( "Initializing player train, \"" + Global.asHumanCtrlVehicle + "\"" );
+		WriteLog( "Trying to enter player train, \"" + Global.asHumanCtrlVehicle + "\"" );
 
-		Global.pCamera.Pos = nPlayerTrain->GetPosition();
-		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
-		*/
-
-		FreeFlyModeFlag = true;
-		Camera.m_owner = nullptr;
-		DebugCamera = Camera;
+		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0, nPlayerTrain->GetPosition());
+		change_train = nPlayerTrain->name();
     }
-    else
+	else if (Global.asHumanCtrlVehicle != "ghostview")
     {
-        if (Global.asHumanCtrlVehicle != "ghostview")
-        {
-            Error("Bad scenario: failed to locate player train, \"" + Global.asHumanCtrlVehicle + "\"" );
-        }
-        FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-        Camera.m_owner = nullptr;
-        DebugCamera = Camera;
+		Error("Bad scenario: failed to locate player train, \"" + Global.asHumanCtrlVehicle + "\"" );
     }
 
     // if (!Global.bMultiplayer) //na razie włączone
@@ -379,7 +379,6 @@ driver_mode::on_event_poll() {
 
 void
 driver_mode::update_camera( double const Deltatime ) {
-	Camera.Pos = Global.pCamera.Pos; // M7TODO
 
     auto *controlled = (
         simulation::Train ?
@@ -686,15 +685,11 @@ driver_mode::OnKeyDown(int cKey) {
 				// only available in free fly mode
 				break;
 
-			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
+			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 50, true, false ) );
 			if (dynamic) {
-				TTrain *train = simulation::Trains.find(dynamic->name());
-				if (train) {
-					simulation::Train = train;
-					InOutKey();
-				} else {
-					m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
-				}
+				m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0);
+
+				change_train = dynamic->name();
 			}
 
             break;

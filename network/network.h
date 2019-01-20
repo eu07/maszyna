@@ -54,12 +54,10 @@ namespace network
 		void handle_message(connection &conn, const message &msg);
 
 		std::vector<std::shared_ptr<connection>> clients;
-		std::fstream recorder;
 
 		command_queue::commands_map client_commands_queue;
 
 	public:
-		server();
 		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
 		command_queue::commands_map pop_commands();
 	};

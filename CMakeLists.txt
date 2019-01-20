@@ -119,6 +119,7 @@ set(SOURCES
 "network/message.cpp"
 "network/manager.cpp"
 "network/backend/asio.cpp"
+"network/backend/file.cpp"
 
 "widgets/vehiclelist.cpp"
 

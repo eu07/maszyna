@@ -317,8 +317,8 @@ void command_queue::push_commands(const commands_map &commands) {
 }
 
 void
-command_relay::post( user_command const Command, double const Param1, double const Param2,
-                     int const Action, uint16_t Recipient) const {
+command_relay::post(user_command const Command, double const Param1, double const Param2,
+                     int const Action, uint16_t Recipient, glm::vec3 Position) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];
 
@@ -337,8 +337,11 @@ command_relay::post( user_command const Command, double const Param1, double con
         return;
     }
 
+	if (Position == glm::vec3(0.0f))
+		Position = Global.pCamera.Pos;
+
 	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
-	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Global.pCamera.Pos });
+	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Position });
 
 	simulation::Commands.push(commanddata, combined_recipient);
 }

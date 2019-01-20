@@ -109,4 +109,5 @@ private:
     double m_secondaryupdateaccumulator { m_secondaryupdaterate }; // keeps track of elapsed simulation time, for less important fixed step routines
     int iPause { 0 }; // wykrywanie zmian w zapauzowaniu
 	command_relay m_relay;
+	std::string change_train; // train name awaiting entering
 };

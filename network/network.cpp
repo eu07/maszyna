@@ -113,11 +113,6 @@ command_queue::commands_map network::connection::pop_commands()
 
 // server
 
-network::server::server()
-{
-	recorder.open("recorder.bin", std::ios::trunc | std::ios::out | std::ios::binary);
-}
-
 void network::server::push_delta(double dt, double sync, const command_queue::commands_map &commands)
 {
 	if (dt == 0.0 && commands.empty())
@@ -127,12 +122,6 @@ void network::server::push_delta(double dt, double sync, const command_queue::co
 	msg.dt = dt;
 	msg.sync = sync;
 	msg.commands = commands;
-
-	sn_utils::ls_uint32(recorder, 0x37305545);
-	sn_utils::ls_uint32(recorder, 0);
-	sn_utils::ls_uint16(recorder, (uint16_t)msg.type);
-	msg.serialize(recorder);
-	recorder.flush();
 
 	for (auto c : clients)
 		if (c->state == connection::ACTIVE)
