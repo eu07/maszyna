@@ -16,9 +16,18 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 
 void render_task::run() {
+
+    // convert provided input to a python dictionary
+    auto *input = PyDict_New();
+    if( input == nullptr ) { goto exit; }
+    for( auto const &datapair : m_input->floats )   { PyDict_SetItemString( input, datapair.first.c_str(), PyGetFloat( datapair.second ) ); }
+    for( auto const &datapair : m_input->integers ) { PyDict_SetItemString( input, datapair.first.c_str(), PyGetInt( datapair.second ) ); }
+    for( auto const &datapair : m_input->bools )    { PyDict_SetItemString( input, datapair.first.c_str(), PyGetBool( datapair.second ) ); }
+    for( auto const &datapair : m_input->strings )  { PyDict_SetItemString( input, datapair.first.c_str(), PyGetString( datapair.second.c_str() ) ); }
+
     // call the renderer
-    auto *output { PyObject_CallMethod( m_renderer, "render", "O", m_input ) };
-    Py_DECREF( m_input );
+    auto *output { PyObject_CallMethod( m_renderer, "render", "O", input ) };
+    Py_DECREF( input );
 
     if( output != nullptr ) {
         auto *outputwidth { PyObject_CallMethod( m_renderer, "get_width", nullptr ) };
@@ -48,13 +57,16 @@ void render_task::run() {
         if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
         Py_DECREF( output );
     }
+
+exit:
     // clean up after yourself
+    delete m_input;
     delete this;
 }
 
 void render_task::cancel() {
 
-    Py_DECREF( m_input );
+    delete m_input;
     delete this;
 }
 
@@ -158,11 +170,7 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
         for( auto &task : m_tasks.data ) {
             if( task->target() == Task.target ) {
                 // replace pending task in the slot with the more recent one
-                acquire_lock();
-                {
-                    task->cancel();
-                }
-                release_lock();
+                task->cancel();
                 task = newtask;
                 newtaskinserted = true;
                 break;
