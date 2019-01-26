@@ -87,9 +87,7 @@ Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Lin
   - `_d` is debug flag.
 
   If you currently have MaSzyna assets, just copy executable to install directory.
-  Else you must download and unpack assets:
-
-    http://stuff.eu07.pl/MaSzyna-release-latest.zip
+  Else you must [download](http://stuff.eu07.pl/MaSzyna-release-latest.zip) and unpack assets.
 
   Override every file.
 
