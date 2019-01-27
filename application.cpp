@@ -182,7 +182,13 @@ eu07_application::run() {
 bool
 eu07_application::request( python_taskqueue::task_request const &Task ) {
 
-    return m_taskqueue.insert( Task );
+    auto const result { m_taskqueue.insert( Task ) };
+    if( ( false == result )
+     && ( Task.input != nullptr ) ) {
+        // clean up allocated resources since the worker won't
+        delete Task.input;
+    }
+    return result;
 }
 
 // ensures the main thread holds the python gil and can safely execute python calls
