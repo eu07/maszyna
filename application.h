@@ -71,7 +71,10 @@ public:
         on_mouse_button( int const Button, int const Action, int const Mods );
     void
         on_scroll( double const Xoffset, double const Yoffset );
-    void on_char(unsigned int c);
+	void
+	    on_char(unsigned int c);
+	void
+	    on_focus_change(bool focus);
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
         window( int const Windowindex = 0 );

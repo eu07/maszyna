@@ -4,11 +4,13 @@
 void network::client_hello::serialize(std::ostream &stream) const
 {
 	sn_utils::ls_int32(stream, version);
+	sn_utils::ls_uint32(stream, start_packet);
 }
 
 void network::client_hello::deserialize(std::istream &stream)
 {
 	version = sn_utils::ld_int32(stream);
+	start_packet = sn_utils::ld_uint32(stream);
 }
 
 void network::server_hello::serialize(std::ostream &stream) const

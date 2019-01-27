@@ -813,12 +813,6 @@ global_settings::ConfigParse(cParser &Parser) {
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
     }
-    if (iMultiplayer > 0)
-    {
-        bInactivePause = false; // okno "w tle" nie może pauzować, jeśli włączona komunikacja
-        // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
-        // (tryb instruktora)
-    }
 /*
     fFpsMin = fFpsAverage -
               fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie zmniejszany

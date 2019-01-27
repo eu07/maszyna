@@ -9,9 +9,15 @@
 
 namespace network
 {
+    //m7todo: separate client/server connection class?
     class connection
 	{
+		friend class server;
+		friend class client;
+
 	private:
+		const size_t CATCHUP_PACKETS = 100;
+
 		/*
 		std::queue<
 		    std::pair<std::chrono::high_resolution_clock::time_point,
@@ -26,18 +32,24 @@ namespace network
 		bool is_client;
 
 	protected:
+		std::shared_ptr<std::istream> backbuffer;
+		size_t backbuffer_pos;
+		size_t packet_counter;
+
+		void send_complete(std::shared_ptr<std::string> buf);
+		void catch_up();
 
 	public:
 		std::function<void(const message &msg)> message_handler;
 
 		virtual void connected() = 0;
 		virtual void send_message(const message &msg) = 0;
+		virtual void send_messages(const std::vector<std::shared_ptr<message>> &messages) = 0;
 
-		connection(bool client = false);
+		connection(bool client = false, size_t counter = 0);
 		void set_handler(std::function<void(const message &msg)> handler);
 
 		virtual void disconnect() = 0;
-		virtual void send_data(std::shared_ptr<std::string> buffer) = 0;
 
 		enum peer_state {
 			AWAITING_HELLO,
@@ -50,6 +62,9 @@ namespace network
 
 	class server
 	{
+	private:
+		std::shared_ptr<std::istream> backbuffer;
+
 	protected:
 		void handle_message(connection &conn, const message &msg);
 
@@ -58,8 +73,10 @@ namespace network
 		command_queue::commands_map client_commands_queue;
 
 	public:
+		server(std::shared_ptr<std::istream> buf);
 		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
 		command_queue::commands_map pop_commands();
+		void update();
 	};
 
 	class client
@@ -67,6 +84,7 @@ namespace network
 	protected:
 		void handle_message(connection &conn, const message &msg);
 		std::shared_ptr<connection> conn;
+		size_t messages_counter = 0;
 
 		std::queue<
 		    std::pair<std::chrono::high_resolution_clock::time_point,

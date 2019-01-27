@@ -57,12 +57,7 @@ extern WNDPROC BaseWindowProc;
 // user input callbacks
 
 void focus_callback( GLFWwindow *window, int focus ) {
-    if( Global.bInactivePause ) {// jeśli ma być pauzowanie okna w tle
-        if( focus )
-            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
-        else
-            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
-    }
+	Application.on_focus_change(focus != 0);
 }
 
 void window_resize_callback( GLFWwindow *window, int w, int h ) {
@@ -329,7 +324,6 @@ eu07_application::render_ui() {
 
 bool
 eu07_application::pop_mode() {
-
     if( m_modestack.empty() ) { return false; }
 
     m_modes[ m_modestack.top() ]->exit();
@@ -432,6 +426,13 @@ eu07_application::on_scroll( double const Xoffset, double const Yoffset ) {
 void eu07_application::on_char(unsigned int c) {
     if (ui_layer::char_callback(c))
         return;
+}
+
+void eu07_application::on_focus_change(bool focus) {
+	if( Global.bInactivePause && !m_network->client) {// jeśli ma być pauzowanie okna w tle
+		command_relay relay;
+		relay.post(user_command::focuspauseset, focus ? 1.0 : 0.0, 0.0, GLFW_PRESS, 0);
+	}
 }
 
 GLFWwindow *

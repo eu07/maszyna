@@ -10,11 +10,15 @@ namespace network
 	{
 	private:
 		std::vector<std::shared_ptr<server>> servers;
+		std::shared_ptr<std::fstream> backbuffer;
 
 	public:
+		server_manager();
+
 		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
 		command_queue::commands_map pop_commands();
 		void create_server(asio::io_context &ctx, const std::string &host, uint32_t port);
+		void update();
 	};
 
     class manager

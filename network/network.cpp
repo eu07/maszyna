@@ -16,7 +16,8 @@ void network::connection::set_handler(std::function<void (const message &)> hand
 	message_handler = handler;
 }
 
-network::connection::connection(bool client) {
+network::connection::connection(bool client, size_t counter) {
+	packet_counter = counter;
 	is_client = client;
 	state = AWAITING_HELLO;
 }
@@ -28,7 +29,44 @@ void network::connection::connected()
 	if (is_client) {
 		client_hello msg;
 		msg.version = 1;
+		msg.start_packet = packet_counter;
 		send_message(msg);
+	}
+}
+
+void network::connection::catch_up()
+{
+	backbuffer->seekg(backbuffer_pos);
+
+	std::vector<std::shared_ptr<message>> messages;
+
+	for (size_t i = 0; i < CATCHUP_PACKETS; i++) {
+		if (backbuffer->peek() == EOF) {
+			send_messages(messages);
+			backbuffer->seekg(0, std::ios_base::end);
+			state = ACTIVE;
+			return;
+		}
+
+		if (packet_counter) {
+			packet_counter--;
+			continue;
+		}
+
+		messages.push_back(deserialize_message(*backbuffer.get()));
+	}
+
+	send_messages(messages);
+
+	backbuffer_pos = backbuffer->tellg();
+
+	backbuffer->seekg(0, std::ios_base::end);
+}
+
+void network::connection::send_complete(std::shared_ptr<std::string> buf)
+{
+	if (!is_client && state == CATCHING_UP) {
+		catch_up();
 	}
 }
 
@@ -113,11 +151,13 @@ command_queue::commands_map network::connection::pop_commands()
 
 // server
 
+network::server::server(std::shared_ptr<std::istream> buf) : backbuffer(buf)
+{
+
+}
+
 void network::server::push_delta(double dt, double sync, const command_queue::commands_map &commands)
 {
-	if (dt == 0.0 && commands.empty())
-		return;
-
 	frame_info msg;
 	msg.dt = dt;
 	msg.sync = sync;
@@ -126,6 +166,11 @@ void network::server::push_delta(double dt, double sync, const command_queue::co
 	for (auto c : clients)
 		if (c->state == connection::ACTIVE)
 			c->send_message(msg);
+}
+
+void network::server::update()
+{
+
 }
 
 command_queue::commands_map network::server::pop_commands()
@@ -144,9 +189,14 @@ void network::server::handle_message(connection &conn, const message &msg)
 	}
 
 	if (msg.type == message::CLIENT_HELLO) {
+		auto cmd = dynamic_cast<const client_hello&>(msg);
+
 		server_hello reply;
 		reply.seed = Global.random_seed;
-		conn.state = connection::ACTIVE;
+		conn.state = connection::CATCHING_UP;
+		conn.backbuffer = backbuffer;
+		conn.backbuffer_pos = 0;
+		conn.packet_counter = cmd.start_packet;
 
 		conn.send_message(reply);
 
@@ -190,16 +240,18 @@ void network::client::send_commands(command_queue::commands_map commands)
 
 void network::client::handle_message(connection &conn, const message &msg)
 {
-	if (msg.type == message::TYPE_MAX)
+	if (msg.type >= message::TYPE_MAX)
 	{
 		conn.disconnect();
 		return;
 	}
 
+	messages_counter++;
+
 	if (msg.type == message::SERVER_HELLO) {
 		auto cmd = dynamic_cast<const server_hello&>(msg);
-
 		conn.state = connection::ACTIVE;
+
 		Global.random_seed = cmd.seed;
 		Global.random_engine.seed(Global.random_seed);
 

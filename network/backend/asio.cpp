@@ -2,8 +2,8 @@
 #include "sn_utils.h"
 #include "Logs.h"
 
-network::tcp::connection::connection(asio::io_context &io_ctx, bool client)
-    : network::connection(client), m_socket(io_ctx)
+network::tcp::connection::connection(asio::io_context &io_ctx, bool client, size_t counter)
+    : network::connection(client, counter), m_socket(io_ctx)
 {
 	m_header_buffer.resize(8);
 }
@@ -16,9 +16,7 @@ void network::tcp::connection::disconnect()
 
 void network::tcp::connection::send_data(std::shared_ptr<std::string> buffer)
 {
-	asio::async_write(m_socket, asio::buffer(*buffer.get()), std::bind(&connection::handle_send, this, buffer,
-	                                                            std::placeholders::_1,
-	                                                            std::placeholders::_2));
+	asio::async_write(m_socket, asio::buffer(*buffer.get()), std::bind(&connection::send_complete, this, buffer));
 }
 
 void network::tcp::connection::connected()
@@ -32,12 +30,6 @@ void network::tcp::connection::read_header()
 	asio::async_read(m_socket, asio::buffer(m_header_buffer),
 	                    std::bind(&connection::handle_header, this,
 	                              std::placeholders::_1, std::placeholders::_2));
-}
-
-void network::tcp::connection::handle_send(
-        std::shared_ptr<std::string> buf, const asio::error_code &err, size_t bytes_transferred)
-{
-
 }
 
 void network::tcp::connection::handle_header(const asio::error_code &err, size_t bytes_transferred)
@@ -80,32 +72,52 @@ void network::tcp::connection::handle_data(const asio::error_code &err, size_t b
 	read_header();
 }
 
-void network::tcp::connection::send_message(const message &msg)
+void network::tcp::connection::write_message(const message &msg, std::ostream &stream)
 {
-	std::ostringstream stream;
+	size_t beg = (size_t)stream.tellp();
+
 	sn_utils::ls_uint32(stream, NETWORK_MAGIC);
 	sn_utils::ls_uint32(stream, 0);
 
 	serialize_message(msg, stream);
 
-	size_t size = (size_t)stream.tellp() - 8;
+	size_t size = (size_t)stream.tellp() - beg - 8;
 	if (size > MAX_MSG_SIZE) {
 		ErrorLog("net: message too big", logtype::net);
 		return;
 	}
-	stream.seekp(4, std::ios_base::beg);
+	stream.seekp(beg + 4, std::ios_base::beg);
 	sn_utils::ls_uint32(stream, size);
 
-	stream.flush();
+	stream.seekp(0, std::ios_base::end);
+}
 
-	std::shared_ptr<std::string> buf = std::make_shared<std::string>(stream.str());
-	send_data(buf);
+void network::tcp::connection::send_messages(const std::vector<std::shared_ptr<message> > &messages)
+{
+	if (messages.size() == 0)
+		return;
+
+	std::ostringstream stream;
+	for (auto const &msg : messages)
+		write_message(*msg.get(), stream);
+
+	stream.flush();
+	send_data(std::make_shared<std::string>(stream.str()));
+}
+
+void network::tcp::connection::send_message(const message &msg)
+{
+	std::ostringstream stream;
+	write_message(msg, stream);
+
+	stream.flush();
+	send_data(std::make_shared<std::string>(stream.str()));
 }
 
 // -----------------
 
-network::tcp::server::server(asio::io_context &io_ctx, const std::string &host, uint32_t port)
-    : m_acceptor(io_ctx)
+network::tcp::server::server(std::shared_ptr<std::istream> buf, asio::io_context &io_ctx, const std::string &host, uint32_t port)
+    : network::server(buf), m_acceptor(io_ctx)
 {
 	auto endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(host), port);
 	m_acceptor.open(endpoint.protocol());
@@ -144,7 +156,7 @@ void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const
 
 network::tcp::client::client(asio::io_context &io_ctx, const std::string &host, uint32_t port)
 {
-	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true);
+	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true, messages_counter);
 	conn->set_handler(std::bind(&client::handle_message, this, std::ref(*conn.get()), std::placeholders::_1));
 
 	asio::ip::tcp::endpoint endpoint(

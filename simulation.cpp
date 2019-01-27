@@ -89,6 +89,13 @@ void state_manager::process_commands() {
 			}
 		}
 
+		if (commanddata.command == user_command::focuspauseset) {
+			if( commanddata.param1 == 1.0 )
+				Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
+			else
+				Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
+		}
+
 		if (commanddata.command == user_command::entervehicle) {
 			// przesiadka do innego pojazdu
 			if (!commanddata.freefly)

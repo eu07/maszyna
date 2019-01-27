@@ -31,6 +31,7 @@ struct client_hello : public message
 	virtual void deserialize(std::istream &stream) override;
 
 	int32_t version;
+	uint32_t start_packet;
 };
 
 struct server_hello : public message

@@ -12,11 +12,11 @@ namespace network::tcp
 		friend class client;
 
 	public:
-		connection(asio::io_context &io_ctx, bool client = false);
+		connection(asio::io_context &io_ctx, bool client = false, size_t counter = 0);
 
 		virtual void connected() override;
 		virtual void disconnect() override;
-		virtual void send_data(std::shared_ptr<std::string> buffer) override;
+		virtual void send_messages(const std::vector<std::shared_ptr<message> > &messages) override;
 		virtual void send_message(const message &msg) override;
 
 		asio::ip::tcp::socket m_socket;
@@ -25,8 +25,9 @@ namespace network::tcp
 		std::string m_header_buffer;
 		std::string m_body_buffer;
 
+		void write_message(const message &msg, std::ostream &stream);
+		void send_data(std::shared_ptr<std::string> buffer);
 		void read_header();
-		void handle_send(std::shared_ptr<std::string> buf, const asio::error_code &err, size_t bytes_transferred);
 		void handle_header(const asio::error_code &err, size_t bytes_transferred);
 		void handle_data(const asio::error_code &err, size_t bytes_transferred);
 	};
@@ -40,7 +41,7 @@ namespace network::tcp
 		asio::ip::tcp::acceptor m_acceptor;
 
 	public:
-		server(asio::io_context &io_ctx, const std::string &host, uint32_t port);
+		server(std::shared_ptr<std::istream> buf, asio::io_context &io_ctx, const std::string &host, uint32_t port);
 	};
 
 	class client : public network::client
