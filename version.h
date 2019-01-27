@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 (GL3 NET) 20.01.2018, based on milek-0150d633, tmj-0ad2a142"
+#define VERSION_INFO "M7 (GL3 NET) 27.01.2018, based on milek-4dc7b3d3d, tmj-753cf7ee5"

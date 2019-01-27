@@ -447,6 +447,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 	std::string name = parser->getToken<std::string>();
     std::string texture = parser->getToken<std::string>( false ); // tekstura (zmienia na małe)
     replace_slashes( name );
+    replace_slashes( texture );
     if (!Init( name, texture ))
     {
         if (name != "notload")

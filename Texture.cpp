@@ -268,23 +268,17 @@ opengl_texture::make_request() {
     auto const components { Split( name, '?' ) };
     auto const query { Split( components.back(), '&' ) };
 
-    PyObject *pythondictionary { nullptr };
-    Application.acquire_python_lock();
-    {
-        pythondictionary = PyDict_New();
-        if( pythondictionary != nullptr ) {
-            for( auto const &querypair : query ) {
-                auto const valuepos { querypair.find( '=' ) };
-                PyDict_SetItemString(
-                    pythondictionary,
-                    ToLower( querypair.substr( 0, valuepos ) ).c_str(),
-                    PyGetString( querypair.substr( valuepos + 1 ).c_str() ) );
-            }
+    auto *dictionary { new dictionary_source };
+    if( dictionary != nullptr ) {
+        for( auto const &querypair : query ) {
+            auto const valuepos { querypair.find( '=' ) };
+            dictionary->insert(
+                ToLower( querypair.substr( 0, valuepos ) ),
+                querypair.substr( valuepos + 1 ) );
         }
     }
-    Application.release_python_lock();
 
-    Application.request( { ToLower( components.front() ), pythondictionary, id } );
+    Application.request( { ToLower( components.front() ), dictionary, id } );
 }
 
 void

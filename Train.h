@@ -116,7 +116,7 @@ class TTrain
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
-    PyObject *GetTrainState();
+    dictionary_source *GetTrainState();
     state_t get_state() const;
 
   private:
