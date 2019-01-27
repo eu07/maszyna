@@ -163,14 +163,17 @@ void network::server::push_delta(double dt, double sync, const command_queue::co
 	msg.sync = sync;
 	msg.commands = commands;
 
-	for (auto c : clients)
-		if (c->state == connection::ACTIVE)
-			c->send_message(msg);
-}
+	for (auto it = clients.begin(); it != clients.end(); ) {
+		if ((*it)->state == connection::DEAD) {
+			it = clients.erase(it);
+			continue;
+		}
 
-void network::server::update()
-{
+		if ((*it)->state == connection::ACTIVE)
+			(*it)->send_message(msg);
 
+		it++;
+	}
 }
 
 command_queue::commands_map network::server::pop_commands()
@@ -180,11 +183,11 @@ command_queue::commands_map network::server::pop_commands()
 	return map;
 }
 
-void network::server::handle_message(connection &conn, const message &msg)
+void network::server::handle_message(std::shared_ptr<connection> conn, const message &msg)
 {
 	if (msg.type == message::TYPE_MAX)
 	{
-		conn.disconnect();
+		conn->disconnect();
 		return;
 	}
 
@@ -193,12 +196,12 @@ void network::server::handle_message(connection &conn, const message &msg)
 
 		server_hello reply;
 		reply.seed = Global.random_seed;
-		conn.state = connection::CATCHING_UP;
-		conn.backbuffer = backbuffer;
-		conn.backbuffer_pos = 0;
-		conn.packet_counter = cmd.start_packet;
+		conn->state = connection::CATCHING_UP;
+		conn->backbuffer = backbuffer;
+		conn->backbuffer_pos = 0;
+		conn->packet_counter = cmd.start_packet;
 
-		conn.send_message(reply);
+		conn->send_message(reply);
 
 		WriteLog("net: client accepted", logtype::net);
 	}
@@ -216,6 +219,14 @@ void network::server::handle_message(connection &conn, const message &msg)
 
 std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
 {
+	if (conn && conn->state == connection::DEAD) {
+		conn = nullptr;
+	}
+
+	if (!conn) {
+		connect();
+	}
+
 	if (delta_queue.empty()) {
 		return std::tuple<double, double,
 		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
@@ -229,8 +240,9 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 
 void network::client::send_commands(command_queue::commands_map commands)
 {
-	if (commands.empty())
+	if (!conn || conn->state == connection::DEAD || commands.empty())
 		return;
+	// eh, maybe queue lost messages
 
 	request_command msg;
 	msg.commands = commands;
@@ -238,11 +250,11 @@ void network::client::send_commands(command_queue::commands_map commands)
 	conn->send_message(msg);
 }
 
-void network::client::handle_message(connection &conn, const message &msg)
+void network::client::handle_message(std::shared_ptr<connection> conn, const message &msg)
 {
 	if (msg.type >= message::TYPE_MAX)
 	{
-		conn.disconnect();
+		conn->disconnect();
 		return;
 	}
 
@@ -250,7 +262,7 @@ void network::client::handle_message(connection &conn, const message &msg)
 
 	if (msg.type == message::SERVER_HELLO) {
 		auto cmd = dynamic_cast<const server_hello&>(msg);
-		conn.state = connection::ACTIVE;
+		conn->state = connection::ACTIVE;
 
 		Global.random_seed = cmd.seed;
 		Global.random_engine.seed(Global.random_seed);

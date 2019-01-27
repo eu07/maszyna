@@ -48,6 +48,12 @@ namespace network::tcp
 	{
 	private:
 		void handle_accept(const asio::error_code &err);
+		asio::io_context &io_ctx;
+		std::string host;
+		uint32_t port;
+
+	protected:
+		virtual void connect() override;
 
 	public:
 		client(asio::io_context &io_ctx, const std::string &host, uint32_t port);

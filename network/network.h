@@ -66,7 +66,7 @@ namespace network
 		std::shared_ptr<std::istream> backbuffer;
 
 	protected:
-		void handle_message(connection &conn, const message &msg);
+		void handle_message(std::shared_ptr<connection> conn, const message &msg);
 
 		std::vector<std::shared_ptr<connection>> clients;
 
@@ -76,13 +76,13 @@ namespace network
 		server(std::shared_ptr<std::istream> buf);
 		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
 		command_queue::commands_map pop_commands();
-		void update();
 	};
 
 	class client
 	{
 	protected:
-		void handle_message(connection &conn, const message &msg);
+		virtual void connect() = 0;
+		void handle_message(std::shared_ptr<connection> conn, const message &msg);
 		std::shared_ptr<connection> conn;
 		size_t messages_counter = 0;
 

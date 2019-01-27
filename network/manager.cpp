@@ -33,12 +33,6 @@ void network::server_manager::push_delta(double dt, double sync, const command_q
 	serialize_message(msg, *backbuffer.get());
 }
 
-void network::server_manager::update()
-{
-	for (auto srv : servers)
-		srv->update();
-}
-
 void network::server_manager::create_server(asio::io_context &ctx, const std::string &host, uint32_t port)
 {
 	servers.emplace_back(std::make_shared<tcp::server>(backbuffer, ctx, host, port));
@@ -51,7 +45,6 @@ network::manager::manager()
 void network::manager::poll()
 {
 	io_context.poll();
-	servers->update();
 }
 
 void network::manager::create_server(const std::string &host, uint32_t port)

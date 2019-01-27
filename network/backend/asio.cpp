@@ -34,6 +34,11 @@ void network::tcp::connection::read_header()
 
 void network::tcp::connection::handle_header(const asio::error_code &err, size_t bytes_transferred)
 {
+	if (err) {
+		disconnect();
+		return;
+	}
+
 	std::istringstream header(m_header_buffer);
 	if (m_header_buffer.size() != bytes_transferred) {
 		disconnect();
@@ -59,6 +64,11 @@ void network::tcp::connection::handle_header(const asio::error_code &err, size_t
 
 void network::tcp::connection::handle_data(const asio::error_code &err, size_t bytes_transferred)
 {
+	if (err) {
+		disconnect();
+		return;
+	}
+
 	if (m_body_buffer.size() != bytes_transferred) {
 		disconnect();
 		return;
@@ -132,7 +142,7 @@ network::tcp::server::server(std::shared_ptr<std::istream> buf, asio::io_context
 void network::tcp::server::accept_conn()
 {
 	std::shared_ptr<connection> conn = std::make_shared<connection>(m_acceptor.get_executor().context());
-	conn->set_handler(std::bind(&server::handle_message, this, std::ref(*conn.get()), std::placeholders::_1));
+	conn->set_handler(std::bind(&server::handle_message, this, conn, std::placeholders::_1));
 
 	m_acceptor.async_accept(conn->m_socket, std::bind(&server::handle_accept, this, conn, std::placeholders::_1));
 }
@@ -146,6 +156,7 @@ void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const
 	}
 	else
 	{
+		conn->state = connection::DEAD;
 		WriteLog(std::string("net: failed to accept client: " + err.message()), logtype::net);
 	}
 
@@ -155,9 +166,17 @@ void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const
 // ------------------
 
 network::tcp::client::client(asio::io_context &io_ctx, const std::string &host, uint32_t port)
+    : host(host), port(port), io_ctx(io_ctx)
 {
+}
+
+void network::tcp::client::connect()
+{
+	if (this->conn)
+		return;
+
 	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true, messages_counter);
-	conn->set_handler(std::bind(&client::handle_message, this, std::ref(*conn.get()), std::placeholders::_1));
+	conn->set_handler(std::bind(&client::handle_message, this, conn, std::placeholders::_1));
 
 	asio::ip::tcp::endpoint endpoint(
 	            asio::ip::address::from_string(host), port);
@@ -178,5 +197,6 @@ void network::tcp::client::handle_accept(const asio::error_code &err)
 	else
 	{
 		WriteLog(std::string("net: failed to connect: " + err.message()), logtype::net);
+		conn->state = connection::DEAD;
 	}
 }
