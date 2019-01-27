@@ -73,10 +73,14 @@ TCamera::OnCommand( command_data const &Command ) {
                     30.0 :
                     1.0 );
 
+			// threshold position on stick between walk lerp and walk/run lerp
+			auto const stickthreshold = 2.0 / 3.0;
+
             // left-right
             auto const movexparam { Command.param1 };
-            // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
-            auto const movex { walkspeed + ( std::max( 0.0, std::abs( movexparam ) - 0.65 ) / 0.35 ) * std::max( 0.0, movespeed - walkspeed ) };
+            // 2/3rd of the stick range lerps walk speed, past that we lerp between max walk and run speed
+            auto const movex { walkspeed * std::min(std::abs(movexparam) * (1.0 / stickthreshold), 1.0)
+                + ( std::max( 0.0, std::abs( movexparam ) - stickthreshold ) / (1.0 - stickthreshold) ) * std::max( 0.0, movespeed - walkspeed ) };
 
             m_moverate.x = (
                 movexparam > 0.0 ?  movex * speedmultiplier :
@@ -85,7 +89,9 @@ TCamera::OnCommand( command_data const &Command ) {
 
             // forward-back
             double const movezparam { Command.param2 };
-            auto const movez { walkspeed + ( std::max( 0.0, std::abs( movezparam ) - 0.65 ) / 0.35 ) * std::max( 0.0, movespeed - walkspeed ) };
+            auto const movez { walkspeed * std::min(std::abs(movezparam) * (1.0 / stickthreshold), 1.0)
+                + ( std::max( 0.0, std::abs( movezparam ) - stickthreshold ) / (1.0 - stickthreshold) ) * std::max( 0.0, movespeed - walkspeed ) };
+
             // NOTE: z-axis is flipped given world coordinate system
             m_moverate.z = (
                 movezparam > 0.0 ? -movez * speedmultiplier :

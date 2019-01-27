@@ -228,12 +228,12 @@ keyboard_input::poll() {
 
     glm::vec2 const movementhorizontal {
         // x-axis
-        ( Global.shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : (2.0f / 3.0f) ) *
         ( input::keys[ m_bindingscache.left ] != GLFW_RELEASE ? -1.f :
           input::keys[ m_bindingscache.right ] != GLFW_RELEASE ? 1.f :
           0.f ),
         // z-axis
-        ( Global.shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : (2.0f / 3.0f) ) *
         ( input::keys[ m_bindingscache.forward ] != GLFW_RELEASE ? 1.f :
           input::keys[ m_bindingscache.back ] != GLFW_RELEASE ?   -1.f :
           0.f ) };
@@ -254,7 +254,7 @@ keyboard_input::poll() {
 
     float const movementvertical {
         // y-axis
-        ( Global.shiftState ? 1.f : 0.5f ) *
+        ( Global.shiftState ? 1.f : (2.0f / 3.0f) ) *
         ( input::keys[ m_bindingscache.up ] != GLFW_RELEASE ?    1.f :
           input::keys[ m_bindingscache.down ] != GLFW_RELEASE ? -1.f :
           0.f ) };
