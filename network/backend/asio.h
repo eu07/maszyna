@@ -1,4 +1,7 @@
 #include "network/network.h"
+//#define ASIO_ENABLE_HANDLER_TRACKING
+#define ASIO_DISABLE_THREADS
+
 #include <asio.hpp>
 
 namespace network::tcp

@@ -258,3 +258,7 @@ target_link_libraries(${PROJECT_NAME} ASIO::ASIO)
 if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)
 endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -fsanitize=address -fsanitize=undefined")

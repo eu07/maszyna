@@ -216,15 +216,19 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 // ------------
 
 // client
-
+int zzz = 10;
 std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
 {
+	/*
 	if (conn && conn->state == connection::DEAD) {
 		conn = nullptr;
 	}
+	*/
 
 	if (!conn) {
-		connect();
+		zzz--;
+		if (zzz < 0)
+			connect();
 	}
 
 	if (delta_queue.empty()) {
@@ -258,8 +262,6 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		return;
 	}
 
-	messages_counter++;
-
 	if (msg.type == message::SERVER_HELLO) {
 		auto cmd = dynamic_cast<const server_hello&>(msg);
 		conn->state = connection::ACTIVE;
@@ -270,6 +272,8 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		WriteLog("net: accept received", logtype::net);
 	}
 	else if (msg.type == message::FRAME_INFO) {
+		delta_count++;
+
 		auto delta = dynamic_cast<const frame_info&>(msg);
 		auto now = std::chrono::high_resolution_clock::now();
 		delta_queue.push(std::make_pair(now, delta));

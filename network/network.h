@@ -84,7 +84,7 @@ namespace network
 		virtual void connect() = 0;
 		void handle_message(std::shared_ptr<connection> conn, const message &msg);
 		std::shared_ptr<connection> conn;
-		size_t messages_counter = 0;
+		size_t delta_count = 0;
 
 		std::queue<
 		    std::pair<std::chrono::high_resolution_clock::time_point,

@@ -3,7 +3,8 @@
 #include "Logs.h"
 
 network::tcp::connection::connection(asio::io_context &io_ctx, bool client, size_t counter)
-    : network::connection(client, counter), m_socket(io_ctx)
+    : network::connection(client, counter),
+      m_socket(io_ctx)
 {
 	m_header_buffer.resize(8);
 }
@@ -165,9 +166,10 @@ void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const
 
 // ------------------
 
-network::tcp::client::client(asio::io_context &io_ctx, const std::string &host, uint32_t port)
-    : host(host), port(port), io_ctx(io_ctx)
+network::tcp::client::client(asio::io_context &io_ctxx, const std::string &hostarg, uint32_t portarg)
+    : host(hostarg), port(portarg), io_ctx(io_ctxx)
 {
+	connect();
 }
 
 void network::tcp::client::connect()
@@ -175,21 +177,30 @@ void network::tcp::client::connect()
 	if (this->conn)
 		return;
 
-	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true, messages_counter);
-	conn->set_handler(std::bind(&client::handle_message, this, conn, std::placeholders::_1));
+	std::cout << "create sock" << std::endl;
+	connection *sockr = new connection(io_ctx, false, 0);
+	//std::cout << "sock crt" << std::endl;
+	//std::unique_ptr<connection> sock(sockr);
+	//this->conn = sock;
+	//connection *sockr = new connection(io_ctx, true, delta_count);
+
+	std::shared_ptr<connection> sock(sockr);
+	this->conn = sock;
+	sock->set_handler(std::bind(&client::handle_message, this, sock, std::placeholders::_1));
 
 	asio::ip::tcp::endpoint endpoint(
 	            asio::ip::address::from_string(host), port);
-	conn->m_socket.open(endpoint.protocol());
-	conn->m_socket.set_option(asio::ip::tcp::no_delay(true));
-	conn->m_socket.async_connect(endpoint,
+	sock->m_socket.open(endpoint.protocol());
+	sock->m_socket.set_option(asio::ip::tcp::no_delay(true));
+	sock->m_socket.async_connect(endpoint,
 	                    std::bind(&client::handle_accept, this, std::placeholders::_1));
+	std::cout << "connect start" <<std::endl;
 
-	this->conn = conn;
 }
 
 void network::tcp::client::handle_accept(const asio::error_code &err)
 {
+	std::cout << "connect handl" <<std::endl;
 	if (!err)
 	{
 		conn->connected();
