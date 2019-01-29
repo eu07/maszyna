@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Console.h"
 #include "PyInt.h"
+#include "Timer.h"
 
 global_settings Global;
 
@@ -389,6 +390,14 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> default_timespeed;
 			fTimeSpeed = default_timespeed;
         }
+		else if (token == "deltaoverride")
+		{
+			// for debug
+			Parser.getTokens(1, false);
+			float deltaoverride;
+			Parser >> deltaoverride;
+			Timer::set_delta_override(1.0f / deltaoverride);
+		}
         else if (token == "multisampling")
         {
             // tryb antyaliasingu: 0=brak,1=2px,2=4px
