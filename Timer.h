@@ -31,9 +31,12 @@ public:
     void
         start() {
             m_start = std::chrono::steady_clock::now(); }
-    void
+	std::chrono::duration<float, std::milli>
         stop() {
-            m_accumulator = 0.95f * m_accumulator + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_start ) ).count() / 1000.f; }
+		    auto duration = std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_start ) );
+			m_accumulator = 0.95f * m_accumulator + duration.count() / 1000.f;
+			return duration;
+	    }
     float
         average() const {
             return m_accumulator / 20.f;}

@@ -84,6 +84,7 @@ struct global_settings {
     double fMoveLight{ -1 }; // numer dnia w roku albo -1
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
+	double default_timespeed { 1.0 }; // timescale loaded from config
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
     float ScenarioTimeOverride { std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
     float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
@@ -179,6 +180,8 @@ struct global_settings {
 	bool loading_log = true;
 	bool dds_upper_origin = false;
     bool captureonstart = true;
+
+	std::chrono::duration<float> minframetime {0.0f};
 
 	bool python_mipmaps = true;
 	bool python_displaywindows = false;
