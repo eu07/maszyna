@@ -138,10 +138,16 @@ static int const ctrain_scndpneumatic = 32; //przewody 8 atm (żółte; zasilani
 static int const ctrain_heating = 64;       //przewody ogrzewania WN
 static int const ctrain_depot = 128;        //nie rozłączalny podczas zwykłych manewrów (międzyczłonowy), we wpisie wartość ujemna
 // vehicle sides; exclusive
-enum side {
+enum end {
     front = 0,
     rear
 };
+
+enum side {
+    right = 0,
+    left = 1
+};
+
 // possible coupling types; can be combined
 enum coupling {
     faux = 0x0,
@@ -677,6 +683,54 @@ private:
         bool breaker { true }; // device is allowed to operate
     };
 
+    // basic approximation of doors
+    struct basic_door {
+        // config
+        // ld inputs
+        bool open_permit { false }; // door can be opened
+        bool local_open { false }; // local attempt to open the door
+        bool local_close { false }; // local attempt to close the door
+        bool remote_open { false }; // received remote signal to open the door
+        bool remote_close { false }; // received remote signal to close the door
+        // internal data
+        float auto_timer { -1.f }; // delay between activation of open state and closing state for automatic doors
+        float close_delay { 0.f }; // delay between activation of closing state and actual closing
+        float position { 0.f }; // current shift of the door from the closed position
+        float step_position { 0.f }; // current shift of the movable step from the retracted position
+        // ld outputs
+        bool is_closed { true }; // the door is fully closed
+        bool is_closing { false }; // the door is currently closing
+        bool is_opening { false }; // the door is currently opening
+        bool is_open { false }; // the door is fully open
+    };
+
+    struct door_data {
+        // config
+        control_t open_control { control_t::passenger };
+        float open_rate { 1.f };
+        control_t close_control { control_t::passenger };
+        float close_rate { 1.f };
+        float close_delay { 0.f };
+        int type { 2 };
+        float range { 0.f }; // extent of primary move/rotation
+        float range_out { 0.f }; // extent of shift outward, applicable for plug doors
+        int step_type { 2 };
+        float step_rate { 0.5f };
+        float step_range { 0.f };
+        bool has_lock { false };
+        bool has_warning { false };
+        bool has_autowarning { false };
+        float auto_duration { -1.f }; // automatic door closure delay period
+        float auto_velocity { -1.f }; // automatic door closure velocity threshold
+        // ld inputs
+        bool lock_enabled { true };
+        bool open_permit { true };
+        // vehicle parts
+        std::array<basic_door, 2> instances; // door on the right and left side of the vehicle
+        // ld outputs
+        bool is_locked { false };
+    };
+
     struct water_heater {
         // config
         struct heater_config_t {
@@ -983,6 +1037,7 @@ public:
     float MaxLoad = 0.f;           /*masa w T lub ilosc w sztukach - ladownosc*/
     double OverLoadFactor = 0.0;       /*ile razy moze byc przekroczona ladownosc*/
     float LoadSpeed = 0.f; float UnLoadSpeed = 0.f;/*szybkosc na- i rozladunku jednostki/s*/
+#ifdef EU07_USEOLDDOORCODE
 	int DoorOpenCtrl = 0; int DoorCloseCtrl = 0; /*0: przez pasazera, 1: przez maszyniste, 2: samoczynne (zamykanie)*/
 	double DoorStayOpen = 0.0;               /*jak dlugo otwarte w przypadku DoorCloseCtrl=2*/
 	bool DoorClosureWarning = false;      /*czy jest ostrzeganie przed zamknieciem*/
@@ -994,6 +1049,7 @@ public:
 	double PlatformSpeed = 0.5;   /*szybkosc stopnia*/
     double PlatformMaxShift { 0.0 }; /*wysuniecie stopnia*/
     int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
+#endif
     double MirrorMaxShift { 90.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	double SpeedCtrlDelay = 2; /*opoznienie dzialania tempomatu z wybieralna predkoscia*/
@@ -1057,6 +1113,7 @@ public:
     bool WaterCircuitsLink { false }; // optional connection between water circuits
     heat_data dizel_heat;
     std::array<cooling_fan, 2> MotorBlowers;
+    door_data Doors;
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1200,13 +1257,14 @@ public:
     std::string LoadQuantity; // jednostki miary
     int LoadStatus = 0; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakończono,0=zaktualizowany model
 	double LastLoadChangeTime = 0.0; //raz (roz)ładowania
-
+#ifdef EU07_USEOLDDOORCODE
 	bool DoorBlocked = false;    //Czy jest blokada drzwi
     bool DoorLockEnabled { true };
 	bool DoorLeftOpened = false;  //stan drzwi
     double DoorLeftOpenTimer { -1.0 }; // left door closing timer for automatic door type
 	bool DoorRightOpened = false;
     double DoorRightOpenTimer{ -1.0 }; // right door closing timer for automatic door type
+#endif
     bool PantFrontUp = false;  //stan patykow 'Winger 160204
 	bool PantRearUp = false;
 	bool PantFrontSP = true;  //dzwiek patykow 'Winger 010304
@@ -1360,8 +1418,8 @@ public:
     bool FuelPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // fuel pump state toggle
     bool OilPumpSwitch( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
     bool OilPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
-    bool MotorBlowersSwitch( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
-    bool MotorBlowersSwitchOff( bool State, side const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
+    bool MotorBlowersSwitch( bool State, end const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
+    bool MotorBlowersSwitchOff( bool State, end const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
     void MainSwitch_( bool const State );
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
@@ -1414,11 +1472,11 @@ public:
 	/* funckje dla wagonow*/
     bool AssignLoad( std::string const &Name, float const Amount = 0.f );
 	bool LoadingDone(double LSpeed, std::string const &Loadname);
-	bool DoorLeft(bool State, range_t const Notify = range_t::consist ); //obsluga drzwi lewych
-	bool DoorRight(bool State, range_t const Notify = range_t::consist ); //obsluga drzwi prawych
-	bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
+    bool PermitDoors( side const Door, range_t const Notify = range_t::consist );
+    bool OperateDoors( side const Door, bool const State, range_t const Notify = range_t::consist );
+    bool LockDoors( bool const State, range_t const Notify = range_t::consist );
     bool signal_departure( bool const State, range_t const Notify = range_t::consist ); // toggles departure warning
-    void update_autonomous_doors( double const Deltatime ); // automatic door controller update
+    void update_doors( double const Deltatime ); // door controller update
 
     /* funkcje dla samochodow*/
 	bool ChangeOffsetH(double DeltaOffset);

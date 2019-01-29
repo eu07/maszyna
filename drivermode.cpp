@@ -924,7 +924,7 @@ driver_mode::ExternalView() {
     switch( m_externalviewmode ) {
         case view::consistfront: {
             // bind camera with the vehicle
-            auto *owner { vehicle->Mechanik->Vehicle( side::front ) };
+            auto *owner { vehicle->Mechanik->Vehicle( end::front ) };
 
             Camera.m_owner = owner;
 
@@ -955,7 +955,7 @@ driver_mode::ExternalView() {
         }
         case view::consistrear: {
             // bind camera with the vehicle
-            auto *owner { vehicle->Mechanik->Vehicle( side::rear ) };
+            auto *owner { vehicle->Mechanik->Vehicle( end::rear ) };
 
             Camera.m_owner = owner;
 
@@ -985,7 +985,7 @@ driver_mode::ExternalView() {
             break;
         }
         case view::bogie: {
-            auto *owner { vehicle->Mechanik->Vehicle( side::front ) };
+            auto *owner { vehicle->Mechanik->Vehicle( end::front ) };
 
             Camera.m_owner = owner;
 

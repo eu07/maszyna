@@ -393,8 +393,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.EngineDescription( 0 ).c_str(),
         // TODO: put wheel flat reporting in the enginedescription()
         std::string( mover.WheelFlat > 0.01 ? " Flat: " + to_string( mover.WheelFlat, 1 ) + " mm" : "" ).c_str(),
-        update_vehicle_coupler( side::front ).c_str(),
-        update_vehicle_coupler( side::rear ).c_str() );
+        update_vehicle_coupler( end::front ).c_str(),
+        update_vehicle_coupler( end::rear ).c_str() );
 
     Output.emplace_back( std::string{ m_buffer.data() }, Global.UITextColor );
 
@@ -419,13 +419,13 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
-        mover.Couplers[ side::front ].power_high.voltage,
-        mover.Couplers[ side::front ].power_high.current,
-        std::string( mover.Couplers[ side::front ].power_high.local ? "" : "-" ).c_str(),
+        mover.Couplers[ end::front ].power_high.voltage,
+        mover.Couplers[ end::front ].power_high.current,
+        std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
         std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-        std::string( mover.Couplers[ side::rear ].power_high.local ? "" : "-" ).c_str(),
-        mover.Couplers[ side::rear ].power_high.voltage,
-        mover.Couplers[ side::rear ].power_high.current );
+        std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+        mover.Couplers[ end::rear ].power_high.voltage,
+        mover.Couplers[ end::rear ].power_high.current );
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
@@ -443,8 +443,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
-        std::abs( mover.MotorBlowers[side::front].revolutions ),
-        std::abs( mover.MotorBlowers[side::rear].revolutions ),
+        std::abs( mover.MotorBlowers[end::front].revolutions ),
+        std::abs( mover.MotorBlowers[end::rear].revolutions ),
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 
@@ -536,7 +536,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
 
     auto const *connected { (
-        Side == side::front ?
+        Side == end::front ?
             m_input.vehicle->PrevConnected :
             m_input.vehicle->NextConnected ) };
 

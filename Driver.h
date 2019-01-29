@@ -422,6 +422,7 @@ private:
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
     TDynamicObject *pVehicles[ 2 ]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
+    bool IsAnyDoorOpen[ 2 ]; // state of door in the consist
 
 // logs
 // methods
@@ -436,7 +437,7 @@ private:
 public:
     TDynamicObject const *Vehicle() const {
         return pVehicle; }
-    TDynamicObject *Vehicle( side const Side ) const {
+    TDynamicObject *Vehicle( end const Side ) const {
         return pVehicles[ Side ]; }
 private:
     std::string OwnerName() const;

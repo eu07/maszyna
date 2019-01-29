@@ -337,8 +337,8 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
-         && ( ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
-           || ( ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
+         && ( ( ( vehicle->LightList( end::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
+           || ( ( vehicle->LightList( end::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
             simulation::Lights.insert( vehicle );
         }
     }
@@ -859,7 +859,7 @@ state_serializer::deserialize_dynamic( cParser &Input, scene::scratch_data &Scra
         Scratchpad.trainset.offset -= length;
         // automatically establish permanent connections for couplers which specify them in their definitions
         if( ( coupling != 0 )
-         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? side::front : side::rear ) ].AllowedFlag & coupling::permanent ) ) {
+         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? end::front : end::rear ) ].AllowedFlag & coupling::permanent ) ) {
             coupling |= coupling::permanent;
         }
         if( true == Scratchpad.trainset.is_open ) {
