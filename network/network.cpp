@@ -70,48 +70,6 @@ void network::connection::send_complete(std::shared_ptr<std::string> buf)
 	}
 }
 
-    /*
-	if (msg->type == message::TYPE_MAX)
-	{
-		disconnect();
-		return;
-	}
-
-	if (is_client) {
-		if (msg->type == message::SERVER_HELLO) {
-			auto cmd = std::dynamic_pointer_cast<server_hello>(msg);
-
-			state = ACTIVE;
-			Global.random_seed = cmd->seed;
-			Global.random_engine.seed(Global.random_seed);
-
-			WriteLog("net: accept received", logtype::net);
-		}
-		else if (msg->type == message::FRAME_INFO) {
-			auto delta = std::dynamic_pointer_cast<frame_info>(msg);
-			auto now = std::chrono::high_resolution_clock::now();
-			delta_queue.push(std::make_pair(now, delta));
-		}
-
-	} else {
-		if (msg->type == message::CLIENT_HELLO) {
-			server_hello reply;
-			reply.seed = Global.random_seed;
-			state = ACTIVE;
-
-			send_message(reply);
-
-			WriteLog("net: client accepted", logtype::net);
-		}
-		else if (msg->type == message::REQUEST_COMMAND) {
-			auto cmd = std::dynamic_pointer_cast<request_command>(msg);
-
-			for (auto const &kv : cmd->commands)
-				client_commands_queue.emplace(kv);
-		}
-	}
-	*/
-
 // --------------
 
 /*
@@ -141,12 +99,6 @@ std::tuple<double, double, command_queue::commands_map> network::connection::get
 	//}
 }
 
-command_queue::commands_map network::connection::pop_commands()
-{
-	command_queue::commands_map map(client_commands_queue);
-	client_commands_queue.clear();
-	return map;
-}
 */
 
 // server
@@ -216,14 +168,12 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 // ------------
 
 // client
-int zzz = 10;
+int zzz = 20;
 std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
 {
-	/*
 	if (conn && conn->state == connection::DEAD) {
-		conn = nullptr;
+		conn.reset();
 	}
-	*/
 
 	if (!conn) {
 		zzz--;
@@ -272,7 +222,7 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		WriteLog("net: accept received", logtype::net);
 	}
 	else if (msg.type == message::FRAME_INFO) {
-		delta_count++;
+		resume_frame_counter++;
 
 		auto delta = dynamic_cast<const frame_info&>(msg);
 		auto now = std::chrono::high_resolution_clock::now();

@@ -169,7 +169,6 @@ void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const
 network::tcp::client::client(asio::io_context &io_ctxx, const std::string &hostarg, uint32_t portarg)
     : host(hostarg), port(portarg), io_ctx(io_ctxx)
 {
-	connect();
 }
 
 void network::tcp::client::connect()
@@ -178,23 +177,19 @@ void network::tcp::client::connect()
 		return;
 
 	std::cout << "create sock" << std::endl;
-	connection *sockr = new connection(io_ctx, false, 0);
-	//std::cout << "sock crt" << std::endl;
-	//std::unique_ptr<connection> sock(sockr);
-	//this->conn = sock;
-	//connection *sockr = new connection(io_ctx, true, delta_count);
 
-	std::shared_ptr<connection> sock(sockr);
-	this->conn = sock;
-	sock->set_handler(std::bind(&client::handle_message, this, sock, std::placeholders::_1));
+	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true, resume_frame_counter);
+	conn->set_handler(std::bind(&client::handle_message, this, conn, std::placeholders::_1));
 
 	asio::ip::tcp::endpoint endpoint(
 	            asio::ip::address::from_string(host), port);
-	sock->m_socket.open(endpoint.protocol());
-	sock->m_socket.set_option(asio::ip::tcp::no_delay(true));
-	sock->m_socket.async_connect(endpoint,
+	conn->m_socket.open(endpoint.protocol());
+	conn->m_socket.set_option(asio::ip::tcp::no_delay(true));
+	conn->m_socket.async_connect(endpoint,
 	                    std::bind(&client::handle_accept, this, std::placeholders::_1));
 	std::cout << "connect start" <<std::endl;
+
+	this->conn = conn;
 
 }
 

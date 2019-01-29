@@ -44,6 +44,7 @@ network::manager::manager()
 
 void network::manager::poll()
 {
+	io_context.restart();
 	io_context.poll();
 }
 
