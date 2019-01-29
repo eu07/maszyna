@@ -218,6 +218,7 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 
 		Global.random_seed = cmd.seed;
 		Global.random_engine.seed(Global.random_seed);
+		Global.ready_to_load = true;
 
 		WriteLog("net: accept received", logtype::net);
 	}

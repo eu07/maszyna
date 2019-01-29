@@ -28,6 +28,7 @@ struct global_settings {
     bool altState{ false };
 	std::mt19937 random_engine;
 	std::mt19937 local_random_engine;
+	bool ready_to_load { false };
 	uint32_t random_seed;
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
