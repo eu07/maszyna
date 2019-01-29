@@ -386,7 +386,8 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             // przyspieszenie czasu, zmienna do testów
             Parser.getTokens(1, false);
-            Parser >> fTimeSpeed;
+			Parser >> default_timespeed;
+			fTimeSpeed = default_timespeed;
         }
         else if (token == "multisampling")
         {
@@ -698,6 +699,13 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_shadowmap_enabled;
         }
+		else if (token == "fpslimit")
+		{
+			Parser.getTokens(1);
+			float fpslimit;
+			Parser >> fpslimit;
+			minframetime = std::chrono::duration<float>(1.0f / fpslimit);
+		}
         else if (token == "gfx.envmap.enabled")
         {
             Parser.getTokens(1);
