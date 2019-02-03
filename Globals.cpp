@@ -52,7 +52,7 @@ global_settings::ConfigParse(cParser &Parser) {
         {
 
             Parser.getTokens();
-            Parser >> asHumanCtrlVehicle;
+            Parser >> local_start_vehicle;
         }
         else if( token == "fieldofview" ) {
 

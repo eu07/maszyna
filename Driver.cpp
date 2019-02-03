@@ -1772,11 +1772,10 @@ void TController::Activation()
         }
         if (pVehicle != old)
         { // jeśli zmieniony został pojazd prowadzony
-            if( ( simulation::Train )
-             && ( simulation::Train->Dynamic() == old ) ) {
-                // ewentualna zmiana kabiny użytkownikowi
-                Global.changeDynObj = pVehicle; // uruchomienie protezy
-            }
+			// ewentualna zmiana kabiny TTrain
+			TTrain *train = simulation::Trains.find(old->name());
+			if (train)
+				train->MoveToVehicle(pVehicle);
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) -
             // silnikowy dla EZT
         }

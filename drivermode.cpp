@@ -197,9 +197,9 @@ driver_mode::update() {
 			InOutKey();
 		}
 
-		if( Global.changeDynObj ) {
-			// ABu zmiana pojazdu - przejście do innego
-			ChangeDynamic();
+		if (!FreeFlyModeFlag && simulation::Train->Dynamic() != Camera.m_owner) {
+			// fixup camera after vehicle switch
+			CabView();
 		}
 
 		if( simulation::Train != nullptr )
@@ -264,8 +264,8 @@ void
 driver_mode::enter() {
 
     TDynamicObject *nPlayerTrain { (
-        ( Global.asHumanCtrlVehicle != "ghostview" ) ?
-            simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
+		( Global.local_start_vehicle != "ghostview" ) ?
+		    simulation::Vehicles.find( Global.local_start_vehicle ) :
             nullptr ) };
 
 	Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nullptr );
@@ -277,14 +277,14 @@ driver_mode::enter() {
 
     if (nPlayerTrain)
     {
-		WriteLog( "Trying to enter player train, \"" + Global.asHumanCtrlVehicle + "\"" );
+		WriteLog( "Trying to enter player train, \"" + Global.local_start_vehicle + "\"" );
 
 		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0, nPlayerTrain->GetPosition());
 		change_train = nPlayerTrain->name();
     }
-	else if (Global.asHumanCtrlVehicle != "ghostview")
+	else if (Global.local_start_vehicle != "ghostview")
     {
-		Error("Bad scenario: failed to locate player train, \"" + Global.asHumanCtrlVehicle + "\"" );
+		Error("Bad scenario: failed to locate player train, \"" + Global.local_start_vehicle + "\"" );
     }
 
     // if (!Global.bMultiplayer) //na razie włączone
@@ -301,7 +301,7 @@ driver_mode::enter() {
         KeyEvents[ 9 ] = simulation::Events.FindEvent( "keyctrl09" );
     }
 
-    Timer::ResetTimers();
+	Timer::ResetTimers();
 
     set_picking( Global.ControlPicking );
 }
@@ -375,6 +375,12 @@ void
 driver_mode::on_event_poll() {
 
     m_input.poll();
+}
+
+
+bool
+driver_mode::is_command_processor() {
+	return true;
 }
 
 void
@@ -944,65 +950,6 @@ driver_mode::CabView() {
             * Camera.m_owner->MoverParameters->ActiveCab;
     }
     train->pMechOffset = Camera.m_owneroffset;
-}
-
-void
-driver_mode::ChangeDynamic() {
-
-    auto *train { simulation::Train };
-    if( train == nullptr ) { return; }
-
-    auto *vehicle { train->Dynamic() };
-    auto *occupied { train->Occupied() };
-    auto *driver { vehicle->Mechanik };
-    // Ra: to nie może być tak robione, to zbytnia proteza jest
-    if( driver ) {
-        // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) {
-            // tylko jeśli ręcznie prowadzony
-            // jeśli prowadzi AI, to mu nie robimy dywersji!
-            occupied->CabDeactivisation();
-            occupied->ActiveCab = 0;
-            occupied->BrakeLevelSet( occupied->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
-            vehicle->MechInside = false;
-            vehicle->Controller = AIdriver;
-        }
-    }
-    TDynamicObject *temp = Global.changeDynObj;
-    vehicle->bDisplayCab = false;
-    vehicle->ABuSetModelShake( {} );
-
-    if( driver ) // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) {
-            // tylko jeśli ręcznie prowadzony
-            // przsunięcie obiektu zarządzającego
-            driver->MoveTo( temp );
-        }
-
-    train->DynamicSet( temp );
-    // update helpers
-    train = simulation::Train;
-    vehicle = train->Dynamic();
-    occupied = train->Occupied();
-    driver = vehicle->Mechanik;
-    Global.asHumanCtrlVehicle = vehicle->name();
-    if( driver ) // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-        {
-            occupied->LimPipePress = occupied->PipePress;
-            occupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
-            vehicle->MechInside = true;
-            vehicle->Controller = Humandriver;
-        }
-    train->InitializeCab(
-        occupied->CabNo,
-        vehicle->asBaseDir + occupied->TypeName + ".mmd" );
-    if( false == FreeFlyModeFlag ) {
-        vehicle->bDisplayCab = true;
-        vehicle->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
-        CabView(); // na pozycję mecha
-    }
-    Global.changeDynObj = nullptr;
 }
 
 void

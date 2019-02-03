@@ -140,7 +140,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                     // jeśli długość nazwy jest niezerowa szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
                     auto *vehicle = (
                         pRozkaz->cString[ 1 ] == '*' ?
-                            simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
+					        simulation::Train->Dynamic() :
                             simulation::Vehicles.find( std::string{ pRozkaz->cString + 1, (unsigned)pRozkaz->cString[ 0 ] } ) );
                     if( vehicle != nullptr ) {
                         WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
@@ -181,7 +181,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
                 auto *lookup = (
                     pRozkaz->cString[ 2 ] == '*' ?
-                        simulation::Vehicles.find( Global.asHumanCtrlVehicle ) : // nazwa pojazdu użytkownika
+				        simulation::Train->Dynamic() : // nazwa pojazdu użytkownika
                         simulation::Vehicles.find( std::string( pRozkaz->cString + 2, (unsigned)pRozkaz->cString[ 1 ] ) ) ); // nazwa pojazdu
                 if( lookup == nullptr ) { break; } // nothing found, nothing to do
                 auto *d { lookup };

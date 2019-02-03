@@ -30,7 +30,6 @@ struct global_settings {
 	std::mt19937 local_random_engine;
 	bool ready_to_load { false };
 	uint32_t random_seed;
-    TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
@@ -61,7 +60,7 @@ struct global_settings {
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
     std::string SceneryFile{ "td.scn" };
-    std::string asHumanCtrlVehicle{ "EU07-424" };
+    std::string local_start_vehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
     // logs
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów

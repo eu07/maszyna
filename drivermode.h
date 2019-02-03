@@ -49,6 +49,8 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
+	bool
+	    is_command_processor() override;
 
 private:
 // types
@@ -86,7 +88,7 @@ private:
     void update_camera( const double Deltatime );
     // handles vehicle change flag
     void OnKeyDown( int cKey );
-    void ChangeDynamic();
+
     void InOutKey();
     void CabView();
     void ExternalView();
@@ -99,7 +101,7 @@ private:
     TCamera Camera;
     TCamera DebugCamera;
     int m_externalviewmode { view::consistfront }; // selected external view mode
-    bool m_externalview { false };
+	bool m_externalview { true };
     std::array<view_config, view::count_> m_externalviewconfigs;
     TDynamicObject *pDynamicNearest { nullptr }; // vehicle nearest to the active camera. TODO: move to camera
     double fTime50Hz { 0.0 }; // bufor czasu dla komunikacji z PoKeys

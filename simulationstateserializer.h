@@ -14,21 +14,37 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
+struct deserializer_state {
+	std::string scenariofile;
+	cParser input;
+	scene::scratch_data scratchpad;
+	using deserializefunctionbind = std::function<void()>;
+	std::unordered_map<
+	    std::string,
+	    deserializefunctionbind> functionmap;
+
+	deserializer_state(std::string const &File, cParser::buffertype const Type, const std::string &Path, bool const Loadtraction)
+	    : scenariofile(File), input(File, Type, Path, Loadtraction) { }
+};
+
 class state_serializer {
 
 public:
+
 // methods
-    // restores simulation data from specified file. returns: true on success, false otherwise
-    bool
-        deserialize( std::string const &Scenariofile );
+	// starts deserialization from specified file, returns context pointer on success, throws otherwise
+	std::shared_ptr<deserializer_state>
+	    deserialize_begin(std::string const &Scenariofile);
+	// continues deserialization for given context, amount limited by time, returns true if needs to be called again
+	bool
+	    deserialize_continue(std::shared_ptr<deserializer_state> state);
     // stores class data in specified file, in legacy (text) format
     void
         export_as_text( std::string const &Scenariofile ) const;
 
 private:
 // methods
-    // restores class data from provided stream
-    void deserialize( cParser &Input, scene::scratch_data &Scratchpad );
+	// restores class data from provided stream
     void deserialize_area( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_camera( cParser &Input, scene::scratch_data &Scratchpad );

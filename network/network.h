@@ -16,7 +16,7 @@ namespace network
 		friend class client;
 
 	private:
-		const size_t CATCHUP_PACKETS = 100;
+		const int CATCHUP_PACKETS = 100;
 
 		/*
 		std::queue<
@@ -74,7 +74,7 @@ namespace network
 
 	public:
 		server(std::shared_ptr<std::istream> buf);
-		void push_delta(double dt, double sync, const command_queue::commands_map &commands);
+		void push_delta(const frame_info &msg);
 		command_queue::commands_map pop_commands();
 	};
 
@@ -85,12 +85,16 @@ namespace network
 		void handle_message(std::shared_ptr<connection> conn, const message &msg);
 		std::shared_ptr<connection> conn;
 		size_t resume_frame_counter = 0;
+		size_t reconnect_delay = 0;
+
+		const size_t RECONNECT_DELAY_FRAMES = 60;
 
 		std::queue<
 		    std::pair<std::chrono::high_resolution_clock::time_point,
 		        frame_info>> delta_queue;
 
 	public:
+		void update();
 		std::tuple<double, double, command_queue::commands_map> get_next_delta();
 		void send_commands(command_queue::commands_map commands);
 	};

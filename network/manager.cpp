@@ -22,13 +22,13 @@ void network::server_manager::push_delta(double dt, double sync, const command_q
 	if (dt == 0.0 && commands.empty())
 		return;
 
-	for (auto srv : servers)
-		srv->push_delta(dt, sync, commands);
-
 	frame_info msg;
 	msg.dt = dt;
 	msg.sync = sync;
 	msg.commands = commands;
+
+	for (auto srv : servers)
+		srv->push_delta(msg);
 
 	serialize_message(msg, *backbuffer.get());
 }
@@ -42,10 +42,13 @@ network::manager::manager()
 {
 }
 
-void network::manager::poll()
+void network::manager::update()
 {
 	io_context.restart();
 	io_context.poll();
+
+	if (client)
+		client->update();
 }
 
 void network::manager::create_server(const std::string &host, uint32_t port)

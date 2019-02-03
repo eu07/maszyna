@@ -9,10 +9,14 @@ network::tcp::connection::connection(asio::io_context &io_ctx, bool client, size
 	m_header_buffer.resize(8);
 }
 
+network::tcp::connection::~connection()
+{
+	m_socket.close();
+}
+
 void network::tcp::connection::disconnect()
 {
 	network::connection::disconnect();
-	m_socket.close();
 }
 
 void network::tcp::connection::send_data(std::shared_ptr<std::string> buffer)
@@ -176,8 +180,6 @@ void network::tcp::client::connect()
 	if (this->conn)
 		return;
 
-	std::cout << "create sock" << std::endl;
-
 	std::shared_ptr<connection> conn = std::make_shared<connection>(io_ctx, true, resume_frame_counter);
 	conn->set_handler(std::bind(&client::handle_message, this, conn, std::placeholders::_1));
 
@@ -187,7 +189,6 @@ void network::tcp::client::connect()
 	conn->m_socket.set_option(asio::ip::tcp::no_delay(true));
 	conn->m_socket.async_connect(endpoint,
 	                    std::bind(&client::handle_accept, this, std::placeholders::_1));
-	std::cout << "connect start" <<std::endl;
 
 	this->conn = conn;
 
@@ -195,7 +196,6 @@ void network::tcp::client::connect()
 
 void network::tcp::client::handle_accept(const asio::error_code &err)
 {
-	std::cout << "connect handl" <<std::endl;
 	if (!err)
 	{
 		conn->connected();
@@ -203,6 +203,6 @@ void network::tcp::client::handle_accept(const asio::error_code &err)
 	else
 	{
 		WriteLog(std::string("net: failed to connect: " + err.message()), logtype::net);
-		conn->state = connection::DEAD;
+		conn->disconnect();
 	}
 }

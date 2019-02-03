@@ -9,9 +9,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "application.h"
-#include "scenarioloadermode.h"
 #include "drivermode.h"
 #include "editormode.h"
+#include "scenarioloadermode.h"
 
 #include "Globals.h"
 #include "simulation.h"
@@ -104,20 +104,20 @@ eu07_application::init( int Argc, char *Argv[] ) {
 
     int result { 0 };
 
-	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
-	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
-	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
-
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
         return result;
     }
+
+	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
+	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
+	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
+
     if( ( result = init_locale() ) != 0 ) {
         return result;
     }
-
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
@@ -171,81 +171,94 @@ eu07_application::run() {
 
 		double frameStartTime = Timer::GetTime();
 
-		bool nextloop = true;
-		while (nextloop)
-		{
-			command_queue::commands_map commands_to_exec;
-			command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
-			double slave_sync;
+		if (m_modes[m_modestack.top()]->is_command_processor()) {
+			// active mode is doing real calculations (e.g. drivermode)
 
-			// if we're the server
-			if (m_network && m_network->servers)
+			bool nextloop = true;
+			while (nextloop)
 			{
-				// fetch from network layer command requests received from clients
-				command_queue::commands_map remote_commands = m_network->servers->pop_commands();
+				command_queue::commands_map commands_to_exec;
+				command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
+				double slave_sync;
 
-				// push these into local queue
-				add_to_dequemap(local_commands, remote_commands);
-			}
+				// if we're the server
+				if (m_network && m_network->servers)
+				{
+					// fetch from network layer command requests received from clients
+					command_queue::commands_map remote_commands = m_network->servers->pop_commands();
 
-			// if we're slave
-			if (m_network && m_network->client)
-			{
-				// fetch frame info from network layer,
-				auto frame_info = m_network->client->get_next_delta();
+					// push these into local queue
+					add_to_dequemap(local_commands, remote_commands);
+				}
 
-				// use delta and commands received from master
-				double delta = std::get<0>(frame_info);
-				Timer::set_delta_override(delta);
-				slave_sync = std::get<1>(frame_info);
-				add_to_dequemap(commands_to_exec, std::get<2>(frame_info));
+				// if we're slave
+				if (m_network && m_network->client)
+				{
+					// fetch frame info from network layer,
+					auto frame_info = m_network->client->get_next_delta();
 
-				// and send our local commands to master
-				m_network->client->send_commands(local_commands);
+					// use delta and commands received from master
+					double delta = std::get<0>(frame_info);
+					Timer::set_delta_override(delta);
+					slave_sync = std::get<1>(frame_info);
+					add_to_dequemap(commands_to_exec, std::get<2>(frame_info));
 
-				if (delta == 0.0)
+					// and send our local commands to master
+					m_network->client->send_commands(local_commands);
+
+					if (delta == 0.0)
+						nextloop = false;
+				}
+				// if we're master
+				else {
+					// just push local commands to execution
+					add_to_dequemap(commands_to_exec, local_commands);
+
 					nextloop = false;
-			}
-			// if we're master
-			else {
-				// just push local commands to execution
-				add_to_dequemap(commands_to_exec, local_commands);
+				}
 
-				nextloop = false;
-			}
+				// send commands to command queue
+				simulation::Commands.push_commands(commands_to_exec);
 
-			// send commands to command queue
-			simulation::Commands.push_commands(commands_to_exec);
+				// do actual frame processing
+				if (!m_modes[ m_modestack.top() ]->update())
+					goto die;
+
+				// update continuous commands
+				simulation::Commands.update();
+
+				double sync = generate_sync();
+
+				// if we're the server
+				if (m_network && m_network->servers)
+				{
+					// send delta, sync, and commands we just executed to clients
+					double delta = Timer::GetDeltaTime();
+					m_network->servers->push_delta(delta, sync, commands_to_exec);
+				}
+
+				// if we're slave
+				if (m_network && m_network->client)
+				{
+					// verify sync
+					if (sync != slave_sync) {
+						WriteLog("net: DESYNC!", logtype::net);
+					}
+
+					// set total delta for rendering code
+					double totalDelta = Timer::GetTime() - frameStartTime;
+					Timer::set_delta_override(totalDelta);
+				}
+			}
+		} else {
+			// active mode is loader
+
+			// clear local command queue
+			simulation::Commands.pop_intercept_queue();
 
 			// do actual frame processing
 			if (!m_modes[ m_modestack.top() ]->update())
 				goto die;
-
-			// update continuous commands
-			simulation::Commands.update();
-
-			double sync = generate_sync();
-
-			// if we're the server
-			if (m_network && m_network->servers)
-			{
-				// send delta, sync, and commands we just executed to clients
-				double delta = Timer::GetDeltaTime();
-				m_network->servers->push_delta(delta, sync, commands_to_exec);
-			}
-
-			// if we're slave
-			if (m_network && m_network->client)
-			{
-				// verify sync
-				if (sync != slave_sync) {
-					WriteLog("net: DESYNC!", logtype::net);
-				}
-
-				// set total delta for rendering code
-				double totalDelta = Timer::GetTime() - frameStartTime;
-				Timer::set_delta_override(totalDelta);
-			}
 		}
 
 		// -------------------------------------------------------------------
@@ -269,7 +282,7 @@ eu07_application::run() {
         }
 
 		if (m_network)
-			m_network->poll();
+			m_network->update();
 
 		auto frametime = Timer::subsystem.mainloop_total.stop();
 		if (Global.minframetime.count() != 0.0f && (Global.minframetime - frametime).count() > 0.0f)
@@ -490,7 +503,7 @@ eu07_application::init_files() {
 #elif __linux__
 	unlink("log.txt");
 	unlink("errors.txt");
-	mkdir("logs", 0664);
+	mkdir("logs", 0755);
 #endif
 }
 
@@ -519,7 +532,7 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
         }
         else if( token == "-v" ) {
             if( i + 1 < Argc ) {
-                Global.asHumanCtrlVehicle = ToLower( Argv[ ++i ] );
+				Global.local_start_vehicle = ToLower( Argv[ ++i ] );
             }
         }
         else {
@@ -708,6 +721,11 @@ bool eu07_application::init_network() {
 		}
 		if (Global.network_conf.is_client) {
 			m_network->connect(Global.network_conf.client_host, Global.network_conf.client_port);
+		}
+		else {
+			Global.random_seed = std::random_device{}();
+			Global.random_engine.seed(Global.random_seed);
+			Global.ready_to_load = true;
 		}
 	}
 

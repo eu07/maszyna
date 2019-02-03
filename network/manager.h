@@ -32,6 +32,6 @@ namespace network
 
 		void create_server(const std::string &host, uint32_t port);
 		void connect(const std::string &host, uint32_t port);
-		void poll();
+		void update();
 	};
 }

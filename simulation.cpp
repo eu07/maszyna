@@ -45,10 +45,16 @@ TTrain *Train { nullptr };
 uint16_t prev_train_id { 0 };
 bool is_ready { false };
 
-bool
-state_manager::deserialize( std::string const &Scenariofile ) {
+std::shared_ptr<deserializer_state>
+state_manager::deserialize_begin(std::string const &Scenariofile) {
 
-    return m_serializer.deserialize( Scenariofile );
+	return m_serializer.deserialize_begin( Scenariofile );
+}
+
+bool
+state_manager::deserialize_continue(std::shared_ptr<deserializer_state> state) {
+
+	return m_serializer.deserialize_continue(state);
 }
 
 // stores class data in specified file, in legacy (text) format

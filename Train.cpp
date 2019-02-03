@@ -4749,11 +4749,12 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
         if( false == Train->CabChange( 1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::front ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->PrevConnected;
-                Global.changeDynObj->MoverParameters->ActiveCab = (
+				TDynamicObject *dynobj = Train->DynamicObject->PrevConnected;
+				dynobj->MoverParameters->ActiveCab = (
                     Train->DynamicObject->PrevConnectedNo ?
                     -1 :
                      1 );
+				Train->MoveToVehicle(dynobj);
             }
         }
     }
@@ -4765,11 +4766,12 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
         if( false == Train->CabChange( -1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ side::rear ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->NextConnected;
-                Global.changeDynObj->MoverParameters->ActiveCab = (
+				TDynamicObject *dynobj = Train->DynamicObject->NextConnected;
+				dynobj->MoverParameters->ActiveCab = (
                     Train->DynamicObject->NextConnectedNo ?
                     -1 :
                      1 );
+				Train->MoveToVehicle(dynobj);
             }
         }
     }
@@ -6910,6 +6912,58 @@ void TTrain::DynamicSet(TDynamicObject *d)
                     (TMoverParameters *)mvOccupied->Couplers[0].Connected; // wskaźnik na drugiego
         }
 };
+
+void
+TTrain::MoveToVehicle(TDynamicObject *target) {
+	ErrorLog("MoveToVehicle");
+	// > Ra: to nie może być tak robione, to zbytnia proteza jest
+	// indeed, too much hacks...
+
+	simulation::Trains.detach(Dynamic()->name());
+
+	if( Dynamic()->Mechanik ) {
+		// AI może sobie samo pójść
+		if( false == Dynamic()->Mechanik->AIControllFlag ) {
+			// tylko jeśli ręcznie prowadzony
+			// jeśli prowadzi AI, to mu nie robimy dywersji!
+			Occupied()->CabDeactivisation();
+			Occupied()->ActiveCab = 0;
+			Occupied()->BrakeLevelSet( Occupied()->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
+			Dynamic()->MechInside = false;
+			Dynamic()->Controller = AIdriver;
+		}
+	}
+
+	Dynamic()->bDisplayCab = false;
+	Dynamic()->ABuSetModelShake( {} );
+
+	if( Dynamic()->Mechanik ) // AI może sobie samo pójść
+		if( false == Dynamic()->Mechanik->AIControllFlag ) {
+			// tylko jeśli ręcznie prowadzony
+			// przsunięcie obiektu zarządzającego
+			Dynamic()->Mechanik->MoveTo( target );
+		}
+
+	DynamicSet( target );
+
+	if( Dynamic()->Mechanik ) // AI może sobie samo pójść
+		if( false == Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
+		{
+			Occupied()->LimPipePress = Occupied()->PipePress;
+			Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			Dynamic()->MechInside = true;
+			Dynamic()->Controller = Humandriver;
+		}
+	InitializeCab(
+	    Occupied()->CabNo,
+	    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
+	if( false == FreeFlyModeFlag ) {
+		Dynamic()->bDisplayCab = true;
+		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
+	}
+
+	simulation::Trains.insert(this, Dynamic()->name());
+}
 
 // checks whether specified point is within boundaries of the active cab
 bool

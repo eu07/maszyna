@@ -46,8 +46,16 @@ public:
 		auto lookup = m_itemmap.find( Name );
 		if (lookup == m_itemmap.end())
 			return;
-
 		delete m_items[lookup->second];
+
+		detach(Name);
+	}
+	void detach (std::string const &Name)
+	{
+		auto lookup = m_itemmap.find( Name );
+		if (lookup == m_itemmap.end())
+			return;
+
 		m_items[lookup->second] = nullptr;
 		// TBD, TODO: remove from m_items?
 

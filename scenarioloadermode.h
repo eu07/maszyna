@@ -10,8 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "applicationmode.h"
+#include "simulation.h"
 
 class scenarioloader_mode : public application_mode {
+	std::shared_ptr<simulation::deserializer_state> state;
+	std::chrono::system_clock::time_point timestart;
 
 public:
 // constructors
@@ -40,4 +43,6 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override { ; }
     void
         on_event_poll() override { ; }
+	bool
+	    is_command_processor() override;
 };

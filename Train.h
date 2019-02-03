@@ -670,6 +670,7 @@ private:
     inline TMoverParameters *Occupied() { return mvOccupied; };
     inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
+	void MoveToVehicle(TDynamicObject *target);
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;

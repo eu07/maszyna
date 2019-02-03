@@ -2114,9 +2114,6 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			m_sunlight.apply_intensity(Dynamic->fShade);
 		}
 
-		// calc_motion = true;
-		// std::cout << glm::to_string(glm::vec3(Dynamic->get_velocity_vec())) << std::endl;
-
 		// render
 		if (Dynamic->mdLowPolyInt)
 			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
@@ -2128,7 +2125,6 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 			Render(Dynamic->mdLoad, Dynamic->Material(), squaredistance, {0.f, Dynamic->LoadOffset, 0.f}, {});
 
 		// post-render cleanup
-		// calc_motion = false;
 
 		if (Dynamic->fShade > 0.0f)
 		{

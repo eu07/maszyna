@@ -14,6 +14,7 @@ namespace network::tcp
 
 	public:
 		connection(asio::io_context &io_ctx, bool client = false, size_t counter = 0);
+		~connection();
 
 		virtual void connected() override;
 		virtual void disconnect() override;

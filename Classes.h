@@ -74,4 +74,8 @@ enum class TCommandType
 using material_handle = int;
 using texture_handle = int;
 
+struct invalid_scenery_exception : std::runtime_error {
+	invalid_scenery_exception() : std::runtime_error("cannot load scenery") {}
+};
+
 #endif

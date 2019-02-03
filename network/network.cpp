@@ -40,27 +40,29 @@ void network::connection::catch_up()
 
 	std::vector<std::shared_ptr<message>> messages;
 
-	for (size_t i = 0; i < CATCHUP_PACKETS; i++) {
+	for (int i = 0; i < CATCHUP_PACKETS; i++) {
 		if (backbuffer->peek() == EOF) {
 			send_messages(messages);
-			backbuffer->seekg(0, std::ios_base::end);
 			state = ACTIVE;
+			backbuffer->seekg(0, std::ios_base::end);
 			return;
 		}
 
+		auto msg = deserialize_message(*backbuffer.get());
+
 		if (packet_counter) {
 			packet_counter--;
+			i--; // TODO: it would be better to skip frames in chunks
 			continue;
 		}
 
-		messages.push_back(deserialize_message(*backbuffer.get()));
+		messages.push_back(msg);
 	}
 
-	send_messages(messages);
-
 	backbuffer_pos = backbuffer->tellg();
-
 	backbuffer->seekg(0, std::ios_base::end);
+
+	send_messages(messages);
 }
 
 void network::connection::send_complete(std::shared_ptr<std::string> buf)
@@ -108,13 +110,8 @@ network::server::server(std::shared_ptr<std::istream> buf) : backbuffer(buf)
 
 }
 
-void network::server::push_delta(double dt, double sync, const command_queue::commands_map &commands)
+void network::server::push_delta(const frame_info &msg)
 {
-	frame_info msg;
-	msg.dt = dt;
-	msg.sync = sync;
-	msg.commands = commands;
-
 	for (auto it = clients.begin(); it != clients.end(); ) {
 		if ((*it)->state == connection::DEAD) {
 			it = clients.erase(it);
@@ -146,6 +143,11 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 	if (msg.type == message::CLIENT_HELLO) {
 		auto cmd = dynamic_cast<const client_hello&>(msg);
 
+		if (cmd.version != 1) {
+			conn->disconnect();
+			return;
+		}
+
 		server_hello reply;
 		reply.seed = Global.random_seed;
 		conn->state = connection::CATCHING_UP;
@@ -167,20 +169,24 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 
 // ------------
 
-// client
-int zzz = 20;
-std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
+void network::client::update()
 {
 	if (conn && conn->state == connection::DEAD) {
 		conn.reset();
 	}
 
 	if (!conn) {
-		zzz--;
-		if (zzz < 0)
+		if (!reconnect_delay) {
 			connect();
+			reconnect_delay = RECONNECT_DELAY_FRAMES;
+		}
+		reconnect_delay--;
 	}
+}
 
+// client
+std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
+{
 	if (delta_queue.empty()) {
 		return std::tuple<double, double,
 		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
@@ -189,6 +195,7 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 	auto entry = delta_queue.front();
 	delta_queue.pop();
 
+	auto &delta = entry.second;
 	return std::make_tuple(entry.second.dt, entry.second.sync, entry.second.commands);
 }
 
@@ -216,9 +223,11 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		auto cmd = dynamic_cast<const server_hello&>(msg);
 		conn->state = connection::ACTIVE;
 
-		Global.random_seed = cmd.seed;
-		Global.random_engine.seed(Global.random_seed);
-		Global.ready_to_load = true;
+		if (!Global.ready_to_load) {
+			Global.random_seed = cmd.seed;
+			Global.random_engine.seed(Global.random_seed);
+			Global.ready_to_load = true;
+		}
 
 		WriteLog("net: accept received", logtype::net);
 	}
