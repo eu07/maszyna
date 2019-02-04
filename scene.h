@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "Traction.h"
 #include "sound.h"
+#include "command.h"
 
 class opengl_renderer;
 namespace scene {
@@ -169,7 +170,7 @@ private:
     using memorycell_sequence = std::vector<TMemCell *>;
 // methods
     void
-        launch_event( TEventLauncher *Launcher );
+	    launch_event(TEventLauncher *Launcher , bool local_only);
     void
         enclose_area( scene::basic_node *Node );
 // members
@@ -194,6 +195,7 @@ private:
     bool m_geometrycreated { false };
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
+	command_relay m_relay;
 };
 
 // basic scene partitioning structure, holds terrain geometry and collection of cells

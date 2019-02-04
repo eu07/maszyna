@@ -6918,51 +6918,90 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 	ErrorLog("MoveToVehicle");
 	// > Ra: to nie może być tak robione, to zbytnia proteza jest
 	// indeed, too much hacks...
+	// TODO: cleanup
 
-	simulation::Trains.detach(Dynamic()->name());
+	TTrain *target_train = simulation::Trains.find(target->name());
+	if (target_train) {
+		// let's try to destroy this TTrain and move to already existing one
 
-	if( Dynamic()->Mechanik ) {
-		// AI może sobie samo pójść
-		if( false == Dynamic()->Mechanik->AIControllFlag ) {
+		if (!Dynamic()->Mechanik || !Dynamic()->Mechanik->AIControllFlag) {
 			// tylko jeśli ręcznie prowadzony
 			// jeśli prowadzi AI, to mu nie robimy dywersji!
+
 			Occupied()->CabDeactivisation();
 			Occupied()->ActiveCab = 0;
-			Occupied()->BrakeLevelSet( Occupied()->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
+			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
 			Dynamic()->MechInside = false;
 			Dynamic()->Controller = AIdriver;
+
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			Dynamic()->Mechanik->MoveTo(target);
+
+			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
+			target_train->Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			target_train->Dynamic()->MechInside = true;
+			target_train->Dynamic()->Controller = Humandriver;
+		} else {
+			target_train->Dynamic()->bDisplayCab = false;
+			target_train->Dynamic()->ABuSetModelShake( {} );
 		}
-	}
 
-	Dynamic()->bDisplayCab = false;
-	Dynamic()->ABuSetModelShake( {} );
+		target_train->Dynamic()->bDisplayCab = true;
+		target_train->Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
 
-	if( Dynamic()->Mechanik ) // AI może sobie samo pójść
-		if( false == Dynamic()->Mechanik->AIControllFlag ) {
+		// potentially move player
+		if (simulation::Train == this) {
+			simulation::Train = target_train;
+		}
+
+		// delete this TTrain
+		pending_delete = true;
+	} else {
+		// move this TTrain to other dynamic
+
+		// remove TTrain from global list, we're going to change dynamic anyway
+		simulation::Trains.detach(Dynamic()->name());
+
+		if (!Dynamic()->Mechanik || !Dynamic()->Mechanik->AIControllFlag) {
 			// tylko jeśli ręcznie prowadzony
-			// przsunięcie obiektu zarządzającego
-			Dynamic()->Mechanik->MoveTo( target );
-		}
+			// jeśli prowadzi AI, to mu nie robimy dywersji!
 
-	DynamicSet( target );
+			Occupied()->CabDeactivisation();
+			Occupied()->ActiveCab = 0;
+			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
+			Dynamic()->MechInside = false;
+			Dynamic()->Controller = AIdriver;
 
-	if( Dynamic()->Mechanik ) // AI może sobie samo pójść
-		if( false == Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-		{
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			Dynamic()->Mechanik->MoveTo(target);
+
+			DynamicSet(target);
+
 			Occupied()->LimPipePress = Occupied()->PipePress;
 			Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
 			Dynamic()->MechInside = true;
 			Dynamic()->Controller = Humandriver;
+		} else {
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			DynamicSet(target);
 		}
-	InitializeCab(
-	    Occupied()->CabNo,
-	    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
-	if( false == FreeFlyModeFlag ) {
+
+		InitializeCab(
+		    Occupied()->CabNo,
+		    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
+
 		Dynamic()->bDisplayCab = true;
 		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
-	}
 
-	simulation::Trains.insert(this, Dynamic()->name());
+		// add it back with updated dynamic name
+		simulation::Trains.insert(this, Dynamic()->name());
+	}
 }
 
 // checks whether specified point is within boundaries of the active cab
@@ -8140,5 +8179,10 @@ void train_table::update(double dt)
 		if (!train)
 			continue;
 		train->Update(dt);
+		if (train->pending_delete) {
+			purge(train->Dynamic()->name());
+			if (simulation::Train == train)
+				simulation::Train = nullptr;
+		}
 	}
 }

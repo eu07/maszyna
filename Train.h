@@ -690,6 +690,7 @@ private:
     void set_localbrake(float);
 
 	uint16_t id();
+	bool pending_delete = false;
 };
 
 class train_table : public basic_table<TTrain> {

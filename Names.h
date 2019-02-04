@@ -19,7 +19,8 @@ public:
 // destructor
     ~basic_table() {
         for( auto *item : m_items ) {
-            delete item; } }
+			if (item)
+				delete item; } }
 // methods
     // adds provided item to the collection. returns: true if there's no duplicate with the same name, false otherwise
     bool

@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "EvLaunch.h"
 #include "Logs.h"
 #include "lua.h"
+#include "command.h"
 
 // common event interface
 class basic_event {
@@ -632,6 +633,7 @@ private:
     event_map m_eventmap;
     basic_table<TEventLauncher> m_launchers;
     eventlauncher_sequence m_launcherqueue;
+	command_relay m_relay;
 };
 
 

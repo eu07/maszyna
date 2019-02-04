@@ -716,17 +716,18 @@ eu07_application::init_modes() {
 bool eu07_application::init_network() {
 	if (Global.network_conf.is_server || Global.network_conf.is_client) {
 		m_network.emplace();
-		if (Global.network_conf.is_server) {
-			m_network->create_server(Global.network_conf.server_host, Global.network_conf.server_port);
-		}
-		if (Global.network_conf.is_client) {
-			m_network->connect(Global.network_conf.client_host, Global.network_conf.client_port);
-		}
-		else {
-			Global.random_seed = std::random_device{}();
-			Global.random_engine.seed(Global.random_seed);
-			Global.ready_to_load = true;
-		}
+	}
+
+	if (Global.network_conf.is_server) {
+		m_network->create_server(Global.network_conf.server_host, Global.network_conf.server_port);
+	}
+	if (Global.network_conf.is_client) {
+		m_network->connect(Global.network_conf.client_host, Global.network_conf.client_port);
+	}
+	else {
+		Global.random_seed = std::random_device{}();
+		Global.random_engine.seed(Global.random_seed);
+		Global.ready_to_load = true;
 	}
 
 	return true;

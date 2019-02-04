@@ -31,22 +31,23 @@ http://mozilla.org/MPL/2.0/.
 // encodes expected key in a short, where low byte represents the actual key,
 // and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
 int vk_to_glfw_key( int const Keycode ) {
+	char modifier = 0;
+	char key = 0;
 
-#ifdef _WIN32
-    auto const code = VkKeyScan( Keycode );
-#else
-	auto const code = (short int)Keycode;
-#endif
-    char key = code & 0xff;
-    char shiftstate = ( code & 0xff00 ) >> 8;
+	if (Keycode < 'A') {
+		key = Keycode;
+	} else if (Keycode <= 'Z') {
+		key = Keycode;
+		modifier = GLFW_MOD_SHIFT;
+	} else if (Keycode < 'a') {
+		key = Keycode;
+	} else if (Keycode <= 'z') {
+		key = Keycode - 32;
+	} else {
+		ErrorLog("unknown key: " + std::to_string(Keycode));
+	}
 
-    if( (key >= 'A') && (key <= 'Z') ) {
-        key = GLFW_KEY_A + key - 'A';
-    }
-    else if( ( key >= '0' ) && ( key <= '9' ) ) {
-        key = GLFW_KEY_0 + key - '0';
-    }
-    return key + ( shiftstate << 8 );
+	return ((int)modifier << 8) | key;
 }
 
 bool TEventLauncher::Load(cParser *parser)
@@ -137,23 +138,25 @@ bool TEventLauncher::Load(cParser *parser)
     return true;
 }
 
+bool TEventLauncher::check_activation_key() {
+
+	char key = iKey & 0xff;
+
+	bool result = Console::Pressed(key);
+
+	char modifier = iKey >> 8;
+	if (modifier & GLFW_MOD_SHIFT)
+		result |= Global.shiftState;
+	if (modifier & GLFW_MOD_CONTROL)
+		result |= Global.ctrlState;
+
+	return result;
+}
+
 bool TEventLauncher::check_activation() {
 
     auto bCond { false };
 
-    if( iKey != 0 ) {
-        if( iKey > 255 ) {
-            // key and modifier
-            auto const modifier = ( iKey & 0xff00 ) >> 8;
-            bCond = ( Console::Pressed( iKey & 0xff ) )
-                 && ( ( modifier & 1 ) ? Global.shiftState : true )
-                 && ( ( modifier & 2 ) ? Global.ctrlState : true );
-        }
-        else {
-            // just key
-            bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
-        }
-    }
     if( DeltaTime > 0 ) {
         if( UpdatedTime > DeltaTime ) {
             UpdatedTime = 0; // naliczanie od nowa
@@ -240,14 +243,13 @@ TEventLauncher::export_as_text_( std::ostream &Output ) const {
         << ( dRadius > 0 ? std::sqrt( dRadius ) : dRadius ) << ' ';
     // activation key
     if( iKey != 0 ) {
-        auto const key { iKey & 0xff };
-        auto const modifier { ( iKey & 0xff00 ) >> 8 };
-        if( ( key >= GLFW_KEY_A ) && ( key <= GLFW_KEY_Z ) ) {
-            Output << static_cast<char>(( 'A' + key - GLFW_KEY_A + ( ( modifier & 1 ) == 0 ? 32 : 0 ) )) << ' ';
-        }
-        else if( ( key >= GLFW_KEY_0 ) && ( key <= GLFW_KEY_9 ) ) {
-            Output << static_cast<char>(( '0' + key - GLFW_KEY_0 )) << ' ';
-        }
+		auto key { iKey & 0xff };
+		auto const modifier { iKey >> 8 };
+
+		if (key >= 'A' && key <= 'Z' && !(modifier & GLFW_MOD_SHIFT))
+			key += 32;
+
+		Output << (char)key;
     }
     else {
         Output << "none ";
