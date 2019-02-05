@@ -16,7 +16,7 @@ namespace network
 		friend class client;
 
 	private:
-		const int CATCHUP_PACKETS = 500;
+		const int CATCHUP_PACKETS = 300;
 
 		/*
 		std::queue<
