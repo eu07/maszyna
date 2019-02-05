@@ -174,8 +174,8 @@ eu07_application::run() {
 		if (m_modes[m_modestack.top()]->is_command_processor()) {
 			// active mode is doing real calculations (e.g. drivermode)
 
-			bool nextloop = true;
-			while (nextloop)
+			int loop_remaining = MAX_NETWORK_PER_FRAME;
+			while (--loop_remaining > 0)
 			{
 				command_queue::commands_map commands_to_exec;
 				command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
@@ -207,14 +207,14 @@ eu07_application::run() {
 					m_network->client->send_commands(local_commands);
 
 					if (delta == 0.0)
-						nextloop = false;
+						loop_remaining = -1;
 				}
 				// if we're master
 				else {
 					// just push local commands to execution
 					add_to_dequemap(commands_to_exec, local_commands);
 
-					nextloop = false;
+					loop_remaining = -1;
 				}
 
 				// send commands to command queue
@@ -242,13 +242,25 @@ eu07_application::run() {
 				{
 					// verify sync
 					if (sync != slave_sync) {
-						WriteLog("net: DESYNC!", logtype::net);
+						WriteLog("net: desync! calculated: " + std::to_string(sync)
+						         + ", received: " + std::to_string(slave_sync), logtype::net);
 					}
 
 					// set total delta for rendering code
 					double totalDelta = Timer::GetTime() - frameStartTime;
 					Timer::set_delta_override(totalDelta);
 				}
+			}
+
+			if (!loop_remaining) {
+				// loop break forced by counter
+				float received = m_network->client->get_frame_counter();
+				float awaiting = m_network->client->get_awaiting_frames();
+
+				// TODO: don't meddle with mode progresbar
+				m_modes[m_modestack.top()]->set_progress(100.0f, 100.0f * (received - awaiting) / received);
+			} else {
+				m_modes[m_modestack.top()]->set_progress(0.0f, 0.0f);
 			}
 		} else {
 			// active mode is loader
@@ -714,18 +726,23 @@ eu07_application::init_modes() {
 }
 
 bool eu07_application::init_network() {
-	if (Global.network_conf.is_server || Global.network_conf.is_client) {
+	if (!Global.network_servers.empty() || Global.network_client) {
+		// create network manager
 		m_network.emplace();
 	}
 
-	if (Global.network_conf.is_server) {
-		m_network->create_server(Global.network_conf.server_host, Global.network_conf.server_port);
+	for (auto const &pair : Global.network_servers) {
+		// create all servers
+		m_network->create_server(pair.first, pair.second);
 	}
-	if (Global.network_conf.is_client) {
-		m_network->connect(Global.network_conf.client_host, Global.network_conf.client_port);
-	}
-	else {
-		Global.random_seed = std::random_device{}();
+
+	if (Global.network_client) {
+		// create client
+		m_network->connect(Global.network_client->first, Global.network_client->second);
+	} else {
+		// we're simulation master
+		if (!Global.random_seed)
+			Global.random_seed = std::random_device{}();
 		Global.random_engine.seed(Global.random_seed);
 		Global.ready_to_load = true;
 	}

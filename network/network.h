@@ -16,7 +16,7 @@ namespace network
 		friend class client;
 
 	private:
-		const int CATCHUP_PACKETS = 100;
+		const int CATCHUP_PACKETS = 500;
 
 		/*
 		std::queue<
@@ -97,5 +97,21 @@ namespace network
 		void update();
 		std::tuple<double, double, command_queue::commands_map> get_next_delta();
 		void send_commands(command_queue::commands_map commands);
+		int get_frame_counter() {
+			return resume_frame_counter;
+		}
+		int get_awaiting_frames() {
+			return delta_queue.size();
+		}
 	};
+
+	class backend_manager
+	{
+	public:
+		virtual std::shared_ptr<server> create_server(std::shared_ptr<std::fstream>, const std::string &conf) = 0;
+		virtual std::shared_ptr<client> create_client(const std::string &conf) = 0;
+		virtual void update() = 0;
+	};
+
+	extern std::unordered_map<std::string, backend_manager*> backend_list;
 }

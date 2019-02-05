@@ -1,6 +1,5 @@
 #include "network/manager.h"
 #include "simulation.h"
-#include "network/backend/asio.h"
 
 network::server_manager::server_manager()
 {
@@ -33,9 +32,15 @@ void network::server_manager::push_delta(double dt, double sync, const command_q
 	serialize_message(msg, *backbuffer.get());
 }
 
-void network::server_manager::create_server(asio::io_context &ctx, const std::string &host, uint32_t port)
+void network::server_manager::create_server(const std::string &backend, const std::string &conf)
 {
-	servers.emplace_back(std::make_shared<tcp::server>(backbuffer, ctx, host, port));
+	auto it = backend_list.find(backend);
+	if (it == backend_list.end()) {
+		ErrorLog("net: unknown backend: " + backend);
+		return;
+	}
+
+	servers.emplace_back(it->second->create_server(backbuffer, conf));
 }
 
 network::manager::manager()
@@ -44,20 +49,28 @@ network::manager::manager()
 
 void network::manager::update()
 {
-	io_context.restart();
-	io_context.poll();
+	for (auto &backend : backend_list)
+		backend.second->update();
 
 	if (client)
 		client->update();
 }
 
-void network::manager::create_server(const std::string &host, uint32_t port)
+void network::manager::create_server(const std::string &backend, const std::string &conf)
 {
 	servers.emplace();
-	servers->create_server(io_context, host, port);
+	servers->create_server(backend, conf);
 }
 
-void network::manager::connect(const std::string &host, uint32_t port)
+void network::manager::connect(const std::string &backend, const std::string &conf)
 {
-	client = std::make_shared<tcp::client>(io_context, host, port);
+	auto it = backend_list.find(backend);
+	if (it == backend_list.end()) {
+		ErrorLog("net: unknown backend: " + backend);
+		return;
+	}
+
+	client = it->second->create_client(conf);
 }
+
+//std::unordered_map<std::string, std::shared_ptr<network::backend_manager>> network::backend_list;

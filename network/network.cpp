@@ -143,7 +143,8 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 	if (msg.type == message::CLIENT_HELLO) {
 		auto cmd = dynamic_cast<const client_hello&>(msg);
 
-		if (cmd.version != 1) {
+		if (cmd.version != 1 // wrong version
+		        || !Global.ready_to_load) { // not ready yet
 			conn->disconnect();
 			return;
 		}
@@ -227,6 +228,10 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 			Global.random_seed = cmd.seed;
 			Global.random_engine.seed(Global.random_seed);
 			Global.ready_to_load = true;
+		} else if (Global.random_seed != cmd.seed) {
+			ErrorLog("net: seed mismatch", logtype::net);
+			conn->disconnect();
+			return;
 		}
 
 		WriteLog("net: accept received", logtype::net);
@@ -241,3 +246,5 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 }
 
 // --------------
+
+std::unordered_map<std::string, network::backend_manager*> network::backend_list;

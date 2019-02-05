@@ -2817,10 +2817,6 @@ bool TController::DecBrake()
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
-    if( true == tsGuardSignal.is_playing() ) {
-        // jeśli gada, to nie jedziemy
-        return false;
-    }
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop

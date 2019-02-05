@@ -29,7 +29,7 @@ struct global_settings {
 	std::mt19937 random_engine;
 	std::mt19937 local_random_engine;
 	bool ready_to_load { false };
-	uint32_t random_seed;
+	uint32_t random_seed = 0;
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
@@ -200,15 +200,8 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
 
-	struct network_conf_t {
-		bool is_server = false;
-		std::string server_host;
-		uint32_t server_port;
-
-		bool is_client = false;
-		std::string client_host;
-		uint32_t client_port;
-	} network_conf;
+	std::vector<std::pair<std::string, std::string>> network_servers;
+	std::optional<std::pair<std::string, std::string>> network_client;
 
 // methods
     void LoadIniFile( std::string asFileName );

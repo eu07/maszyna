@@ -77,11 +77,11 @@ void UpdateTimers(bool pause)
 
         if (DeltaTime > 1.0)
             DeltaTime = 1.0;
+
+		fSimulationTime += GetDeltaTime();
     }
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
-
-	fSimulationTime += GetDeltaTime();
 
     oldCount = count;
     // Keep track of the time lapse and frame count

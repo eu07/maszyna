@@ -206,3 +206,36 @@ void network::tcp::client::handle_accept(const asio::error_code &err)
 		conn->disconnect();
 	}
 }
+
+network::tcp::asio_manager::asio_manager() {
+	backend_list.emplace("tcp", this);
+}
+
+std::shared_ptr<network::server> network::tcp::asio_manager::create_server(std::shared_ptr<std::fstream> backbuffer, const std::string &conf) {
+	std::istringstream stream(conf);
+
+	std::string host;
+	std::getline(stream, host, ':');
+
+	int port;
+	stream >> port;
+
+	return std::make_shared<tcp::server>(backbuffer, io_context, host, port);
+}
+
+std::shared_ptr<network::client> network::tcp::asio_manager::create_client(const std::string &conf) {
+	std::istringstream stream(conf);
+
+	std::string host;
+	std::getline(stream, host, ':');
+
+	int port;
+	stream >> port;
+
+	return std::make_shared<tcp::client>(io_context, host, port);
+}
+
+void network::tcp::asio_manager::update() {
+	io_context.restart();
+	io_context.poll();
+}

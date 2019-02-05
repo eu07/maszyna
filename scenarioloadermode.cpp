@@ -40,6 +40,8 @@ scenarioloader_mode::update() {
 		return true;
 
 	if (!state) {
+		WriteLog("using simulation seed: " + std::to_string(Global.random_seed), logtype::generic);
+
 		WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
 
 		timestart = std::chrono::system_clock::now();

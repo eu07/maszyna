@@ -6915,7 +6915,6 @@ void TTrain::DynamicSet(TDynamicObject *d)
 
 void
 TTrain::MoveToVehicle(TDynamicObject *target) {
-	ErrorLog("MoveToVehicle");
 	// > Ra: to nie może być tak robione, to zbytnia proteza jest
 	// indeed, too much hacks...
 	// TODO: cleanup

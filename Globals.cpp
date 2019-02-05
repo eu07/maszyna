@@ -715,6 +715,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> fpslimit;
 			minframetime = std::chrono::duration<float>(1.0f / fpslimit);
 		}
+		else if (token == "randomseed")
+		{
+			Parser.getTokens(1);
+			Parser >> Global.random_seed;
+		}
         else if (token == "gfx.envmap.enabled")
         {
             Parser.getTokens(1);
@@ -805,23 +810,21 @@ global_settings::ConfigParse(cParser &Parser) {
 		}
 		else if (token == "network.server")
 		{
-			Parser.getTokens(1);
-			Parser >> network_conf.is_server;
-			if (network_conf.is_server) {
-				Parser.getTokens(2);
-				Parser >> network_conf.server_host;
-				Parser >> network_conf.server_port;
-			}
+			Parser.getTokens(2);
+
+			std::string backend;
+			std::string conf;
+			Parser >> backend >> conf;
+
+			network_servers.push_back(std::make_pair(backend, conf));
 		}
 		else if (token == "network.client")
 		{
-			Parser.getTokens(1);
-			Parser >> network_conf.is_client;
-			if (network_conf.is_client) {
-				Parser.getTokens(2);
-				Parser >> network_conf.client_host;
-				Parser >> network_conf.client_port;
-			}
+			Parser.getTokens(2);
+
+			network_client.emplace();
+			Parser >> network_client->first;
+			Parser >> network_client->second;
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

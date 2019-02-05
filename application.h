@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "network/manager.h"
 
 class eu07_application {
+	const int MAX_NETWORK_PER_FRAME = 1000;
 
 public:
 // types

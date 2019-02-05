@@ -60,4 +60,17 @@ namespace network::tcp
 	public:
 		client(asio::io_context &io_ctx, const std::string &host, uint32_t port);
 	};
+
+	class asio_manager : public network::backend_manager {
+		asio::io_context io_context;
+
+	public:
+		asio_manager();
+
+		virtual std::shared_ptr<network::server> create_server(std::shared_ptr<std::fstream>, const std::string &conf) override;
+		virtual std::shared_ptr<network::client> create_client(const std::string &conf) override;
+		virtual void update() override;
+	};
+
+	asio_manager manager;
 }
