@@ -655,6 +655,10 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     // biezaca komenda dla AI
     auto textline = "Current order: " + mechanik.OrderCurrent();
 
+    if( mechanik.fStopTime < 0.0 ) {
+        textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
+    }
+
     Output.emplace_back( textline, Global.UITextColor );
 
     if( ( mechanik.VelNext == 0.0 )

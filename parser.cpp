@@ -188,7 +188,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
                     c = tolower( c );
                 token += c;
                 if( findQuotes( token ) ) // do glue together words enclosed in quotes
-                    break;
+                    continue;
                 if( trimComments( token ) ) // don't glue together words separated with comment
                     break;
             }

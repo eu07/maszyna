@@ -9672,9 +9672,9 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "DoorClose") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-        if( ( Doors.open_control == control_t::conductor )
-         || ( Doors.open_control == control_t::driver ) 
-         || ( Doors.open_control == control_t::mixed ) ) {
+        if( ( Doors.close_control == control_t::conductor )
+         || ( Doors.close_control == control_t::driver ) 
+         || ( Doors.close_control == control_t::mixed ) ) {
             // ignore remote command if the door is only operated locally
             if( true == Battery ) {
 

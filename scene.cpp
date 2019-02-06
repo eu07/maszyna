@@ -124,7 +124,8 @@ basic_cell::update_events() {
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
         if( ( true == ( launcher->check_activation() && launcher->check_conditions() ) )
-         && ( SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) {
+         && ( ( launcher->dRadius < 0.0 )
+           || ( SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) ) {
 
             launch_event( launcher );
         }
