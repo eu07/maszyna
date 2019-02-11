@@ -220,7 +220,17 @@ timetable_panel::update() {
         } 
         else {
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
-            // header
+
+			text_lines.emplace_back("Brutto rozkl. " + to_string(table->LocLoad), Global.UITextColor);
+			auto fMass = owner->fMass / 1000;
+			if (owner->mvControlling->TrainType & (dt_DMU + dt_EZT) == 0)
+			{
+				//odejmij lokomotywy czynne, a przynajmniej aktualną
+			}
+			text_lines.emplace_back("Brutto rzecz. " + to_string(fMass,0), Global.UITextColor);
+			text_lines.emplace_back("Dl.poc. rzecz. " + to_string(owner->fLength,0), Global.UITextColor);
+			
+			// header
             text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
 
             TMTableLine const *tableline;
