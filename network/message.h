@@ -59,6 +59,7 @@ struct frame_info : public request_command
 {
 	frame_info() : request_command(FRAME_INFO) {}
 
+	double render_dt;
 	double dt;
 	double sync;
 

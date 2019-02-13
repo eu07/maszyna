@@ -74,37 +74,7 @@ void network::connection::send_complete(std::shared_ptr<std::string> buf)
 
 // --------------
 
-/*
-std::tuple<double, double, command_queue::commands_map> network::connection::get_next_delta()
-{
-	if (delta_queue.empty()) {
-		return std::tuple<double, double,
-		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
-	}
-
-	///auto now = std::chrono::high_resolution_clock::now();
-
-	//double last_frame = std::chrono::duration_cast<std::chrono::seconds>(now - last_time).count();
-	//last_time = now;
-	//accum += last_frame;
-
-	auto entry = delta_queue.front();
-
-	//if (accum > remote_dt) {
-	    //accum -= remote_dt;
-
-	    delta_queue.pop();
-		return std::make_tuple(entry.second->dt, entry.second->sync, entry.second->commands);
-	//}
-	//else {
-		//return 0.0;
-	//}
-}
-
-*/
-
 // server
-
 network::server::server(std::shared_ptr<std::istream> buf) : backbuffer(buf)
 {
 
@@ -186,18 +156,49 @@ void network::client::update()
 }
 
 // client
-std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta()
+std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta(int counter)
 {
+	if (counter == 1) {
+		auto now = std::chrono::high_resolution_clock::now();
+		frame_time = now - last_frame;
+		last_frame = now;
+	}
+
 	if (delta_queue.empty()) {
+		// buffer underflow
 		return std::tuple<double, double,
 		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
 	}
 
-	auto entry = delta_queue.front();
-	delta_queue.pop();
 
-	auto &delta = entry.second;
-	return std::make_tuple(entry.second.dt, entry.second.sync, entry.second.commands);
+	float size = delta_queue.size() - consume_counter;
+	auto entry = delta_queue.front();
+	float mult = entry.render_dt / std::chrono::duration_cast<std::chrono::duration<float>>(frame_time).count();
+
+	if (counter == 1 && size < MAX_BUFFER_SIZE * 2.0f) {
+		last_target = last_target * TARGET_MIX +
+		        (std::min(TARGET_MIN + jitteriness * JITTERINESS_MULTIPIER, MAX_BUFFER_SIZE)) * (1.0f - TARGET_MIX);
+		float diff = size - last_target;
+		jitteriness = std::max(jitteriness * JITTERINESS_MIX, std::abs(diff));
+
+		float speed = 1.0f + diff * CONSUME_MULTIPIER;
+
+		consume_counter += speed;
+	}
+
+	if (size > MAX_BUFFER_SIZE || consume_counter > mult) {
+		if (consume_counter > mult) {
+			consume_counter = std::clamp(consume_counter - mult, -MAX_BUFFER_SIZE, MAX_BUFFER_SIZE);
+		}
+
+		delta_queue.pop();
+
+		return std::make_tuple(entry.dt, entry.sync, entry.commands);
+	} else {
+		// nothing to push
+		return std::tuple<double, double,
+		        command_queue::commands_map>(0.0, 0.0, command_queue::commands_map());
+	}
 }
 
 void network::client::send_commands(command_queue::commands_map commands)
@@ -240,8 +241,7 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		resume_frame_counter++;
 
 		auto delta = dynamic_cast<const frame_info&>(msg);
-		auto now = std::chrono::high_resolution_clock::now();
-		delta_queue.push(std::make_pair(now, delta));
+		delta_queue.push(delta);
 	}
 }
 

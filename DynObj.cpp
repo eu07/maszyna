@@ -2838,7 +2838,7 @@ histerezę czasową, aby te tryby pracy nie przełączały się zbyt szybko.
 
 bool TDynamicObject::Update(double dt, double dt1)
 {
-    if (dt1 == 0)
+	if (dt1 == 0.0)
         return true; // Ra: pauza
     if (!MoverParameters->PhysicActivation &&
         !MechInside) // to drugie, bo będąc w maszynowym blokuje się fizyka
@@ -3302,7 +3302,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     glm::dvec3 old_pos = vPosition;
     Move(dDOMoveLen);
 
-    m_future_movement = (glm::dvec3(vPosition) - old_pos) / dt1 * Timer::GetDeltaTime();
+	m_future_movement = (glm::dvec3(vPosition) - old_pos) / dt1 * Timer::GetDeltaRenderTime();
 
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
@@ -3407,7 +3407,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterT; // tylne toczne
 
-        m_future_wheels_angle = (glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]) - old_wheels) / dt1 * Timer::GetDeltaTime();
+		m_future_wheels_angle = (glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]) - old_wheels) / dt1 * Timer::GetDeltaRenderTime();
 
         if (dWheelAngle[0] > 360.0)
             dWheelAngle[0] -= 360.0; // a w drugą stronę jak się kręcą?
@@ -3898,7 +3898,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
 glm::dvec3 TDynamicObject::get_future_movement() const
 {
-    return m_future_movement;
+	return m_future_movement;
 }
 
 bool TDynamicObject::FastUpdate(double dt)

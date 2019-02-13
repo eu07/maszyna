@@ -117,17 +117,15 @@ void state_manager::process_commands() {
 			if (train)
 				continue;
 
-			if( ( true == DebugModeFlag )
-			 || ( dynamic->MoverParameters->Vel <= 5.0 ) ) {
-				train = new TTrain();
-				if (train->Init(dynamic)) {
-					simulation::Trains.insert(train, dynamic->name());
-				}
-				else {
-					delete train;
-					train = nullptr;
-				}
+			train = new TTrain();
+			if (train->Init(dynamic)) {
+				simulation::Trains.insert(train, dynamic->name());
 			}
+			else {
+				delete train;
+				train = nullptr;
+			}
+
 		}
 
 		if (commanddata.command == user_command::queueevent) {

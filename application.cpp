@@ -195,7 +195,7 @@ eu07_application::run() {
 				if (m_network && m_network->client)
 				{
 					// fetch frame info from network layer,
-					auto frame_info = m_network->client->get_next_delta();
+					auto frame_info = m_network->client->get_next_delta(MAX_NETWORK_PER_FRAME - loop_remaining);
 
 					// use delta and commands received from master
 					double delta = std::get<0>(frame_info);
@@ -234,7 +234,8 @@ eu07_application::run() {
 				{
 					// send delta, sync, and commands we just executed to clients
 					double delta = Timer::GetDeltaTime();
-					m_network->servers->push_delta(delta, sync, commands_to_exec);
+					double render = Timer::GetDeltaRenderTime();
+					m_network->servers->push_delta(render, delta, sync, commands_to_exec);
 				}
 
 				// if we're slave

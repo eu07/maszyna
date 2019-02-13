@@ -18,17 +18,6 @@ namespace network
 	private:
 		const int CATCHUP_PACKETS = 300;
 
-		/*
-		std::queue<
-		    std::pair<std::chrono::high_resolution_clock::time_point,
-		    std::shared_ptr<frame_info>>> delta_queue;
-
-		command_queue::commands_map client_commands_queue;
-		bool is_client;
-
-		//std::chrono::high_resolution_clock::time_point last_time;
-		//double accum = -1.0;
-		*/
 		bool is_client;
 
 	protected:
@@ -88,14 +77,25 @@ namespace network
 		size_t reconnect_delay = 0;
 
 		const size_t RECONNECT_DELAY_FRAMES = 60;
+		const float MAX_BUFFER_SIZE = 60.0f;
+		const float JITTERINESS_MIX = 0.998f;
+		const float TARGET_MIN = 2.0f;
+		const float TARGET_MIX = 0.98f;
+		const float JITTERINESS_MULTIPIER = 2.0f;
+		const float CONSUME_MULTIPIER = 0.05f;
 
-		std::queue<
-		    std::pair<std::chrono::high_resolution_clock::time_point,
-		        frame_info>> delta_queue;
+		std::queue<frame_info> delta_queue;
+
+		float last_target = 20.0f;
+		float jitteriness = 1.0f;
+		float consume_counter = 0.0f;
+
+		std::chrono::high_resolution_clock::time_point last_frame;
+		std::chrono::high_resolution_clock::duration frame_time;
 
 	public:
 		void update();
-		std::tuple<double, double, command_queue::commands_map> get_next_delta();
+		std::tuple<double, double, command_queue::commands_map> get_next_delta(int counter);
 		void send_commands(command_queue::commands_map commands);
 		int get_frame_counter() {
 			return resume_frame_counter;

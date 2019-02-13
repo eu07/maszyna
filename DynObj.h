@@ -178,7 +178,7 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
 	TDynamicObject * ABuFindNearestObject(glm::vec3 pos, TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
-    glm::dvec3 m_future_movement;
+	glm::dvec3 m_future_movement;
     glm::dvec3 m_future_wheels_angle;
 
 public:
@@ -640,7 +640,7 @@ private:
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
     void OverheadTrack(float o);
-    glm::dvec3 get_future_movement() const;
+	glm::dvec3 get_future_movement() const;
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
@@ -682,7 +682,7 @@ public:
         Math3D::vector3 offset {}; // overall shake-driven offset from base position
     } ShakeState;
 
-    Math3D::vector3 modelShake;
+	Math3D::vector3 modelShake;
 };
 
 

@@ -16,12 +16,13 @@ command_queue::commands_map network::server_manager::pop_commands()
 	return map;
 }
 
-void network::server_manager::push_delta(double dt, double sync, const command_queue::commands_map &commands)
+void network::server_manager::push_delta(double render_dt, double dt, double sync, const command_queue::commands_map &commands)
 {
 	if (dt == 0.0 && commands.empty())
 		return;
 
 	frame_info msg;
+	msg.render_dt = render_dt;
 	msg.dt = dt;
 	msg.sync = sync;
 	msg.commands = commands;

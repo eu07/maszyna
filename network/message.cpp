@@ -74,6 +74,7 @@ void network::request_command::deserialize(std::istream &stream)
 
 void network::frame_info::serialize(std::ostream &stream) const
 {
+	sn_utils::ls_float64(stream, render_dt);
 	sn_utils::ls_float64(stream, dt);
 	sn_utils::ls_float64(stream, sync);
 
@@ -82,6 +83,7 @@ void network::frame_info::serialize(std::ostream &stream) const
 
 void network::frame_info::deserialize(std::istream &stream)
 {
+	render_dt = sn_utils::ld_float64(stream);
 	dt = sn_utils::ld_float64(stream);
 	sync = sn_utils::ld_float64(stream);
 
