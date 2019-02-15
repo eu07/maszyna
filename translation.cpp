@@ -41,6 +41,7 @@ init() {
         "Timetable",
         "Time: %d:%02d:%02d",
         "(no timetable)",
+        "Consist weight: %d t (specified) %d t (actual)\nConsist length: %d m",
 
         "Transcripts",
 
@@ -183,6 +184,7 @@ init() {
         "Rozklad jazdy",
         "Godzina: %d:%02d:%02d",
         "(brak rozkladu)",
+        "Brutto: %d t (rozkladowe) %d t (rzeczywiste)\nDlugosc pociagu: %d m",
 
         "Transkrypcje",
 

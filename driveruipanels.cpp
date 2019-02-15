@@ -207,29 +207,47 @@ timetable_panel::update() {
             auto textline = " -> " + nextstation;
 
             text_lines.emplace_back( textline, Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
         }
     }
 
     if( is_expanded ) {
 
-        text_lines.emplace_back( "", Global.UITextColor );
+        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+            // consist data
+            auto consistmass { owner->fMass };
+            auto consistlength { owner->fLength };
+            if( ( owner->mvControlling->TrainType != dt_DMU )
+             && ( owner->mvControlling->TrainType != dt_EZT )
+             && ( owner->pVehicles[end::front] != owner->pVehicles[end::rear] ) ) {
+				//odejmij lokomotywy czynne, a przynajmniej aktualną
+                consistmass -= owner->pVehicle->MoverParameters->TotalMass;
+                // subtract potential other half of a two-part vehicle
+                auto const *previous { owner->pVehicle->PrevC( coupling::permanent ) };
+                if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
+                auto const *next { owner->pVehicle->NextC( coupling::permanent ) };
+                if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
+//                    consistlength -= owner->pVehicle->MoverParameters->Dim.L;
+			}
+            std::snprintf(
+                m_buffer.data(), m_buffer.size(),
+                locale::strings[ locale::string::driver_timetable_consistdata ].c_str(),
+                static_cast<int>( table->LocLoad ),
+                static_cast<int>( consistmass / 1000 ),
+                static_cast<int>( consistlength ) );
+
+            text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
+        }
 
         if( 0 == table->StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( locale::strings[ locale::string::driver_timetable_notimetable ], Global.UITextColor );
         } 
         else {
+
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
 
-			text_lines.emplace_back("Brutto rozkl. " + to_string(table->LocLoad), Global.UITextColor);
-			auto fMass = owner->fMass / 1000;
-			if (owner->mvControlling->TrainType & (dt_DMU + dt_EZT) == 0)
-			{
-				//odejmij lokomotywy czynne, a przynajmniej aktualną
-			}
-			text_lines.emplace_back("Brutto rzecz. " + to_string(fMass,0), Global.UITextColor);
-			text_lines.emplace_back("Dl.poc. rzecz. " + to_string(owner->fLength,0), Global.UITextColor);
-			
 			// header
             text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
 

@@ -30,6 +30,7 @@ enum string {
     driver_timetable_header,
     driver_timetable_time,
     driver_timetable_notimetable,
+    driver_timetable_consistdata,
 
     driver_transcripts_header,
 

@@ -1030,9 +1030,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
-                                    // update brake settings and ai braking tables
+                                    // update consist weight, brake settings and ai braking tables
                                     // NOTE: this calculation is expected to run after completing loading/unloading
-                                    AutoRewident(); // nastawianie hamulca do jazdy pociągowej
+                                    CheckVehicles(); // nastawianie hamulca do jazdy pociągowej
 
                                     if( static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 1 ) ) ) ) % 2 ) {
                                         // nie podjeżdżać do semafora, jeśli droga nie jest wolna
