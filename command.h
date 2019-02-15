@@ -137,6 +137,8 @@ enum class user_command {
     doortoggleright,
     doorpermitleft,
     doorpermitright,
+    doorpermitpresetactivatenext,
+    doorpermitpresetactivateprevious,
     dooropenleft,
     dooropenright,
     dooropenall,

@@ -557,6 +557,9 @@ drivermouse_input::default_bindings() {
         { "doorrightpermit_sw:", {
             user_command::doorpermitright,
             user_command::none } },
+        { "doorpermitpreset_sw:", {
+            user_command::doorpermitpresetactivatenext,
+            user_command::doorpermitpresetactivateprevious } },
         { "door_left_sw:", {
             user_command::doortoggleleft,
             user_command::none } },

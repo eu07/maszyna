@@ -3172,7 +3172,7 @@ void TController::SpeedSet()
         // Ra 2014-06: "automatyczna" skrzynia biegów...
         if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) // gdy biegi ręczne
             if ((mvControlling->ShuntMode ? mvControlling->AnPos : 1.0) * mvControlling->Vel >
-                0.6 * mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+                0.75 * mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
             // if (mvControlling->enrot>0.95*mvControlling->dizel_nMmax) //youBy: jeśli obroty >
             // 0,95 nmax, wrzuć wyższy bieg - Ra: to nie działa
             { // jak prędkość większa niż 0.6 maksymalnej na danym biegu, wrzucić wyższy
@@ -3223,7 +3223,7 @@ void TController::Doors( bool const Open, int const Side ) {
         auto const lewe = ( pVehicle->DirectionGet() > 0 ) ? 1 : 2;
         auto const prawe = 3 - lewe;
 
-        if( ( pVehicle->MoverParameters->Doors.open_permit == false )
+        if( ( true == pVehicle->MoverParameters->Doors.permit_needed )
          && ( true == AIControllFlag ) ) {
             // grant door control permission if it's not automatic
             // TBD: stricter requirements?
@@ -3247,7 +3247,8 @@ void TController::Doors( bool const Open, int const Side ) {
     }
     else {
         // zamykanie
-        if( ( true == pVehicle->MoverParameters->Doors.open_permit ) && ( false == doors_open() ) ) {
+        if( ( false == pVehicle->MoverParameters->Doors.permit_needed )
+         && ( false == doors_open() ) ) {
             // the doors are already closed and we don't have to revoke control permit, we can skip all hard work
             iDrivigFlags &= ~moveDoorOpened;
         }

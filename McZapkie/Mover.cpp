@@ -4595,8 +4595,13 @@ double TMoverParameters::TractionForce( double dt ) {
         case TEngineType::ElectricSeriesMotor: {
             // update the state of voltage relays
             auto const voltage { std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) };
-            NoVoltRelay = ( voltage >= EnginePowerSource.CollectorParameters.MinV );
-            OvervoltageRelay = ( voltage <= EnginePowerSource.CollectorParameters.MaxV ) || ( false == EnginePowerSource.CollectorParameters.OVP );
+            NoVoltRelay =
+                ( EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
+             || ( voltage >= EnginePowerSource.CollectorParameters.MinV );
+            OvervoltageRelay =
+                ( EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
+             || ( voltage <= EnginePowerSource.CollectorParameters.MaxV )
+             || ( false == EnginePowerSource.CollectorParameters.OVP );
             // wywalanie szybkiego z powodu niewłaściwego napięcia
             EventFlag |= ( ( true == Mains )
                         && ( ( false == NoVoltRelay ) || ( false == OvervoltageRelay ) )
@@ -5582,10 +5587,10 @@ bool TMoverParameters::AutoRelayCheck(void)
 
     // sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
     auto const ARFASI2 { (
-        ( !AutoRelayFlag )
+        ( false == AutoRelayFlag )
      || ( ( MotorParam[ ScndCtrlActualPos ].AutoSwitch ) && ( abs( Im ) < Imin ) ) ) };
     auto const ARFASI { (
-        ( !AutoRelayFlag )
+        ( false == AutoRelayFlag )
      || ( ( RList[ MainCtrlActualPos ].AutoSwitch ) && ( abs( Im ) < Imin ) )
      || ( ( !RList[ MainCtrlActualPos ].AutoSwitch ) && ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos ) ) ) };
     // brak PSR                   na tej pozycji działa PSR i prąd poniżej progu
@@ -6721,21 +6726,41 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
     return ( LoadStatus >= 4 );
 }
 
-bool TMoverParameters::PermitDoors( side const Door, range_t const Notify ) {
+bool TMoverParameters::ChangeDoorPermitPreset( int const Change, range_t const Notify ) {
+
+    auto const initialstate { Doors.permit_preset };
+
+    if( false == Doors.permit_presets.empty() ) {
+
+        Doors.permit_preset = clamp<int>( Doors.permit_preset + Change, 0, Doors.permit_presets.size() - 1 );
+        auto const doors { Doors.permit_presets[ Doors.permit_preset ] };
+        auto const permitleft  = doors & 1;
+        auto const permitright = doors & 2;
+
+        PermitDoors( ( CabNo > 0 ? side::left : side::right ), permitleft, Notify );
+        PermitDoors( ( CabNo > 0 ? side::right : side::left ), permitright, Notify );
+    }
+
+    return ( Doors.permit_preset != initialstate );
+}
+
+bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t const Notify ) {
 
     bool const initialstate { Doors.instances[Door].open_permit };
 
-    if( ( true == Battery )
-     && ( false == Doors.is_locked ) ) {
+    if( ( false == Doors.permit_presets.empty() ) // HACK: for cases where preset switch is used before battery
+     || ( ( true == Battery )
+       && ( false == Doors.is_locked ) ) ) {
 
-        Doors.instances[ Door ].open_permit = true;
+        Doors.instances[ Door ].open_permit = State;
     }
 
     if( Notify != range_t::local ) {
 
         SendCtrlToNext(
             "DoorPermit",
-            ( Door == ( CabNo > 0 ? side::left : side::right ) ? // 1=lewe, 2=prawe (swap if reversed)
+            ( State ? 1 : -1 ) // positive: grant, negative: revoke
+            * ( Door == ( CabNo > 0 ? side::left : side::right ) ? // 1=lewe, 2=prawe (swap if reversed)
                 1 :
                 2 ),
             CabNo,
@@ -6872,8 +6897,12 @@ TMoverParameters::update_doors( double const Deltatime ) {
      && ( Vel >= 10.0 );
 
     for( auto &door : Doors.instances ) {
-
-        door.open_permit = door.open_permit && ( false == door.remote_close ) && ( false == Doors.is_locked );
+        // revoke permit if...
+        door.open_permit =
+            ( true == door.open_permit ) // ...we already have one...
+         && ( ( false == Doors.permit_presets.empty() ) // ...there's no permit preset switch...
+           || ( ( false == Doors.is_locked ) // ...and the door lock is engaged...
+             && ( false == door.remote_close ) ) );// ...or about to be closed
 
         door.is_open =
             ( door.position >= Doors.range )
@@ -6882,35 +6911,41 @@ TMoverParameters::update_doors( double const Deltatime ) {
             ( door.position <= 0.f )
          && ( door.step_position <= 0.f );
 
-        door.local_open = door.local_open && ( false == door.is_open ) && ( Doors.open_permit || door.open_permit );
-        door.remote_open = door.remote_open && ( false == door.is_open ) && ( Doors.open_permit || door.open_permit );
-        door.local_close = door.local_close && ( false == door.is_closed );
+        door.local_open  = door.local_open  && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
+        door.remote_open = door.remote_open && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
+        door.local_close  = door.local_close  && ( false == door.is_closed );
         door.remote_close = door.remote_close && ( false == door.is_closed );
 
         auto const openrequest {
             ( localopencontrol && door.local_open )
          || ( remoteopencontrol && door.remote_open ) };
+
         auto const autocloserequest {
             ( ( Doors.auto_velocity != -1.f ) && ( Vel > Doors.auto_velocity ) )
-         || ( ( Doors.auto_duration != -1.f ) && ( door.auto_timer <= 0.f ) ) };
+         || ( ( door.auto_timer != -1.f ) && ( door.auto_timer <= 0.f ) )
+         || ( ( Doors.permit_needed ) && ( false == door.open_permit ) ) };
         auto const closerequest {
-            ( remoteclosecontrol && door.remote_close )
-         || ( localclosecontrol && door.local_close )
-         || ( autocloserequest && door.local_close ) };
+            ( door.remote_close && remoteclosecontrol )
+         || ( door.local_close && localclosecontrol )
+         || ( autocloserequest && door.is_open ) };
         door.is_opening =
             ( false == door.is_open )
+         && ( true == Battery )
          && ( false == closerequest )
-         && ( door.is_opening || openrequest );
+         && ( ( true == door.is_opening )
+           || ( ( true == openrequest )
+             && ( false == Doors.is_locked ) ) );
         door.is_closing =
             ( false == door.is_closed )
+         && ( true == Battery )
          && ( false == openrequest )
          && ( door.is_closing || closerequest );
 
         if( true == door.is_opening ) {
             door.auto_timer = (
-                ( remoteopencontrol && door.remote_open ) ?
-                    -1.f :
-                    Doors.auto_duration );
+                ( localopencontrol && door.local_open ) ? Doors.auto_duration :
+                ( remoteopencontrol && door.remote_open && Doors.auto_include_remote ) ? Doors.auto_duration :
+                -1.f );
         }
 
         // doors
@@ -6994,7 +7029,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
             }
         }
     }
-
+/*
     // the door are closed if their timer goes below 0, or if the vehicle is moving faster than defined threshold
     std::array<side, 2> const doorids { side::right, side::left };
     for( auto const doorid : doorids ) {
@@ -7007,6 +7042,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
             }
         }
     }
+*/
 }
 
 // *************************************************************************************************
@@ -8123,11 +8159,23 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     // automatic closing conditions
     extract_value( Doors.auto_duration, "DoorStayOpen", line, "" );
     extract_value( Doors.auto_velocity, "DoorAutoCloseVel", line, "" );
-    // operation permit override
+    extract_value( Doors.auto_include_remote, "DoorAutoCloseRemote", line, "" );
+    // operation permit
+    extract_value( Doors.permit_needed, "DoorNeedPermit", line, "" );
     {
-        bool doorneedpermit { false };
-        extract_value( doorneedpermit, "DoorNeedPermit", line, "" );
-        Doors.open_permit = ( false == doorneedpermit );
+        auto permitpresets = Split( extract_value( "DoorPermitList", line ), '|' );
+        for( auto const &permit : permitpresets ) {
+            Doors.permit_presets.emplace_back( std::stoi( permit ) );
+        }
+        if( false == Doors.permit_presets.empty() ) {
+            // HACK: legacy position indices start from 1, so we deduct 1 to arrive at proper index into the array
+            extract_value( Doors.permit_preset, "DoorPermitListDefault", line, "1" );
+            Doors.permit_preset =
+                std::min<int>(
+                    Doors.permit_presets.size(),
+                    Doors.permit_preset )
+                - 1;
+        }
     }
 
     extract_value( Doors.open_rate, "OpenSpeed", line, "" );
@@ -8935,7 +8983,8 @@ TPowerSource TMoverParameters::LoadFIZ_SourceDecode( std::string const &Source )
     std::map<std::string, TPowerSource> powersources{
         { "Transducer", TPowerSource::Transducer },
         { "Generator", TPowerSource::Generator },
-        { "Accu", TPowerSource::Accumulator },
+        { "Accu", TPowerSource::Accumulator }, // legacy compatibility leftover. TODO: check if we can get rid of it
+        { "Accumulator", TPowerSource::Accumulator },
         { "CurrentCollector", TPowerSource::CurrentCollector },
         { "PowerCable", TPowerSource::PowerCable },
         { "Heater", TPowerSource::Heater },
@@ -9250,10 +9299,12 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		BrakeDelayFlag = bdelay_G;
 	if ((TestFlag(BrakeDelays, bdelay_R)) && !(TestFlag(BrakeDelays, bdelay_G)))
 		BrakeDelayFlag = bdelay_R;
-
+/*
+// disabled, as test mode is used in specific situations and not really a default
 	if (BrakeOpModes & bom_PS)
 		BrakeOpModeFlag = bom_PS;
 	else
+*/
 		BrakeOpModeFlag = bom_PN;
 
 	// yB: jesli pojazdy nie maja zadeklarowanych czasow, to wsadz z przepisow +-16,(6)%
@@ -9632,19 +9683,16 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
     else if (Command == "DoorPermit") {
 
-        if( ( true == Battery )
-         && ( false == Doors.is_locked ) ) {
+        auto const left { CValue2 > 0 ? 1 : 2 };
+        auto const right { 3 - left };
 
-            auto const left { CValue2 > 0 ? 1 : 2 };
-            auto const right { 3 - left };
-
-            if( static_cast<int>( CValue1 ) & right ) {
-                Doors.instances[ side::right ].open_permit = true;
-            }
-            if( static_cast<int>( CValue1 ) & left ) {
-                Doors.instances[ side::left ].open_permit = true;
-            }
+        if( std::abs( static_cast<int>( CValue1 ) ) & right ) {
+            Doors.instances[ side::right ].open_permit = (CValue1 > 0);
         }
+        if( std::abs( static_cast<int>( CValue1 ) ) & left ) {
+            Doors.instances[ side::left ].open_permit = (CValue1 > 0);
+        }
+
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "DoorOpen") /*NBMX*/

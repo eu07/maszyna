@@ -88,6 +88,7 @@ enum string {
     cab_stlinoff_bt,
     cab_doorleftpermit_sw,
     cab_doorrightpermit_sw,
+    cab_doorpermitpreset_sw,
     cab_door_left_sw,
     cab_door_right_sw,
     cab_doorlefton_sw,

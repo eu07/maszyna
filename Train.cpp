@@ -325,6 +325,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
     { user_command::doorpermitleft, &TTrain::OnCommand_doorpermitleft },
     { user_command::doorpermitright, &TTrain::OnCommand_doorpermitright },
+    { user_command::doorpermitpresetactivatenext, &TTrain::OnCommand_doorpermitpresetactivatenext },
+    { user_command::doorpermitpresetactivateprevious, &TTrain::OnCommand_doorpermitpresetactivateprevious },
     { user_command::dooropenleft, &TTrain::OnCommand_dooropenleft },
     { user_command::dooropenright, &TTrain::OnCommand_dooropenright },
     { user_command::doorcloseleft, &TTrain::OnCommand_doorcloseleft },
@@ -4237,6 +4239,27 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
     }
 }
 
+void TTrain::OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->ChangeDoorPermitPreset( 1 );
+        // visual feedback
+        Train->ggDoorPermitPresetButton.UpdateValue( Train->mvOccupied->Doors.permit_preset, Train->dsbSwitch );
+    }
+}
+
+void TTrain::OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->ChangeDoorPermitPreset( -1 );
+        // visual feedback
+        Train->ggDoorPermitPresetButton.UpdateValue( Train->mvOccupied->Doors.permit_preset, Train->dsbSwitch );
+    }
+}
+
+
 void TTrain::OnCommand_dooropenleft( TTrain *Train, command_data const &Command ) {
 
     auto const remoteopencontrol {
@@ -5839,6 +5862,7 @@ bool TTrain::Update( double const Deltatime )
         // NBMX wrzesien 2003 - drzwi
         ggDoorLeftPermitButton.Update();
         ggDoorRightPermitButton.Update();
+        ggDoorPermitPresetButton.Update();
         ggDoorLeftButton.Update();
         ggDoorRightButton.Update();
         ggDoorLeftOnButton.Update();
@@ -5869,11 +5893,12 @@ bool TTrain::Update( double const Deltatime )
             InstrumentLightType == 1 ? mvControlled->Mains :
             InstrumentLightType == 2 ? mvControlled->ConverterFlag :
             InstrumentLightType == 3 ? mvControlled->Battery || mvControlled->ConverterFlag :
+            InstrumentLightType == 4 ? mvControlled->Battery || mvControlled->ConverterFlag :
             false ) };
-        if( InstrumentLightType == 3 ) {
-            // TODO: link the light state with the state of the master key
-            InstrumentLightActive = true;
-        }
+        InstrumentLightActive = (
+            InstrumentLightType == 3 ? true : // TODO: link the light state with the state of the master key
+            InstrumentLightType == 4 ? ( mvOccupied->iLights[end::front] != 0 ) || ( mvOccupied->iLights[end::rear] != 0 ) :
+            InstrumentLightActive );
         btInstrumentLight.Turn( InstrumentLightActive && lightpower );
         btDashboardLight.Turn( DashboardLightActive && lightpower );
         btTimetableLight.Turn( TimetableLightActive && lightpower );
@@ -6245,7 +6270,10 @@ TTrain::update_sounds( double const Deltatime ) {
          || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
 
             if( false == dsbBuzzer.is_playing() ) {
-                dsbBuzzer.play( sound_flags::looping );
+                dsbBuzzer
+                    .pitch( dsbBuzzer.m_frequencyoffset + dsbBuzzer.m_frequencyfactor )
+                    .gain( dsbBuzzer.m_amplitudeoffset + dsbBuzzer.m_amplitudefactor )
+                    .play( sound_flags::looping );
                 Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
             }
         }
@@ -6270,9 +6298,10 @@ TTrain::update_sounds( double const Deltatime ) {
         auto const frequency { (
             true == dsbHasler.is_combined() ?
                 fTachoVelocity * 0.01 :
-                1.0 ) };
+                dsbHasler.m_frequencyoffset + dsbHasler.m_frequencyfactor ) };
         dsbHasler
             .pitch( frequency )
+            .gain( dsbHasler.m_amplitudeoffset + dsbHasler.m_amplitudefactor )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else if( fTachoCount < 1.f ) {
@@ -7116,6 +7145,7 @@ void TTrain::clear_cab_controls()
     ggRadioTest.Clear();
     ggDoorLeftPermitButton.Clear();
     ggDoorRightPermitButton.Clear();
+    ggDoorPermitPresetButton.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
     ggDoorLeftOnButton.Clear();
@@ -7429,6 +7459,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             0.f ) );
     // doors
     // NOTE: for the time being permit switches are presumed to be impulse switches
+    ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
     ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
     ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
     // door lock
@@ -7676,6 +7707,10 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         btInstrumentLight.Load( Parser, DynamicObject );
         InstrumentLightType = 3;
     }
+    else if( Label == "i-instrumentlight_l:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject );
+        InstrumentLightType = 4;
+    }
     else if (Label == "i-doors:")
     {
         int i = Parser.getToken<int>() - 1;
@@ -7725,6 +7760,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "stlinoff_bt:", ggStLinOffButton },
         { "doorleftpermit_sw:", ggDoorLeftPermitButton },
         { "doorrightpermit_sw:", ggDoorRightPermitButton },
+        { "doorpermitpreset_sw:", ggDoorPermitPresetButton },
         { "door_left_sw:", ggDoorLeftButton },
         { "door_right_sw:", ggDoorRightButton },
         { "doorlefton_sw:", ggDoorLeftOnButton },

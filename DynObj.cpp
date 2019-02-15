@@ -2287,18 +2287,19 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 int
 TDynamicObject::init_sections( TModel3d const *Model, std::string const &Nameprefix ) {
 
-    std::string sectionname;
     auto sectioncount = 0;
     auto sectionindex = 0;
     TSubModel *sectionsubmodel { nullptr };
 
     do {
-        sectionname =
-            Nameprefix + (
-            sectionindex < 10 ?
-                "0" + std::to_string( sectionindex ) :
-                      std::to_string( sectionindex ) );
-        sectionsubmodel = Model->GetFromName( sectionname );
+        // section names for index < 10 match either prefix0X or prefixX
+        // section names above 10 match prefixX
+        auto const sectionindexname { std::to_string( sectionindex ) };
+        sectionsubmodel = Model->GetFromName( Nameprefix + sectionindexname );
+        if( ( sectionsubmodel == nullptr )
+         && ( sectionindex < 10 ) ) {
+            sectionsubmodel = Model->GetFromName( Nameprefix + "0" + sectionindexname );
+        }
         if( sectionsubmodel != nullptr ) {
             Sections.push_back( {
                 sectionsubmodel,
@@ -2771,10 +2772,7 @@ TDynamicObject::update_load_sections() {
 
     for( auto &section : Sections ) {
 
-        section.load = (
-            mdLoad != nullptr ?
-                mdLoad->GetFromName( section.compartment->pName ) :
-                nullptr );
+        section.load = GetSubmodelFromName( mdLoad,  section.compartment->pName );
 
         if( ( section.load != nullptr )
          && ( section.load->count_children() > 0 ) ) {

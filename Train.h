@@ -315,6 +315,8 @@ class TTrain
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorpermitleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doorpermitright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
@@ -445,6 +447,7 @@ public: // reszta może by?publiczna
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftPermitButton;
     TGauge ggDoorRightPermitButton;
+    TGauge ggDoorPermitPresetButton;
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
     TGauge ggDoorLeftOnButton;
@@ -517,7 +520,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad, 4-external lights
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };

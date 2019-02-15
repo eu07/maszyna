@@ -144,6 +144,8 @@ commanddescription_sequence Commands_descriptions = {
     { "doortoggleright", command_target::vehicle },
     { "doorpermitleft", command_target::vehicle },
     { "doorpermitright", command_target::vehicle },
+    { "doorpermitpresetactivatenext", command_target::vehicle },
+    { "doorpermitpresetactivateprevious", command_target::vehicle },
     { "dooropenleft", command_target::vehicle },
     { "dooropenright", command_target::vehicle },
     { "dooropenall", command_target::vehicle },

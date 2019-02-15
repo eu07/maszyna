@@ -638,6 +638,20 @@ class TMoverParameters
 private:
 // types
 
+    // communication cable, exchanging control signals with adjacent vehicle
+    struct jumper_cable {
+    // types
+        using flag_pair = std::pair<bool, bool>;
+    // members
+        // booleans
+        // std::array<bool, 1> flags {};
+        // boolean pairs, exchanged data is swapped when connected to a matching end (front to front or back to back)
+        // TBD, TODO: convert to regular bool array for efficiency once it's working?
+        std::array<flag_pair, 1> flag_pairs {};
+        // integers
+        // std::array<int, 1> values {};
+    };
+
     // basic approximation of a generic device
     // TBD: inheritance or composition?
     struct basic_device {
@@ -722,9 +736,13 @@ private:
         bool has_autowarning { false };
         float auto_duration { -1.f }; // automatic door closure delay period
         float auto_velocity { -1.f }; // automatic door closure velocity threshold
+        bool auto_include_remote { false }; // automatic door closure applies also to remote control
+        bool permit_needed { false };
+        std::vector<int> permit_presets; // permit presets selectable with preset switch
         // ld inputs
         bool lock_enabled { true };
-        bool open_permit { true };
+        // internal data
+        int permit_preset { -1 }; // curent position of preset selection switch
         // vehicle parts
         std::array<basic_door, 2> instances; // door on the right and left side of the vehicle
         // ld outputs
@@ -1472,7 +1490,8 @@ public:
 	/* funckje dla wagonow*/
     bool AssignLoad( std::string const &Name, float const Amount = 0.f );
 	bool LoadingDone(double LSpeed, std::string const &Loadname);
-    bool PermitDoors( side const Door, range_t const Notify = range_t::consist );
+    bool PermitDoors( side const Door, bool const State = true, range_t const Notify = range_t::consist );
+    bool ChangeDoorPermitPreset( int const Change, range_t const Notify = range_t::consist );
     bool OperateDoors( side const Door, bool const State, range_t const Notify = range_t::consist );
     bool LockDoors( bool const State, range_t const Notify = range_t::consist );
     bool signal_departure( bool const State, range_t const Notify = range_t::consist ); // toggles departure warning
