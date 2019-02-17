@@ -28,6 +28,7 @@ driver_ui::driver_ui() {
     push_back( &m_transcriptspanel );
 
 	//push_back( &m_vehiclelist );
+	push_back( &m_mappanel );
     push_back( &m_logpanel );
     m_logpanel.is_open = false;
 
@@ -45,11 +46,12 @@ driver_ui::driver_ui() {
 void driver_ui::render_menu_contents() {
     ui_layer::render_menu_contents();
 
-    if (ImGui::BeginMenu(locale::strings[locale::string::ui_mode_windows].c_str()))
+	if (ImGui::BeginMenu(locale::strings[locale::string::ui_mode_windows].c_str()))
     {
         ImGui::MenuItem(m_aidpanel.title.c_str(), "F1", &m_aidpanel.is_open);
         ImGui::MenuItem(m_timetablepanel.title.c_str(), "F2", &m_timetablepanel.is_open);
         ImGui::MenuItem(m_debugpanel.get_name().c_str(), "F12", &m_debugpanel.is_open);
+		ImGui::MenuItem(m_mappanel.get_name().c_str(), "Tab", &m_mappanel.is_open);
         ImGui::EndMenu();
     }
 }
@@ -62,6 +64,7 @@ driver_ui::on_key( int const Key, int const Action ) {
 
     switch( Key ) {
 
+	    case GLFW_KEY_TAB:
         case GLFW_KEY_F1:
         case GLFW_KEY_F2:
         case GLFW_KEY_F10:
@@ -83,6 +86,12 @@ driver_ui::on_key( int const Key, int const Action ) {
 
     switch (Key) {
             
+	    case GLFW_KEY_TAB: {
+		    m_mappanel.is_open = !m_mappanel.is_open;
+
+			return true;
+	    }
+
         case GLFW_KEY_F1: {
             // basic consist info
             auto state = (

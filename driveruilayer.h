@@ -11,8 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "uilayer.h"
 #include "driveruipanels.h"
+#include "command.h"
 
 #include "widgets/vehiclelist.h"
+#include "widgets/map.h"
 
 class driver_ui : public ui_layer {
 
@@ -55,4 +57,5 @@ private:
 
 	command_relay m_relay;
 	ui::vehiclelist_panel m_vehiclelist;
+	ui::map_panel m_mappanel;
 };

@@ -27,10 +27,7 @@ http://mozilla.org/MPL/2.0/.
 
 GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
-std::unique_ptr<map> ui_layer::m_map;
 bool ui_layer::m_cursorvisible;
-
-#define LOC_STR(x) locale::strings[locale::string::x].c_str()
 
 ui_panel::ui_panel(std::string const &Identifier, bool const Isopen) : name(Identifier), is_open(Isopen) {}
 
@@ -39,12 +36,15 @@ void ui_panel::render()
     if (false == is_open)
         return;
 
-    auto flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse | (size.x > 0 ? ImGuiWindowFlags_NoResize : 0);
+	int flags = window_flags;
+	if (flags == -1)
+		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse |
+		        ((size.x > 0 || size_min.x > 0) ? ImGuiWindowFlags_NoResize : 0);
 
     if (size.x > 0)
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
-    else
-        ImGui::SetNextWindowSize(ImVec2(0, 0));
+	else if (size_min.x == -1)
+		ImGui::SetNextWindowSize(ImVec2(0, 0));
 
     if (size_min.x > 0)
         ImGui::SetNextWindowSizeConstraints(ImVec2(size_min.x, size_min.y), ImVec2(size_max.x, size_max.y));
@@ -130,9 +130,6 @@ bool ui_layer::init(GLFWwindow *Window)
 
     m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f, nullptr, &ranges[0]);
 
-    if (Global.map_enabled)
-        m_map = std::make_unique<map>();
-
 	ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
 #ifdef EU07_USEIMGUIIMPLOPENGL2
@@ -169,13 +166,6 @@ bool ui_layer::on_key(int const Key, int const Action)
 {
     if (Action == GLFW_PRESS)
     {
-        if (Key == GLFW_KEY_TAB) {
-            if (m_map)
-                m_map->toggle_window();
-
-            return true;
-        }
-
         if (Key == GLFW_KEY_PRINT_SCREEN) {
             Application.queue_screenshot();
             return true;
@@ -235,9 +225,6 @@ void ui_layer::render()
     render_tooltip();
     render_menu();
     render_quit_widget();
-
-    if (m_map && simulation::is_ready)
-        m_map->render(simulation::Region);
 
     // template method implementation
     render_();
@@ -366,8 +353,6 @@ void ui_layer::render_menu_contents()
     if (ImGui::BeginMenu(LOC_STR(ui_windows)))
     {
         ImGui::MenuItem(LOC_STR(ui_log), "F9", &m_logpanel.is_open);
-        if (Global.map_enabled && m_map)
-            ImGui::MenuItem(LOC_STR(ui_map), "Tab", &m_map->map_opened);
 		if (DebugModeFlag)
 			ImGui::MenuItem("Headlight config", nullptr, &GfxRenderer.debug_ui_active);
         ImGui::EndMenu();

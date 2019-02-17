@@ -788,11 +788,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_shadergamma;
         }
-        else if (token == "map.enabled")
-        {
-            Parser.getTokens(1);
-            Parser >> map_enabled;
-        }
 		else if (token == "python.displaywindows")
 		{
 			Parser.getTokens(1);

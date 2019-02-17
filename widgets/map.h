@@ -3,10 +3,12 @@
 #include "gl/shader.h"
 #include "renderer.h"
 #include "Texture.h"
+#include "uilayer.h"
 
-class map
-{
-    std::unique_ptr<gl::program> m_shader;
+namespace ui {
+
+class map_panel : public ui_panel {
+	std::unique_ptr<gl::program> m_shader;
     std::unique_ptr<gl::framebuffer> m_msaa_fb;
     std::unique_ptr<gl::renderbuffer> m_msaa_rb;
 
@@ -23,12 +25,13 @@ class map
     glm::vec2 translate;
     float zoom = 1.0f / 1000.0f;
     float get_vehicle_rotation();
-
-    bool init();
-
     cFrustum frustum;
+
+	bool init_done = false;
+
 public:
-    bool map_opened = false;
-    void render(scene::basic_region *Region);
-    void toggle_window();
+	map_panel();
+	void render_contents() override;
 };
+
+}

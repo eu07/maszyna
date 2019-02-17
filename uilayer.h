@@ -11,9 +11,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "Texture.h"
-#include "map.h"
+#include "translation.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
+
+#define LOC_STR(x) locale::strings[locale::string::x].c_str()
 
 class ui_panel {
 
@@ -38,10 +40,12 @@ public:
 // members
     std::string title;
     bool is_open;
+
     glm::ivec2 size { -1, -1 };
     glm::ivec2 size_min { -1, -1 };
     glm::ivec2 size_max { -1, -1 };
     std::deque<text_line> text_lines;
+	int window_flags = -1;
 
     std::string get_name() { return name; }
 
@@ -160,7 +164,6 @@ private:
 
    void render_quit_widget();
 
-    static std::unique_ptr<map> m_map;
     // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
     void
         quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );

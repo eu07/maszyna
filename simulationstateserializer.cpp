@@ -116,8 +116,7 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
         deserialize_firstinit( Input, Scratchpad );
     }
 
-    if (Global.map_enabled)
-        Region->create_map_geometry();
+	Region->create_map_geometry();
 
 	if( ( false == state->scratchpad.binary.terrain )
 	 && ( state->scenariofile != "$.scn" ) ) {

@@ -117,7 +117,6 @@ set(SOURCES
 "simulationstateserializer.cpp"
 "precipitation.cpp"
 "texturewindow.cpp"
-"map.cpp"
 
 "network/network.cpp"
 "network/message.cpp"
@@ -125,6 +124,7 @@ set(SOURCES
 "network/backend/asio.cpp"
 
 "widgets/vehiclelist.cpp"
+"widgets/map.cpp"
 
 "ref/glad/src/glad.c"
 

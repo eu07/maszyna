@@ -185,7 +185,6 @@ struct global_settings {
 	bool python_mipmaps = true;
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;
-	bool map_enabled = true;
 
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
