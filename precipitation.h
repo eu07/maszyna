@@ -42,9 +42,6 @@ private:
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec2> m_uvs;
     std::vector<std::uint16_t> m_indices;
-    GLuint m_vertexbuffer { (GLuint)-1 };
-    GLuint m_uvbuffer { (GLuint)-1 };
-    GLuint m_indexbuffer { (GLuint)-1 };
     texture_handle m_texture { -1 };
     float m_textureoffset { 0.f };
     float m_moverate { 30 * 0.001f };
@@ -55,6 +52,9 @@ private:
     int m_activecab{ 0 };
     glm::dvec3 m_cabcameramove{ 0.0 };
 
-	std::unique_ptr<gl::program> m_shader;
-	std::unique_ptr<gl::vao> m_vao;
+	std::optional<gl::buffer> m_vertexbuffer;
+	std::optional<gl::buffer> m_uvbuffer;
+	std::optional<gl::buffer> m_indexbuffer;
+	std::optional<gl::program> m_shader;
+	std::optional<gl::vao> m_vao;
 };

@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include "ResourceManager.h"
 #include "gl/vao.h"
+#include "gl/buffer.h"
 
 namespace gfx {
 
@@ -188,8 +189,8 @@ private:
         delete_buffer();
 
 // members:
-    GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
-    std::unique_ptr<gl::vao> m_vao;
+	std::optional<gl::buffer> m_buffer; // buffer data on the opengl end
+	std::optional<gl::vao> m_vao;
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 

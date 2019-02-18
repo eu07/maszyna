@@ -245,7 +245,7 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 
 void opengl_vbogeometrybank::setup_buffer()
 {
-    if( m_buffer == 0 ) {
+	if( !m_buffer ) {
         // if there's no buffer, we'll have to make one
         // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
         // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
@@ -264,18 +264,11 @@ void opengl_vbogeometrybank::setup_buffer()
         // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
         if( datasize == 0 ) { return; }
         // try to set up the buffer we need
-        ::glGenBuffers( 1, &m_buffer );
-        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+		m_buffer.emplace();
 
         // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
         // TODO: allow to specify usage hint at the object creation, and pass it here
-        ::glBufferData(
-            GL_ARRAY_BUFFER,
-            datasize * sizeof( gfx::basic_vertex ),
-            nullptr,
-            GL_STATIC_DRAW );
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+		m_buffer->allocate(gl::buffer::ARRAY_BUFFER, datasize * sizeof(gfx::basic_vertex), GL_STATIC_DRAW);
 
         if( ::glGetError() == GL_OUT_OF_MEMORY ) {
             ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
@@ -286,16 +279,16 @@ void opengl_vbogeometrybank::setup_buffer()
 
     if (!m_vao)
     {
-        m_vao = std::make_unique<gl::vao>();
-        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+		m_vao.emplace();
+		m_buffer->bind(gl::buffer::ARRAY_BUFFER);
 
-        m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
         // NOTE: normal and color streams share the data
-        m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
-        m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
-        m_vao->setup_attrib(3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(GL_FLOAT));
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+		m_buffer->unbind(gl::buffer::ARRAY_BUFFER);
         m_vao->unbind();
     }
 }
@@ -313,14 +306,10 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry)
 		return;
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
-        glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
         // we may potentially need to upload new buffer data before we can draw it
-        ::glBufferSubData(
-            GL_ARRAY_BUFFER,
-            chunkrecord.offset * sizeof( gfx::basic_vertex ),
-            chunkrecord.size * sizeof( gfx::basic_vertex ),
-            chunk.vertices.data() );
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+		m_buffer->upload(gl::buffer::ARRAY_BUFFER, chunk.vertices.data(),
+		                 chunkrecord.offset * sizeof( gfx::basic_vertex ),
+		                 chunkrecord.size * sizeof( gfx::basic_vertex ));
         chunkrecord.is_good = true;
     }
 
@@ -346,15 +335,11 @@ void opengl_vbogeometrybank::draw_(const std::vector<gfx::geometry_handle>::iter
         gfx::geometry_handle Geometry = *it;
         auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
         auto const &chunk = gfx::geometry_bank::chunk( Geometry );
-        if( false == chunkrecord.is_good ) {
-            glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+		if( false == chunkrecord.is_good ) {
             // we may potentially need to upload new buffer data before we can draw it
-            ::glBufferSubData(
-                GL_ARRAY_BUFFER,
-                chunkrecord.offset * sizeof( gfx::basic_vertex ),
-                chunkrecord.size * sizeof( gfx::basic_vertex ),
-                chunk.vertices.data() );
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+			m_buffer->upload(gl::buffer::ARRAY_BUFFER, chunk.vertices.data(),
+			                 chunkrecord.offset * sizeof( gfx::basic_vertex ),
+			                 chunkrecord.size * sizeof( gfx::basic_vertex ));
             chunkrecord.is_good = true;
         }
 
@@ -396,11 +381,10 @@ opengl_vbogeometrybank::release_() {
 void
 opengl_vbogeometrybank::delete_buffer() {
 
-    if( m_buffer != 0 ) {
+	if( m_buffer ) {
         
-        m_vao.reset(nullptr);
-        ::glDeleteBuffers( 1, &m_buffer );
-        m_buffer = 0;
+		m_vao.reset();
+		m_buffer.reset();
         m_buffercapacity = 0;
         // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
         // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice

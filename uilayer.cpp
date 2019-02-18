@@ -229,8 +229,9 @@ void ui_layer::render()
     // template method implementation
     render_();
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
     ImGui::Render();
+
     Timer::subsystem.gfx_gui.stop();
 
 #ifdef EU07_USEIMGUIIMPLOPENGL2

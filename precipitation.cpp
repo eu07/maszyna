@@ -170,26 +170,34 @@ basic_precipitation::render() {
 	{
         gl::shader vert("precipitation.vert");
 		gl::shader frag("precipitation.frag");
-		m_shader = std::make_unique<gl::program>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
+		m_shader.emplace(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
 	}
 
-    if( m_vertexbuffer == -1 ) {
-		m_vao = std::make_unique<gl::vao>();
+	if (!m_vertexbuffer) {
+		m_vao.emplace();
+		m_vao->bind();
 
         // build the buffers
-        ::glGenBuffers( 1, &m_vertexbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), m_vertices.data(), GL_STATIC_DRAW );
+		m_vertexbuffer.emplace();
+		m_vertexbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), GL_STATIC_DRAW);
+		m_vertexbuffer->upload(gl::buffer::ARRAY_BUFFER, m_vertices.data(), 0, m_vertices.size() * sizeof( glm::vec3 ));
+
+		m_vertexbuffer->bind(gl::buffer::ARRAY_BUFFER);
 		m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
 
-        ::glGenBuffers( 1, &m_uvbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_uvbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_uvs.size() * sizeof( glm::vec2 ), m_uvs.data(), GL_STATIC_DRAW );
+		m_uvbuffer.emplace();
+		m_uvbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_uvs.size() * sizeof( glm::vec2 ), GL_STATIC_DRAW);
+		m_uvbuffer->upload(gl::buffer::ARRAY_BUFFER, m_uvs.data(), 0, m_uvs.size() * sizeof( glm::vec2 ));
+
+		m_uvbuffer->bind(gl::buffer::ARRAY_BUFFER);
         m_vao->setup_attrib(1, 2, GL_FLOAT, sizeof(glm::vec2), 0);
 
-        ::glGenBuffers( 1, &m_indexbuffer );
-        ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
-        ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
+		m_indexbuffer.emplace();
+		m_indexbuffer->allocate(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), GL_STATIC_DRAW);
+		m_indexbuffer->upload(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.data(), 0, m_indices.size() * sizeof( unsigned short ));
+		m_indexbuffer->bind(gl::buffer::ELEMENT_ARRAY_BUFFER);
+
+		m_vao->unbind();
         // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
 
@@ -197,4 +205,6 @@ basic_precipitation::render() {
 	m_vao->bind();
 
     ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
+
+	m_vao->unbind();
 }
