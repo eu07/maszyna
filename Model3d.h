@@ -38,10 +38,6 @@ enum class TAnimType // rodzaj animacji
 	at_Billboard, // obrót w pionie do kamery
 	at_Wind, // ruch pod wpływem wiatru
 	at_Sky, // animacja nieba
-	at_IK, // odwrotna kinematyka - submodel sterujący (np. staw skokowy)
-	at_IK11, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. stopa)
-	at_IK21, // odwrotna kinematyka - submodel nadrzędny do sterowango (np. podudzie)
-	at_IK22, // odwrotna kinematyka - submodel nadrzędny do nadrzędnego sterowango (np. udo)
 	at_Digital, // dziesięciocyfrowy licznik mechaniczny (z cylindrami)
 	at_DigiClk, // zegar cyfrowy jako licznik na dziesięciościanach
 	at_Undefined // animacja chwilowo nieokreślona

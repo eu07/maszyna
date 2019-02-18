@@ -1391,43 +1391,27 @@ void
 animation_event::run_() {
 
     WriteLog( "Type: Animation" );
-    if( m_animationtype == 4 ) {
-        // vmd mode targets the entire model
-        for( auto &target : m_targets ) {
-            auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
-            if( targetmodel == nullptr ) { continue; }
-            // event effect code
-            targetmodel->AnimationVND(
-                m_animationfiledata,
-                m_animationparams[ 0 ], // tu mogą być dodatkowe parametry, np. od-do
-                m_animationparams[ 1 ],
-                m_animationparams[ 2 ],
-                m_animationparams[ 3 ] );
-        }
-    }
-    else {
-        // other animation modes target specific submodels
-        for( auto *targetcontainer : m_animationcontainers ) {
-            switch( m_animationtype ) {
-                case 1: { // rotate
-                    targetcontainer->SetRotateAnim(
-                        glm::make_vec3( m_animationparams.data() ),
-                        m_animationparams[ 3 ] );
-                    break;
-                }
-                case 2: { // translate
-                    targetcontainer->SetTranslateAnim(
-                        glm::make_vec3( m_animationparams.data() ),
-                        m_animationparams[ 3 ] );
-                    break;
-                }
-                // TODO: implement digital mode
-                default: {
-                    break;
-                }
-            }
-        }
-    }
+	// animation modes target specific submodels
+	for( auto *targetcontainer : m_animationcontainers ) {
+		switch( m_animationtype ) {
+		    case 1: { // rotate
+			    targetcontainer->SetRotateAnim(
+				    glm::make_vec3( m_animationparams.data() ),
+				    m_animationparams[ 3 ] );
+				break;
+		    }
+		    case 2: { // translate
+			    targetcontainer->SetTranslateAnim(
+				    glm::make_vec3( m_animationparams.data() ),
+				    m_animationparams[ 3 ] );
+				break;
+		    }
+			// TODO: implement digital mode
+		    default: {
+			    break;
+		    }
+		}
+	}
 }
 
 // export_as_text() subclass details

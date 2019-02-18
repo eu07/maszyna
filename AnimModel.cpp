@@ -27,51 +27,6 @@ http://mozilla.org/MPL/2.0/.
 
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
-TAnimAdvanced::TAnimAdvanced(){};
-
-TAnimAdvanced::~TAnimAdvanced(){
-    // delete[] pVocaloidMotionData; //plik został zmodyfikowany
-};
-
-int TAnimAdvanced::SortByBone()
-{ // sortowanie pliku animacji w celu optymalniejszego wykonania
-    // rekordy zostają ułożone wg kolejnych ramek dla każdej kości
-    // ułożenie kości alfabetycznie nie jest niezbędne, ale upraszcza sortowanie bąbelkowe
-    TAnimVocaloidFrame buf; // bufor roboczy (przydało by się pascalowe Swap()
-    int i, j, k, swaps = 0, last = iMovements - 1, e;
-    for (i = 0; i < iMovements; ++i)
-        for (j = 0; j < 15; ++j)
-            if (pMovementData[i].cBone[j] == '\0') // jeśli znacznik końca
-                for (++j; j < 15; ++j)
-                    pMovementData[i].cBone[j] = '\0'; // zerowanie bajtów za znacznikiem końca
-    for (i = 0; i < last; ++i) // do przedostatniego
-    { // dopóki nie posortowane
-        j = i; // z którym porównywać
-        k = i; // z którym zamienić (nie trzeba zamieniać, jeśli ==i)
-        while (++j < iMovements)
-        {
-            e = strcmp(pMovementData[k].cBone,
-                       pMovementData[j].cBone); // numery trzeba porównywać inaczej
-            if (e > 0)
-                k = j; // trzeba zamienić - ten pod j jest mniejszy
-            else if (!e)
-                if (pMovementData[k].iFrame > pMovementData[j].iFrame)
-                    k = j; // numer klatki pod j jest mniejszy
-        }
-        if (k > i)
-        { // jeśli trzeba przestawić
-            // buf=pMovementData[i];
-            // pMovementData[i]=pMovementData[k];
-            // pMovementData[k]=buf;
-            memcpy(&buf, pMovementData + i, sizeof(TAnimVocaloidFrame));
-            memcpy(pMovementData + i, pMovementData + k, sizeof(TAnimVocaloidFrame));
-            memcpy(pMovementData + k, &buf, sizeof(TAnimVocaloidFrame));
-            ++swaps;
-        }
-    }
-    return swaps;
-};
-
 TAnimContainer::TAnimContainer()
 {
     pNext = NULL;
@@ -83,8 +38,7 @@ TAnimContainer::TAnimContainer()
     fTranslateSpeed = 0.0;
     fAngleSpeed = 0.0;
     pSubModel = NULL;
-    iAnim = 0; // położenie początkowe
-    pMovementData = NULL; // nie ma zaawansowanej animacji
+	iAnim = 0; // położenie początkowe
     mAnim = NULL; // nie ma macierzy obrotu dla submodelu
     evDone = NULL; // powiadamianie o zakończeniu animacji
     acAnimNext = NULL; // na razie jest poza listą
@@ -147,66 +101,6 @@ void TAnimContainer::SetTranslateAnim( Math3D::vector3 vNewTranslate, double fNe
             iAnim |= 0x80000000; // dodany do listy
         }
     }
-}
-
-void TAnimContainer::AnimSetVMD(double fNewSpeed)
-{
-    if (!this)
-        return; // wywoływane z eventu, gdy brak modelu
-    // skala do ustalenia, "cal" japoński (sun) to nieco ponad 3cm
-    // X-w lewo, Y-w górę, Z-do tyłu
-    // minimalna wysokość to -7.66, a nadal musi być ponad podłogą
-    // if (pMovementData->iFrame>0) return; //tylko pierwsza ramka
-    vTranslateTo =
-        Math3D::vector3(
-            0.1 * pMovementData->f3Vector.x,
-            0.1 * pMovementData->f3Vector.z,
-            0.1 * pMovementData->f3Vector.y);
-    if (LengthSquared3(vTranslateTo) > 0.0 ? true : LengthSquared3(vTranslation) > 0.0)
-    { // jeśli ma być przesunięte albo jest przesunięcie
-        iAnim |= 2; // wyłączy się samo
-        if (fNewSpeed > 0.0)
-            fTranslateSpeed = fNewSpeed; // prędkość jest mnożnikiem, nie podlega skalowaniu
-        else // za późno na animacje, trzeba przestawić
-            vTranslation = vTranslateTo;
-    }
-    // if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
-    { // jeśli jest jakiś obrót
-        if (!mAnim)
-        {
-            mAnim = new float4x4(); // będzie potrzebna macierz animacji
-            mAnim->Identity(); // jedynkowanie na początek
-        }
-        iAnim |= 4; // animacja kwaternionowa
-        qStart = qCurrent; // potrzebna początkowa do interpolacji
-        //---+ - też niby dobrze, ale nie tak trąca włosy na początku (macha w dół)
-        //-+-+ - dłoń ma w górze zamiast na pasie w pozycji początkowej
-        //+--+ - głowa do tyłu (broda w górę) w pozycji początkowej
-        //--++ - pozycja początkowa dobra, trąca u góry, ale z rękami jakoś nie tak, kółko w
-        // przeciwną stronę
-        //++++ - kładzie się brzuchem do góry
-        //-+++ - ręce w górze na początku, zamiast w dół, łokieć jakby w przeciwną stronę
-        //+-++ - nie podnosi ręki do głowy
-        //++-+ - dłoń ma w górze zamiast na pasie
-        qDesired = Normalize(float4(-pMovementData->qAngle.x, -pMovementData->qAngle.z,
-                                    -pMovementData->qAngle.y,
-                                    pMovementData->qAngle.w)); // tu trzeba będzie osie zamienić
-        if (fNewSpeed > 0.0)
-        {
-            fAngleSpeed = fNewSpeed; // wtedy animować za pomocą interpolacji
-            fAngleCurrent = 0.0; // początek interpolacji
-        }
-        else
-        { // za późno na animację, można tylko przestawić w docelowe miejsce
-            fAngleSpeed = 0.0;
-            fAngleCurrent = 1.0; // interpolacja zakończona
-            qCurrent = qDesired;
-        }
-    }
-    // if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak główna kość
-    // if (!strcmp(pSubModel->pName,"Ť¶‚Â‚Ü?ć‚h‚j")) //IK lewej stopy
-    // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+"
-    // "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
 // przeliczanie animacji wykonać tylko raz na model
@@ -350,46 +244,6 @@ void TAnimContainer::PrepareModel()
     // "+AnsiString(vTranslation.x)+" "+AnsiString(vTranslation.y)+" "+AnsiString(vTranslation.z));
 }
 
-void TAnimContainer::UpdateModelIK()
-{ // odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
-    if (pSubModel) // pozbyć się tego - sprawdzać wcześniej
-    {
-        if ((pSubModel->b_Anim == TAnimType::at_IK)
-          ||(pSubModel->b_Anim == TAnimType::at_IK22))
-        { // odwrotna kinematyka
-            float3 d, k;
-            TSubModel *ch = pSubModel->ChildGet();
-            switch (pSubModel->b_Anim)
-            {
-            case TAnimType::at_IK11: // stopa: ustawić w kierunku czubka (pierwszy potomny)
-                d = ch->Translation1Get(); // wektor względem aktualnego układu (nie uwzględnia
-                // obrotu)
-                k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
-                           -RadToDeg(atan2(d.y, d.x))); // proste skierowanie na punkt
-                pSubModel->SetRotateIK1(k);
-                // if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak główna kość
-                // WriteLog("--> "+AnsiString(k.x)+" "+AnsiString(k.y)+" "+AnsiString(k.z));
-                // Ra: to już jest dobrze, może być inna ćwiartka i znak
-                break;
-            case TAnimType::at_IK22: // udo: ustawić w kierunku pierwszej potomnej pierwszej potomnej (kostki)
-                // pozycję kostki należy określić względem kości centralnej (+biodro może być
-                // pochylone)
-                // potem wyliczyć ewentualne odchylenie w tej i następnej
-                // w sumie to proste, jak wyznaczenie kątów w trójkącie o znanej długości boków...
-                d = ch->Translation2Get(); // wektor względem aktualnego układu (nie uwzględnia
-                // obrotu)
-                // if ()
-                { // kość IK jest dalej niż pozycja spoczynkowa
-                    k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
-                               -RadToDeg(atan2(d.y, d.x))); // proste skierowanie na punkt
-                    pSubModel->SetRotateIK1(k);
-                }
-                break;
-            }
-        }
-    }
-}
-
 bool TAnimContainer::InMovement()
 { // czy trwa animacja - informacja dla obrotnicy
     return (fRotateSpeed != 0.0) || (fTranslateSpeed != 0.0);
@@ -412,7 +266,6 @@ TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedat
 
 TAnimModel::~TAnimModel()
 {
-    SafeDelete(pAdvanced); // nie ma zaawansowanej animacji
     SafeDelete(pRoot);
 }
 
@@ -636,9 +489,6 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
     for (pCurrent = pRoot; pCurrent != nullptr; pCurrent = pCurrent->pNext)
         if (!pCurrent->evDone) // jeśli jest bez eventu
             pCurrent->UpdateModel(); // przeliczenie animacji każdego submodelu
-    // if () //tylko dla modeli z IK !!!!
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext) // albo osobny łańcuch
-        pCurrent->UpdateModelIK(); // przeliczenie odwrotnej kinematyki
 
     m_framestamp = Framestamp;
 };
@@ -705,8 +555,6 @@ void TAnimModel::RaPrepare()
     }
     TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( this ); //żeby nie robić cudzych animacji
     TSubModel::pasText = &asText; // przekazanie tekstu do wyświetlacza (!!!! do przemyślenia)
-    if (pAdvanced) // jeśli jest zaawansowana animacja
-        Advanced(); // wykonać co tam trzeba
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         pCurrent->PrepareModel(); // ustawienie animacji egzemplarza dla każdego submodelu
@@ -732,135 +580,6 @@ int TAnimModel::TerrainCount()
 TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
-};
-
-//---------------------------------------------------------------------------
-
-void TAnimModel::Advanced()
-{ // wykonanie zaawansowanych animacji na submodelach
-    pAdvanced->fCurrent +=
-        pAdvanced->fFrequency * Timer::GetDeltaTime(); // aktualna ramka zmiennoprzecinkowo
-    int frame = floor(pAdvanced->fCurrent); // numer klatki jako int
-    TAnimContainer *pCurrent;
-    if (pAdvanced->fCurrent >= pAdvanced->fLast)
-    { // animacja została zakończona
-        delete pAdvanced;
-        pAdvanced = NULL; // dalej już nic
-        for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-            if (pCurrent->pMovementData) // jeśli obsługiwany tabelką animacji
-                pCurrent->pMovementData = NULL; // usuwanie wskaźników
-    }
-    else
-    { // coś trzeba poanimować - wszystkie animowane submodele są w tym łańcuchu
-        for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-            if (pCurrent->pMovementData) // jeśli obsługiwany tabelką animacji
-                if (frame >= pCurrent->pMovementData->iFrame) // koniec czekania
-                    if (!strcmp(pCurrent->pMovementData->cBone,
-                                (pCurrent->pMovementData + 1)->cBone))
-                    { // jak kolejna ramka dotyczy tego samego submodelu, ustawić animację do
-                        // kolejnej ramki
-                        ++pCurrent->pMovementData; // kolejna klatka
-                        pCurrent->AnimSetVMD(
-                            pAdvanced->fFrequency /
-                            (double(pCurrent->pMovementData->iFrame) - pAdvanced->fCurrent));
-                    }
-                    else
-                        pCurrent->pMovementData =
-                            NULL; // inna nazwa, animowanie zakończone w aktualnym położeniu
-    }
-};
-
-void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double d)
-{ // rozpoczęcie wykonywania animacji z podanego pliku
-    // tabela w pliku musi być posortowana wg klatek dla kolejnych kości!
-    // skrócone nagranie ma 3:42 = 222 sekundy, animacja kończy się na klatce 6518
-    // daje to 29.36 (~=30) klatek na sekundę
-    // w opisach jest podawane 24 albo 36 jako standard => powiedzmy, parametr (d) to FPS animacji
-    delete pAdvanced; // usunięcie ewentualnego poprzedniego
-    pAdvanced = NULL; // gdyby się nie udało rozpoznać pliku
-    if (std::string(static_cast<char *>(pData)) == "Vocaloid Motion Data 0002")
-    {
-        pAdvanced = new TAnimAdvanced();
-        pAdvanced->pVocaloidMotionData = static_cast<unsigned char *>(pData); // podczepienie pliku danych
-        pAdvanced->iMovements = *((int *)(((char *)pData) + 50)); // numer ostatniej klatki
-        pAdvanced->pMovementData = (TAnimVocaloidFrame *)(((char *)pData) + 54); // rekordy animacji
-        // WriteLog(sizeof(TAnimVocaloidFrame));
-        pAdvanced->fFrequency = d;
-        pAdvanced->fCurrent = 0.0; // aktualna ramka
-        pAdvanced->fLast = 0.0; // ostatnia ramka
-        /*
-          if (0) //jeśli włączone sortowanie plików VMD (trochę się przeciąga)
-           if (pAdvanced->SortByBone()) //próba posortowania
-           {//zapisać posortowany plik, jeśli dokonano zmian
-            TFileStream *fs=new TFileStream("models/1.vmd",fmCreate);
-            fs->Write(pData,2198342); //2948728);
-            delete fs;
-           }
-        */
-
-/*      int i, j, k, idx;
-*/      std::string name;
-        TAnimContainer *pSub;
-        for (int i = 0; i < pAdvanced->iMovements; ++i)
-        {
-            if (strcmp(pAdvanced->pMovementData[i].cBone, name.c_str()))
-            { // jeśli pozycja w tabelce nie była wyszukiwana w submodelach
-                pSub = GetContainer(pAdvanced->pMovementData[i].cBone); // szukanie
-                if (pSub) // znaleziony
-                {
-                    pSub->pMovementData = pAdvanced->pMovementData + i; // gotów do animowania
-                    pSub->AnimSetVMD(0.0); // usuawienie pozycji początkowej (powinna być zerowa,
-                    // inaczej będzie skok)
-                }
-                name = std::string(pAdvanced->pMovementData[i].cBone); // nowa nazwa do pomijania
-            }
-            if (pAdvanced->fLast < pAdvanced->pMovementData[i].iFrame)
-                pAdvanced->fLast = pAdvanced->pMovementData[i].iFrame;
-        }
-        /*
-          for (i=0;i<pAdvanced->iMovements;++i)
-          if
-          (AnsiString(pAdvanced->pMovementData[i+1].cBone)!=AnsiString(pAdvanced->pMovementData[i].cBone))
-          {//generowane dla ostatniej klatki danej kości
-           name="";
-           for (j=0;j<15;j++)
-            name+=IntToHex((unsigned char)pAdvanced->pMovementData[i].cBone[j],2);
-           WriteLog(name+","
-            +AnsiString(pAdvanced->pMovementData[i].cBone)+","
-            +AnsiString(idx)+"," //indeks
-            +AnsiString(i+1-idx)+"," //ile pozycji animacji
-            +AnsiString(k)+"," //pierwsza klatka
-            +AnsiString(pAdvanced->pMovementData[i].iFrame)+"," //ostatnia klatka
-            +AnsiString(pAdvanced->pMovementData[i].f3Vector.x)+","
-            +AnsiString(pAdvanced->pMovementData[i].f3Vector.y)+","
-            +AnsiString(pAdvanced->pMovementData[i].f3Vector.z)+","
-            +AnsiString(pAdvanced->pMovementData[i].fAngle[0])+","
-            +AnsiString(pAdvanced->pMovementData[i].fAngle[1])+","
-            +AnsiString(pAdvanced->pMovementData[i].fAngle[2])+","
-            +AnsiString(pAdvanced->pMovementData[i].fAngle[3])
-
-            );
-           idx=i+1;
-           k=pAdvanced->pMovementData[i+1].iFrame; //pierwsza klatka następnego
-          }
-          else
-           if (pAdvanced->pMovementData[i].iFrame>0)
-            if ((k>pAdvanced->pMovementData[i].iFrame)||(k==0))
-             k=pAdvanced->pMovementData[i].iFrame; //pierwsza niezerowa ramka
-        */
-        /*
-          for (i=0;i<pAdvanced->iMovements;++i)
-           if (AnsiString(pAdvanced->pMovementData[i].cBone)=="\x89\x45\x90\x65\x8E\x77\x82\x4F")
-           {name="";
-            for (j=0;j<15;j++)
-             name+=IntToHex((unsigned char)pAdvanced->pMovementData[i].cBone[j],2);
-            WriteLog(name+","
-             +AnsiString(i)+"," //pozycja w tabeli
-             +AnsiString(pAdvanced->pMovementData[i].iFrame)+"," //pierwsza klatka
-            );
-           }
-        */
-    }
 };
 
 //---------------------------------------------------------------------------
