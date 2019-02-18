@@ -63,7 +63,7 @@ struct scratch_data {
 // TBD, TODO: replace with quadtree scheme?
 class basic_cell {
 
-    friend opengl_renderer;
+	friend opengl_renderer;
 
 public:
 // constructors
@@ -150,7 +150,7 @@ public:
     // sets center point of the cell
     void
         center( glm::dvec3 Center );
-    // generates renderable version of held non-instanced geometry in specified geometry bank
+	// generates renderable version of held non-instanced geometry in specified geometry bank
     void
         create_geometry( gfx::geometrybank_handle const &Bank );
     void create_map_geometry(std::vector<gfx::basic_vertex> &Bank);
@@ -193,7 +193,7 @@ private:
     } m_directories;
     // animation of owned items (legacy code, clean up along with track refactoring)
     bool m_geometrycreated { false };
-    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
+	unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
 	command_relay m_relay;
 };
@@ -201,7 +201,7 @@ private:
 // basic scene partitioning structure, holds terrain geometry and collection of cells
 class basic_section {
 
-    friend opengl_renderer;
+	friend opengl_renderer;
 
 public:
 // constructors
@@ -274,7 +274,7 @@ public:
     // sets center point of the section
     void
         center( glm::dvec3 Center );
-    // generates renderable version of held non-instanced geometry
+	// generates renderable version of held non-instanced geometry
     void
         create_geometry();
     void create_map_geometry(const gfx::geometrybank_handle handle);
@@ -303,7 +303,7 @@ private:
     cell_array m_cells; // partitioning scheme
     shapenode_sequence m_shapes; // large pieces of opaque geometry and (legacy) terrain
     // TODO: implement dedicated, higher fidelity, fixed resolution terrain mesh item
-    // gfx renderer data
+	// gfx renderer data
     gfx::geometrybank_handle m_geometrybank;
     bool m_geometrycreated { false };
 
@@ -313,7 +313,7 @@ private:
 // top-level of scene spatial structure, holds collection of sections
 class basic_region {
 
-    friend opengl_renderer;
+	friend opengl_renderer;
 
 public:
 // constructors

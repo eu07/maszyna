@@ -24,8 +24,8 @@ public:
     ui_panel( std::string const &Identifier, bool const Isopen );
 // methods
     virtual void update() {};
-    virtual void render();
-    virtual void render_contents();
+	virtual void render();
+	virtual void render_contents();
     // temporary  access
 // types
     struct text_line {
@@ -47,7 +47,7 @@ public:
     std::deque<text_line> text_lines;
 	int window_flags = -1;
 
-    std::string get_name() { return name; }
+	const std::string& get_name() { return name; }
 
 protected:
 // members
@@ -60,13 +60,13 @@ public:
 
     bool is_expanded { false };
 
-    void render_contents() override;
+	void render_contents() override;
 };
 
 class ui_log_panel : public ui_panel {
     using ui_panel::ui_panel;
 
-    void render_contents() override;
+	void render_contents() override;
 };
 
 class ui_layer {
@@ -107,7 +107,7 @@ public:
         update();
 	// draws requested UI elements
 	void
-        render();
+	    render();
     //
     static
     void
@@ -146,19 +146,19 @@ protected:
 
 private:
 // methods
-    // render() subclass details
+	// render() subclass details
     virtual
     void
-        render_() {};
+	    render_() {};
     // draws background quad with specified earlier texture
     void
-        render_background();
+	    render_background();
     // draws a progress bar in defined earlier state
     void
-        render_progress();
+	    render_progress();
     void
-        render_tooltip();
-    void render_panels();
+	    render_tooltip();
+	void render_panels();
 
    void render_menu();
 

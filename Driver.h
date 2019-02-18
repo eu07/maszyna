@@ -380,9 +380,9 @@ private:
 // timetable
 // methods
 public:
-    std::string TrainName() const;
+	const std::string &TrainName() const;
 private:
-    std::string Relation() const;
+	std::string Relation() const;
     Mtable::TTrainParameters const * TrainTimetable() const;
     int StationIndex() const;
     int StationCount() const;

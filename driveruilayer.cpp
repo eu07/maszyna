@@ -44,7 +44,7 @@ driver_ui::driver_ui() {
 }
 
 void driver_ui::render_menu_contents() {
-    ui_layer::render_menu_contents();
+	ui_layer::render_menu_contents();
 
 	if (ImGui::BeginMenu(locale::strings[locale::string::ui_mode_windows].c_str()))
     {

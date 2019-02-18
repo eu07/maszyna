@@ -2230,3 +2230,15 @@ event_manager::export_as_text( std::ostream &Output ) const {
         }
     }
 }
+
+std::vector<TEventLauncher*> event_manager::find_eventlaunchers(glm::vec2 center, float radius) const {
+	std::vector<TEventLauncher *> results;
+
+	for (auto &launcher : m_launchers.sequence()) {
+		glm::dvec3 location = launcher->location();
+		if (glm::distance2(glm::vec2(location.x, location.z), center) < radius)
+			results.push_back(launcher);
+	}
+
+	return results;
+}

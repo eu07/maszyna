@@ -615,6 +615,9 @@ public:
     // sends basic content of the class in legacy (text) format to provided stream
     void
         export_as_text( std::ostream &Output ) const;
+	// returns all eventlaunchers in radius ignoring height
+	std::vector<TEventLauncher *>
+	    find_eventlaunchers(glm::vec2 center, float radius) const;
 
 private:
 // types

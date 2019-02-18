@@ -6296,7 +6296,7 @@ std::string TController::Relation() const
     return TrainParams->ShowRelation();
 };
 
-std::string TController::TrainName() const
+const std::string& TController::TrainName() const
 { // zwraca numer pociągu
     return TrainParams->TrainName;
 };

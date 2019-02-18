@@ -314,7 +314,7 @@ void ui_layer::render_panels()
 {
     for (auto *panel : m_panels)
     {
-        panel->render();
+		panel->render();
     }
 }
 

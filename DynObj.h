@@ -159,7 +159,7 @@ struct material_data {
 
 class TDynamicObject { // klasa pojazdu
 
-    friend opengl_renderer;
+	friend opengl_renderer;
 
 public:
     static bool bDynamicRemove; // moved from ground
@@ -185,7 +185,7 @@ public:
     // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
-    Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
+	Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
     TDynamicObject *NextConnected; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
     TDynamicObject *PrevConnected; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
@@ -362,7 +362,7 @@ private:
         sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
 
         void position( glm::vec3 const Location );
-        void render( TMoverParameters const &Vehicle, double const Deltatime );
+		void render( TMoverParameters const &Vehicle, double const Deltatime );
     };
 
 // methods
@@ -450,10 +450,10 @@ private:
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
 
-    bool renderme; // yB - czy renderowac
+	bool renderme; // yB - czy renderowac
     float ModCamRot;
     int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
-    bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
+	bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
 
   public:

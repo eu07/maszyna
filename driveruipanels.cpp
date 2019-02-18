@@ -175,7 +175,7 @@ timetable_panel::update() {
     auto *vehicle { (
         false == FreeFlyModeFlag ? controlled :
         camera.m_owner != nullptr ? camera.m_owner :
-        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ) }; // w trybie latania lokalizujemy wg mapy
+		std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ) }; // w trybie latania lokalizujemy wg mapy
 
     if( vehicle == nullptr ) { return; }
     // if the nearest located vehicle doesn't have a direct driver, try to query its owner
@@ -313,7 +313,7 @@ debug_panel::update() {
     m_scenariolines.clear();
     m_eventqueuelines.clear();
     m_cameralines.clear();
-    m_rendererlines.clear();
+	m_rendererlines.clear();
 
     update_section_vehicle( m_vehiclelines );
     update_section_engine( m_enginelines );
@@ -322,7 +322,7 @@ debug_panel::update() {
     update_section_scenario( m_scenariolines );
     update_section_eventqueue( m_eventqueuelines );
     update_section_camera( m_cameralines );
-    update_section_renderer( m_rendererlines );
+	update_section_renderer( m_rendererlines );
 }
 
 void
@@ -348,17 +348,17 @@ debug_panel::render() {
         }
         // sections
         ImGui::Separator();
-        render_section( "Vehicle", m_vehiclelines );
-        render_section( "Vehicle Engine", m_enginelines );
-        render_section( "Vehicle AI", m_ailines );
-        render_section( "Vehicle Scan Table", m_scantablelines );
-        render_section( "Scenario", m_scenariolines );
-        if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
+		render_section( "Vehicle", m_vehiclelines );
+		render_section( "Vehicle Engine", m_enginelines );
+		render_section( "Vehicle AI", m_ailines );
+		render_section( "Vehicle Scan Table", m_scantablelines );
+		render_section( "Scenario", m_scenariolines );
+		if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
             // event queue filter
             ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
         }
-        render_section( "Camera", m_cameralines );
-        render_section( "Gfx Renderer", m_rendererlines );
+		render_section( "Camera", m_cameralines );
+		render_section( "Gfx Renderer", m_rendererlines );
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
@@ -367,7 +367,7 @@ debug_panel::render() {
             ImGui::Indent();
             ImGui::Checkbox(
                     "Draw normal traction",
-                    &GfxRenderer.settings.force_normal_traction_render );
+			        &GfxRenderer.settings.force_normal_traction_render );
             ImGui::Unindent();
         }
     }
@@ -839,7 +839,7 @@ debug_panel::update_section_camera( std::vector<text_line> &Output ) {
 void
 debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
-            // gfx renderer data
+	        // gfx renderer data
             auto textline =
                 "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
@@ -861,7 +861,7 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             Output.emplace_back( textline, Global.UITextColor );
 
-            // renderer stats
+			// renderer stats
             Output.emplace_back( GfxRenderer.info_times(), Global.UITextColor );
             Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
 }
