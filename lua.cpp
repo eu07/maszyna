@@ -29,6 +29,11 @@ lua::~lua()
     state = nullptr;
 }
 
+std::string lua::get_error()
+{
+	return std::string(lua_tostring(state, -1));
+}
+
 void lua::interpret(std::string file)
 {
 	if (luaL_dofile(state, file.c_str())) {
@@ -43,10 +48,7 @@ void lua::interpret(std::string file)
 int lua::atpanic(lua_State *s)
 {
 	std::string err(lua_tostring(s, -1));
-	ErrorLog(std::string(err), logtype::lua);
-#ifdef _WIN32
-        MessageBox(NULL, err.c_str(), "MaSzyna", MB_OK);
-#endif
+	ErrorLog(err, logtype::lua);
     return 0;
 }
 

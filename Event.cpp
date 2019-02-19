@@ -1851,8 +1851,12 @@ lua_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
 // run() subclass details
 void
 lua_event::run_() {
-    if (lua_func)
-        lua_func(this, m_activator);
+	try {
+	    if (lua_func)
+	        lua_func(this, m_activator);
+	} catch (...) {
+		ErrorLog(simulation::Lua.get_error());
+	}
 }
 
 // export_as_text() subclass details
