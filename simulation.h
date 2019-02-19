@@ -66,7 +66,7 @@ extern TTrain *Train;
 extern uint16_t prev_train_id;
 extern bool is_ready;
 
-class deserializer_state;
+struct deserializer_state;
 
 } // simulation
 
