@@ -32,7 +32,7 @@ lua::~lua()
 void lua::interpret(std::string file)
 {
 	if (luaL_dofile(state, file.c_str())) {
-		char *str = lua_tostring(state, -1);
+		const char *str = lua_tostring(state, -1);
 		ErrorLog(std::string(str), logtype::lua);
 	}
 }
