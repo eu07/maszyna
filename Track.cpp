@@ -1137,12 +1137,12 @@ void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
 	{
 	case tt_Normal:
 	case tt_Table:
-		Segment->render_lines(Bank, 1.0f);
+		Segment->render_lines(Bank, 0.5f);
 		break;
 	case tt_Switch:
 	case tt_Cross:
-		SwitchExtension->Segments[0]->render_lines(Bank, 1.0f);
-		SwitchExtension->Segments[1]->render_lines(Bank, 1.0f);
+		SwitchExtension->Segments[0]->render_lines(Bank, 0.5f);
+		SwitchExtension->Segments[1]->render_lines(Bank, 0.5f);
 		break;
 	default:
 		break;
