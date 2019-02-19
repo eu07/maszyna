@@ -1133,8 +1133,20 @@ void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
     if (iCategoryFlag != 1)
         return; // only tracks for now
 
-    for (auto &v : endpoints())
-        Bank.push_back(gfx::basic_vertex(glm::vec3(v), glm::vec3(0.0f), glm::vec2(0.0f)));
+	switch (eType)
+	{
+	case tt_Normal:
+	case tt_Table:
+		Segment->render_lines(Bank, 1.0f);
+		break;
+	case tt_Switch:
+	case tt_Cross:
+		SwitchExtension->Segments[0]->render_lines(Bank, 1.0f);
+		SwitchExtension->Segments[1]->render_lines(Bank, 1.0f);
+		break;
+	default:
+		break;
+	}
 }
 
 // wypełnianie tablic VBO

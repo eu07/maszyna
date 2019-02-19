@@ -232,7 +232,7 @@ void ui::map_panel::render_contents()
 			glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
 			glm::vec3 world_pos = glm::inverse(transform) * glm::vec4(ndc_pos.x, 0.0f, -ndc_pos.y, 1.0f);
 
-			std::vector<TEventLauncher *> launchers = simulation::Events.find_eventlaunchers(glm::vec2(world_pos.x, world_pos.z), 10.0f);
+			std::vector<TEventLauncher *> launchers = simulation::Events.find_eventlaunchers(glm::vec2(world_pos.x, world_pos.z), 0.01f / zoom);
 
 			for (auto launcher : launchers) {
 				command_relay relay;

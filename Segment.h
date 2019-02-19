@@ -129,6 +129,9 @@ public:
     int
         RaSegCount() const {
             return ( fTsBuffer.empty() ? 1 : iSegCount ); };
+
+	void
+	    render_lines(std::vector<gfx::basic_vertex> &out, float quality) const;
 };
 
 //---------------------------------------------------------------------------
