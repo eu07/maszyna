@@ -79,8 +79,9 @@ public:
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
         window( int const Windowindex = 0 );
-
-	double generate_sync();
+	// generate network sync verification number
+	double
+	    generate_sync();
 
 private:
 // types

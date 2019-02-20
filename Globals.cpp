@@ -81,10 +81,14 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "fullscreen")
         {
-
             Parser.getTokens();
             Parser >> bFullScreen;
         }
+		else if (token == "fullscreenmonitor")
+		{
+			Parser.getTokens(1, false);
+			Parser >> fullscreen_monitor;
+		}
         else if( token == "vsync" ) {
 
             Parser.getTokens();
@@ -802,6 +806,14 @@ global_settings::ConfigParse(cParser &Parser) {
 		{
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
+		}
+		else if (token == "python.monitormap")
+		{
+			Parser.getTokens(2, false);
+			std::string pythonscreen;
+			std::string monitorid;
+			Parser >> pythonscreen >> monitorid;
+			python_monitormap.emplace(std::make_pair(pythonscreen, monitorid));
 		}
 		else if (token == "network.server")
 		{

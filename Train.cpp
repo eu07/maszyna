@@ -6755,7 +6755,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 				        std::nullopt);
 
 				if (Global.python_displaywindows)
-					std::get<2>(m_screens.back()).emplace(tex);
+					std::get<2>(m_screens.back()).emplace(tex, submodelname);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

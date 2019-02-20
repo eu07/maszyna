@@ -182,6 +182,9 @@ struct global_settings {
 
 	std::chrono::duration<float> minframetime {0.0f};
 
+	std::unordered_map<std::string, std::string> python_monitormap;
+	std::string fullscreen_monitor;
+
 	bool python_mipmaps = true;
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;

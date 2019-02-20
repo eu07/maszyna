@@ -579,7 +579,25 @@ eu07_application::init_glfw() {
 
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-    auto *monitor { glfwGetPrimaryMonitor() };
+	auto *monitor { glfwGetPrimaryMonitor() };
+	{
+		int monitor_count;
+		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+		WriteLog("available monitors:");
+		for (size_t i = 0; i < monitor_count; i++) {
+			const char *name = glfwGetMonitorName(monitors[i]);
+			int x, y;
+			glfwGetMonitorPos(monitors[i], &x, &y);
+
+			std::string desc = std::string(name) + ":" + std::to_string(x) + "," + std::to_string(y);
+			WriteLog(desc);
+
+			if (desc == Global.fullscreen_monitor)
+				monitor = monitors[i];
+		}
+	}
+
     auto const *vmode { glfwGetVideoMode( monitor ) };
 
     glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
