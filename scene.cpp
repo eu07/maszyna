@@ -126,7 +126,7 @@ basic_cell::update_events() {
 		if (launcher->check_conditions()
 		        && SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius) {
 			if (launcher->check_activation())
-				launch_event(launcher, false);
+				launch_event(launcher, true);
 			if (launcher->check_activation_key())
 				launch_event(launcher, true);
 		}
