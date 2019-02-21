@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "EvLaunch.h"
 #include "Logs.h"
 #include "lua.h"
+#include "command.h"
 
 // common event interface
 class basic_event {
@@ -27,8 +28,10 @@ public:
         value_1     = 1 << 1,
         value_2     = 1 << 2,
         // update values
-        load        = 1 << 3,
-        mode_add    = 1 << 4,
+        mode_add    = 1 << 3,
+        // whois
+        mode_alt    = 1 << 3,
+        load        = 1 << 4,
         // condition values
         track_busy  = 1 << 3,
         track_free  = 1 << 4,
@@ -590,6 +593,12 @@ public:
     basic_event *
         begin() {
             return QueryRootEvent; }
+
+	basic_event*
+	    FindEventById(uint32_t id);
+	uint32_t GetEventId(const basic_event *ev);
+	uint32_t GetEventId(std::string const &Name);
+
     // legacy method, returns pointer to specified event, or null
     basic_event *
         FindEvent( std::string const &Name );
@@ -608,6 +617,9 @@ public:
     // sends basic content of the class in legacy (text) format to provided stream
     void
         export_as_text( std::ostream &Output ) const;
+	// returns all eventlaunchers in radius ignoring height
+	std::vector<TEventLauncher *>
+	    find_eventlaunchers(glm::vec2 center, float radius) const;
 
 private:
 // types
@@ -626,6 +638,7 @@ private:
     event_map m_eventmap;
     basic_table<TEventLauncher> m_launchers;
     eventlauncher_sequence m_launcherqueue;
+	command_relay m_relay;
 };
 
 

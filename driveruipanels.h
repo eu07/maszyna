@@ -46,7 +46,7 @@ public:
         : ui_panel( Name, Isopen ) {}
 
     void update() override;
-    void render() override;
+	void render() override;
 
 private:
 //  types
@@ -98,5 +98,5 @@ public:
         : ui_panel( Name, Isopen ) {}
 
     void update() override;
-    void render() override;
+	void render() override;
 };

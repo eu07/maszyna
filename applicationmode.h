@@ -63,6 +63,9 @@ public:
     virtual
     void
         on_event_poll() = 0;
+	virtual
+	bool
+	    is_command_processor() = 0;
 
 protected:
 // members

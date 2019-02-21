@@ -27,6 +27,8 @@ driver_ui::driver_ui() {
     push_back( &m_debugpanel );
     push_back( &m_transcriptspanel );
 
+	//push_back( &m_vehiclelist );
+	push_back( &m_mappanel );
     push_back( &m_logpanel );
     m_logpanel.is_open = false;
 
@@ -42,13 +44,14 @@ driver_ui::driver_ui() {
 }
 
 void driver_ui::render_menu_contents() {
-    ui_layer::render_menu_contents();
+	ui_layer::render_menu_contents();
 
-    if (ImGui::BeginMenu(locale::strings[locale::string::ui_mode_windows].c_str()))
+	if (ImGui::BeginMenu(locale::strings[locale::string::ui_mode_windows].c_str()))
     {
         ImGui::MenuItem(m_aidpanel.title.c_str(), "F1", &m_aidpanel.is_open);
         ImGui::MenuItem(m_timetablepanel.title.c_str(), "F2", &m_timetablepanel.is_open);
         ImGui::MenuItem(m_debugpanel.get_name().c_str(), "F12", &m_debugpanel.is_open);
+		ImGui::MenuItem(m_mappanel.get_name().c_str(), "Tab", &m_mappanel.is_open);
         ImGui::EndMenu();
     }
 }
@@ -59,24 +62,9 @@ driver_ui::on_key( int const Key, int const Action ) {
     if (ui_layer::on_key(Key, Action))
         return true;
 
-    if( Key == GLFW_KEY_ESCAPE ) {
-        // toggle pause
-        if( Action != GLFW_PRESS ) { return true; } // recognized, but ignored
-
-        if( Global.iPause & 1 ) {
-            // jeśli pauza startowa
-            // odpauzowanie, gdy po wczytaniu miało nie startować
-            Global.iPause ^= 1;
-        }
-        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
-            // w multiplayerze pauza nie ma sensu
-            Global.iPause ^= 2; // zmiana stanu zapauzowania
-        }
-        return true;
-    }
-
     switch( Key ) {
 
+	    case GLFW_KEY_TAB:
         case GLFW_KEY_F1:
         case GLFW_KEY_F2:
         case GLFW_KEY_F10:
@@ -98,6 +86,12 @@ driver_ui::on_key( int const Key, int const Action ) {
 
     switch (Key) {
             
+	    case GLFW_KEY_TAB: {
+		    m_mappanel.is_open = !m_mappanel.is_open;
+
+			return true;
+	    }
+
         case GLFW_KEY_F1: {
             // basic consist info
             auto state = (
@@ -218,8 +212,7 @@ driver_ui::render_() {
     if( ImGui::BeginPopupModal( popupheader, &m_pause_modal_opened, ImGuiWindowFlags_AlwaysAutoResize ) ) {
         auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
         if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
-            auto const pausemask { 1 | 2 };
-            Global.iPause &= ~pausemask;
+			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
         if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
             glfwSetWindowShouldClose( m_window, 1 );

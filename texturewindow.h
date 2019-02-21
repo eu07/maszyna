@@ -6,6 +6,7 @@ class texture_window
 	GLFWwindow *m_window;
 	GLuint m_source;
 	std::shared_ptr<std::thread> m_renderthread;
+	GLFWmonitor *monitor = nullptr;
 
 	bool m_exit = false;
 
@@ -15,7 +16,7 @@ class texture_window
 	void threadfunc();
 
 public:
-	texture_window(texture_handle src);
+	texture_window(texture_handle src, std::string name);
 	~texture_window();
 
 	void notify_window_size(int w, int h);

@@ -159,7 +159,7 @@ struct material_data {
 
 class TDynamicObject { // klasa pojazdu
 
-    friend opengl_renderer;
+	friend opengl_renderer;
 
 public:
     static bool bDynamicRemove; // moved from ground
@@ -176,16 +176,16 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oś wiążąca pojazd z torem i wyzwalająca eventy)
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
-    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
+	TDynamicObject * ABuFindNearestObject(glm::vec3 pos, TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
-    glm::dvec3 m_future_movement;
+	glm::dvec3 m_future_movement;
     glm::dvec3 m_future_wheels_angle;
 
 public:
     // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
-    Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
+	Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
     TDynamicObject *NextConnected; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
     TDynamicObject *PrevConnected; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
@@ -274,12 +274,6 @@ private:
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
     double NoVoltTime; // czas od utraty zasilania
-    float DoorDelayL{ 0.f }; // left side door closing delay timer
-    float DoorDelayR{ 0.f }; // right side door closing delay timer
-    double dDoorMoveL; // NBMX
-    double dDoorMoveR; // NBMX
-    double dDoorstepMoveL{ 0.0 };
-    double dDoorstepMoveR{ 0.0 };
     double dMirrorMoveL{ 0.0 };
     double dMirrorMoveR{ 0.0 };
     TSubModel *smBrakeSet; // nastawa hamulca (wajcha)
@@ -319,6 +313,7 @@ private:
         sound_source unlock { sound_placement::general };
         sound_source step_open { sound_placement::general };
         sound_source step_close { sound_placement::general };
+        side placement {};
     };
 
     struct exchange_sounds {
@@ -362,7 +357,7 @@ private:
         sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
 
         void position( glm::vec3 const Location );
-        void render( TMoverParameters const &Vehicle, double const Deltatime );
+		void render( TMoverParameters const &Vehicle, double const Deltatime );
     };
 
 // methods
@@ -450,10 +445,10 @@ private:
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
 
-    bool renderme; // yB - czy renderowac
+	bool renderme; // yB - czy renderowac
     float ModCamRot;
     int iInventory[ 2 ] { 0, 0 }; // flagi bitowe posiadanych submodeli (np. świateł)
-    bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
+	bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
 
   public:
@@ -473,11 +468,9 @@ private:
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
-    TDynamicObject * PrevAny();
-    TDynamicObject * Prev();
-    TDynamicObject * Next();
-	TDynamicObject * PrevC(int C);
-	TDynamicObject * NextC(int C);
+	TDynamicObject * PrevAny() const;
+	TDynamicObject * Prev(int C = -1) const;
+	TDynamicObject * Next(int C = -1) const;
     double NextDistance(double d = -1.0);
     void SetdMoveLen(double dMoveLen) {
         MoverParameters->dMoveLen = dMoveLen; }
@@ -500,8 +493,8 @@ private:
     // float EmR;
     // vector3 smokeoffset;
 
-    TDynamicObject * ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
-                                                    int &CouplNr);
+	TDynamicObject * ABuScanNearestObject(glm::vec3 pos, TTrack *Track, double ScanDir, double ScanDist,
+	                                                int &CouplNr);
     TDynamicObject * GetFirstDynamic(int cpl_type, int cf = 1);
     void ABuSetModelShake( Math3D::vector3 mShake);
 
@@ -624,7 +617,7 @@ private:
     void RadioStop();
 	void Damage(char flag);
     void RaLightsSet(int head, int rear);
-    int LightList( side const Side ) const { return iInventory[ Side ]; }
+    int LightList( end const Side ) const { return iInventory[ Side ]; }
     void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
@@ -642,7 +635,7 @@ private:
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
     void OverheadTrack(float o);
-    glm::dvec3 get_future_movement() const;
+	glm::dvec3 get_future_movement() const;
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
@@ -684,7 +677,7 @@ public:
         Math3D::vector3 offset {}; // overall shake-driven offset from base position
     } ShakeState;
 
-    Math3D::vector3 modelShake;
+	Math3D::vector3 modelShake;
 };
 
 

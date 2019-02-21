@@ -22,8 +22,8 @@ light_array::insert( TDynamicObject const *Owner ) {
 
     // we're only storing lights for locos, which have two sets of lights, front and rear
     // for a more generic role this function would have to be tweaked to add vehicle type-specific light combinations
-    data.emplace_back( Owner, side::front );
-    data.emplace_back( Owner, side::rear );
+    data.emplace_back( Owner, end::front );
+    data.emplace_back( Owner, end::rear );
 }
 
 void
@@ -43,7 +43,7 @@ light_array::update() {
 
     for( auto &light : data ) {
         // update light parameters to match current data of the owner
-        if( light.index == side::front ) {
+        if( light.index == end::front ) {
             // front light set
             light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
@@ -60,7 +60,7 @@ light_array::update() {
          || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
             // with power on, the intensity depends on the state of activated switches
             // first we cross-check the list of enabled lights with the lights installed in the vehicle...
-            auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<side>( light.index ) ) };
+            auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };
             // ...then check their individual state
             light.count = 0
                 + ( ( lights & light::headlight_left  ) ? 1 : 0 )

@@ -262,7 +262,7 @@ itemproperties_panel::render() {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
         }
         // group section
-        render_group();
+		render_group();
     }
     ImGui::End();
 }

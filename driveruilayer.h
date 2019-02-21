@@ -11,6 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "uilayer.h"
 #include "driveruipanels.h"
+#include "command.h"
+
+#include "widgets/vehiclelist.h"
+#include "widgets/map.h"
 
 class driver_ui : public ui_layer {
 
@@ -50,4 +54,8 @@ private:
     transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts
     bool m_paused { false };
 	bool m_pause_modal_opened { false };
+
+	command_relay m_relay;
+	ui::vehiclelist_panel m_vehiclelist;
+	ui::map_panel m_mappanel;
 };

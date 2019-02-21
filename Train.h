@@ -136,11 +136,13 @@ class TTrain
     // helper, returns true for EMU with oerlikon brake
     bool is_eztoer() const;
     // locates nearest vehicle belonging to the consist
-    TDynamicObject *find_nearest_consist_vehicle() const;
+	TDynamicObject *find_nearest_consist_vehicle(bool freefly, glm::vec3 pos) const;
     // mover master controller to specified position
     void set_master_controller( double const Position );
     // moves train brake lever to specified position, potentially emits switch sound if conditions are met
     void set_train_brake( double const Position );
+    // potentially moves train brake lever to neutral position
+    void zero_charging_train_brake();
     // sets specified brake acting speed for specified vehicle, potentially updating state of cab controls to match
     void set_train_brake_speed( TDynamicObject *Vehicle, int const Speed );
     // sets the motor connector button in paired unit to specified state
@@ -313,10 +315,15 @@ class TTrain
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
@@ -332,6 +339,10 @@ class TTrain
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemove( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemoveforwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
 
 
 // members
@@ -440,12 +451,16 @@ public: // reszta może by?publiczna
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
+    TGauge ggDoorLeftPermitButton;
+    TGauge ggDoorRightPermitButton;
+    TGauge ggDoorPermitPresetButton;
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
     TGauge ggDoorLeftOnButton;
     TGauge ggDoorRightOnButton;
     TGauge ggDoorLeftOffButton;
     TGauge ggDoorRightOffButton;
+    TGauge ggDoorAllOnButton;
     TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
 
@@ -511,7 +526,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad, 4-external lights
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };
@@ -544,6 +559,7 @@ public: // reszta może by?publiczna
     TButton btLampkaPrzekrMaxSila;
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
+    TButton btLampkaDoors;
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaDoorLockOff;
@@ -650,6 +666,7 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
 	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
+	uint16_t vid { 0 };
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
@@ -665,6 +682,7 @@ private:
     inline TMoverParameters *Occupied() { return mvOccupied; };
     inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
+	void MoveToVehicle(TDynamicObject *target);
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
@@ -682,5 +700,12 @@ private:
     void set_scndctrl(int);
     void set_trainbrake(float);
     void set_localbrake(float);
+
+	uint16_t id();
+	bool pending_delete = false;
 };
-//---------------------------------------------------------------------------
+
+class train_table : public basic_table<TTrain> {
+public:
+	void update(double dt);
+};

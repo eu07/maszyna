@@ -17,7 +17,8 @@ enum class logtype : unsigned int {
     texture = ( 1 << 3 ),
     lua = ( 1 << 4 ),
     material = ( 1 << 5 ),
-    shader = (1 << 6 )
+	shader = (1 << 6 ),
+	net = (1 << 7)
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

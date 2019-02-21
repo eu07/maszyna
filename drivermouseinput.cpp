@@ -210,9 +210,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
             Mousex,
             Mousey,
             GLFW_PRESS,
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-            0 );
+		    0 );
     }
     else {
         // control picking mode
@@ -223,8 +221,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
                 m_slider.value(),
                 0,
                 GLFW_PRESS,
-                // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
 
         if( false == m_pickmodepanning ) {
@@ -240,9 +237,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
             viewoffset.x,
             viewoffset.y,
             GLFW_PRESS,
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-            0 );
+		    0 );
         m_cursorposition = cursorposition;
     }
 }
@@ -315,7 +310,7 @@ drivermouse_input::button( int const Button, int const Action ) {
                 // NOTE: basic keyboard controls don't have any parameters
                 // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                 // TODO: pass correct entity id once the missing systems are in place
-                m_relay.post( mousecommand, 0, 0, Action, 0 );
+				m_relay.post( mousecommand, 0, 0, Action, 0 );
                 mousecommand = user_command::none;
             }
             else {
@@ -394,9 +389,9 @@ drivermouse_input::button( int const Button, int const Action ) {
                     // NOTE: basic keyboard controls don't have any parameters
                     // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                     // TODO: pass correct entity id once the missing systems are in place
-                    m_relay.post( mousecommand, 0, 0, Action, 0 );
+					m_relay.post( mousecommand, 0, 0, Action, 0 );
                     if (!pickwaiting) // already depressed
-                        m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
+						m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
                     m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
                 }
                 else {
@@ -432,13 +427,13 @@ drivermouse_input::poll() {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+			m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
         }
         if( m_mousecommandright != user_command::none ) {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+			m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
         }
         m_updateaccumulator -= updaterate;
     }
@@ -563,6 +558,15 @@ drivermouse_input::default_bindings() {
         { "stlinoff_bt:", {
             user_command::motorconnectorsopen,
             user_command::none } },
+        { "doorleftpermit_sw:", {
+            user_command::doorpermitleft,
+            user_command::none } },
+        { "doorrightpermit_sw:", {
+            user_command::doorpermitright,
+            user_command::none } },
+        { "doorpermitpreset_sw:", {
+            user_command::doorpermitpresetactivatenext,
+            user_command::doorpermitpresetactivateprevious } },
         { "door_left_sw:", {
             user_command::doortoggleleft,
             user_command::none } },
@@ -580,6 +584,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "doorrightoff_sw:", {
             user_command::doorcloseright,
+            user_command::none } },
+        { "doorallon_sw:", {
+            user_command::dooropenall,
             user_command::none } },
         { "dooralloff_sw:", {
             user_command::doorcloseall,

@@ -46,12 +46,13 @@ std::string filename_date() {
     std::snprintf(
         logbuffer,
         sizeof(logbuffer),
-        "%d%02d%02d_%02d%02d",
+	    "%d%02d%02d_%02d%02d%03d",
         st.wYear,
         st.wMonth,
         st.wDay,
         st.wHour,
-        st.wMinute );
+	    st.wMinute,
+	    st.wMilliseconds);
 
     return std::string( logbuffer );
 }

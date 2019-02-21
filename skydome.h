@@ -2,6 +2,7 @@
 
 #include "gl/vao.h"
 #include "gl/shader.h"
+#include "gl/buffer.h"
 #include <memory>
 
 // sky gradient based on "A practical analytic model for daylight" 
@@ -48,9 +49,6 @@ private:
     std::vector<std::uint16_t> m_indices;
 //    std::vector<float3> m_normals;
     std::vector<glm::vec3> m_colours;
-    GLuint m_vertexbuffer{ (GLuint)-1 };
-    GLuint m_indexbuffer{ (GLuint)-1 };
-    GLuint m_coloursbuffer{ (GLuint)-1 };
 
 	static float m_distributionluminance[ 5 ][ 2 ];
     static float m_distributionxcomp[ 5 ][ 2 ];
@@ -65,6 +63,9 @@ private:
 	float PerezFunctionO1( float Perezcoeffs[ 5 ], const float Thetasun, const float Zenithval );
 	float PerezFunctionO2( float Perezcoeffs[ 5 ], const float Icostheta, const float Gamma, const float Cosgamma2, const float Zenithval );
 
-    std::unique_ptr<gl::program> m_shader;
-    std::unique_ptr<gl::vao> m_vao;
+	std::optional<gl::buffer> m_vertexbuffer;
+	std::optional<gl::buffer> m_indexbuffer;
+	std::optional<gl::buffer> m_coloursbuffer;
+	std::optional<gl::program> m_shader;
+	std::optional<gl::vao> m_vao;
 };

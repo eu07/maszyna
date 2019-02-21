@@ -69,10 +69,6 @@ class TAnimContainer
     //+0x80000000: animacja z eventem, wykonywana poza wyświetlaniem
     //+0x100: pierwszy stopień IK - obrócić w stronę pierwszego potomnego (dziecka)
     //+0x200: drugi stopień IK - dostosować do pozycji potomnego potomnego (wnuka)
-    union
-    { // mogą być animacje klatkowe różnego typu, wskaźniki używa AnimModel
-        TAnimVocaloidFrame *pMovementData; // wskaźnik do klatki
-    };
     basic_event *evDone; // ewent wykonywany po zakończeniu animacji, np. zapór, obrotnicy
   public:
     TAnimContainer *pNext;
@@ -107,20 +103,6 @@ class TAnimContainer
         return evDone; };
 };
 
-class TAnimAdvanced
-{ // obiekt zaawansowanej animacji submodelu
-  public:
-    TAnimVocaloidFrame *pMovementData;
-    unsigned char *pVocaloidMotionData; // plik animacyjny dla egzemplarza (z eventu)
-    double fFrequency; // przeliczenie czasu rzeczywistego na klatki animacji
-    double fCurrent; // klatka animacji wyświetlona w poprzedniej klatce renderingu
-    double fLast; // klatka kończąca animację
-    int iMovements;
-    TAnimAdvanced();
-    ~TAnimAdvanced();
-    int SortByBone();
-};
-
 // opakowanie modelu, określające stan egzemplarza
 class TAnimModel : public scene::basic_node {
 
@@ -138,8 +120,7 @@ public:
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
-    void LightSet( int const n, float const v );
-    void AnimationVND( void *pData, double a, double b, double c, double d );
+	void LightSet( int const n, float const v );
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
     int Flags();
@@ -166,7 +147,7 @@ private:
 // methods
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
     void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
-    void Advanced();
+
     // radius() subclass details, calculates node's bounding radius
     float radius_();
     // serialize() subclass details, sends content of the subclass to provided stream
@@ -183,7 +164,6 @@ private:
     material_data m_materialdata;
 
     std::string asText; // tekst dla wyświetlacza znakowego
-    TAnimAdvanced *pAdvanced { nullptr };
     // TODO: wrap into a light state struct, remove fixed element count
     int iNumLights { 0 };
     std::array<TSubModel *, iMaxNumLights> LightsOn {}; // Ra: te wskaźniki powinny być w ramach TModel3d

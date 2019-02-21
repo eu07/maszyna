@@ -29,10 +29,17 @@ lua::~lua()
     state = nullptr;
 }
 
+std::string lua::get_error()
+{
+	return std::string(lua_tostring(state, -1));
+}
+
 void lua::interpret(std::string file)
 {
-    if (luaL_dofile(state, file.c_str()))
-        throw std::runtime_error(lua_tostring(state, -1));
+	if (luaL_dofile(state, file.c_str())) {
+		const char *str = lua_tostring(state, -1);
+		ErrorLog(std::string(str), logtype::lua);
+	}
 }
 
 // NOTE: we cannot throw exceptions in callbacks
@@ -41,10 +48,7 @@ void lua::interpret(std::string file)
 int lua::atpanic(lua_State *s)
 {
 	std::string err(lua_tostring(s, -1));
-    ErrorLog(err);
-#ifdef _WIN32
-        MessageBox(NULL, err.c_str(), "MaSzyna", MB_OK);
-#endif
+	ErrorLog(err, logtype::lua);
     return 0;
 }
 
@@ -52,7 +56,7 @@ int lua::openffi(lua_State *s)
 {
     if (luaL_dostring(s, lua_ffi))
     {
-        ErrorLog(std::string(lua_tostring(s, -1)));
+		ErrorLog(std::string(lua_tostring(s, -1)), logtype::lua);
         return 0;
     }
     return 1;

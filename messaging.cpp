@@ -68,7 +68,8 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                      || ( typeid( *event ) == typeid( lights_event ) )
                      || ( event->m_sibling != 0 ) ) {
                         // tylko jawne albo niejawne Multiple
-                        simulation::Events.AddToQuery( event, nullptr ); // drugi parametr to dynamic wywołujący - tu brak
+						command_relay relay;
+						relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(event), 0.0, GLFW_PRESS, 0);
                     }
                 }
             }
@@ -139,7 +140,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                     // jeśli długość nazwy jest niezerowa szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #7
                     auto *vehicle = (
                         pRozkaz->cString[ 1 ] == '*' ?
-                            simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
+					        simulation::Train->Dynamic() :
                             simulation::Vehicles.find( std::string{ pRozkaz->cString + 1, (unsigned)pRozkaz->cString[ 0 ] } ) );
                     if( vehicle != nullptr ) {
                         WyslijNamiary( vehicle ); // wysłanie informacji o pojeździe
@@ -180,7 +181,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             { // szukamy pierwszego pojazdu o takiej nazwie i odsyłamy parametry ramką #13
                 auto *lookup = (
                     pRozkaz->cString[ 2 ] == '*' ?
-                        simulation::Vehicles.find( Global.asHumanCtrlVehicle ) : // nazwa pojazdu użytkownika
+				        simulation::Train->Dynamic() : // nazwa pojazdu użytkownika
                         simulation::Vehicles.find( std::string( pRozkaz->cString + 2, (unsigned)pRozkaz->cString[ 1 ] ) ) ); // nazwa pojazdu
                 if( lookup == nullptr ) { break; } // nothing found, nothing to do
                 auto *d { lookup };
@@ -299,14 +300,19 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     r.iPar[19] = Vehicle->MoverParameters->MainCtrlActualPos; // Pozycja jezdna
     r.iPar[20] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
     r.iPar[21] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
-    r.iPar[22] = Vehicle->MoverParameters->ResistorsFlag * 1 +
-                 Vehicle->MoverParameters->ConverterFlag * 2 +
-                 +Vehicle->MoverParameters->CompressorFlag * 4 +
-                 Vehicle->MoverParameters->Mains * 8 +
-                 +Vehicle->MoverParameters->DoorLeftOpened * 16 +
-                 Vehicle->MoverParameters->DoorRightOpened * 32 +
-                 +Vehicle->MoverParameters->FuseFlag * 64 +
-                 Vehicle->MoverParameters->DepartureSignal * 128;
+    r.iPar[22] = Vehicle->MoverParameters->ResistorsFlag * 1
+                + Vehicle->MoverParameters->ConverterFlag * 2
+                + Vehicle->MoverParameters->CompressorFlag * 4
+                + Vehicle->MoverParameters->Mains * 8
+#ifdef EU07_USEOLDDOORCODE
+                + Vehicle->MoverParameters->DoorLeftOpened * 16
+                + Vehicle->MoverParameters->DoorRightOpened * 32
+#else
+                + ( false == Vehicle->MoverParameters->Doors.instances[side::left].is_closed ) * 16
+                + ( false == Vehicle->MoverParameters->Doors.instances[side::right].is_closed ) * 32
+#endif
+                + Vehicle->MoverParameters->FuseFlag * 64
+                + Vehicle->MoverParameters->DepartureSignal * 128;
     // WriteLog("Zapisalem stare");
     // WriteLog("Mam patykow "+IntToStr(t->DynamicObject->iAnimType[ANIM_PANTS]));
     for (int p = 0; p < 4; p++)

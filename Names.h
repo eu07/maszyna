@@ -19,7 +19,8 @@ public:
 // destructor
     ~basic_table() {
         for( auto *item : m_items ) {
-            delete item; } }
+			if (item)
+				delete item; } }
 // methods
     // adds provided item to the collection. returns: true if there's no duplicate with the same name, false otherwise
     bool
@@ -40,6 +41,26 @@ public:
 	bool insert (Type_ *Item)
 	{
 		return insert(Item, Item->name());
+	}
+	void purge (std::string const &Name)
+	{
+		auto lookup = m_itemmap.find( Name );
+		if (lookup == m_itemmap.end())
+			return;
+		delete m_items[lookup->second];
+
+		detach(Name);
+	}
+	void detach (std::string const &Name)
+	{
+		auto lookup = m_itemmap.find( Name );
+		if (lookup == m_itemmap.end())
+			return;
+
+		m_items[lookup->second] = nullptr;
+		// TBD, TODO: remove from m_items?
+
+		m_itemmap.erase(lookup);
 	}
     // locates item with specified name. returns pointer to the item, or nullptr
     Type_ *

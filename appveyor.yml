@@ -3,6 +3,12 @@ image: Visual Studio 2017
 clone_depth: 1
 build_script:
 - ps: >-
+    cd ref
+    
+    git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+    
+    cd ..
+    
     mkdir builds
     
     cd builds

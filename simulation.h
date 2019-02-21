@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "lua.h"
 #include "Event.h"
+#include "Train.h"
 
 namespace simulation {
 
@@ -25,12 +26,18 @@ public:
         update( double Deltatime, int Iterationcount );
     void
         update_clocks();
-    // restores simulation data from specified file. returns: true on success, false otherwise
-    bool
-        deserialize( std::string const &Scenariofile );
+	// starts deserialization from specified file, returns context pointer on success, throws otherwise
+	std::shared_ptr<deserializer_state>
+	    deserialize_begin(std::string const &Scenariofile);
+	// continues deserialization for given context, amount limited by time, returns true if needs to be called again
+	bool
+	    deserialize_continue(std::shared_ptr<deserializer_state> state);
     // stores class data in specified file, in legacy (text) format
     void
         export_as_text( std::string const &Scenariofile ) const;
+	// process input commands
+	void
+	    process_commands();
 
 private:
 // members
@@ -48,6 +55,7 @@ extern traction_table Traction;
 extern powergridsource_table Powergrid;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
+extern train_table Trains;
 extern light_array Lights;
 extern sound_table Sounds;
 extern lua Lua;
@@ -55,7 +63,10 @@ extern lua Lua;
 extern scene::basic_region *Region;
 extern TTrain *Train;
 
+extern uint16_t prev_train_id;
 extern bool is_ready;
+
+struct deserializer_state;
 
 } // simulation
 

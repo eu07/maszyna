@@ -25,98 +25,87 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
-bool
-state_serializer::deserialize( std::string const &Scenariofile ) {
+std::shared_ptr<deserializer_state>
+state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 
     // TODO: move initialization to separate routine so we can reuse it
     SafeDelete( Region );
     Region = new scene::basic_region();
 
+	// NOTE: for the time being import from text format is a given, since we don't have full binary serialization
+	std::shared_ptr<deserializer_state> state =
+	        std::make_shared<deserializer_state>(Scenariofile, cParser::buffer_FILE, Global.asCurrentSceneryPath, Global.bLoadTraction);
+
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
-    scene::scratch_data importscratchpad;
-    importscratchpad.name = Scenariofile;
+	state->scratchpad.name = Scenariofile;
     if( Scenariofile != "$.scn" ) {
         // compilation to binary file isn't supported for rainsted-created overrides
         // NOTE: we postpone actual loading of the scene until we process time, season and weather data
-        importscratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
+		state->scratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
     }
-    // NOTE: for the time being import from text format is a given, since we don't have full binary serialization
-    cParser scenarioparser( Scenariofile, cParser::buffer_FILE, Global.asCurrentSceneryPath, Global.bLoadTraction );
 
-    if( false == scenarioparser.ok() ) { return false; }
+	if( false == state->input.ok() )
+		throw invalid_scenery_exception();
 
-    deserialize( scenarioparser, importscratchpad );
-    if( ( false == importscratchpad.binary.terrain )
-     && ( Scenariofile != "$.scn" ) ) {
-        // if we didn't find usable binary version of the scenario files, create them now for future use
-        // as long as the scenario file wasn't rainsted-created base file override
-        Region->serialize( Scenariofile );
-    }
-    return true;
+	// prepare deserialization function table
+	// since all methods use the same objects, we can have simple, hard-coded binds or lambdas for the task
+	using deserializefunction = void( state_serializer::*)(cParser &, scene::scratch_data &);
+	std::vector<
+	    std::pair<
+	        std::string,
+	        deserializefunction> > functionlist = {
+	            { "area",        &state_serializer::deserialize_area },
+	            { "atmo",        &state_serializer::deserialize_atmo },
+	            { "camera",      &state_serializer::deserialize_camera },
+	            { "config",      &state_serializer::deserialize_config },
+	            { "description", &state_serializer::deserialize_description },
+	            { "event",       &state_serializer::deserialize_event },
+	            { "lua",         &state_serializer::deserialize_lua },
+	            { "firstinit",   &state_serializer::deserialize_firstinit },
+	            { "group",       &state_serializer::deserialize_group },
+	            { "endgroup",    &state_serializer::deserialize_endgroup },
+	            { "light",       &state_serializer::deserialize_light },
+	            { "node",        &state_serializer::deserialize_node },
+	            { "origin",      &state_serializer::deserialize_origin },
+	            { "endorigin",   &state_serializer::deserialize_endorigin },
+	            { "rotate",      &state_serializer::deserialize_rotate },
+	            { "sky",         &state_serializer::deserialize_sky },
+	            { "test",        &state_serializer::deserialize_test },
+	            { "time",        &state_serializer::deserialize_time },
+	            { "trainset",    &state_serializer::deserialize_trainset },
+	            { "endtrainset", &state_serializer::deserialize_endtrainset } };
+
+	for( auto &function : functionlist ) {
+		state->functionmap.emplace( function.first, std::bind( function.second, this, std::ref( state->input ), std::ref( state->scratchpad ) ) );
+	}
+
+	return state;
 }
 
-// restores class data from provided stream
-void
-state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
-
-    // prepare deserialization function table
-    // since all methods use the same objects, we can have simple, hard-coded binds or lambdas for the task
-    using deserializefunction = void( state_serializer::*)(cParser &, scene::scratch_data &);
-    std::vector<
-        std::pair<
-            std::string,
-            deserializefunction> > functionlist = {
-                { "area",        &state_serializer::deserialize_area },
-                { "atmo",        &state_serializer::deserialize_atmo },
-                { "camera",      &state_serializer::deserialize_camera },
-                { "config",      &state_serializer::deserialize_config },
-                { "description", &state_serializer::deserialize_description },
-                { "event",       &state_serializer::deserialize_event },
-                { "lua",         &state_serializer::deserialize_lua },
-                { "firstinit",   &state_serializer::deserialize_firstinit },
-                { "group",       &state_serializer::deserialize_group },
-                { "endgroup",    &state_serializer::deserialize_endgroup },
-                { "light",       &state_serializer::deserialize_light },
-                { "node",        &state_serializer::deserialize_node },
-                { "origin",      &state_serializer::deserialize_origin },
-                { "endorigin",   &state_serializer::deserialize_endorigin },
-                { "rotate",      &state_serializer::deserialize_rotate },
-                { "sky",         &state_serializer::deserialize_sky },
-                { "test",        &state_serializer::deserialize_test },
-                { "time",        &state_serializer::deserialize_time },
-                { "trainset",    &state_serializer::deserialize_trainset },
-                { "endtrainset", &state_serializer::deserialize_endtrainset } };
-    using deserializefunctionbind = std::function<void()>;
-    std::unordered_map<
-        std::string,
-        deserializefunctionbind> functionmap;
-    for( auto &function : functionlist ) {
-        functionmap.emplace( function.first, std::bind( function.second, this, std::ref( Input ), std::ref( Scratchpad ) ) );
-    }
+// continues deserialization for given context, amount limited by time, returns true if needs to be called again
+bool
+state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state) {
+	cParser &Input = state->input;
+	scene::scratch_data &Scratchpad = state->scratchpad;
 
     // deserialize content from the provided input
-    auto
-        timelast { std::chrono::steady_clock::now() },
-        timenow { timelast };
+	auto timelast { std::chrono::steady_clock::now() };
     std::string token { Input.getToken<std::string>() };
     while( false == token.empty() ) {
 
-        auto lookup = functionmap.find( token );
-        if( lookup != functionmap.end() ) {
+		auto lookup = state->functionmap.find( token );
+		if( lookup != state->functionmap.end() ) {
             lookup->second();
         }
         else {
             ErrorLog( "Bad scenario: unexpected token \"" + token + "\" defined in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() - 1 ) + ")" );
         }
 
-        timenow = std::chrono::steady_clock::now();
+		auto timenow = std::chrono::steady_clock::now();
         if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 200 ) {
-            timelast = timenow;
-            glfwPollEvents();
             Application.set_progress( Input.getProgress(), Input.getFullProgress() );
-            GfxRenderer.Render();
-            GfxRenderer.SwapBuffers();
+			return true;
         }
 
         token = Input.getToken<std::string>();
@@ -127,8 +116,16 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
         deserialize_firstinit( Input, Scratchpad );
     }
 
-    if (Global.map_enabled)
-        Region->create_map_geometry();
+	Region->create_map_geometry();
+
+	if( ( false == state->scratchpad.binary.terrain )
+	 && ( state->scenariofile != "$.scn" ) ) {
+		// if we didn't find usable binary version of the scenario files, create them now for future use
+		// as long as the scenario file wasn't rainsted-created base file override
+		Region->serialize( state->scenariofile );
+	}
+
+	return false;
 }
 
 void
@@ -348,8 +345,8 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         }
 
         if( ( vehicle->MoverParameters->CategoryFlag == 1 ) // trains only
-         && ( ( ( vehicle->LightList( side::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
-           || ( ( vehicle->LightList( side::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
+         && ( ( ( vehicle->LightList( end::front ) & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 )
+           || ( ( vehicle->LightList( end::rear )  & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) != 0 ) ) ) {
             simulation::Lights.insert( vehicle );
         }
     }
@@ -875,7 +872,7 @@ state_serializer::deserialize_dynamic( cParser &Input, scene::scratch_data &Scra
         Scratchpad.trainset.offset -= length;
         // automatically establish permanent connections for couplers which specify them in their definitions
         if( ( coupling != 0 )
-         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? side::front : side::rear ) ].AllowedFlag & coupling::permanent ) ) {
+         && ( vehicle->MoverParameters->Couplers[ ( offset == -1.0 ? end::front : end::rear ) ].AllowedFlag & coupling::permanent ) ) {
             coupling |= coupling::permanent;
         }
         if( true == Scratchpad.trainset.is_open ) {

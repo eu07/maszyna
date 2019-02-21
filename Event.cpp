@@ -886,9 +886,14 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +24: vehicle type, consist brake level, obstacle distance
+        // +16: load type, load amount, max load amount
+        // +8: destination, direction, engine power
+        // +0: train name, station count, stop on next station
         if( m_input.flags & flags::load ) {
+            // +16 or +24
             // jeśli pytanie o ładunek
-            if( m_input.flags & flags::mode_add ) {
+            if( m_input.flags & flags::mode_alt ) {
                 // jeśli typ pojazdu
                 // TODO: define and recognize individual request types
                 auto const owner { (
@@ -912,7 +917,7 @@ whois_event::run_() {
 
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
-                    + "[name: " + m_activator->MoverParameters->TypeName + "], "
+                    + "[type: " + m_activator->MoverParameters->TypeName + "], "
                     + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
                     + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
             }
@@ -931,7 +936,8 @@ whois_event::run_() {
                     + "[max load: " + to_string( m_activator->MoverParameters->MaxLoad, 2 ) + "]" );
             }
         }
-        else if( m_input.flags & flags::mode_add ) { // jeśli miejsce docelowe pojazdu
+        // +8
+        else if( m_input.flags & flags::mode_alt ) { // jeśli miejsce docelowe pojazdu
             targetcell->UpdateValues(
                 m_activator->asDestination, // adres docelowy
                 m_activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
@@ -944,6 +950,7 @@ whois_event::run_() {
                 + "[direction: " + to_string( m_activator->DirectionGet() ) + "], "
                 + "[engine power: " + to_string( m_activator->MoverParameters->Power, 2 ) + "]" );
         }
+        // +0
         else if( m_activator->Mechanik ) {
             if( m_activator->Mechanik->Primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
                 targetcell->UpdateValues(
@@ -1391,43 +1398,27 @@ void
 animation_event::run_() {
 
     WriteLog( "Type: Animation" );
-    if( m_animationtype == 4 ) {
-        // vmd mode targets the entire model
-        for( auto &target : m_targets ) {
-            auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
-            if( targetmodel == nullptr ) { continue; }
-            // event effect code
-            targetmodel->AnimationVND(
-                m_animationfiledata,
-                m_animationparams[ 0 ], // tu mogą być dodatkowe parametry, np. od-do
-                m_animationparams[ 1 ],
-                m_animationparams[ 2 ],
-                m_animationparams[ 3 ] );
-        }
-    }
-    else {
-        // other animation modes target specific submodels
-        for( auto *targetcontainer : m_animationcontainers ) {
-            switch( m_animationtype ) {
-                case 1: { // rotate
-                    targetcontainer->SetRotateAnim(
-                        glm::make_vec3( m_animationparams.data() ),
-                        m_animationparams[ 3 ] );
-                    break;
-                }
-                case 2: { // translate
-                    targetcontainer->SetTranslateAnim(
-                        glm::make_vec3( m_animationparams.data() ),
-                        m_animationparams[ 3 ] );
-                    break;
-                }
-                // TODO: implement digital mode
-                default: {
-                    break;
-                }
-            }
-        }
-    }
+	// animation modes target specific submodels
+	for( auto *targetcontainer : m_animationcontainers ) {
+		switch( m_animationtype ) {
+		    case 1: { // rotate
+			    targetcontainer->SetRotateAnim(
+				    glm::make_vec3( m_animationparams.data() ),
+				    m_animationparams[ 3 ] );
+				break;
+		    }
+		    case 2: { // translate
+			    targetcontainer->SetTranslateAnim(
+				    glm::make_vec3( m_animationparams.data() ),
+				    m_animationparams[ 3 ] );
+				break;
+		    }
+			// TODO: implement digital mode
+		    default: {
+			    break;
+		    }
+		}
+	}
 }
 
 // export_as_text() subclass details
@@ -1851,8 +1842,12 @@ lua_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
 // run() subclass details
 void
 lua_event::run_() {
-    if (lua_func)
-        lua_func(this, m_activator);
+	try {
+	    if (lua_func)
+	        lua_func(this, m_activator);
+	} catch (...) {
+		ErrorLog(simulation::Lua.get_error());
+	}
 }
 
 // export_as_text() subclass details
@@ -1967,14 +1962,19 @@ event_manager::update() {
     CheckQuery();
     // test list of global events for possible new additions to the queue
     for( auto *launcher : m_launcherqueue ) {
+		if (launcher->check_conditions() && launcher->Event1) {
+			// NOTE: we're presuming global events aren't going to use event2
 
-        if( true == ( launcher->check_activation() && launcher->check_conditions() ) ) {
-            // NOTE: we're presuming global events aren't going to use event2
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( launcher->Event1 ) {
-                AddToQuery( launcher->Event1, nullptr );
-            }
-        }
+			if (launcher->check_activation()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				AddToQuery( launcher->Event1, nullptr );
+			}
+
+			if (launcher->check_activation_key()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(launcher->Event1), 0.0, GLFW_PRESS, 0);
+			}
+		}
     }
 }
 
@@ -2038,17 +2038,32 @@ event_manager::insert( basic_event *Event ) {
     return true;
 }
 
+basic_event * event_manager::FindEventById(uint32_t id)
+{
+	if (id < m_eventmap.size())
+		return m_events[id];
+	else
+		return nullptr;
+}
+
+uint32_t event_manager::GetEventId(const basic_event *ev) {
+	return GetEventId(ev->m_name);
+}
+
+uint32_t event_manager::GetEventId(const std::string &Name)
+{
+	if (Name.empty())
+		return -1;
+
+	auto const lookup = m_eventmap.find(Name);
+	return lookup != m_eventmap.end() ? lookup->second : -1;
+}
+
 // legacy method, returns pointer to specified event, or null
 basic_event *
-event_manager::FindEvent( std::string const &Name ) {
-
-    if( Name.empty() ) { return nullptr; }
-
-    auto const lookup = m_eventmap.find( Name );
-    return (
-        lookup != m_eventmap.end() ?
-            m_events[ lookup->second ] :
-            nullptr );
+event_manager::FindEvent( std::string const &Name )
+{
+	return FindEventById(GetEventId(Name));
 }
 
 // legacy method, inserts specified event in the event query
@@ -2209,4 +2224,16 @@ event_manager::export_as_text( std::ostream &Output ) const {
             launcher->export_as_text( Output );
         }
     }
+}
+
+std::vector<TEventLauncher*> event_manager::find_eventlaunchers(glm::vec2 center, float radius) const {
+	std::vector<TEventLauncher *> results;
+
+	for (auto &launcher : m_launchers.sequence()) {
+		glm::dvec3 location = launcher->location();
+		if (glm::distance2(glm::vec2(location.x, location.z), center) < radius)
+			results.push_back(launcher);
+	}
+
+	return results;
 }

@@ -11,8 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "applicationmode.h"
 #include "PyInt.h"
+#include "network/manager.h"
 
 class eu07_application {
+	const int MAX_NETWORK_PER_FRAME = 1000;
 
 public:
 // types
@@ -70,10 +72,16 @@ public:
         on_mouse_button( int const Button, int const Action, int const Mods );
     void
         on_scroll( double const Xoffset, double const Yoffset );
-    void on_char(unsigned int c);
+	void
+	    on_char(unsigned int c);
+	void
+	    on_focus_change(bool focus);
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
         window( int const Windowindex = 0 );
+	// generate network sync verification number
+	double
+	    generate_sync();
 
 private:
 // types
@@ -89,6 +97,7 @@ private:
     int  init_gfx();
     int  init_audio();
     int  init_modes();
+	bool init_network();
 // members
 
     bool m_screenshot_queued = false;
@@ -97,6 +106,8 @@ private:
     mode_stack m_modestack; // current behaviour mode
     python_taskqueue m_taskqueue;
     std::vector<GLFWwindow *> m_windows;
+
+	std::optional<network::manager> m_network;
 };
 
 extern eu07_application Application;

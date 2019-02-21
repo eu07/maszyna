@@ -96,10 +96,6 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
     // bPrimary=true - jest pierwszą osią w pojeździe, czyli generuje eventy i przepisuje pojazd
     // Ra: zwraca false, jeśli pojazd ma być usunięty
     auto const ismoving { ( std::abs( fDistance ) > 0.01 ) && ( Owner->GetVelocity() > 0.01 ) };
-    int const eventfilter { (
-        ( ( true == ismoving ) && ( Owner->ctOwner != nullptr ) ) ?
-            Owner->ctOwner->Direction() * ( Owner->ctOwner->Vehicle()->DirectionGet() == Owner->DirectionGet() ? 1 : -1 ) * ( fDirection > 0 ? 1 : -1 ) :
-            0 ) };
     fDistance *= fDirection; // dystans mnożnony przez kierunek
     double s; // roboczy dystans
     double dir; // zapamiętany kierunek do sprawdzenia, czy się zmienił
@@ -110,6 +106,13 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         // TODO: refactor following block as track method
         if( pCurrentTrack->m_events ) { // sumaryczna informacja o eventach
             // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
+            int const eventfilter { (
+                false == ismoving ? 0 : // only moving vehicles activate events type 1/2
+                false == bPrimary ? 0 : // only primary axle activates events type 1/2
+                Owner->ctOwner == nullptr ?
+                    ( fDistance > 0 ? 1 : -1 ) : // loose vehicle has no means to determine 'intended' direction so the filter does effectively nothing in such case
+                    ( fDirection > 0 ? 1 : -1 ) * Owner->ctOwner->Direction() * ( Owner->ctOwner->Vehicle()->DirectionGet() == Owner->DirectionGet() ? 1 : -1 ) ) };
+
             if( false == ismoving ) {
                 //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
                 if( ( Owner->Mechanik != nullptr )
@@ -127,16 +130,12 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                      && ( Owner->Mechanik->Primary() ) ) {
                         // tylko dla jednego członu
                         // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
-                        if( true == bPrimary ) {
-                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
-                        }
+                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
                     }
                 }
                 if( SetFlag( iEventallFlag, -1 ) ) {
                     // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-                    if( true == bPrimary ) {
-                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner );
-                    }
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events1all, Owner );
                 }
             }
             else if( ( fDistance > 0 ) && ( eventfilter > 0 ) ) {
@@ -146,16 +145,12 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                     if( ( Owner->Mechanik != nullptr )
                      && ( Owner->Mechanik->Primary() ) ) {
                         // tylko dla jednego członu
-                        if( true == bPrimary ) {
-                            pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
-                        }
+                         pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
                     }
                 }
                 if( SetFlag( iEventallFlag, -2 ) ) {
                     // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
-                    if( true == bPrimary ) {
-                        pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner );
-                    }
+                    pCurrentTrack->QueueEvents( pCurrentTrack->m_events2all, Owner );
                 }
             }
         }

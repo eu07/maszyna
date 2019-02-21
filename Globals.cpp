@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Console.h"
 #include "PyInt.h"
+#include "Timer.h"
 
 global_settings Global;
 
@@ -51,7 +52,7 @@ global_settings::ConfigParse(cParser &Parser) {
         {
 
             Parser.getTokens();
-            Parser >> asHumanCtrlVehicle;
+            Parser >> local_start_vehicle;
         }
         else if( token == "fieldofview" ) {
 
@@ -80,10 +81,14 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "fullscreen")
         {
-
             Parser.getTokens();
             Parser >> bFullScreen;
         }
+		else if (token == "fullscreenmonitor")
+		{
+			Parser.getTokens(1, false);
+			Parser >> fullscreen_monitor;
+		}
         else if( token == "vsync" ) {
 
             Parser.getTokens();
@@ -389,6 +394,14 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> default_timespeed;
 			fTimeSpeed = default_timespeed;
         }
+		else if (token == "deltaoverride")
+		{
+			// for debug
+			Parser.getTokens(1, false);
+			float deltaoverride;
+			Parser >> deltaoverride;
+			Timer::set_delta_override(1.0f / deltaoverride);
+		}
         else if (token == "multisampling")
         {
             // tryb antyaliasingu: 0=brak,1=2px,2=4px
@@ -706,6 +719,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> fpslimit;
 			minframetime = std::chrono::duration<float>(1.0f / fpslimit);
 		}
+		else if (token == "randomseed")
+		{
+			Parser.getTokens(1);
+			Parser >> Global.random_seed;
+		}
         else if (token == "gfx.envmap.enabled")
         {
             Parser.getTokens(1);
@@ -774,11 +792,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_shadergamma;
         }
-        else if (token == "map.enabled")
-        {
-            Parser.getTokens(1);
-            Parser >> map_enabled;
-        }
 		else if (token == "python.displaywindows")
 		{
 			Parser.getTokens(1);
@@ -794,18 +807,38 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
 		}
+		else if (token == "python.monitormap")
+		{
+			Parser.getTokens(2, false);
+			std::string pythonscreen;
+			std::string monitorid;
+			Parser >> pythonscreen >> monitorid;
+			python_monitormap.emplace(std::make_pair(pythonscreen, monitorid));
+		}
+		else if (token == "network.server")
+		{
+			Parser.getTokens(2);
+
+			std::string backend;
+			std::string conf;
+			Parser >> backend >> conf;
+
+			network_servers.push_back(std::make_pair(backend, conf));
+		}
+		else if (token == "network.client")
+		{
+			Parser.getTokens(2);
+
+			network_client.emplace();
+			Parser >> network_client->first;
+			Parser >> network_client->second;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
     { // tutaj wyłączenie, bo mogą nie być zdefiniowane w INI
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
-    }
-    if (iMultiplayer > 0)
-    {
-        bInactivePause = false; // okno "w tle" nie może pauzować, jeśli włączona komunikacja
-        // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
-        // (tryb instruktora)
     }
 /*
     fFpsMin = fFpsAverage -

@@ -15,6 +15,7 @@ public:
 	static std::string d_str(std::istream&);
     static bool d_bool(std::istream&);
     static glm::dvec3 d_dvec3(std::istream&);
+	static glm::vec3 d_vec3(std::istream&);
     static glm::vec4 d_vec4(std::istream&);
 
 	static void ls_uint16(std::ostream&, uint16_t);
@@ -25,5 +26,6 @@ public:
 	static void s_str(std::ostream&, std::string);
     static void s_bool(std::ostream&, bool);
     static void s_dvec3(std::ostream&, glm::dvec3 const &);
+	static void s_vec3(std::ostream&, glm::vec3 const &);
     static void s_vec4(std::ostream&, glm::vec4 const &);
 };

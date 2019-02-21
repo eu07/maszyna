@@ -20,12 +20,12 @@ public:
     {}
 
     void update( scene::basic_node const *Node );
-    void render() override;
+	void render() override;
 
 private:
 // methods
     void update_group();
-    bool render_group();
+	bool render_group();
 
 // members
     scene::basic_node const *m_node { nullptr }; // scene node bound to the panel

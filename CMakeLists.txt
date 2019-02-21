@@ -1,13 +1,34 @@
 cmake_minimum_required(VERSION 3.0)
+if(POLICY CMP0058) 
+	cmake_policy(SET CMP0058 NEW) 
+endif()
+if(POLICY CMP0074) 
+	cmake_policy(SET CMP0074 NEW) 
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-#include(PrecompiledHeader)
 include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+#set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -fsanitize=address -fsanitize=undefined")
+
 set(CMAKE_CXX_STANDARD 17)
-include_directories("." "Console" "McZapkie" "gl" "ref/glad/include")
-file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h" "gl/*.h")
+include_directories("."
+"Console"
+"McZapkie"
+"gl"
+"ref/glad/include")
+
+file(GLOB HEADERS "*.h"
+"Console/*.h"
+"McZapkie/*.h"
+"gl/*.h"
+"network/*.h"
+"network/backend/*.h"
+"widgets/*.h")
 
 set(SOURCES
 "Texture.cpp"
@@ -96,7 +117,14 @@ set(SOURCES
 "simulationstateserializer.cpp"
 "precipitation.cpp"
 "texturewindow.cpp"
-"map.cpp"
+
+"network/network.cpp"
+"network/message.cpp"
+"network/manager.cpp"
+"network/backend/asio.cpp"
+
+"widgets/vehiclelist.cpp"
+"widgets/map.cpp"
 
 "ref/glad/src/glad.c"
 
@@ -173,7 +201,6 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 cotire(${PROJECT_NAME})
-#add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
@@ -228,6 +255,9 @@ target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 find_package(libserialport REQUIRED)
 include_directories(${libserialport_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
+
+find_package(ASIO REQUIRED)
+target_link_libraries(${PROJECT_NAME} ASIO::ASIO)
 
 if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)

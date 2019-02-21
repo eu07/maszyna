@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Timer.h"
 #include "utilities.h"
+#include "simulation.h"
 
 namespace simulation {
 
@@ -142,8 +143,13 @@ commanddescription_sequence Commands_descriptions = {
     { "carcouplingdisconnect", command_target::vehicle, command_mode::oneoff },
     { "doortoggleleft", command_target::vehicle, command_mode::oneoff },
     { "doortoggleright", command_target::vehicle, command_mode::oneoff },
+    { "doorpermitleft", command_target::vehicle, command_mode::oneoff },
+    { "doorpermitright", command_target::vehicle, command_mode::oneoff },
+    { "doorpermitpresetactivatenext", command_target::vehicle, command_mode::oneoff },
+    { "doorpermitpresetactivateprevious", command_target::vehicle, command_mode::oneoff },
     { "dooropenleft", command_target::vehicle, command_mode::oneoff },
     { "dooropenright", command_target::vehicle, command_mode::oneoff },
+    { "dooropenall", command_target::vehicle, command_mode::oneoff },
     { "doorcloseleft", command_target::vehicle, command_mode::oneoff },
     { "doorcloseright", command_target::vehicle, command_mode::oneoff },
     { "doorcloseall", command_target::vehicle, command_mode::oneoff },
@@ -217,7 +223,19 @@ commanddescription_sequence Commands_descriptions = {
     { "batterydisable", command_target::vehicle, command_mode::oneoff },
     { "motorblowerstogglefront", command_target::vehicle, command_mode::oneoff },
     { "motorblowerstogglerear", command_target::vehicle, command_mode::oneoff },
-    { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff }
+    { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff },
+    { "timejump", command_target::simulation, command_mode::oneoff },
+    { "timejumplarge", command_target::simulation, command_mode::oneoff },
+    { "timejumpsmall", command_target::simulation, command_mode::oneoff },
+    { "vehiclemove", command_target::vehicle, command_mode::oneoff },
+    { "vehiclemoveforwards", command_target::vehicle, command_mode::oneoff },
+    { "vehiclemovebackwards", command_target::vehicle, command_mode::oneoff },
+    { "vehicleboost", command_target::vehicle, command_mode::oneoff },
+    { "debugtoggle", command_target::simulation, command_mode::oneoff },
+    { "focuspauseset", command_target::simulation, command_mode::oneoff },
+    { "pausetoggle", command_target::simulation, command_mode::oneoff },
+    { "entervehicle", command_target::simulation, command_mode::oneoff },
+    { "queueevent", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation
@@ -225,37 +243,46 @@ commanddescription_sequence Commands_descriptions = {
 void command_queue::update()
 {
 	double delta = Timer::GetDeltaTime();
-	for (user_command c : m_active_continuous)
+	for (auto c : m_active_continuous)
 	{
-	    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( c ) ];
-		command_data data { c, GLFW_REPEAT, 0, 0, delta };
-	    auto lookup = m_commands.emplace((size_t)desc.target, commanddata_sequence() );
-	    lookup.first->second.emplace( data );
+		command_data data({c.first, GLFW_REPEAT, 0.0, 0.0, delta, false, glm::vec3()}); // todo: improve
+		auto lookup = m_commands.emplace( c.second, commanddata_sequence() );
+		// recipient stack was either located or created, so we can add to it quite safely
+		lookup.first->second.emplace_back( data );
 	}
 }
 
 // posts specified command for specified recipient
 void
-command_queue::push( command_data const &Command, std::size_t const Recipient ) {
-    auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
+command_queue::push( command_data const &Command, uint32_t const Recipient ) {
+	if (is_network_target(Recipient)) {
+		auto lookup = m_intercept_queue.emplace(Recipient, commanddata_sequence());
+		lookup.first->second.emplace_back(Command);
+	} else {
+		push_direct(Command, Recipient);
+	}
+}
+
+void command_queue::push_direct(const command_data &Command, const uint32_t Recipient) {
+	auto const &desc = simulation::Commands_descriptions[ static_cast<std::size_t>( Command.command ) ];
 	if (desc.mode == command_mode::continuous)
 	{
 		if (Command.action == GLFW_PRESS)
-			m_active_continuous.emplace(Command.command);
+			m_active_continuous.emplace(std::make_pair(Command.command, Recipient));
 		else if (Command.action == GLFW_RELEASE)
-			m_active_continuous.erase(Command.command);
+			m_active_continuous.erase(std::make_pair(Command.command, Recipient));
 		else if (Command.action == GLFW_REPEAT)
 			return;
 	}
 
-    auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
-    // recipient stack was either located or created, so we can add to it quite safely
-    lookup.first->second.emplace( Command );
+	auto lookup = m_commands.emplace( Recipient, commanddata_sequence() );
+	// recipient stack was either located or created, so we can add to it quite safely
+	lookup.first->second.emplace_back( Command );
 }
 
 // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
 bool
-command_queue::pop( command_data &Command, std::size_t const Recipient ) {
+command_queue::pop( command_data &Command, uint32_t const Recipient ) {
 
     auto lookup = m_commands.find( Recipient );
     if( lookup == m_commands.end() ) {
@@ -269,16 +296,45 @@ command_queue::pop( command_data &Command, std::size_t const Recipient ) {
     }
     // we have command stack with command(s) on it, retrieve and pop the first one
     Command = commands.front();
-    commands.pop();
+	commands.pop_front();
 
     return true;
 }
 
+bool command_queue::is_network_target(uint32_t const Recipient) {
+	const command_target target = (command_target)(Recipient & ~0xffff);
+
+	if (target == command_target::entity)
+		return false;
+
+	return true;
+}
+
+command_queue::commands_map command_queue::pop_intercept_queue() {
+	commands_map map(m_intercept_queue);
+	m_intercept_queue.clear();
+	return map;
+}
+
+void command_queue::push_commands(const commands_map &commands) {
+	for (auto const &kv : commands)
+		for (command_data const &data : kv.second)
+			push_direct(data, kv.first);
+}
+
 void
-command_relay::post( user_command const Command, double const Param1, double const Param2,
-                     int const Action, std::uint16_t const Recipient) const {
+command_relay::post(user_command const Command, double const Param1, double const Param2,
+                     int const Action, uint16_t Recipient, glm::vec3 Position) const {
 
     auto const &command = simulation::Commands_descriptions[ static_cast<std::size_t>( Command ) ];
+
+	if (command.target == command_target::vehicle && Recipient == 0) {
+		// default 0 recipient is currently controlled train
+		if (simulation::Train == nullptr)
+			return;
+		Recipient = simulation::Train->id();
+	}
+
     if( ( command.target == command_target::vehicle )
      && ( true == FreeFlyModeFlag )
      && ( ( false == DebugModeFlag )
@@ -287,44 +343,11 @@ command_relay::post( user_command const Command, double const Param1, double con
         return;
     }
 
-    simulation::Commands.push(
-        command_data{
-            Command,
-            Action,
-            Param1,
-            Param2,
-            Timer::GetDeltaTime()},
-        static_cast<std::size_t>( command.target ) | Recipient );
-/*
-#ifdef _DEBUG
-    if( Action != GLFW_RELEASE ) {
-    // key was pressed or is still held
-        if( false == command.name.empty() ) {
-            if( false == (
-                ( Command == user_command::moveleft )
-             || ( Command == user_command::moveleftfast )
-             || ( Command == user_command::moveright )
-             || ( Command == user_command::moverightfast )
-             || ( Command == user_command::moveforward )
-             || ( Command == user_command::moveforwardfast )
-             || ( Command == user_command::moveback )
-             || ( Command == user_command::movebackfast )
-             || ( Command == user_command::moveup )
-             || ( Command == user_command::moveupfast )
-             || ( Command == user_command::movedown )
-             || ( Command == user_command::movedownfast )
-             || ( Command == user_command::movevector )
-             || ( Command == user_command::viewturn ) ) ) {
-                WriteLog( "Command issued: " + command.name );
-            }
-        }
-    }
-    else {
-    // key was released (but we don't log this)
-        WriteLog( "Key released: " + command.name );
-    }
-#endif
-*/
-}
+	if (Position == glm::vec3(0.0f))
+		Position = Global.pCamera.Pos;
 
-//---------------------------------------------------------------------------
+	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
+	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Position });
+
+	simulation::Commands.push(commanddata, combined_recipient);
+}

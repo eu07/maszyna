@@ -144,8 +144,13 @@ driverkeyboard_input::default_bindings() {
         { user_command::carcouplingdisconnect, GLFW_KEY_DELETE },
         { user_command::doortoggleleft, GLFW_KEY_COMMA },
         { user_command::doortoggleright, GLFW_KEY_PERIOD },
+        { user_command::doorpermitleft, GLFW_KEY_COMMA | keymodifier::shift },
+        { user_command::doorpermitright, GLFW_KEY_PERIOD | keymodifier::shift },
+        { user_command::doorpermitpresetactivatenext, GLFW_KEY_PERIOD | keymodifier::shift | keymodifier::control },
+        { user_command::doorpermitpresetactivateprevious, GLFW_KEY_COMMA | keymodifier::shift | keymodifier::control },
         // dooropenleft,
         // dooropenright,
+        { user_command::dooropenall, GLFW_KEY_SLASH | keymodifier::shift },
         // doorcloseleft,
         // doorcloseright,
         { user_command::doorcloseall, GLFW_KEY_SLASH | keymodifier::control },
@@ -202,8 +207,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::instrumentlighttoggle, GLFW_KEY_SEMICOLON },
         // instrumentlightenable,
         // instrumentlightdisable,
-        // dashboardlighttoggle,
-        // timetablelighttoggle,
+        { user_command::dashboardlighttoggle, GLFW_KEY_SEMICOLON | keymodifier::shift },
+        { user_command::timetablelighttoggle, GLFW_KEY_APOSTROPHE | keymodifier::shift },
         { user_command::generictoggle0, GLFW_KEY_0 },
         { user_command::generictoggle1, GLFW_KEY_1 },
         { user_command::generictoggle2, GLFW_KEY_2 },
@@ -219,8 +224,16 @@ driverkeyboard_input::default_bindings() {
         // batterydisable,
         { user_command::motorblowerstogglefront, GLFW_KEY_N | keymodifier::shift },
         { user_command::motorblowerstogglerear, GLFW_KEY_M | keymodifier::shift },
-        { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control }
-
+	    { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control },
+	    // admin_timejump,
+	    { user_command::timejumplarge, GLFW_KEY_F1 | keymodifier::control },
+	    { user_command::timejumpsmall, GLFW_KEY_F1 | keymodifier::shift },
+	    // admin_vehiclemove,
+	    { user_command::vehiclemoveforwards, GLFW_KEY_LEFT_BRACKET | keymodifier::control },
+	    { user_command::vehiclemovebackwards, GLFW_KEY_RIGHT_BRACKET | keymodifier::control },
+	    { user_command::vehicleboost, GLFW_KEY_TAB | keymodifier::control },
+	    { user_command::debugtoggle, GLFW_KEY_F12 | keymodifier::control | keymodifier::shift },
+	    { user_command::pausetoggle, GLFW_KEY_ESCAPE }
     };
 }
 

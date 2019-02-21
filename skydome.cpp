@@ -121,27 +121,31 @@ void CSkyDome::Render() {
     {
         gl::shader vert("vbocolor.vert");
         gl::shader frag("color.frag");
-        m_shader = std::make_unique<gl::program>(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
+		m_shader.emplace(std::vector<std::reference_wrapper<const gl::shader>>({vert, frag}));
     }
 
-    if( m_vertexbuffer == -1 ) {
-        m_vao = std::make_unique<gl::vao>();
+	if (!m_vertexbuffer) {
+		m_vao.emplace();
+		m_vao->bind();
 
-        // build the buffers
-        ::glGenBuffers( 1, &m_vertexbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), m_vertices.data(), GL_STATIC_DRAW );
-        m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
+		m_vertexbuffer.emplace();
+		m_vertexbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), GL_STATIC_DRAW);
+		m_vertexbuffer->upload(gl::buffer::ARRAY_BUFFER, m_vertices.data(), 0, m_vertices.size() * sizeof( glm::vec3 ));
 
-        ::glGenBuffers( 1, &m_coloursbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( glm::vec3 ), m_colours.data(), GL_DYNAMIC_DRAW );
-        m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(glm::vec3), 0);
+		m_vertexbuffer->bind(gl::buffer::ARRAY_BUFFER);
+		m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
 
-        ::glGenBuffers( 1, &m_indexbuffer );
-        ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
-        ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
-        // NOTE: vertex and index source data is superfluous past this point, but, eh
+		m_coloursbuffer.emplace();
+		m_coloursbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_colours.size() * sizeof( glm::vec3 ), GL_STATIC_DRAW);
+		m_coloursbuffer->upload(gl::buffer::ARRAY_BUFFER, m_colours.data(), 0, m_colours.size() * sizeof( glm::vec3 ));
+
+		m_coloursbuffer->bind(gl::buffer::ARRAY_BUFFER);
+		m_vao->setup_attrib(1, 3, GL_FLOAT, sizeof(glm::vec3), 0);
+
+		m_indexbuffer.emplace();
+		m_indexbuffer->allocate(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), GL_STATIC_DRAW);
+		m_indexbuffer->upload(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.data(), 0, m_indices.size() * sizeof( unsigned short ));
+		m_indexbuffer->bind(gl::buffer::ELEMENT_ARRAY_BUFFER);
 
         m_vao->unbind();
     }
@@ -346,10 +350,9 @@ void CSkyDome::RebuildColors() {
     m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
     m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 2 ) );
 
-    if( m_coloursbuffer != -1 ) {
+	if (m_coloursbuffer) {
         // the colour buffer was already initialized, so on this run we update its content
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( glm::vec3 ), m_colours.data() );
+		m_coloursbuffer->upload(gl::buffer::ARRAY_BUFFER, m_colours.data(), 0, m_colours.size() * sizeof( glm::vec3 ));
     }
 }
 

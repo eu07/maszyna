@@ -26,8 +26,10 @@ struct global_settings {
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
-    std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
-    TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
+	std::mt19937 random_engine;
+	std::mt19937 local_random_engine;
+	bool ready_to_load { false };
+	uint32_t random_seed = 0;
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
@@ -58,7 +60,7 @@ struct global_settings {
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
     std::string SceneryFile{ "td.scn" };
-    std::string asHumanCtrlVehicle{ "EU07-424" };
+    std::string local_start_vehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
     // logs
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
@@ -180,10 +182,12 @@ struct global_settings {
 
 	std::chrono::duration<float> minframetime {0.0f};
 
+	std::unordered_map<std::string, std::string> python_monitormap;
+	std::string fullscreen_monitor;
+
 	bool python_mipmaps = true;
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;
-	bool map_enabled = true;
 
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
@@ -197,6 +201,9 @@ struct global_settings {
     bool gfx_skippipeline = false;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
+
+	std::vector<std::pair<std::string, std::string>> network_servers;
+	std::optional<std::pair<std::string, std::string>> network_client;
 
 // methods
     void LoadIniFile( std::string asFileName );

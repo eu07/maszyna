@@ -16,13 +16,14 @@ namespace Timer {
 
 subsystem_stopwatches subsystem;
 
-double DeltaTime, DeltaRenderTime;
+double DeltaTime = 0.0, DeltaRenderTime = 0.0;
 double fFPS{ 0.0f };
 double fLastTime{ 0.0f };
 DWORD dwFrames{ 0 };
 double fSimulationTime{ 0.0 };
 double fSoundTimer{ 0.0 };
 double fSinceStart{ 0.0 };
+double override_delta = -1.0f;
 
 double GetTime()
 {
@@ -31,6 +32,8 @@ double GetTime()
 
 double GetDeltaTime()
 { // czas symulacji (stoi gdy pauza)
+	if (override_delta != -1.0f)
+		return override_delta;
     return DeltaTime;
 }
 
@@ -39,28 +42,17 @@ double GetDeltaRenderTime()
     return DeltaRenderTime;
 }
 
-void SetDeltaTime(double t)
+void set_delta_override(double t)
 {
-    DeltaTime = t;
-}
-
-bool GetSoundTimer()
-{ // Ra: być może, by dźwięki nie modyfikowały się zbyt często, po 0.1s zeruje się ten licznik
-    return (fSoundTimer == 0.0f);
-}
-
-double GetFPS()
-{
-    return fFPS;
+	override_delta = t;
 }
 
 void ResetTimers()
 {
     UpdateTimers( Global.iPause != 0 );
-    DeltaTime = 0.1;
+	DeltaTime = 0.0;
     DeltaRenderTime = 0.0;
-    fSoundTimer = 0.0;
-};
+}
 
 uint64_t fr, count, oldCount;
 
@@ -85,6 +77,8 @@ void UpdateTimers(bool pause)
 
         if (DeltaTime > 1.0)
             DeltaTime = 1.0;
+
+		fSimulationTime += GetDeltaTime();
     }
     else
         DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
@@ -106,7 +100,6 @@ void UpdateTimers(bool pause)
         fLastTime = fTime;
         dwFrames = 0L;
     }
-    fSimulationTime += DeltaTime;
 };
 
 }; // namespace timer

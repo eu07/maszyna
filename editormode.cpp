@@ -262,6 +262,11 @@ editor_mode::on_event_poll() {
     m_input.poll();
 }
 
+
+bool editor_mode::is_command_processor() {
+	return false;
+}
+
 bool
 editor_mode::mode_translation() const {
 

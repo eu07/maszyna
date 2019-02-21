@@ -105,8 +105,14 @@ bool ClearFlag( int &Flag, int const Value ) {
 
 double Random(double a, double b)
 {
-    std::uniform_real_distribution<> dis(a, b);
-    return dis(Global.random_engine);
+	uint32_t val = Global.random_engine();
+	return interpolate(a, b, (double)val / Global.random_engine.max());
+}
+
+double LocalRandom(double a, double b)
+{
+	uint32_t val = Global.local_random_engine();
+	return interpolate(a, b, (double)val / Global.random_engine.max());
 }
 
 bool FuzzyLogic(double Test, double Threshold, double Probability)

@@ -88,6 +88,14 @@ glm::dvec3 sn_utils::d_dvec3(std::istream& s)
         ld_float64(s) };
 }
 
+glm::vec3 sn_utils::d_vec3( std::istream& s)
+{
+	return {
+		ld_float32(s),
+		ld_float32(s),
+		ld_float32(s) };
+}
+
 glm::vec4 sn_utils::d_vec4( std::istream& s)
 {
     return {
@@ -171,6 +179,13 @@ void sn_utils::s_dvec3(std::ostream &s, glm::dvec3 const &v)
     ls_float64(s, v.x);
     ls_float64(s, v.y);
     ls_float64(s, v.z);
+}
+
+void sn_utils::s_vec3(std::ostream &s, glm::vec3 const &v)
+{
+	ls_float32(s, v.x);
+	ls_float32(s, v.y);
+	ls_float32(s, v.z);
 }
 
 void sn_utils::s_vec4(std::ostream &s, glm::vec4 const &v)

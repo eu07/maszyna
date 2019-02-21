@@ -9,9 +9,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "application.h"
-#include "scenarioloadermode.h"
 #include "drivermode.h"
 #include "editormode.h"
+#include "scenarioloadermode.h"
 
 #include "Globals.h"
 #include "simulation.h"
@@ -57,12 +57,7 @@ extern WNDPROC BaseWindowProc;
 // user input callbacks
 
 void focus_callback( GLFWwindow *window, int focus ) {
-    if( Global.bInactivePause ) {// jeśli ma być pauzowanie okna w tle
-        if( focus )
-            Global.iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
-        else
-            Global.iPause |= 4; // włączenie pauzy, gdy nieaktywy
-    }
+	Application.on_focus_change(focus != 0);
 }
 
 void window_resize_callback( GLFWwindow *window, int w, int h ) {
@@ -114,15 +109,15 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
         return result;
     }
+
+	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
+	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
+	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
+
     if( ( result = init_locale() ) != 0 ) {
         return result;
     }
-
-    WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
-    WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
-    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
-
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
@@ -138,7 +133,22 @@ eu07_application::init( int Argc, char *Argv[] ) {
         return result;
     }
 
+	if (!init_network())
+		return -1;
+
     return result;
+}
+
+double eu07_application::generate_sync() {
+	if (Timer::GetDeltaTime() == 0.0)
+		return 0.0;
+	double sync = 0.0;
+	for (const TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
+		 glm::vec3 pos = vehicle->GetPosition();
+		 sync += pos.x + pos.y + pos.z;
+	}
+	sync += Random(1.0, 100.0);
+	return sync;
 }
 
 int
@@ -150,8 +160,121 @@ eu07_application::run() {
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
 
-        if (!m_modes[ m_modestack.top() ]->update())
-            break;
+		// -------------------------------------------------------------------
+		// multiplayer command relaying logic can seem a bit complex
+		//
+		// we are simultaneously:
+		// => master (not client) OR slave (client)
+		// => server OR not
+		//
+		// trivia: being client and server is possible
+
+		double frameStartTime = Timer::GetTime();
+
+		if (m_modes[m_modestack.top()]->is_command_processor()) {
+			// active mode is doing real calculations (e.g. drivermode)
+
+			int loop_remaining = MAX_NETWORK_PER_FRAME;
+			while (--loop_remaining > 0)
+			{
+				command_queue::commands_map commands_to_exec;
+				command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
+				double slave_sync;
+
+				// if we're the server
+				if (m_network && m_network->servers)
+				{
+					// fetch from network layer command requests received from clients
+					command_queue::commands_map remote_commands = m_network->servers->pop_commands();
+
+					// push these into local queue
+					add_to_dequemap(local_commands, remote_commands);
+				}
+
+				// if we're slave
+				if (m_network && m_network->client)
+				{
+					// fetch frame info from network layer,
+					auto frame_info = m_network->client->get_next_delta(MAX_NETWORK_PER_FRAME - loop_remaining);
+
+					// use delta and commands received from master
+					double delta = std::get<0>(frame_info);
+					Timer::set_delta_override(delta);
+					slave_sync = std::get<1>(frame_info);
+					add_to_dequemap(commands_to_exec, std::get<2>(frame_info));
+
+					// and send our local commands to master
+					m_network->client->send_commands(local_commands);
+
+					if (delta == 0.0)
+						loop_remaining = -1;
+				}
+				// if we're master
+				else {
+					// just push local commands to execution
+					add_to_dequemap(commands_to_exec, local_commands);
+
+					loop_remaining = -1;
+				}
+
+				// send commands to command queue
+				simulation::Commands.push_commands(commands_to_exec);
+
+				// do actual frame processing
+				if (!m_modes[ m_modestack.top() ]->update())
+					goto die;
+
+				// update continuous commands
+				simulation::Commands.update();
+
+				double sync = generate_sync();
+
+				// if we're the server
+				if (m_network && m_network->servers)
+				{
+					// send delta, sync, and commands we just executed to clients
+					double delta = Timer::GetDeltaTime();
+					double render = Timer::GetDeltaRenderTime();
+					m_network->servers->push_delta(render, delta, sync, commands_to_exec);
+				}
+
+				// if we're slave
+				if (m_network && m_network->client)
+				{
+					// verify sync
+					if (sync != slave_sync) {
+						WriteLog("net: desync! calculated: " + std::to_string(sync)
+						         + ", received: " + std::to_string(slave_sync), logtype::net);
+					}
+
+					// set total delta for rendering code
+					double totalDelta = Timer::GetTime() - frameStartTime;
+					Timer::set_delta_override(totalDelta);
+				}
+			}
+
+			if (!loop_remaining) {
+				// loop break forced by counter
+				float received = m_network->client->get_frame_counter();
+				float awaiting = m_network->client->get_awaiting_frames();
+
+				// TODO: don't meddle with mode progresbar
+				m_modes[m_modestack.top()]->set_progress(100.0f, 100.0f * (received - awaiting) / received);
+			} else {
+				m_modes[m_modestack.top()]->set_progress(0.0f, 0.0f);
+			}
+		} else {
+			// active mode is loader
+
+			// clear local command queue
+			simulation::Commands.pop_intercept_queue();
+
+			// do actual frame processing
+			if (!m_modes[ m_modestack.top() ]->update())
+				goto die;
+		}
+
+		// -------------------------------------------------------------------
 
 		m_taskqueue.update();
 		opengl_texture::reset_unit_cache();
@@ -166,16 +289,19 @@ eu07_application::run() {
 
         m_modes[ m_modestack.top() ]->on_event_poll();
 
-        simulation::Commands.update();
         if (m_screenshot_queued) {
             m_screenshot_queued = false;
             screenshot_man.make_screenshot();
         }
 
+		if (m_network)
+			m_network->update();
+
 		auto frametime = Timer::subsystem.mainloop_total.stop();
 		if (Global.minframetime.count() != 0.0f && (Global.minframetime - frametime).count() > 0.0f)
 			std::this_thread::sleep_for(Global.minframetime - frametime);
     }
+    die:
 
     return 0;
 }
@@ -232,7 +358,6 @@ eu07_application::render_ui() {
 
 bool
 eu07_application::pop_mode() {
-
     if( m_modestack.empty() ) { return false; }
 
     m_modes[ m_modestack.top() ]->exit();
@@ -337,6 +462,13 @@ void eu07_application::on_char(unsigned int c) {
         return;
 }
 
+void eu07_application::on_focus_change(bool focus) {
+	if( Global.bInactivePause && !m_network->client) {// jeśli ma być pauzowanie okna w tle
+		command_relay relay;
+		relay.post(user_command::focuspauseset, focus ? 1.0 : 0.0, 0.0, GLFW_PRESS, 0);
+	}
+}
+
 GLFWwindow *
 eu07_application::window( int const Windowindex ) {
 
@@ -384,7 +516,7 @@ eu07_application::init_files() {
 #elif __linux__
 	unlink("log.txt");
 	unlink("errors.txt");
-	mkdir("logs", 0664);
+	mkdir("logs", 0755);
 #endif
 }
 
@@ -413,7 +545,7 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
         }
         else if( token == "-v" ) {
             if( i + 1 < Argc ) {
-                Global.asHumanCtrlVehicle = ToLower( Argv[ ++i ] );
+				Global.local_start_vehicle = ToLower( Argv[ ++i ] );
             }
         }
         else {
@@ -447,7 +579,25 @@ eu07_application::init_glfw() {
 
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-    auto *monitor { glfwGetPrimaryMonitor() };
+	auto *monitor { glfwGetPrimaryMonitor() };
+	{
+		int monitor_count;
+		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+		WriteLog("available monitors:");
+		for (size_t i = 0; i < monitor_count; i++) {
+			const char *name = glfwGetMonitorName(monitors[i]);
+			int x, y;
+			glfwGetMonitorPos(monitors[i], &x, &y);
+
+			std::string desc = std::string(name) + ":" + std::to_string(x) + "," + std::to_string(y);
+			WriteLog(desc);
+
+			if (desc == Global.fullscreen_monitor)
+				monitor = monitors[i];
+		}
+	}
+
     auto const *vmode { glfwGetVideoMode( monitor ) };
 
     glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
@@ -459,7 +609,7 @@ eu07_application::init_glfw() {
 
     if (!Global.gfx_usegles)
     {
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     }
@@ -592,4 +742,29 @@ eu07_application::init_modes() {
     push_mode( mode::scenarioloader );
 
     return 0;
+}
+
+bool eu07_application::init_network() {
+	if (!Global.network_servers.empty() || Global.network_client) {
+		// create network manager
+		m_network.emplace();
+	}
+
+	for (auto const &pair : Global.network_servers) {
+		// create all servers
+		m_network->create_server(pair.first, pair.second);
+	}
+
+	if (Global.network_client) {
+		// create client
+		m_network->connect(Global.network_client->first, Global.network_client->second);
+	} else {
+		// we're simulation master
+		if (!Global.random_seed)
+			Global.random_seed = std::random_device{}();
+		Global.random_engine.seed(Global.random_seed);
+		Global.ready_to_load = true;
+	}
+
+	return true;
 }

@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 enum class user_command {
 
-    aidriverenable,
+	aidriverenable = 0,
     aidriverdisable,
     mastercontrollerincrease,
     mastercontrollerincreasefast,
@@ -136,8 +136,13 @@ enum class user_command {
     carcouplingdisconnect,
     doortoggleleft,
     doortoggleright,
+    doorpermitleft,
+    doorpermitright,
+    doorpermitpresetactivatenext,
+    doorpermitpresetactivateprevious,
     dooropenleft,
     dooropenright,
+    dooropenall,
     doorcloseleft,
     doorcloseright,
     doorcloseall,
@@ -213,13 +218,23 @@ enum class user_command {
     motorblowerstogglerear,
     motorblowersdisableall,
 
+	timejump,
+	timejumplarge,
+	timejumpsmall,
+	vehiclemove,
+	vehiclemoveforwards,
+	vehiclemovebackwards,
+	vehicleboost,
+	debugtoggle,
+	focuspauseset,
+	pausetoggle,
+	entervehicle,
+	queueevent,
+
     none = -1
 };
 
 enum class command_target {
-
-    userinterface,
-    simulation,
 /*
     // NOTE: there's no need for consist- and unit-specific commands at this point, but it's a possibility.
     // since command targets are mutually exclusive these don't reduce ranges for individual vehicles etc
@@ -229,7 +244,9 @@ enum class command_target {
     // values are combined with object id. 0xffff objects of each type should be quite enough ("for everyone")
     vehicle = 0x10000,
     signal  = 0x20000,
-    entity  = 0x40000
+	entity  = 0x40000,
+
+	simulation = 0x80000,
 };
 
 enum class command_mode {
@@ -250,6 +267,9 @@ struct command_data {
     double param1;
     double param2;
     double time_delta;
+
+	bool freefly;
+	glm::vec3 location;
 };
 
 // command_queues: collects and holds commands from input sources, for processing by their intended recipients
@@ -259,26 +279,60 @@ struct command_data {
 class command_queue {
 
 public:
+// types
+	typedef std::deque<command_data> commanddata_sequence;
+	typedef std::unordered_map<uint32_t, commanddata_sequence> commands_map;
+
 // methods
-    // posts specified command for specified recipient
-    void
-        push( command_data const &Command, std::size_t const Recipient );
+	// posts specified command for specified recipient into m_intercept_queue
+	void
+	    push( command_data const &Command, uint32_t const Recipient );
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
-        pop( command_data &Command, std::size_t const Recipient );
-	void update();
+	    pop( command_data &Command, uint32_t const Recipient );
+	// generates active continuous commands
+	void
+	    update();
+
+	// checks if given command must be scheduled on server
+	bool
+	    is_network_target(const uint32_t Recipient);
+
+	// pops commands from intercept queue
+	commands_map pop_intercept_queue();
+
+	// pushes commands into main queue
+	void push_commands(const commands_map &commands);
 
 private:
-// types
-    typedef std::queue<command_data> commanddata_sequence;
-    typedef std::unordered_map<std::size_t, commanddata_sequence> commanddatasequence_map;
 // members
-    commanddatasequence_map m_commands;
+	// contains command ready to execution
+	commands_map m_commands;
 
-	// TODO: this set should contain more than just user_command
-	// also, maybe that and all continuous input logic should be in command_relay?
-	std::unordered_set<user_command> m_active_continuous;
+	// contains intercepted commands to be read by application layer
+	commands_map m_intercept_queue;
+
+	void push_direct( command_data const &Command, uint32_t const Recipient );
+
+	// hash operator for m_active_continuous
+	struct command_set_hash {
+		uint64_t operator() (const std::pair<user_command, uint32_t> &pair) const {
+			return ((uint64_t)pair.first << 32) | ((uint64_t) pair.second);
+		}
+	};
+
+	// currently pressed continuous commands
+	std::unordered_set<std::pair<user_command, uint32_t>, command_set_hash> m_active_continuous;
 };
+
+template<typename A, typename B>
+void add_to_dequemap(std::unordered_map<A, std::deque<B>> &lhs, const std::unordered_map<A, std::deque<B>> &rhs) {
+	for (auto const &kv : rhs) {
+		auto lookup = lhs.emplace(kv.first, std::deque<B>());
+		for (B const &data : kv.second)
+			lookup.first->second.emplace_back(data);
+	}
+}
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
 //       but realistically it's not like we're going to run more than one simulation at a time
@@ -297,16 +351,11 @@ extern commanddescription_sequence Commands_descriptions;
 class command_relay {
 
 public:
-// constructors
 // methods
-    // posts specified command for the specified recipient
-    // TODO: replace uint16_t with recipient handle, based on item id
+	// posts specified command for the specified recipient
     void
-        post( user_command const Command, double const Param1, double const Param2,
-            int const Action, std::uint16_t const Recipient ) const;
-private:
-// types
-// members
+	    post(user_command const Command, double const Param1, double const Param2,
+	        int const Action, uint16_t Recipient, glm::vec3 Position = glm::vec3(0.0f) ) const;
 };
 
 //---------------------------------------------------------------------------

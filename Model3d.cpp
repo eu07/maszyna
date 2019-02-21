@@ -253,14 +253,6 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 b_Anim = b_aAnim = TAnimType::at_Wind; // ruch pod wpływem wiatru
             else if (type == "sky")
                 b_Anim = b_aAnim = TAnimType::at_Sky; // aniamacja nieba
-            else if (type == "ik")
-                b_Anim = b_aAnim = TAnimType::at_IK; // IK: zadający
-            else if (type == "ik11")
-                b_Anim = b_aAnim = TAnimType::at_IK11; // IK: kierunkowany
-            else if (type == "ik21")
-                b_Anim = b_aAnim = TAnimType::at_IK21; // IK: kierunkowany
-            else if (type == "ik22")
-                b_Anim = b_aAnim = TAnimType::at_IK22; // IK: kierunkowany
             else if (type == "digital")
                 b_Anim = b_aAnim = TAnimType::at_Digital; // licznik mechaniczny
             else if (type == "digiclk")
@@ -1022,10 +1014,6 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	case TAnimType::at_Sky: // animacja nieba
 		m = glm::rotate(m, glm::radians((float)Global.fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
 		m = glm::rotate(m, glm::radians((float)-fmod(Global.fTimeAngleDeg, 360.0)), glm::vec3(0.0f, 1.0f, 0.0f));
-		break;
-	case TAnimType::at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 1.0f, 0.0f)); // obrót względem osi pionowej (azymut)
-		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f)); // obrót względem poziomu (deklinacja)
 		break;
 	case TAnimType::at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
