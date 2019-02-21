@@ -23,7 +23,10 @@ void render_task::run() {
 
     // convert provided input to a python dictionary
     auto *input = PyDict_New();
-    if( input == nullptr ) { goto exit; }
+	if( input == nullptr ) {
+		cancel();
+		return;
+	}
     for( auto const &datapair : m_input->floats )   { PyDict_SetItemString( input, datapair.first.c_str(), PyGetFloat( datapair.second ) ); }
     for( auto const &datapair : m_input->integers ) { PyDict_SetItemString( input, datapair.first.c_str(), PyGetInt( datapair.second ) ); }
     for( auto const &datapair : m_input->bools )    { PyDict_SetItemString( input, datapair.first.c_str(), PyGetBool( datapair.second ) ); }
@@ -62,10 +65,8 @@ void render_task::run() {
         Py_DECREF( output );
     }
 
-exit:
     // clean up after yourself
-    delete m_input;
-    delete this;
+	cancel();
 }
 
 void render_task::cancel() {

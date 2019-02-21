@@ -299,14 +299,19 @@ WyslijNamiary(TDynamicObject const *Vehicle)
     r.iPar[19] = Vehicle->MoverParameters->MainCtrlActualPos; // Pozycja jezdna
     r.iPar[20] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
     r.iPar[21] = Vehicle->MoverParameters->ScndCtrlActualPos; // Pozycja bocznikowania
-    r.iPar[22] = Vehicle->MoverParameters->ResistorsFlag * 1 +
-                 Vehicle->MoverParameters->ConverterFlag * 2 +
-                 +Vehicle->MoverParameters->CompressorFlag * 4 +
-                 Vehicle->MoverParameters->Mains * 8 +
-                 +Vehicle->MoverParameters->DoorLeftOpened * 16 +
-                 Vehicle->MoverParameters->DoorRightOpened * 32 +
-                 +Vehicle->MoverParameters->FuseFlag * 64 +
-                 Vehicle->MoverParameters->DepartureSignal * 128;
+    r.iPar[22] = Vehicle->MoverParameters->ResistorsFlag * 1
+                + Vehicle->MoverParameters->ConverterFlag * 2
+                + Vehicle->MoverParameters->CompressorFlag * 4
+                + Vehicle->MoverParameters->Mains * 8
+#ifdef EU07_USEOLDDOORCODE
+                + Vehicle->MoverParameters->DoorLeftOpened * 16
+                + Vehicle->MoverParameters->DoorRightOpened * 32
+#else
+                + ( false == Vehicle->MoverParameters->Doors.instances[side::left].is_closed ) * 16
+                + ( false == Vehicle->MoverParameters->Doors.instances[side::right].is_closed ) * 32
+#endif
+                + Vehicle->MoverParameters->FuseFlag * 64
+                + Vehicle->MoverParameters->DepartureSignal * 128;
     // WriteLog("Zapisalem stare");
     // WriteLog("Mam patykow "+IntToStr(t->DynamicObject->iAnimType[ANIM_PANTS]));
     for (int p = 0; p < 4; p++)

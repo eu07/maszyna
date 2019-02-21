@@ -174,6 +174,7 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
         // try to set up the buffer we need
         ::glGenBuffers( 1, &m_buffer );
         bind_buffer();
+        if( m_buffer == 0 ) { return; } // if we didn't get a buffer we'll try again during the next draw call
         // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
         // TODO: allow to specify usage hint at the object creation, and pass it here
         ::glBufferData(

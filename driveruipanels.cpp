@@ -207,20 +207,48 @@ timetable_panel::update() {
             auto textline = " -> " + nextstation;
 
             text_lines.emplace_back( textline, Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
         }
     }
 
     if( is_expanded ) {
 
-        text_lines.emplace_back( "", Global.UITextColor );
+        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+            // consist data
+            auto consistmass { owner->fMass };
+            auto consistlength { owner->fLength };
+            if( ( owner->mvControlling->TrainType != dt_DMU )
+             && ( owner->mvControlling->TrainType != dt_EZT )
+             && ( owner->pVehicles[end::front] != owner->pVehicles[end::rear] ) ) {
+				//odejmij lokomotywy czynne, a przynajmniej aktualną
+                consistmass -= owner->pVehicle->MoverParameters->TotalMass;
+                // subtract potential other half of a two-part vehicle
+                auto const *previous { owner->pVehicle->PrevC( coupling::permanent ) };
+                if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
+                auto const *next { owner->pVehicle->NextC( coupling::permanent ) };
+                if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
+//                    consistlength -= owner->pVehicle->MoverParameters->Dim.L;
+			}
+            std::snprintf(
+                m_buffer.data(), m_buffer.size(),
+                locale::strings[ locale::string::driver_timetable_consistdata ].c_str(),
+                static_cast<int>( table->LocLoad ),
+                static_cast<int>( consistmass / 1000 ),
+                static_cast<int>( consistlength ) );
+
+            text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
+        }
 
         if( 0 == table->StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( locale::strings[ locale::string::driver_timetable_notimetable ], Global.UITextColor );
         } 
         else {
+
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
-            // header
+
+			// header
             text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
 
             TMTableLine const *tableline;
@@ -401,8 +429,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.EngineDescription( 0 ).c_str(),
         // TODO: put wheel flat reporting in the enginedescription()
         std::string( mover.WheelFlat > 0.01 ? " Flat: " + to_string( mover.WheelFlat, 1 ) + " mm" : "" ).c_str(),
-        update_vehicle_coupler( side::front ).c_str(),
-        update_vehicle_coupler( side::rear ).c_str() );
+        update_vehicle_coupler( end::front ).c_str(),
+        update_vehicle_coupler( end::rear ).c_str() );
 
     Output.emplace_back( std::string{ m_buffer.data() }, Global.UITextColor );
 
@@ -427,13 +455,13 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
-        mover.Couplers[ side::front ].power_high.voltage,
-        mover.Couplers[ side::front ].power_high.current,
-        std::string( mover.Couplers[ side::front ].power_high.local ? "" : "-" ).c_str(),
+        mover.Couplers[ end::front ].power_high.voltage,
+        mover.Couplers[ end::front ].power_high.current,
+        std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
         std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-        std::string( mover.Couplers[ side::rear ].power_high.local ? "" : "-" ).c_str(),
-        mover.Couplers[ side::rear ].power_high.voltage,
-        mover.Couplers[ side::rear ].power_high.current );
+        std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+        mover.Couplers[ end::rear ].power_high.voltage,
+        mover.Couplers[ end::rear ].power_high.current );
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
@@ -451,8 +479,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         std::abs( mover.enrot ) * 60,
         std::abs( mover.nrot ) * mover.Transmision.Ratio * 60,
         mover.RventRot * 60,
-        std::abs( mover.MotorBlowers[side::front].revolutions ),
-        std::abs( mover.MotorBlowers[side::rear].revolutions ),
+        std::abs( mover.MotorBlowers[end::front].revolutions ),
+        std::abs( mover.MotorBlowers[end::rear].revolutions ),
         mover.dizel_heat.rpmw,
         mover.dizel_heat.rpmw2 );
 
@@ -544,7 +572,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
 
     auto const *connected { (
-        Side == side::front ?
+        Side == end::front ?
             m_input.vehicle->PrevConnected :
             m_input.vehicle->NextConnected ) };
 
@@ -662,6 +690,10 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
 
     // biezaca komenda dla AI
     auto textline = "Current order: " + mechanik.OrderCurrent();
+
+    if( mechanik.fStopTime < 0.0 ) {
+        textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
+    }
 
     Output.emplace_back( textline, Global.UITextColor );
 

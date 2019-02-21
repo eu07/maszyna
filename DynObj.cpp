@@ -429,96 +429,88 @@ void TDynamicObject::UpdateBoogie(TAnim *pAnim)
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), *pAnim->dWheelAngle);
 };
 
-void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
-{ // animacja drzwi - przesuw
-    if (pAnim->smAnimated) {
+// animacja drzwi - przesuw
+void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim) { 
+    if( pAnim->smAnimated == nullptr ) { return; }
 
-        if( pAnim->iNumber & 1 ) {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3{
-                    0.0,
-                    0.0,
-                    dDoorMoveR } );
-        }
-        else {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3{
-                    0.0,
-                    0.0,
-                    dDoorMoveL } );
-        }
-    }
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    pAnim->smAnimated->SetTranslate(
+        Math3D::vector3{
+            0.0,
+            0.0,
+            door.position } );
 };
 
-void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
-{ // animacja drzwi - obrót
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
-            pAnim->smAnimated->SetRotate(float3(1, 0, 0), dDoorMoveR);
-        else
-            pAnim->smAnimated->SetRotate(float3(1, 0, 0), dDoorMoveL);
-    }
+// animacja drzwi - obrót
+void TDynamicObject::UpdateDoorRotate(TAnim *pAnim) { 
+
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    pAnim->smAnimated->SetRotate(
+        float3(1, 0, 0),
+        door.position );
 };
 
-void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
-{ // animacja drzwi - obrót
-    if (pAnim->smAnimated)
-    {
-        if (pAnim->iNumber & 1)
-        {
-            pAnim->smAnimated->SetRotate(float3(0, 0, 1), dDoorMoveR);
-            TSubModel *sm = pAnim->smAnimated->ChildGet(); // skrzydło mniejsze
-            if (sm)
-            {
-                sm->SetRotate(float3(0, 0, 1), -dDoorMoveR - dDoorMoveR); // skrzydło większe
-                sm = sm->ChildGet();
-                if (sm)
-                    sm->SetRotate(float3(0, 1, 0), dDoorMoveR); // podnóżek?
-            }
-        }
-        else
-        {
-            pAnim->smAnimated->SetRotate(float3(0, 0, 1), dDoorMoveL);
-            TSubModel *sm = pAnim->smAnimated->ChildGet(); // skrzydło mniejsze
-            if (sm)
-            {
-                sm->SetRotate(float3(0, 0, 1), -dDoorMoveL - dDoorMoveL); // skrzydło większe
-                sm = sm->ChildGet();
-                if (sm)
-                    sm->SetRotate(float3(0, 1, 0), dDoorMoveL); // podnóżek?
-            }
-        }
-    }
+// animacja drzwi - obrót
+void TDynamicObject::UpdateDoorFold(TAnim *pAnim) { 
+
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    // skrzydło mniejsze
+    pAnim->smAnimated->SetRotate(
+        float3(0, 0, 1),
+        door.position);
+
+    // skrzydło większe
+    auto *sm = pAnim->smAnimated->ChildGet();
+    if( sm == nullptr ) { return; }
+
+    sm->SetRotate(
+        float3(0, 0, 1),
+        -door.position - door.position);
+
+    // podnóżek?
+    sm = sm->ChildGet();
+    if( sm == nullptr ) { return; }
+
+    sm->SetRotate(
+        float3(0, 1, 0),
+        door.position);
 };
 
-void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
-{ // animacja drzwi - odskokprzesuw
-    if (pAnim->smAnimated) {
+// animacja drzwi - odskokprzesuw
+void TDynamicObject::UpdateDoorPlug(TAnim *pAnim) {
 
-        if( pAnim->iNumber & 1 ) {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3 {
-                    std::min(
-                        dDoorMoveR * 2,
-                        MoverParameters->DoorMaxPlugShift ),
-                    0.0,
-                    std::max(
-                        0.0,
-                        dDoorMoveR - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
-        }
-        else {
-            pAnim->smAnimated->SetTranslate(
-                Math3D::vector3 {
-                    std::min(
-                        dDoorMoveL * 2,
-                        MoverParameters->DoorMaxPlugShift ),
-                    0.0,
-                    std::max(
-                        0.0,
-                        dDoorMoveL - MoverParameters->DoorMaxPlugShift * 0.5f ) } );
-        }
-    }
+    if( pAnim->smAnimated == nullptr ) { return; }
+
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    pAnim->smAnimated->SetTranslate(
+        Math3D::vector3 {
+            std::min(
+                door.position * 2.f,
+                MoverParameters->Doors.range_out ),
+            0.0,
+            std::max(
+                0.f,
+                door.position - MoverParameters->Doors.range_out * 0.5f ) } );
 }
 
 void TDynamicObject::UpdatePant(TAnim *pAnim)
@@ -544,20 +536,16 @@ void TDynamicObject::UpdatePlatformTranslate( TAnim *pAnim ) {
 
     if( pAnim->smAnimated == nullptr ) { return; }
 
-    if( pAnim->iNumber & 1 ) {
-        pAnim->smAnimated->SetTranslate(
-            Math3D::vector3{
-                interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveR ),
-                0.0,
-                0.0 } );
-    }
-    else {
-        pAnim->smAnimated->SetTranslate(
-            Math3D::vector3{
-                interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveL ),
-                0.0,
-                0.0 } );
-    }
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    pAnim->smAnimated->SetTranslate(
+        Math3D::vector3{
+            interpolate( 0.f, MoverParameters->Doors.step_range, door.step_position ),
+            0.0,
+            0.0 } );
 }
 
 // doorstep animation, rotate
@@ -565,14 +553,14 @@ void TDynamicObject::UpdatePlatformRotate( TAnim *pAnim ) {
 
     if( pAnim->smAnimated == nullptr ) { return; }
 
-    if( pAnim->iNumber & 1 )
-        pAnim->smAnimated->SetRotate(
-            float3( 0, 1, 0 ),
-            interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveR ) );
-    else
-        pAnim->smAnimated->SetRotate(
-            float3( 0, 1, 0 ),
-            interpolate( 0.0, MoverParameters->PlatformMaxShift, dDoorstepMoveL ) );
+    auto const &door { MoverParameters->Doors.instances[ (
+        ( pAnim->iNumber & 1 ) == 0 ?
+            side::right :
+            side::left ) ] };
+
+    pAnim->smAnimated->SetRotate(
+        float3( 0, 1, 0 ),
+        interpolate( 0.f, MoverParameters->Doors.step_range, door.step_position ) );
 }
 
 // mirror animation, rotate
@@ -582,8 +570,8 @@ void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
 
     // only animate the mirror if it's located on the same end of the vehicle as the active cab
     auto const isactive { (
-        MoverParameters->ActiveCab > 0 ? ( ( pAnim->iNumber >> 4 ) == side::front ? 1.0 : 0.0 ) :
-        MoverParameters->ActiveCab < 0 ? ( ( pAnim->iNumber >> 4 ) == side::rear  ? 1.0 : 0.0 ) :
+        MoverParameters->ActiveCab > 0 ? ( ( pAnim->iNumber >> 4 ) == end::front ? 1.0 : 0.0 ) :
+        MoverParameters->ActiveCab < 0 ? ( ( pAnim->iNumber >> 4 ) == end::rear  ? 1.0 : 0.0 ) :
         0.0 ) };
 
     if( pAnim->iNumber & 1 )
@@ -957,13 +945,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
         }
         // tablice blaszane:
-        if (TestFlag(iLights[side::front], light::rearendsignals))
+        if (TestFlag(iLights[end::front], light::rearendsignals))
         {
             btEndSignalsTab1.Turn( true );
             btnOn = true;
         }
         // else btEndSignalsTab1.TurnOff();
-        if (TestFlag(iLights[side::rear], light::rearendsignals))
+        if (TestFlag(iLights[end::rear], light::rearendsignals))
         {
             btEndSignalsTab2.Turn( true );
             btnOn = true;
@@ -1398,7 +1386,7 @@ TDynamicObject::couple( int const Side ) {
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::brakehose ) ) ) {
                 SetPneumatic( Side != 0, true );
-                if( Side == side::front ) {
+                if( Side == end::front ) {
                     PrevConnected->SetPneumatic( Side != 0, true );
                 }
                 else {
@@ -1419,7 +1407,7 @@ TDynamicObject::couple( int const Side ) {
                     MoverParameters->Couplers[ Side ].Connected,
                     ( MoverParameters->Couplers[ Side ].CouplingFlag | coupling::mainhose ) ) ) {
                 SetPneumatic( Side != 0, false );
-                if( Side == side::front ) {
+                if( Side == end::front ) {
                     PrevConnected->SetPneumatic( Side != 0, false );
                 }
                 else {
@@ -1494,21 +1482,21 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir) {
     if (MyScanDir > 0) {
         // pojazd od strony sprzęgu 0
         if( ( PrevConnected != nullptr )
-         && ( MoverParameters->Couplers[ side::front ].CoupleDist > MinDist ) ) {
+         && ( MoverParameters->Couplers[ end::front ].CoupleDist > MinDist ) ) {
             // sprzęgi wirtualne zawsze przekraczają
-            if( ( PrevConnectedNo == side::front ?
+            if( ( PrevConnectedNo == end::front ?
                     PrevConnected->PrevConnected :
                     PrevConnected->NextConnected )
                 == this ) {
                 // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
                 // (może jechać w innym kierunku)
                 PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected = nullptr;
-                if( PrevConnectedNo == side::front ) {
+                if( PrevConnectedNo == end::front ) {
                     // sprzęg 0 nie podłączony
                     PrevConnected->PrevConnectedNo = 2;
                     PrevConnected->PrevConnected = nullptr;
                 }
-                else if( PrevConnectedNo == side::rear ) {
+                else if( PrevConnectedNo == end::rear ) {
                     // sprzęg 1 nie podłączony
                     PrevConnected->NextConnectedNo = 2;
                     PrevConnected->NextConnected = nullptr;
@@ -1517,27 +1505,27 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir) {
             // za to zawsze odłączamy siebie
             PrevConnected = nullptr;
             PrevConnectedNo = 2; // sprzęg 0 nie podłączony
-            MoverParameters->Couplers[ side::front ].Connected = nullptr;
+            MoverParameters->Couplers[ end::front ].Connected = nullptr;
         }
     }
     else {
         // pojazd od strony sprzęgu 1
         if( ( NextConnected != nullptr )
-         && ( MoverParameters->Couplers[ side::rear ].CoupleDist > MinDist ) ) {
+         && ( MoverParameters->Couplers[ end::rear ].CoupleDist > MinDist ) ) {
             // sprzęgi wirtualne zawsze przekraczają
-            if( ( NextConnectedNo == side::front ?
+            if( ( NextConnectedNo == end::front ?
                     NextConnected->PrevConnected :
                     NextConnected->NextConnected )
                 == this) {
                 // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
                 // (może jechać w innym kierunku)
                 NextConnected->MoverParameters->Couplers[ NextConnectedNo ].Connected = nullptr;
-                if( NextConnectedNo == side::front ) {
+                if( NextConnectedNo == end::front ) {
                     // sprzęg 0 nie podłączony
                     NextConnected->PrevConnectedNo = 2;
                     NextConnected->PrevConnected = nullptr;
                 }
-                else if( NextConnectedNo == side::rear ) {
+                else if( NextConnectedNo == end::rear ) {
                     // sprzęg 1 nie podłączony
                     NextConnected->NextConnectedNo = 2;
                     NextConnected->NextConnected = nullptr;
@@ -1629,7 +1617,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
         // siebie można bezpiecznie podłączyć jednostronnie do znalezionego
         MoverParameters->Attach( mycoupler, foundcoupler, foundobject->MoverParameters, coupling::faux );
         // MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
-        if( mycoupler == side::front ) {
+        if( mycoupler == end::front ) {
             PrevConnected = foundobject; // pojazd od strony sprzęgu 0
             PrevConnectedNo = foundcoupler;
         }
@@ -1640,7 +1628,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
 
         if( foundobject->MoverParameters->Couplers[ foundcoupler ].CouplingFlag == coupling::faux ) {
             // Ra: wpinamy się wirtualnym tylko jeśli znaleziony ma wirtualny sprzęg
-            if( ( foundcoupler == side::front ?
+            if( ( foundcoupler == end::front ?
                     foundobject->PrevConnected :
                     foundobject->NextConnected )
                 != this ) {
@@ -1648,13 +1636,13 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
                 // otherwise we risk leaving the target's connected vehicle with active one-side connection
                 foundobject->CouplersDettach(
                     1.0,
-                    ( foundcoupler == side::front ?
+                    ( foundcoupler == end::front ?
                          1 :
                         -1 ) );
             }
             foundobject->MoverParameters->Attach( foundcoupler, mycoupler, this->MoverParameters, coupling::faux );
 
-            if( foundcoupler == side::front ) {
+            if( foundcoupler == end::front ) {
                 // jeśli widoczny sprzęg 0 znalezionego
                 if( ( DebugModeFlag )
                  && ( foundobject->PrevConnected )
@@ -1730,8 +1718,6 @@ TDynamicObject::TDynamicObject() {
     // Winger 160204 - pantografy
     // PantVolume = 3.5;
     NoVoltTime = 0;
-    dDoorMoveL = 0.0;
-    dDoorMoveR = 0.0;
     mdModel = NULL;
     mdKabina = NULL;
     // smWiazary[0]=smWiazary[1]=NULL;
@@ -2148,19 +2134,19 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     btEndSignals21.Init( "endsignal23", mdModel, false);
     btEndSignals13.Init( "endsignal12", mdModel, false);
     btEndSignals23.Init( "endsignal22", mdModel, false);
-    iInventory[ side::front ] |= btEndSignals11.Active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
-    iInventory[ side::front ] |= btEndSignals13.Active() ? light::redmarker_right : 0;
-    iInventory[ side::rear ] |= btEndSignals21.Active() ? light::redmarker_left : 0;
-    iInventory[ side::rear ] |= btEndSignals23.Active() ? light::redmarker_right : 0;
+    iInventory[ end::front ] |= btEndSignals11.Active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
+    iInventory[ end::front ] |= btEndSignals13.Active() ? light::redmarker_right : 0;
+    iInventory[ end::rear ] |= btEndSignals21.Active() ? light::redmarker_left : 0;
+    iInventory[ end::rear ] |= btEndSignals23.Active() ? light::redmarker_right : 0;
     // ABu: to niestety zostawione dla kompatybilnosci modeli:
     btEndSignals1.Init( "endsignals1", mdModel, false);
     btEndSignals2.Init( "endsignals2", mdModel, false);
     btEndSignalsTab1.Init( "endtab1", mdModel, false);
     btEndSignalsTab2.Init( "endtab2", mdModel, false);
-    iInventory[ side::front ] |= btEndSignals1.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
-    iInventory[ side::front ] |= btEndSignalsTab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
-    iInventory[ side::rear ] |= btEndSignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
-    iInventory[ side::rear ] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
+    iInventory[ end::front ] |= btEndSignals1.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ end::front ] |= btEndSignalsTab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
+    iInventory[ end::rear ] |= btEndSignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ end::rear ] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
     // ABu Uwaga! tu zmienic w modelu!
     btHeadSignals11.Init( "headlamp13", mdModel, false); // lewe
     btHeadSignals12.Init( "headlamp11", mdModel, false); // górne
@@ -2168,12 +2154,12 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     btHeadSignals21.Init( "headlamp23", mdModel, false);
     btHeadSignals22.Init( "headlamp21", mdModel, false);
     btHeadSignals23.Init( "headlamp22", mdModel, false);
-    iInventory[ side::front ] |= btHeadSignals11.Active() ? light::headlight_left : 0;
-    iInventory[ side::front ] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
-    iInventory[ side::front ] |= btHeadSignals13.Active() ? light::headlight_right : 0;
-    iInventory[ side::rear ] |= btHeadSignals21.Active() ? light::headlight_left : 0;
-    iInventory[ side::rear ] |= btHeadSignals22.Active() ? light::headlight_upper : 0;
-    iInventory[ side::rear ] |= btHeadSignals23.Active() ? light::headlight_right : 0;
+    iInventory[ end::front ] |= btHeadSignals11.Active() ? light::headlight_left : 0;
+    iInventory[ end::front ] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
+    iInventory[ end::front ] |= btHeadSignals13.Active() ? light::headlight_right : 0;
+    iInventory[ end::rear ] |= btHeadSignals21.Active() ? light::headlight_left : 0;
+    iInventory[ end::rear ] |= btHeadSignals22.Active() ? light::headlight_upper : 0;
+    iInventory[ end::rear ] |= btHeadSignals23.Active() ? light::headlight_right : 0;
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
     if( MoverParameters->dizel_heat.water.config.shutters ) {
@@ -2302,18 +2288,19 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 int
 TDynamicObject::init_sections( TModel3d const *Model, std::string const &Nameprefix ) {
 
-    std::string sectionname;
     auto sectioncount = 0;
     auto sectionindex = 0;
     TSubModel *sectionsubmodel { nullptr };
 
     do {
-        sectionname =
-            Nameprefix + (
-            sectionindex < 10 ?
-                "0" + std::to_string( sectionindex ) :
-                      std::to_string( sectionindex ) );
-        sectionsubmodel = Model->GetFromName( sectionname );
+        // section names for index < 10 match either prefix0X or prefixX
+        // section names above 10 match prefixX
+        auto const sectionindexname { std::to_string( sectionindex ) };
+        sectionsubmodel = Model->GetFromName( Nameprefix + sectionindexname );
+        if( ( sectionsubmodel == nullptr )
+         && ( sectionindex < 10 ) ) {
+            sectionsubmodel = Model->GetFromName( Nameprefix + "0" + sectionindexname );
+        }
         if( sectionsubmodel != nullptr ) {
             Sections.push_back( {
                 sectionsubmodel,
@@ -2457,10 +2444,10 @@ void TDynamicObject::Move(double fDistance)
         // MoverParameters->Loc.Z= vPosition.y;
         // obliczanie pozycji sprzęgów do liczenia zderzeń
         auto dir = (0.5 * MoverParameters->Dim.L) * vFront; // wektor sprzęgu
-        vCoulpler[side::front] = vPosition + dir; // współrzędne sprzęgu na początku
-        vCoulpler[side::rear] = vPosition - dir; // współrzędne sprzęgu na końcu
-        MoverParameters->vCoulpler[side::front] = vCoulpler[side::front]; // tymczasowo kopiowane na inny poziom
-        MoverParameters->vCoulpler[side::rear]  = vCoulpler[side::rear];
+        vCoulpler[end::front] = vPosition + dir; // współrzędne sprzęgu na początku
+        vCoulpler[end::rear] = vPosition - dir; // współrzędne sprzęgu na końcu
+        MoverParameters->vCoulpler[end::front] = vCoulpler[end::front]; // tymczasowo kopiowane na inny poziom
+        MoverParameters->vCoulpler[end::rear]  = vCoulpler[end::rear];
         // bCameraNear=
         // if (bCameraNear) //jeśli istotne są szczegóły (blisko kamery)
         { // przeliczenie cienia
@@ -2606,19 +2593,20 @@ bool TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
 
 // initiates load change by specified amounts, with a platform on specified side
 void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int const Platform ) {
-
-    if( ( MoverParameters->DoorOpenCtrl == control_t::passenger )
-     || ( MoverParameters->DoorOpenCtrl == control_t::mixed ) ) {
+/*
+    if( ( MoverParameters->Doors.open_control == control_t::passenger )
+     || ( MoverParameters->Doors.open_control == control_t::mixed ) ) {
         // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
         auto const lewe = ( DirectionGet() > 0 ) ? 1 : 2;
         auto const prawe = 3 - lewe;
         if( Platform & lewe ) {
-            MoverParameters->DoorLeft( true, range_t::local );
+            MoverParameters->OperateDoors( side::left, true, range_t::local );
         }
         if( Platform & prawe ) {
-            MoverParameters->DoorRight( true, range_t::local );
+            MoverParameters->OperateDoors( side::right, true, range_t::local );
         }
     }
+*/
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
     m_exchange.platforms = Platform;
@@ -2645,10 +2633,10 @@ float TDynamicObject::LoadExchangeSpeed() const {
     auto const lewe { ( DirectionGet() > 0 ) ? 1 : 2 };
     auto const prawe { 3 - lewe };
     if( m_exchange.platforms & lewe ) {
-        exchangespeedfactor += ( MoverParameters->DoorLeftOpened ? 1.f : 0.f );
+        exchangespeedfactor += ( MoverParameters->Doors.instances[side::left].is_open ? 1.f : 0.f );
     }
     if( m_exchange.platforms & prawe ) {
-        exchangespeedfactor += ( MoverParameters->DoorRightOpened ? 1.f : 0.f );
+        exchangespeedfactor += ( MoverParameters->Doors.instances[ side::right ].is_open ? 1.f : 0.f );
     }
 
     return exchangespeedfactor;
@@ -2662,34 +2650,57 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
 
     if( ( m_exchange.unload_count < 0.01 ) && ( m_exchange.load_count < 0.01 ) ) { return; }
 
-    if( ( MoverParameters->Vel < 2.0 )
-     && ( ( true == MoverParameters->DoorLeftOpened )
-       || ( true == MoverParameters->DoorRightOpened ) ) ) {
+    if( MoverParameters->Vel < 2.0 ) {
 
-        m_exchange.time += Deltatime;
-        while( ( m_exchange.unload_count > 0.01 )
-            && ( m_exchange.time >= 1.0 ) ) {
-            
-            m_exchange.time -= 1.0;
-            auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * LoadExchangeSpeed() );
-            m_exchange.unload_count -= exchangesize;
-            MoverParameters->LoadStatus = 1;
-            MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
-            update_load_visibility();
+        auto const exchangespeed { LoadExchangeSpeed() };
+
+        if( exchangespeed < ( m_exchange.platforms == 3 ? 2.f : 1.f ) ) {
+            // the exchange isn't performed at optimal rate, or at all. try to open viable vehicle doors to speed it up
+            auto const lewe { ( DirectionGet() > 0 ) ? 1 : 2 };
+            auto const prawe { 3 - lewe };
+            if( ( m_exchange.platforms & lewe )
+             && ( false == (
+                 MoverParameters->Doors.instances[side::left].is_open
+              || MoverParameters->Doors.instances[side::left].is_opening ) ) ) {
+                // try to open left door
+                MoverParameters->OperateDoors( side::left, true, range_t::local );
+            }
+            if( ( m_exchange.platforms & prawe )
+             && ( false == (
+                 MoverParameters->Doors.instances[side::right].is_open
+              || MoverParameters->Doors.instances[side::right].is_opening ) ) ) {
+                // try to open right door
+                MoverParameters->OperateDoors( side::right, true, range_t::local );
+            }
         }
-        if( m_exchange.unload_count < 0.01 ) {
-            // finish any potential unloading operation before adding new load
-            // don't load more than can fit
-            m_exchange.load_count = std::min( m_exchange.load_count, MoverParameters->MaxLoad - MoverParameters->LoadAmount );
-            while( ( m_exchange.load_count > 0.01 )
+
+        if( exchangespeed > 0.f ) {
+
+            m_exchange.time += Deltatime;
+            while( ( m_exchange.unload_count > 0.01 )
                 && ( m_exchange.time >= 1.0 ) ) {
 
                 m_exchange.time -= 1.0;
-                auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * LoadExchangeSpeed() );
-                m_exchange.load_count -= exchangesize;
-                MoverParameters->LoadStatus = 2;
-                MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
+                auto const exchangesize = std::min( m_exchange.unload_count, MoverParameters->UnLoadSpeed * exchangespeed );
+                m_exchange.unload_count -= exchangesize;
+                MoverParameters->LoadStatus = 1;
+                MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
                 update_load_visibility();
+            }
+            if( m_exchange.unload_count < 0.01 ) {
+                // finish any potential unloading operation before adding new load
+                // don't load more than can fit
+                m_exchange.load_count = std::min( m_exchange.load_count, MoverParameters->MaxLoad - MoverParameters->LoadAmount );
+                while( ( m_exchange.load_count > 0.01 )
+                    && ( m_exchange.time >= 1.0 ) ) {
+
+                    m_exchange.time -= 1.0;
+                    auto const exchangesize = std::min( m_exchange.load_count, MoverParameters->LoadSpeed * exchangespeed );
+                    m_exchange.load_count -= exchangesize;
+                    MoverParameters->LoadStatus = 2;
+                    MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
+                    update_load_visibility();
+                }
             }
         }
     }
@@ -2705,18 +2716,18 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
 
         MoverParameters->LoadStatus = 0;
         // if the exchange is completed (or canceled) close the door, if applicable
-        if( ( MoverParameters->DoorCloseCtrl == control_t::passenger )
-         || ( MoverParameters->DoorCloseCtrl == control_t::mixed ) ) {
+        if( ( MoverParameters->Doors.close_control == control_t::passenger )
+         || ( MoverParameters->Doors.close_control == control_t::mixed ) ) {
 
             if( ( MoverParameters->Vel > 2.0 )
              || ( Random() < (
-                    // remotely controlled door are more likely to be left open
-                    MoverParameters->DoorCloseCtrl == control_t::passenger ?
+                 // remotely controlled door are more likely to be left open
+                 MoverParameters->Doors.close_control == control_t::passenger ?
                         0.75 :
                         0.50 ) ) ) {
 
-                MoverParameters->DoorLeft( false, range_t::local );
-                MoverParameters->DoorRight( false, range_t::local );
+                MoverParameters->OperateDoors( side::left, false, range_t::local );
+                MoverParameters->OperateDoors( side::right, false, range_t::local );
             }
         }
     }
@@ -2762,10 +2773,7 @@ TDynamicObject::update_load_sections() {
 
     for( auto &section : Sections ) {
 
-        section.load = (
-            mdLoad != nullptr ?
-                mdLoad->GetFromName( section.compartment->pName ) :
-                nullptr );
+        section.load = GetSubmodelFromName( mdLoad,  section.compartment->pName );
 
         if( ( section.load != nullptr )
          && ( section.load->count_children() > 0 ) ) {
@@ -3045,18 +3053,20 @@ bool TDynamicObject::Update(double dt, double dt1)
 				RapidMult = MoverParameters->RapidMult;
 
 			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+            auto const doorisopen {
+                ( false == MoverParameters->Doors.instances[ side::right ].is_closed )
+             || ( false == MoverParameters->Doors.instances[ side::left ].is_closed ) };
 
-            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
-                (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
+            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) || doorisopen )
             {
                 MoverParameters->ShuntMode = true;
             }
             if (MoverParameters->ShuntMode)
             {
-                MoverParameters->ShuntModeAllow = (dDoorMoveL < 0.001) && (dDoorMoveR < 0.001) &&
+                MoverParameters->ShuntModeAllow = ( false == doorisopen ) &&
                                                   (MoverParameters->LocalBrakeRatio() < 0.01);
             }
-            if ((MoverParameters->Vel > 1) && (dDoorMoveL < 0.001) && (dDoorMoveR < 0.001))
+            if( ( MoverParameters->Vel > 1 ) && ( false == doorisopen ) )
             {
                 MoverParameters->ShuntMode = false;
                 MoverParameters->ShuntModeAllow = (MoverParameters->BrakePress > 0.2) &&
@@ -3718,121 +3728,6 @@ bool TDynamicObject::Update(double dt, double dt1)
             */
         }
 
-    // NBMX Obsluga drzwi, MC: zuniwersalnione
-    // TODO: fully generalized door assembly
-    if( ( dDoorMoveL < MoverParameters->DoorMaxShiftL )
-     && ( true == MoverParameters->DoorLeftOpened ) ) {
-        // open left door
-        if( ( MoverParameters->TrainType == dt_EZT )
-         || ( MoverParameters->TrainType == dt_DMU ) ) {
-            // multi-unit vehicles typically open door only after unfolding the doorstep
-            if( ( MoverParameters->PlatformMaxShift == 0.0 ) // no wait if no doorstep
-             || ( MoverParameters->PlatformOpenMethod == 2 ) // no wait for rotating doorstep
-             || ( dDoorstepMoveL == 1.0 ) ) {
-                dDoorMoveL = std::min(
-                    MoverParameters->DoorMaxShiftL,
-                    dDoorMoveL + MoverParameters->DoorOpenSpeed * dt1 );
-            }
-        }
-        else {
-            dDoorMoveL = std::min(
-                MoverParameters->DoorMaxShiftL,
-                dDoorMoveL + MoverParameters->DoorOpenSpeed * dt1 );
-        }
-        DoorDelayL = 0.f;
-    }
-    if( ( dDoorMoveL > 0.0 )
-     && ( false == MoverParameters->DoorLeftOpened ) ) {
-        // close left door
-        DoorDelayL += dt1;
-        if( DoorDelayL > MoverParameters->DoorCloseDelay ) {
-            dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
-            dDoorMoveL = std::max( dDoorMoveL, 0.0 );
-        }
-    }
-    if( ( dDoorMoveR < MoverParameters->DoorMaxShiftR )
-     && ( true == MoverParameters->DoorRightOpened ) ) {
-        // open right door
-        if( ( MoverParameters->TrainType == dt_EZT )
-         || ( MoverParameters->TrainType == dt_DMU ) ) {
-            // multi-unit vehicles typically open door only after unfolding the doorstep
-            if( ( MoverParameters->PlatformMaxShift == 0.0 ) // no wait if no doorstep
-             || ( MoverParameters->PlatformOpenMethod == 2 ) // no wait for rotating doorstep
-             || ( dDoorstepMoveR == 1.0 ) ) {
-                dDoorMoveR = std::min(
-                    MoverParameters->DoorMaxShiftR,
-                    dDoorMoveR + MoverParameters->DoorOpenSpeed * dt1 );
-            }
-        }
-        else {
-            dDoorMoveR = std::min(
-                MoverParameters->DoorMaxShiftR,
-                dDoorMoveR + MoverParameters->DoorOpenSpeed * dt1 );
-        }
-        DoorDelayR = 0.f;
-    }
-    if( ( dDoorMoveR > 0.0 )
-     && ( false == MoverParameters->DoorRightOpened ) ) {
-        // close right door
-        DoorDelayR += dt1;
-        if( DoorDelayR > MoverParameters->DoorCloseDelay ) {
-            dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
-            dDoorMoveR = std::max( dDoorMoveR, 0.0 );
-        }
-    }
-    // doorsteps
-    if( ( dDoorstepMoveL < 1.0 )
-     && ( true == MoverParameters->DoorLeftOpened ) ) {
-        // unfold left doorstep
-        dDoorstepMoveL = std::min(
-            1.0,
-            dDoorstepMoveL + MoverParameters->PlatformSpeed * dt1 );
-    }
-    if( ( dDoorstepMoveL > 0.0 )
-     && ( false == MoverParameters->DoorLeftOpened )
-     && ( DoorDelayL > MoverParameters->DoorCloseDelay ) ) {
-        // fold left doorstep
-        if( ( MoverParameters->TrainType == dt_EZT )
-         || ( MoverParameters->TrainType == dt_DMU ) ) {
-            // multi-unit vehicles typically fold the doorstep only after closing the door
-            if( dDoorMoveL == 0.0 ) {
-                dDoorstepMoveL = std::max(
-                    0.0,
-                    dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
-            }
-        }
-        else {
-            dDoorstepMoveL = std::max(
-                0.0,
-                dDoorstepMoveL - MoverParameters->PlatformSpeed * dt1 );
-        }
-    }
-    if( ( dDoorstepMoveR < 1.0 )
-     && ( true == MoverParameters->DoorRightOpened ) ) {
-        // unfold right doorstep
-        dDoorstepMoveR = std::min(
-            1.0,
-            dDoorstepMoveR + MoverParameters->PlatformSpeed * dt1 );
-    }
-    if( ( dDoorstepMoveR > 0.0 )
-     && ( false == MoverParameters->DoorRightOpened )
-     && ( DoorDelayR > MoverParameters->DoorCloseDelay ) ) {
-        // fold right doorstep
-        if( ( MoverParameters->TrainType == dt_EZT )
-         || ( MoverParameters->TrainType == dt_DMU ) ) {
-            // multi-unit vehicles typically fold the doorstep only after closing the door
-            if( dDoorMoveR == 0.0 ) {
-                dDoorstepMoveR = std::max(
-                    0.0,
-                    dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
-            }
-        }
-        else {
-            dDoorstepMoveR = std::max(
-                0.0,
-                dDoorstepMoveR - MoverParameters->PlatformSpeed * dt1 );
-        }
-    }
     // mirrors
     if( MoverParameters->Vel > 5.0 ) {
         // automatically fold mirrors when above velocity threshold
@@ -3850,13 +3745,13 @@ bool TDynamicObject::Update(double dt, double dt1)
     else {
         // unfold mirror on the side with open doors, if not moving too fast
         if( ( dMirrorMoveL < 1.0 )
-         && ( true == MoverParameters->DoorLeftOpened ) ) {
+         && ( true == MoverParameters->Doors.instances[side::left].is_open ) ) {
             dMirrorMoveL = std::min(
                 1.0,
                 dMirrorMoveL + 1.0 * dt1 );
         }
         if( ( dMirrorMoveR < 1.0 )
-         && ( true == MoverParameters->DoorRightOpened ) ) {
+         && ( true == MoverParameters->Doors.instances[side::right].is_open ) ) {
             dMirrorMoveR = std::min(
                 1.0,
                 dMirrorMoveR + 1.0 * dt1 );
@@ -4199,7 +4094,7 @@ void TDynamicObject::RenderSounds() {
         m_exchangesounds.loading.stop();
     }
     // NBMX sygnal odjazdu
-    if( MoverParameters->DoorClosureWarning ) {
+    if( MoverParameters->Doors.has_warning ) {
         for( auto &door : m_doorsounds ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
@@ -4219,106 +4114,59 @@ void TDynamicObject::RenderSounds() {
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
-    // TODO: fully generalized door assembly
-    if( true == MoverParameters->DoorLeftOpened ) {
-        // open left door
-        // door sounds
-        // due to potential wait for the doorstep we play the sound only during actual animation
-        if( ( dDoorMoveL > 0.0 )
-         && ( dDoorMoveL < MoverParameters->DoorMaxShiftL ) ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.rsDoorClose.offset().x > 0.f ) {
-                    // determine left side doors from their offset
-                    door.rsDoorOpen.play( sound_flags::exclusive );
-                    door.rsDoorClose.stop();
-                }
-            }
-        }
-        // doorstep sounds
-        if( dDoorstepMoveL < 1.0 ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.step_close.offset().x > 0.f ) {
-                    door.step_open.play( sound_flags::exclusive );
-                    door.step_close.stop();
-                }
-            }
-        }
-    }
-    if( false == MoverParameters->DoorLeftOpened ) {
-        // close left door
-        // door sounds can start playing before the door begins moving
-        if( dDoorMoveL > 0.0 ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.rsDoorClose.offset().x > 0.f ) {
-                    // determine left side doors from their offset
-                    door.rsDoorClose.play( sound_flags::exclusive );
-                    door.rsDoorOpen.stop();
-                }
-            }
-        }
-        // doorstep sounds are played only when the doorstep is moving
-        if( ( dDoorstepMoveL > 0.0 )
-         && ( dDoorstepMoveL < 1.0 ) ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.step_close.offset().x > 0.f ) {
-                    // determine left side doors from their offset
-                    door.step_close.play( sound_flags::exclusive );
-                    door.step_open.stop();
-                }
-            }
-        }
-    }
+    std::array<side, 2> const sides { side::right, side::left };
+    for( auto const side : sides ) {
 
-    if( true == MoverParameters->DoorRightOpened ) {
-        // open right door
-        // door sounds
-        // due to potential wait for the doorstep we play the sound only during actual animation
-        if( ( dDoorMoveR > 0.0 )
-         && ( dDoorMoveR < MoverParameters->DoorMaxShiftR ) ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.rsDoorClose.offset().x < 0.f ) {
-                    // determine right side doors from their offset
-                    door.rsDoorOpen.play( sound_flags::exclusive );
-                    door.rsDoorClose.stop();
+        auto const &door { MoverParameters->Doors.instances[ side ] };
+
+        if( true == door.is_opening ) {
+            // door sounds
+            // due to potential wait for the doorstep we play the sound only during actual animation
+            if( door.position > 0.f ) {
+                for( auto &doorsounds : m_doorsounds ) {
+                    if( doorsounds.placement == side ) {
+                        // determine left side doors from their offset
+                        doorsounds.rsDoorOpen.play( sound_flags::exclusive );
+                        doorsounds.rsDoorClose.stop();
+                    }
+                }
+            }
+            // doorstep sounds
+            if( door.step_position < 1.f ) {
+                for( auto &doorsounds : m_doorsounds ) {
+                    if( doorsounds.placement == side ) {
+                        doorsounds.step_open.play( sound_flags::exclusive );
+                        doorsounds.step_close.stop();
+                    }
                 }
             }
         }
-        // doorstep sounds
-        if( dDoorstepMoveR < 1.0 ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.step_close.offset().x < 0.f ) {
-                    door.step_open.play( sound_flags::exclusive );
-                    door.step_close.stop();
+        if( true == door.is_closing ) {
+            // door sounds can start playing before the door begins moving but shouldn't cease once the door closes
+            if( door.position > 0.f ) {
+                for( auto &doorsounds : m_doorsounds ) {
+                    if( doorsounds.placement == side ) {
+                        // determine left side doors from their offset
+                        doorsounds.rsDoorClose.play( sound_flags::exclusive );
+                        doorsounds.rsDoorOpen.stop();
+                    }
                 }
             }
-        }
-    }
-    if( false == MoverParameters->DoorRightOpened ) {
-        // close right door
-        // door sounds can start playing before the door begins moving
-        if( dDoorMoveR > 0.0 ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.rsDoorClose.offset().x < 0.f ) {
-                    // determine left side doors from their offset
-                    door.rsDoorClose.play( sound_flags::exclusive );
-                    door.rsDoorOpen.stop();
-                }
-            }
-        }
-        // doorstep sounds are played only when the doorstep is moving
-        if( ( dDoorstepMoveR > 0.0 )
-         && ( dDoorstepMoveR < 1.0 ) ) {
-            for( auto &door : m_doorsounds ) {
-                if( door.step_close.offset().x < 0.f ) {
-                    // determine left side doors from their offset
-                    door.step_close.play( sound_flags::exclusive );
-                    door.step_open.stop();
+            // doorstep sounds are played only when the doorstep is moving
+            if( ( door.step_position > 0.f )
+             && ( door.step_position < 1.f ) ) {
+                for( auto &doorsounds : m_doorsounds ) {
+                    if( doorsounds.placement == side ) {
+                        // determine left side doors from their offset
+                        doorsounds.step_close.play( sound_flags::exclusive );
+                        doorsounds.step_open.stop();
+                    }
                 }
             }
         }
     }
     // door locks
-    if( MoverParameters->DoorBlockedFlag() != m_doorlocks ) {
+    if( MoverParameters->Doors.is_locked != m_doorlocks ) {
         // toggle state of the locks...
         m_doorlocks = !m_doorlocks;
         // ...and play relevant sounds
@@ -5176,7 +5024,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         if (pAnimations[i + j].smAnimated)
                         { //++iAnimatedDoors;
                             pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
-                            switch (MoverParameters->DoorOpenMethod)
+                            switch( MoverParameters->Doors.type )
                             { // od razu zapinamy potrzebny typ animacji
                             case 1:
 								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorTranslate, this, std::placeholders::_1 );
@@ -5193,7 +5041,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 							default:
 								break;
 							}
-                            pAnimations[i + j].iNumber = i; // parzyste działają inaczej niż nieparzyste
+                            pAnimations[i + j].iNumber = i + 1; // parzyste działają inaczej niż nieparzyste
                             pAnimations[i + j].fMaxDist = 300 * 300; // drzwi to z daleka widać
 /*
                             // NOTE: no longer used
@@ -5218,7 +5066,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         if (pAnimations[i + j].smAnimated)
                         { //++iAnimatedDoors;
                             pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
-                            switch (MoverParameters->PlatformOpenMethod)
+                            switch( MoverParameters->Doors.step_type )
                             { // od razu zapinamy potrzebny typ animacji
                             case 1: // shift
 								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdatePlatformTranslate, this, std::placeholders::_1 );
@@ -5229,7 +5077,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 							default:
 								break;
 							}
-                            pAnimations[i + j].iNumber = i; // parzyste działają inaczej niż nieparzyste
+                            pAnimations[i + j].iNumber = i + 1; // parzyste działają inaczej niż nieparzyste
                             pAnimations[i + j].fMaxDist = 150 * 150; // drzwi to z daleka widać
 /*
                             // NOTE: no longer used
@@ -5260,8 +5108,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             // parzyste działają inaczej niż nieparzyste
                             pAnimations[ i + j ].iNumber =
                                 ( ( pAnimations[ i + j ].smAnimated->offset().z > 0 ?
-                                    side::front :
-                                    side::rear ) << 4 )
+                                    end::front :
+                                    end::rear ) << 4 )
                                 + i;
                             pAnimations[ i + j ].fMaxDist = 150 * 150; // drzwi to z daleka widać
 /*
@@ -5365,9 +5213,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     blowertemplate.owner( this );
 
                     auto const amplitudedivisor = static_cast<float>(
-                        MoverParameters->MotorBlowers[ side::front ].speed > 0.f ?
-                            MoverParameters->MotorBlowers[ side::front ].speed * MoverParameters->nmax * 60 + MoverParameters->Power * 3 :
-                            MoverParameters->MotorBlowers[ side::front ].speed * -1 );
+                        MoverParameters->MotorBlowers[ end::front ].speed > 0.f ?
+                            MoverParameters->MotorBlowers[ end::front ].speed * MoverParameters->nmax * 60 + MoverParameters->Power * 3 :
+                            MoverParameters->MotorBlowers[ end::front ].speed * -1 );
                     blowertemplate.m_amplitudefactor /= amplitudedivisor;
                     blowertemplate.m_frequencyfactor /= amplitudedivisor;
 
@@ -5710,6 +5558,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                          || ( sides == "left" ) ) {
                             // left...
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            door.placement = side::left;
                             door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
@@ -5723,6 +5572,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                          || ( sides == "right" ) ) {
                             // ...and right
                             auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            door.placement = side::right;
                             door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
@@ -6066,19 +5916,19 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     }
     // couplers
     auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * 0.5f } };
-    m_couplersounds[ side::front ].dsbCouplerAttach.offset( frontcoupleroffset );
-    m_couplersounds[ side::front ].dsbCouplerDetach.offset( frontcoupleroffset );
-    m_couplersounds[ side::front ].dsbCouplerStretch.offset( frontcoupleroffset );
-    m_couplersounds[ side::front ].dsbCouplerStretch_loud.offset( frontcoupleroffset );
-    m_couplersounds[ side::front ].dsbBufferClamp.offset( frontcoupleroffset );
-    m_couplersounds[ side::front ].dsbBufferClamp_loud.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbCouplerAttach.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbCouplerDetach.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbCouplerStretch.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbCouplerStretch_loud.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbBufferClamp.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbBufferClamp_loud.offset( frontcoupleroffset );
     auto const rearcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
-    m_couplersounds[ side::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
-    m_couplersounds[ side::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
-    m_couplersounds[ side::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
-    m_couplersounds[ side::rear ].dsbCouplerStretch_loud.offset( rearcoupleroffset );
-    m_couplersounds[ side::rear ].dsbBufferClamp.offset( rearcoupleroffset );
-    m_couplersounds[ side::rear ].dsbBufferClamp_loud.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbCouplerStretch_loud.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbBufferClamp.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbBufferClamp_loud.offset( rearcoupleroffset );
 }
 
 TModel3d *
@@ -6213,8 +6063,8 @@ void TDynamicObject::RaLightsSet(int head, int rear)
         if( rear == ( light::redmarker_left | light::redmarker_right | light::rearendsignals ) ) // jeśli nadal obydwie możliwości
             if( iInventory[
                 ( iDirection ?
-                    side::rear :
-                    side::front ) ] & ( light::redmarker_left | light::redmarker_right ) ) {
+                    end::rear :
+                    end::front ) ] & ( light::redmarker_left | light::redmarker_right ) ) {
                 // czy ma jakieś światła czerowone od danej strony
                 rear = ( light::redmarker_left | light::redmarker_right ); // dwa światła czerwone
             }
@@ -6240,7 +6090,18 @@ void TDynamicObject::RaLightsSet(int head, int rear)
 
 int TDynamicObject::DirectionSet(int d)
 { // ustawienie kierunku w składzie (wykonuje AI)
+    auto const lastdirection { iDirection };
     iDirection = d > 0 ? 1 : 0; // d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
+
+    if( iDirection != lastdirection ) {
+        // direction was flipped, switch recorded servicable platform sides for potentially ongoing load exchange
+        auto const left { ( lastdirection > 0 ) ? 1 : 2 };
+        auto const right { 3 - left };
+        m_exchange.platforms =
+            ( m_exchange.platforms & left ? right : 0 )
+          + ( m_exchange.platforms & right ? left : 0 );
+    }
+
     if (MyTrack)
     { // podczas wczytywania wstawiane jest AI, ale może jeszcze nie
         // być toru
@@ -6255,8 +6116,8 @@ int TDynamicObject::DirectionSet(int d)
                  ctrain_virtual) // brak pojazdu podpiętego?
             ABuScanObjects(-1, 300);
     }
-    return 1 - (iDirection ? NextConnectedNo : PrevConnectedNo); // informacja o położeniu
-    // następnego
+    // informacja o położeniu następnego
+    return 1 - (iDirection ? NextConnectedNo : PrevConnectedNo);
 };
 
 TDynamicObject * TDynamicObject::PrevAny()
@@ -6432,7 +6293,7 @@ void TDynamicObject::ParamSet(int what, int into)
         // dla 8 różnych
         if (what & 1) // na razie mamy lewe oraz prawe, czyli używamy maskę 1=lewe,
             // 2=prawe, 3=wszystkie
-            if (MoverParameters->DoorLeftOpened)
+            if( MoverParameters->Doors.instances[side::left].is_open )
             { // są otwarte
                 if (!into) // jeśli zamykanie
                 {
@@ -6447,7 +6308,7 @@ void TDynamicObject::ParamSet(int what, int into)
                 }
             }
         if (what & 2) // prawe działają niezależnie od lewych
-            if (MoverParameters->DoorRightOpened)
+            if( MoverParameters->Doors.instances[side::right].is_open )
             { // są otwarte
                 if (!into) // jeśli zamykanie
                 {
@@ -7002,7 +6863,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( false == motorblowers.empty() ) {
         for( auto &blowersound : motorblowers ) {
             // match the motor blower and the sound source based on whether they're located in the front or the back of the vehicle
-            auto const &blower { Vehicle.MotorBlowers[ ( blowersound.offset().z > 0 ? side::front : side::rear ) ] };
+            auto const &blower { Vehicle.MotorBlowers[ ( blowersound.offset().z > 0 ? end::front : end::rear ) ] };
             if( blower.revolutions > 1 ) {
 
                 blowersound
@@ -7187,7 +7048,7 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
         // pętla po pantografach
         auto pantograph { Vehicle->pants[ pantographindex ].fParamPants };
         if( true == (
-                pantographindex == side::front ?
+                pantographindex == end::front ?
                     Vehicle->MoverParameters->PantFrontUp :
                     Vehicle->MoverParameters->PantRearUp ) ) {
             // jeśli pantograf podniesiony
