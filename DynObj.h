@@ -274,12 +274,6 @@ private:
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
     double NoVoltTime; // czas od utraty zasilania
-    float DoorDelayL{ 0.f }; // left side door closing delay timer
-    float DoorDelayR{ 0.f }; // right side door closing delay timer
-    double dDoorMoveL; // NBMX
-    double dDoorMoveR; // NBMX
-    double dDoorstepMoveL{ 0.0 };
-    double dDoorstepMoveR{ 0.0 };
     double dMirrorMoveL{ 0.0 };
     double dMirrorMoveR{ 0.0 };
     TSubModel *smBrakeSet; // nastawa hamulca (wajcha)
@@ -319,6 +313,7 @@ private:
         sound_source unlock { sound_placement::general };
         sound_source step_open { sound_placement::general };
         sound_source step_close { sound_placement::general };
+        side placement {};
     };
 
     struct exchange_sounds {
@@ -622,7 +617,7 @@ private:
     void RadioStop();
 	void Damage(char flag);
     void RaLightsSet(int head, int rear);
-    int LightList( side const Side ) const { return iInventory[ Side ]; }
+    int LightList( end const Side ) const { return iInventory[ Side ]; }
     void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG

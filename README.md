@@ -29,7 +29,6 @@ List of requirements for compiling executable. For usage/runtime requirements [s
 - [sndfile](https://github.com/erikd/libsndfile) (1.0.28)
 - [LuajIT](http://luajit.org/) (2.0.5)
 - [GLEW](http://glew.sourceforge.net/) (2.1.0)
-- [freeglut/GLUT](http://freeglut.sourceforge.net/) (freeglut 3.0.0)
 - [PNG](http://www.libpng.org/pub/png/libpng.html) (1.6.34)
 - [OpenAL](https://www.openal.org/) (1.18.2)
 - pthread

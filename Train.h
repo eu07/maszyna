@@ -141,6 +141,8 @@ class TTrain
     void set_master_controller( double const Position );
     // moves train brake lever to specified position, potentially emits switch sound if conditions are met
     void set_train_brake( double const Position );
+    // potentially moves train brake lever to neutral position
+    void zero_charging_train_brake();
     // sets specified brake acting speed for specified vehicle, potentially updating state of cab controls to match
     void set_train_brake_speed( TDynamicObject *Vehicle, int const Speed );
     // sets the motor connector button in paired unit to specified state
@@ -313,10 +315,15 @@ class TTrain
     static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
+    static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
@@ -444,12 +451,16 @@ public: // reszta może by?publiczna
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
+    TGauge ggDoorLeftPermitButton;
+    TGauge ggDoorRightPermitButton;
+    TGauge ggDoorPermitPresetButton;
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
     TGauge ggDoorLeftOnButton;
     TGauge ggDoorRightOnButton;
     TGauge ggDoorLeftOffButton;
     TGauge ggDoorRightOffButton;
+    TGauge ggDoorAllOnButton;
     TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
 
@@ -515,7 +526,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad, 4-external lights
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };
@@ -548,6 +559,7 @@ public: // reszta może by?publiczna
     TButton btLampkaPrzekrMaxSila;
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
+    TButton btLampkaDoors;
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaDoorLockOff;

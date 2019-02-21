@@ -1007,21 +1007,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     continue;
                                 }
                             }
-                            else {
-                                // sitting at passenger stop
-                                if( fStopTime < 0 ) {
-                                // verify progress of load exchange
-                                    auto exchangetime { 0.f };
-                                    auto *vehicle { pVehicles[ 0 ] };
-                                    while( vehicle != nullptr ) {
-                                        exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
-                                        vehicle = vehicle->Next();
-                                    }
-                                    if( exchangetime > 0 ) {
-                                        WaitingSet( exchangetime );
-                                    }
-                                }
-                            }
 
                             if (OrderCurrentGet() & Shunt) {
                                 OrderNext(Obey_train); // uruchomić jazdę pociągową
@@ -1043,9 +1028,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
-                                    // update brake settings and ai braking tables
+                                    // update consist weight, brake settings and ai braking tables
                                     // NOTE: this calculation is expected to run after completing loading/unloading
-                                    AutoRewident(); // nastawianie hamulca do jazdy pociągowej
+                                    CheckVehicles(); // nastawianie hamulca do jazdy pociągowej
 
                                     if( static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 1 ) ) ) ) % 2 ) {
                                         // nie podjeżdżać do semafora, jeśli droga nie jest wolna
@@ -2086,8 +2071,8 @@ bool TController::CheckVehicles(TOrders user)
         {
             // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
             if( ( p != pVehicle )
-             && ( ( p->MoverParameters->Couplers[ side::front ].CouplingFlag & ( coupling::control | coupling::permanent ) ) == 0 )
-             && ( ( p->MoverParameters->Couplers[ side::rear ].CouplingFlag  & ( coupling::control | coupling::permanent ) ) == 0 ) ) {
+             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control | coupling::permanent ) ) == 0 )
+             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control | coupling::permanent ) ) == 0 ) ) {
                 // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                 p->MoverParameters->BatterySwitch( true );
             }
@@ -2111,12 +2096,12 @@ bool TController::CheckVehicles(TOrders user)
                 // jeśli jazda pociągowa
                 // światła pociągowe (Pc1) i końcówki (Pc5)
                 auto const frontlights { (
-                    ( m_lighthints[ side::front ] != -1 ) ?
-                        m_lighthints[ side::front ] :
+                    ( m_lighthints[ end::front ] != -1 ) ?
+                        m_lighthints[ end::front ] :
                         light::headlight_left | light::headlight_right | light::headlight_upper ) };
                 auto const rearlights { (
-                    ( m_lighthints[ side::rear ] != -1 ) ?
-                        m_lighthints[ side::rear ] :
+                    ( m_lighthints[ end::rear ] != -1 ) ?
+                        m_lighthints[ end::rear ] :
                         light::redmarker_left | light::redmarker_right | light::rearendsignals ) };
                 Lights(
                     frontlights,
@@ -2153,9 +2138,12 @@ bool TController::CheckVehicles(TOrders user)
                     Lights( 0, light::headlight_right );
                 }
             }
-            // nastawianie hamulca do jazdy pociągowej
+
             if( OrderCurrentGet() & ( Obey_train | Shunt ) ) {
+                // nastawianie hamulca do jazdy pociągowej
                 AutoRewident();
+                // enable door locks
+                mvOccupied->LockDoors( true );
             }
         }
         else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
@@ -2470,10 +2458,10 @@ bool TController::PrepareEngine()
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
                 mvOccupied->CompressorSwitch( true );
                 // enable motor blowers
-                mvOccupied->MotorBlowersSwitchOff( false, side::front );
-                mvOccupied->MotorBlowersSwitch( true, side::front );
-                mvOccupied->MotorBlowersSwitchOff( false, side::rear );
-                mvOccupied->MotorBlowersSwitch( true, side::rear );
+                mvOccupied->MotorBlowersSwitchOff( false, end::front );
+                mvOccupied->MotorBlowersSwitch( true, end::front );
+                mvOccupied->MotorBlowersSwitchOff( false, end::rear );
+                mvOccupied->MotorBlowersSwitch( true, end::rear );
             }
         }
         else
@@ -2555,15 +2543,9 @@ bool TController::ReleaseEngine() {
         while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
         while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
 
-        if( mvOccupied->DoorCloseCtrl == control_t::driver ) {
-            // zamykanie drzwi
-            if( mvOccupied->DoorLeftOpened ) {
-                mvOccupied->DoorLeft( false );
-            }
-            if( mvOccupied->DoorRightOpened ) {
-                mvOccupied->DoorRight( false );
-            }
-        }
+        // zamykanie drzwi
+        mvOccupied->OperateDoors( side::right, false );
+        mvOccupied->OperateDoors( side::left, false );
 
         if( true == mvControlling->Mains ) {
             mvControlling->CompressorSwitch( false );
@@ -3183,7 +3165,7 @@ void TController::SpeedSet()
         // Ra 2014-06: "automatyczna" skrzynia biegów...
         if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) // gdy biegi ręczne
             if ((mvControlling->ShuntMode ? mvControlling->AnPos : 1.0) * mvControlling->Vel >
-                0.6 * mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+                0.75 * mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
             // if (mvControlling->enrot>0.95*mvControlling->dizel_nMmax) //youBy: jeśli obroty >
             // 0,95 nmax, wrzuć wyższy bieg - Ra: to nie działa
             { // jak prędkość większa niż 0.6 maksymalnej na danym biegu, wrzucić wyższy
@@ -3231,36 +3213,41 @@ void TController::Doors( bool const Open, int const Side ) {
         // otwieranie drzwi
         // otwieranie drzwi w składach wagonowych - docelowo wysyłać komendę zezwolenia na otwarcie drzwi
         // tu będzie jeszcze długość peronu zaokrąglona do 10m (20m bezpieczniej, bo nie modyfikuje bitu 1)
-        auto *vehicle = pVehicles[0]; // pojazd na czole składu
-        while( vehicle != nullptr ) {
-            // otwieranie drzwi w pojazdach - flaga zezwolenia była by lepsza
-            if( vehicle->MoverParameters->DoorOpenCtrl != control_t::passenger ) {
-                // if the door are controlled by the driver, we let the user operate them...
-                if( true == AIControllFlag ) {
-                    // ...unless this user is an ai
-                    // Side=platform side (1:left, 2:right, 3:both)
-                    // jeśli jedzie do tyłu, to drzwi otwiera odwrotnie
-                    auto const lewe = ( vehicle->DirectionGet() > 0 ) ? 1 : 2;
-                    auto const prawe = 3 - lewe;
-                    if( Side & lewe )
-                        vehicle->MoverParameters->DoorLeft( true, range_t::local );
-                    if( Side & prawe )
-                        vehicle->MoverParameters->DoorRight( true, range_t::local );
-                }
-            }
-            // pojazd podłączony z tyłu (patrząc od czoła)
-            vehicle = vehicle->Next();
+        auto const lewe = ( pVehicle->DirectionGet() > 0 ) ? 1 : 2;
+        auto const prawe = 3 - lewe;
+
+        if( ( true == pVehicle->MoverParameters->Doors.permit_needed )
+         && ( true == AIControllFlag ) ) {
+            // grant door control permission if it's not automatic
+            // TBD: stricter requirements?
+            if( Side & prawe )
+                pVehicle->MoverParameters->PermitDoors( side::right );
+            if( Side & lewe )
+                pVehicle->MoverParameters->PermitDoors( side::left );
+        }
+
+        if( ( pVehicle->MoverParameters->Doors.open_control == control_t::conductor )
+         || ( ( true == AIControllFlag )
+           && ( ( pVehicle->MoverParameters->Doors.open_control == control_t::driver )
+             || ( pVehicle->MoverParameters->Doors.open_control == control_t::mixed ) ) ) ) {
+            // if the door can be operated by the driver we let the user operate them unless this user is an ai
+            // the train conductor, if present, handles door operation also for human-driven trains
+            if( Side & prawe )
+                pVehicle->MoverParameters->OperateDoors( side::right, true );
+            if( Side & lewe )
+                pVehicle->MoverParameters->OperateDoors( side::left, true );
         }
     }
     else {
         // zamykanie
-        if( false == doors_open() ) {
-            // the doors are already closed, we can skip all hard work
+        if( ( false == pVehicle->MoverParameters->Doors.permit_needed )
+         && ( false == doors_open() ) ) {
+            // the doors are already closed and we don't have to revoke control permit, we can skip all hard work
             iDrivigFlags &= ~moveDoorOpened;
         }
 
         if( AIControllFlag ) {
-            if( ( true == mvOccupied->DoorClosureWarning )
+            if( ( true == mvOccupied->Doors.has_autowarning )
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                 mvOccupied->signal_departure( true ); // załącenie bzyczka
@@ -3272,12 +3259,22 @@ void TController::Doors( bool const Open, int const Side ) {
          && ( ( fActionTime > -0.5 )
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
+            if( ( pVehicle->MoverParameters->Doors.open_control == control_t::conductor )
+             || ( ( true == AIControllFlag )
+               && ( ( pVehicle->MoverParameters->Doors.open_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.open_control == control_t::mixed ) ) ) ) {
+                // if the door are controlled by the driver, we let the user operate them unless this user is an ai
+                // the train conductor, if present, handles door operation also for human-driven trains
+                pVehicle->MoverParameters->OperateDoors( side::right, false );
+                pVehicle->MoverParameters->OperateDoors( side::left, false );
+            }
+
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
             while( vehicle != nullptr ) {
                 // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                if( vehicle->MoverParameters->DoorCloseCtrl != control_t::autonomous ) {
-                    vehicle->MoverParameters->DoorLeft( false, range_t::local ); // w lokomotywie można by nie zamykać...
-                    vehicle->MoverParameters->DoorRight( false, range_t::local );
+                if( vehicle->MoverParameters->Doors.auto_velocity < 0.f ) {
+                    vehicle->MoverParameters->OperateDoors( side::right, false, range_t::local ); // w lokomotywie można by nie zamykać...
+                    vehicle->MoverParameters->OperateDoors( side::left, false, range_t::local );
                 }
                 vehicle = vehicle->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
             }
@@ -3300,8 +3297,8 @@ TController::doors_open() const {
 
     auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
     while( vehicle != nullptr ) {
-        if( ( vehicle->MoverParameters->DoorRightOpened == true )
-         || ( vehicle->MoverParameters->DoorLeftOpened == true ) ) {
+        if( ( false == vehicle->MoverParameters->Doors.instances[side::right].is_closed )
+         || ( false == vehicle->MoverParameters->Doors.instances[side::left].is_closed ) ) {
             // any open door is enough
             return true;
         }
@@ -3718,8 +3715,8 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
     if( NewCommand == "SetLights" ) {
         // set consist lights pattern hints
-        m_lighthints[ side::front ] = static_cast<int>( NewValue1 );
-        m_lighthints[ side::rear ] = static_cast<int>( NewValue2 );
+        m_lighthints[ end::front ] = static_cast<int>( NewValue1 );
+        m_lighthints[ end::rear ] = static_cast<int>( NewValue2 );
         if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
             // light hints only apply in the obey_train mode
             CheckVehicles();
@@ -3839,6 +3836,7 @@ TController::UpdateSituation(double dt) {
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     double dy; // składowa styczna grawitacji, w przedziale <0,1>
     double AbsAccS = 0;
+    IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
@@ -3872,6 +3870,15 @@ TController::UpdateSituation(double dt) {
          && ( vehicle->FuseFlag ) ) { // wywalony nadmiarowy
             Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
         }
+        // check door state
+        auto const switchsides { p->DirectionGet() <= 0 };
+        IsAnyDoorOpen[ side::right ] =
+            IsAnyDoorOpen[ side::right ]
+         || ( false == vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].is_closed );
+        IsAnyDoorOpen[ side::left ] =
+            IsAnyDoorOpen[ side::left ]
+         || ( false == vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].is_closed );
+
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
 
@@ -3931,7 +3938,7 @@ TController::UpdateSituation(double dt) {
     // TODO: check if this situation still happens and the hack is still needed
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->DoorCloseCtrl != control_t::driver )
+     && ( mvOccupied->Doors.close_control != control_t::driver )
      && ( mvControlling->MainCtrlPos > ( mvControlling->EngineType != TEngineType::DieselEngine ? 0 : 1 ) ) ) { // for diesel 1st position is effectively 0
         Doors( false );
     }
@@ -4463,8 +4470,8 @@ TController::UpdateSituation(double dt) {
              && ( false == TestFlag( iDrivigFlags, movePress ) )
              && ( iCoupler == 0 )
 //             && ( mvOccupied->Vel > 0.0 )
-             && ( pVehicle->MoverParameters->Couplers[ side::front ].CouplingFlag == coupling::faux )
-             && ( pVehicle->MoverParameters->Couplers[ side::rear ].CouplingFlag == coupling::faux ) ) {
+             && ( pVehicle->MoverParameters->Couplers[ end::front ].CouplingFlag == coupling::faux )
+             && ( pVehicle->MoverParameters->Couplers[ end::rear ].CouplingFlag == coupling::faux ) ) {
                 SetVelocity(0, 0, stopJoin); // 1. faza odczepiania: zatrzymanie
                 // WriteLog("Zatrzymanie w celu odczepienia");
                 AccPreferred = std::min( 0.0, AccPreferred );
@@ -4918,6 +4925,16 @@ TController::UpdateSituation(double dt) {
             if( fStopTime < 0 ) {
                 // czas postoju przed dalszą jazdą (np. na przystanku)
                 VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
+                // verify progress of load exchange
+                auto exchangetime { 0.f };
+                auto *vehicle { pVehicles[ 0 ] };
+                while( vehicle != nullptr ) {
+                    exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
+                    vehicle = vehicle->Next();
+                }
+                if( exchangetime > 0 ) {
+                    WaitingSet( exchangetime );
+                }
             }
 
             if( ( OrderCurrentGet() & Obey_train ) != 0 ) {
@@ -5679,7 +5696,7 @@ void TController::OrderCheck()
 
     if( OrderList[ OrderPos ] != Obey_train ) {
         // reset light hints
-        m_lighthints[ side::front ] = m_lighthints[ side::rear ] = -1;
+        m_lighthints[ end::front ] = m_lighthints[ end::rear ] = -1;
     }
     if( OrderList[ OrderPos ] & ( Shunt | Connect | Obey_train ) ) {
         CheckVehicles(); // sprawdzić światła
@@ -6320,7 +6337,7 @@ bool TController::IsStop() const
 double
 TController::TrackBlock() const {
 
-    return pVehicles[ side::front ]->fTrackBlock;
+    return pVehicles[ end::front ]->fTrackBlock;
 }
 
 void TController::MoveTo(TDynamicObject *to)

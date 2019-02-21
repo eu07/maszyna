@@ -944,7 +944,7 @@ bool TTrack::AssignEvents() {
                 m_events = true;
             }
             else {
-                ErrorLog( "Bad track: \"" + m_name + "\" can't find assigned event \"" + event.first + "\"" );
+                ErrorLog( "Bad track: " + ( m_name.empty() ? "unnamed track" : "\"" + m_name + "\"" ) + " can't find assigned event \"" + event.first + "\"" );
                 lookupfail = true;
             }
         }

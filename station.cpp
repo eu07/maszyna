@@ -43,6 +43,8 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
 
         auto &parameters { *vehicle->MoverParameters };
 
+        if( parameters.Doors.range == 0.f ) { goto next; }
+
         if( parameters.LoadType.name.empty() ) {
             // (try to) set the cargo type for empty cars
             parameters.LoadAmount = 0.f; // safety measure against edge cases
@@ -57,7 +59,7 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
                 firststop ? 0 :
                 std::min<float>(
                     parameters.LoadAmount,
-                    Random( parameters.MaxLoad * 0.10 * stationsizemodifier ) ) );
+                    Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
                 laststop ?
                     0 :
@@ -73,6 +75,7 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
                 exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
             }
         }
+next:
         vehicle = vehicle->Next();
     }
 

@@ -558,6 +558,15 @@ drivermouse_input::default_bindings() {
         { "stlinoff_bt:", {
             user_command::motorconnectorsopen,
             user_command::none } },
+        { "doorleftpermit_sw:", {
+            user_command::doorpermitleft,
+            user_command::none } },
+        { "doorrightpermit_sw:", {
+            user_command::doorpermitright,
+            user_command::none } },
+        { "doorpermitpreset_sw:", {
+            user_command::doorpermitpresetactivatenext,
+            user_command::doorpermitpresetactivateprevious } },
         { "door_left_sw:", {
             user_command::doortoggleleft,
             user_command::none } },
@@ -575,6 +584,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "doorrightoff_sw:", {
             user_command::doorcloseright,
+            user_command::none } },
+        { "doorallon_sw:", {
+            user_command::dooropenall,
             user_command::none } },
         { "dooralloff_sw:", {
             user_command::doorcloseall,
