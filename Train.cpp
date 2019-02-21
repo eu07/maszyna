@@ -8334,11 +8334,19 @@ void train_table::update(double dt)
 	for (TTrain *train : m_items) {
 		if (!train)
 			continue;
+
 		train->Update(dt);
+
 		if (train->pending_delete) {
 			purge(train->Dynamic()->name());
 			if (simulation::Train == train)
 				simulation::Train = nullptr;
+		}
+
+		// for single-player destroy non-player trains
+		if (simulation::Train != train
+		        && Global.network_servers.empty() && !Global.network_client) {
+			purge(train->Dynamic()->name());
 		}
 	}
 }
