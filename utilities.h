@@ -135,6 +135,9 @@ std::string to_string( glm::tvec4<Type_, Precision_> const &Value, int const Wid
     return to_string( Value.x, Width ) + ", " + to_string( Value.y, Width ) + ", " + to_string( Value.z, Width ) + ", " + to_string( Value.w, Width );
 }
 
+bool string_ends_with(std::string const &string, std::string const &ending);
+bool string_starts_with(std::string const &string, std::string const &begin);
+
 int stol_def(const std::string & str, const int & DefaultValue);
 
 std::string ToLower(std::string const &text);

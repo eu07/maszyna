@@ -13,6 +13,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "MemCell.h"
 
+#include "widgets/map_objects.h"
+
 namespace scene {
 
 node_groups Groups;
@@ -28,7 +30,30 @@ node_groups::create() {
 
 // indicates creation of current group ended. returns: handle to the parent group or null_handle if group stack is empty
 scene::group_handle
-node_groups::close() {
+node_groups::close()
+{
+	if (!m_activegroup.empty()) {
+		for (basic_node *node : m_groupmap[m_activegroup.top()].nodes) {
+			std::string postfix { "sem_mem" };
+
+			if (typeid(TMemCell) == typeid(*node) && string_ends_with(node->name(), postfix)) {
+				std::string sem_name = node->name().substr(0, node->name().length() - postfix.length());
+
+				map::Semaphores.emplace_back();
+				map::semaphore &sem_info = map::Semaphores.back();
+
+				sem_info.location = node->location();
+				sem_info.name = sem_name;
+
+				for (basic_event *event : m_groupmap[m_activegroup.top()].events) {
+					if (string_starts_with(event->name(), sem_name)
+					        && event->name().substr(sem_name.length()).find("sem") == std::string::npos) {
+						sem_info.events.push_back(event);
+					}
+				}
+			}
+		}
+	}
 
     if( false == m_activegroup.empty() ) {
 
@@ -42,10 +67,11 @@ node_groups::close() {
             if( ( lookup != m_groupmap.end() )
              && ( ( lookup->second.nodes.size() + lookup->second.events.size() ) <= 1 ) ) {
 
-                erase( lookup );
+				erase( lookup );
             }
         }
     }
+
     return handle();
 }
 

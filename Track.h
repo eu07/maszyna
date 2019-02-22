@@ -95,6 +95,8 @@ class TSwitchExtension
     Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
     material_handle m_material3 = 0; // texture of auto generated switch trackbed
     gfx::geometry_handle Geometry3; // geometry of auto generated switch trackbed
+
+	gfx::geometrybank_handle map_geometry[6]; // geometry for map visualisation
 };
 
 class TIsolated
@@ -274,7 +276,8 @@ public:
         endpoints() const;
 
     void create_geometry( gfx::geometrybank_handle const &Bank ); // wypełnianie VBO
-    void create_map_geometry(std::vector<gfx::basic_vertex> &Bank);
+	void create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
+	void get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet( scene::basic_cell *o ) {

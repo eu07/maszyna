@@ -67,6 +67,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	frustum.calculate(transform, glm::mat4());
 
 	m_section_handles.clear();
+	m_switch_handles.clear();
 
 	for (int row = 0; row < scene::EU07_REGIONSIDESECTIONCOUNT; row++)
 	{
@@ -76,15 +77,13 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 			if (section && frustum.sphere_inside(section->area().center, section->area().radius) > 0.f)
 			{
 				const gfx::geometrybank_handle handle = section->get_map_geometry();
-				if (handle != null_handle)
+				if (handle != null_handle) {
 					m_section_handles.push_back(handle);
+					section->get_map_active_switches(m_switch_handles);
+				}
 			}
 		}
 	}
-
-	scene_ubs.projection = transform;
-	scene_ubo->update(scene_ubs);
-	scene_ubo->bind_uniform();
 
 	glDisable(GL_DEPTH_TEST);
 	if (Global.iMultisampling)
@@ -102,7 +101,16 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	glLineWidth(1.5f);
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
+	scene_ubs.projection = transform;
+	scene_ubs.time = 0.3f; // color is stuffed in time variable
+	scene_ubo->update(scene_ubs);
+	scene_ubo->bind_uniform();
+
 	GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
+
+	scene_ubs.time = 0.6f; // color is stuffed in time variable
+	scene_ubo->update(scene_ubs);
+	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
 
 	if (Global.iMultisampling)
 		m_fb->blit_from(m_msaa_fb.get(), surface_size.x, surface_size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
@@ -215,7 +223,6 @@ void ui::map_panel::render_contents()
 	if (ImGui::IsItemHovered())
 	{
 		if (mode == 0 && ImGui::IsMouseDragging(0)) {
-			WriteLog("drag");
 			ImVec2 delta_im = ImGui::GetMouseDragDelta();
 			ImGui::ResetMouseDragDelta();
 
@@ -226,7 +233,6 @@ void ui::map_panel::render_contents()
 			translate -= delta * 2.0f;
 		}
 		if (ImGui::IsMouseClicked(1)) {
-			WriteLog("click");
 			ImVec2 screen_pos = ImGui::GetMousePos();
 			glm::vec2 surface_pos(screen_pos.x - screen_origin.x, screen_pos.y - screen_origin.y);
 			glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
@@ -241,9 +247,6 @@ void ui::map_panel::render_contents()
 				else if (launcher->Event2)
 					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(launcher->Event2), 0.0, GLFW_PRESS, 0);
 			}
-
-
-			WriteLog(std::to_string(world_pos.x) + "," + std::to_string(world_pos.z));
 		}
 	}
 

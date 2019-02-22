@@ -80,6 +80,7 @@ public:
     virtual glm::dvec3 input_location() const;
     void group( scene::group_handle Group );
     scene::group_handle group() const;
+	std::string const &name() const { return m_name; }
 // members
     basic_event *m_next { nullptr }; // następny w kolejce // TODO: replace with event list in the manager
     basic_event *m_sibling { nullptr }; // kolejny event z tą samą nazwą - od wersji 378

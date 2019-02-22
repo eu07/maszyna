@@ -153,7 +153,10 @@ public:
 	// generates renderable version of held non-instanced geometry in specified geometry bank
     void
         create_geometry( gfx::geometrybank_handle const &Bank );
-    void create_map_geometry(std::vector<gfx::basic_vertex> &Bank);
+	void
+	    create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
+	void
+	    get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
     // provides access to bounding area data
     bounding_area const &
         area() const {
@@ -277,7 +280,10 @@ public:
 	// generates renderable version of held non-instanced geometry
     void
         create_geometry();
-    void create_map_geometry(const gfx::geometrybank_handle handle);
+	void
+	    create_map_geometry(const gfx::geometrybank_handle handle);
+	void
+	    get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
     // provides access to bounding area data
     bounding_area const &
         area() const {

@@ -125,6 +125,7 @@ set(SOURCES
 
 "widgets/vehiclelist.cpp"
 "widgets/map.cpp"
+"widgets/map_objects.cpp"
 
 "ref/glad/src/glad.c"
 

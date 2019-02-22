@@ -608,13 +608,19 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
     m_geometrycreated = true; // helper for legacy animation code, get rid of it after refactoring
 }
 
-void basic_cell::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
+void basic_cell::create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra)
 {
     if (!m_active)
         return;
 
     for (auto *path : m_paths)
-        path->create_map_geometry(Bank);
+		path->create_map_geometry(Bank, Extra);
+}
+
+void basic_cell::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+{
+	for (auto *path : m_paths)
+		path->get_map_active_switches(handles);
 }
 
 // executes event assigned to specified launcher
@@ -926,9 +932,15 @@ void basic_section::create_map_geometry(const gfx::geometrybank_handle handle)
 {
     std::vector<gfx::basic_vertex> lines;
     for (auto &cell : m_cells)
-        cell.create_map_geometry(lines);
+		cell.create_map_geometry(lines, handle);
 
     m_map_geometryhandle = GfxRenderer.Insert(lines, handle, GL_LINES);
+}
+
+void basic_section::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+{
+	for (auto &cell : m_cells)
+		cell.get_map_active_switches(handles);
 }
 
 // provides access to section enclosing specified point

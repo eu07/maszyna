@@ -19,6 +19,7 @@ class map_panel : public ui_panel {
     gl::scene_ubs scene_ubs;
 
     std::vector<gfx::geometrybank_handle> m_section_handles;
+	std::vector<gfx::geometrybank_handle> m_switch_handles;
 
     const int fb_size = 1024;
 

@@ -1128,7 +1128,7 @@ void TTrack::RaAssign( TAnimModel *am, basic_event *done, basic_event *joined )
     }
 };
 
-void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
+void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra)
 {
     if (iCategoryFlag != 1)
         return; // only tracks for now
@@ -1136,17 +1136,35 @@ void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank)
 	switch (eType)
 	{
 	case tt_Normal:
-	case tt_Table:
 		Segment->render_lines(Bank, 0.5f);
 		break;
-	case tt_Switch:
-	case tt_Cross:
-		SwitchExtension->Segments[0]->render_lines(Bank, 0.5f);
-		SwitchExtension->Segments[1]->render_lines(Bank, 0.5f);
+	case tt_Switch: {
+		std::vector<gfx::basic_vertex> vertices;
+
+		SwitchExtension->Segments[0]->render_lines(vertices, 0.5f);
+		SwitchExtension->map_geometry[0] = GfxRenderer.Insert(vertices, Extra, GL_LINES);
+		std::copy(vertices.begin(), vertices.end(), std::back_inserter(Bank));
+
+		vertices.clear();
+		SwitchExtension->Segments[1]->render_lines(vertices, 0.5f);
+		SwitchExtension->map_geometry[1] = GfxRenderer.Insert(vertices, Extra, GL_LINES);
+		std::copy(vertices.begin(), vertices.end(), std::back_inserter(Bank));
 		break;
+	}
 	default:
 		break;
 	}
+}
+
+void TTrack::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+{
+	if (iCategoryFlag != 1 || eType != tt_Switch)
+		return;
+
+	if (GetSwitchState() == 0)
+		handles.push_back(SwitchExtension->map_geometry[0]);
+	else
+		handles.push_back(SwitchExtension->map_geometry[1]);
 }
 
 // wypełnianie tablic VBO
