@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "MOVER.h"
 
+#include "DynObj.h"
 #include "Oerlikon_ESt.h"
 #include "utilities.h"
 #include "Globals.h"
@@ -383,166 +384,116 @@ double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
 { // zwraca odległość pomiędzy pojazdami (Loc1) i (Loc2) z uwzględnieneim ich długości (kule!)
     return hypot(Loc2.X - Loc1.X, Loc1.Y - Loc2.Y) - 0.5 * (Dim2.L + Dim1.L);
 };
-/*
-double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const vector3 &d1,
-                                  const vector3 &d2){
-    // obliczenie odległości prostopadłościanów o środkach (s1) i (s2) i wymiarach (d1) i (d2)
-    // return 0.0; //będzie zgłaszać warning - funkcja do usunięcia, chyba że się przyda...
-};
-*/
-double TMoverParameters::CouplerDist(int Coupler)
-{ // obliczenie odległości pomiędzy sprzęgami (kula!)
-    Couplers[Coupler].CoupleDist = 
-        Distance(
-            Loc, Couplers[Coupler].Connected->Loc,
-            Dim, Couplers[Coupler].Connected->Dim); // odległość pomiędzy sprzęgami (kula!)
 
-    return Couplers[ Coupler ].CoupleDist;
+double TMoverParameters::CouplerDist(TMoverParameters const *Left, TMoverParameters const *Right)
+{ // obliczenie odległości pomiędzy sprzęgami (kula!)
+    return
+        Distance(
+            Left->Loc, Right->Loc,
+            Left->Dim, Right->Dim); // odległość pomiędzy sprzęgami (kula!)
 };
 
 bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced, bool Audible)
 { //łączenie do swojego sprzęgu (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla każdego pojazdu oddzielnie
-    // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do
-    // składu
-    if (ConnectTo) // jeśli nie pusty
-    {
-        auto &coupler = Couplers[ ConnectNo ];
-        if (ConnectToNr != 2)
-            coupler.ConnectedNr = ConnectToNr; // 2=nic nie podłączone
-        coupler.Connected = ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
-        CouplerDist( ConnectNo ); // przeliczenie odległości pomiędzy sprzęgami
+    // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do składu
 
-        if (CouplingType == coupling::faux)
-            return false; // wirtualny więcej nic nie robi
-
-        auto &othercoupler = ConnectTo->Couplers[ coupler.ConnectedNr ];
-        if( ( Forced )
-         || ( ( coupler.CoupleDist <= dEpsilon )
-           && ( coupler.CouplerType != TCouplerType::NoCoupler )
-           && ( coupler.CouplerType == othercoupler.CouplerType ) ) )
-        { // stykaja sie zderzaki i kompatybilne typy sprzegow, chyba że łączenie na starcie
-            if( coupler.CouplingFlag == ctrain_virtual ) {
-                // jeśli wcześniej nie było połączone, ustalenie z której strony rysować sprzęg
-                coupler.Render = true; // tego rysować
-                othercoupler.Render = false; // a tego nie
-            };
-            auto const couplingchange { CouplingType ^ coupler.CouplingFlag };
-            coupler.CouplingFlag = CouplingType; // ustawienie typu sprzęgu
-            // if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie łączymy zwrotnie!
-            //{//jeśli łączenie sprzęgiem niewirtualnym, ustawiamy połączenie zwrotne
-            othercoupler.CouplingFlag = CouplingType;
-            othercoupler.Connected = this;
-            othercoupler.CoupleDist = coupler.CoupleDist;
-
-            if( ( true == Audible ) && ( couplingchange != 0 ) ) {
-            // set sound event flag
-                int soundflag{ sound::none };
-                std::vector<std::pair<coupling, sound>> const soundmappings = {
-                    { coupling::coupler, sound::attachcoupler },
-                    { coupling::brakehose, sound::attachbrakehose },
-                    { coupling::mainhose, sound::attachmainhose },
-                    { coupling::control, sound::attachcontrol},
-                    { coupling::gangway, sound::attachgangway},
-                    { coupling::heating, sound::attachheating} };
-                for( auto const &soundmapping : soundmappings ) {
-                    if( ( couplingchange & soundmapping.first ) != 0 ) {
-                        soundflag |= soundmapping.second;
-                    }
-                }
-                SetFlag( coupler.sounds, soundflag );
-            }
-
-            return true;
-            //}
-            // podłączenie nie udało się - jest wirtualne
-        }
+    if( ( ConnectTo == nullptr )
+     || ( CouplingType == coupling::faux ) ) {
+        return false;
     }
-    return false; // brak podłączanego pojazdu, zbyt duża odległość, niezgodny typ sprzęgu, brak
-    // sprzęgu, brak haka
-};
+    
+    auto &coupler { Couplers[ ConnectNo ] };
+    auto &othercoupler = ConnectTo->Couplers[ ( ConnectToNr != 2 ? ConnectToNr : coupler.ConnectedNr ) ];
+    auto const distance { CouplerDist( this, ConnectTo ) };
 
-// to jest już niepotrzebne bo nie ma Delphi
-//bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
-//                              int CouplingType, bool Forced)
-//{ //łączenie do (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
-//    return Attach(ConnectNo, ConnectToNr, (TMoverParameters *)ConnectTo, CouplingType, Forced);
-//};
+    auto const couplercheck {
+        ( Forced )
+     || ( ( distance <= dEpsilon )
+       && ( coupler.CouplerType != TCouplerType::NoCoupler )
+       && ( coupler.CouplerType == othercoupler.CouplerType ) ) };
+
+    if( false == couplercheck ) { return false; }
+
+    // stykaja sie zderzaki i kompatybilne typy sprzegow, chyba że łączenie na starcie
+    if( coupler.CouplingFlag == coupling::faux ) {
+        // jeśli wcześniej nie było połączone, ustalenie z której strony rysować sprzęg
+        coupler.Render = true; // tego rysować
+        othercoupler.Render = false; // a tego nie
+    };
+    auto const couplingchange { CouplingType ^ coupler.CouplingFlag };
+    coupler.Connected = ConnectTo;
+    coupler.CouplingFlag = CouplingType; // ustawienie typu sprzęgu
+    if( ConnectToNr != 2 ) {
+        coupler.ConnectedNr = ConnectToNr; // 2=nic nie podłączone
+    }
+    othercoupler.Connected = this;
+    othercoupler.CouplingFlag = CouplingType;
+    othercoupler.ConnectedNr = ConnectNo;
+
+    if( ( true == Audible ) && ( couplingchange != 0 ) ) {
+        // set sound event flag
+        int soundflag{ sound::none };
+        std::vector<std::pair<coupling, sound>> const soundmappings = {
+            { coupling::coupler, sound::attachcoupler },
+            { coupling::brakehose, sound::attachbrakehose },
+            { coupling::mainhose, sound::attachmainhose },
+            { coupling::control, sound::attachcontrol},
+            { coupling::gangway, sound::attachgangway},
+            { coupling::heating, sound::attachheating} };
+        for( auto const &soundmapping : soundmappings ) {
+            if( ( couplingchange & soundmapping.first ) != 0 ) {
+                soundflag |= soundmapping.second;
+            }
+        }
+        SetFlag( coupler.sounds, soundflag );
+    }
+
+    return true;
+}
 
 int TMoverParameters::DettachStatus(int ConnectNo)
 { // Ra: sprawdzenie, czy odległość jest dobra do rozłączania
-    // powinny być 3 informacje: =0 sprzęg już rozłączony, <0 da się rozłączyć. >0 nie da się
-    // rozłączyć
+    // powinny być 3 informacje: =0 sprzęg już rozłączony, <0 da się rozłączyć. >0 nie da się rozłączyć
     if (!Couplers[ConnectNo].Connected)
         return 0; // nie ma nic, to rozłączanie jest OK
     if ((Couplers[ConnectNo].CouplingFlag & ctrain_coupler) == 0)
         return -Couplers[ConnectNo].CouplingFlag; // hak nie połączony - rozłączanie jest OK
     if (TestFlag(DamageFlag, dtrain_coupling))
         return -Couplers[ConnectNo].CouplingFlag; // hak urwany - rozłączanie jest OK
-    // ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale
-    // za to teraz dziala odczepianie... :) }
-    // if (CouplerType==Articulated) return false; //sprzęg nie do rozpięcia - może być tylko urwany
-    // Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
-    CouplerDist(ConnectNo);
-    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Couplers[ConnectNo].CoupleDist < 0.01 : true)
+//    CouplerDist(ConnectNo);
+    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Neighbours[ConnectNo].distance < 0.01 : true)
         return -Couplers[ConnectNo].CouplingFlag; // można rozłączać, jeśli dociśnięty
-    return (Couplers[ConnectNo].CoupleDist > 0.2) ? -Couplers[ConnectNo].CouplingFlag :
+    return (Neighbours[ConnectNo].distance > 0.2) ? -Couplers[ConnectNo].CouplingFlag :
                                                     Couplers[ConnectNo].CouplingFlag;
 };
 
 bool TMoverParameters::Dettach(int ConnectNo)
 { // rozlaczanie
-    if (!Couplers[ConnectNo].Connected)
-        return true; // nie ma nic, to odczepiono
-    // with Couplers[ConnectNo] do
-    int i = DettachStatus(ConnectNo); // stan sprzęgu
-    if (i < 0)
-    { // gdy scisniete zderzaki, chyba ze zerwany sprzeg (wirtualnego nie odpinamy z drugiej strony)
-        // Couplers[ConnectNo].Connected=NULL; //lepiej zostawic bo przeciez trzeba kontrolowac
-        // zderzenia odczepionych
-        Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag =
-            0; // pozostaje sprzęg wirtualny
-        Couplers[ConnectNo].CouplingFlag = 0; // pozostaje sprzęg wirtualny
 
+    auto &coupler { Couplers[ ConnectNo ] };
+    auto &othervehicle { coupler.Connected };
+    auto &othercoupler { othervehicle->Couplers[ coupler.ConnectedNr ] };
+
+    if( othervehicle == nullptr ) { return true; } // nie ma nic, to odczepiono
+
+    auto const i = DettachStatus(ConnectNo); // stan sprzęgu
+    if (i < 0) {
+        // gdy scisniete zderzaki, chyba ze zerwany sprzeg (wirtualnego nie odpinamy z drugiej strony)
+        std::tie(      coupler.Connected,      coupler.ConnectedNr,      coupler.CouplingFlag )
+      = std::tie( othercoupler.Connected, othercoupler.ConnectedNr, othercoupler.CouplingFlag )
+      = std::make_tuple( nullptr, -1, coupling::faux );
         // set sound event flag
-        SetFlag( Couplers[ ConnectNo ].sounds, sound::detachall );
+        SetFlag( coupler.sounds, sound::detachall );
 
         return true;
     }
     else if (i > 0)
-    { // odłączamy węże i resztę, pozostaje sprzęg fizyczny, który wymaga dociśnięcia (z wirtualnym
-        // nic)
-        Couplers[ConnectNo].CouplingFlag &= ctrain_coupler;
-        Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag =
-            Couplers[ConnectNo].CouplingFlag;
+    { // odłączamy węże i resztę, pozostaje sprzęg fizyczny, który wymaga dociśnięcia (z wirtualnym nic)
+        coupler.CouplingFlag &= coupling::coupler;
+        othercoupler.CouplingFlag &= coupling::coupler;
     }
     return false; // jeszcze nie rozłączony
-};
-
-// przeliczenie odległości sprzęgów
-void TMoverParameters::SetCoupleDist() {
-/*
-    double const MaxDist = 100.0; // 2x average max proximity distance. TODO: rearrange ito something more elegant
-*/
-    for( int coupleridx = 0; coupleridx <= 1; ++coupleridx ) {
-
-        if( Couplers[ coupleridx ].Connected == nullptr ) { continue; }
-
-        CouplerDist( coupleridx );
-        if( CategoryFlag & 2 ) {
-            // Ra: dla samochodów zderzanie kul to za mało
-            // NOTE: whatever calculation was supposed to be here, ain't
-        }
-/*
-        if( ( Couplers[ coupleridx ].CouplingFlag == coupling::faux )
-         && ( Couplers[ coupleridx ].CoupleDist > MaxDist ) ) {
-            // zerwij kontrolnie wirtualny sprzeg
-            // Connected.Couplers[CNext].Connected:=nil; //Ra: ten podłączony niekoniecznie jest wirtualny
-            Couplers[ coupleridx ].Connected = nullptr;
-            Couplers[ coupleridx ].ConnectedNr = 2;
-        }
-*/
-    }
 };
 
 bool TMoverParameters::DirectionForward()
@@ -1064,7 +1015,8 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
             CCF =
                 ComputeCollision(
                     coupler.Connected->V,
-                    V, coupler.Connected->TotalMass,
+                    V,
+                    coupler.Connected->TotalMass,
                     TotalMass,
                     (coupler.beta + coupler.Connected->Couplers[coupler.ConnectedNr].beta) / 2.0,
                     VirtualCoupling)
@@ -3755,7 +3707,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
             c = Couplers[0].Connected; // skrot
             dv1 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75);
             if (dv1 * dv1 > 0.00000000000001)
-                c->Physic_ReActivation();
+                c->switch_physics( true );
             c->Pipe2->Flow(-dv1);
         }
     // sprzeg 2
@@ -3765,7 +3717,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
             c = Couplers[1].Connected; // skrot
             dv2 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75);
             if (dv2 * dv2 > 0.00000000000001)
-                c->Physic_ReActivation();
+                c->switch_physics( true );
             c->Pipe2->Flow(-dv2);
         }
     if ((Couplers[1].Connected != NULL) && (Couplers[0].Connected != NULL))
@@ -3816,7 +3768,7 @@ double TMoverParameters::GetDVc(double dt)
             c = Couplers[0].Connected; // skrot           //0.08           //e/D * L/D = e/D^2 * L
             dv1 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1.0 + 0.015 / Spg * Dim.L));
             if (dv1 * dv1 > 0.00000000000001)
-                c->Physic_ReActivation();
+                c->switch_physics( true );
             c->Pipe->Flow(-dv1);
         }
     // sprzeg 2
@@ -3826,7 +3778,7 @@ double TMoverParameters::GetDVc(double dt)
             c = Couplers[1].Connected; // skrot
             dv2 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1.0 + 0.015 / Spg * Dim.L));
             if (dv2 * dv2 > 0.00000000000001)
-                c->Physic_ReActivation();
+                c->switch_physics( true );
             c->Pipe->Flow(-dv2);
         }
     //if ((Couplers[1].Connected != NULL) && (Couplers[0].Connected != NULL))
@@ -3922,143 +3874,138 @@ double TMoverParameters::ComputeMass(void)
 // Q: 20160713
 // Obliczanie wypadkowej siły z wszystkich działających sił
 // *************************************************************************************************
-void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
-{
-    int b;
-	double Fwheels = 0.0;
+// TBD, TODO: move some of the calculations out of the method, they're relevant to more than just force calculations
+void TMoverParameters::ComputeTotalForce(double dt) {
 
-    if (PhysicActivation)
-    {
-        //  EventFlag:=false;                                             {jesli cos sie zlego
-        //  wydarzy to ustawiane na true}
-        //  SoundFlag:=0;                                                 {jesli ma byc jakis dzwiek
-        //  to zapalany jet odpowiedni bit}
-        // to powinno byc zerowane na zewnatrz
-
-        // juz zoptymalizowane:
-        FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
-        Vel = abs(V) * 3.6; // prędkość w km/h
-        nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
-
-        if( (true == TestFlag(BrakeMethod, bp_MHS))
-         && (PipePress < 3.0)
-         && (Vel > 45)
-         && (true == TestFlag(BrakeDelayFlag, bdelay_M))) // ustawione na sztywno na 3 bar
-            FStand += TrackBrakeForce; // doliczenie hamowania hamulcem szynowym
-        // w charakterystykach jest wartość siły hamowania zamiast nacisku
-        //    if(FullVer=true) then
-        //    ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na
-        //    klatke?
-        LastSwitchingTime += dt1;
-        if (EngineType == TEngineType::ElectricSeriesMotor)
-            LastRelayTime += dt1;
-        if( Mains && /*(abs(CabNo) < 2) &&*/ ( EngineType == TEngineType::ElectricSeriesMotor ) ) // potem ulepszyc! pantogtrafy!
-        { // Ra 2014-03: uwzględnienie kierunku jazdy w napięciu na silnikach, a powinien być
-            // zdefiniowany nawrotnik
-            if( CabNo == 0 )
-                Voltage = RunningTraction.TractionVoltage * ActiveDir;
-            else
-                Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
-        } // bo nie dzialalo
-        else if( ( EngineType == TEngineType::ElectricInductionMotor )
-              || ( ( ( Couplers[ end::front ].CouplingFlag & ctrain_power ) == ctrain_power )
-                || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
-            // potem ulepszyc! pantogtrafy!
-            Voltage =
-                std::max(
-                    RunningTraction.TractionVoltage,
-                    std::max(
-                        Couplers[ end::front ].power_high.voltage,
-                        Couplers[ end::rear ].power_high.voltage ) );
-        }
-        else {
-            Voltage = 0;
-        }
-
-        if (Power > 0)
-            FTrain = TractionForce(dt);
-        else
-            FTrain = 0;
-
-        Fb = BrakeForce(RunningTrack);
-		Fwheels = FTrain - Fb * Sign(V);
-        if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
-         && ( std::abs(Fwheels) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) // poslizg
-        {
-            SlippingWheels = true;
-        }
-        if( true == SlippingWheels ) {
-            //     TrainForce:=TrainForce-Fb;
-            double temp_nrot = ComputeRotatingWheel(Fwheels - 
-                                            Sign(nrot * M_PI * WheelDiameter - V) *
-                                                Adhesive(RunningTrack.friction) * TotalMassxg,
-                                        dt, nrot);
-            Fwheels = Sign(temp_nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
-			if (Fwheels*Sign(V)>0)
-			{
-				FTrain = Fwheels + Fb*Sign(V);
-			}
-			else if (FTrain*Sign(V)>0)
-			{
-				Fb = FTrain*Sign(V) - Fwheels*Sign(V);
-			}
-			else
-			{
-				Fb = -Fwheels*Sign(V);
-				FTrain = 0;
-			}
-			if (nrot < 0.1)
-			{
-				WheelFlat = sqrt(square(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
-			}
-			if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
-			{
-				SlippingWheels = false;
-				temp_nrot = V / M_PI / WheelDiameter;
-			}
-
-
-			nrot = temp_nrot;
-        }
-        //  else SlippingWheels:=false;
-        //  FStand:=0;
-        for (b = 0; b < 2; ++b)
-            if (Couplers[b].Connected != NULL) /*and (Couplers[b].CouplerType<>Bare) and
-                                                  (Couplers[b].CouplerType<>Articulated)*/
-            { // doliczenie sił z innych pojazdów
-                Couplers[b].CForce = CouplerForce(b, dt);
-				FTrain += Couplers[b].CForce;
-            }
-            else
-                Couplers[b].CForce = 0;
-        // FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-        FStand += Fb;
-        FTrain +=
-            TotalMassxg * RunningShape.dHtrack; // doliczenie składowej stycznej grawitacji
-        //!niejawne przypisanie zmiennej!
-        FTotal = FTrain - Sign(V) * FStand;
-    }
+    Vel = std::abs(V) * 3.6; // prędkość w km/h
 
     // McZapkie-031103: sprawdzanie czy warto liczyc fizyke i inne updaty
     // ABu 300105: cos tu mieszalem , dziala teraz troche lepiej, wiec zostawiam
-    if ((CabNo == 0) && (Vel < 0.0001) && (abs(AccS) < 0.0001) && (TrainType != dt_EZT))
     {
-        if (!PhysicActivation)
-        {
-            if (Couplers[0].Connected != NULL)
-                if ((Couplers[0].Connected->Vel > 0.0001) ||
-                    (abs(Couplers[0].Connected->AccS) > 0.0001))
-                    Physic_ReActivation();
-            if (Couplers[1].Connected != NULL)
-                if ((Couplers[1].Connected->Vel > 0.0001) ||
-                    (abs(Couplers[1].Connected->AccS) > 0.0001))
-                    Physic_ReActivation();
-        }
-        if (LastSwitchingTime > 5) // 10+Random(100) then
-            PhysicActivation = false; // zeby nie brac pod uwage braku V po uruchomieniu programu
+        auto const vehicleisactive {
+               ( CabNo != 0 )
+            || ( Vel > 0.0001 )
+            || ( std::abs( AccS ) > 0.0001 )
+            || ( LastSwitchingTime < 5 )
+            || ( TrainType == dt_EZT )
+            || ( TrainType == dt_DMU ) };
+
+        auto const movingvehicleahead {
+            ( Neighbours[ end::front ].vehicle != nullptr )
+         && ( ( Neighbours[ end::front ].vehicle->MoverParameters->Vel > 0.0001 )
+           || ( std::abs( Neighbours[ end::front ].vehicle->MoverParameters->AccS ) > 0.0001 ) ) };
+
+        auto const movingvehiclebehind {
+            ( Neighbours[ end::rear ].vehicle != nullptr )
+         && ( ( Neighbours[ end::rear ].vehicle->MoverParameters->Vel > 0.0001 )
+           || ( std::abs( Neighbours[ end::rear ].vehicle->MoverParameters->AccS ) > 0.0001 ) ) };
+
+        auto const calculatephysics { vehicleisactive || movingvehicleahead || movingvehiclebehind };
+
+        switch_physics( calculatephysics );
     }
-    else
-        PhysicActivation = true;
+
+    if( false == PhysicActivation ) { return; }
+
+    // juz zoptymalizowane:
+    FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
+    nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
+
+    if( ( true == TestFlag( BrakeMethod, bp_MHS ) )
+     && ( PipePress < 3.0 ) // ustawione na sztywno na 3 bar
+     && ( Vel > 45 )
+     && ( true == TestFlag( BrakeDelayFlag, bdelay_M ) ) ) {
+        // doliczenie hamowania hamulcem szynowym
+        FStand += TrackBrakeForce; 
+    }
+    // w charakterystykach jest wartość siły hamowania zamiast nacisku
+
+    LastSwitchingTime += dt;
+    if( EngineType == TEngineType::ElectricSeriesMotor ) {
+        LastRelayTime += dt;
+    }
+    if( Mains && /*(abs(CabNo) < 2) &&*/ ( EngineType == TEngineType::ElectricSeriesMotor ) ) // potem ulepszyc! pantogtrafy!
+    { // Ra 2014-03: uwzględnienie kierunku jazdy w napięciu na silnikach, a powinien być zdefiniowany nawrotnik
+        if( CabNo == 0 )
+            Voltage = RunningTraction.TractionVoltage * ActiveDir;
+        else
+            Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
+    } // bo nie dzialalo
+    else if( ( EngineType == TEngineType::ElectricInductionMotor )
+          || ( ( ( Couplers[ end::front ].CouplingFlag & ctrain_power ) == ctrain_power )
+          || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
+        // potem ulepszyc! pantogtrafy!
+        Voltage =
+            std::max(
+                RunningTraction.TractionVoltage,
+                std::max(
+                    Couplers[ end::front ].power_high.voltage,
+                    Couplers[ end::rear ].power_high.voltage ) );
+    }
+    else {
+        Voltage = 0;
+    }
+
+    FTrain = (
+        Power > 0 ?
+            TractionForce( dt ) :
+            0 );
+
+    Fb = BrakeForce(RunningTrack);
+    // poslizg
+    auto Fwheels { FTrain - Fb * Sign( V ) };
+    if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
+     && ( std::abs(Fwheels) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) {
+        SlippingWheels = true;
+    }
+    if( true == SlippingWheels ) {
+
+        double temp_nrot = ComputeRotatingWheel(Fwheels - 
+                                        Sign(nrot * M_PI * WheelDiameter - V) *
+                                            Adhesive(RunningTrack.friction) * TotalMassxg,
+                                    dt, nrot);
+        Fwheels = Sign(temp_nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
+		if (Fwheels*Sign(V)>0)
+		{
+			FTrain = Fwheels + Fb*Sign(V);
+		}
+		else if (FTrain*Sign(V)>0)
+		{
+			Fb = FTrain*Sign(V) - Fwheels*Sign(V);
+		}
+		else
+		{
+			Fb = -Fwheels*Sign(V);
+			FTrain = 0;
+		}
+		if (nrot < 0.1)
+		{
+			WheelFlat = sqrt(square(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
+		}
+		if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
+		{
+			SlippingWheels = false;
+			temp_nrot = V / M_PI / WheelDiameter;
+		}
+
+
+		nrot = temp_nrot;
+    }
+    // doliczenie sił z innych pojazdów
+    for( int end = end::front; end <= end::rear; ++end ) {
+        if( Neighbours[ end ].vehicle != nullptr ) {
+            Couplers[ end ].CForce = CouplerForce( end, dt );
+            FTrain += Couplers[ end ].CForce;
+        }
+        else
+            Couplers[ end ].CForce = 0;
+    }
+
+    FStand += Fb;
+    // doliczenie składowej stycznej grawitacji
+    FTrain += TotalMassxg * RunningShape.dHtrack;
+    //!niejawne przypisanie zmiennej!
+    FTotal = FTrain - Sign(V) * FStand;
 }
 
 double TMoverParameters::BrakeForceR(double ratio, double velocity)
@@ -4235,175 +4182,121 @@ double TMoverParameters::Adhesive(double staticfriction) const
     return adhesion;
 }
 
-// poprawka dla liczenia sil przy ustawieniu przeciwnym obiektow:
-/*
-double DirPatch(int Coupler1, int Coupler2)
-{
-  if (Coupler1 != Coupler2) return 1;
-   else return -1;
-}
-
-
-double DirF(int CouplerN)
-{
- double rDirF;
-  switch (CouplerN)
-  {
-   case 0: return -1; break;
-   case 1: return 1; break;
-   default: return 0;
-  }
- // if (CouplerN == 0) return -1;
-//   else if (CouplerN == 0) return 1;
-//    else return 0;
-}
-*/
-
 // *************************************************************************************************
 // Q: 20160713
 // Obliczanie sił dzialających na sprzęgach
 // *************************************************************************************************
-double TMoverParameters::CouplerForce(int CouplerN, double dt)
-{
-    // wyliczenie siły na sprzęgu
-    double tempdist = 0, newdist = 0, distDelta = 0, CF = 0, dV = 0, absdV = 0, Fmax = 0;
-    double BetaAvg = 0;
-    int CNext = 0;
-    const double MaxDist = 405.0; // ustawione + 5 m, bo skanujemy do 400 m
-    const double MinDist = 0.5; // ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach
-    const int MaxCount = 1500;
-    bool rCF = false;
-    // distDelta:=0; //Ra: value never used
-    CNext = Couplers[CouplerN].ConnectedNr;
-    //  if (Couplers[CouplerN].CForce == 0)  //nie bylo uzgadniane wiec policz
+double TMoverParameters::CouplerForce( int const End, double dt ) {
 
-    Couplers[CouplerN].CheckCollision = false;
-    newdist = Couplers[CouplerN].CoupleDist; // odległość od sprzęgu sąsiada
-    // newdist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
-    if (CouplerN == 0)
-    {
-        // ABu: bylo newdist+10*((...
-        tempdist = ((Couplers[CouplerN].Connected->dMoveLen *
-                     DirPatch(0, Couplers[CouplerN].ConnectedNr)) -
-                    dMoveLen);
-        newdist += 10.0 * tempdist;
-        // tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
-    }
-    else
-    {
-        // ABu: bylo newdist+10*((...
-        tempdist = ((dMoveLen - (Couplers[CouplerN].Connected->dMoveLen *
-                                 DirPatch(1, Couplers[CouplerN].ConnectedNr))));
-        newdist += 10.0 * tempdist;
-        // tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
-    }
+    auto &coupler { Couplers[ End ] };
+    auto *othervehicle { Neighbours[ End ].vehicle->MoverParameters };
+    auto const otherend { Neighbours[ End ].vehicle_end };
+    auto &othercoupler { othervehicle->Couplers[ otherend ] };
 
-    dV = V - (double)DirPatch( CouplerN, CNext ) * Couplers[ CouplerN ].Connected->V;
-    absdV = abs( dV );
+    auto const othervehiclemove { ( othervehicle->dMoveLen * DirPatch( End, otherend ) ) };
+    auto const distancedelta { (
+        End == end::front ?
+            othervehiclemove - dMoveLen :
+            dMoveLen - othervehiclemove ) };
+    auto const initialdistance { Neighbours[ End ].distance }; // odległość od sprzęgu sąsiada
+
+    auto const newdistance =
+        initialdistance
+      + 10.0 * distancedelta;
+
+    auto const dV { V - ( othervehicle->V * DirPatch( End, otherend ) ) };
+    auto const absdV { std::abs( dV ) };
+
     // potentially generate sounds on clash or stretch
-    if( ( newdist < 0.0 )
-     && ( Couplers[ CouplerN ].Dist > newdist )
+    if( ( newdistance < 0.0 )
+     && ( coupler.Dist > newdistance )
      && ( dV < -0.5 ) ) {
         // 090503: dzwieki pracy zderzakow
         SetFlag(
-            Couplers[ CouplerN ].sounds,
+            coupler.sounds,
             ( absdV > 5.0 ?
                 ( sound::bufferclash | sound::loud ) :
                   sound::bufferclash ) );
     }
-    else if( ( Couplers[ CouplerN ].CouplingFlag != coupling::faux )
-          && ( newdist > 0.001 )
-          && ( Couplers[ CouplerN ].Dist <= 0.001 )
+    else if( ( coupler.CouplingFlag != coupling::faux )
+          && ( newdistance > 0.001 )
+          && ( coupler.Dist <= 0.001 )
           && ( absdV > 0.005 )
           && ( Vel > 1.0 ) ) {
         // 090503: dzwieki pracy sprzegu
         SetFlag(
-            Couplers[ CouplerN ].sounds,
+            coupler.sounds,
             ( absdV > 0.035 ?
                 ( sound::couplerstretch | sound::loud ) :
                   sound::couplerstretch ) );
     }
 
-    // blablabla
-    // ABu: proby znalezienia problemu ze zle odbijajacymi sie skladami
-    //if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
-    if( ( Couplers[ CouplerN ].CouplingFlag != coupling::faux )
-     || ( Couplers[ CouplerN ].CoupleDist < 0 ) ) {
+    coupler.CheckCollision = false;
+    double CF { 0.0 };
 
-        if( Couplers[ CouplerN ].CouplingFlag == coupling::faux ) {
+    if( ( coupler.CouplingFlag != coupling::faux )
+     || ( initialdistance < 0 ) ) {
 
-            BetaAvg = Couplers[CouplerN].beta;
-            Fmax = (Couplers[CouplerN].FmaxC + Couplers[CouplerN].FmaxB) * CouplerTune;
+        double BetaAvg = 0;
+        double Fmax = 0;
+
+        if( coupler.CouplingFlag == coupling::faux ) {
+
+            BetaAvg = coupler.beta;
+            Fmax = (coupler.FmaxC + coupler.FmaxB) * CouplerTune;
         }
-        else // usrednij bo wspolny sprzeg
-        {
-            BetaAvg =
-                (Couplers[CouplerN].beta + Couplers[CouplerN].Connected->Couplers[CNext].beta) /
-                2.0;
-            Fmax = (Couplers[CouplerN].FmaxC + Couplers[CouplerN].FmaxB +
-                    Couplers[CouplerN].Connected->Couplers[CNext].FmaxC +
-                    Couplers[CouplerN].Connected->Couplers[CNext].FmaxB) *
-                   CouplerTune / 2.0;
+        else {
+            // usrednij bo wspolny sprzeg
+            BetaAvg = 0.5 * ( coupler.beta + othercoupler.beta );
+            Fmax = 0.5 * ( coupler.FmaxC + coupler.FmaxB + othercoupler.FmaxC + othercoupler.FmaxB ) * CouplerTune;
         }
-        distDelta =
-            abs(newdist) - abs(Couplers[CouplerN].Dist); // McZapkie-191103: poprawka na histereze
-        Couplers[CouplerN].Dist = newdist;
-        if (Couplers[CouplerN].Dist > 0)
-        {
-            if (distDelta > 0)
-                CF = (-(Couplers[CouplerN].SpringKC +
-                        Couplers[CouplerN].Connected->Couplers[CNext].SpringKC) *
-                      Couplers[CouplerN].Dist / 2.0) *
-                         DirF(CouplerN) -
-                     Fmax * dV * BetaAvg;
-            else
-                CF = (-(Couplers[CouplerN].SpringKC +
-                        Couplers[CouplerN].Connected->Couplers[CNext].SpringKC) *
-                      Couplers[CouplerN].Dist / 2.0) *
-                         DirF(CouplerN) * BetaAvg -
-                     Fmax * dV * BetaAvg;
+        auto const distDelta { std::abs( newdistance ) - std::abs( coupler.Dist ) }; // McZapkie-191103: poprawka na histereze
+        coupler.Dist = newdistance;
+        if (coupler.Dist > 0) {
+
+            if( distDelta > 0 ) {
+                CF = ( -( coupler.SpringKC + othercoupler.SpringKC ) * coupler.Dist / 2.0 ) * DirF( End )
+                    - Fmax * dV * BetaAvg;
+            }
+            else {
+                CF = ( -( coupler.SpringKC + othercoupler.SpringKC ) * coupler.Dist / 2.0 ) * DirF( End ) * BetaAvg
+                    - Fmax * dV * BetaAvg;
+            }
             // liczenie sily ze sprezystosci sprzegu
-            if (Couplers[CouplerN].Dist >
-                (Couplers[CouplerN].DmaxC +
-                 Couplers[CouplerN].Connected->Couplers[CNext].DmaxC)) // zderzenie
-                //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
-                Couplers[CouplerN].CheckCollision = true;
+            if( coupler.Dist > ( coupler.DmaxC + othercoupler.DmaxC ) ) {
+                // zderzenie
+                coupler.CheckCollision = true;
+            }
         }
-        if (Couplers[CouplerN].Dist < 0)
-        {
-            if (distDelta > 0)
-                CF = (-(Couplers[CouplerN].SpringKB +
-                        Couplers[CouplerN].Connected->Couplers[CNext].SpringKB) *
-                      Couplers[CouplerN].Dist / 2.0) *
-                         DirF(CouplerN) -
-                     Fmax * dV * BetaAvg;
-            else
-                CF = (-(Couplers[CouplerN].SpringKB +
-                        Couplers[CouplerN].Connected->Couplers[CNext].SpringKB) *
-                      Couplers[CouplerN].Dist / 2.0) *
-                         DirF(CouplerN) * BetaAvg -
-                     Fmax * dV * BetaAvg;
+        if( coupler.Dist < 0 ) {
+
+            if( distDelta > 0 ) {
+                CF = ( -( coupler.SpringKB + othercoupler.SpringKB ) * coupler.Dist / 2.0 ) * DirF( End )
+                    - Fmax * dV * BetaAvg;
+            }
+            else {
+                CF = ( -( coupler.SpringKB + othercoupler.SpringKB ) * coupler.Dist / 2.0 ) * DirF( End ) * BetaAvg
+                    - Fmax * dV * BetaAvg;
+            }
             // liczenie sily ze sprezystosci zderzaka
-            if (-Couplers[CouplerN].Dist >
-                (Couplers[CouplerN].DmaxB +
-                 Couplers[CouplerN].Connected->Couplers[CNext].DmaxB)) // zderzenie
-            //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
-            {
-                Couplers[CouplerN].CheckCollision = true;
-                if( ( Couplers[ CouplerN ].CouplerType == TCouplerType::Automatic )
-                 && ( Couplers[ CouplerN ].CouplingFlag == coupling::faux ) ) {
-                    // sprzeganie wagonow z samoczynnymi sprzegami}
-                    // CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll+ctrain_passenger+ctrain_scndpneumatic;
+            if( -coupler.Dist > ( coupler.DmaxB + othercoupler.DmaxB ) ) {
+                // zderzenie
+                coupler.CheckCollision = true;
+                if( ( coupler.CouplerType == TCouplerType::Automatic )
+                 && ( coupler.CouplingFlag == coupling::faux ) ) {
+                    // sprzeganie wagonow z samoczynnymi sprzegami
                     // EN57
-                    Couplers[ CouplerN ].CouplingFlag = coupling::coupler /*| coupling::brakehose | coupling::mainhose | coupling::control*/;
-                    SetFlag( Couplers[ CouplerN ].sounds, sound::attachcoupler );
+                    // TBD, TODO: configurable flag for automatic coupling
+                    coupler.CouplingFlag = coupling::coupler /*| coupling::brakehose | coupling::mainhose | coupling::control*/;
+                    SetFlag( coupler.sounds, sound::attachcoupler );
                 }
             }
         }
     }
-    if( Couplers[ CouplerN ].CouplingFlag != coupling::faux ) {
+
+    if( coupler.CouplingFlag != coupling::faux ) {
         // uzgadnianie prawa Newtona
-        Couplers[ CouplerN ].Connected->Couplers[ 1 - CouplerN ].CForce = -CF;
+        othervehicle->Couplers[ 1 - End ].CForce = -CF;
     }
 
     return CF;
@@ -5314,7 +5207,7 @@ double TMoverParameters::TractionForce( double dt ) {
 // Q: 20160713
 //Obliczenie predkości obrotowej kół???
 // *************************************************************************************************
-double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n)
+double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n) const
 {
     double newn = 0, eps = 0;
     if ((n == 0) && (WForce * Sign(V) < 0))
@@ -7150,17 +7043,16 @@ double TMoverParameters::GetTrainsetVoltage(void)
 // *************************************************************************************************
 // Kasowanie zmiennych pracy fizyki
 // *************************************************************************************************
-bool TMoverParameters::Physic_ReActivation(void) // DO PRZETLUMACZENIA NA KONCU
+bool TMoverParameters::switch_physics(bool const State) // DO PRZETLUMACZENIA NA KONCU
 {
-//    bool pr;
-    if (PhysicActivation)
-        return false;
-    else
-    {
-        PhysicActivation = true;
+    if( PhysicActivation == State ) { return false; }
+
+    PhysicActivation = State;
+    if( true == State ) {
         LastSwitchingTime = 0;
-        return true;
     }
+
+    return true;
 }
 
 // *************************************************************************************************
@@ -9970,8 +9862,7 @@ bool TMoverParameters::RunInternalCommand()
             CommandIn.Location.X = 0;
             CommandIn.Location.Y = 0;
             CommandIn.Location.Z = 0;
-            if (!PhysicActivation)
-                Physic_ReActivation();
+            switch_physics( true );
         }
     }
     else

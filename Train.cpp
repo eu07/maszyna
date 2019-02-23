@@ -4867,11 +4867,11 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
         if( false == Train->CabChange( 1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::front ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->PrevConnected;
+                Global.changeDynObj = Train->DynamicObject->PrevConnected();
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->PrevConnectedNo ?
-                    -1 :
-                     1 );
+                    Train->DynamicObject->MoverParameters->Neighbours[end::front].vehicle_end ?
+                        -1 :
+                         1 );
             }
         }
     }
@@ -4883,11 +4883,11 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
         if( false == Train->CabChange( -1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::rear ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->NextConnected;
+                Global.changeDynObj = Train->DynamicObject->NextConnected();
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->NextConnectedNo ?
-                    -1 :
-                     1 );
+                    Train->DynamicObject->MoverParameters->Neighbours[end::rear].vehicle_end ?
+                        -1 :
+                         1 );
             }
         }
     }
@@ -5260,14 +5260,14 @@ bool TTrain::Update( double const Deltatime )
         {
             TDynamicObject *tmp;
             tmp = NULL;
-            if (DynamicObject->NextConnected)
+            if (DynamicObject->NextConnected())
                 if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == 1))
-                    tmp = DynamicObject->NextConnected;
-            if (DynamicObject->PrevConnected)
+                    tmp = DynamicObject->NextConnected();
+            if (DynamicObject->PrevConnected())
                 if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == -1))
-                    tmp = DynamicObject->PrevConnected;
+                    tmp = DynamicObject->PrevConnected();
             if( tmp ) {
                 if( tmp->MoverParameters->Power > 0 ) {
                     if( ggI1B.SubModel ) {
@@ -5668,10 +5668,10 @@ bool TTrain::Update( double const Deltatime )
             tmp = NULL;
             if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
                 (mvOccupied->ActiveCab > 0))
-                tmp = DynamicObject->NextConnected;
+                tmp = DynamicObject->NextConnected();
             if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                 (mvOccupied->ActiveCab < 0))
-                tmp = DynamicObject->PrevConnected;
+                tmp = DynamicObject->PrevConnected();
 
             if (tmp)
                 if ( mvControlled->Battery || mvControlled->ConverterFlag ) {
@@ -6954,26 +6954,25 @@ void TTrain::DynamicSet(TDynamicObject *d)
     mvOccupied = mvControlled = d ? DynamicObject->MoverParameters : NULL; // albo silnikowy w EZT
     if (!DynamicObject)
         return;
-    if (mvControlled->TrainType & dt_EZT) // na razie dotyczy to EZT
-        if (DynamicObject->NextConnected ? mvControlled->Couplers[1].AllowedFlag & ctrain_depot :
-                                           false)
-        { // gdy jest człon od sprzęgu 1, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((mvControlled->Power < 1.0) && (mvControlled->Couplers[1].Connected->Power >
-                                                1.0)) // my nie mamy mocy, ale ten drugi ma
-                mvControlled =
-                    DynamicObject->NextConnected->MoverParameters; // będziemy sterować tym z mocą
+    // TODO: leverage code already present in TDynamicObject::ControlledFind()
+    if( ( d->MoverParameters->TrainType == dt_EZT )
+     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
+
+        if( ( d->NextConnected() != nullptr )
+         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
+            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 1 ].Connected->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
+                mvControlled = DynamicObject->NextConnected()->MoverParameters; // będziemy sterować tym z mocą
+            }
         }
-        else if (DynamicObject->PrevConnected ?
-                     mvControlled->Couplers[0].AllowedFlag & ctrain_depot :
-                     false)
-        { // gdy jest człon od sprzęgu 0, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((mvControlled->Power < 1.0) && (mvControlled->Couplers[0].Connected->Power >
-                                                1.0)) // my nie mamy mocy, ale ten drugi ma
-                mvControlled =
-                    DynamicObject->PrevConnected->MoverParameters; // będziemy sterować tym z mocą
+        else if( ( d->PrevConnected() != nullptr )
+              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
+            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 0 ].Connected->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
+                mvControlled = DynamicObject->PrevConnected()->MoverParameters; // będziemy sterować tym z mocą
+            }
         }
+    }
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?

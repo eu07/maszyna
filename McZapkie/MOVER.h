@@ -140,7 +140,7 @@ static int const ctrain_depot = 128;        //nie rozłączalny podczas zwykłyc
 // vehicle sides; exclusive
 enum end {
     front = 0,
-    rear
+    rear = 1
 };
 
 enum side {
@@ -609,18 +609,16 @@ struct power_coupling {
 struct TCoupling {
 	/*parametry*/
     double SpringKB = 1.0;   /*stala sprezystosci zderzaka/sprzegu, %tlumiennosci */
-    double SpringKC = 1.0;
-    double beta = 0.0;
     double DmaxB = 0.1; /*tolerancja scisku/rozciagania, sila rozerwania*/
     double FmaxB = 1000.0;
+    double SpringKC = 1.0;
     double DmaxC = 0.1;
     double FmaxC = 1000.0;
-	TCouplerType CouplerType = TCouplerType::NoCoupler;     /*typ sprzegu*/
-								  /*zmienne*/
+    double beta = 0.0;
+    TCouplerType CouplerType = TCouplerType::NoCoupler;     /*typ sprzegu*/
+	int AllowedFlag = 3; //Ra: maska dostępnych
+    /*zmienne*/
 	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
-	int AllowedFlag = 3;       //Ra: znaczenie jak wyżej, maska dostępnych
-	bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
-	double CoupleDist = 0.0;            /*ABu: optymalizacja - liczenie odleglosci raz na klatkę, bez iteracji*/
 	class TMoverParameters *Connected = nullptr; /*co jest podlaczone*/
     int ConnectedNr = 0;           //Ra: od której strony podłączony do (Connected): 0=przód, 1=tył
 	double CForce = 0.0;                /*sila z jaka dzialal*/
@@ -628,16 +626,25 @@ struct TCoupling {
 	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
 
     power_coupling power_high;
-    power_coupling power_low; // TODO: implement this
+//    power_coupling power_low; // TODO: implement this
 
     int sounds { 0 }; // sounds emitted by the coupling devices
+    bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
 };
+
+struct neighbour_data {
+    TDynamicObject *vehicle { nullptr }; // detected obstacle
+    int vehicle_end { -1 }; // facing end of the obstacle
+    float distance { -1.f }; // distance to the obstacle
+};
+
+
 
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 private:
 // types
-
+/* TODO: implement
     // communication cable, exchanging control signals with adjacent vehicle
     struct jumper_cable {
     // types
@@ -651,7 +658,7 @@ private:
         // integers
         // std::array<int, 1> values {};
     };
-
+*/
     // basic approximation of a generic device
     // TBD: inheritance or composition?
     struct basic_device {
@@ -818,14 +825,12 @@ private:
 public:
 
 	double dMoveLen = 0.0;
-	std::string filename;
 	/*---opis lokomotywy, wagonu itp*/
 	/*--opis serii--*/
 	int CategoryFlag = 1;       /*1 - pociag, 2 - samochod, 4 - statek, 8 - samolot*/
 							/*--sekcja stalych typowych parametrow*/
 	std::string TypeName;         /*nazwa serii/typu*/
-								  //TrainType: string;       {typ: EZT/elektrowoz - Winger 040304}
-	int TrainType = 0; /*Ra: powinno być szybciej niż string*/
+	int TrainType = 0; /*typ: EZT/elektrowoz - Winger 040304 Ra: powinno być szybciej niż string*/
 	TEngineType EngineType = TEngineType::None;               /*typ napedu*/
 	TPowerParameters EnginePowerSource;    /*zrodlo mocy dla silnikow*/
 	TPowerParameters SystemPowerSource;    /*zrodlo mocy dla systemow sterowania/przetwornic/sprezarek*/
@@ -1077,6 +1082,7 @@ public:
     TRotation Rot { 0.0, 0.0, 0.0 };
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
+    std::array<neighbour_data, 2> Neighbours; // potential collision sources
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
@@ -1307,24 +1313,19 @@ public:
 	double FrictConst2d= 0.0;
 	double TotalMassxg = 0.0; /*TotalMass*g*/
 
-	Math3D::vector3 vCoulpler[2]; // powtórzenie współrzędnych sprzęgów z DynObj :/
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
-private:
-	double CouplerDist(int Coupler);
 
 public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int Cab);
 	// obsługa sprzęgów
-	double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
-/*	double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
-*/	//bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
+    static double CouplerDist( TMoverParameters const *Left, TMoverParameters const *Right );
+    static double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
 	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false, bool Audible = true);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
-	void SetCoupleDist();
 	bool DirectionForward();
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
@@ -1340,7 +1341,7 @@ public:
 
 	// Q *******************************************************************************************
 	double GetTrainsetVoltage(void);
-	bool Physic_ReActivation(void);
+	bool switch_physics(bool const State);
 	double LocalBrakeRatio(void);
 	double ManualBrakeRatio(void);
 	double PipeRatio(void);/*ile napelniac*/
@@ -1412,17 +1413,17 @@ public:
 	/*funkcje obliczajace sily*/
 	void ComputeConstans(void);//ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
 	double ComputeMass(void);
-	void ComputeTotalForce(double dt, double dt1, bool FullVer);
+	void ComputeTotalForce(double dt);
 	double Adhesive(double staticfriction) const;
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
 	double BrakeForceR(double ratio, double velocity);
 	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
-	double CouplerForce(int CouplerN, double dt);
+	double CouplerForce(int const End, double dt);
 	void CollisionDetect(int CouplerN, double dt);
 	/*obrot kol uwzgledniajacy poslizg*/
-	double ComputeRotatingWheel(double WForce, double dt, double n);
+	double ComputeRotatingWheel(double WForce, double dt, double n) const;
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/

@@ -218,8 +218,7 @@ timetable_panel::update() {
             auto consistmass { owner->fMass };
             auto consistlength { owner->fLength };
             if( ( owner->mvControlling->TrainType != dt_DMU )
-             && ( owner->mvControlling->TrainType != dt_EZT )
-             && ( owner->pVehicles[end::front] != owner->pVehicles[end::rear] ) ) {
+             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
 				//odejmij lokomotywy czynne, a przynajmniej aktualną
                 consistmass -= owner->pVehicle->MoverParameters->TotalMass;
                 // subtract potential other half of a two-part vehicle
@@ -227,7 +226,6 @@ timetable_panel::update() {
                 if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
                 auto const *next { owner->pVehicle->NextC( coupling::permanent ) };
                 if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
-//                    consistlength -= owner->pVehicle->MoverParameters->Dim.L;
 			}
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
@@ -563,10 +561,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
 
-    auto const *connected { (
-        Side == end::front ?
-            m_input.vehicle->PrevConnected :
-            m_input.vehicle->NextConnected ) };
+    auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
     if( connected == nullptr ) { return couplerstatus; }
 
@@ -574,10 +569,10 @@ debug_panel::update_vehicle_coupler( int const Side ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        "%s [%d]%s",
+        "%s [%d] (%.1f m)",
         connected->name().c_str(),
         mover.Couplers[ Side ].CouplingFlag,
-        std::string( mover.Couplers[ Side ].CouplingFlag == 0 ? " (" + to_string( mover.Couplers[ Side ].CoupleDist, 1 ) + " m)" : "" ).c_str() );
+        mover.Neighbours[ Side ].distance );
 
     return { m_buffer.data() };
 }
@@ -699,6 +694,10 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+
+    if( mechanik.Obstacle.distance < 5000 ) {
+        textline += "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 );
+    }
 
     Output.emplace_back( textline, Global.UITextColor );
 

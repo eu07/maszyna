@@ -1173,7 +1173,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( mvOccupied->Vel < 2.0 ) {
                         // stanąć nie musi, ale zwolnić przynajmniej
                         if( ( sSpeedTable[ i ].fDist < fMaxProximityDist )
-                         && ( TrackBlock() > 1000.0 ) ) {
+                         && ( Obstacle.distance > 1000 ) ) {
                             // jest w maksymalnym zasięgu to można go pominąć (wziąć drugą prędkosć)
                             // as long as there isn't any obstacle in arbitrary view range
                             eSignSkip = sSpeedTable[ i ].evEvent;
@@ -1259,7 +1259,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                 //sprawdzenie eventów pasywnych przed nami
                 if( ( mvOccupied->CategoryFlag & 1 )
-                 && ( sSpeedTable[ i ].fDist > pVehicles[ 0 ]->fTrackBlock - 20.0 ) ) {
+                 && ( sSpeedTable[ i ].fDist > Obstacle.distance - 20 ) ) {
                     // jak sygnał jest dalej niż zawalidroga
                     v = 0.0; // to może być podany dla tamtego: jechać tak, jakby tam stop był
                 }
@@ -2061,7 +2061,7 @@ bool TController::CheckVehicles(TOrders user)
          && ( p->MoverParameters->BrakeSubsystem != TBrakeSubSystem::ss_LSt ) ) {
             iDrivigFlags &= ~( moveOerlikons );
         }
-        p = p->Neightbour(dir); // pojazd podłączony od wskazanej strony
+        p = p->Neighbour(dir); // pojazd podłączony od wskazanej strony
     }
     if (main)
         iDrivigFlags |= movePrimary; // nie znaleziono innego, można się porządzić
@@ -2408,11 +2408,11 @@ bool TController::PrepareEngine()
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
                     if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
-                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == coupling::faux ) {
+                        if( mvOccupied->Couplers[ end::rear ].Connected == nullptr ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
                         }
-                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == coupling::faux ) {
+                        if( mvOccupied->Couplers[ end::front ].Connected == nullptr ) {
                             // jeśli z przodu nie ma nic
                             iDirection = 1; // jazda w kierunku sprzęgu 0
                         }
@@ -2618,12 +2618,12 @@ bool TController::IncBrake()
              || ( mvOccupied->TrainType == dt_ET42 ) ) {
                 // NOTE: we're doing simplified checks full of presuptions here.
                 // they'll break if someone does strange thing like turning around the second unit
-                if( ( mvOccupied->Couplers[ 1 ].CouplingFlag & coupling::permanent )
-                 && ( mvOccupied->Couplers[ 1 ].Connected->Couplers[ 1 ].CouplingFlag > 0 ) ) {
+                if( ( mvOccupied->Couplers[ end::rear ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ end::rear ].Connected->Couplers[ end::rear ].Connected != nullptr ) ) {
                     standalone = false;
                 }
-                if( ( mvOccupied->Couplers[ 0 ].CouplingFlag & coupling::permanent )
-                 && ( mvOccupied->Couplers[ 0 ].Connected->Couplers[ 0 ].CouplingFlag > 0 ) ) {
+                if( ( mvOccupied->Couplers[ end::front ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ end::front ].Connected->Couplers[ end::front ].Connected != nullptr ) ) {
                     standalone = false;
                 }
             }
@@ -2637,16 +2637,16 @@ bool TController::IncBrake()
                     ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
                    && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
 */
-                if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
+                if( pVehicles[ end::front ] != pVehicles[ end::rear ] ) {
                     // more detailed version, will use manual braking also for coupled sets of controlled vehicles
-                    auto *vehicle = pVehicles[ 0 ]; // start from first
+                    auto *vehicle = pVehicles[ end::front ]; // start from first
                     while( ( true == standalone )
                         && ( vehicle != nullptr ) ) {
                         // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
                         // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
                         standalone =
-                            ( ( ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag & coupling::control ) )
-                           && ( ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag & coupling::control ) ) );
+                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control ) ) );
                         vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
                     }
                 }
@@ -3625,22 +3625,21 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             }
             WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
-        else // if (NewValue2==0.0) //zerowy sprzęg
-            if (NewValue1 >= 0.0) // jeśli ilość wagonów inna niż wszystkie
-        { // będzie odczepianie, ale jeśli wagony są z przodu, to trzeba najpierw zmienić kierunek
-            if ((mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 1 : 0].CouplingFlag ==
-                 0) ? // z tyłu nic
-                    (mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 0 : 1].CouplingFlag > 0) :
-                    false) // a z przodu skład
-            {
-                iDirectionOrder = -iDirection; // zmiana na ciągnięcie
-                OrderNext(Change_direction); // najpierw zmień kierunek (zastąpi Disconnect)
-                OrderPush(Disconnect); // a odczep już po zmianie kierunku
+        else { // if (NewValue2==0.0) //zerowy sprzęg
+            if( NewValue1 >= 0.0 ) {
+                // jeśli ilość wagonów inna niż wszystkie będzie odczepianie,
+                // ale jeśli wagony są z przodu, to trzeba najpierw zmienić kierunek
+                if( ( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::rear : end::front ].Connected == nullptr ) // z tyłu nic
+                 && ( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::front : end::rear ].Connected != nullptr ) ) { // a z przodu skład
+                    iDirectionOrder = -iDirection; // zmiana na ciągnięcie
+                    OrderNext( Change_direction ); // najpierw zmień kierunek (zastąpi Disconnect)
+                    OrderPush( Disconnect ); // a odczep już po zmianie kierunku
+                }
+                else if( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::rear : end::front ].Connected != nullptr ) { // z tyłu coś
+                    OrderNext( Disconnect ); // jak ciągnie, to tylko odczep (NewValue1) wagonów
+                }
+                WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
             }
-            else if (mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 1 : 0].CouplingFlag >
-                     0) // z tyłu coś
-                OrderNext(Disconnect); // jak ciągnie, to tylko odczep (NewValue1) wagonów
-            WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
         if (NewValue1 == -1.0)
         {
@@ -4181,55 +4180,45 @@ TController::UpdateSituation(double dt) {
     // 8. Ustalić częstotliwość świadomości AI (zatrzymanie precyzyjne - częściej, brak atrakcji
     // - rzadziej).
 
-    // check for potential colliders
+    // check for potential collisions
     {
-        auto rearvehicle = (
-            pVehicles[ 0 ] == pVehicles[ 1 ] ?
-                pVehicles[ 0 ] :
-                pVehicles[ 1 ] );
+        // HACK: vehicle order in the consist is based on intended travel direction
+        // if our actual travel direction doesn't match that, we should be scanning from the other end of the consist
+        auto *frontvehicle { pVehicles[ ( mvOccupied->V * iDirection >= 0 ? end::front : end::rear ) ] };
+
+        int routescandirection;
         // for moving vehicle determine heading from velocity; for standing fall back on the set direction
-        if( ( std::abs( mvOccupied->V ) < 0.1 ? // ignore potential micro-stutters in oposite direction during "almost stop"
+        if( ( std::abs( frontvehicle->MoverParameters->V ) > 0.1 ? // ignore potential micro-stutters in oposite direction during "almost stop"
+            frontvehicle->MoverParameters->V > 0.0 :
+            ( pVehicle->DirectionGet() == frontvehicle->DirectionGet() ?
                 iDirection > 0 :
-                mvOccupied->V > 0.0 ) ) {
+                iDirection < 0 ) ) ) {
             // towards coupler 0
-            if( ( mvOccupied->V * iDirection < 0.0 )
-             || ( ( rearvehicle->NextConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == coupling::faux ) ) ) {
-                // scan behind if we're moving backward, or if we had something connected there and are moving away
-                rearvehicle->ABuScanObjects( (
-                    pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
-                        -1 :
-                         1 ),
-                    fMaxProximityDist );
-            }
-            pVehicles[ 0 ]->ABuScanObjects( (
-                pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
-                     1 :
-                    -1 ),
-                routescanrange );
+            routescandirection = end::front;
         }
         else {
             // towards coupler 1
-            if( ( mvOccupied->V * iDirection < 0.0 )
-             || ( ( rearvehicle->PrevConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == coupling::faux ) ) ) {
-                // scan behind if we're moving backward, or if we had something connected there and are moving away
-                rearvehicle->ABuScanObjects( (
-                    pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
-                         1 :
-                        -1 ),
-                    fMaxProximityDist );
+            routescandirection = end::rear;
+        }
+
+        Obstacle = neighbour_data();
+        auto const lookup { frontvehicle->find_vehicle( routescandirection, routescanrange ) };
+
+        if( std::get<bool>( lookup ) == true ) {
+
+            Obstacle.vehicle = std::get<TDynamicObject *>( lookup );
+            Obstacle.vehicle_end = std::get<int>( lookup );
+            Obstacle.distance = std::get<double>( lookup );
+
+            if( Obstacle.distance < ( mvOccupied->CategoryFlag == 2 ? 25 : 75 ) ) {
+                // at short distances (re)calculate range between couplers directly
+                Obstacle.distance = TMoverParameters::CouplerDist( frontvehicle->MoverParameters, Obstacle.vehicle->MoverParameters );
             }
-            pVehicles[ 0 ]->ABuScanObjects( (
-                pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
-                    -1 :
-                     1 ),
-                routescanrange );
+        }
+        else {
+            Obstacle.distance = 10000; // legacy value. TBD, TODO: use standard -1 instead?
         }
     }
-
-
-
     // tu bedzie logika sterowania
     if (AIControllFlag) {
 
@@ -4291,37 +4280,17 @@ TController::UpdateSituation(double dt) {
             if (AIControllFlag)
             { // to robi tylko AI, wersję dla człowieka trzeba dopiero zrobić
                 // sprzęgi sprawdzamy w pierwszej kolejności, bo jak połączony, to koniec
-                bool ok; // true gdy się podłączy (uzyskany sprzęg będzie zgodny z żądanym)
-                if (pVehicles[0]->DirectionGet() > 0) // jeśli sprzęg 0
-                { // sprzęg 0 - próba podczepienia
-                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected ) {
-                        // jeśli jest coś wykryte (a chyba jest, nie?)
-                        if( pVehicles[ 0 ]->MoverParameters->Attach(
-                            0, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected,
-                            iCoupler ) ) {
-                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
-                        }
-                    }
-                    // udało się? (mogło częściowo)
-                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag == iCoupler);
-                }
-                else // if (pVehicles[0]->MoverParameters->DirAbsolute<0) //jeśli sprzęg 1
-                { // sprzęg 1 - próba podczepienia
-                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 1 ].Connected ) {
-                        // jeśli jest coś wykryte (a chyba jest, nie?)
-                        if( pVehicles[ 0 ]->MoverParameters->Attach(
-                            1, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 1 ].Connected,
-                            iCoupler ) ) {
-                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
-                        }
-                    }
-                    // udało się? (mogło częściowo)
-                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag == iCoupler); 
-                }
-                if (ok)
-                { // jeżeli został podłączony
+                auto *vehicle { pVehicles[ end::front ] };
+                auto *vehicleparameters { vehicle->MoverParameters };
+                int const end { ( vehicle->DirectionGet() > 0 ? end::front : end::rear ) };
+                auto const &neighbour { vehicleparameters->Neighbours[ end ] };
+                // próba podczepienia
+                vehicleparameters->Attach(
+                    end, neighbour.vehicle_end,
+                    neighbour.vehicle->MoverParameters,
+                    iCoupler );
+                if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
+                    // jeżeli został podłączony
                     iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
                     iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
                     SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
@@ -4337,7 +4306,7 @@ TController::UpdateSituation(double dt) {
             fMaxProximityDist = 5.0; //[m] w takim przedziale odległości powinien stanąć
             fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 1.0; // margines prędkości powodujący załączenie napędu
-            if( pVehicles[ 0 ]->fTrackBlock <= 20.0 ) {
+            if( Obstacle.distance <= 20.0 ) {
                 // przy zderzeniu fTrackBlock nie jest miarodajne
                 // początek podczepiania, z wyłączeniem sprawdzania fTrackBlock
                 iDrivigFlags |= moveConnect;
@@ -4477,8 +4446,8 @@ TController::UpdateSituation(double dt) {
              && ( false == TestFlag( iDrivigFlags, movePress ) )
              && ( iCoupler == 0 )
 //             && ( mvOccupied->Vel > 0.0 )
-             && ( pVehicle->MoverParameters->Couplers[ end::front ].CouplingFlag == coupling::faux )
-             && ( pVehicle->MoverParameters->Couplers[ end::rear ].CouplingFlag == coupling::faux ) ) {
+             && ( pVehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr )
+             && ( pVehicle->MoverParameters->Couplers[ end::rear ].Connected == nullptr ) ) {
                 SetVelocity(0, 0, stopJoin); // 1. faza odczepiania: zatrzymanie
                 // WriteLog("Zatrzymanie w celu odczepienia");
                 AccPreferred = std::min( 0.0, AccPreferred );
@@ -4516,7 +4485,7 @@ TController::UpdateSituation(double dt) {
                 else
                 { // samochód ma stać, aż dostanie odjazd, chyba że stoi przez kolizję
                     if (eStopReason == stopBlock)
-                        if (pVehicles[0]->fTrackBlock > fDriverDist)
+                        if (Obstacle.distance > fDriverDist)
                             if (AIControllFlag)
                             {
                                 PrepareEngine(); // zmieni ustawiony kierunek
@@ -4668,7 +4637,8 @@ TController::UpdateSituation(double dt) {
                                             n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
                                     }
                                 } while (n--);
-                                if( p ? p->MoverParameters->Couplers[ d ].CouplingFlag == coupling::faux : true ) {
+                                if( ( p == nullptr )
+                                 || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
                                     // no target, or already just virtual coupling
                                     WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
                                     iVehicleCount = -2; // odczepiono, co było do odczepienia
@@ -4759,9 +4729,9 @@ TController::UpdateSituation(double dt) {
                     // w trybie Connect skanować do tyłu tylko jeśli przed kolejnym sygnałem nie ma taboru do podłączenia
                     // Ra 2F1H: z tym (fTrackBlock) to nie jest najlepszy pomysł, bo lepiej by
                     // było porównać z odległością od sygnalizatora z przodu
-                    if( ( OrderList[ OrderPos ] & Connect ) ?
-                            ( pVehicles[ 0 ]->fTrackBlock > 2000 || pVehicles[ 0 ]->fTrackBlock > FirstSemaphorDist ) :
-                            true ) {
+                    if( ( ( OrderList[ OrderPos ] & Connect ) == 0 )
+                     || ( Obstacle.distance > std::min( 2000.0, FirstSemaphorDist ) ) ) {
+
                         if( ( comm = BackwardScan() ) != TCommandType::cm_Unknown ) {
                             // jeśli w drugą można jechać
                             // należy sprawdzać odległość od znalezionego sygnalizatora,
@@ -4786,121 +4756,99 @@ TController::UpdateSituation(double dt) {
                 VelDesired = fVelMax; // bo VelDesired<0 oznacza prędkość maksymalną
 
             // Ra: jazda na widoczność
-/*
-            // condition disabled, it'd prevent setting reduced acceleration in the last connect stage
-            if ((iDrivigFlags & moveConnect) == 0) // przy końcówce podłączania nie hamować
-*/
-            { // sprawdzenie jazdy na widoczność
-                auto const vehicle = pVehicles[ 0 ]; // base calculactions off relevant end of the consist
-                auto const coupler = 
-                    vehicle->MoverParameters->Couplers + (
-                    vehicle->DirectionGet() > 0 ?
-                        0 :
-                        1 ); // sprzęg z przodu składu
-                if( ( coupler->Connected )
-                 && ( coupler->CouplingFlag == coupling::faux ) ) {
-                    // mamy coś z przodu podłączone sprzęgiem wirtualnym
-                    // wyliczanie optymalnego przyspieszenia do jazdy na widoczność
-/*
-                    ActualProximityDist = std::min(
+            if( Obstacle.distance < 5000 ) {
+                // mamy coś z przodu
+                // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
+                auto const k { Obstacle.vehicle->MoverParameters->Vel };
+                if( k - vel < 5 ) {
+                    // porównanie modułów prędkości [km/h]
+                    // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
+                    ActualProximityDist = std::min<double>(
                         ActualProximityDist,
-                        vehicle->fTrackBlock - (
-                            mvOccupied->CategoryFlag & 2 ?
-                                fMinProximityDist : // cars can bunch up tighter
-                                fMaxProximityDist ) ); // other vehicle types less so
-*/
-                    // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
-                    double k = coupler->Connected->Vel;
-                    if( k - vel < 5 ) {
-                        // porównanie modułów prędkości [km/h]
-                        // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
-                        ActualProximityDist = std::min(
-                            ActualProximityDist,
-                            vehicle->fTrackBlock );
+                        Obstacle.distance );
 
-                        if( ActualProximityDist <= (
-                            ( mvOccupied->CategoryFlag & 2 ) ?
-                                100.0 : // cars
-                                250.0 ) ) { // others
-                            // regardless of driving mode at close distance take precaution measures:
-                            // match the other vehicle's speed or slow down if the other vehicle is stopped
-                            VelDesired =
-                                min_speed(
-                                    VelDesired,
-                                    std::max(
-                                        k,
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            40.0 : // cars
-                                            20.0 ) ); // others
-                            if( vel > VelDesired + fVelPlus ) {
-                                // if going too fast force some prompt braking
-                                AccPreferred = std::min( -0.65, AccPreferred );
-                            }
+                    if( ActualProximityDist <= (
+                        ( mvOccupied->CategoryFlag & 2 ) ?
+                            100.0 : // cars
+                            250.0 ) ) { // others
+                        // regardless of driving mode at close distance take precaution measures:
+                        // match the other vehicle's speed or slow down if the other vehicle is stopped
+                        VelDesired =
+                            min_speed(
+                                VelDesired,
+                                std::max(
+                                    k,
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        40.0 : // cars
+                                        20.0 ) ); // others
+                        if( vel > VelDesired + fVelPlus ) {
+                            // if going too fast force some prompt braking
+                            AccPreferred = std::min( -0.65, AccPreferred );
                         }
+                    }
 
-                        double const distance = vehicle->fTrackBlock - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
-                        if( distance < 0.0 ) {
-                            // jeśli odległość jest zbyt mała
-                            if( k < 10.0 ) // k - prędkość tego z przodu
-                            { // jeśli tamten porusza się z niewielką prędkością albo stoi
-                                if( OrderCurrentGet() & Connect ) {
-                                    // jeśli spinanie, to jechać dalej
-                                    AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
-                                    VelDesired =
-                                        min_speed(
-                                            VelDesired,
-                                            ( vehicle->fTrackBlock > 150.0 ?
-                                                20.0:
-                                                4.0 ) );
-                                    VelNext = 2.0; // i pakuj się na tamtego
-                                }
-                                else {
-                                    // a normalnie to hamować
-                                    VelNext = 0.0;
-                                    if( vehicle->fTrackBlock <= fMinProximityDist ) {
-                                        VelDesired = 0.0;
-                                    }
-
-                                    if( ( mvOccupied->CategoryFlag & 1 )
-                                     && ( OrderCurrentGet() & Obey_train ) ) {
-                                        // trains which move normally should try to stop at safe margin
-                                        ActualProximityDist -= fDriverDist;
-                                    }
-                                }
-                            }
-                            else {
-                                // jeśli oba jadą, to przyhamuj lekko i ogranicz prędkość
-                                if( vehicle->fTrackBlock < (
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            fMaxProximityDist + 0.5 * vel : // cars
-                                            2.0 * fMaxProximityDist + 2.0 * vel ) ) { //others
-                                    // jak tamten jedzie wolniej a jest w drodze hamowania
-                                    AccPreferred = std::min( -0.9, AccPreferred );
-                                    VelNext = min_speed( std::round( k ) - 5.0, VelDesired );
-                                    if( vehicle->fTrackBlock <= (
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            fMaxProximityDist : // cars
-                                            2.0 * fMaxProximityDist ) ) { //others
-                                        // try to force speed change if obstacle is really close
-                                        VelDesired = VelNext;
-                                    }
-                                }
-                            }
-                            ReactionTime = (
-                                mvOccupied->Vel > 0.01 ?
-                                    0.1 : // orientuj się, bo jest goraco
-                                    2.0 ); // we're already standing still, so take it easy
-                        }
-                        else {
+                    double const distance = Obstacle.distance - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
+                    if( distance < 0.0 ) {
+                        // jeśli odległość jest zbyt mała
+                        if( k < 10.0 ) // k - prędkość tego z przodu
+                        { // jeśli tamten porusza się z niewielką prędkością albo stoi
                             if( OrderCurrentGet() & Connect ) {
-                                // if there's something nearby in the connect mode don't speed up too much
+                                // jeśli spinanie, to jechać dalej
+                                AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
                                 VelDesired =
                                     min_speed(
                                         VelDesired,
-                                        ( vehicle->fTrackBlock > 100.0 ?
-                                            20.0 :
+                                        ( Obstacle.distance > 150 ?
+                                            20.0:
                                             4.0 ) );
+                                VelNext = 2.0; // i pakuj się na tamtego
                             }
+                            else {
+                                // a normalnie to hamować
+                                VelNext = 0.0;
+                                if( Obstacle.distance <= fMinProximityDist ) {
+                                    VelDesired = 0.0;
+                                }
+
+                                if( ( mvOccupied->CategoryFlag & 1 )
+                                    && ( OrderCurrentGet() & Obey_train ) ) {
+                                    // trains which move normally should try to stop at safe margin
+                                    ActualProximityDist -= fDriverDist;
+                                }
+                            }
+                        }
+                        else {
+                            // jeśli oba jadą, to przyhamuj lekko i ogranicz prędkość
+                            if( Obstacle.distance < (
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        fMaxProximityDist + 0.5 * vel : // cars
+                                        2.0 * fMaxProximityDist + 2.0 * vel ) ) { //others
+                                // jak tamten jedzie wolniej a jest w drodze hamowania
+                                AccPreferred = std::min( -0.9, AccPreferred );
+                                VelNext = min_speed( std::round( k ) - 5.0, VelDesired );
+                                if( Obstacle.distance <= (
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        fMaxProximityDist : // cars
+                                        2.0 * fMaxProximityDist ) ) { //others
+                                    // try to force speed change if obstacle is really close
+                                    VelDesired = VelNext;
+                                }
+                            }
+                        }
+                        ReactionTime = (
+                            mvOccupied->Vel > 0.01 ?
+                                0.1 : // orientuj się, bo jest goraco
+                                2.0 ); // we're already standing still, so take it easy
+                    }
+                    else {
+                        if( OrderCurrentGet() & Connect ) {
+                            // if there's something nearby in the connect mode don't speed up too much
+                            VelDesired =
+                                min_speed(
+                                    VelDesired,
+                                    ( Obstacle.distance > 100 ?
+                                        20.0 :
+                                        4.0 ) );
                         }
                     }
                 }
@@ -5060,7 +5008,7 @@ TController::UpdateSituation(double dt) {
                                 if( mvOccupied->CategoryFlag & 1 ) {
                                     // trains
                                     if( ( OrderCurrentGet() & ( Shunt | Connect ) )
-                                     && ( pVehicles[0]->fTrackBlock < 50.0 ) ) {
+                                     && ( Obstacle.distance < 50 ) ) {
                                         // crude detection of edge case, if approaching another vehicle coast slowly until min distance
                                         // this should allow to bunch up trainsets more on sidings
                                         VelDesired = min_speed( 5.0, VelDesired );
@@ -6344,7 +6292,7 @@ bool TController::IsStop() const
 double
 TController::TrackBlock() const {
 
-    return pVehicles[ end::front ]->fTrackBlock;
+    return Obstacle.distance;
 }
 
 void TController::MoveTo(TDynamicObject *to)
