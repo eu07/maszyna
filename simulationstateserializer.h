@@ -40,7 +40,7 @@ public:
 	    deserialize_continue(std::shared_ptr<deserializer_state> state);
     // stores class data in specified file, in legacy (text) format
     void
-        export_as_text( std::string const &Scenariofile ) const;
+	    export_as_text(std::string const &Scenariofile) const;
 
 	// temporary public for editor
 	TAnimModel * deserialize_model( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
@@ -79,6 +79,7 @@ private:
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
+	void export_nodes_to_stream(std::ostream &, bool Dirty) const;
 };
 
 } // simulation

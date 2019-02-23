@@ -40,6 +40,7 @@ basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bo
     // NOTE: bit of a waste for single nodes, for the sake of less varied code down the road
     auto const translation { targetlocation - initiallocation };
 
+	Node->mark_dirty();
     if( Node->group() == null_handle ) {
         translate_node( Node, Node->location() + translation );
     }

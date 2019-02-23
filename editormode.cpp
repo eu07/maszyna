@@ -300,6 +300,7 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 					if (!cloned)
 						return;
 
+					cloned->mark_dirty();
 					cloned->location(Camera.Pos + GfxRenderer.Mouse_Position());
 					simulation::Instances.insert(cloned);
 					simulation::Region->insert(cloned);
