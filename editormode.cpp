@@ -180,6 +180,22 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
             break;
         }
 
+	    case GLFW_KEY_DELETE: {
+		    TAnimModel *model = dynamic_cast<TAnimModel*>(m_node);
+			if (!model)
+				break;
+
+			m_node = nullptr;
+			m_dragging = false;
+			Application.set_cursor( GLFW_CURSOR_NORMAL );
+			static_cast<editor_ui*>( m_userinterface.get() )->set_node(nullptr);
+
+			simulation::Region->erase(model);
+			simulation::Instances.purge(model);
+
+			break;
+	    }
+
         default: {
             break;
         }
@@ -231,13 +247,13 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
         if( Action == GLFW_PRESS ) {
 			// left button press
-			auto const mode = dynamic_cast<editor_ui*>( m_userinterface.get() )->mode();
+			auto const mode = static_cast<editor_ui*>( m_userinterface.get() )->mode();
 
 			m_node = nullptr;
 
 			GfxRenderer.pick_node([this, mode](scene::basic_node *node)
 			{
-				editor_ui *ui = dynamic_cast<editor_ui*>( m_userinterface.get() );
+				editor_ui *ui = static_cast<editor_ui*>( m_userinterface.get() );
 
 				if (mode == nodebank_panel::MODIFY) {
 					if (!m_dragging)
