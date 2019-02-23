@@ -32,9 +32,19 @@ public:
         update() override;
     void
         set_node( scene::basic_node * Node );
+	nodebank_panel::edit_mode
+	    mode();
+	void
+	    add_node_template(const std::string &desc);
+	const std::string *
+	    get_active_node_template();
+
+protected:
+	void render_menu_contents();
 
 private:
 // members
     itemproperties_panel m_itempropertiespanel { "Node Properties", true };
+	nodebank_panel m_nodebankpanel;
     scene::basic_node * m_node { nullptr }; // currently bound scene node, if any
 };

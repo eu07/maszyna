@@ -148,6 +148,11 @@ void state_manager::process_commands() {
 	}
 }
 
+TAnimModel *
+state_manager::deserialize_model(cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata) {
+	return m_serializer.deserialize_model(Input, Scratchpad, Nodedata);
+}
+
 void
 state_manager::update_clocks() {
 

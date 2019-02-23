@@ -333,6 +333,8 @@ public:
         location( glm::dvec3 const Location );
     glm::dvec3 const &
         location() const;
+	glm::dvec3 &
+	    location();
     float const &
         radius();
     void
@@ -381,6 +383,12 @@ inline
 glm::dvec3 const &
 basic_node::location() const {
     return m_area.center;
+}
+
+inline
+glm::dvec3 &
+basic_node::location() {
+	return m_area.center;
 }
 
 inline
