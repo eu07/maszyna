@@ -1101,7 +1101,7 @@ bool TTrack::InMovement()
                 if (!SwitchExtension->CurrentIndex)
                     return false; // 0=zablokowana się nie animuje
                 // trzeba każdorazowo porównywać z kątem modelu
-                TAnimContainer *ac = (
+				auto ac = (
                     SwitchExtension->pModel ?
                         SwitchExtension->pModel->GetContainer() :
                         nullptr );
@@ -1883,7 +1883,7 @@ TTrack * TTrack::RaAnimate()
             SwitchExtension->CurrentIndex) // 0=zablokowana się nie animuje
         { // trzeba każdorazowo porównywać z kątem modelu
             // //pobranie kąta z modelu
-            TAnimContainer *ac = (
+			auto ac = (
                 SwitchExtension->pModel ?
                     SwitchExtension->pModel->GetContainer() : // pobranie głównego submodelu
                     nullptr );

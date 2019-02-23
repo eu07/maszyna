@@ -390,7 +390,7 @@ private:
     int m_animationtype{ 0 };
     std::array<double, 4> m_animationparams{ 0.0 };
     std::string m_animationsubmodel;
-    std::vector<TAnimContainer *> m_animationcontainers;
+	std::list<std::weak_ptr<TAnimContainer>> m_animationcontainers;
     std::string m_animationfilename;
     std::size_t m_animationfilesize{ 0 };
     char *m_animationfiledata{ nullptr };

@@ -25,11 +25,10 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "renderer.h"
 
-TAnimContainer *TAnimModel::acAnimList = NULL;
+std::list<std::weak_ptr<TAnimContainer>> TAnimModel::acAnimList;
 
 TAnimContainer::TAnimContainer()
 {
-    pNext = NULL;
     vRotateAngles = Math3D::vector3(0.0f, 0.0f, 0.0f); // aktualne kąty obrotu
     vDesiredAngles = Math3D::vector3(0.0f, 0.0f, 0.0f); // docelowe kąty obrotu
     fRotateSpeed = 0.0;
@@ -39,15 +38,7 @@ TAnimContainer::TAnimContainer()
     fAngleSpeed = 0.0;
     pSubModel = NULL;
 	iAnim = 0; // położenie początkowe
-    mAnim = NULL; // nie ma macierzy obrotu dla submodelu
-    evDone = NULL; // powiadamianie o zakończeniu animacji
-    acAnimNext = NULL; // na razie jest poza listą
-}
-
-TAnimContainer::~TAnimContainer()
-{
-    SafeDelete(pNext);
-    delete mAnim; // AnimContainer jest właścicielem takich macierzy
+	evDone = NULL; // powiadamianie o zakończeniu animacji
 }
 
 bool TAnimContainer::Init(TSubModel *pNewSubModel)
@@ -73,9 +64,8 @@ void TAnimContainer::SetRotateAnim( Math3D::vector3 vNewRotateAngles, double fNe
         // wyświetlania
         if (iAnim >= 0)
         { // jeśli nie jest jeszcze na liście animacyjnej
-            acAnimNext = TAnimModel::acAnimList; // pozostałe doklić sobie jako ogon
-            TAnimModel::acAnimList = this; // a wstawić się na początek
-            iAnim |= 0x80000000; // dodany do listy
+			TAnimModel::acAnimList.push_back(shared_from_this());
+			iAnim |= 0x80000000; // dodany do listy
         }
     }
 }
@@ -96,8 +86,7 @@ void TAnimContainer::SetTranslateAnim( Math3D::vector3 vNewTranslate, double fNe
         // wyświetlania
         if (iAnim >= 0)
         { // jeśli nie jest jeszcze na liście animacyjnej
-            acAnimNext = TAnimModel::acAnimList; // pozostałe doklić sobie jako ogon
-            TAnimModel::acAnimList = this; // a wstawić się na początek
+			TAnimModel::acAnimList.push_back(shared_from_this());
             iAnim |= 0x80000000; // dodany do listy
         }
     }
@@ -264,11 +253,6 @@ TAnimModel::TAnimModel( scene::node_data const &Nodedata ) : basic_node( Nodedat
     m_lightopacities.fill( 1.f );
 }
 
-TAnimModel::~TAnimModel()
-{
-    SafeDelete(pRoot);
-}
-
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
     if( asReplacableTexture.substr( 0, 1 ) == "*" ) {
@@ -383,32 +367,32 @@ bool TAnimModel::Load(cParser *parser, bool ter)
     return true;
 }
 
-TAnimContainer * TAnimModel::AddContainer(std::string const &Name)
+std::shared_ptr<TAnimContainer> TAnimModel::AddContainer(std::string const &Name)
 { // dodanie sterowania submodelem dla egzemplarza
     if (!pModel)
-        return NULL;
+		return nullptr;
     TSubModel *tsb = pModel->GetFromName(Name);
     if (tsb)
     {
-        TAnimContainer *tmp = new TAnimContainer();
+		auto tmp = std::make_shared<TAnimContainer>();
         tmp->Init(tsb);
-        tmp->pNext = pRoot;
-        pRoot = tmp;
-        return tmp;
+		m_animlist.push_back(tmp);
+		return tmp;
     }
-    return NULL;
+	return nullptr;
 }
 
-TAnimContainer * TAnimModel::GetContainer(std::string const &Name)
+std::shared_ptr<TAnimContainer> TAnimModel::GetContainer(std::string const &Name)
 { // szukanie/dodanie sterowania submodelem dla egzemplarza
     if (true == Name.empty())
-        return pRoot; // pobranie pierwszego (dla obrotnicy)
-    TAnimContainer *pCurrent;
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-        // if (pCurrent->GetName()==pName)
-		if (Name == pCurrent->NameGet())
-            return pCurrent;
-    return AddContainer(Name);
+		return m_animlist.front(); // pobranie pierwszego (dla obrotnicy)
+
+	for (auto entry : m_animlist) {
+		if (entry->NameGet() == Name)
+			return entry;
+	}
+
+	return AddContainer(Name);
 }
 
 // przeliczenie animacji - jednorazowo na klatkę
@@ -485,13 +469,13 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
     }
 
     // Ra 2F1I: to by można pomijać dla modeli bez animacji, których jest większość
-    TAnimContainer *pCurrent;
-    for (pCurrent = pRoot; pCurrent != nullptr; pCurrent = pCurrent->pNext)
-        if (!pCurrent->evDone) // jeśli jest bez eventu
-            pCurrent->UpdateModel(); // przeliczenie animacji każdego submodelu
+	for (auto entry : m_animlist) {
+		if (!entry->evDone) // jeśli jest bez eventu
+			entry->UpdateModel(); // przeliczenie animacji każdego submodelu
+	}
 
     m_framestamp = Framestamp;
-};
+}
 
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
@@ -555,12 +539,10 @@ void TAnimModel::RaPrepare()
     }
     TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( this ); //żeby nie robić cudzych animacji
     TSubModel::pasText = &asText; // przekazanie tekstu do wyświetlacza (!!!! do przemyślenia)
-    TAnimContainer *pCurrent;
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-        pCurrent->PrepareModel(); // ustawienie animacji egzemplarza dla każdego submodelu
-    // if () //tylko dla modeli z IK !!!!
-    // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny łańcuch
-    //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
+
+	for (auto entry : m_animlist) {
+		entry->PrepareModel();
+	}
 }
 
 int TAnimModel::Flags()
@@ -569,18 +551,19 @@ int TAnimModel::Flags()
     if( m_materialdata.replacable_skins[ 1 ] > 0 ) // jeśli ma wymienną teksturę 0
         i |= (i & 0x01010001) * ((m_materialdata.textures_alpha & 1) ? 0x20 : 0x10);
     return i;
-};
+}
 
 //---------------------------------------------------------------------------
 
 int TAnimModel::TerrainCount()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
     return pModel ? pModel->TerrainCount() : 0;
-};
+}
+
 TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
-};
+}
 
 //---------------------------------------------------------------------------
 void TAnimModel::LightSet(int const n, float const v)
@@ -589,17 +572,20 @@ void TAnimModel::LightSet(int const n, float const v)
         return; // przekroczony zakres
     }
     lsLights[ n ] = v;
-};
+}
 
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
-    TAnimContainer *p = TAnimModel::acAnimList;
-    while( p ) {
+	acAnimList.remove_if([](std::weak_ptr<TAnimContainer> ptr)
+	{
+		std::shared_ptr<TAnimContainer> container = ptr.lock();
+		if (!container)
+			return true;
 
-        p->UpdateModel();
-        p = p->acAnimNext; // na razie bez usuwania z listy, bo głównie obrotnica na nią wchodzi
-    }
-};
+		container->UpdateModel(); // na razie bez usuwania z listy, bo głównie obrotnica na nią wchodzi
+		return false;
+	});
+}
 
 // radius() subclass details, calculates node's bounding radius
 float

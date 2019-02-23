@@ -45,7 +45,7 @@ class TAnimVocaloidFrame
 
 class basic_event;
 
-class TAnimContainer
+class TAnimContainer : std::enable_shared_from_this<TAnimContainer>
 { // opakowanie submodelu, określające animację egzemplarza - obsługiwane jako lista
     friend TAnimModel;
 
@@ -62,7 +62,7 @@ class TAnimContainer
     float fAngleCurrent; // parametr interpolacyjny: 0=start, 1=docelowy
     float fAngleSpeed; // zmiana parametru interpolacji w sekundach
     TSubModel *pSubModel;
-    float4x4 *mAnim; // macierz do animacji kwaternionowych
+	std::shared_ptr<float4x4> mAnim; // macierz do animacji kwaternionowych
     // dla kinematyki odwróconej używane są kwaterniony
     float fLength; // długość kości dla IK
     int iAnim; // animacja: +1-obrót Eulera, +2-przesuw, +4-obrót kwaternionem, +8-IK
@@ -71,11 +71,8 @@ class TAnimContainer
     //+0x200: drugi stopień IK - dostosować do pozycji potomnego potomnego (wnuka)
     basic_event *evDone; // ewent wykonywany po zakończeniu animacji, np. zapór, obrotnicy
   public:
-    TAnimContainer *pNext;
-    TAnimContainer *acAnimNext; // lista animacji z eventem, które muszą być przeliczane również bez
     // wyświetlania
-    TAnimContainer();
-    ~TAnimContainer();
+	TAnimContainer();
     bool Init(TSubModel *pNewSubModel);
     inline
     std::string NameGet() {
@@ -112,14 +109,12 @@ class TAnimModel : public scene::basic_node {
 public:
 // constructors
     explicit TAnimModel( scene::node_data const &Nodedata );
-// destructor
-    ~TAnimModel();
 // methods
     static void AnimUpdate( double dt );
     bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
-    TAnimContainer * AddContainer(std::string const &Name);
-    TAnimContainer * GetContainer(std::string const &Name = "");
+	std::shared_ptr<TAnimContainer> AddContainer(std::string const &Name);
+	std::shared_ptr<TAnimContainer> GetContainer(std::string const &Name = "");
 	void LightSet( int const n, float const v );
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
@@ -141,7 +136,10 @@ public:
         Angles() const {
             return vAngle; }
 // members
-    static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
+	std::list<std::shared_ptr<TAnimContainer>> m_animlist;
+
+	// lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
+	static std::list<std::weak_ptr<TAnimContainer>> acAnimList;
 
 private:
 // methods
@@ -158,7 +156,7 @@ private:
     void export_as_text_( std::ostream &Output ) const;
 
 // members
-    TAnimContainer *pRoot { nullptr }; // pojemniki sterujące, tylko dla aniomowanych submodeli
+	std::shared_ptr<TAnimContainer> pRoot; // pojemniki sterujące, tylko dla aniomowanych submodeli
     TModel3d *pModel { nullptr };
     glm::vec3 vAngle; // bazowe obroty egzemplarza względem osi
     material_data m_materialdata;

@@ -1291,8 +1291,8 @@ animation_event::init() {
     for( auto &target : m_targets ) {
         auto *targetmodel { static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) ) };
         if( targetmodel == nullptr ) { continue; }
-        auto *targetcontainer{ targetmodel->GetContainer( m_animationsubmodel ) };
-        if( targetcontainer == nullptr ) {
+		auto targetcontainer{ targetmodel->GetContainer( m_animationsubmodel ) };
+		if( !targetcontainer ) {
             m_ignored = true;
             ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find submodel " + m_animationsubmodel + " in model instance \"" + targetmodel->name() + "\"" );
             break;
@@ -1399,7 +1399,12 @@ animation_event::run_() {
 
     WriteLog( "Type: Animation" );
 	// animation modes target specific submodels
-	for( auto *targetcontainer : m_animationcontainers ) {
+	m_animationcontainers.remove_if([this](std::weak_ptr<TAnimContainer> ptr)
+	{
+		auto targetcontainer = ptr.lock();
+		if (!targetcontainer)
+			return true;
+
 		switch( m_animationtype ) {
 		    case 1: { // rotate
 			    targetcontainer->SetRotateAnim(
@@ -1418,7 +1423,8 @@ animation_event::run_() {
 			    break;
 		    }
 		}
-	}
+		return false;
+	});
 }
 
 // export_as_text() subclass details
