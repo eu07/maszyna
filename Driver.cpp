@@ -3274,6 +3274,10 @@ void TController::Doors( bool const Open, int const Side ) {
                 // the train conductor, if present, handles door operation also for human-driven trains
                 pVehicle->MoverParameters->OperateDoors( side::right, false );
                 pVehicle->MoverParameters->OperateDoors( side::left, false );
+                if( pVehicle->MoverParameters->Doors.permit_needed ) {
+                    pVehicle->MoverParameters->PermitDoors( side::right, false );
+                    pVehicle->MoverParameters->PermitDoors( side::left, false );
+                }
             }
 
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
@@ -4184,11 +4188,12 @@ TController::UpdateSituation(double dt) {
     {
         // HACK: vehicle order in the consist is based on intended travel direction
         // if our actual travel direction doesn't match that, we should be scanning from the other end of the consist
-        auto *frontvehicle { pVehicles[ ( mvOccupied->V * iDirection >= 0 ? end::front : end::rear ) ] };
+        // we cast to int to avoid getting confused by microstutters
+        auto *frontvehicle { pVehicles[ ( static_cast<int>( mvOccupied->V ) * iDirection >= 0 ? end::front : end::rear ) ] };
 
         int routescandirection;
         // for moving vehicle determine heading from velocity; for standing fall back on the set direction
-        if( ( std::abs( frontvehicle->MoverParameters->V ) > 0.1 ? // ignore potential micro-stutters in oposite direction during "almost stop"
+        if( ( std::abs( frontvehicle->MoverParameters->V ) > 0.5 ? // ignore potential micro-stutters in oposite direction during "almost stop"
             frontvehicle->MoverParameters->V > 0.0 :
             ( pVehicle->DirectionGet() == frontvehicle->DirectionGet() ?
                 iDirection > 0 :

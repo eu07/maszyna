@@ -138,28 +138,17 @@ TButton &TCab::Button(int n)
     }
 };
 
-void TCab::Update()
+void TCab::Update( bool const Power )
 { // odczyt parametrów i ustawienie animacji submodelom
-/*
-    int i;
-    for (i = 0; i < iGauges; ++i)
-    { // animacje izometryczne
-        ggList[i].UpdateValue(); // odczyt parametru i przeliczenie na kąt
-        ggList[i].Update(); // ustawienie animacji
-    }
-    for (i = 0; i < iButtons; ++i)
-    { // animacje dwustanowe
-        btList[i].Update(); // odczyt parametru i wybór submodelu
-    }
-*/
     for( auto &gauge : ggList ) {
         // animacje izometryczne
         gauge.UpdateValue(); // odczyt parametru i przeliczenie na kąt
         gauge.Update(); // ustawienie animacji
     }
+
     for( auto &button : btList ) {
         // animacje dwustanowe
-        button.Update(); // odczyt parametru i wybór submodelu
+        button.Update( Power ); // odczyt parametru i wybór submodelu
     }
 };
 
@@ -333,6 +322,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorcloseright, &TTrain::OnCommand_doorcloseright },
     { user_command::dooropenall, &TTrain::OnCommand_dooropenall },
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
+    { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -4598,6 +4588,13 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
     }
 }
 
+void TTrain::OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+    }
+}
+
 void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
@@ -5308,7 +5305,7 @@ bool TTrain::Update( double const Deltatime )
             ggClockHInd.Update();
         }
 
-        Cabine[iCabn].Update(); // nowy sposób ustawienia animacji
+        Cabine[iCabn].Update( mvControlled->Battery || mvControlled->ConverterFlag ); // nowy sposób ustawienia animacji
         if (ggZbS.SubModel)
         {
             ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
@@ -7678,7 +7675,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool *> const autolights = {
         { "i-doorpermit_left:", &mvOccupied->Doors.instances[side::left].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit }
+        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit },
+        { "i-doorstep:", &mvOccupied->Doors.step_enabled }
     };
     {
         auto lookup = autolights.find( Label );
@@ -7835,14 +7833,31 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal8:", ggUniversals[ 8 ] },
         { "universal9:", ggUniversals[ 9 ] }
     };
-    auto lookup = gauges.find( Label );
-    if( lookup != gauges.end() ) {
-        lookup->second.Load( Parser, DynamicObject);
-        m_controlmapper.insert( lookup->second, lookup->first );
-        return true;
+    {
+        auto lookup = gauges.find( Label );
+        if( lookup != gauges.end() ) {
+            lookup->second.Load( Parser, DynamicObject );
+            m_controlmapper.insert( lookup->second, lookup->first );
+            return true;
+        }
     }
+    // TODO: move viable dedicated gauges to the automatic array
+    std::unordered_map<std::string, bool *> const autoboolgauges = {
+        { "doorstep_sw:", &mvOccupied->Doors.step_enabled }
+    };
+    {
+        auto lookup = autoboolgauges.find( Label );
+        if( lookup != autoboolgauges.end() ) {
+            auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna lampka
+            gauge.Load( Parser, DynamicObject );
+            gauge.AssignBool( lookup->second );
+            m_controlmapper.insert( gauge, lookup->first );
+            return true;
+        }
+    }
+
     // ABu 090305: uniwersalne przyciski lub inne rzeczy
-    else if( Label == "mainctrlact:" ) {
+    if( Label == "mainctrlact:" ) {
         ggMainCtrlAct.Load( Parser, DynamicObject);
     }
     // SEKCJA WSKAZNIKOW
@@ -8031,6 +8046,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
                 ggClockHInd.Init( DynamicObject->mdKabina->GetFromName( "ClockHhand" ), TGaugeAnimation::gt_Rotate, 1.0 / 12.0 );
             }
         }
+    }
+    else if( Label == "clock_seconds:" ) {
+        ggClockSInd.Load( Parser, DynamicObject );
     }
     else if (Label == "evoltage:")
     {

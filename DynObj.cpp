@@ -2745,10 +2745,13 @@ bool TDynamicObject::Update(double dt, double dt1)
 
 			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
             auto const doorisopen {
-                ( false == MoverParameters->Doors.instances[ side::right ].is_closed )
-             || ( false == MoverParameters->Doors.instances[ side::left ].is_closed ) };
+                ( false == MoverParameters->Doors.instances[ side::left ].is_closed )
+             || ( false == MoverParameters->Doors.instances[ side::right ].is_closed )
+             || ( MoverParameters->Doors.permit_needed
+               && ( MoverParameters->Doors.instances[ side::left ].open_permit
+                 || MoverParameters->Doors.instances[ side::right ].open_permit ) ) };
 
-            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) || doorisopen )
+            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2 || doorisopen))
             {
                 MoverParameters->ShuntMode = true;
             }
@@ -3822,15 +3825,6 @@ void TDynamicObject::RenderSounds() {
                     }
                 }
             }
-            // doorstep sounds
-            if( door.step_position < 1.f ) {
-                for( auto &doorsounds : m_doorsounds ) {
-                    if( doorsounds.placement == side ) {
-                        doorsounds.step_open.play( sound_flags::exclusive );
-                        doorsounds.step_close.stop();
-                    }
-                }
-            }
         }
         if( true == door.is_closing ) {
             // door sounds can start playing before the door begins moving but shouldn't cease once the door closes
@@ -3843,15 +3837,22 @@ void TDynamicObject::RenderSounds() {
                     }
                 }
             }
-            // doorstep sounds are played only when the doorstep is moving
-            if( ( door.step_position > 0.f )
-             && ( door.step_position < 1.f ) ) {
-                for( auto &doorsounds : m_doorsounds ) {
-                    if( doorsounds.placement == side ) {
-                        // determine left side doors from their offset
-                        doorsounds.step_close.play( sound_flags::exclusive );
-                        doorsounds.step_open.stop();
-                    }
+        }
+        // doorstep sounds
+        if( door.step_unfolding ) {
+            for( auto &doorsounds : m_doorsounds ) {
+                if( doorsounds.placement == side ) {
+                    doorsounds.step_open.play( sound_flags::exclusive );
+                    doorsounds.step_close.stop();
+                }
+            }
+        }
+        if( door.step_folding ) {
+            for( auto &doorsounds : m_doorsounds ) {
+                if( doorsounds.placement == side ) {
+                    // determine left side doors from their offset
+                    doorsounds.step_close.play( sound_flags::exclusive );
+                    doorsounds.step_open.stop();
                 }
             }
         }

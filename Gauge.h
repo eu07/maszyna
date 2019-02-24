@@ -48,6 +48,7 @@ public:
     void AssignFloat(float *fValue);
     void AssignDouble(double *dValue);
     void AssignInt(int *iValue);
+    void AssignBool(bool *bValue);
     void UpdateValue();
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
@@ -82,6 +83,7 @@ private:
         float *fData;
         double *dData { nullptr };
         int *iData;
+        bool *bData;
     };
     int m_soundtype { 0 }; // toggle between exclusive and multiple sound generation
     sound_source m_soundtemplate { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // shared properties for control's sounds

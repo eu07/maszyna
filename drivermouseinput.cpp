@@ -584,6 +584,9 @@ drivermouse_input::default_bindings() {
         { "dooralloff_sw:", {
             user_command::doorcloseall,
             user_command::none } },
+        { "doorstep_sw:", {
+            user_command::doorsteptoggle,
+            user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,
             user_command::none } },

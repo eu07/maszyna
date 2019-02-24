@@ -360,21 +360,35 @@ void TGauge::AssignInt(int *iValue)
     iData = iValue;
 };
 
+void TGauge::AssignBool(bool *bValue)
+{
+    m_datatype = 'b';
+    bData = bValue;
+};
+
 void TGauge::UpdateValue()
 { // ustawienie wartości docelowej z parametru
     switch (m_datatype)
     { // to nie jest zbyt optymalne, można by zrobić osobne funkcje
-    case 'f':
-        UpdateValue( *fData );
-        break;
-    case 'd':
-        UpdateValue( *dData );
-        break;
-    case 'i':
-        UpdateValue( *iData );
-        break;
-    default:
-        break;
+        case 'f': {
+            UpdateValue( *fData );
+            break;
+        }
+        case 'd': {
+            UpdateValue( *dData );
+            break;
+        }
+        case 'i': {
+            UpdateValue( *iData );
+            break;
+        }
+        case 'b': {
+            UpdateValue( ( *bData ? 1.f : 0.f ) );
+            break;
+        }
+        default: {
+            break;
+        }
     }
 };
 

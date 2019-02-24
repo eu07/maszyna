@@ -154,6 +154,7 @@ driverkeyboard_input::default_bindings() {
         // doorcloseleft,
         // doorcloseright,
         { user_command::doorcloseall, GLFW_KEY_SLASH | keymodifier::control },
+        // doorsteptoggle,
         { user_command::departureannounce, GLFW_KEY_SLASH },
         { user_command::doorlocktoggle, GLFW_KEY_S | keymodifier::control },
         { user_command::pantographcompressorvalvetoggle, GLFW_KEY_V | keymodifier::control },

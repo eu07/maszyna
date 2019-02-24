@@ -4956,8 +4956,9 @@ double TMoverParameters::TractionForce( double dt ) {
 				}
 
                 dtrans = Hamulec->GetEDBCP();
-                if( ( ( false == Doors.instances[ side::left ].is_closed )
-                   || ( false == Doors.instances[ side::right ].is_closed ) ) ) {
+                if( ( false == Doors.instances[ side::left ].is_closed )
+                 || ( false == Doors.instances[ side::right ].is_closed )
+                 || ( Doors.permit_needed && ( Doors.instances[ side::left ].open_permit || Doors.instances[ side::right ].open_permit ) ) ) {
                     DynamicBrakeFlag = true;
                 }
                 else if (((dtrans < 0.25) && (LocHandle->GetCP() < 0.25) && (AnPos < 0.01)) ||
@@ -6637,6 +6638,27 @@ bool TMoverParameters::ChangeDoorPermitPreset( int const Change, range_t const N
     return ( Doors.permit_preset != initialstate );
 }
 
+bool TMoverParameters::PermitDoorStep( bool const State, range_t const Notify ) {
+
+    auto const initialstate { Doors.step_enabled };
+
+    Doors.step_enabled = State;
+    if( Notify != range_t::local ) {
+        // wysłanie wyłączenia do pozostałych?
+        SendCtrlToNext(
+            "DoorStep",
+            ( State == true ?
+                1 :
+                0 ),
+            CabNo,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( Doors.step_enabled != initialstate );
+}
+
 bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t const Notify ) {
 
     bool const initialstate { Doors.instances[Door].open_permit };
@@ -6719,6 +6741,8 @@ bool TMoverParameters::OperateDoors( side const Door, bool const State, range_t 
 // toggle door lock
 bool TMoverParameters::LockDoors( bool const State, range_t const Notify ) {
 
+    auto const initialstate { Doors.lock_enabled };
+
     Doors.lock_enabled = State;
     if( Notify != range_t::local ) {
         // wysłanie wyłączenia do pozostałych?
@@ -6733,7 +6757,7 @@ bool TMoverParameters::LockDoors( bool const State, range_t const Notify ) {
                 coupling::control ) );
     }
 
-    return true;
+    return ( Doors.lock_enabled != initialstate );
 }
 
 // toggles departure warning
@@ -6799,7 +6823,8 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
         door.is_open =
             ( door.position >= Doors.range )
-         && ( door.step_position >= ( Doors.step_range != 0.f ? 1.f : 0.f ) );
+         && ( ( false == Doors.step_enabled )
+           || ( door.step_position >= ( Doors.step_range != 0.f ? 1.f : 0.f ) ) );
         door.is_closed =
             ( door.position <= 0.f )
          && ( door.step_position <= 0.f );
@@ -6833,6 +6858,19 @@ TMoverParameters::update_doors( double const Deltatime ) {
          && ( true == Battery )
          && ( false == openrequest )
          && ( door.is_closing || closerequest );
+        door.step_unfolding = (
+            ( Doors.step_range != 0.f )
+         && ( Doors.step_enabled )
+         && ( false == Doors.is_locked )
+         && ( door.step_position < 1.f )
+         && ( door.is_opening ) );
+        door.step_folding = (
+            ( door.step_position > 0.f ) // is unfolded
+         && ( ( false == Doors.step_enabled ) // we lost permission to stay open or our door is calling the shots
+           || ( Doors.permit_needed ?
+                ( false == door.open_permit ) :
+                door.is_closing ) )
+         && ( ( door.close_delay > Doors.close_delay ) || door.position <= 0.f ) ); // door is about to close, or already done
 
         if( true == door.is_opening ) {
             door.auto_timer = (
@@ -6840,17 +6878,14 @@ TMoverParameters::update_doors( double const Deltatime ) {
                 ( remoteopencontrol && door.remote_open && Doors.auto_include_remote ) ? Doors.auto_duration :
                 -1.f );
         }
-
         // doors
-        if( ( true == door.is_opening )
-         && ( door.position < Doors.range ) ) {
+        if( true == door.is_opening ) {
             // open door
             if( ( TrainType == dt_EZT )
              || ( TrainType == dt_DMU ) ) {
                 // multi-unit vehicles typically open door only after unfolding the doorstep
-                if( ( Doors.step_range == 0.f ) // no wait if no doorstep
-                 || ( Doors.step_type == 2 ) // no wait for rotating doorstep
-                 || ( door.step_position == 1.f ) ) {
+                if( ( false == door.step_unfolding ) // no wait if no doorstep
+                 || ( Doors.step_type == 2 ) ) { // no wait for rotating doorstep
                     door.position = std::min<float>(
                         Doors.range,
                         door.position + Doors.open_rate * Deltatime );
@@ -6863,8 +6898,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
             }
             door.close_delay = 0.f;
         }
-        if( ( true == door.is_closing )
-         && ( door.position > 0.f ) ) {
+        if( true == door.is_closing ) {
             // close door
             door.close_delay += Deltatime;
             if( door.close_delay > Doors.close_delay ) {
@@ -6874,22 +6908,18 @@ TMoverParameters::update_doors( double const Deltatime ) {
             }
         }
         // doorsteps
-        if( ( true == door.is_opening )
-         && ( Doors.step_range != 0.f )
-         && ( door.step_position < 1.f ) ) {
+        if( door.step_unfolding ) {
             // unfold left doorstep
             door.step_position = std::min<float>(
                 1.f,
                 door.step_position + Doors.step_rate * Deltatime );
         }
-        if( ( true == door.is_closing )
-         && ( door.step_position > 0.f )
-         && ( door.close_delay > Doors.close_delay ) ) {
+        if( door.step_folding ) {
             // fold left doorstep
             if( ( TrainType == dt_EZT )
              || ( TrainType == dt_DMU ) ) {
                 // multi-unit vehicles typically fold the doorstep only after closing the door
-                if( door.position == 0.f ) {
+                if( door.position <= 0.f ) {
                     door.step_position = std::max<float>(
                         0.f,
                         door.step_position - Doors.step_rate * Deltatime );
@@ -9638,6 +9668,13 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             CValue1 == 1 ?
                 true :
                 false );
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "DoorStep" ) {
+        Doors.step_enabled = (
+            CValue1 == 1 ?
+            true :
+            false );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     else if( Command == "DepartureSignal" ) {

@@ -723,6 +723,8 @@ private:
         bool is_closing { false }; // the door is currently closing
         bool is_opening { false }; // the door is currently opening
         bool is_open { false }; // the door is fully open
+        bool step_folding { false }; // the doorstep is currently closing
+        bool step_unfolding { false }; // the doorstep is currently opening
     };
 
     struct door_data {
@@ -748,6 +750,7 @@ private:
         std::vector<int> permit_presets; // permit presets selectable with preset switch
         // ld inputs
         bool lock_enabled { true };
+        bool step_enabled { true };
         // internal data
         int permit_preset { -1 }; // curent position of preset selection switch
         // vehicle parts
@@ -1493,6 +1496,7 @@ public:
 	bool LoadingDone(double LSpeed, std::string const &Loadname);
     bool PermitDoors( side const Door, bool const State = true, range_t const Notify = range_t::consist );
     bool ChangeDoorPermitPreset( int const Change, range_t const Notify = range_t::consist );
+    bool PermitDoorStep( bool const State, range_t const Notify = range_t::consist );
     bool OperateDoors( side const Door, bool const State, range_t const Notify = range_t::consist );
     bool LockDoors( bool const State, range_t const Notify = range_t::consist );
     bool signal_departure( bool const State, range_t const Notify = range_t::consist ); // toggles departure warning

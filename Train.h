@@ -32,7 +32,7 @@ class TCab {
 public:
 // methods
     void Load(cParser &Parser);
-    void Update();
+    void Update( bool const Power );
     TGauge &Gauge( int n = -1 ); // pobranie adresu obiektu
     TButton &Button( int n = -1 ); // pobranie adresu obiektu
 // members
@@ -51,7 +51,7 @@ public:
 
 private:
 // members
-    std::vector<TGauge> ggList;
+    std::deque<TGauge> ggList; // need a container which doesn't invalidate references
     std::vector<TButton> btList;
 };
 
@@ -323,6 +323,7 @@ class TTrain
     static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
