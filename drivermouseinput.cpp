@@ -247,7 +247,7 @@ drivermouse_input::scroll( double const Xoffset, double const Yoffset ) {
 
     if( Global.ctrlState ) {
         // ctrl + scroll wheel adjusts fov
-        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.gfx_total.average() ), 15.0f, 75.0f );
+		Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.mainloop_total.average() ), 15.0f, 75.0f );
     }
     else {
         // scroll adjusts master controller

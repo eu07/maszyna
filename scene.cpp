@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "sn_utils.h"
 #include "renderer.h"
+#include "widgets/map_objects.h"
 
 namespace scene {
 
@@ -1669,6 +1670,13 @@ void basic_region::create_map_geometry()
             if (s)
                 s->create_map_geometry(m_map_geometrybank);
         }
+
+	std::vector<gfx::basic_vertex> vertices;
+	for (const auto sem : map::Semaphores) {
+		vertices.push_back(gfx::basic_vertex(sem->location, glm::vec3(), glm::vec3()));
+	}
+	gfx::geometrybank_handle poibank = GfxRenderer.Create_Bank();
+	m_map_poipoints = GfxRenderer.Insert(vertices, poibank, GL_POINTS);
 }
 
 } // scene

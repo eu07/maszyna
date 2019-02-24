@@ -49,7 +49,7 @@ void
 bounding_area::deserialize( std::istream &Input ) {
 
     center = sn_utils::d_dvec3( Input );
-    radius = sn_utils::ld_float32( Input );
+	radius = std::max(radius, sn_utils::ld_float32( Input ));
 }
 
 

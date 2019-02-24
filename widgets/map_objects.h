@@ -1,3 +1,5 @@
+#pragma once
+
 #include "simulation.h"
 #include "event.h"
 #include "scene.h"
@@ -17,6 +19,6 @@ namespace map {
 		glm::vec3 location;
 	};
 
-	extern std::vector<semaphore> Semaphores;
-	extern std::vector<track_switch> Switches;
+	extern std::vector<std::shared_ptr<semaphore>> Semaphores;
+	extern std::vector<std::shared_ptr<track_switch>> Switches;
 }

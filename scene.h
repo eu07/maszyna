@@ -403,11 +403,14 @@ public:
     // finds sections inside specified sphere. returns: list of sections
     std::vector<basic_section *> const &
         sections( glm::dvec3 const &Point, float const Radius );
-    void create_map_geometry();
+	void
+	    create_map_geometry();
     basic_section* get_section(size_t section)
     {
         return m_sections[section];
     }
+	gfx::geometrybank_handle
+	    get_map_poi_geometry() { return m_map_poipoints; }
 
 private:
 // types
@@ -419,6 +422,7 @@ private:
     };
 
     gfx::geometrybank_handle m_map_geometrybank;
+	gfx::geometrybank_handle m_map_poipoints;
 
 // methods
     // checks whether specified point is within boundaries of the region

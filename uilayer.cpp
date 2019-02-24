@@ -216,8 +216,6 @@ void ui_layer::update()
 
 void ui_layer::render()
 {
-    Timer::subsystem.gfx_gui.start();
-
     render_background();
     render_progress();
 
@@ -231,8 +229,6 @@ void ui_layer::render()
 
 	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
     ImGui::Render();
-
-    Timer::subsystem.gfx_gui.stop();
 
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());

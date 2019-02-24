@@ -367,9 +367,7 @@ std::unique_ptr<gl::program> opengl_renderer::make_shader(std::string v, std::st
 
 bool opengl_renderer::Render()
 {
-	Timer::subsystem.gfx_total.stop();
-	Timer::subsystem.gfx_total.start(); // note: gfx_total is actually frame total, clean this up
-	Timer::subsystem.gfx_color.start();
+	Timer::subsystem.gfx_total.start();
 
 	GLuint gl_time_ready;
 	if (!Global.gfx_usegles)
@@ -404,7 +402,6 @@ bool opengl_renderer::Render()
 	m_debugstats = debug_stats();
 
 	Render_pass(rendermode::color);
-	Timer::subsystem.gfx_color.stop();
 
 	m_drawcount = m_cellqueue.size();
 	m_debugtimestext.clear();
@@ -429,6 +426,8 @@ bool opengl_renderer::Render()
 		m_debugtimestext += m_textures.info();
 
 	++m_framestamp;
+
+	Timer::subsystem.gfx_total.stop();
 
 	return true; // for now always succeed
 }
@@ -551,6 +550,7 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 
 		glEnable(GL_DEPTH_TEST);
 
+		Timer::subsystem.gfx_color.start();
 		setup_matrices();
 		setup_drawing(true);
 
@@ -621,6 +621,8 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
 		}
 
+		Timer::subsystem.gfx_color.stop();
+
 		setup_shadow_map(nullptr, m_renderpass);
 		setup_env_map(nullptr);
 
@@ -656,8 +658,12 @@ void opengl_renderer::Render_pass(rendermode const Mode)
 			glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glDebug("uilayer render");
+		Timer::subsystem.gfx_gui.start();
+
 		draw_debug_ui();
 		Application.render_ui();
+
+		Timer::subsystem.gfx_gui.stop();
 
 		// restore binding
 		scene_ubo->bind_uniform();
@@ -1941,6 +1947,11 @@ void opengl_renderer::Render(cell_sequence::iterator First, cell_sequence::itera
 void opengl_renderer::Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end)
 {
 	m_geometry.draw(begin, end);
+}
+
+void opengl_renderer::Draw_Geometry(const gfx::geometrybank_handle &handle)
+{
+	m_geometry.draw(handle);
 }
 
 void opengl_renderer::draw(const gfx::geometry_handle &handle)
@@ -3537,10 +3548,11 @@ glm::dvec3 opengl_renderer::get_mouse_depth()
 
 		if (pointdepth != std::numeric_limits<float>::max())
 		{
-			if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
-				m_worldmousecoordinates = glm::unProjectZO(glm::vec3(bufferpos, pointdepth), glm::mat4(glm::mat3(m_colorpass.camera.modelview())), m_colorpass.camera.projection(),
-				                                           glm::vec4(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height));
-			else
+			if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control) {
+				if (pointdepth > 0.0f)
+					m_worldmousecoordinates = glm::unProjectZO(glm::vec3(bufferpos, pointdepth), glm::mat4(glm::mat3(m_colorpass.camera.modelview())), m_colorpass.camera.projection(),
+					                                           glm::vec4(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height));
+			} else if (pointdepth < 1.0f)
 				m_worldmousecoordinates = glm::unProjectNO(glm::vec3(bufferpos, pointdepth), glm::mat4(glm::mat3(m_colorpass.camera.modelview())), m_colorpass.camera.projection(),
 				                                           glm::vec4(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height));
 		}
@@ -3563,7 +3575,7 @@ void opengl_renderer::Update(double const Deltatime)
 	}
 
 	m_updateaccumulator = 0.0;
-	m_framerate = 1000.f / (Timer::subsystem.gfx_total.average());
+	m_framerate = 1000.f / (Timer::subsystem.mainloop_total.average());
 
 	// adjust draw ranges etc, based on recent performance
 	auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
