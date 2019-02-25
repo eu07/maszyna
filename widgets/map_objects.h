@@ -1,7 +1,7 @@
 #pragma once
 
 #include "simulation.h"
-#include "event.h"
+#include "Event.h"
 #include "scene.h"
 
 namespace map {

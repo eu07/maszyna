@@ -85,6 +85,12 @@
 //#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
+#ifndef GLFW_TRUE
+#define GLFW_FALSE 0
+#define GLFW_TRUE 1
+#define glfwGetKeyName(a, b) ("")
+#endif
+
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CTOR_INIT
 #include <glm/glm.hpp>

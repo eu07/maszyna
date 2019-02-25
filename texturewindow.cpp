@@ -51,8 +51,6 @@ texture_window::texture_window(texture_handle src, std::string surfacename)
 	glfwSetWindowUserPointer(m_window, this);
 	glfwSetFramebufferSizeCallback(m_window, texture_window_fb_resize);
 
-	glfwFocusWindow(root);
-
 	m_renderthread = std::make_unique<std::thread>(&texture_window::threadfunc, this);
 }
 

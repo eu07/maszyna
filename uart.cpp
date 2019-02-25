@@ -14,7 +14,7 @@ uart_input::uart_input()
     if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK)
         throw std::runtime_error("uart: cannot find specified port");
 
-    if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK)
+    if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK)
         throw std::runtime_error("uart: cannot open port");
 
 	sp_port_config *config;
