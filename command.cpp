@@ -22,6 +22,7 @@ commanddescription_sequence Commands_descriptions = {
 
     { "aidriverenable", command_target::vehicle },
     { "aidriverdisable", command_target::vehicle },
+    { "jointcontrollerset", command_target::vehicle },
     { "mastercontrollerincrease", command_target::vehicle },
     { "mastercontrollerincreasefast", command_target::vehicle },
     { "mastercontrollerdecrease", command_target::vehicle },

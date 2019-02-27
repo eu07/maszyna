@@ -155,6 +155,7 @@ class TTrain
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
     static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
     static void OnCommand_aidriverdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerdecrease( TTrain *Train, command_data const &Command );
@@ -372,6 +373,7 @@ public: // reszta może by?publiczna
     TGauge ggWater1TempB;
 
     // McZapkie: definicje regulatorow
+    TGauge ggJointCtrl;
     TGauge ggMainCtrl;
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;

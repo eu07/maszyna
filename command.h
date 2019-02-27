@@ -16,6 +16,7 @@ enum class user_command {
 
     aidriverenable,
     aidriverdisable,
+    jointcontrollerset,
     mastercontrollerincrease,
     mastercontrollerincreasefast,
     mastercontrollerdecrease,

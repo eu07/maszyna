@@ -63,6 +63,7 @@ init() {
         "Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]",
 
         "master controller",
+        "master controller",
         "second controller",
         "shunt mode power",
         "reverser",
@@ -207,6 +208,7 @@ init() {
         "Sily:\n napedna: %.1f, hamowania: %.1f, tarcie: %.2f%s\nPrzyspieszenia:\n styczne: %.2f, normalne: %.2f (promien: %s)\nPredkosc: %.2f, pokonana odleglosc: %.2f\nPozycja: [%.2f, %.2f, %.2f]",
 
         "nastawnik jazdy",
+        "nastawnik jazdy",
         "nastawnik dodatkowy",
         "sterowanie analogowe",
         "nastawnik kierunku",
@@ -322,6 +324,7 @@ init() {
     {
         std::vector<std::string> cabcontrols = {
             "mainctrl:",
+            "jointctrl:",
             "scndctrl:",
             "shuntmodepower:",
             "dirkey:",

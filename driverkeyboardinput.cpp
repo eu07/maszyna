@@ -27,6 +27,7 @@ driverkeyboard_input::default_bindings() {
     m_bindingsetups = {
         { user_command::aidriverenable, GLFW_KEY_Q | keymodifier::shift },
         { user_command::aidriverdisable, GLFW_KEY_Q },
+        // jointcontrollerset,
         { user_command::mastercontrollerincrease, GLFW_KEY_KP_ADD },
         { user_command::mastercontrollerincreasefast, GLFW_KEY_KP_ADD | keymodifier::shift },
         { user_command::mastercontrollerdecrease, GLFW_KEY_KP_SUBTRACT },

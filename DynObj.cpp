@@ -3439,13 +3439,13 @@ bool TDynamicObject::Update(double dt, double dt1)
     else {
         // unfold mirror on the side with open doors, if not moving too fast
         if( ( dMirrorMoveL < 1.0 )
-         && ( true == MoverParameters->Doors.instances[side::left].is_open ) ) {
+         && ( true == MoverParameters->Doors.instances[side::left].open_permit ) ) {
             dMirrorMoveL = std::min(
                 1.0,
                 dMirrorMoveL + 1.0 * dt1 );
         }
         if( ( dMirrorMoveR < 1.0 )
-         && ( true == MoverParameters->Doors.instances[side::right].is_open ) ) {
+         && ( true == MoverParameters->Doors.instances[side::right].open_permit ) ) {
             dMirrorMoveR = std::min(
                 1.0,
                 dMirrorMoveR + 1.0 * dt1 );

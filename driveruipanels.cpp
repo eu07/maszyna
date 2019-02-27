@@ -696,7 +696,9 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
 
     if( mechanik.Obstacle.distance < 5000 ) {
-        textline += "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 );
+        textline +=
+            "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 )
+            + " (" + mechanik.Obstacle.vehicle->asName + ")";
     }
 
     Output.emplace_back( textline, Global.UITextColor );

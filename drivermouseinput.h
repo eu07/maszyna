@@ -39,6 +39,7 @@ private:
     double m_value { 0.0 };
     double m_valuerange { 0.0 };
     bool m_analogue { false };
+    bool m_invertrange { false };
     glm::dvec2 m_cursorposition { 0.0 };
 };
 

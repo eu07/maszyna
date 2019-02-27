@@ -372,14 +372,13 @@ bool TSpeedPos::Set(basic_event *event, double dist, double length, TOrders orde
     iFlags = spEvent;
     evEvent = event;
     vPos = event->input_location(); // współrzędne eventu albo komórki pamięci (zrzutować na tor?)
-    if( dist + length >= 0 ) {
-        iFlags |= spEnabled;
-        CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
-    }
-    else {
-        // located behind the tracking consist, don't bother with it
+    // ignore events located behind the consist, but with exception of stop points which may be needed to update freshly received timetable
+    if( ( dist + length < 0 )
+     && ( event->input_command() != TCommandType::cm_PassengerStopPoint ) ) {
         return false;
     }
+    iFlags |= spEnabled;
+    CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
 	// zależnie od trybu sprawdzenie czy jest tutaj gdzieś semafor lub tarcza manewrowa
 	// jeśli wskazuje stop wtedy wystawiamy true jako koniec sprawdzania
 	// WriteLog("EventSet: Vel=" + AnsiString(fVelNext) + " iFlags=" + AnsiString(iFlags) + " order="+AnsiString(order));
@@ -486,6 +485,20 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
 
     if (iTableDirection != iDirection ) {
         // jeśli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
+        TableClear();
+/*
+        // aktualna prędkość // changed to -1 to recognize speed limit, if any
+        fLastVel = -1.0;
+        sSpeedTable.clear();
+        iLast = -1;
+        tLast = nullptr; //żaden nie sprawdzony
+        SemNextIndex = -1;
+        SemNextStopIndex = -1;
+*/
+        if( VelSignalLast == 0.0 ) {
+            // don't allow potential red light overrun keep us from reversing
+            VelSignalLast = -1.0;
+        }
         iTableDirection = iDirection; // ustalenie w jakim kierunku jest wypełniana tabelka względem pojazdu
         pTrack = pVehicle->RaTrackGet(); // odcinek, na którym stoi
         fTrackLength = pVehicle->RaTranslationGet(); // pozycja na tym torze (odległość od Point1)
@@ -503,17 +516,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             .Length();
         // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
         fCurrentDistance = -fLength - fTrackLength;
-        // aktualna prędkość // changed to -1 to recognize speed limit, if any
-        fLastVel = -1.0;
-        sSpeedTable.clear();
-        iLast = -1;
-        tLast = nullptr; //żaden nie sprawdzony
-        SemNextIndex = -1;
-        SemNextStopIndex = -1;
-        if( VelSignalLast == 0.0 ) {
-            // don't allow potential red light overrun keep us from reversing
-            VelSignalLast = -1.0;
-        }
         fTrackLength = pTrack->Length(); //skasowanie zmian w zmiennej żeby poprawnie liczyło w dalszych krokach
         MoveDistanceReset(); // AI startuje 1s po zaczęciu jazdy i mógł już coś przejechać
     }
@@ -759,7 +761,7 @@ void TController::TableCheck(double fDistance)
 { // przeliczenie odległości w tabelce, ewentualnie doskanowanie (bez analizy prędkości itp.)
     if( iTableDirection != iDirection ) {
         // jak zmiana kierunku, to skanujemy od końca składu
-        TableTraceRoute( fDistance, pVehicles[ 1 ] );
+        TableTraceRoute( fDistance, pVehicles[ end::rear ] );
         TableSort();
     }
     else if (iTableDirection)
@@ -786,7 +788,7 @@ void TController::TableCheck(double fDistance)
                         --iLast;
                     }
                     tLast = sSpeedTable[ i ].trTrack;
-                    TableTraceRoute( fDistance, pVehicles[ 1 ] );
+                    TableTraceRoute( fDistance, pVehicles[ end::rear ] );
                     TableSort();
                     // nie kontynuujemy pętli, trzeba doskanować ciąg dalszy
                     break;
@@ -824,7 +826,7 @@ void TController::TableCheck(double fDistance)
         sSpeedTable[iLast].Update(); // aktualizacja ostatniego
         // WriteLog("TableCheck: Upate last track. Dist=" + AnsiString(sSpeedTable[iLast].fDist));
         if( sSpeedTable[ iLast ].fDist < fDistance ) {
-            TableTraceRoute( fDistance, pVehicles[ 1 ] ); // doskanowanie dalszego odcinka
+            TableTraceRoute( fDistance, pVehicles[ end::rear ] ); // doskanowanie dalszego odcinka
             TableSort();
         }
         // garbage collection
@@ -2353,7 +2355,6 @@ bool TController::PrepareEngine()
 		voltrear = false;
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
-    iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
 
     if ( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
         voltfront = true;
@@ -2484,6 +2485,8 @@ bool TController::PrepareEngine()
         }
         eAction = TAction::actUnknown;
         iEngineActive = 1;
+        iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
+
         return true;
     }
     else {
@@ -3266,10 +3269,10 @@ void TController::Doors( bool const Open, int const Side ) {
          && ( ( fActionTime > -0.5 )
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
-            if( ( pVehicle->MoverParameters->Doors.open_control == control_t::conductor )
+            if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
              || ( ( true == AIControllFlag )
-               && ( ( pVehicle->MoverParameters->Doors.open_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.open_control == control_t::mixed ) ) ) ) {
+               && ( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) ) ) {
                 // if the door are controlled by the driver, we let the user operate them unless this user is an ai
                 // the train conductor, if present, handles door operation also for human-driven trains
                 pVehicle->MoverParameters->OperateDoors( side::right, false );
@@ -3306,6 +3309,10 @@ void TController::Doors( bool const Open, int const Side ) {
 bool
 TController::doors_open() const {
 
+    return (
+        IsAnyDoorOpen[ side::right ]
+     || IsAnyDoorOpen[ side::left ] );
+/*
     auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
     while( vehicle != nullptr ) {
         if( ( false == vehicle->MoverParameters->Doors.instances[side::right].is_closed )
@@ -3317,6 +3324,7 @@ TController::doors_open() const {
     }
     // if we're still here there's nothing open
     return false;
+*/
 }
 
 void TController::RecognizeCommand()
@@ -4215,7 +4223,7 @@ TController::UpdateSituation(double dt) {
             Obstacle.vehicle_end = std::get<int>( lookup );
             Obstacle.distance = std::get<double>( lookup );
 
-            if( Obstacle.distance < ( mvOccupied->CategoryFlag == 2 ? 25 : 75 ) ) {
+            if( Obstacle.distance < ( mvOccupied->CategoryFlag == 2 ? 25 : 100 ) ) {
                 // at short distances (re)calculate range between couplers directly
                 Obstacle.distance = TMoverParameters::CouplerDist( frontvehicle->MoverParameters, Obstacle.vehicle->MoverParameters );
             }

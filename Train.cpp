@@ -158,6 +158,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 
     { user_command::aidriverenable, &TTrain::OnCommand_aidriverenable },
     { user_command::aidriverdisable, &TTrain::OnCommand_aidriverdisable },
+    { user_command::jointcontrollerset, &TTrain::OnCommand_jointcontrollerset },
     { user_command::mastercontrollerincrease, &TTrain::OnCommand_mastercontrollerincrease },
     { user_command::mastercontrollerincreasefast, &TTrain::OnCommand_mastercontrollerincreasefast },
     { user_command::mastercontrollerdecrease, &TTrain::OnCommand_mastercontrollerdecrease },
@@ -757,12 +758,49 @@ void TTrain::OnCommand_aidriverdisable( TTrain *Train, command_data const &Comma
 auto const EU07_CONTROLLER_BASERETURNDELAY { 0.5f };
 auto const EU07_CONTROLLER_KEYBOARDETURNDELAY { 1.5f };
 
+void TTrain::OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        // value controls brake in range 0-0.5, master controller in range 0.5-1.0
+        if( Command.param1 >= 0.5 ) {
+            Train->set_master_controller( 
+                ( Command.param1 * 2 - 1 )
+                * ( Train->mvControlled->CoupledCtrl ?
+                        Train->mvControlled->MainCtrlPosNo + Train->mvControlled->ScndCtrlPosNo :
+                        Train->mvControlled->MainCtrlPosNo ) );
+            Train->m_mastercontrollerinuse = true;
+            Train->mvOccupied->LocalBrakePosA = 0;
+        }
+        else {
+            Train->mvOccupied->LocalBrakePosA = (
+                clamp(
+                    1.0 - ( Command.param1 * 2 ),
+                    0.0, 1.0 ) );
+            if( Train->mvControlled->MainCtrlPos > 0 ) {
+                Train->set_master_controller( 0 );
+            }
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_BASERETURNDELAY; // NOTE: keyboard return delay is omitted for other input sources
+    }
+}
+
 void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->IncMainCtrl( 1 );
-        Train->m_mastercontrollerinuse = true;
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+            OnCommand_independentbrakedecrease( Train, Command );
+        }
+        else {
+            Train->mvControlled->IncMainCtrl( 1 );
+            Train->m_mastercontrollerinuse = true;
+        }
     }
     else {
         // release
@@ -775,7 +813,19 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->IncMainCtrl( 2 );
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+            OnCommand_independentbrakedecreasefast( Train, Command );
+        }
+        else {
+            Train->mvControlled->IncMainCtrl( 2 );
+            Train->m_mastercontrollerinuse = true;
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -783,8 +833,14 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->DecMainCtrl( 1 );
-        Train->m_mastercontrollerinuse = true;
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+            OnCommand_independentbrakeincrease( Train, Command );
+        }
+        else {
+            Train->mvControlled->DecMainCtrl( 1 );
+            Train->m_mastercontrollerinuse = true;
+        }
     }
     else {
         // release
@@ -797,7 +853,19 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->DecMainCtrl( 2 );
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+            OnCommand_independentbrakeincreasefast( Train, Command );
+        }
+        else {
+            Train->mvControlled->DecMainCtrl( 2 );
+            Train->m_mastercontrollerinuse = true;
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -981,7 +1049,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
 
     if( Command.action != GLFW_RELEASE ) {
 
-        Train->mvControlled->LocalBrakePosA = (
+        Train->mvOccupied->LocalBrakePosA = (
             clamp(
                 Command.param1,
                 0.0, 1.0 ) );
@@ -5735,7 +5803,21 @@ bool TTrain::Update( double const Deltatime )
                 }
         }
         // McZapkie-080602: obroty (albo translacje) regulatorow
-        if (ggMainCtrl.SubModel) {
+        if( ggJointCtrl.SubModel != nullptr ) {
+            // joint master controller moves forward to adjust power and backward to adjust brakes
+            auto const brakerangemultiplier {
+                ( mvControlled->CoupledCtrl ?
+                    mvControlled->MainCtrlPosNo + mvControlled->ScndCtrlPosNo :
+                    mvControlled->MainCtrlPosNo )
+                / static_cast<double>(LocalBrakePosNo) };
+            ggJointCtrl.UpdateValue(
+                ( mvOccupied->LocalBrakePosA > 0.0 ? mvOccupied->LocalBrakePosA * LocalBrakePosNo * -1 * brakerangemultiplier :
+                  mvControlled->CoupledCtrl ? double( mvControlled->MainCtrlPos + mvControlled->ScndCtrlPos ) :
+                  double( mvControlled->MainCtrlPos ) ),
+                dsbNastawnikJazdy );
+            ggJointCtrl.Update();
+        }
+        if ( ggMainCtrl.SubModel != nullptr ) {
 
 #ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
@@ -5822,7 +5904,7 @@ bool TTrain::Update( double const Deltatime )
             ggBrakeCtrl.Update();
         }
 
-        if( ggLocalBrake.SubModel ) {
+        if( ggLocalBrake.SubModel != nullptr ) {
 #ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
@@ -6854,6 +6936,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             dsbReverserKey.offset( ggDirKey.model_offset() );
         }
         if( dsbNastawnikJazdy.offset() == nullvector ) {
+            dsbNastawnikJazdy.offset( ggJointCtrl.model_offset() );
+        }
+        if( dsbNastawnikJazdy.offset() == nullvector ) {
             dsbNastawnikJazdy.offset( ggMainCtrl.model_offset() );
         }
         if( dsbNastawnikBocz.offset() == nullvector ) {
@@ -7094,6 +7179,7 @@ void TTrain::clear_cab_controls()
 
     // other cab controls
     // TODO: arrange in more readable manner, and eventually refactor
+    ggJointCtrl.Clear();
     ggMainCtrl.Clear();
     ggMainCtrlAct.Clear();
     ggScndCtrl.Clear();
@@ -7729,6 +7815,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
 bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex) {
 
     std::unordered_map<std::string, TGauge &> const gauges = {
+        { "jointctrl:", ggJointCtrl },
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },
         { "dirkey:" , ggDirKey },

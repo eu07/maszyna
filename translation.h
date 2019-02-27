@@ -52,6 +52,7 @@ enum string {
     debug_vehicle_forcesaccelerationvelocityposition,
 
     cab_mainctrl,
+    cab_jointctrl,
     cab_scndctrl,
     cab_shuntmodepower,
     cab_dirkey,
