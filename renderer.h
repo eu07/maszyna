@@ -149,6 +149,7 @@ class opengl_renderer
 	bool Append(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type);
     // draws supplied geometry handles
     void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
+	void Draw_Geometry(const gfx::geometrybank_handle &handle);
 	// provides direct access to vertex data of specfied chunk
 	gfx::vertex_array const &Vertices(gfx::geometry_handle const &Geometry) const;
 	// material methods

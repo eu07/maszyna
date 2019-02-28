@@ -4,8 +4,20 @@
 #include "renderer.h"
 #include "Texture.h"
 #include "uilayer.h"
+#include "widgets/map_objects.h"
 
 namespace ui {
+
+class disambiguation_popup {
+	std::string m_id;
+	std::vector<map::semaphore> m_list;
+
+public:
+	disambiguation_popup(std::string &&id, std::vector<map::semaphore> &&list)
+	    : m_id(id), m_list(list) {}
+
+	void render();
+};
 
 class map_panel : public ui_panel {
 	std::unique_ptr<gl::program> m_shader;
@@ -30,6 +42,8 @@ class map_panel : public ui_panel {
 	void render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 surface_size);
 
 	bool init_done = false;
+
+	std::optional<map::semaphore> active;
 
 public:
 	map_panel();

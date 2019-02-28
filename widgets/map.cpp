@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "widgets/map.h"
+#include "widgets/map_objects.h"
 #include "imgui/imgui.h"
 #include "Logs.h"
 #include "Train.h"
@@ -108,9 +109,16 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 
 	GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
+	glLineWidth(3.0f);
+
 	scene_ubs.time = 0.6f; // color is stuffed in time variable
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
+
+	glPointSize(3.0f);
+	scene_ubs.time = 0.0f;
+	scene_ubo->update(scene_ubs);
+	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
 
 	if (Global.iMultisampling)
 		m_fb->blit_from(m_msaa_fb.get(), surface_size.x, surface_size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
@@ -143,12 +151,43 @@ void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 
 		ImGui::TextUnformatted(desc);
 	}
 	ImGui::PopStyleColor();
+
+	if (zoom > 0.005f) {
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 1.0f, 1.0f, 0.7f));
+		for (auto sem : map::Semaphores) {
+			glm::vec4 ndc_pos = transform * glm::vec4(sem->location, 1.0f);
+			if (glm::abs(ndc_pos.x) > 1.0f || glm::abs(ndc_pos.z) > 1.0f)
+				continue;
+
+			glm::vec2 gui_pos = (glm::vec2(ndc_pos.x, -ndc_pos.z) / 2.0f + 0.5f) * glm::vec2(surface_size.x, surface_size.y);
+
+			const char *desc = sem->name.c_str();
+			ImVec2 textsize = ImGui::CalcTextSize(desc);
+			ImGui::SetCursorPos(ImVec2(origin.x + gui_pos.x - textsize.x / 2.0f,
+			                           origin.y + gui_pos.y - textsize.y / 2.0f));
+			ImGui::TextUnformatted(desc);
+		}
+		ImGui::PopStyleColor();
+	}
 }
 
 void ui::map_panel::render_contents()
 {
 	if (!init_done)
 		return;
+
+	if (active) {
+		if (ImGui::BeginPopup("Sem")) {
+			for (auto ev : active->events)
+				if (ImGui::Button(ev->name().c_str())) {
+					active.reset();
+					command_relay relay;
+					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(ev), 0.0, GLFW_PRESS, 0);
+					break;
+				}
+			ImGui::EndPopup();
+		}
+	}
 
 	float prev_zoom = zoom;
 
@@ -238,14 +277,44 @@ void ui::map_panel::render_contents()
 			glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
 			glm::vec3 world_pos = glm::inverse(transform) * glm::vec4(ndc_pos.x, 0.0f, -ndc_pos.y, 1.0f);
 
-			std::vector<TEventLauncher *> launchers = simulation::Events.find_eventlaunchers(glm::vec2(world_pos.x, world_pos.z), 15.0f);
+			std::vector<TEventLauncher *> launchers = simulation::Events.find_eventlaunchers(glm::vec2(world_pos.x, world_pos.z), 10.0f);
 
+			float distx = 1000000.0f;
+
+			TEventLauncher *lau = nullptr;
 			for (auto launcher : launchers) {
+				float distance = glm::distance2(glm::vec2(launcher->location().x, launcher->location().z),
+				                                glm::vec2(world_pos.x, world_pos.z));
+				if (distance < distx) {
+					lau = launcher;
+					distx = distance;
+				}
+			}
+
+			if (lau) {
 				command_relay relay;
-				if (!Global.shiftState && launcher->Event1)
-					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(launcher->Event1), 0.0, GLFW_PRESS, 0);
-				else if (launcher->Event2)
-					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(launcher->Event2), 0.0, GLFW_PRESS, 0);
+				if (!Global.shiftState && lau->Event1)
+					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(lau->Event1), 0.0, GLFW_PRESS, 0);
+				else if (lau->Event2)
+					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(lau->Event2), 0.0, GLFW_PRESS, 0);
+			}
+
+			std::vector<std::shared_ptr<map::semaphore>> list;
+
+			for (auto entry : map::Semaphores) {
+				float distance = glm::distance2(glm::vec2(entry->location.x, entry->location.z),
+				                                glm::vec2(world_pos.x, world_pos.z));
+				if (distance < 100.0f) {
+					if (distance < distx) {
+						list.clear();
+						list.push_back(entry);
+						distx = distance;
+					}
+				}
+			}
+			if (!list.empty()) {
+				ImGui::OpenPopup("Sem");
+				active.emplace(*list[0].get());
 			}
 		}
 	}

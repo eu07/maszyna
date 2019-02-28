@@ -61,7 +61,7 @@ namespace gl
         void set_modelview(const glm::mat4 &mv)
         {
             modelview = mv;
-            modelviewnormal = glm::mat3(glm::transpose(glm::inverse(mv)));
+            modelviewnormal = glm::mat3x4(glm::mat3(glm::transpose(glm::inverse(mv))));
         }
     };
 
