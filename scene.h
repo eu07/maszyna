@@ -157,6 +157,7 @@ public:
 	    create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
 	void
 	    get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
+	TTrack *find_nearest_track_point(const glm::dvec3 &pos);
     // provides access to bounding area data
     bounding_area const &
         area() const {
@@ -289,9 +290,9 @@ public:
         area() const {
             return m_area; }
     const gfx::geometrybank_handle get_map_geometry()
-    {
-        return m_map_geometryhandle;
-    }
+	    { return m_map_geometryhandle;}
+	TTrack* find_nearest_track_point(const glm::dvec3 &pos)
+	    { return cell(pos).find_nearest_track_point(pos); }
 
 private:
 // types
@@ -406,11 +407,11 @@ public:
 	void
 	    create_map_geometry();
     basic_section* get_section(size_t section)
-    {
-        return m_sections[section];
-    }
+	    { return m_sections[section]; }
 	gfx::geometrybank_handle
 	    get_map_poi_geometry() { return m_map_poipoints; }
+	TTrack* find_nearest_track_point(const glm::dvec3 &pos)
+	    { return section(pos).find_nearest_track_point(pos); }
 
 private:
 // types
@@ -432,9 +433,9 @@ private:
     static
     bool
         RaTriangleDivider( shape_node &Shape, std::deque<shape_node> &Shapes );
-    // provides access to section enclosing specified point
-    basic_section &
-        section( glm::dvec3 const &Location );
+	// provides access to section enclosing specified point
+	basic_section &
+	    section( glm::dvec3 const &Location );
 
 // members
     section_array m_sections;

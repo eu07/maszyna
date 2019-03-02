@@ -134,6 +134,14 @@ void state_manager::process_commands() {
 			Events.AddToQuery(ev, nullptr);
 		}
 
+		if (commanddata.command == user_command::setlight) {
+			uint32_t id = commanddata.action;
+			int light = std::round(commanddata.param1);
+			float state = commanddata.param2;
+			if (id < simulation::Instances.sequence().size())
+				simulation::Instances.sequence()[id]->LightSet(light, state);
+		}
+
 		if (DebugModeFlag) {
 			if (commanddata.command == user_command::timejump) {
 				Time.update(commanddata.param1);

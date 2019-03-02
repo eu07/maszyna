@@ -79,6 +79,9 @@ init() {
         "Map",
         "Mode windows",
 
+	    "Straight |",
+	    "Divert /",
+
         "master controller",
         "second controller",
         "shunt mode power",
@@ -238,6 +241,9 @@ init() {
         u8"Log",
         u8"Mapa",
         u8"Okna trybu",
+
+	    u8"Prosto |",
+	    u8"W bok /",
 
         u8"nastawnik jazdy",
         u8"nastawnik dodatkowy",

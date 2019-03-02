@@ -33,6 +33,9 @@ public:
     // indicates creation of current group ended. returns: handle to the parent group or null_handle if group stack is empty
     group_handle
         close();
+	// update minimap objects
+	void
+	    update_map();
     // returns current active group, or null_handle if group stack is empty
     group_handle
         handle() const;

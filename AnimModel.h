@@ -121,6 +121,7 @@ public:
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
 	void LightSet( int const n, float const v );
+	std::optional<std::tuple<float, float, std::optional<glm::vec3> > > LightGet( int const n );
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
     int Flags();

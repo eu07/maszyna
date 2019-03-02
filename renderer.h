@@ -179,6 +179,7 @@ class opengl_renderer
     {
         return m_worldmousecoordinates;
     }
+	void Update_AnimModel(TAnimModel *model);
 	// maintenance methods
 	void Update(double const Deltatime);
     void Update_Pick_Control();
@@ -228,10 +229,34 @@ class opengl_renderer
 
 	struct renderpass_config
 	{
-
-		opengl_camera camera;
+		opengl_camera pass_camera;
+		opengl_camera viewport_camera;
 		rendermode draw_mode{rendermode::none};
 		float draw_range{0.0f};
+	};
+
+	struct viewport_data {
+		std::unique_ptr<gl::framebuffer> msaa_fb;
+		std::unique_ptr<gl::renderbuffer> msaa_rbc;
+		std::unique_ptr<gl::renderbuffer> msaa_rbv;
+		std::unique_ptr<gl::renderbuffer> msaa_rbd;
+
+		std::unique_ptr<gl::framebuffer> main_fb;
+		std::unique_ptr<opengl_texture> main_texv;
+		std::unique_ptr<opengl_texture> main_tex;
+
+		std::unique_ptr<gl::framebuffer> main2_fb;
+		std::unique_ptr<opengl_texture> main2_tex;
+
+		std::unique_ptr<gl::framebuffer> shadow_fb;
+		std::unique_ptr<opengl_texture> shadow_tex;
+
+		std::unique_ptr<gl::framebuffer> cabshadows_fb;
+		std::unique_ptr<opengl_texture> cabshadows_tex;
+
+		std::unique_ptr<gl::framebuffer> env_fb;
+		std::unique_ptr<gl::renderbuffer> env_rb;
+		std::unique_ptr<gl::cubemap> env_tex;
 	};
 
 	typedef std::vector<opengl_light> opengllight_array;
@@ -246,9 +271,9 @@ class opengl_renderer
     void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
 	// runs jobs needed to generate graphics for specified render pass
-	void Render_pass(rendermode const Mode);
+	void Render_pass(viewport_data &vp, rendermode const Mode);
 	// creates dynamic environment cubemap
-	bool Render_reflections();
+	bool Render_reflections(viewport_data &vp);
 	bool Render(world_environment *Environment);
 	void Render(scene::basic_region *Region);
 	void Render(section_sequence::iterator First, section_sequence::iterator Last);
@@ -276,6 +301,8 @@ class opengl_renderer
 	void Update_Lights(light_array &Lights);
 	glm::vec3 pick_color(std::size_t const Index);
 	std::size_t pick_index(glm::ivec3 const &Color);
+
+	bool init_viewport(viewport_data &vp);
 
     void draw(const gfx::geometry_handle &handle);
     void draw(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
@@ -323,6 +350,7 @@ class opengl_renderer
 	float m_fogrange = 2000.0f;
 
 	renderpass_config m_renderpass; // parameters for current render pass
+	viewport_data *m_current_viewport; // active viewport
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;
     renderpass_config m_colorpass; // parametrs of most recent color pass
@@ -367,39 +395,20 @@ class opengl_renderer
 
     std::unique_ptr<gl::vao> m_empty_vao;
 
-	std::unique_ptr<gl::framebuffer> m_msaa_fb;
-	std::unique_ptr<gl::renderbuffer> m_msaa_rbc;
-    std::unique_ptr<gl::renderbuffer> m_msaa_rbv;
-	std::unique_ptr<gl::renderbuffer> m_msaa_rbd;
+	viewport_data default_viewport;
 
-	std::unique_ptr<gl::framebuffer> m_main_fb;
-    std::unique_ptr<opengl_texture> m_main_texv;
-	std::unique_ptr<opengl_texture> m_main_tex;
+	std::unique_ptr<gl::postfx> m_pfx_motionblur;
+	std::unique_ptr<gl::postfx> m_pfx_tonemapping;
 
-    std::unique_ptr<gl::framebuffer> m_main2_fb;
-    std::unique_ptr<opengl_texture> m_main2_tex;
-
-    std::unique_ptr<gl::postfx> m_pfx_motionblur;
-    std::unique_ptr<gl::postfx> m_pfx_tonemapping;
-
-	std::unique_ptr<gl::framebuffer> m_shadow_fb;
-	std::unique_ptr<opengl_texture> m_shadow_tex;
 	std::unique_ptr<gl::program> m_shadow_shader;
-    std::unique_ptr<gl::program> m_alpha_shadow_shader;
+	std::unique_ptr<gl::program> m_alpha_shadow_shader;
 
 	std::unique_ptr<gl::framebuffer> m_pick_fb;
 	std::unique_ptr<opengl_texture> m_pick_tex;
 	std::unique_ptr<gl::renderbuffer> m_pick_rb;
 	std::unique_ptr<gl::program> m_pick_shader;
 
-    std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
-    std::unique_ptr<opengl_texture> m_cabshadows_tex;
-
-    std::unique_ptr<gl::framebuffer> m_env_fb;
-    std::unique_ptr<gl::renderbuffer> m_env_rb;
-    std::unique_ptr<gl::cubemap> m_env_tex;
-
-    std::unique_ptr<gl::cubemap> m_empty_cubemap;
+	std::unique_ptr<gl::cubemap> m_empty_cubemap;
 
     std::unique_ptr<gl::pbo> m_picking_pbo;
     std::unique_ptr<gl::pbo> m_picking_node_pbo;

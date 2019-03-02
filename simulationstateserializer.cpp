@@ -116,6 +116,7 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
         deserialize_firstinit( Input, Scratchpad );
     }
 
+	scene::Groups.update_map();
 	Region->create_map_geometry();
 
 	if( ( false == state->scratchpad.binary.terrain )

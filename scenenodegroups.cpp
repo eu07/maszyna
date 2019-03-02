@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "MemCell.h"
 
+#include "AnimModel.h"
 #include "widgets/map_objects.h"
 
 namespace scene {
@@ -32,29 +33,6 @@ node_groups::create() {
 scene::group_handle
 node_groups::close()
 {
-	if (!m_activegroup.empty()) {
-		for (basic_node *node : m_groupmap[m_activegroup.top()].nodes) {
-			std::string postfix { "sem_mem" };
-
-			if (typeid(TMemCell) == typeid(*node) && string_ends_with(node->name(), postfix)) {
-				std::string sem_name = node->name().substr(0, node->name().length() - postfix.length());
-
-				map::Semaphores.push_back(std::make_shared<map::semaphore>());
-				auto sem_info = map::Semaphores.back();
-
-				sem_info->location = node->location();
-				sem_info->name = sem_name;
-
-				for (basic_event *event : m_groupmap[m_activegroup.top()].events) {
-					if (string_starts_with(event->name(), sem_name)
-					        && event->name().substr(sem_name.length()).find("sem") == std::string::npos) {
-						sem_info->events.push_back(event);
-					}
-				}
-			}
-		}
-	}
-
     if( false == m_activegroup.empty() ) {
 
         auto const closinggroup { m_activegroup.top() };
@@ -73,6 +51,54 @@ node_groups::close()
     }
 
     return handle();
+}
+
+void
+node_groups::update_map()
+{
+	map::Objects.entries.clear();
+
+	for (auto const &pair : m_groupmap) {
+		auto const &group = pair.second;
+
+		for (basic_node *node : group.nodes) {
+			std::string postfix { "_sem_mem" };
+
+			if (typeid(*node) == typeid(TMemCell) && string_ends_with(node->name(), postfix)) {
+				std::string sem_name = node->name().substr(0, node->name().length() - postfix.length());
+
+				auto sem_info = std::make_shared<map::semaphore>();
+				map::Objects.entries.push_back(sem_info);
+
+				sem_info->location = node->location();
+				sem_info->name = sem_name;
+
+				for (basic_event *event : group.events) {
+					if (string_starts_with(event->name(), sem_name)
+					        && event->name().substr(sem_name.length()).find("sem") == std::string::npos) {
+						sem_info->events.push_back(event);
+					}
+				}
+
+				for (basic_node *node : group.nodes)
+					if (auto *model = dynamic_cast<TAnimModel*>(node))
+						if (string_starts_with(model->name(), sem_name))
+							sem_info->models.push_back(model);
+			}
+			if (TEventLauncher *launcher = dynamic_cast<TEventLauncher*>(node)) {
+				if (!launcher || !launcher->Event1 || !launcher->Event2)
+					continue;
+
+				auto track_switch = std::make_shared<map::track_switch>();
+				map::Objects.entries.push_back(track_switch);
+
+				track_switch->location = node->location();
+				track_switch->name = node->name();
+				track_switch->straight_event = launcher->Event1;
+				track_switch->divert_event = launcher->Event2;
+			}
+		}
+	}
 }
 
 // returns current active group, or null_handle if group stack is empty

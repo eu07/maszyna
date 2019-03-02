@@ -50,8 +50,15 @@ void ui_panel::render()
         ImGui::SetNextWindowSizeConstraints(ImVec2(size_min.x, size_min.y), ImVec2(size_max.x, size_max.y));
 
     auto const panelname{(title.empty() ? name : title) + "###" + name};
-    if (true == ImGui::Begin(panelname.c_str(), &is_open, flags))
+	if (ImGui::Begin(panelname.c_str(), &is_open, flags)) {
         render_contents();
+
+		popups.remove_if([](std::unique_ptr<ui::popup> &popup)
+		{
+			return popup->render();
+		});
+	}
+
     ImGui::End();
 }
 
@@ -61,6 +68,11 @@ void ui_panel::render_contents()
     {
         ImGui::TextColored(ImVec4(line.color.r, line.color.g, line.color.b, line.color.a), line.data.c_str());
     }
+}
+
+void ui_panel::register_popup(std::unique_ptr<ui::popup> &&popup)
+{
+	popups.push_back(std::move(popup));
 }
 
 void ui_expandable_panel::render_contents()
@@ -317,7 +329,7 @@ void ui_layer::render_panels()
 
 void ui_layer::render_tooltip()
 {
-    if (!m_cursorvisible || m_tooltip.empty())
+	if (!m_cursorvisible || m_imguiio->WantCaptureMouse || m_tooltip.empty())
         return;
 
     ImGui::BeginTooltip();

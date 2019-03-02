@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "Texture.h"
 #include "translation.h"
+#include "widgets/popup.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
@@ -48,10 +49,12 @@ public:
 	int window_flags = -1;
 
 	const std::string& get_name() { return name; }
+	void register_popup(std::unique_ptr<ui::popup> &&popup);
 
 protected:
 // members
     std::string name;
+	std::list<std::unique_ptr<ui::popup>> popups;
 };
 
 class ui_expandable_panel : public ui_panel {

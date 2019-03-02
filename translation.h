@@ -68,6 +68,9 @@ enum string {
     ui_map,
     ui_mode_windows,
 
+	map_straight,
+	map_divert,
+
     cab_mainctrl,
     cab_scndctrl,
     cab_shuntmodepower,

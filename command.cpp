@@ -236,6 +236,7 @@ commanddescription_sequence Commands_descriptions = {
     { "pausetoggle", command_target::simulation, command_mode::oneoff },
     { "entervehicle", command_target::simulation, command_mode::oneoff },
     { "queueevent", command_target::simulation, command_mode::oneoff },
+    { "setlight", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation

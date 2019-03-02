@@ -91,6 +91,30 @@ TSubModel::SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildre
     }
 }
 
+std::optional<glm::vec3>
+TSubModel::GetDiffuse(float Includesiblings) {
+	if (eType == TP_FREESPOTLIGHT) {
+		if (DiffuseOverride.x >= 0.0f)
+			return DiffuseOverride;
+		else
+			return glm::vec3(f4Diffuse);
+	}
+
+	if (Includesiblings) {
+		auto sibling = this;
+		while ((sibling = sibling->Next)) {
+			auto result = sibling->GetDiffuse(true);
+			if (result)
+				return result;
+		}
+	}
+
+	if (Child)
+		return Child->GetDiffuse(true);
+
+	return std::nullopt;
+}
+
 // sets visibility level (alpha component) to specified value
 void
 TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {

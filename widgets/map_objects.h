@@ -6,19 +6,35 @@
 
 namespace map {
 
-    // semaphore description (only for minimap purposes)
-    struct semaphore {
+    struct map_object {
 		std::string name;
 		glm::vec3 location;
+
+		virtual ~map_object() = default;
+	};
+
+	using object_list = std::vector<std::shared_ptr<map::map_object>>;
+	using sorted_object_list = std::map<float, std::shared_ptr<map::map_object>>;
+
+    // semaphore description (only for minimap purposes)
+	struct semaphore : public map_object {
+		std::vector<TAnimModel *> models;
 
 		std::vector<basic_event *> events;
 	};
 
 	// switch description (only for minimap purposes)
-	struct track_switch {
-		glm::vec3 location;
+	struct track_switch : public map_object {
+		basic_event *straight_event = nullptr;
+		basic_event *divert_event = nullptr;
 	};
 
-	extern std::vector<std::shared_ptr<semaphore>> Semaphores;
-	extern std::vector<std::shared_ptr<track_switch>> Switches;
+	struct objects {
+		std::vector<std::shared_ptr<map_object>> entries;
+
+		// returns objects in range from vec3, NaN in Y ignores it
+		sorted_object_list find_in_range(glm::vec3 from, float distance);
+	};
+
+	extern objects Objects;
 }

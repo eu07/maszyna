@@ -196,6 +196,8 @@ public:
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
     // sets rgb components of diffuse color override to specified value
     void SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildren = false, bool const Includesiblings = false );
+	// gets rgb components of any freespot diffuse color (searches also in children)
+	std::optional<glm::vec3> GetDiffuse(float Includesiblings = false);
     // sets visibility level (alpha component) to specified value
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value

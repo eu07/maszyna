@@ -230,6 +230,7 @@ enum class user_command {
 	pausetoggle,
 	entervehicle,
 	queueevent,
+	setlight,
 
     none = -1
 };

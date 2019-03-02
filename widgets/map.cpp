@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "simulation.h"
 #include "Driver.h"
+#include "AnimModel.h"
 
 ui::map_panel::map_panel() : ui_panel(LOC_STR(ui_map), false)
 {
@@ -115,8 +116,8 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
 
-	glPointSize(3.0f);
-	scene_ubs.time = 0.0f;
+	glPointSize(5.0f);
+	scene_ubs.time = 1.0f;
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
 
@@ -153,21 +154,7 @@ void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 
 	ImGui::PopStyleColor();
 
 	if (zoom > 0.005f) {
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 1.0f, 1.0f, 0.7f));
-		for (auto sem : map::Semaphores) {
-			glm::vec4 ndc_pos = transform * glm::vec4(sem->location, 1.0f);
-			if (glm::abs(ndc_pos.x) > 1.0f || glm::abs(ndc_pos.z) > 1.0f)
-				continue;
 
-			glm::vec2 gui_pos = (glm::vec2(ndc_pos.x, -ndc_pos.z) / 2.0f + 0.5f) * glm::vec2(surface_size.x, surface_size.y);
-
-			const char *desc = sem->name.c_str();
-			ImVec2 textsize = ImGui::CalcTextSize(desc);
-			ImGui::SetCursorPos(ImVec2(origin.x + gui_pos.x - textsize.x / 2.0f,
-			                           origin.y + gui_pos.y - textsize.y / 2.0f));
-			ImGui::TextUnformatted(desc);
-		}
-		ImGui::PopStyleColor();
 	}
 }
 
@@ -175,19 +162,6 @@ void ui::map_panel::render_contents()
 {
 	if (!init_done)
 		return;
-
-	if (active) {
-		if (ImGui::BeginPopup("Sem")) {
-			for (auto ev : active->events)
-				if (ImGui::Button(ev->name().c_str())) {
-					active.reset();
-					command_relay relay;
-					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(ev), 0.0, GLFW_PRESS, 0);
-					break;
-				}
-			ImGui::EndPopup();
-		}
-	}
 
 	float prev_zoom = zoom;
 
@@ -271,53 +245,169 @@ void ui::map_panel::render_contents()
 
 			translate -= delta * 2.0f;
 		}
-		if (ImGui::IsMouseClicked(1)) {
+		else {
 			ImVec2 screen_pos = ImGui::GetMousePos();
 			glm::vec2 surface_pos(screen_pos.x - screen_origin.x, screen_pos.y - screen_origin.y);
 			glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
 			glm::vec3 world_pos = glm::inverse(transform) * glm::vec4(ndc_pos.x, 0.0f, -ndc_pos.y, 1.0f);
 
-			std::vector<TEventLauncher *> launchers = simulation::Events.find_eventlaunchers(glm::vec2(world_pos.x, world_pos.z), 10.0f);
+			map::sorted_object_list objects =
+			        map::Objects.find_in_range(glm::vec3(world_pos.x, NAN, world_pos.z), 0.03f / zoom);
 
-			float distx = 1000000.0f;
+			if (ImGui::IsMouseClicked(1)) {
+				if (objects.size() > 1)
+					register_popup(std::make_unique<ui::disambiguation_popup>(*this, std::move(objects)));
+				else if (objects.size() == 1)
+					handle_map_object_click(*this, objects.begin()->second);
 
-			TEventLauncher *lau = nullptr;
-			for (auto launcher : launchers) {
-				float distance = glm::distance2(glm::vec2(launcher->location().x, launcher->location().z),
-				                                glm::vec2(world_pos.x, world_pos.z));
-				if (distance < distx) {
-					lau = launcher;
-					distx = distance;
+				TTrack *nearest = simulation::Region->find_nearest_track_point(world_pos);
+				if (nearest) {
+					WriteLog(nearest->name());
 				}
+				//scene::basic_section &clicked_section = simulation::Region->section(world_pos);
+				//clicked_section.
 			}
-
-			if (lau) {
-				command_relay relay;
-				if (!Global.shiftState && lau->Event1)
-					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(lau->Event1), 0.0, GLFW_PRESS, 0);
-				else if (lau->Event2)
-					relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(lau->Event2), 0.0, GLFW_PRESS, 0);
-			}
-
-			std::vector<std::shared_ptr<map::semaphore>> list;
-
-			for (auto entry : map::Semaphores) {
-				float distance = glm::distance2(glm::vec2(entry->location.x, entry->location.z),
-				                                glm::vec2(world_pos.x, world_pos.z));
-				if (distance < 100.0f) {
-					if (distance < distx) {
-						list.clear();
-						list.push_back(entry);
-						distx = distance;
-					}
-				}
-			}
-			if (!list.empty()) {
-				ImGui::OpenPopup("Sem");
-				active.emplace(*list[0].get());
+			else if (!objects.empty()) {
+				handle_map_object_hover(objects.begin()->second);
 			}
 		}
 	}
 
 	render_labels(transform, window_origin, surface_size);
+}
+
+void ui::handle_map_object_click(ui_panel &parent, std::shared_ptr<map::map_object> &obj)
+{
+	if (auto sem = std::dynamic_pointer_cast<map::semaphore>(obj)) {
+		parent.register_popup(std::make_unique<semaphore_window>(parent, std::move(sem)));
+	}
+	else if (auto track = std::dynamic_pointer_cast<map::track_switch>(obj)) {
+		parent.register_popup(std::make_unique<switch_window>(parent, std::move(track)));
+	}
+}
+
+void ui::handle_map_object_hover(std::shared_ptr<map::map_object> &obj)
+{
+	ImGui::BeginTooltip();
+
+	if (auto sem = std::dynamic_pointer_cast<map::semaphore>(obj)) {
+		for (auto &model : sem->models) {
+			ImGui::PushID(model);
+			ImGui::TextUnformatted(model->name().c_str());
+
+			for (int i = 0; i < iMaxNumLights; i++) {
+				GfxRenderer.Update_AnimModel(model); // update lamp opacities
+				auto state = model->LightGet(i);
+				if (!state)
+					continue;
+
+				glm::vec3 current_color = std::get<2>(*state).value_or(glm::vec3(0.5f)) * std::get<1>(*state);
+				if (std::get<0>(*state) < 0.0f)
+					continue;
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(current_color.x, current_color.y, current_color.z, 1.0f));
+
+				std::string res = "  ##" + std::to_string(i);
+				ImGui::Button(res.c_str());
+
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::PopID();
+		}
+	}
+	else if (auto sw = std::dynamic_pointer_cast<map::track_switch>(obj)) {
+		ImGui::TextUnformatted(sw->name.c_str());
+	}
+
+	ImGui::EndTooltip();
+}
+
+ui::disambiguation_popup::disambiguation_popup(ui_panel &panel, map::sorted_object_list &&list)
+    : popup(panel), m_list(list) { }
+
+void ui::disambiguation_popup::render_content()
+{
+	for (auto &item : m_list) {
+		if (ImGui::Button(item.second->name.c_str())) {
+			ImGui::CloseCurrentPopup();
+
+			handle_map_object_click(m_parent, item.second);
+		}
+	}
+}
+
+ui::semaphore_window::semaphore_window(ui_panel &panel, std::shared_ptr<map::semaphore> &&sem)
+    : popup(panel), m_sem(sem) { }
+
+void ui::semaphore_window::render_content()
+{
+	for (auto &model : m_sem->models) {
+		ImGui::PushID(model);
+		ImGui::TextUnformatted(model->name().c_str());
+
+		for (int i = 0; i < iMaxNumLights; i++) {
+			GfxRenderer.Update_AnimModel(model); // update lamp opacities
+			auto state = model->LightGet(i);
+			if (!state)
+				continue;
+
+			glm::vec3 lamp_color = std::get<2>(*state).value_or(glm::vec3(0.5f));
+			glm::vec3 current_color = lamp_color * std::get<1>(*state);
+			float level = std::get<0>(*state);
+
+			if (level < 0.0f)
+				continue;
+
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(lamp_color.x, lamp_color.y, lamp_color.z, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(current_color.x, current_color.y, current_color.z, 1.0f));
+
+			std::string res = "  ##" + std::to_string(i);
+			if (ImGui::Button(res.c_str())) {
+				level += 1.0f;
+				if (level >= 3.0f)
+					level = 0.0f;
+
+				int id = simulation::Instances.find_id(model->name());
+				m_relay.post(user_command::setlight, (double)i, level, id, 0);
+			}
+
+			ImGui::PopStyleColor(2);
+		}
+
+		ImGui::PopID();
+	}
+
+	ImGui::Separator();
+
+	for (auto &item : m_sem->events) {
+		std::string displayname = item->name().substr(m_sem->name.size());
+
+		if (displayname.size() < 2)
+			continue;
+
+		displayname[1] = std::toupper(displayname[1]);
+
+		if (ImGui::Button(displayname.c_str())) {
+			m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(item), 0.0, GLFW_PRESS, 0);
+		}
+	}
+}
+
+ui::switch_window::switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw)
+    : popup(panel), m_switch(sw) { }
+
+void ui::switch_window::render_content()
+{
+	ImGui::TextUnformatted(m_switch->name.c_str());
+
+	if (ImGui::Button(LOC_STR(map_straight))) {
+		m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(m_switch->straight_event), 0.0, GLFW_PRESS, 0);
+		ImGui::CloseCurrentPopup();
+	}
+
+	if (ImGui::Button(LOC_STR(map_divert))) {
+		m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(m_switch->divert_event), 0.0, GLFW_PRESS, 0);
+		ImGui::CloseCurrentPopup();
+	}
 }

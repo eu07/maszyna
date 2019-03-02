@@ -5,18 +5,37 @@
 #include "Texture.h"
 #include "uilayer.h"
 #include "widgets/map_objects.h"
+#include "widgets/popup.h"
 
 namespace ui {
 
-class disambiguation_popup {
-	std::string m_id;
-	std::vector<map::semaphore> m_list;
+class disambiguation_popup : public popup {
+	map::sorted_object_list m_list;
 
 public:
-	disambiguation_popup(std::string &&id, std::vector<map::semaphore> &&list)
-	    : m_id(id), m_list(list) {}
+	disambiguation_popup(ui_panel &panel, map::sorted_object_list &&list);
 
-	void render();
+	virtual void render_content() override;
+};
+
+class semaphore_window : public popup {
+	std::shared_ptr<map::semaphore> m_sem;
+	command_relay m_relay;
+
+public:
+	semaphore_window(ui_panel &panel, std::shared_ptr<map::semaphore> &&sem);
+
+	virtual void render_content() override;
+};
+
+class switch_window : public popup {
+	std::shared_ptr<map::track_switch> m_switch;
+	command_relay m_relay;
+
+public:
+	switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw);
+
+	virtual void render_content() override;
 };
 
 class map_panel : public ui_panel {
@@ -50,4 +69,6 @@ public:
 	void render_contents() override;
 };
 
+void handle_map_object_click(ui_panel &parent, std::shared_ptr<map::map_object> &obj);
+void handle_map_object_hover(std::shared_ptr<map::map_object> &obj);
 }

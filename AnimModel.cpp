@@ -591,6 +591,24 @@ void TAnimModel::LightSet(int const n, float const v)
     lsLights[ n ] = v;
 };
 
+std::optional<std::tuple<float, float, std::optional<glm::vec3>> > TAnimModel::LightGet(const int n)
+{
+	if (n >= iMaxNumLights)
+		return std::nullopt;
+	if (!LightsOn[n] && !LightsOff[n])
+		return std::nullopt;
+
+	std::optional<glm::vec3> color;
+
+	if (m_lightcolors[n].r >= 0.0f)
+		color.emplace(m_lightcolors[n]);
+
+	if (!color && LightsOn[n])
+		color = LightsOn[n]->GetDiffuse();
+
+	return std::make_tuple(lsLights[n], m_lightopacities[n], color);
+}
+
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
     TAnimContainer *p = TAnimModel::acAnimList;

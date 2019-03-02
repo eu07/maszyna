@@ -624,6 +624,24 @@ void basic_cell::get_map_active_switches(std::vector<gfx::geometrybank_handle> &
 		path->get_map_active_switches(handles);
 }
 
+TTrack* basic_cell::find_nearest_track_point(const glm::dvec3 &pos)
+{
+	float min = std::numeric_limits<float>::max();
+	TTrack *nearest = nullptr;
+
+	for (auto *path : m_paths) {
+		for (auto &ep : path->endpoints()) {
+			float dist2 = glm::distance2(ep, pos);
+			if (dist2 < min) {
+				min = dist2;
+				nearest = path;
+			}
+		}
+	}
+
+	return nearest;
+}
+
 // executes event assigned to specified launcher
 void
 basic_cell::launch_event( TEventLauncher *Launcher, bool local_only ) {
@@ -1671,12 +1689,13 @@ void basic_region::create_map_geometry()
                 s->create_map_geometry(m_map_geometrybank);
         }
 
-	std::vector<gfx::basic_vertex> vertices;
-	for (const auto sem : map::Semaphores) {
-		vertices.push_back(gfx::basic_vertex(sem->location, glm::vec3(), glm::vec3()));
+	std::vector<gfx::basic_vertex> poi_vertices;
+	for (const auto sem : map::Objects.entries) {
+		poi_vertices.push_back(gfx::basic_vertex(sem->location, glm::vec3(), glm::vec3()));
 	}
+
 	gfx::geometrybank_handle poibank = GfxRenderer.Create_Bank();
-	m_map_poipoints = GfxRenderer.Insert(vertices, poibank, GL_POINTS);
+	m_map_poipoints = GfxRenderer.Insert(poi_vertices, poibank, GL_POINTS);
 }
 
 } // scene
