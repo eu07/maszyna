@@ -384,8 +384,8 @@ std::shared_ptr<TAnimContainer> TAnimModel::AddContainer(std::string const &Name
 
 std::shared_ptr<TAnimContainer> TAnimModel::GetContainer(std::string const &Name)
 { // szukanie/dodanie sterowania submodelem dla egzemplarza
-    if (true == Name.empty())
-		return m_animlist.front(); // pobranie pierwszego (dla obrotnicy)
+	if (true == Name.empty())
+		return (!m_animlist.empty()) ? m_animlist.front() : nullptr; // pobranie pierwszego (dla obrotnicy)
 
 	for (auto entry : m_animlist) {
 		if (entry->NameGet() == Name)
