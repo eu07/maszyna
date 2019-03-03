@@ -71,3 +71,4 @@ ref/
 *.aps
 
 builds/
+/gitignore
