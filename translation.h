@@ -30,6 +30,7 @@ enum string {
     driver_timetable_header,
     driver_timetable_time,
     driver_timetable_notimetable,
+    driver_timetable_consistdata,
 
     driver_transcripts_header,
 
@@ -51,6 +52,7 @@ enum string {
     debug_vehicle_forcesaccelerationvelocityposition,
 
     cab_mainctrl,
+    cab_jointctrl,
     cab_scndctrl,
     cab_shuntmodepower,
     cab_dirkey,
@@ -88,6 +90,7 @@ enum string {
     cab_stlinoff_bt,
     cab_doorleftpermit_sw,
     cab_doorrightpermit_sw,
+    cab_doorpermitpreset_sw,
     cab_door_left_sw,
     cab_door_right_sw,
     cab_doorlefton_sw,
@@ -96,6 +99,7 @@ enum string {
     cab_doorrightoff_sw,
     cab_doorallon_sw,
     cab_dooralloff_sw,
+    cab_doorstep_sw,
     cab_departure_signal_bt,
     cab_upperlight_sw,
     cab_leftlight_sw,

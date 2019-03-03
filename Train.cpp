@@ -138,28 +138,17 @@ TButton &TCab::Button(int n)
     }
 };
 
-void TCab::Update()
+void TCab::Update( bool const Power )
 { // odczyt parametrów i ustawienie animacji submodelom
-/*
-    int i;
-    for (i = 0; i < iGauges; ++i)
-    { // animacje izometryczne
-        ggList[i].UpdateValue(); // odczyt parametru i przeliczenie na kąt
-        ggList[i].Update(); // ustawienie animacji
-    }
-    for (i = 0; i < iButtons; ++i)
-    { // animacje dwustanowe
-        btList[i].Update(); // odczyt parametru i wybór submodelu
-    }
-*/
     for( auto &gauge : ggList ) {
         // animacje izometryczne
         gauge.UpdateValue(); // odczyt parametru i przeliczenie na kąt
         gauge.Update(); // ustawienie animacji
     }
+
     for( auto &button : btList ) {
         // animacje dwustanowe
-        button.Update(); // odczyt parametru i wybór submodelu
+        button.Update( Power ); // odczyt parametru i wybór submodelu
     }
 };
 
@@ -169,6 +158,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 
     { user_command::aidriverenable, &TTrain::OnCommand_aidriverenable },
     { user_command::aidriverdisable, &TTrain::OnCommand_aidriverdisable },
+    { user_command::jointcontrollerset, &TTrain::OnCommand_jointcontrollerset },
     { user_command::mastercontrollerincrease, &TTrain::OnCommand_mastercontrollerincrease },
     { user_command::mastercontrollerincreasefast, &TTrain::OnCommand_mastercontrollerincreasefast },
     { user_command::mastercontrollerdecrease, &TTrain::OnCommand_mastercontrollerdecrease },
@@ -325,12 +315,15 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
     { user_command::doorpermitleft, &TTrain::OnCommand_doorpermitleft },
     { user_command::doorpermitright, &TTrain::OnCommand_doorpermitright },
+    { user_command::doorpermitpresetactivatenext, &TTrain::OnCommand_doorpermitpresetactivatenext },
+    { user_command::doorpermitpresetactivateprevious, &TTrain::OnCommand_doorpermitpresetactivateprevious },
     { user_command::dooropenleft, &TTrain::OnCommand_dooropenleft },
     { user_command::dooropenright, &TTrain::OnCommand_dooropenright },
     { user_command::doorcloseleft, &TTrain::OnCommand_doorcloseleft },
     { user_command::doorcloseright, &TTrain::OnCommand_doorcloseright },
     { user_command::dooropenall, &TTrain::OnCommand_dooropenall },
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
+    { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -765,12 +758,49 @@ void TTrain::OnCommand_aidriverdisable( TTrain *Train, command_data const &Comma
 auto const EU07_CONTROLLER_BASERETURNDELAY { 0.5f };
 auto const EU07_CONTROLLER_KEYBOARDETURNDELAY { 1.5f };
 
+void TTrain::OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        // value controls brake in range 0-0.5, master controller in range 0.5-1.0
+        if( Command.param1 >= 0.5 ) {
+            Train->set_master_controller( 
+                ( Command.param1 * 2 - 1 )
+                * ( Train->mvControlled->CoupledCtrl ?
+                        Train->mvControlled->MainCtrlPosNo + Train->mvControlled->ScndCtrlPosNo :
+                        Train->mvControlled->MainCtrlPosNo ) );
+            Train->m_mastercontrollerinuse = true;
+            Train->mvOccupied->LocalBrakePosA = 0;
+        }
+        else {
+            Train->mvOccupied->LocalBrakePosA = (
+                clamp(
+                    1.0 - ( Command.param1 * 2 ),
+                    0.0, 1.0 ) );
+            if( Train->mvControlled->MainCtrlPos > 0 ) {
+                Train->set_master_controller( 0 );
+            }
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_BASERETURNDELAY; // NOTE: keyboard return delay is omitted for other input sources
+    }
+}
+
 void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->IncMainCtrl( 1 );
-        Train->m_mastercontrollerinuse = true;
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+            OnCommand_independentbrakedecrease( Train, Command );
+        }
+        else {
+            Train->mvControlled->IncMainCtrl( 1 );
+            Train->m_mastercontrollerinuse = true;
+        }
     }
     else {
         // release
@@ -783,7 +813,19 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->IncMainCtrl( 2 );
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+            OnCommand_independentbrakedecreasefast( Train, Command );
+        }
+        else {
+            Train->mvControlled->IncMainCtrl( 2 );
+            Train->m_mastercontrollerinuse = true;
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -791,8 +833,14 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->DecMainCtrl( 1 );
-        Train->m_mastercontrollerinuse = true;
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+            OnCommand_independentbrakeincrease( Train, Command );
+        }
+        else {
+            Train->mvControlled->DecMainCtrl( 1 );
+            Train->m_mastercontrollerinuse = true;
+        }
     }
     else {
         // release
@@ -805,7 +853,19 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Train->mvControlled->DecMainCtrl( 2 );
+        if( ( Train->ggJointCtrl.SubModel != nullptr )
+         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+            OnCommand_independentbrakeincreasefast( Train, Command );
+        }
+        else {
+            Train->mvControlled->DecMainCtrl( 2 );
+            Train->m_mastercontrollerinuse = true;
+        }
+    }
+    else {
+        // release
+        Train->m_mastercontrollerinuse = false;
+        Train->m_mastercontrollerreturndelay = EU07_CONTROLLER_KEYBOARDETURNDELAY + EU07_CONTROLLER_BASERETURNDELAY;
     }
 }
 
@@ -989,7 +1049,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
 
     if( Command.action != GLFW_RELEASE ) {
 
-        Train->mvControlled->LocalBrakePosA = (
+        Train->mvOccupied->LocalBrakePosA = (
             clamp(
                 Command.param1,
                 0.0, 1.0 ) );
@@ -4237,6 +4297,27 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
     }
 }
 
+void TTrain::OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->ChangeDoorPermitPreset( 1 );
+        // visual feedback
+        Train->ggDoorPermitPresetButton.UpdateValue( Train->mvOccupied->Doors.permit_preset, Train->dsbSwitch );
+    }
+}
+
+void TTrain::OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        Train->mvOccupied->ChangeDoorPermitPreset( -1 );
+        // visual feedback
+        Train->ggDoorPermitPresetButton.UpdateValue( Train->mvOccupied->Doors.permit_preset, Train->dsbSwitch );
+    }
+}
+
+
 void TTrain::OnCommand_dooropenleft( TTrain *Train, command_data const &Command ) {
 
     auto const remoteopencontrol {
@@ -4575,6 +4656,13 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
     }
 }
 
+void TTrain::OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+    }
+}
+
 void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
@@ -4844,11 +4932,11 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
         if( false == Train->CabChange( 1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::front ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->PrevConnected;
+                Global.changeDynObj = Train->DynamicObject->PrevConnected();
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->PrevConnectedNo ?
-                    -1 :
-                     1 );
+                    Train->DynamicObject->MoverParameters->Neighbours[end::front].vehicle_end ?
+                        -1 :
+                         1 );
             }
         }
     }
@@ -4860,11 +4948,11 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
         if( false == Train->CabChange( -1 ) ) {
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::rear ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->NextConnected;
+                Global.changeDynObj = Train->DynamicObject->NextConnected();
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->NextConnectedNo ?
-                    -1 :
-                     1 );
+                    Train->DynamicObject->MoverParameters->Neighbours[end::rear].vehicle_end ?
+                        -1 :
+                         1 );
             }
         }
     }
@@ -5237,14 +5325,14 @@ bool TTrain::Update( double const Deltatime )
         {
             TDynamicObject *tmp;
             tmp = NULL;
-            if (DynamicObject->NextConnected)
+            if (DynamicObject->NextConnected())
                 if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == 1))
-                    tmp = DynamicObject->NextConnected;
-            if (DynamicObject->PrevConnected)
+                    tmp = DynamicObject->NextConnected();
+            if (DynamicObject->PrevConnected())
                 if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == -1))
-                    tmp = DynamicObject->PrevConnected;
+                    tmp = DynamicObject->PrevConnected();
             if( tmp ) {
                 if( tmp->MoverParameters->Power > 0 ) {
                     if( ggI1B.SubModel ) {
@@ -5285,7 +5373,7 @@ bool TTrain::Update( double const Deltatime )
             ggClockHInd.Update();
         }
 
-        Cabine[iCabn].Update(); // nowy sposób ustawienia animacji
+        Cabine[iCabn].Update( mvControlled->Battery || mvControlled->ConverterFlag ); // nowy sposób ustawienia animacji
         if (ggZbS.SubModel)
         {
             ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
@@ -5645,10 +5733,10 @@ bool TTrain::Update( double const Deltatime )
             tmp = NULL;
             if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
                 (mvOccupied->ActiveCab > 0))
-                tmp = DynamicObject->NextConnected;
+                tmp = DynamicObject->NextConnected();
             if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
                 (mvOccupied->ActiveCab < 0))
-                tmp = DynamicObject->PrevConnected;
+                tmp = DynamicObject->PrevConnected();
 
             if (tmp)
                 if ( mvControlled->Battery || mvControlled->ConverterFlag ) {
@@ -5715,7 +5803,21 @@ bool TTrain::Update( double const Deltatime )
                 }
         }
         // McZapkie-080602: obroty (albo translacje) regulatorow
-        if (ggMainCtrl.SubModel) {
+        if( ggJointCtrl.SubModel != nullptr ) {
+            // joint master controller moves forward to adjust power and backward to adjust brakes
+            auto const brakerangemultiplier {
+                ( mvControlled->CoupledCtrl ?
+                    mvControlled->MainCtrlPosNo + mvControlled->ScndCtrlPosNo :
+                    mvControlled->MainCtrlPosNo )
+                / static_cast<double>(LocalBrakePosNo) };
+            ggJointCtrl.UpdateValue(
+                ( mvOccupied->LocalBrakePosA > 0.0 ? mvOccupied->LocalBrakePosA * LocalBrakePosNo * -1 * brakerangemultiplier :
+                  mvControlled->CoupledCtrl ? double( mvControlled->MainCtrlPos + mvControlled->ScndCtrlPos ) :
+                  double( mvControlled->MainCtrlPos ) ),
+                dsbNastawnikJazdy );
+            ggJointCtrl.Update();
+        }
+        if ( ggMainCtrl.SubModel != nullptr ) {
 
 #ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
@@ -5802,7 +5904,7 @@ bool TTrain::Update( double const Deltatime )
             ggBrakeCtrl.Update();
         }
 
-        if( ggLocalBrake.SubModel ) {
+        if( ggLocalBrake.SubModel != nullptr ) {
 #ifdef _WIN32
             if( ( DynamicObject->Mechanik != nullptr )
              && ( false == DynamicObject->Mechanik->AIControllFlag ) // nie blokujemy AI
@@ -5839,6 +5941,7 @@ bool TTrain::Update( double const Deltatime )
         // NBMX wrzesien 2003 - drzwi
         ggDoorLeftPermitButton.Update();
         ggDoorRightPermitButton.Update();
+        ggDoorPermitPresetButton.Update();
         ggDoorLeftButton.Update();
         ggDoorRightButton.Update();
         ggDoorLeftOnButton.Update();
@@ -5869,11 +5972,12 @@ bool TTrain::Update( double const Deltatime )
             InstrumentLightType == 1 ? mvControlled->Mains :
             InstrumentLightType == 2 ? mvControlled->ConverterFlag :
             InstrumentLightType == 3 ? mvControlled->Battery || mvControlled->ConverterFlag :
+            InstrumentLightType == 4 ? mvControlled->Battery || mvControlled->ConverterFlag :
             false ) };
-        if( InstrumentLightType == 3 ) {
-            // TODO: link the light state with the state of the master key
-            InstrumentLightActive = true;
-        }
+        InstrumentLightActive = (
+            InstrumentLightType == 3 ? true : // TODO: link the light state with the state of the master key
+            InstrumentLightType == 4 ? ( mvOccupied->iLights[end::front] != 0 ) || ( mvOccupied->iLights[end::rear] != 0 ) :
+            InstrumentLightActive );
         btInstrumentLight.Turn( InstrumentLightActive && lightpower );
         btDashboardLight.Turn( DashboardLightActive && lightpower );
         btTimetableLight.Turn( TimetableLightActive && lightpower );
@@ -6245,7 +6349,10 @@ TTrain::update_sounds( double const Deltatime ) {
          || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
 
             if( false == dsbBuzzer.is_playing() ) {
-                dsbBuzzer.play( sound_flags::looping );
+                dsbBuzzer
+                    .pitch( dsbBuzzer.m_frequencyoffset + dsbBuzzer.m_frequencyfactor )
+                    .gain( dsbBuzzer.m_amplitudeoffset + dsbBuzzer.m_amplitudefactor )
+                    .play( sound_flags::looping );
                 Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
             }
         }
@@ -6270,9 +6377,10 @@ TTrain::update_sounds( double const Deltatime ) {
         auto const frequency { (
             true == dsbHasler.is_combined() ?
                 fTachoVelocity * 0.01 :
-                1.0 ) };
+                dsbHasler.m_frequencyoffset + dsbHasler.m_frequencyfactor ) };
         dsbHasler
             .pitch( frequency )
+            .gain( dsbHasler.m_amplitudeoffset + dsbHasler.m_amplitudefactor )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else if( fTachoCount < 1.f ) {
@@ -6828,6 +6936,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             dsbReverserKey.offset( ggDirKey.model_offset() );
         }
         if( dsbNastawnikJazdy.offset() == nullvector ) {
+            dsbNastawnikJazdy.offset( ggJointCtrl.model_offset() );
+        }
+        if( dsbNastawnikJazdy.offset() == nullvector ) {
             dsbNastawnikJazdy.offset( ggMainCtrl.model_offset() );
         }
         if( dsbNastawnikBocz.offset() == nullvector ) {
@@ -6925,26 +7036,25 @@ void TTrain::DynamicSet(TDynamicObject *d)
     mvOccupied = mvControlled = d ? DynamicObject->MoverParameters : NULL; // albo silnikowy w EZT
     if (!DynamicObject)
         return;
-    if (mvControlled->TrainType & dt_EZT) // na razie dotyczy to EZT
-        if (DynamicObject->NextConnected ? mvControlled->Couplers[1].AllowedFlag & ctrain_depot :
-                                           false)
-        { // gdy jest człon od sprzęgu 1, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((mvControlled->Power < 1.0) && (mvControlled->Couplers[1].Connected->Power >
-                                                1.0)) // my nie mamy mocy, ale ten drugi ma
-                mvControlled =
-                    DynamicObject->NextConnected->MoverParameters; // będziemy sterować tym z mocą
+    // TODO: leverage code already present in TDynamicObject::ControlledFind()
+    if( ( d->MoverParameters->TrainType == dt_EZT )
+     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
+
+        if( ( d->NextConnected() != nullptr )
+         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
+            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 1 ].Connected->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
+                mvControlled = DynamicObject->NextConnected()->MoverParameters; // będziemy sterować tym z mocą
+            }
         }
-        else if (DynamicObject->PrevConnected ?
-                     mvControlled->Couplers[0].AllowedFlag & ctrain_depot :
-                     false)
-        { // gdy jest człon od sprzęgu 0, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((mvControlled->Power < 1.0) && (mvControlled->Couplers[0].Connected->Power >
-                                                1.0)) // my nie mamy mocy, ale ten drugi ma
-                mvControlled =
-                    DynamicObject->PrevConnected->MoverParameters; // będziemy sterować tym z mocą
+        else if( ( d->PrevConnected() != nullptr )
+              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
+            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 0 ].Connected->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
+                mvControlled = DynamicObject->PrevConnected()->MoverParameters; // będziemy sterować tym z mocą
+            }
         }
+    }
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?
@@ -7069,6 +7179,7 @@ void TTrain::clear_cab_controls()
 
     // other cab controls
     // TODO: arrange in more readable manner, and eventually refactor
+    ggJointCtrl.Clear();
     ggMainCtrl.Clear();
     ggMainCtrlAct.Clear();
     ggScndCtrl.Clear();
@@ -7116,6 +7227,7 @@ void TTrain::clear_cab_controls()
     ggRadioTest.Clear();
     ggDoorLeftPermitButton.Clear();
     ggDoorRightPermitButton.Clear();
+    ggDoorPermitPresetButton.Clear();
     ggDoorLeftButton.Clear();
     ggDoorRightButton.Clear();
     ggDoorLeftOnButton.Clear();
@@ -7429,6 +7541,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             0.f ) );
     // doors
     // NOTE: for the time being permit switches are presumed to be impulse switches
+    ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
     ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
     ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
     // door lock
@@ -7648,7 +7761,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool *> const autolights = {
         { "i-doorpermit_left:", &mvOccupied->Doors.instances[side::left].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit }
+        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit },
+        { "i-doorstep:", &mvOccupied->Doors.step_enabled }
     };
     {
         auto lookup = autolights.find( Label );
@@ -7676,6 +7790,10 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         btInstrumentLight.Load( Parser, DynamicObject );
         InstrumentLightType = 3;
     }
+    else if( Label == "i-instrumentlight_l:" ) {
+        btInstrumentLight.Load( Parser, DynamicObject );
+        InstrumentLightType = 4;
+    }
     else if (Label == "i-doors:")
     {
         int i = Parser.getToken<int>() - 1;
@@ -7697,6 +7815,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
 bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex) {
 
     std::unordered_map<std::string, TGauge &> const gauges = {
+        { "jointctrl:", ggJointCtrl },
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },
         { "dirkey:" , ggDirKey },
@@ -7725,6 +7844,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "stlinoff_bt:", ggStLinOffButton },
         { "doorleftpermit_sw:", ggDoorLeftPermitButton },
         { "doorrightpermit_sw:", ggDoorRightPermitButton },
+        { "doorpermitpreset_sw:", ggDoorPermitPresetButton },
         { "door_left_sw:", ggDoorLeftButton },
         { "door_right_sw:", ggDoorRightButton },
         { "doorlefton_sw:", ggDoorLeftOnButton },
@@ -7800,14 +7920,31 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal8:", ggUniversals[ 8 ] },
         { "universal9:", ggUniversals[ 9 ] }
     };
-    auto lookup = gauges.find( Label );
-    if( lookup != gauges.end() ) {
-        lookup->second.Load( Parser, DynamicObject);
-        m_controlmapper.insert( lookup->second, lookup->first );
-        return true;
+    {
+        auto lookup = gauges.find( Label );
+        if( lookup != gauges.end() ) {
+            lookup->second.Load( Parser, DynamicObject );
+            m_controlmapper.insert( lookup->second, lookup->first );
+            return true;
+        }
     }
+    // TODO: move viable dedicated gauges to the automatic array
+    std::unordered_map<std::string, bool *> const autoboolgauges = {
+        { "doorstep_sw:", &mvOccupied->Doors.step_enabled }
+    };
+    {
+        auto lookup = autoboolgauges.find( Label );
+        if( lookup != autoboolgauges.end() ) {
+            auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna lampka
+            gauge.Load( Parser, DynamicObject );
+            gauge.AssignBool( lookup->second );
+            m_controlmapper.insert( gauge, lookup->first );
+            return true;
+        }
+    }
+
     // ABu 090305: uniwersalne przyciski lub inne rzeczy
-    else if( Label == "mainctrlact:" ) {
+    if( Label == "mainctrlact:" ) {
         ggMainCtrlAct.Load( Parser, DynamicObject);
     }
     // SEKCJA WSKAZNIKOW
@@ -7996,6 +8133,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
                 ggClockHInd.Init( DynamicObject->mdKabina->GetFromName( "ClockHhand" ), TGaugeAnimation::gt_Rotate, 1.0 / 12.0 );
             }
         }
+    }
+    else if( Label == "clock_seconds:" ) {
+        ggClockSInd.Load( Parser, DynamicObject );
     }
     else if (Label == "evoltage:")
     {

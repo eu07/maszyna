@@ -32,7 +32,7 @@ class TCab {
 public:
 // methods
     void Load(cParser &Parser);
-    void Update();
+    void Update( bool const Power );
     TGauge &Gauge( int n = -1 ); // pobranie adresu obiektu
     TButton &Button( int n = -1 ); // pobranie adresu obiektu
 // members
@@ -51,7 +51,7 @@ public:
 
 private:
 // members
-    std::vector<TGauge> ggList;
+    std::deque<TGauge> ggList; // need a container which doesn't invalidate references
     std::vector<TButton> btList;
 };
 
@@ -155,6 +155,7 @@ class TTrain
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
     static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
     static void OnCommand_aidriverdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_mastercontrollerdecrease( TTrain *Train, command_data const &Command );
@@ -315,12 +316,15 @@ class TTrain
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorpermitleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doorpermitright( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivatenext( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorpermitpresetactivateprevious( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenleft( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenright( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseright( TTrain *Train, command_data const &Command );
     static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
@@ -369,6 +373,7 @@ public: // reszta może by?publiczna
     TGauge ggWater1TempB;
 
     // McZapkie: definicje regulatorow
+    TGauge ggJointCtrl;
     TGauge ggMainCtrl;
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
@@ -445,6 +450,7 @@ public: // reszta może by?publiczna
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftPermitButton;
     TGauge ggDoorRightPermitButton;
+    TGauge ggDoorPermitPresetButton;
     TGauge ggDoorLeftButton;
     TGauge ggDoorRightButton;
     TGauge ggDoorLeftOnButton;
@@ -517,7 +523,7 @@ public: // reszta może by?publiczna
     TButton btInstrumentLight;
     TButton btDashboardLight;
     TButton btTimetableLight;
-    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad
+    int InstrumentLightType{ 0 }; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw., 3-rozrzad, 4-external lights
     bool InstrumentLightActive{ false };
     bool DashboardLightActive{ false };
     bool TimetableLightActive{ false };

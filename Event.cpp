@@ -886,9 +886,14 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +24: vehicle type, consist brake level, obstacle distance
+        // +16: load type, load amount, max load amount
+        // +8: destination, direction, engine power
+        // +0: train name, station count, stop on next station
         if( m_input.flags & flags::load ) {
+            // +16 or +24
             // jeśli pytanie o ładunek
-            if( m_input.flags & flags::mode_add ) {
+            if( m_input.flags & flags::mode_alt ) {
                 // jeśli typ pojazdu
                 // TODO: define and recognize individual request types
                 auto const owner { (
@@ -912,7 +917,7 @@ whois_event::run_() {
 
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
-                    + "[name: " + m_activator->MoverParameters->TypeName + "], "
+                    + "[type: " + m_activator->MoverParameters->TypeName + "], "
                     + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
                     + "[obstacle distance: " + to_string( collisiondistance, 2 ) + " m]" );
             }
@@ -931,7 +936,8 @@ whois_event::run_() {
                     + "[max load: " + to_string( m_activator->MoverParameters->MaxLoad, 2 ) + "]" );
             }
         }
-        else if( m_input.flags & flags::mode_add ) { // jeśli miejsce docelowe pojazdu
+        // +8
+        else if( m_input.flags & flags::mode_alt ) { // jeśli miejsce docelowe pojazdu
             targetcell->UpdateValues(
                 m_activator->asDestination, // adres docelowy
                 m_activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
@@ -944,6 +950,7 @@ whois_event::run_() {
                 + "[direction: " + to_string( m_activator->DirectionGet() ) + "], "
                 + "[engine power: " + to_string( m_activator->MoverParameters->Power, 2 ) + "]" );
         }
+        // +0
         else if( m_activator->Mechanik ) {
             if( m_activator->Mechanik->Primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
                 targetcell->UpdateValues(
@@ -953,7 +960,11 @@ whois_event::run_() {
                         1 :
                         0, // 1, gdy ma tu zatrzymanie
                     m_input.flags );
-                WriteLog( "Train detected: " + m_activator->Mechanik->TrainName() );
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[train: " + m_activator->Mechanik->TrainName() + "], "
+                    + "[stations left: " + to_string( m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex() ) + "], "
+                    + "[stop at next: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
             }
         }
     }

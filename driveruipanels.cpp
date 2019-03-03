@@ -207,29 +207,45 @@ timetable_panel::update() {
             auto textline = " -> " + nextstation;
 
             text_lines.emplace_back( textline, Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
         }
     }
 
     if( is_expanded ) {
 
-        text_lines.emplace_back( "", Global.UITextColor );
+        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+            // consist data
+            auto consistmass { owner->fMass };
+            auto consistlength { owner->fLength };
+            if( ( owner->mvControlling->TrainType != dt_DMU )
+             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
+				//odejmij lokomotywy czynne, a przynajmniej aktualną
+                consistmass -= owner->pVehicle->MoverParameters->TotalMass;
+                // subtract potential other half of a two-part vehicle
+                auto const *previous { owner->pVehicle->PrevC( coupling::permanent ) };
+                if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
+                auto const *next { owner->pVehicle->NextC( coupling::permanent ) };
+                if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
+			}
+            std::snprintf(
+                m_buffer.data(), m_buffer.size(),
+                locale::strings[ locale::string::driver_timetable_consistdata ].c_str(),
+                static_cast<int>( table->LocLoad ),
+                static_cast<int>( consistmass / 1000 ),
+                static_cast<int>( consistlength ) );
+
+            text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
+            text_lines.emplace_back( "", Global.UITextColor );
+        }
 
         if( 0 == table->StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( locale::strings[ locale::string::driver_timetable_notimetable ], Global.UITextColor );
         } 
         else {
+
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
 
-			text_lines.emplace_back("Brutto rozkl. " + to_string(table->LocLoad), Global.UITextColor);
-			auto fMass = owner->fMass / 1000;
-			if (owner->mvControlling->TrainType & (dt_DMU + dt_EZT) == 0)
-			{
-				//odejmij lokomotywy czynne, a przynajmniej aktualną
-			}
-			text_lines.emplace_back("Brutto rzecz. " + to_string(fMass,0), Global.UITextColor);
-			text_lines.emplace_back("Dl.poc. rzecz. " + to_string(owner->fLength,0), Global.UITextColor);
-			
 			// header
             text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
 
@@ -545,10 +561,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
 
-    auto const *connected { (
-        Side == end::front ?
-            m_input.vehicle->PrevConnected :
-            m_input.vehicle->NextConnected ) };
+    auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
     if( connected == nullptr ) { return couplerstatus; }
 
@@ -556,10 +569,10 @@ debug_panel::update_vehicle_coupler( int const Side ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        "%s [%d]%s",
+        "%s [%d] (%.1f m)",
         connected->name().c_str(),
         mover.Couplers[ Side ].CouplingFlag,
-        std::string( mover.Couplers[ Side ].CouplingFlag == 0 ? " (" + to_string( mover.Couplers[ Side ].CoupleDist, 1 ) + " m)" : "" ).c_str() );
+        mover.Neighbours[ Side ].distance );
 
     return { m_buffer.data() };
 }
@@ -681,6 +694,12 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+
+    if( mechanik.Obstacle.distance < 5000 ) {
+        textline +=
+            "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 )
+            + " (" + mechanik.Obstacle.vehicle->asName + ")";
+    }
 
     Output.emplace_back( textline, Global.UITextColor );
 

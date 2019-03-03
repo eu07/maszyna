@@ -25,8 +25,10 @@ public:
         value_1     = 1 << 1,
         value_2     = 1 << 2,
         // update values
-        load        = 1 << 3,
-        mode_add    = 1 << 4,
+        mode_add    = 1 << 3,
+        // whois
+        mode_alt    = 1 << 3,
+        load        = 1 << 4,
         // condition values
         track_busy  = 1 << 3,
         track_free  = 1 << 4,

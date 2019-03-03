@@ -376,6 +376,7 @@ private:
     std::size_t SemNextStopIndex{ std::size_t( -1 ) };
     double dMoveLen = 0.0; // odległość przejechana od ostatniego sprawdzenia tabelki
     basic_event *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
+    neighbour_data Obstacle; // nearest vehicle detected ahead on current route
 
 // timetable
 // methods
