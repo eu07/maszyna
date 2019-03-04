@@ -19,15 +19,18 @@ enum TOrders
 { // rozkazy dla AI
     Wait_for_orders = 0, // czekanie na dostarczenie następnych rozkazów
     // operacje tymczasowe
-    Prepare_engine = 1, // włączenie silnika
-    Release_engine = 2, // wyłączenie silnika
-    Change_direction = 4, // zmiana kierunku (bez skanowania sygnalizacji)
-    Connect = 8, // podłączanie wagonów (z częściowym skanowaniem sygnalizacji)
-    Disconnect = 0x10, // odłączanie wagonów (bez skanowania sygnalizacji)
+    Prepare_engine =        1 << 0, // włączenie silnika
+    Release_engine =        1 << 1, // wyłączenie silnika
+    Change_direction =      1 << 2, // zmiana kierunku (bez skanowania sygnalizacji)
+    Connect =               1 << 3, // podłączanie wagonów (z częściowym skanowaniem sygnalizacji)
+    Disconnect =            1 << 4, // odłączanie wagonów (bez skanowania sygnalizacji)
     // jazda
-    Shunt = 0x20, // tryb manewrowy
-    Obey_train = 0x40, // tryb pociągowy
-    Jump_to_first_order = 0x60 // zapęlenie do pierwszej pozycji (po co?)
+    Shunt =                 1 << 5, // tryb manewrowy
+    Loose_shunt =           1 << 6, // coupling-free shunting mode
+    Obey_train =            1 << 7, // tryb pociągowy
+    Bank =                  1 << 8, // assist mode
+    // others
+    Jump_to_first_order =   1 << 9 // zapęlenie do pierwszej pozycji (po co?)
 };
 
 enum TMovementStatus
@@ -193,6 +196,7 @@ public:
     TMoverParameters const *Controlling() const {
         return mvControlling; }
     void DirectionInitial();
+    void DirectionChange();
     inline
     int Direction() const {
         return iDirection; }
@@ -314,8 +318,8 @@ private:
     void JumpToFirstOrder();
     void OrderPush(TOrders NewOrder);
     void OrderNext(TOrders NewOrder);
-    inline TOrders OrderCurrentGet();
-    inline TOrders OrderNextGet();
+    inline TOrders OrderCurrentGet() const;
+    inline TOrders OrderNextGet() const;
     void OrderCheck();
     void OrdersInit(double fVel);
     void OrdersClear();
@@ -449,3 +453,11 @@ private:
 */
 
 };
+
+inline TOrders TController::OrderCurrentGet() const {
+    return OrderList[ OrderPos ];
+}
+
+inline TOrders TController::OrderNextGet() const {
+    return OrderList[ OrderPos + 1 ];
+}

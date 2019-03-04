@@ -518,13 +518,16 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "unit_no", iUnitNo );
 
     for( int i = 0; i < 20; i++ ) {
-        dict->insert( ( "doors_" + std::to_string( i + 1 ) ), bDoors[ i ][ 0 ] );
-        dict->insert( ( "doors_r_" + std::to_string( i + 1 ) ), bDoors[ i ][ 1 ] );
-        dict->insert( ( "doors_l_" + std::to_string( i + 1 ) ), bDoors[ i ][ 2 ] );
-        dict->insert( ( "doors_no_" + std::to_string( i + 1 ) ), iDoorNo[ i ] );
-        dict->insert( ( "code_" + std::to_string( i + 1 ) ), ( std::to_string( iUnits[ i ] ) + cCode[ i ] ) );
-        dict->insert( ( "car_name" + std::to_string( i + 1 ) ), asCarName[ i ] );
-        dict->insert( ( "slip_" + std::to_string( i + 1 ) ), bSlip[ i ] );
+        auto const caridx { std::to_string( i + 1 ) };
+        dict->insert( ( "doors_" + caridx ), bDoors[ i ][ 0 ] );
+        dict->insert( ( "doors_l_" + caridx ), bDoors[ i ][ 1 ] );
+        dict->insert( ( "doors_r_" + caridx ), bDoors[ i ][ 2 ] );
+        dict->insert( ( "doorstep_l_" + caridx ), bDoors[ i ][ 3 ] );
+        dict->insert( ( "doorstep_r_" + caridx ), bDoors[ i ][ 4 ] );
+        dict->insert( ( "doors_no_" + caridx ), iDoorNo[ i ] );
+        dict->insert( ( "code_" + caridx ), ( std::to_string( iUnits[ i ] ) + cCode[ i ] ) );
+        dict->insert( ( "car_name" + caridx ), asCarName[ i ] );
+        dict->insert( ( "slip_" + caridx ), bSlip[ i ] );
     }
     // ai state data
     auto const *driver = DynamicObject->Mechanik;
@@ -1588,7 +1591,7 @@ void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Comm
             if( ( Train->mvOccupied->ActiveDir )
              && ( Train->DynamicObject->Mechanik ) ) {
 
-                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                Train->DynamicObject->Mechanik->DirectionChange();
             }
         }
     }
@@ -1603,7 +1606,7 @@ void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Comm
             if( ( Train->mvOccupied->ActiveDir )
              && ( Train->DynamicObject->Mechanik ) ) {
 
-                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                Train->DynamicObject->Mechanik->DirectionChange();;
             }
         }
     }
@@ -1634,7 +1637,7 @@ void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Comma
             if( ( Train->mvOccupied->ActiveDir == 1 )
              && ( Train->DynamicObject->Mechanik ) ) {
 
-                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                Train->DynamicObject->Mechanik->DirectionChange();
             }
         }
     }
@@ -1669,7 +1672,7 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
             if( ( Train->mvOccupied->ActiveDir == -1 )
              && ( Train->DynamicObject->Mechanik ) ) {
 
-                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                Train->DynamicObject->Mechanik->DirectionChange();
             }
         }
     }
@@ -4153,12 +4156,12 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
         if( item.GetDesiredValue() < 0.5 ) {
             // turn on
             // visual feedback
-            item.UpdateValue( 1.0, Train->dsbSwitch );
+            item.UpdateValue( 1.0 );
         }
         else {
             // turn off
             // visual feedback
-            item.UpdateValue( 0.0, Train->dsbSwitch );
+            item.UpdateValue( 0.0 );
         }
     }
 }
@@ -5186,8 +5189,10 @@ bool TTrain::Update( double const Deltatime )
                 fPress[i][0] = p->MoverParameters->BrakePress;
                 fPress[i][1] = p->MoverParameters->PipePress;
                 fPress[i][2] = p->MoverParameters->ScndPipePress;
-                bDoors[i][1] = ( false == p->MoverParameters->Doors.instances[ side::right ].is_closed );
-                bDoors[i][2] = ( false == p->MoverParameters->Doors.instances[ side::left ].is_closed );
+                bDoors[i][1] = ( false == p->MoverParameters->Doors.instances[ side::left ].is_closed );
+                bDoors[i][2] = ( false == p->MoverParameters->Doors.instances[ side::right ].is_closed );
+                bDoors[i][3] = ( p->MoverParameters->Doors.instances[ side::left ].step_position > 0.0 );
+                bDoors[i][4] = ( p->MoverParameters->Doors.instances[ side::right ].step_position > 0.0 );
                 bDoors[i][0] = ( bDoors[i][1] || bDoors[i][2] );
                 iDoorNo[i] = p->iAnimType[ANIM_DOORS];
                 iUnits[i] = iUnitNo;
@@ -5234,12 +5239,16 @@ bool TTrain::Update( double const Deltatime )
             }
             else
             {
-                fPress[i][0] = 0;
-                fPress[i][1] = 0;
-                fPress[i][2] = 0;
-                bDoors[i][0] = false;
-                bDoors[i][1] = false;
-                bDoors[i][2] = false;
+                fPress[i][0]
+                = fPress[i][1]
+                = fPress[i][2]
+                = 0;
+                bDoors[i][0]
+                = bDoors[i][1]
+                = bDoors[i][2]
+                = bDoors[i][3]
+                = bDoors[i][4]
+                = false;
 				bSlip[i] = false;
                 iUnits[i] = 0;
                 cCode[i] = 0; //'0';
@@ -6493,7 +6502,7 @@ bool TTrain::CabChange(int iDirection)
                 DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
                 // zmiana kabiny w ramach tego samego pojazdu
                 DynamicObject->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
-                DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                DynamicObject->Mechanik->DirectionChange();
                 return true; // udało się zmienić kabinę
             }
         }

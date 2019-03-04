@@ -5869,7 +5869,7 @@ TDynamicObject::update_neighbours() {
             neighbour.vehicle_end = std::get<int>( lookup );
             neighbour.distance = std::get<double>( lookup );
 
-            if( neighbour.distance < ( neighbour.vehicle->MoverParameters->CategoryFlag == 2 ? 25 : 50 ) ) {
+            if( neighbour.distance < ( neighbour.vehicle->MoverParameters->CategoryFlag == 2 ? 50 : 100 ) ) {
                 // at short distances (re)calculate range between couplers directly
                 neighbour.distance = TMoverParameters::CouplerDist( MoverParameters, neighbour.vehicle->MoverParameters );
             }
