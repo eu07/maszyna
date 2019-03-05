@@ -381,7 +381,7 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 
 class TEStEP2 : public TLSt {
 
-private:
+protected:
     double TareM = 0.0;  //masa proznego
     double LoadM = 0.0;  //masa pelnego
     double TareBP = 0.0;  //cisnienie dla proznego
@@ -394,10 +394,21 @@ public:
     void PLC( double const mass );  //wspolczynnik cisnienia przystawki wazacej
     void SetEPS( double const nEPS )/*override*/;  //stan hamulca EP
     void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
+	void virtual EPCalc(double dt);
 
 		inline TEStEP2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                TLSt(          i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
 		{}
+};
+
+class TEStEP1 : public TEStEP2 {
+
+public:
+	void EPCalc(double dt);
+
+	inline TEStEP1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
+		TEStEP2(i_mbp, i_bcr, i_bcd, i_brc, i_bcn, i_BD, i_mat, i_ba, i_nbpa)
+	{}
 };
 
 class TCV1 : public TBrake {
@@ -773,6 +784,24 @@ class TFVel6 : public TDriverHandle {
 		inline TFVel6(void) :
 			TDriverHandle()
 		{}
+};
+
+class TFVE408 : public TDriverHandle {
+
+private:
+	double EPS = 0.0;
+	static double const pos_table[11]; // = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
+
+public:
+	double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
+	double GetCP()/*override*/;
+	double GetPos(int i)/*override*/;
+	double GetSound(int i)/*override*/;
+	void Init(double Press)/*override*/;
+
+	inline TFVE408(void) :
+		TDriverHandle()
+	{}
 };
 
 
