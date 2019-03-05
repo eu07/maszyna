@@ -26,11 +26,13 @@ texture_window::texture_window(texture_handle src, std::string surfacename)
 		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
 		for (size_t i = 0; i < monitor_count; i++) {
-			const char *name = glfwGetMonitorName(monitors[i]);
+			std::string name(glfwGetMonitorName(monitors[i]));
+			std::replace(std::begin(name), std::end(name), ' ', '_');
+
 			int x, y;
 			glfwGetMonitorPos(monitors[i], &x, &y);
 
-			std::string desc = std::string(name) + ":" + std::to_string(x) + "," + std::to_string(y);
+			std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
 
 			auto iter = Global.python_monitormap.find(surfacename);
 			if (iter != Global.python_monitormap.end()

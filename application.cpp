@@ -586,11 +586,13 @@ eu07_application::init_glfw() {
 
 		WriteLog("available monitors:");
 		for (size_t i = 0; i < monitor_count; i++) {
-			const char *name = glfwGetMonitorName(monitors[i]);
+			std::string name(glfwGetMonitorName(monitors[i]));
+			std::replace(std::begin(name), std::end(name), ' ', '_');
+
 			int x, y;
 			glfwGetMonitorPos(monitors[i], &x, &y);
 
-			std::string desc = std::string(name) + ":" + std::to_string(x) + "," + std::to_string(y);
+			std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
 			WriteLog(desc);
 
 			if (desc == Global.fullscreen_monitor)
