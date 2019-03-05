@@ -27,8 +27,6 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "Logs.h"
 
-#undef snprintf // defined by train.h->pyint.h->python
-
 void
 drivingaid_panel::update() {
 
@@ -150,6 +148,79 @@ drivingaid_panel::update() {
 
     auto const sizex = ( is_expanded ? 735 : 135 );
     size = { sizex, 85 };
+}
+
+void
+scenario_panel::update() {
+
+    if( false == is_open ) { return; }
+
+    text_lines.clear();
+
+    auto const *train { simulation::Train };
+    auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
+    auto const &camera { Global.pCamera };
+    m_nearest = (
+        false == FreeFlyModeFlag ? controlled :
+        camera.m_owner != nullptr ? camera.m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
+    if( m_nearest == nullptr ) { return; }
+    auto const *owner { (
+        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+            m_nearest->Mechanik :
+            m_nearest->ctOwner ) };
+    if( owner == nullptr ) { return; }
+
+    std::string textline =
+        locale::strings[ locale::string::driver_scenario_currenttask ] + "\n "
+        + owner->OrderCurrent();
+
+    text_lines.emplace_back( textline, Global.UITextColor );
+}
+
+void
+scenario_panel::render() {
+
+    if( false == is_open ) { return; }
+    if( true == text_lines.empty() ) { return; }
+    if( m_nearest == nullptr ) { return; } // possibly superfluous given the above but, eh
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    auto const panelname { (
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
+    if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
+        // potential assignment section
+        auto const *owner { (
+            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+                m_nearest->Mechanik :
+                m_nearest->ctOwner ) };
+        if( owner != nullptr ) {
+            auto const assignmentheader { locale::strings[ locale::string::driver_scenario_assignment ] };
+            if( ( false == owner->assignment().empty() )
+             && ( true == ImGui::CollapsingHeader( assignmentheader.c_str() ) ) ) {
+                ImGui::TextWrapped( owner->assignment().c_str() );
+                ImGui::Separator();
+            }
+        }
+        // current task
+        for( auto const &line : text_lines ) {
+            ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        }
+    }
+    ImGui::End();
 }
 
 void
@@ -370,7 +441,12 @@ debug_panel::render() {
     if( size_min.x > 0 ) {
         ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
     }
-    if( true == ImGui::Begin( name.c_str(), &is_open, flags ) ) {
+    auto const panelname { (
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
+    if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
@@ -676,7 +752,9 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     auto const &mechanik{ *m_input.mechanik };
 
     // biezaca komenda dla AI
-    auto textline = "Current order: " + mechanik.OrderCurrent();
+    auto textline =
+        "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
+        + mechanik.OrderCurrent();
 
     if( mechanik.fStopTime < 0.0 ) {
         textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );

@@ -51,6 +51,7 @@ struct scratch_data {
         std::vector<int> couplings;
         TDynamicObject * driver { nullptr };
         bool is_open { false };
+        std::unordered_map<std::string, std::string> assignment;
     } trainset;
 
     std::string name;

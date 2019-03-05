@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "PyInt.h"
 #include "command.h"
 
+#undef snprintf // pyint.h->python
+
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
 const int maxcab = 2;

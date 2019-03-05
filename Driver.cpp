@@ -15,8 +15,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Driver.h"
 
-#include <direct.h>
+//#include <direct.h>
 #include "Globals.h"
+#include "translation.h"
 #include "Logs.h"
 #include "Train.h"
 #include "mtable.h"
@@ -1696,9 +1697,54 @@ std::string TController::Order2Str(TOrders Order) const {
     }
 }
 
+std::array<char, 64> orderbuffer;
+
 std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
-    return "[" + std::to_string(OrderPos) + "] " + Order2Str(OrderList[OrderPos]);
+    auto const order { OrderCurrentGet() };
+    if( order & Change_direction ) {
+        return locale::strings[ locale::string::driver_scenario_changedirection ];
+    }
+
+    switch( OrderList[ OrderPos ] ) {
+        case Wait_for_orders: { return locale::strings[ locale::string::driver_scenario_waitfororders ]; }
+        case Prepare_engine: { return locale::strings[ locale::string::driver_scenario_prepareengine ]; }
+        case Release_engine: { return locale::strings[ locale::string::driver_scenario_releaseengine ]; }
+        case Change_direction: { return locale::strings[ locale::string::driver_scenario_changedirection ]; }
+        case Connect: { return locale::strings[ locale::string::driver_scenario_connect ]; }
+        case Disconnect: {
+            if( iVehicleCount < 0 ) {
+                // done with uncoupling, order should update shortly
+                return locale::strings[ locale::string::driver_scenario_waitfororders ];
+            }
+            // try to provide some task details
+            auto const count { iVehicleCount };
+
+            if( iVehicleCount > 1 ) {
+                std::snprintf(
+                    orderbuffer.data(), orderbuffer.size(),
+                    ( iVehicleCount < 5 ?
+                        locale::strings[ locale::string::driver_scenario_fewvehicles ].c_str() : // 2-4
+                        locale::strings[ locale::string::driver_scenario_somevehicles ].c_str() ), // 5+
+                    count );
+            }
+            auto const countstring { (
+                count == 0 ? locale::strings[ locale::string::driver_scenario_allvehicles ] :
+                count == 1 ? locale::strings[ locale::string::driver_scenario_onevehicle ] :
+                orderbuffer.data() ) };
+
+            std::snprintf(
+                orderbuffer.data(), orderbuffer.size(),
+                locale::strings[ locale::string::driver_scenario_disconnect ].c_str(),
+                countstring.c_str() );
+            return orderbuffer.data();
+        }
+        case Shunt: { return locale::strings[ locale::string::driver_scenario_shunt ]; }
+        case Loose_shunt: { return locale::strings[ locale::string::driver_scenario_looseshunt ]; }
+        case Obey_train: { return locale::strings[ locale::string::driver_scenario_obeytrain ]; }
+        case Bank: { return locale::strings[ locale::string::driver_scenario_bank ]; }
+        default: { return{}; }
+    }
 };
 
 void TController::OrdersClear()
@@ -4699,7 +4745,6 @@ TController::UpdateSituation(double dt) {
                                         n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
                                 }
                             } while (n--);
-                            // write down what vehicle we're uncoupling, we might need to fiddle with remainder of the consist afterwards
                             if( ( p == nullptr )
                              || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
                                 // no target, or already just virtual coupling

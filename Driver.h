@@ -312,6 +312,10 @@ private:
 public:
     void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand( std::string NewCommand, double NewValue1, double NewValue2, glm::dvec3 const *NewLocation, TStopReason reason = stopComm );
+    // defines assignment data
+    inline auto assignment() -> std::string & { return m_assignment; }
+    inline auto assignment() const -> std::string const & { return m_assignment; }
+    std::string OrderCurrent() const;
 private:
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
     void JumpToNextOrder();
@@ -324,9 +328,9 @@ private:
     void OrdersInit(double fVel);
     void OrdersClear();
     void OrdersDump();
-    std::string OrderCurrent() const;
     std::string Order2Str(TOrders Order) const;
 // members
+    std::string m_assignment;
     Math3D::vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda // NOTE: not used
     TOrders OrderList[ maxorders ]; // lista rozkazów
     int OrderPos = 0,
