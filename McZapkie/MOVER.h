@@ -369,7 +369,7 @@ enum class TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 /*podtypy hamulcow zespolonych*/
 enum class TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
 enum class TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P, MHZ_K8P };
+enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVE408, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P, MHZ_K8P };
 /*typy hamulcow indywidualnych*/
 enum class TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
 /*dla osob/towar: opoznienie hamowania/odhamowania*/
@@ -966,10 +966,16 @@ public:
 	int DynamicBrakeType = 0; /*patrz dbrake_**/
 	int DynamicBrakeAmpmeters = 2; /*liczba amperomierzy przy hamowaniu ED*/
 	double DynamicBrakeRes = 5.8; /*rezystancja oporników przy hamowaniu ED*/
-	double TUHEX_Sum = 750; /*nastawa sterownika hamowania ED*/
+	double DynamicBrakeRes1 = 5.8; /*rezystancja oporników przy hamowaniu ED - 1 tryb*/
+	double DynamicBrakeRes2 = 5.8; /*rezystancja oporników przy hamowaniu ED - 2 tryb*/
+	double TUHEX_Sum = 750; /*nastawa sterownika hamowania ED - aktualna*/
 	double TUHEX_Diff = 10; /*histereza działania sterownika hamowania ED*/
 	double TUHEX_MinIw = 60; /*minimalny prąd wzbudzenia przy hamowaniu ED - wynika z chk silnika*/
 	double TUHEX_MaxIw = 400; /*maksymalny prąd wzbudzenia przy hamowaniu ED - ograniczenie max siły*/
+	double TUHEX_Sum1 = 750; /*nastawa1 sterownika hamowania ED*/
+	double TUHEX_Sum2 = 750; /*nastawa2 sterownika hamowania ED*/
+	double TUHEX_Sum3 = 750; /*nastawa3 sterownika hamowania ED*/
+	int TUHEX_Stages = 0; /*liczba stopni hamowania ED*/
 
 	int RVentType = 0;        /*0 - brak, 1 - jest, 2 - automatycznie wlaczany*/
 	double RVentnmax = 1.0;      /*maks. obroty wentylatorow oporow rozruchowych*/
@@ -1049,6 +1055,12 @@ public:
 	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
+
+	int DCEMUED_CC; //na którym sprzęgu sprawdzać działanie ED
+	double DCEMUED_EP_max_Vel; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
+	double DCEMUED_EP_min_Im; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
+	double DCEMUED_EP_delay; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
+
 	/*-dla wagonow*/
     struct load_attributes {
         std::string name; // name of the cargo
@@ -1158,6 +1170,10 @@ public:
 	int BrakeOpModeFlag = 0;               /*nastawa trybu pracy PS/PN/EP/MED 1/2/4/8*/
 	int BrakeOpModes = 0;                   /*nastawy mozliwe do uzyskania*/
 	bool DynamicBrakeFlag = false;          /*czy wlaczony hamulec elektrodymiczny*/
+	bool DynamicBrakeEMUStatus = true;		/*czy hamulec ED dziala w ezt*/
+	int TUHEX_StageActual = 0;				/*aktualny stopien tuhexa*/
+	bool TUHEX_ResChange = false;			/*czy zmiana rezystancji hamowania ED - odwzbudzanie*/
+	bool TUHEX_Active = false;				/*czy hamowanie ED wywołane z zewnątrz*/
 									//                NapUdWsp: integer;
 	double LimPipePress = 0.0;                 /*stabilizator cisnienia*/
 	double ActFlowSpeed = 0.0;                 /*szybkosc stabilizatora*/
@@ -1520,6 +1536,7 @@ private:
     void LoadFIZ_TurboPos( std::string const &line );
     void LoadFIZ_Cntrl( std::string const &line );
 	void LoadFIZ_Blending(std::string const &line);
+	void LoadFIZ_DCEMUED(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
     void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );

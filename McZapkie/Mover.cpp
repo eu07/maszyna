@@ -99,7 +99,7 @@ double TMoverParameters::Current(double n, double U)
 
     MotorCurrent = 0;
     // i dzialanie hamulca ED w EP09
-    if (DynamicBrakeType == dbrake_automatic)
+    if ((DynamicBrakeType == dbrake_automatic)&&(TrainType != dt_EZT))
     {
         if (((Hamulec->GetEDBCP() < 0.25) && (Vadd < 1)) || (BrakePress > 2.1))
             DynamicBrakeFlag = false;
@@ -107,6 +107,10 @@ double TMoverParameters::Current(double n, double U)
             DynamicBrakeFlag = true;
         DynamicBrakeFlag = (DynamicBrakeFlag && ConverterFlag);
     }
+	if ((DynamicBrakeType == dbrake_automatic) && (TrainType == dt_EZT))
+	{
+		DynamicBrakeFlag = (ConverterFlag && (TUHEX_Active || (Vadd>TUHEX_MinIw)) && DynamicBrakeEMUStatus);
+	}
 
     // wylacznik cisnieniowy yBARC - to jest chyba niepotrzebne tutaj   Q: no to usuwam...
 
@@ -148,7 +152,7 @@ double TMoverParameters::Current(double n, double U)
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
         ConverterFlag && Mains) // hamowanie EP09   //TUHEX
     {
-        // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
+		// TODO: zrobic bardziej uniwersalne nie tylko dla EP09
         MotorCurrent =
             -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) * n * 2.0 / DynamicBrakeRes;
     }
@@ -1410,6 +1414,9 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     UpdatePipePressure(Deltatime);
     UpdateBatteryVoltage(Deltatime);
     UpdateScndPipePressure(Deltatime); // druga rurka, youBy
+
+    if( ( ( DCEMUED_CC & 1 ) != 0 ) && ( ( Couplers[ end::front ].CouplingFlag & coupling::control ) != 0 ) ) { DynamicBrakeEMUStatus &= Couplers[ end::front ].Connected->DynamicBrakeEMUStatus; }
+    if( ( ( DCEMUED_CC & 2 ) != 0 ) && ( ( Couplers[ end::rear ].CouplingFlag & coupling::control ) != 0 ) )  { DynamicBrakeEMUStatus &= Couplers[ end::rear ].Connected->DynamicBrakeEMUStatus; }
     
     if( ( BrakeSlippingTimer > 0.8 ) && ( ASBType != 128 ) ) { // ASBSpeed=0.8
         // hamulec antypoślizgowy - wyłączanie
@@ -3596,6 +3603,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
         }
 
         case TBrakeValve::EP2:
+		case TBrakeValve::EP1:
         {
             Hamulec->PLC( TotalMass-Mred );
             break;
@@ -3638,7 +3646,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
         }
     } // switch
 
-    if ((BrakeHandle == TBrakeHandle::FVel6) && (ActiveCab != 0))
+    if (((BrakeHandle == TBrakeHandle::FVel6)||(BrakeHandle == TBrakeHandle::FVE408)) && (ActiveCab != 0))
     {
         if ((Battery)
          && (ActiveDir != 0)
@@ -3647,7 +3655,16 @@ void TMoverParameters::UpdatePipePressure(double dt)
             temp = Handle->GetCP();
         else
             temp = 0.0;
-        Hamulec->SetEPS(temp);
+		if (temp < 0.001)
+			DynamicBrakeEMUStatus = true;
+		double temp1 = temp;
+		if ((DCEMUED_EP_max_Vel > 0.001) && (Vel > DCEMUED_EP_max_Vel) && (DynamicBrakeEMUStatus))
+			temp1 = 0;
+		if ((DCEMUED_EP_min_Im > 0.001) && (abs(Im) > DCEMUED_EP_min_Im) && (DynamicBrakeEMUStatus))
+			temp1 = 0;
+        Hamulec->SetEPS(temp1);
+		TUHEX_StageActual = temp;
+		TUHEX_Active = TUHEX_StageActual > 0;
         // Ra 2014-11: na tym się wysypuje, ale nie wiem, w jakich warunkach
         SendCtrlToNext("Brake", temp, CabNo);
     }
@@ -4578,11 +4595,43 @@ double TMoverParameters::TractionForce( double dt ) {
             }
             if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
             {
-                if (((Vadd + abs(Im)) > TUHEX_Sum + TUHEX_Diff) || (Hamulec->GetEDBCP() < 0.25))
+				if (TUHEX_Stages > 0) //hamowanie wielostopniowe, nadpisuje wartości domyślne
+				{
+					if (Vel > 100) TUHEX_StageActual = std::min(TUHEX_StageActual, 1);
+					switch (TUHEX_StageActual)
+					{
+					case 1:
+						TUHEX_Sum = TUHEX_Sum1;
+						DynamicBrakeRes = DynamicBrakeRes1;
+						break;
+					case 2:
+						TUHEX_Sum = TUHEX_Sum2;
+						DynamicBrakeRes = DynamicBrakeRes1;
+						break;
+					case 3:
+						TUHEX_Sum = TUHEX_Sum3;
+						if ((Vadd > 0.99*TUHEX_MaxIw) && (DynamicBrakeRes == DynamicBrakeRes1))
+							TUHEX_ResChange = true;
+						if (TUHEX_ResChange && Vadd < 0.5*TUHEX_MaxIw)
+						{
+							TUHEX_ResChange = false;
+							DynamicBrakeRes = DynamicBrakeRes2;
+						}
+						break;
+					default:
+						DynamicBrakeRes = DynamicBrakeRes1;
+						TUHEX_Sum = 0;
+						break;
+					}
+				}
+                if (((Vadd + abs(Im)) > TUHEX_Sum + TUHEX_Diff) || (Hamulec->GetEDBCP() < 0.25) || (TUHEX_ResChange) || (TUHEX_StageActual==0 && TUHEX_Stages>0))
                 {
                     Vadd -= 500.0 * dt;
-                    if (Vadd < 1)
-                        Vadd = 0;
+					if (Vadd < TUHEX_MinIw)
+					{
+						Vadd = 0;
+						DynamicBrakeFlag = false;
+					}
                 }
                 else if ((DynamicBrakeFlag) && ((Vadd + abs(Im)) < TUHEX_Sum - TUHEX_Diff))
                 {
@@ -7642,6 +7691,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			continue;
 		}
 
+		if (issection("DCEMUED:", inputline)) {
+
+			startBPT = true; LISTLINE = 0;
+			fizlines.emplace("DCEMUED", inputline);
+			LoadFIZ_DCEMUED(inputline);
+			continue;
+		}
+
         if( issection( "Light:", inputline ) ) {
 
             startBPT = false;
@@ -8284,6 +8341,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 { "Knorr", TBrakeHandle::Knorr },
                 { "Westinghouse", TBrakeHandle::West },
                 { "FVel6", TBrakeHandle::FVel6 },
+				{ "FVE408", TBrakeHandle::FVE408 },
                 { "St113", TBrakeHandle::St113 }
             };
             auto lookup = brakehandles.find( extract_value( "BrakeHandle", line ) );
@@ -8462,6 +8520,16 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 	extract_value(MED_Ncor, "MED_Ncor", line, "");
 
 }
+
+void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
+
+	extract_value(DCEMUED_CC, "CouplerCheck", line, "0");
+	extract_value(DCEMUED_EP_max_Vel, "EP_max_Vel", line, "0");
+	extract_value(DCEMUED_EP_min_Im, "EP_min_Im", line, "0");
+	extract_value(DCEMUED_EP_delay, "EP_delay", line, "0");
+
+}
+
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 
     LightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "Light", line ) );
@@ -8750,6 +8818,11 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 	extract_value( TUHEX_Diff, "TUHEX_Diff", Input, "" );
 	extract_value( TUHEX_MaxIw, "TUHEX_MaxIw", Input, "" );
 	extract_value( TUHEX_MinIw, "TUHEX_MinIw", Input, "" );
+	extract_value( TUHEX_Sum1, "TUHEX_Sum1", Input, "");
+	extract_value( TUHEX_Sum2, "TUHEX_Sum2", Input, "" );
+	extract_value( TUHEX_Sum3, "TUHEX_Sum3", Input, "" );
+	extract_value( TUHEX_Stages, "TUHEX_Stages", Input, "0" );
+	
 }
 
 void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
@@ -8778,6 +8851,8 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
     extract_value( RVentMinI, "RVentMinI", Input, "" );
     extract_value( RVentSpeed, "RVentSpeed", Input, "" );
 	extract_value( DynamicBrakeRes, "DynBrakeRes", Input, "");
+	extract_value( DynamicBrakeRes1, "DynBrakeRes1", Input, "");
+	extract_value( DynamicBrakeRes2, "DynBrakeRes2", Input, "");
 }
 
 void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
@@ -9048,6 +9123,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             Hamulec->SetLP( Mass, MBPM, MaxBrakePress[ 1 ] );
             break;
         }
+		case TBrakeValve::EP1:
+		{
+			WriteLog("XBT EP1");
+			Hamulec = std::make_shared<TEStEP1>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+			Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
+			break;
+		}
         case TBrakeValve::CV1:
         {
             WriteLog( "XBT CV1" );
@@ -9077,6 +9159,9 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         case TBrakeHandle::FVel6:
             Handle = std::make_shared<TFVel6>();
             break;
+		case TBrakeHandle::FVE408:
+			Handle = std::make_shared<TFVE408>();
+			break;
         case TBrakeHandle::testH:
             Handle = std::make_shared<Ttest>();
             break;
@@ -9392,7 +9477,18 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	end */
 	else if (Command == "Brake") // youBy - jak sie EP hamuje, to trza sygnal wyslac...
 	{
-		Hamulec->SetEPS(CValue1);
+		if (CValue1 < 0.001)
+			DynamicBrakeEMUStatus = true;
+		double temp1 = CValue1;
+		if ((DCEMUED_EP_max_Vel > 0.001) && (Vel > DCEMUED_EP_max_Vel) && (DynamicBrakeEMUStatus))
+			temp1 = 0;
+		if ((DCEMUED_EP_min_Im > 0.001) && (abs(Im) > DCEMUED_EP_min_Im) && (DynamicBrakeEMUStatus))
+			temp1 = 0;
+		Hamulec->SetEPS(temp1);
+		TUHEX_StageActual = CValue1;
+		TUHEX_Active = TUHEX_StageActual > 0;
+		if (CValue1 < 0.001)
+			DynamicBrakeEMUStatus = true;
 		// fBrakeCtrlPos:=BrakeCtrlPos; //to powinnno być w jednym miejscu, aktualnie w C++!!!
 		BrakePressureActual = BrakePressureTable[BrakeCtrlPos];
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
