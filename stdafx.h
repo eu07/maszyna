@@ -119,12 +119,3 @@ int const null_handle = 0;
 #endif
 
 #endif
-
-#ifdef DBG_NEW
-#pragma push_macro("new")
-#undef new
-#include "imgui/imgui.h"
-#pragma pop_macro("new")
-#else
-#include "imgui/imgui.h"
-#endif

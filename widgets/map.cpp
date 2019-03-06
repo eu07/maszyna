@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "widgets/map.h"
 #include "widgets/map_objects.h"
-#include "imgui/imgui.h"
 #include "Logs.h"
 #include "Train.h"
 #include "Camera.h"

@@ -1,6 +1,6 @@
+#include "stdafx.h"
 #include "widgets/vehiclelist.h"
 #include "simulation.h"
-#include "imgui/imgui.h"
 #include "Driver.h"
 
 void ui::vehiclelist_panel::render_contents() {
