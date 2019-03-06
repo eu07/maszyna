@@ -8026,7 +8026,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         Parser.getTokens(2, false);
         Parser >> i >> j;
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gauge.Load(Parser, DynamicObject);
+        gauge.Load(Parser, DynamicObject, 0.1);
         gauge.AssignFloat(&fPress[i - 1][j]);
     }
     else if ((Label == "brakepress:") || (Label == "brakepressb:"))
