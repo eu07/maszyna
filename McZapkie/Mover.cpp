@@ -1613,7 +1613,7 @@ double TMoverParameters::ShowCurrent(int AmpN) const
         case 1:
             return WindingRes * Mm / Vadd;
         case 2:
-            return dizel_fill * WindingRes;
+            return eimv_pr * WindingRes;
         default:
             return ShowCurrentP(AmpN); // T_MoverParameters::
         }
@@ -4998,25 +4998,24 @@ double TMoverParameters::TractionForce( double dt ) {
 							if (NewSCAP != ScndCtrlActualPos)
 							{
 								ScndCtrlActualPos = NewSCAP;
-								SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+//								SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
 							}
 						}
 					}
 				}
-
-                dtrans = Hamulec->GetEDBCP();
+				double edBCP = Hamulec->GetEDBCP();
                 if( ( false == Doors.instances[ side::left ].is_closed )
                  || ( false == Doors.instances[ side::right ].is_closed )
                  || ( Doors.permit_needed && ( Doors.instances[ side::left ].open_permit || Doors.instances[ side::right ].open_permit ) ) ) {
                     DynamicBrakeFlag = true;
                 }
-                else if (((dtrans < 0.25) && (LocHandle->GetCP() < 0.25) && (AnPos < 0.01)) ||
-                         ((dtrans < 0.25) && (ShuntModeAllow) && (LocalBrakePosA < 0.01)))
+                else if (((edBCP < 0.25) && (LocHandle->GetCP() < 0.25) && (AnPos < 0.01)) ||
+                         ((edBCP < 0.25) && (ShuntModeAllow) && (LocalBrakePosA < 0.01)))
                     DynamicBrakeFlag = false;
-                else if ((((BrakePress > 0.25) && (dtrans > 0.25) || (LocHandle->GetCP() > 0.25))) ||
+                else if ((((BrakePress > 0.25) && (edBCP > 0.25) || (LocHandle->GetCP() > 0.25))) ||
                          (AnPos > 0.02))
                     DynamicBrakeFlag = true;
-                dtrans = Hamulec->GetEDBCP() * eimc[eimc_p_abed]; // stala napedu
+				edBCP = Hamulec->GetEDBCP() * eimc[eimc_p_abed]; // stala napedu
                 if ((DynamicBrakeFlag))
                 {
 					// ustalanie współczynnika blendingu do luzowania hamulca PN
@@ -5024,7 +5023,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     {
                         PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
                                    (eimc[eimc_p_Fh] *
-                                    Max0R(dtrans,Max0R(0.01,Hamulec->GetEDBCP())) / MaxBrakePress[0]);
+                                    Max0R(edBCP,Max0R(0.01,Hamulec->GetEDBCP())) / MaxBrakePress[0]);
 						PosRatio = clamp(PosRatio, 0.0, 1.0);
                     }
 					else
@@ -5043,29 +5042,30 @@ double TMoverParameters::TractionForce( double dt ) {
 					}
 					else
 					{
-						PosRatio = -std::max(std::min(dtrans * 1.0 / MaxBrakePress[0], 1.0), AnPos) *
+						PosRatio = -std::max(std::min(edBCP * 1.0 / MaxBrakePress[0], 1.0), AnPos) *
 							std::max(0.0, std::min(1.0, (Vel - eimc[eimc_p_Vh0]) /
 							(eimc[eimc_p_Vh1] - eimc[eimc_p_Vh0])));
-						eimv[eimv_Fzad] = -std::max(LocalBrakeRatio(), dtrans / MaxBrakePress[0]);
+						eimv[eimv_Fzad] = -std::min(1.0,std::max(LocalBrakeRatio(), edBCP / MaxBrakePress[0]));
 					}
                     tmp = 5;
                 }
                 else
                 {
                     PosRatio = static_cast<double>( MainCtrlPos ) / static_cast<double>( MainCtrlPosNo );
+					PosRatio = Max0R(eimic, 0);
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
-                    if (ScndCtrlActualPos > 0) //speed control
+/*                    if (ScndCtrlActualPos > 0) //speed control
                         if (Vmax < 250)
                             PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos - Vel)));
                         else
                             PosRatio =
-                                Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos * 2 - Vel)));
+                                Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos * 2 - Vel))); */
                     // PosRatio = 1.0 * (PosRatio * 0 + 1) * PosRatio; // 1 * 1 * PosRatio = PosRatio
                     Hamulec->SetED(0);
                     //           (Hamulec as TLSt).SetLBP(LocBrakePress);
-                    if ((PosRatio > dizel_fill))
+                    if ((PosRatio > eimv_pr))
                         tmp = 4;
                     else
                         tmp = 4; // szybkie malenie, powolne wzrastanie
@@ -5083,8 +5083,8 @@ double TMoverParameters::TractionForce( double dt ) {
                     Sandbox( false, range_t::unit );
                 }
 
-                dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.02), -0.02) * 12 *
-                                 (tmp /*2{+4*byte(PosRatio<dizel_fill)*/) *
+				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *
+                                 (tmp /*2{+4*byte(PosRatio<eimv_pr)*/) *
                                  dt; // wartość zadana/procent czegoś
 
                 if ((DynamicBrakeFlag))
@@ -5094,7 +5094,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 eimv[eimv_Uzsmax] = Min0R(Voltage - eimc[eimc_f_DU], tmp);
                 eimv[eimv_fkr] = eimv[eimv_Uzsmax] / eimc[eimc_f_cfu];
-                if( ( dizel_fill < 0 ) ) {
+                if( (eimv_pr < 0 ) ) {
                     eimv[ eimv_Pmax ] = eimc[ eimc_p_Ph ];
                 }
                 else {
@@ -5115,15 +5115,15 @@ double TMoverParameters::TractionForce( double dt ) {
                         / eimc[ eimc_s_cfu ] )
                     * ( eimc[ eimc_s_dfmax ] * eimc[ eimc_s_dfic ] * eimc[ eimc_s_cim ] )
                     * Transmision.Ratio * NPoweredAxles * 2.0 / WheelDiameter;
-                if ((dizel_fill < 0))
+                if ((eimv_pr < 0))
                 {
                     eimv[eimv_Fful] = std::min(eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
                                                std::min(eimc[eimc_p_Fh], eimv[eimv_FMAXMAX]));
                     eimv[eimv_Fmax] =
                         -Sign(V) * (DirAbsolute)*std::min(
                                        eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
-                                       std::min(-eimc[eimc_p_Fh] * dizel_fill, eimv[eimv_FMAXMAX]));
-					double pr = dizel_fill;
+                                       std::min(-eimc[eimc_p_Fh] * eimv_pr, eimv[eimv_FMAXMAX]));
+					double pr = eimv_pr;
 					if (EIMCLogForce)
 						pr = -log(1 - 4 * pr) / log(5);
 					eimv[eimv_Fr] =
@@ -5138,10 +5138,10 @@ double TMoverParameters::TractionForce( double dt ) {
                                                   eimc[eimc_p_F0] - Vel * eimc[eimc_p_a1]),
                                             eimv[eimv_FMAXMAX]);
                     //           if(not Flat)then
-                    eimv[eimv_Fmax] = eimv[eimv_Fful] * dizel_fill;
+                    eimv[eimv_Fmax] = eimv[eimv_Fful] * eimv_pr;
                     //           else
-                    //             eimv[eimv_Fmax]:=Min0R(eimc[eimc_p_F0]*dizel_fill,eimv[eimv_Fful]);
-					double pr = dizel_fill;
+                    //             eimv[eimv_Fmax]:=Min0R(eimc[eimc_p_F0]*eimv_pr,eimv[eimv_Fful]);
+					double pr = eimv_pr;
 					if (EIMCLogForce)
 						pr = log(1 + 4 * pr) / log(5);
 					eimv[eimv_Fr] = eimv[eimv_Fful] * pr;
@@ -5219,7 +5219,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 Fw = 0.0;
                 Ft = 0.0;
                 Itot = 0.0;
-                dizel_fill = 0.0;
+				eimv_pr = 0.0;
                 EnginePower = 0.0;
                 {
                     for (int i = 0; i < 21; ++i)
@@ -5905,6 +5905,74 @@ bool TMoverParameters::PantRear( bool const State, range_t const Notify )
     }
 */
     return PantRearUp;
+}
+
+void TMoverParameters::CheckEIMIC(double dt)
+{
+	switch (EIMCtrlType)
+	{
+	case 0:
+		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
+		break;
+	case 1:
+		switch (MainCtrlPos)
+		{
+		case 0: //B+
+		  	eimic -= clamp(1.0 + eimic, 0.0, dt*0.3); //odejmuj do -1
+			break;
+		case 1: //B
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0
+			break;
+		case 2: //B-
+		case 3: //0
+		case 4: //T-
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0			
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			break;
+		case 5: //T
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			break;
+		case 6: //T+
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1
+			break;
+		case 7: //TMax
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1, max
+			break;
+		}
+		break;
+	case 2:
+		switch (MainCtrlPos)
+		{
+		case 0:
+			eimic = -1.0;
+			break;
+		case 1:
+			eimic -= clamp(1.0 + eimic, 0.0, dt*0.3); //odejmuj do -1
+			break;
+		case 2:
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0
+			break;
+		case 3:
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			break;
+		case 4:
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1
+			break;
+		}
+		break;
+	}
+	eimic = clamp(eimic, -1.0, 1.0);
+}
+
+void TMoverParameters::CheckSpeedCtrl()
+{
+	if (ScndCtrlActualPos > 0) //speed control
+		if (Vmax < 250)
+			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos - Vel), -1.0, 1.0);
+		else
+			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos * 2 - Vel), -1.0, 1.0);
+	else
+		eimicSpeedCtrl = 1;
 }
 
 // *************************************************************************************************
@@ -8427,6 +8495,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     else { AutoRelayType = 0; }
 
     extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
+	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
+	clamp( EIMCtrlType, 0, 2 );
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
@@ -9475,6 +9545,11 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	OK:=SendCtrlToNext(command,CValue1,CValue2);
 	end;
 	end */
+	else if (Command == "EIMIC") // ElectricInductionMotor Integrated Control - propulsion and brakes in relative values
+	{
+		eimic = CValue1;
+		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+	}
 	else if (Command == "Brake") // youBy - jak sie EP hamuje, to trza sygnal wyslac...
 	{
 		if (CValue1 < 0.001)

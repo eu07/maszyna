@@ -2686,7 +2686,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
         if( ( Mechanik->Primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
-            // jesli glowny i z asynchronami, to niech steruje hamulcem lacznie dla calego pociagu/ezt
+            // jesli glowny i z asynchronami, to niech steruje hamulcem i napedem lacznie dla calego pociagu/ezt
 			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
             auto FED { 0.0 };
             auto np { 0 };
@@ -2698,6 +2698,16 @@ bool TDynamicObject::Update(double dt, double dt1)
 			auto FmaxED { 0.0 };
             auto Frj { 0.0 };
             auto osie { 0 };
+			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania 
+			if (MoverParameters->Power < 1)
+				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
+			MoverParameters->CheckEIMIC(dt1);
+			MoverParameters->CheckSpeedCtrl();
+
+			MoverParameters->eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
+			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, MoverParameters->eimic), MoverParameters->CabNo);
+			auto LBR = Max0R(-MoverParameters->eimic, 0);
+
 			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
             //   - opoznienie moze byc ustalane na podstawie mas i cisnien granicznych
@@ -2760,22 +2770,22 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (MoverParameters->ShuntMode)
             {
                 MoverParameters->ShuntModeAllow = ( false == doorisopen ) &&
-                                                  (MoverParameters->LocalBrakeRatio() < 0.01);
+                                                  (LBR < 0.01);
             }
             if( ( MoverParameters->Vel > 1 ) && ( false == doorisopen ) )
             {
                 MoverParameters->ShuntMode = false;
                 MoverParameters->ShuntModeAllow = (MoverParameters->BrakePress > 0.2) &&
-                                                  (MoverParameters->LocalBrakeRatio() < 0.01);
+                                                  (LBR < 0.01);
             }
-            auto Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+            auto Fzad = amax * LBR * masa;
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
 				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
 				Fzad = amax * masa; //pętla bezpieczeństwa - pełne służbowe
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
             {
-                Fzad = std::min(MoverParameters->LocalBrakeRatio() * FmaxED, FfulED);
+                Fzad = std::min(LBR * FmaxED, FfulED);
             }
             if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
@@ -2847,7 +2857,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 PrzekrF[i] = false;
                 FzED[i] = (FmaxED > 0 ? FzadED / FmaxED : 0);
                 p->MoverParameters->AnPos =
-                    (MoverParameters->ScndS ? MoverParameters->LocalBrakeRatio() : FzED[i]);
+                    (MoverParameters->ScndS ? LBR : FzED[i]);
                 FzEP[ i ] = static_cast<float>( FzadPN * p->MoverParameters->NAxles ) / static_cast<float>( osie );
                 ++i;
                 p->MoverParameters->ShuntMode = MoverParameters->ShuntMode;
@@ -6599,7 +6609,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
         if( Vehicle.InverterFrequency > 0.1 ) {
 
-            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::abs( Vehicle.dizel_fill ) );
+            volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::abs( Vehicle.eimv_pr) );
 
             inverter
                 .pitch( inverter.m_frequencyoffset + inverter.m_frequencyfactor * Vehicle.InverterFrequency )

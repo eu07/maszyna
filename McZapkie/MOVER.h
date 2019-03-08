@@ -1280,9 +1280,13 @@ public:
 	double hydro_R_n = 0.0; /*predkosc obrotowa retardera*/
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
+	double eimic = 0; /*aktualna pozycja zintegrowanego sterowania jazda i hamowaniem*/
+	int EIMCtrlType = 0; /*rodzaj wariantu zadajnika jazdy*/
+	double eimv_pr = 0; /*realizowany procent dostepnej sily rozruchu/hamowania*/
 	double eimv[21];
     static std::vector<std::string> const eimv_labels;
 	double SpeedCtrlTimer = 0; /*zegar dzialania tempomatu z wybieralna predkoscia*/
+	double eimicSpeedCtrl = 0; /*pozycja sugerowana przez tempomat*/
 	double NewSpeed = 0; /*nowa predkosc do zadania*/
 	double MED_EPVC_CurrentTime = 0; /*aktualny czas licznika czasu korekcji siły EP*/
 
@@ -1495,6 +1499,9 @@ public:
 	bool ResistorsFlagCheck(void) const; //sprawdzenie kontrolki oporow rozruchowych NBMX
     bool PantFront( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografou przedniego
     bool PantRear( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografu tylnego
+
+	void CheckEIMIC(double dt); //sprawdzenie i zmiana nastawy zintegrowanego nastawnika jazdy/hamowania
+	void CheckSpeedCtrl();
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);
