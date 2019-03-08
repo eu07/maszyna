@@ -1415,8 +1415,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     UpdateBatteryVoltage(Deltatime);
     UpdateScndPipePressure(Deltatime); // druga rurka, youBy
 
-	if ((DCEMUED_CC & 1) && (Couplers[0].CouplingFlag & 4)) DynamicBrakeEMUStatus &= Couplers[0].Connected->DynamicBrakeEMUStatus;
-	if ((DCEMUED_CC & 2) && (Couplers[1].CouplingFlag & 4)) DynamicBrakeEMUStatus &= Couplers[1].Connected->DynamicBrakeEMUStatus;
+    if( ( ( DCEMUED_CC & 1 ) != 0 ) && ( ( Couplers[ end::front ].CouplingFlag & coupling::control ) != 0 ) ) { DynamicBrakeEMUStatus &= Couplers[ end::front ].Connected->DynamicBrakeEMUStatus; }
+    if( ( ( DCEMUED_CC & 2 ) != 0 ) && ( ( Couplers[ end::rear ].CouplingFlag & coupling::control ) != 0 ) )  { DynamicBrakeEMUStatus &= Couplers[ end::rear ].Connected->DynamicBrakeEMUStatus; }
     
     if( ( BrakeSlippingTimer > 0.8 ) && ( ASBType != 128 ) ) { // ASBSpeed=0.8
         // hamulec antypoślizgowy - wyłączanie

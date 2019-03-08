@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "PyInt.h"
 #include "command.h"
 
+#undef snprintf // pyint.h->python
+
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
 const int maxcab = 2;
@@ -643,7 +645,7 @@ private:
     float fHCurrent[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f }; // pr?dy: suma i amperomierze 1,2,3
     float fEngine[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f }; // obroty te? trzeba pobra?
     int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiętych ze sobą
-    bool bDoors[20][3]; // drzwi dla wszystkich czlonow
+    bool bDoors[20][5]; // drzwi dla wszystkich czlonow; left+right, left, right, step_left, step_right
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi
     char cCode[20]; // kod pojazdu
