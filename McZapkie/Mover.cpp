@@ -5947,16 +5947,18 @@ void TMoverParameters::CheckEIMIC(double dt)
 			eimic = -1.0;
 			break;
 		case 1:
-			eimic -= clamp(1.0 + eimic, 0.0, dt*0.3); //odejmuj do -1
+			eimic -= clamp(1.0 + eimic, 0.0, dt*0.15); //odejmuj do -1
+			if (eimic > 0) eimic = 0;
 			break;
 		case 2:
-			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.15); //odejmuj do 0
 			break;
 		case 3:
-			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.15); //dodawaj do 0
 			break;
 		case 4:
-			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.15); //dodawaj do 1
+			if (eimic < 0) eimic = 0;
 			break;
 		}
 		break;

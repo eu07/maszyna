@@ -2704,9 +2704,9 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->CheckEIMIC(dt1);
 			MoverParameters->CheckSpeedCtrl();
 
-			MoverParameters->eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
-			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, MoverParameters->eimic), MoverParameters->CabNo);
-			auto LBR = Max0R(-MoverParameters->eimic, 0);
+			auto eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
+			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
+			auto LBR = Max0R(-eimic, 0);
 
 			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
