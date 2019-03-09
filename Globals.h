@@ -29,6 +29,7 @@ struct global_settings {
 	std::mt19937 random_engine;
 	std::mt19937 local_random_engine;
 	bool ready_to_load { false };
+	std::time_t starting_timestamp = 0; // starting time, in local timezone
 	uint32_t random_seed = 0;
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
@@ -73,8 +74,7 @@ struct global_settings {
     float FrictionWeatherFactor { 1.f };
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
-    glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
-    double fFogStart{ 1700 };
+	glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
     double fFogEnd{ 2000 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather

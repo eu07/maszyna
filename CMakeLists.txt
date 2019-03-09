@@ -127,6 +127,7 @@ set(SOURCES
 "widgets/map.cpp"
 "widgets/map_objects.cpp"
 "widgets/popup.cpp"
+"widgets/time.cpp"
 
 "ref/glad/src/glad.c"
 

@@ -150,10 +150,9 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
     // atmosphere color; legacy parameter, no longer used
     Input.getTokens( 3 );
     // fog range
-    Input.getTokens( 2 );
-    Input
-        >> Global.fFogStart
-        >> Global.fFogEnd;
+	Input.getTokens( 1 ); // fog start ignored
+	Input.getTokens( 1 );
+	Input >> Global.fFogEnd;
 
     if( Global.fFogEnd > 0.0 ) {
         // fog colour; optional legacy parameter, no longer used
@@ -297,7 +296,22 @@ state_serializer::deserialize_firstinit( cParser &Input, scene::scratch_data &Sc
     simulation::Events.InitLaunchers();
     simulation::Memory.InitCells();
 
+	init_time();
+
     Scratchpad.initialized = true;
+}
+
+void state_serializer::init_time() {
+	auto &time = simulation::Time.data();
+	if( true == Global.ScenarioTimeCurrent ) {
+		// calculate time shift required to match scenario time with local clock
+		auto const *localtime = std::gmtime( &Global.starting_timestamp );
+		Global.ScenarioTimeOffset = ( ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
+	}
+	else if( false == std::isnan( Global.ScenarioTimeOverride ) ) {
+		// scenario time override takes precedence over scenario time offset
+		Global.ScenarioTimeOffset = ( ( Global.ScenarioTimeOverride * 60 ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
+	}
 }
 
 void
@@ -582,17 +596,6 @@ state_serializer::deserialize_time( cParser &Input, scene::scratch_data &Scratch
     timeparser
         >> time.wHour
         >> time.wMinute;
-
-    if( true == Global.ScenarioTimeCurrent ) {
-        // calculate time shift required to match scenario time with local clock
-        auto timenow = std::time( 0 );
-        auto const *localtime = std::localtime( &timenow );
-        Global.ScenarioTimeOffset = ( ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
-    }
-    else if( false == std::isnan( Global.ScenarioTimeOverride ) ) {
-        // scenario time override takes precedence over scenario time offset
-        Global.ScenarioTimeOffset = ( ( Global.ScenarioTimeOverride * 60 ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
-    }
 
     // remaining sunrise and sunset parameters are no longer used, as they're now calculated dynamically
     // anything else left in the section has no defined meaning

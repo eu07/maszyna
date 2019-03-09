@@ -28,6 +28,7 @@ driver_ui::driver_ui() {
     push_back( &m_transcriptspanel );
 
 	//push_back( &m_vehiclelist );
+	push_back( &m_timepanel );
 	push_back( &m_mappanel );
     push_back( &m_logpanel );
     m_logpanel.is_open = false;
@@ -52,6 +53,10 @@ void driver_ui::render_menu_contents() {
         ImGui::MenuItem(m_timetablepanel.title.c_str(), "F2", &m_timetablepanel.is_open);
         ImGui::MenuItem(m_debugpanel.get_name().c_str(), "F12", &m_debugpanel.is_open);
 		ImGui::MenuItem(m_mappanel.get_name().c_str(), "Tab", &m_mappanel.is_open);
+
+		if (ImGui::MenuItem(m_timepanel.get_name().c_str()))
+			m_timepanel.open();
+
         ImGui::EndMenu();
     }
 }

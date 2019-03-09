@@ -63,7 +63,7 @@ void UpdateTimers(bool pause)
     QueryPerformanceCounter((LARGE_INTEGER *)&count);
 #elif __linux__
 	timespec ts;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 	count = (uint64_t)ts.tv_sec * 1000000000 + (uint64_t)ts.tv_nsec;
 	fr = 1000000000;
 #endif

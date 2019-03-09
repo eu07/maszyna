@@ -91,6 +91,6 @@ scenarioloader_mode::enter() {
 void
 scenarioloader_mode::exit() {
 
-    simulation::Time.init();
+	simulation::Time.init(Global.starting_timestamp);
     simulation::Environment.init();
 }

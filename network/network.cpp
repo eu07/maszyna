@@ -122,6 +122,7 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 
 		server_hello reply;
 		reply.seed = Global.random_seed;
+		reply.timestamp = Global.starting_timestamp;
 		conn->state = connection::CATCHING_UP;
 		conn->backbuffer = backbuffer;
 		conn->backbuffer_pos = 0;
@@ -229,6 +230,7 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 		if (!Global.ready_to_load) {
 			Global.random_seed = cmd.seed;
 			Global.random_engine.seed(Global.random_seed);
+			Global.starting_timestamp = cmd.timestamp;
 			Global.ready_to_load = true;
 		} else if (Global.random_seed != cmd.seed) {
 			ErrorLog("net: seed mismatch", logtype::net);

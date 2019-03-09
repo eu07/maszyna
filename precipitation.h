@@ -26,11 +26,14 @@ public:
 // methods
     bool
         init();
+	void
+	    update_weather();
     void
         update();
 	void
         render();
-	float get_textureoffset();
+	float
+	    get_textureoffset();
 
     glm::dvec3 m_cameramove{ 0.0 };
 

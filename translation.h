@@ -68,6 +68,14 @@ enum string {
     ui_map,
     ui_mode_windows,
 
+	time_window,
+	time_time,
+	time_yearday,
+	time_visibility,
+	time_weather,
+	time_temperature,
+	time_apply,
+
 	map_straight,
 	map_divert,
 

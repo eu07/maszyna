@@ -79,6 +79,14 @@ init() {
         "Map",
         "Mode windows",
 
+	    "Time and environment",
+	    "Time",
+	    "Day in year",
+	    "Visibility",
+	    "Overcast and precipitation",
+	    "Temperature",
+	    "Apply",
+
 	    "Straight |",
 	    "Divert /",
 
@@ -241,6 +249,14 @@ init() {
         u8"Log",
         u8"Mapa",
         u8"Okna trybu",
+
+	    u8"Czas i środowisko",
+	    u8"Czas",
+	    u8"Dzień w roku",
+	    u8"Widoczność",
+	    u8"Zachmurzenie i opady",
+	    u8"Temperatura",
+	    u8"Zastosuj",
 
 	    u8"Prosto |",
 	    u8"W bok /",

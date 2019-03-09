@@ -33,9 +33,9 @@ public:
     // switches between static and dynamic daylight calculation
     void toggle_daylight();
     // calculates current season of the year based on set simulation date
-    void compute_season( int const Yearday ) const;
+	void compute_season( int const Yearday );
     // calculates current weather
-    void compute_weather() const;
+	void compute_weather();
 
 private:
 // members

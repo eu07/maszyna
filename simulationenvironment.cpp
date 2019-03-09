@@ -35,7 +35,7 @@ world_environment::toggle_daylight() {
 
 // calculates current season of the year based on set simulation date
 void
-world_environment::compute_season( int const Yearday ) const {
+world_environment::compute_season( int const Yearday ) {
 
     using dayseasonpair = std::pair<int, std::string>;
 
@@ -59,7 +59,7 @@ world_environment::compute_season( int const Yearday ) const {
 
 // calculates current weather
 void
-world_environment::compute_weather() const {
+world_environment::compute_weather() {
 
     Global.Weather = (
         Global.Overcast <= 0.25 ? "clear:" :
@@ -67,6 +67,8 @@ world_environment::compute_weather() const {
         ( Global.Season != "winter:" ?
             "rain:" :
             "snow:" ) );
+
+	m_precipitation.update_weather();
 }
 
 void
@@ -161,7 +163,11 @@ world_environment::update() {
     else if( Global.Weather == "snow:" ) {
         // reduce friction due to snow
         Global.FrictionWeatherFactor = 0.75f;
+		m_precipitationsound.stop();
     }
+	else {
+		m_precipitationsound.stop();
+	}
 }
 
 void

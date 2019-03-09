@@ -130,7 +130,7 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::queueevent) {
 			uint32_t id = std::round(commanddata.param1);
-			basic_event *ev = Events.FindEventById(id);
+			basic_event *ev = Events.FindEventById(id); // TODO: depends on vector position
 			Events.AddToQuery(ev, nullptr);
 		}
 
@@ -139,7 +139,26 @@ void state_manager::process_commands() {
 			int light = std::round(commanddata.param1);
 			float state = commanddata.param2;
 			if (id < simulation::Instances.sequence().size())
-				simulation::Instances.sequence()[id]->LightSet(light, state);
+				simulation::Instances.sequence()[id]->LightSet(light, state); // TODO: depends on vector position
+		}
+
+		if (commanddata.command == user_command::setdatetime) {
+			int yearday = std::round(commanddata.param1);
+			int minute = std::round(commanddata.param2 * 60.0);
+			simulation::Time.set_time(yearday, minute);
+
+			simulation::Environment.compute_season(yearday);
+		}
+
+		if (commanddata.command == user_command::setweather) {
+			Global.fFogEnd = commanddata.param1;
+			Global.Overcast = commanddata.param2;
+
+			simulation::Environment.compute_weather();
+		}
+
+		if (commanddata.command == user_command::settemperature) {
+			Global.AirTemperature = commanddata.param1;
 		}
 
 		if (DebugModeFlag) {

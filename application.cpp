@@ -767,6 +767,12 @@ bool eu07_application::init_network() {
 		if (!Global.random_seed)
 			Global.random_seed = std::random_device{}();
 		Global.random_engine.seed(Global.random_seed);
+
+		// TODO: sort out this timezone mess
+		std::time_t utc_now = std::time(nullptr);
+		std::time_t local_now = utc_now + (std::mktime(std::localtime(&utc_now)) - std::mktime(std::gmtime(&utc_now)));
+
+		Global.starting_timestamp = local_now;
 		Global.ready_to_load = true;
 	}
 

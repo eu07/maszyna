@@ -133,8 +133,10 @@ void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 
 	for (TDynamicObject *vehicle : simulation::Vehicles.sequence()) {
 		if (vehicle->Prev() || !vehicle->Mechanik)
 			continue;
-		if (vehicle->Mechanik->TrainName().empty())
-			continue;
+
+		std::string label = vehicle->Mechanik->TrainName();
+		if (label.empty() || label == "none")
+			label = ToUpper(vehicle->name());
 
 		glm::vec4 ndc_pos = transform * glm::vec4(glm::vec3(vehicle->GetPosition()), 1.0f);
 		if (glm::abs(ndc_pos.x) > 1.0f || glm::abs(ndc_pos.z) > 1.0f)
@@ -144,11 +146,10 @@ void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 
 
 		TDynamicObject *veh = vehicle;
 
-		const char *desc = vehicle->Mechanik->TrainName().c_str();
-		ImVec2 textsize = ImGui::CalcTextSize(desc);
+		ImVec2 textsize = ImGui::CalcTextSize(label.c_str());
 		ImGui::SetCursorPos(ImVec2(origin.x + gui_pos.x - textsize.x / 2.0f,
 		                           origin.y + gui_pos.y - textsize.y / 2.0f));
-		ImGui::TextUnformatted(desc);
+		ImGui::TextUnformatted(label.c_str());
 	}
 	ImGui::PopStyleColor();
 

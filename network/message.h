@@ -39,6 +39,7 @@ struct server_hello : public message
 	server_hello() : message(SERVER_HELLO) {}
 
 	uint32_t seed;
+	int64_t timestamp;
 
 	virtual void serialize(std::ostream &stream) const override;
 	virtual void deserialize(std::istream &stream) override;

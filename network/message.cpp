@@ -16,11 +16,13 @@ void network::client_hello::deserialize(std::istream &stream)
 void network::server_hello::serialize(std::ostream &stream) const
 {
 	sn_utils::ls_uint32(stream, seed);
+	sn_utils::ls_int64(stream, timestamp);
 }
 
 void network::server_hello::deserialize(std::istream &stream)
 {
 	seed = sn_utils::ld_uint32(stream);
+	timestamp = sn_utils::ld_int64(stream);
 }
 
 void ::network::request_command::serialize(std::ostream &stream) const

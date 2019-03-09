@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "widgets/vehiclelist.h"
 #include "widgets/map.h"
+#include "widgets/time.h"
 
 class driver_ui : public ui_layer {
 
@@ -58,4 +59,5 @@ private:
 	command_relay m_relay;
 	ui::vehiclelist_panel m_vehiclelist;
 	ui::map_panel m_mappanel;
+	ui::time_panel m_timepanel;
 };

@@ -195,9 +195,26 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	m_empty_cubemap = std::make_unique<gl::cubemap>();
 	m_empty_cubemap->alloc(Global.gfx_format_color, 16, 16, GL_RGB, GL_FLOAT);
 
-	m_current_viewport = &default_viewport;
-	if (!init_viewport(default_viewport))
-		return false;
+	m_viewports.push_back(std::make_unique<viewport_config>());
+	viewport_config &default_viewport = *m_viewports.front().get();
+	default_viewport.width = Global.gfx_framebuffer_width;
+	default_viewport.height = Global.gfx_framebuffer_height;
+
+	/*
+	default_viewport.camera_transform = glm::rotate(glm::mat4(), 0.5f, glm::vec3(1.0f, 0.0f, 0.f));
+
+	m_viewports.push_back(std::make_unique<viewport_config>());
+	viewport_config &vp2 = *m_viewports.back().get();
+	vp2.width = Global.gfx_framebuffer_width;
+	vp2.height = Global.gfx_framebuffer_height;
+
+	vp2.camera_transform = glm::rotate(glm::mat4(), -0.5f, glm::vec3(1.0f, 0.0f, 0.f));
+	*/
+
+	for (auto &viewport : m_viewports) {
+		if (!init_viewport(*viewport.get()))
+			return false;
+	}
 
 	m_pick_tex = std::make_unique<opengl_texture>();
 	m_pick_tex->alloc_rendertarget(GL_RGB8, GL_RGB, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE);
@@ -271,17 +288,17 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	return true;
 }
 
-bool opengl_renderer::init_viewport(viewport_data &vp)
+bool opengl_renderer::init_viewport(viewport_config &vp)
 {
 	int samples = 1 << Global.iMultisampling;
 
 	if (!Global.gfx_skippipeline)
 	{
 		vp.msaa_rbc = std::make_unique<gl::renderbuffer>();
-		vp.msaa_rbc->alloc(Global.gfx_format_color, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, samples);
+		vp.msaa_rbc->alloc(Global.gfx_format_color, vp.width, vp.height, samples);
 
 		vp.msaa_rbd = std::make_unique<gl::renderbuffer>();
-		vp.msaa_rbd->alloc(Global.gfx_format_depth, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, samples);
+		vp.msaa_rbd->alloc(Global.gfx_format_depth, vp.width, vp.height, samples);
 
 		vp.msaa_fb = std::make_unique<gl::framebuffer>();
 		vp.msaa_fb->attach(*vp.msaa_rbc, GL_COLOR_ATTACHMENT0);
@@ -290,17 +307,17 @@ bool opengl_renderer::init_viewport(viewport_data &vp)
 		if (Global.gfx_postfx_motionblur_enabled)
 		{
 			vp.msaa_rbv = std::make_unique<gl::renderbuffer>();
-			vp.msaa_rbv->alloc(Global.gfx_postfx_motionblur_format, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, samples);
+			vp.msaa_rbv->alloc(Global.gfx_postfx_motionblur_format, vp.width, vp.height, samples);
 			vp.msaa_fb->attach(*vp.msaa_rbv, GL_COLOR_ATTACHMENT1);
 
 			vp.main_tex = std::make_unique<opengl_texture>();
-			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, 1, GL_CLAMP_TO_EDGE);
+			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, GL_CLAMP_TO_EDGE);
 
 			vp.main_fb = std::make_unique<gl::framebuffer>();
 			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
 
 			vp.main_texv = std::make_unique<opengl_texture>();
-			vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+			vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
 			vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
 			vp.main_fb->setup_drawing(2);
 
@@ -314,7 +331,7 @@ bool opengl_renderer::init_viewport(viewport_data &vp)
 			return false;
 
 		vp.main2_tex = std::make_unique<opengl_texture>();
-		vp.main2_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+		vp.main2_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height);
 
 		vp.main2_fb = std::make_unique<gl::framebuffer>();
 		vp.main2_fb->attach(*vp.main2_tex, GL_COLOR_ATTACHMENT0);
@@ -412,7 +429,10 @@ bool opengl_renderer::Render()
 	m_renderpass.draw_mode = rendermode::none; // force setup anew
 	m_debugstats = debug_stats();
 
-	Render_pass(default_viewport, rendermode::color);
+	for (auto &viewport : m_viewports) {
+		Render_pass(*viewport.get(), rendermode::color);
+	}
+	//Render_pass(*m_viewports.front().get(), rendermode::color);
 
 	m_drawcount = m_cellqueue.size();
 	m_debugtimestext.clear();
@@ -475,9 +495,9 @@ void opengl_renderer::draw_debug_ui()
 }
 
 // runs jobs needed to generate graphics for specified render pass
-void opengl_renderer::Render_pass(viewport_data &vp, rendermode const Mode)
+void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 {
-	setup_pass(m_renderpass, Mode);
+	setup_pass(vp, m_renderpass, Mode);
 	switch (m_renderpass.draw_mode)
 	{
 
@@ -520,7 +540,7 @@ void opengl_renderer::Render_pass(viewport_data &vp, rendermode const Mode)
 			Render_pass(vp, rendermode::shadows);
 			if (!FreeFlyModeFlag)
 				Render_pass(vp, rendermode::cabshadows);
-			setup_pass(m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
+			setup_pass(vp, m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
 
 			Timer::subsystem.gfx_shadows.stop();
 			glDebug("render shadowmap end");
@@ -530,7 +550,7 @@ void opengl_renderer::Render_pass(viewport_data &vp, rendermode const Mode)
 		{
 			// potentially update environmental cube map
 			if (Render_reflections(vp))
-				setup_pass(m_renderpass, Mode); // restore color pass settings
+				setup_pass(vp, m_renderpass, Mode); // restore color pass settings
 			setup_env_map(vp.env_tex.get());
 		}
 
@@ -851,7 +871,7 @@ void opengl_renderer::Render_pass(viewport_data &vp, rendermode const Mode)
 }
 
 // creates dynamic environment cubemap
-bool opengl_renderer::Render_reflections(viewport_data &vp)
+bool opengl_renderer::Render_reflections(viewport_config &vp)
 {
 	if (Global.ReflectionUpdatesPerSecond == 0)
 		return false;
@@ -943,7 +963,8 @@ glm::mat4 opengl_renderer::ortho_frustumtest_projection(float l, float r, float 
 	return glm::ortho(l, r, b, t, znear, zfar);
 }
 
-void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug)
+void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &Config, rendermode const Mode,
+                                 float const Znear, float const Zfar, bool const Ignoredebug)
 {
 
 	Config.draw_mode = Mode;
@@ -1001,10 +1022,14 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
 	float const aspect = std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight);
 
+	Config.viewport_camera.position() = Global.pCamera.Pos;
+
 	switch (Mode)
 	{
 	case rendermode::color:
 	{
+		viewmatrix = glm::dmat4(Viewport.camera_transform);
+
 		// modelview
 		if ((false == DebugCameraFlag) || (true == Ignoredebug))
 		{
@@ -1016,6 +1041,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 			camera.position() = Global.pDebugCamera.Pos;
 			Global.pDebugCamera.SetMatrix(viewmatrix);
 		}
+
 		// projection
 		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
 		auto const znear = (Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
@@ -1030,7 +1056,7 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 		// ...setup chunk of frustum we're interested in...
 		auto const zfar = std::min(1.f, Global.shadowtune.depth / (Global.BaseDrawRange * Global.fDistanceFactor) * std::max(1.f, Global.ZoomFactor * 0.5f));
 		renderpass_config worldview;
-		setup_pass(worldview, rendermode::color, 0.f, zfar, true);
+		setup_pass(Viewport, worldview, rendermode::color, 0.f, zfar, true);
 		auto &frustumchunkshapepoints = worldview.pass_camera.frustum_points();
 		// ...modelview matrix: determine the centre of frustum chunk in world space...
 		glm::vec3 frustumchunkmin, frustumchunkmax;
@@ -1110,9 +1136,12 @@ void opengl_renderer::setup_pass(renderpass_config &Config, rendermode const Mod
 	case rendermode::pickcontrols:
 	case rendermode::pickscenery:
 	{
+		viewmatrix = glm::dmat4(Viewport.camera_transform);
+
 		// modelview
 		camera.position() = Global.pCamera.Pos;
 		Global.pCamera.SetMatrix(viewmatrix);
+
 		// projection
 		float znear = 0.1f * Global.ZoomFactor;
 		float zfar = Config.draw_range * Global.fDistanceFactor;
@@ -1998,7 +2027,7 @@ void opengl_renderer::Render(scene::shape_node const &Shape, bool const Ignorera
 		case rendermode::shadows:
 		{
 			// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-			distancesquared = Math3D::SquareMagnitude((data.area.center - Global.pCamera.Pos) / Global.ZoomFactor) / Global.fDistanceFactor;
+			distancesquared = Math3D::SquareMagnitude((data.area.center - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 			break;
 		}
 		default:
@@ -2052,7 +2081,7 @@ void opengl_renderer::Render(TAnimModel *Instance)
 	case rendermode::shadows:
 	{
 		// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-		distancesquared = Math3D::SquareMagnitude((Instance->location() - Global.pCamera.Pos) / Global.ZoomFactor) / Global.fDistanceFactor;
+		distancesquared = Math3D::SquareMagnitude((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
 	}
 	default:
@@ -2110,7 +2139,7 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 	{
 	case rendermode::shadows:
 	{
-		squaredistance = glm::length2(glm::vec3{glm::dvec3{Dynamic->vPosition - Global.pCamera.Pos}} / Global.ZoomFactor) / Global.fDistanceFactor;
+		squaredistance = glm::length2(glm::vec3{glm::dvec3{Dynamic->vPosition - m_renderpass.viewport_camera.position()}} / Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
 	}
 	default:
@@ -3430,7 +3459,7 @@ void opengl_renderer::Update_Pick_Control()
 			pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
 			pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
-			Render_pass(default_viewport, rendermode::pickcontrols);
+			Render_pass(*m_viewports.front().get(), rendermode::pickcontrols);
 			m_pick_fb->bind();
 			m_picking_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
 			m_pick_fb->unbind();
@@ -3469,7 +3498,7 @@ void opengl_renderer::Update_Pick_Node()
 			pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
 			pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
-			Render_pass(default_viewport, rendermode::pickscenery);
+			Render_pass(*m_viewports.front().get(), rendermode::pickscenery);
 			m_pick_fb->bind();
 			m_picking_node_pbo->request_read(pickbufferpos.x, pickbufferpos.y, 1, 1);
 			m_pick_fb->unbind();
