@@ -5939,6 +5939,8 @@ void TMoverParameters::CheckEIMIC(double dt)
 			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1, max
 			break;
 		}
+		if (MainCtrlPos >= 3 && eimic < 0) eimic = 0;
+		if (MainCtrlPos <= 3 && eimic > 0) eimic = 0;
 		break;
 	case 2:
 		switch (MainCtrlPos)
