@@ -202,6 +202,15 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
 
+	struct extraviewport_config {
+		std::string monitor;
+		int width;
+		int height;
+		glm::mat4 transform;
+	};
+
+	std::vector<extraviewport_config> extra_viewports;
+
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;
 

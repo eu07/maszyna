@@ -470,7 +470,7 @@ void eu07_application::on_focus_change(bool focus) {
 }
 
 GLFWwindow *
-eu07_application::window( int const Windowindex ) {
+eu07_application::window( int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor ) {
 
     if( Windowindex >= 0 ) {
         return (
@@ -479,12 +479,34 @@ eu07_application::window( int const Windowindex ) {
                 nullptr );
     }
     // for index -1 create a new child window
-    glfwWindowHint( GLFW_VISIBLE, GL_FALSE );
-    auto *childwindow = glfwCreateWindow( 1, 1, "eu07helper", nullptr, m_windows.front() );
+
+	glfwWindowHint( GLFW_VISIBLE, visible );
+
+	auto *childwindow = glfwCreateWindow( width, height, "eu07helper", monitor, m_windows.front() );
     if( childwindow != nullptr ) {
         m_windows.emplace_back( childwindow );
     }
     return childwindow;
+}
+
+GLFWmonitor* eu07_application::find_monitor(const std::string &str) {
+	int monitor_count;
+	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+	for (size_t i = 0; i < monitor_count; i++) {
+		std::string name(glfwGetMonitorName(monitors[i]));
+		std::replace(std::begin(name), std::end(name), ' ', '_');
+
+		int x, y;
+		glfwGetMonitorPos(monitors[i], &x, &y);
+
+		std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
+
+		if (desc == str)
+			return monitors[i];
+	}
+
+	return nullptr;
 }
 
 // private:

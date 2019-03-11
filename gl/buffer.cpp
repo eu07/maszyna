@@ -79,4 +79,4 @@ void gl::buffer::download(targets target, void *data, int offset, int size)
     }
 }
 
-GLuint gl::buffer::binding_points[13];
+thread_local GLuint gl::buffer::binding_points[13];

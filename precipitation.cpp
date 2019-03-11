@@ -186,20 +186,18 @@ basic_precipitation::render() {
 		m_vertexbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), GL_STATIC_DRAW);
 		m_vertexbuffer->upload(gl::buffer::ARRAY_BUFFER, m_vertices.data(), 0, m_vertices.size() * sizeof( glm::vec3 ));
 
-		m_vertexbuffer->bind(gl::buffer::ARRAY_BUFFER);
-		m_vao->setup_attrib(0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
+		m_vao->setup_attrib(*m_vertexbuffer, 0, 3, GL_FLOAT, sizeof(glm::vec3), 0);
 
 		m_uvbuffer.emplace();
 		m_uvbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_uvs.size() * sizeof( glm::vec2 ), GL_STATIC_DRAW);
 		m_uvbuffer->upload(gl::buffer::ARRAY_BUFFER, m_uvs.data(), 0, m_uvs.size() * sizeof( glm::vec2 ));
 
-		m_uvbuffer->bind(gl::buffer::ARRAY_BUFFER);
-        m_vao->setup_attrib(1, 2, GL_FLOAT, sizeof(glm::vec2), 0);
+		m_vao->setup_attrib(*m_uvbuffer, 1, 2, GL_FLOAT, sizeof(glm::vec2), 0);
 
 		m_indexbuffer.emplace();
 		m_indexbuffer->allocate(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), GL_STATIC_DRAW);
 		m_indexbuffer->upload(gl::buffer::ELEMENT_ARRAY_BUFFER, m_indices.data(), 0, m_indices.size() * sizeof( unsigned short ));
-		m_indexbuffer->bind(gl::buffer::ELEMENT_ARRAY_BUFFER);
+		m_vao->setup_ebo(*m_indexbuffer);
 
 		m_vao->unbind();
         // NOTE: vertex and index source data is superfluous past this point, but, eh

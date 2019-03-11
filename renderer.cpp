@@ -64,13 +64,6 @@ bool opengl_camera::visible(TDynamicObject const *Dynamic) const
 void opengl_camera::draw(glm::vec3 const &Offset) const
 {
 	// m7t port to core gl
-	/*
-	::glBegin( GL_LINES );
-	for( auto const pointindex : frustumshapepoinstorder ) {
-	    ::glVertex3fv( glm::value_ptr( glm::vec3{ m_frustumpoints[ pointindex ] } - Offset ) );
-	}
-	::glEnd();
-	*/
 }
 
 bool opengl_renderer::Init(GLFWwindow *Window)
@@ -81,33 +74,6 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	WriteLog("preparing renderer..");
 
 	m_window = Window;
-
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-	glClearColor(51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f); // initial background Color
-
-	glFrontFace(GL_CCW);
-	glEnable(GL_CULL_FACE);
-
-	glEnable(GL_DEPTH_TEST);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
-
-	if (!Global.gfx_usegles)
-		glClearDepth(0.0f);
-	else
-		glClearDepthf(0.0f);
-
-	glDepthFunc(GL_GEQUAL);
-
-	if (GLAD_GL_ARB_clip_control)
-		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-	else if (GLAD_GL_EXT_clip_control)
-		glClipControlEXT(GL_LOWER_LEFT_EXT, GL_ZERO_TO_ONE_EXT);
-
-	if (!Global.gfx_usegles)
-		glEnable(GL_PROGRAM_POINT_SIZE);
 
 	gl::glsl_common_setup();
 
@@ -127,7 +93,6 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	// create dynamic light pool
 	for (int idx = 0; idx < Global.DynamicLightCount; ++idx)
 	{
-
 		opengl_light light;
 		light.id = 1 + idx;
 
@@ -199,21 +164,69 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	viewport_config &default_viewport = *m_viewports.front().get();
 	default_viewport.width = Global.gfx_framebuffer_width;
 	default_viewport.height = Global.gfx_framebuffer_height;
+	default_viewport.main = true;
+	default_viewport.window = m_window;
 
-	/*
-	default_viewport.camera_transform = glm::rotate(glm::mat4(), 0.5f, glm::vec3(1.0f, 0.0f, 0.f));
-
-	m_viewports.push_back(std::make_unique<viewport_config>());
-	viewport_config &vp2 = *m_viewports.back().get();
-	vp2.width = Global.gfx_framebuffer_width;
-	vp2.height = Global.gfx_framebuffer_height;
-
-	vp2.camera_transform = glm::rotate(glm::mat4(), -0.5f, glm::vec3(1.0f, 0.0f, 0.f));
-	*/
+	for (const global_settings::extraviewport_config &conf : Global.extra_viewports) {
+		m_viewports.push_back(std::make_unique<viewport_config>());
+		viewport_config &vp = *m_viewports.back().get();
+		vp.width = conf.width;
+		vp.height = conf.height;
+		vp.window = Application.window(-1, true, vp.width, vp.height, Application.find_monitor(conf.monitor));
+		vp.camera_transform = conf.transform;
+		std::cout << "ZXZ " << glm::to_string(vp.camera_transform) << std::endl;
+	}
 
 	for (auto &viewport : m_viewports) {
 		if (!init_viewport(*viewport.get()))
 			return false;
+	}
+
+	glfwMakeContextCurrent(m_window);
+
+	if (Global.gfx_shadowmap_enabled)
+	{
+		m_shadow_fb = std::make_unique<gl::framebuffer>();
+		m_shadow_tex = std::make_unique<opengl_texture>();
+		m_shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
+		m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
+
+		if (!m_shadow_fb->is_complete())
+			return false;
+
+		WriteLog("shadows enabled");
+
+		m_cabshadows_fb = std::make_unique<gl::framebuffer>();
+		m_cabshadows_tex = std::make_unique<opengl_texture>();
+		m_cabshadows_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
+		m_cabshadows_fb->attach(*m_cabshadows_tex, GL_DEPTH_ATTACHMENT);
+
+		if (!m_cabshadows_fb->is_complete())
+			return false;
+
+		WriteLog("cabshadows enabled");
+	}
+
+	if (Global.gfx_envmap_enabled)
+	{
+		m_env_rb = std::make_unique<gl::renderbuffer>();
+		m_env_rb->alloc(Global.gfx_format_depth, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
+		m_env_tex = std::make_unique<gl::cubemap>();
+		m_env_tex->alloc(Global.gfx_format_color, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
+
+		m_env_fb = std::make_unique<gl::framebuffer>();
+
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		for (int i = 0; i < 6; i++)
+		{
+			m_env_fb->attach(*m_empty_cubemap, i, GL_COLOR_ATTACHMENT0);
+			m_env_fb->clear(GL_COLOR_BUFFER_BIT);
+		}
+
+		m_env_fb->detach(GL_COLOR_ATTACHMENT0);
+		m_env_fb->attach(*m_env_rb, GL_DEPTH_ATTACHMENT);
+
+		WriteLog("envmap enabled");
 	}
 
 	m_pick_tex = std::make_unique<opengl_texture>();
@@ -290,7 +303,48 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
 bool opengl_renderer::init_viewport(viewport_config &vp)
 {
+	glfwMakeContextCurrent(vp.window);
+
+	WriteLog("init viewport: " + std::to_string(vp.width) + ", " + std::to_string(vp.height));
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+	glClearColor(51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f); // initial background Color
+
+	glFrontFace(GL_CCW);
+	glEnable(GL_CULL_FACE);
+
+	glEnable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+
+	if (!Global.gfx_usegles)
+		glClearDepth(0.0f);
+	else
+		glClearDepthf(0.0f);
+
+	glDepthFunc(GL_GEQUAL);
+
+	if (GLAD_GL_ARB_clip_control)
+		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+	else if (GLAD_GL_EXT_clip_control)
+		glClipControlEXT(GL_LOWER_LEFT_EXT, GL_ZERO_TO_ONE_EXT);
+
+	if (!Global.gfx_usegles)
+		glEnable(GL_PROGRAM_POINT_SIZE);
+
+	{
+		GLuint v;
+		glGenVertexArrays(1, &v);
+		glBindVertexArray(v);
+	}
+
 	int samples = 1 << Global.iMultisampling;
+
+	model_ubo->bind_uniform();
+	scene_ubo->bind_uniform();
+	light_ubo->bind_uniform();
 
 	if (!Global.gfx_skippipeline)
 	{
@@ -337,49 +391,6 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 		vp.main2_fb->attach(*vp.main2_tex, GL_COLOR_ATTACHMENT0);
 		if (!vp.main2_fb->is_complete())
 			return false;
-	}
-
-	if (Global.gfx_shadowmap_enabled)
-	{
-		vp.shadow_fb = std::make_unique<gl::framebuffer>();
-		vp.shadow_tex = std::make_unique<opengl_texture>();
-		vp.shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
-		vp.shadow_fb->attach(*vp.shadow_tex, GL_DEPTH_ATTACHMENT);
-
-		if (!vp.shadow_fb->is_complete())
-			return false;
-
-		vp.cabshadows_fb = std::make_unique<gl::framebuffer>();
-		vp.cabshadows_tex = std::make_unique<opengl_texture>();
-		vp.cabshadows_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
-		vp.cabshadows_fb->attach(*vp.cabshadows_tex, GL_DEPTH_ATTACHMENT);
-
-		if (!vp.cabshadows_fb->is_complete())
-			return false;
-
-		WriteLog("shadows enabled");
-	}
-
-	if (Global.gfx_envmap_enabled)
-	{
-		vp.env_rb = std::make_unique<gl::renderbuffer>();
-		vp.env_rb->alloc(Global.gfx_format_depth, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
-		vp.env_tex = std::make_unique<gl::cubemap>();
-		vp.env_tex->alloc(Global.gfx_format_color, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE, GL_RGB, GL_FLOAT);
-
-		vp.env_fb = std::make_unique<gl::framebuffer>();
-
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		for (int i = 0; i < 6; i++)
-		{
-			vp.env_fb->attach(*m_empty_cubemap, i, GL_COLOR_ATTACHMENT0);
-			vp.env_fb->clear(GL_COLOR_BUFFER_BIT);
-		}
-
-		vp.env_fb->detach(GL_COLOR_ATTACHMENT0);
-		vp.env_fb->attach(*vp.env_rb, GL_DEPTH_ATTACHMENT);
-
-		WriteLog("envmap enabled");
 	}
 
 	return true;
@@ -432,7 +443,9 @@ bool opengl_renderer::Render()
 	for (auto &viewport : m_viewports) {
 		Render_pass(*viewport.get(), rendermode::color);
 	}
-	//Render_pass(*m_viewports.front().get(), rendermode::color);
+
+	glfwMakeContextCurrent(m_window);
+	m_current_viewport = &(*m_viewports.front());
 
 	m_drawcount = m_cellqueue.size();
 	m_debugtimestext.clear();
@@ -466,7 +479,12 @@ bool opengl_renderer::Render()
 void opengl_renderer::SwapBuffers()
 {
 	Timer::subsystem.gfx_swap.start();
-	glfwSwapBuffers(m_window);
+
+	for (auto &viewport : m_viewports) {
+		if (viewport->window)
+			glfwSwapBuffers(viewport->window);
+	}
+
 	// swapbuffers() could unbind current buffers so we prepare for it on our end
 	gfx::opengl_vbogeometrybank::reset();
 	Timer::subsystem.gfx_swap.stop();
@@ -505,8 +523,15 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 	{
 		glDebug("rendermode::color");
 
+		glDebug("context switch");
+		glfwMakeContextCurrent(vp.window);
+		m_current_viewport = &vp;
+
 		if (!simulation::is_ready)
 		{
+			if (!vp.main)
+				break;
+
 			gl::framebuffer::unbind();
 			glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -532,7 +557,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		setup_shadow_map(nullptr, m_renderpass);
 		setup_env_map(nullptr);
 
-		if (Global.gfx_shadowmap_enabled)
+		if (Global.gfx_shadowmap_enabled && vp.main)
 		{
 			glDebug("render shadowmap start");
 			Timer::subsystem.gfx_shadows.start();
@@ -546,12 +571,12 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			glDebug("render shadowmap end");
 		}
 
-		if (Global.gfx_envmap_enabled)
+		if (Global.gfx_envmap_enabled && vp.main)
 		{
 			// potentially update environmental cube map
 			if (Render_reflections(vp))
 				setup_pass(vp, m_renderpass, Mode); // restore color pass settings
-			setup_env_map(vp.env_tex.get());
+			setup_env_map(m_env_tex.get());
 		}
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -566,7 +591,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			else
 				vp.msaa_fb->setup_drawing(1);
 
-			glViewport(0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height);
+			glViewport(0, 0, vp.width, vp.height);
 
 			vp.msaa_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
@@ -575,7 +600,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
+			glViewport(0, 0, vp.width, vp.height);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
@@ -610,7 +635,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		{
 			glDebug("render cab opaque");
 			if (Global.gfx_shadowmap_enabled)
-				setup_shadow_map(vp.cabshadows_tex.get(), m_cabshadowpass);
+				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
 
 			auto const *vehicle = simulation::Train->Dynamic();
 			Render_cab(vehicle, vehicle->InteriorLightLevel, false);
@@ -621,7 +646,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		model_ubs.future = future;
 
 		if (Global.gfx_shadowmap_enabled)
-			setup_shadow_map(vp.shadow_tex.get(), m_shadowpass);
+			setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
 
 		Render(simulation::Region);
 
@@ -639,7 +664,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			glDebug("render translucent cab");
 			model_ubs.future = glm::mat4();
 			if (Global.gfx_shadowmap_enabled)
-				setup_shadow_map(vp.cabshadows_tex.get(), m_cabshadowpass);
+				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
 			// cache shadow colour in case we need to account for cab light
 			auto const *vehicle{simulation::Train->Dynamic()};
 			if (Global.Overcast > 1.0f)
@@ -665,8 +690,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (Global.gfx_postfx_motionblur_enabled)
 			{
 				vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
-				vp.msaa_fb->blit_to(vp.main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
-				vp.msaa_fb->blit_to(vp.main_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
+				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
 
 				model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
 				model_ubo->update(model_ubs);
@@ -675,12 +700,12 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			else
 			{
 				vp.main2_fb->clear(GL_COLOR_BUFFER_BIT);
-				vp.msaa_fb->blit_to(vp.main2_fb.get(), Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+				vp.msaa_fb->blit_to(vp.main2_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 			}
 
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
-			glViewport(0, 0, Global.iWindowWidth, Global.iWindowHeight);
+			glViewport(0, 0, vp.width, vp.height);
 			m_pfx_tonemapping->apply(*vp.main2_tex, nullptr);
 			opengl_texture::reset_unit_cache();
 		}
@@ -691,8 +716,10 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glDebug("uilayer render");
 		Timer::subsystem.gfx_gui.start();
 
-		draw_debug_ui();
-		Application.render_ui();
+		if (vp.main) {
+			draw_debug_ui();
+			Application.render_ui();
+		}
 
 		Timer::subsystem.gfx_gui.stop();
 
@@ -716,8 +743,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glEnable(GL_DEPTH_TEST);
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
-		vp.shadow_fb->bind();
-		vp.shadow_fb->clear(GL_DEPTH_BUFFER_BIT);
+		m_shadow_fb->bind();
+		m_shadow_fb->clear(GL_DEPTH_BUFFER_BIT);
 
 		setup_matrices();
 		setup_drawing(false);
@@ -734,7 +761,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDisable(GL_POLYGON_OFFSET_FILL);
 
-		vp.shadow_fb->unbind();
+		m_shadow_fb->unbind();
 
 		glDebug("rendermodeshadows ::end");
 
@@ -751,8 +778,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glEnable(GL_DEPTH_TEST);
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
-		vp.cabshadows_fb->bind();
-		vp.cabshadows_fb->clear(GL_DEPTH_BUFFER_BIT);
+		m_cabshadows_fb->bind();
+		m_cabshadows_fb->clear(GL_DEPTH_BUFFER_BIT);
 
 		setup_matrices();
 		setup_drawing(false);
@@ -766,7 +793,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDisable(GL_POLYGON_OFFSET_FILL);
 
-		vp.cabshadows_fb->unbind();
+		m_cabshadows_fb->unbind();
 
 		glDebug("rendermode::cabshadows end");
 
@@ -783,8 +810,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		// NOTE: buffer attachment and viewport setup in this mode is handled by the wrapper method
 		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		vp.env_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		vp.env_fb->bind();
+		m_env_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		m_env_fb->bind();
 
 		setup_env_map(m_empty_cubemap.get());
 
@@ -800,13 +827,13 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		// opaque parts...
 		setup_drawing(false);
-		setup_shadow_map(vp.shadow_tex.get(), m_shadowpass);
+		setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 		Render(simulation::Region);
 
-		vp.env_fb->unbind();
+		m_env_fb->unbind();
 
 		glDebug("rendermode::reflections end");
 
@@ -891,12 +918,12 @@ bool opengl_renderer::Render_reflections(viewport_config &vp)
 	glViewport(0, 0, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
 	for (m_environmentcubetextureface = 0; m_environmentcubetextureface < 6; ++m_environmentcubetextureface)
 	{
-		vp.env_fb->attach(*vp.env_tex, m_environmentcubetextureface, GL_COLOR_ATTACHMENT0);
-		if (vp.env_fb->is_complete())
+		m_env_fb->attach(*m_env_tex, m_environmentcubetextureface, GL_COLOR_ATTACHMENT0);
+		if (m_env_fb->is_complete())
 			Render_pass(vp, rendermode::reflections);
 	}
-	vp.env_tex->generate_mipmaps();
-	vp.env_fb->detach(GL_COLOR_ATTACHMENT0);
+	m_env_tex->generate_mipmaps();
+	m_env_fb->detach(GL_COLOR_ATTACHMENT0);
 
 	return true;
 }
@@ -1720,7 +1747,7 @@ void opengl_renderer::Render(scene::basic_region *Region)
 
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
-		if (EditorModeFlag)
+		if (EditorModeFlag && m_current_viewport->main)
 		{
 			// when editor mode is active calculate world position of the cursor
 			// at this stage the z-buffer is filled with only ground geometry
@@ -3430,6 +3457,11 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 // utility methods
 void opengl_renderer::Update_Pick_Control()
 {
+	// context-switch workaround
+	gl::buffer::unbind(gl::buffer::PIXEL_PACK_BUFFER);
+	gl::buffer::unbind(gl::buffer::PIXEL_UNPACK_BUFFER);
+	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
+
 	if (!m_picking_pbo->is_busy())
 	{
 		unsigned char pickreadout[4];
@@ -3548,11 +3580,11 @@ glm::dvec3 opengl_renderer::get_mouse_depth()
 			}
 			else
 			{
-				gl::framebuffer::blit(m_current_viewport->msaa_fb.get(), m_depth_pointer_fb.get(), bufferpos.x, bufferpos.y, 1, 1, GL_DEPTH_BUFFER_BIT, 0);
+				gl::framebuffer::blit(m_viewports.front()->msaa_fb.get(), m_depth_pointer_fb.get(), bufferpos.x, bufferpos.y, 1, 1, GL_DEPTH_BUFFER_BIT, 0);
 
 				m_depth_pointer_fb->bind();
 				m_depth_pointer_pbo->request_read(0, 0, 1, 1, 4, GL_DEPTH_COMPONENT, GL_FLOAT);
-				m_current_viewport->msaa_fb->bind();
+				m_viewports.front()->msaa_fb->bind();
 			}
 		}
 		else
@@ -3577,7 +3609,7 @@ glm::dvec3 opengl_renderer::get_mouse_depth()
 			}
 			else
 			{
-				gl::framebuffer::blit(m_current_viewport->msaa_fb.get(), m_depth_pointer_fb.get(), 0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_DEPTH_BUFFER_BIT, 0);
+				gl::framebuffer::blit(m_viewports.front()->msaa_fb.get(), m_depth_pointer_fb.get(), 0, 0, Global.gfx_framebuffer_width, Global.gfx_framebuffer_height, GL_DEPTH_BUFFER_BIT, 0);
 
 				m_empty_vao->bind();
 				m_depth_pointer_tex->bind(0);
@@ -3587,7 +3619,7 @@ glm::dvec3 opengl_renderer::get_mouse_depth()
 				m_depth_pointer_pbo->request_read(bufferpos.x, bufferpos.y, 1, 1, 16, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
 				m_depth_pointer_shader->unbind();
 				m_empty_vao->unbind();
-				m_current_viewport->msaa_fb->bind();
+				m_viewports.front()->msaa_fb->bind();
 			}
 		}
 
@@ -3893,7 +3925,7 @@ bool opengl_renderer::Init_caps()
 	if (Global.gfx_framebuffer_height == -1)
 		Global.gfx_framebuffer_height = Global.iWindowHeight;
 
-	WriteLog("rendering at " + std::to_string(Global.gfx_framebuffer_width) + "x" + std::to_string(Global.gfx_framebuffer_height));
+	WriteLog("main window size: " + std::to_string(Global.gfx_framebuffer_width) + "x" + std::to_string(Global.gfx_framebuffer_height));
 
 	return true;
 }

@@ -833,6 +833,17 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> network_client->first;
 			Parser >> network_client->second;
 		}
+		else if (token == "extraviewport")
+		{
+			Parser.getTokens(3 + 16, false);
+
+			extraviewport_config conf;
+			Parser >> conf.monitor >> conf.width >> conf.height;
+			for (size_t i = 0; i < 16; i++)
+				Parser >> conf.transform[i / 4][i % 4];
+
+			extra_viewports.push_back(conf);
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

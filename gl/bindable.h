@@ -6,7 +6,7 @@ namespace gl
     class bindable
     {
     protected:
-        static bindable<T>* active;
+		thread_local static bindable<T>* active;
 
     public:
         void bind()
@@ -23,5 +23,5 @@ namespace gl
         }
     };
 
-    template <typename T> bindable<T>* bindable<T>::active;
+	template <typename T> thread_local bindable<T>* bindable<T>::active;
 }

@@ -7,7 +7,7 @@ namespace gl
 {
     class buffer : public object
     {
-        static GLuint binding_points[13];
+		thread_local static GLuint binding_points[13];
 
     public:
         enum targets

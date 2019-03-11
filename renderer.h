@@ -239,6 +239,9 @@ class opengl_renderer
 		int width;
 		int height;
 
+		bool main = false;
+		GLFWwindow *window = nullptr;
+
 		glm::mat4 camera_transform;
 
 		std::unique_ptr<gl::framebuffer> msaa_fb;
@@ -252,17 +255,9 @@ class opengl_renderer
 
 		std::unique_ptr<gl::framebuffer> main2_fb;
 		std::unique_ptr<opengl_texture> main2_tex;
-
-		std::unique_ptr<gl::framebuffer> shadow_fb;
-		std::unique_ptr<opengl_texture> shadow_tex;
-
-		std::unique_ptr<gl::framebuffer> cabshadows_fb;
-		std::unique_ptr<opengl_texture> cabshadows_tex;
-
-		std::unique_ptr<gl::framebuffer> env_fb;
-		std::unique_ptr<gl::renderbuffer> env_rb;
-		std::unique_ptr<gl::cubemap> env_tex;
 	};
+
+	viewport_config *m_current_viewport = nullptr;
 
 	typedef std::vector<opengl_light> opengllight_array;
 
@@ -315,7 +310,7 @@ class opengl_renderer
 	void draw_debug_ui();
 
 	// members
-	GLFWwindow *m_window{nullptr};
+	GLFWwindow *m_window{nullptr}; // main window
 	gfx::geometrybank_manager m_geometry;
 	material_manager m_materials;
 	texture_manager m_textures;
@@ -355,7 +350,6 @@ class opengl_renderer
 	float m_fogrange = 2000.0f;
 
 	renderpass_config m_renderpass; // parameters for current render pass
-	viewport_config *m_current_viewport; // active viewport
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;
     renderpass_config m_colorpass; // parametrs of most recent color pass
@@ -414,6 +408,16 @@ class opengl_renderer
 	std::unique_ptr<gl::program> m_pick_shader;
 
 	std::unique_ptr<gl::cubemap> m_empty_cubemap;
+
+	std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
+	std::unique_ptr<opengl_texture> m_cabshadows_tex;
+
+	std::unique_ptr<gl::framebuffer> m_env_fb;
+	std::unique_ptr<gl::renderbuffer> m_env_rb;
+	std::unique_ptr<gl::cubemap> m_env_tex;
+
+	std::unique_ptr<gl::framebuffer> m_shadow_fb;
+	std::unique_ptr<opengl_texture> m_shadow_tex;
 
     std::unique_ptr<gl::pbo> m_picking_pbo;
     std::unique_ptr<gl::pbo> m_picking_node_pbo;

@@ -2,18 +2,36 @@
 
 #include "object.h"
 #include "bindable.h"
+#include "buffer.h"
 
 namespace gl
 {
-    class vao : public object, public bindable<vao>
+    class vao : public bindable<vao>
     {
+		struct attrib_params {
+			// TBD: should be shared_ptr? (when buffer is destroyed by owner VAO could still potentially exist)
+			gl::buffer &buffer;
+
+			int attrib;
+			int size;
+			int type;
+			int stride;
+			int offset;
+		};
+		buffer *ebo = nullptr;
+
+		std::vector<attrib_params> params;
+
     public:
-        vao();
-        ~vao();
+		//vao();
+		//~vao();
 
-        void setup_attrib(int attrib, int size, int type, int stride, int offset);
+		void setup_attrib(buffer &buffer, int attrib, int size, int type, int stride, int offset);
+		void setup_ebo(buffer &ebo);
 
-        using bindable::bind;
-        static void bind(GLuint i);
+		//using bindable::bind;
+		void bind();
+		static void unbind();
+		//static void bind(GLuint i);
     };
 }
