@@ -121,7 +121,7 @@ scenario_time::update( double const Deltatime ) {
         }
         m_time.wHour -= 24;
     }
-    int leap { ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 ) };
+    int leap { is_leap( m_time.wYear ) };
     while( m_time.wDay > m_monthdaycounts[ leap ][ m_time.wMonth ] ) {
 
         m_time.wDay -= m_monthdaycounts[ leap ][ m_time.wMonth ];
@@ -130,7 +130,7 @@ scenario_time::update( double const Deltatime ) {
         if( m_time.wMonth > 12 ) {
 
             ++m_time.wYear;
-            leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
+            leap = is_leap( m_time.wYear );
             m_time.wMonth -= 12;
         }
     }
@@ -144,7 +144,7 @@ scenario_time::year_day( int Day, const int Month, const int Year ) const {
         { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
     };
 
-    int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+    int const leap { is_leap( Year ) };
     for( int i = 1; i < Month; ++i )
         Day += daytab[ leap ][ i ];
 
@@ -159,7 +159,7 @@ scenario_time::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yea
         { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
     };
 
-    int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+    int const leap { is_leap( Year ) };
     WORD idx = 1;
     while( ( idx < 13 ) && ( Yearday >= daytab[ leap ][ idx ] ) ) {
 
@@ -222,7 +222,7 @@ scenario_time::day_of_month( int const Week, int const Weekday, int const Month,
             { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
             { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
         };
-        int const leap { ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 ) };
+        int const leap { is_leap( Year ) };
 
         while( day > daytab[ leap ][ Month ] ) {
             day -= 7;
@@ -248,4 +248,10 @@ scenario_time::convert_transition_time( SYSTEMTIME &Time ) const {
     Time.wDay = day_of_month( Time.wDay, Time.wDayOfWeek + 1, Time.wMonth, m_time.wYear );
 }
 
+bool
+scenario_time::is_leap( int const Year ) const {
+
+    return ( ( Year % 4 == 0 ) && ( ( Year % 100 != 0 ) || ( Year % 400 == 0 ) ) );
+
+}
 //---------------------------------------------------------------------------

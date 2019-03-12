@@ -2298,6 +2298,8 @@ void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int co
         }
     }
 */
+    if( Platform == 0 ) { return; } // edge case, if there's no accessible platforms discard the request
+
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
     m_exchange.platforms = Platform;
