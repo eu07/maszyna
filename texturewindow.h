@@ -16,7 +16,7 @@ class texture_window
 	void threadfunc();
 
 public:
-	texture_window(texture_handle src, std::string name);
+	texture_window(GLuint src, std::string name);
 	~texture_window();
 
 	void notify_window_size(int w, int h);

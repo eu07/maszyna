@@ -11,11 +11,9 @@ void texture_window_fb_resize(GLFWwindow *win, int w, int h)
 	texwindow->notify_window_size(w, h);
 }
 
-texture_window::texture_window(texture_handle src, std::string surfacename)
+texture_window::texture_window(GLuint src, std::string surfacename)
 {
-	opengl_texture &tex = GfxRenderer.Texture(src);
-	tex.create();
-	m_source = tex.id;
+	m_source = src;
 
 	int window_w = m_win_w, window_h = m_win_h;
 

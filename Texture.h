@@ -43,6 +43,7 @@ struct opengl_texture {
         height() const {
             return data_height; }
 
+	void make_stub();
 	void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_BORDER);
     void set_components_hint(GLint hint);
     static void reset_unit_cache();
@@ -62,7 +63,6 @@ struct opengl_texture {
 
 private:
 // methods
-    void make_stub();
     void make_request();
     void load_BMP();
 	void load_PNG();

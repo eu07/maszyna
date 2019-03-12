@@ -665,7 +665,7 @@ private:
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-	std::vector<std::tuple<std::string, texture_handle, std::optional<texture_window>>> m_screens;
+	std::vector<std::tuple<std::string, GLuint, std::optional<texture_window>>> m_screens;
 	uint16_t vid { 0 };
 
   public:
