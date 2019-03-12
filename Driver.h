@@ -211,6 +211,10 @@ private:
     bool DecBrake();
     bool IncSpeed();
     bool DecSpeed(bool force = false);
+	bool IncBrakeEIM();
+	bool DecBrakeEIM();
+	bool IncSpeedEIM();
+	bool DecSpeedEIM();
     void SpeedSet();
 	void SpeedCntrl(double DesiredSpeed);
 	double ESMVelocity(bool Main);

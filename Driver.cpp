@@ -2789,7 +2789,7 @@ bool TController::IncBrake()
 						OK = mvOccupied->BrakeLevelAdd(1.0);
 				}
 				else {
-					OK = mvOccupied->IncLocalBrakeLevel(1);
+					OK = IncBrakeEIM();
 				}
             }
             else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPB ) ) {
@@ -2805,6 +2805,28 @@ bool TController::IncBrake()
         default: { break; }
     }
     return OK;
+}
+
+bool TController::IncBrakeEIM()
+{ // zwiększenie hamowania
+	bool OK = false;
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->IncLocalBrakeLevel(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos > 0;
+		if (OK)
+			mvControlling->MainCtrlPos = 0;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos > 1;
+		if (OK)
+			mvControlling->MainCtrlPos = 1;
+		break;
+	}
+	return OK;
 }
 
 bool TController::DecBrake()
@@ -2844,7 +2866,7 @@ bool TController::DecBrake()
 					OK = mvOccupied->BrakeLevelAdd(-1.0);
 			}
 			else {
-				OK = mvOccupied->DecLocalBrakeLevel(1);
+				OK = DecBrakeEIM();
 			}
 		}
         else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR))
@@ -2862,6 +2884,28 @@ bool TController::DecBrake()
     }
     return OK;
 };
+
+bool TController::DecBrakeEIM()
+{ // zmniejszenie siły hamowania
+	bool OK = false;
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->DecLocalBrakeLevel(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos < 2;
+		if (OK)
+			mvControlling->MainCtrlPos = 2;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos < 3;
+		if (OK)
+			mvControlling->MainCtrlPos = 3;
+		break;
+	}
+	return OK;
+}
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
@@ -3075,7 +3119,7 @@ bool TController::DecSpeed(bool force)
             OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
         break;
 	case TEngineType::ElectricInductionMotor:
-		OK = mvControlling->DecMainCtrl(1);
+		OK = DecSpeedEIM();
 		break;
     case TEngineType::WheelsDriven:
         if (!mvControlling->CabNo)
@@ -3101,6 +3145,28 @@ bool TController::DecSpeed(bool force)
     }
     return OK;
 };
+
+bool TController::DecSpeedEIM()
+{ // zmniejszenie prędkości (ale nie hamowanie)
+	bool OK = false; // domyślnie false, aby wyszło z pętli while
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->DecMainCtrl(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos > 4;
+		if (OK)
+			mvControlling->MainCtrlPos = 4;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos > 2;
+		if (OK)
+			mvControlling->MainCtrlPos = 2;
+		break;
+	}
+	return OK;
+}
 
 void TController::SpeedSet()
 { // Ra: regulacja prędkości, wykonywana w każdym przebłysku świadomości AI
