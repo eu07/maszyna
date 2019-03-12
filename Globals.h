@@ -204,12 +204,21 @@ struct global_settings {
 
 	struct extraviewport_config {
 		std::string monitor;
-		int width;
-		int height;
+		int width, height;
 		glm::mat4 transform;
 	};
-
 	std::vector<extraviewport_config> extra_viewports;
+
+	struct pythonviewport_config {
+		std::string surface;
+
+		std::string monitor;
+		glm::ivec2 size;
+
+		glm::ivec2 offset;
+		glm::ivec2 cut;
+	};
+	std::vector<pythonviewport_config> python_viewports;
 
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;

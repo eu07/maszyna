@@ -37,6 +37,7 @@ namespace gl
         void bind(targets target);
         void bind_base(targets target, GLuint index);
         static void unbind(targets target);
+		static void unbind();
 
         void allocate(targets target, int size, GLenum hint);
         void upload(targets target, const void *data, int offset, int size);

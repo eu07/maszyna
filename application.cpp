@@ -486,6 +486,9 @@ eu07_application::window( int const Windowindex, bool visible, int width, int he
     if( childwindow != nullptr ) {
         m_windows.emplace_back( childwindow );
     }
+
+	glfwFocusWindow(m_windows.front()); // restore focus to main window
+
     return childwindow;
 }
 
@@ -494,19 +497,21 @@ GLFWmonitor* eu07_application::find_monitor(const std::string &str) {
 	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
 	for (size_t i = 0; i < monitor_count; i++) {
-		std::string name(glfwGetMonitorName(monitors[i]));
-		std::replace(std::begin(name), std::end(name), ' ', '_');
-
-		int x, y;
-		glfwGetMonitorPos(monitors[i], &x, &y);
-
-		std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
-
-		if (desc == str)
+		if (describe_monitor(monitors[i]) == str)
 			return monitors[i];
 	}
 
 	return nullptr;
+}
+
+std::string eu07_application::describe_monitor(GLFWmonitor *monitor) {
+	std::string name(glfwGetMonitorName(monitor));
+	std::replace(std::begin(name), std::end(name), ' ', '_');
+
+	int x, y;
+	glfwGetMonitorPos(monitor, &x, &y);
+
+	return name + ":" + std::to_string(x) + "," + std::to_string(y);
 }
 
 // private:
@@ -601,26 +606,20 @@ eu07_application::init_glfw() {
 
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-	auto *monitor { glfwGetPrimaryMonitor() };
+
 	{
 		int monitor_count;
 		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
 		WriteLog("available monitors:");
 		for (size_t i = 0; i < monitor_count; i++) {
-			std::string name(glfwGetMonitorName(monitors[i]));
-			std::replace(std::begin(name), std::end(name), ' ', '_');
-
-			int x, y;
-			glfwGetMonitorPos(monitors[i], &x, &y);
-
-			std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
-			WriteLog(desc);
-
-			if (desc == Global.fullscreen_monitor)
-				monitor = monitors[i];
+			WriteLog(describe_monitor(monitors[i]));
 		}
 	}
+
+	auto *monitor { find_monitor(Global.fullscreen_monitor) };
+	if (!monitor)
+		monitor = glfwGetPrimaryMonitor();
 
     auto const *vmode { glfwGetVideoMode( monitor ) };
 
@@ -734,6 +733,10 @@ eu07_application::init_gfx() {
 
     if (!GfxRenderer.Init(m_windows.front()))
         return -1;
+
+	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
+		if (!GfxRenderer.AddViewport(conf))
+			return -1;
 
     return 0;
 }

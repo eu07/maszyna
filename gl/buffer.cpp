@@ -42,6 +42,12 @@ void gl::buffer::unbind(targets target)
     binding_points[target] = 0;
 }
 
+void gl::buffer::unbind()
+{
+	for (size_t i = 0; i < sizeof(binding_points) / sizeof(GLuint); i++)
+		unbind((targets)i);
+}
+
 gl::buffer::buffer()
 {
     glGenBuffers(1, *this);

@@ -17,38 +17,19 @@ texture_window::texture_window(texture_handle src, std::string surfacename)
 	tex.create();
 	m_source = tex.id;
 
-	glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-
 	int window_w = m_win_w, window_h = m_win_h;
 
-	{
-		int monitor_count;
-		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+	auto iter = Global.python_monitormap.find(surfacename);
+	if (iter != Global.python_monitormap.end())
+		monitor = Application.find_monitor((*iter).second);
 
-		for (size_t i = 0; i < monitor_count; i++) {
-			std::string name(glfwGetMonitorName(monitors[i]));
-			std::replace(std::begin(name), std::end(name), ' ', '_');
-
-			int x, y;
-			glfwGetMonitorPos(monitors[i], &x, &y);
-
-			std::string desc = name + ":" + std::to_string(x) + "," + std::to_string(y);
-
-			auto iter = Global.python_monitormap.find(surfacename);
-			if (iter != Global.python_monitormap.end()
-			        && (*iter).second == desc) {
-				monitor = monitors[i];
-
-				const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-				window_w = mode->width;
-				window_h = mode->height;
-				break;
-			}
-		}
+	if (monitor) {
+		const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+		window_w = mode->width;
+		window_h = mode->height;
 	}
 
-	GLFWwindow *root = Application.window();
-	m_window = glfwCreateWindow(window_w, window_h, ("EU07: surface " + surfacename).c_str(), monitor, root);
+	m_window = Application.window(-1, true, window_w, window_h, monitor);
 
 	glfwSetWindowUserPointer(m_window, this);
 	glfwSetFramebufferSizeCallback(m_window, texture_window_fb_resize);
@@ -67,6 +48,12 @@ void texture_window::threadfunc()
 {
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(1);
+
+	{
+		GLuint v;
+		glGenVertexArrays(1, &v);
+		glBindVertexArray(v);
+	}
 
 	gl::shader vert("quad.vert");
 	gl::shader frag("texturewindow.frag");

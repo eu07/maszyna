@@ -130,6 +130,8 @@ class opengl_renderer
 
 	// methods
 	bool Init(GLFWwindow *Window);
+	bool AddViewport(const global_settings::extraviewport_config &conf);
+
 	// main draw call. returns false on error
 	bool Render();
 	void SwapBuffers();

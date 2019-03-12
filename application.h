@@ -100,6 +100,8 @@ private:
     int  init_audio();
     int  init_modes();
 	bool init_network();
+
+	std::string describe_monitor(GLFWmonitor *monitor);
 // members
 
     bool m_screenshot_queued = false;

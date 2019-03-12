@@ -167,22 +167,10 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	default_viewport.main = true;
 	default_viewport.window = m_window;
 
-	for (const global_settings::extraviewport_config &conf : Global.extra_viewports) {
-		m_viewports.push_back(std::make_unique<viewport_config>());
-		viewport_config &vp = *m_viewports.back().get();
-		vp.width = conf.width;
-		vp.height = conf.height;
-		vp.window = Application.window(-1, true, vp.width, vp.height, Application.find_monitor(conf.monitor));
-		vp.camera_transform = conf.transform;
-		std::cout << "ZXZ " << glm::to_string(vp.camera_transform) << std::endl;
-	}
-
-	for (auto &viewport : m_viewports) {
-		if (!init_viewport(*viewport.get()))
-			return false;
-	}
-
+	if (!init_viewport(default_viewport))
+		return false;
 	glfwMakeContextCurrent(m_window);
+	gl::buffer::unbind();
 
 	if (Global.gfx_shadowmap_enabled)
 	{
@@ -299,6 +287,22 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	WriteLog("renderer initialization finished!");
 
 	return true;
+}
+
+bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &conf)
+{
+	m_viewports.push_back(std::make_unique<viewport_config>());
+	viewport_config &vp = *m_viewports.back().get();
+	vp.width = conf.width;
+	vp.height = conf.height;
+	vp.window = Application.window(-1, true, vp.width, vp.height, Application.find_monitor(conf.monitor));
+	vp.camera_transform = conf.transform;
+
+	bool ret = init_viewport(vp);
+	glfwMakeContextCurrent(m_window);
+	gl::buffer::unbind();
+
+	return ret;
 }
 
 bool opengl_renderer::init_viewport(viewport_config &vp)
@@ -445,6 +449,7 @@ bool opengl_renderer::Render()
 	}
 
 	glfwMakeContextCurrent(m_window);
+	gl::buffer::unbind();
 	m_current_viewport = &(*m_viewports.front());
 
 	m_drawcount = m_cellqueue.size();
@@ -525,17 +530,16 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDebug("context switch");
 		glfwMakeContextCurrent(vp.window);
+		gl::buffer::unbind();
 		m_current_viewport = &vp;
 
 		if (!simulation::is_ready)
 		{
-			if (!vp.main)
-				break;
-
 			gl::framebuffer::unbind();
 			glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			Application.render_ui();
+			if (vp.main)
+				Application.render_ui();
 			break;
 		}
 
@@ -1047,7 +1051,7 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 	glm::mat4 frustumtest_proj;
 
 	float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
-	float const aspect = std::max(1.f, (float)Global.iWindowWidth) / std::max(1.f, (float)Global.iWindowHeight);
+	float const aspect = std::max(1.f, (float)Viewport.width) / std::max(1.f, (float)Viewport.height);
 
 	Config.viewport_camera.position() = Global.pCamera.Pos;
 
@@ -3458,9 +3462,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 void opengl_renderer::Update_Pick_Control()
 {
 	// context-switch workaround
-	gl::buffer::unbind(gl::buffer::PIXEL_PACK_BUFFER);
-	gl::buffer::unbind(gl::buffer::PIXEL_UNPACK_BUFFER);
-	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
+	gl::buffer::unbind();
 
 	if (!m_picking_pbo->is_busy())
 	{
