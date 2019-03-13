@@ -182,7 +182,6 @@ struct global_settings {
 
 	std::chrono::duration<float> minframetime {0.0f};
 
-	std::unordered_map<std::string, std::string> python_monitormap;
 	std::string fullscreen_monitor;
 
 	bool python_mipmaps = true;
@@ -215,8 +214,8 @@ struct global_settings {
 		std::string monitor;
 		glm::ivec2 size;
 
-		glm::ivec2 offset;
-		glm::ivec2 cut;
+		glm::vec2 offset;
+		glm::vec2 scale;
 	};
 	std::vector<pythonviewport_config> python_viewports;
 

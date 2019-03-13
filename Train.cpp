@@ -6899,10 +6899,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                         DynamicObject->asBaseDir + renderername :
                         renderername ),
 				        tex->id,
-				        std::nullopt);
+				        nullptr);
 
 				if (Global.python_displaywindows)
-					std::get<2>(m_screens.back()).emplace(tex->id, submodelname);
+					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(tex->id, submodelname);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

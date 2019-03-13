@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
-#include "texturewindow.h"
+#include "pythonscreenviewer.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -665,7 +665,7 @@ private:
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-	std::vector<std::tuple<std::string, GLuint, std::optional<texture_window>>> m_screens;
+	std::vector<std::tuple<std::string, GLuint, std::unique_ptr<python_screen_viewer>>> m_screens;
 	uint16_t vid { 0 };
 
   public:

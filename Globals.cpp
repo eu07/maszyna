@@ -807,13 +807,17 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
 		}
-		else if (token == "python.monitormap")
+		else if (token == "python.viewport")
 		{
-			Parser.getTokens(2, false);
-			std::string pythonscreen;
-			std::string monitorid;
-			Parser >> pythonscreen >> monitorid;
-			python_monitormap.emplace(std::make_pair(pythonscreen, monitorid));
+			Parser.getTokens(8, false);
+
+			pythonviewport_config conf;
+			Parser >> conf.surface >> conf.monitor;
+			Parser >> conf.size.x >> conf.size.y;
+			Parser >> conf.offset.x >> conf.offset.y;
+			Parser >> conf.scale.x >> conf.scale.y;
+
+			python_viewports.push_back(conf);
 		}
 		else if (token == "network.server")
 		{

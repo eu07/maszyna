@@ -116,7 +116,7 @@ set(SOURCES
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"
 "precipitation.cpp"
-"texturewindow.cpp"
+"pythonscreenviewer.cpp"
 
 "network/network.cpp"
 "network/message.cpp"
