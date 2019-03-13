@@ -59,6 +59,8 @@ void python_screen_viewer::threadfunc()
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, m_source);
+		if (!Global.gfx_usegles && !Global.gfx_shadergamma)
+			glEnable(GL_FRAMEBUFFER_SRGB);
 
 		window.ubo = std::make_unique<gl::ubo>(sizeof(gl::scene_ubs), 0, GL_STREAM_DRAW);
 	}
