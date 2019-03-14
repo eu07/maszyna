@@ -5051,7 +5051,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 }
                 else
                 {
-					PosRatio = Max0R(eimic, 0);
+					PosRatio = Max0R(eimic_real, 0);
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
@@ -9550,7 +9550,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	end */
 	else if (Command == "EIMIC") // ElectricInductionMotor Integrated Control - propulsion and brakes in relative values
 	{
-		eimic = CValue1;
+		eimic_real = CValue1;
 		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
 	}
 	else if (Command == "Brake") // youBy - jak sie EP hamuje, to trza sygnal wyslac...
