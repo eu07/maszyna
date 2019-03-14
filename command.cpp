@@ -224,7 +224,9 @@ commanddescription_sequence Commands_descriptions = {
     { "batterydisable", command_target::vehicle },
     { "motorblowerstogglefront", command_target::vehicle },
     { "motorblowerstogglerear", command_target::vehicle },
-    { "motorblowersdisableall", command_target::vehicle }
+    { "motorblowersdisableall", command_target::vehicle },
+    { "coolingfanstoggle", command_target::vehicle },
+    { "tempomattoggle", command_target::vehicle }
 
 };
 

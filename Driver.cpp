@@ -2521,6 +2521,10 @@ bool TController::PrepareEngine()
                 mvOccupied->MotorBlowersSwitch( true, end::front );
                 mvOccupied->MotorBlowersSwitchOff( false, end::rear );
                 mvOccupied->MotorBlowersSwitch( true, end::rear );
+                // enable train brake if it's off
+                if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
+                    mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                }
             }
         }
         else

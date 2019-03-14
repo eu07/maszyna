@@ -56,8 +56,8 @@ init() {
         "Drive according to signals and timetable",
         "Bank consist ahead",
 
+        "%-*.*s    Time: %d:%02d:%02d", // HACK: some manual padding to account for longer 'time' equivalent in polish version
         "Timetable",
-        "Time: %d:%02d:%02d",
         "(no timetable)",
         "Consist weight: %d t (specified) %d t (actual)\nConsist length: %d m",
 
@@ -84,6 +84,7 @@ init() {
         "master controller",
         "second controller",
         "shunt mode power",
+        "tempomat",
         "reverser",
         "train brake",
         "independent brake",
@@ -104,6 +105,7 @@ init() {
         "motor blowers A",
         "motor blowers B",
         "all motor blowers",
+        "cooling fans",
         "line breaker",
         "line breaker",
         "alerter",
@@ -219,8 +221,8 @@ init() {
         "Prowadzic sklad wedlug sygnalow i rozkladu",
         "Popychac sklad z przodu",
 
+        "%-*.*s Godzina: %d:%02d:%02d",
         "Rozklad jazdy",
-        "Godzina: %d:%02d:%02d",
         "(brak rozkladu)",
         "Brutto: %d t (rozkladowe) %d t (rzeczywiste)\nDlugosc pociagu: %d m",
 
@@ -247,6 +249,7 @@ init() {
         "nastawnik jazdy",
         "nastawnik dodatkowy",
         "sterowanie analogowe",
+        "tempomat",
         "nastawnik kierunku",
         "hamulec zespolony",
         "hamulec pomocniczy",
@@ -267,6 +270,7 @@ init() {
         "wentylatory silnikow trakcyjnych A",
         "wentylatory silnikow trakcyjnych B",
         "wszystkie wentylatory silnikow trakcyjnych",
+        "wentylatory oporow rozruchowych",
         "wylacznik szybki",
         "wylacznik szybki",
         "czuwak",
@@ -363,6 +367,7 @@ init() {
             "jointctrl:",
             "scndctrl:",
             "shuntmodepower:",
+            "tempomat_sw:",
             "dirkey:",
             "brakectrl:",
             "localbrake:",
@@ -383,6 +388,7 @@ init() {
             "motorblowersfront_sw:",
             "motorblowersrear_sw:",
             "motorblowersalloff_sw:",
+            "coolingfans_sw:",
             "main_off_bt:",
             "main_on_bt:",
             "security_reset_bt:",

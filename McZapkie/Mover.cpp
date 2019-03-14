@@ -4400,8 +4400,9 @@ double TMoverParameters::TractionForce( double dt ) {
                 switch( RVentType ) {
 
                     case 1: { // manual
-                        if( ( ActiveDir != 0 )
-                         && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) {
+                        if( ( true == RVentForceOn )
+                         || ( ( ActiveDir != 0 )
+                           && ( RList[ MainCtrlActualPos ].R > RVentCutOff ) ) ) {
                             RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
@@ -4423,8 +4424,11 @@ double TMoverParameters::TractionForce( double dt ) {
                                 * RVentSpeed * dt;
                         }
                         else if( ( DynamicBrakeType == dbrake_automatic )
-                            && ( true == DynamicBrakeFlag ) ) {
+                              && ( true == DynamicBrakeFlag ) ) {
                             RventRot += ( RVentnmax * motorcurrent / ImaxLo - RventRot ) * RVentSpeed * dt;
+                        }
+                        else if( RVentForceOn ) {
+                            RventRot += ( RVentnmax - RventRot ) * RVentSpeed * dt;
                         }
                         else {
                             RventRot *= std::max( 0.0, 1.0 - RVentSpeed * dt );

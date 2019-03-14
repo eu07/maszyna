@@ -170,6 +170,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::secondcontrollerdecreasefast, &TTrain::OnCommand_secondcontrollerdecreasefast },
     { user_command::secondcontrollerset, &TTrain::OnCommand_secondcontrollerset },
     { user_command::notchingrelaytoggle, &TTrain::OnCommand_notchingrelaytoggle },
+    { user_command::tempomattoggle, &TTrain::OnCommand_tempomattoggle },
     { user_command::mucurrentindicatorothersourceactivate, &TTrain::OnCommand_mucurrentindicatorothersourceactivate },
     { user_command::independentbrakeincrease, &TTrain::OnCommand_independentbrakeincrease },
     { user_command::independentbrakeincreasefast, &TTrain::OnCommand_independentbrakeincreasefast },
@@ -262,6 +263,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::motorblowerstogglefront, &TTrain::OnCommand_motorblowerstogglefront },
     { user_command::motorblowerstogglerear, &TTrain::OnCommand_motorblowerstogglerear },
     { user_command::motorblowersdisableall, &TTrain::OnCommand_motorblowersdisableall },
+    { user_command::coolingfanstoggle, &TTrain::OnCommand_coolingfanstoggle },
     { user_command::motorconnectorsopen, &TTrain::OnCommand_motorconnectorsopen },
     { user_command::motorconnectorsclose, &TTrain::OnCommand_motorconnectorsclose },
     { user_command::motordisconnect, &TTrain::OnCommand_motordisconnect },
@@ -927,6 +929,45 @@ void TTrain::OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &C
         else {
             //turn off
             Train->mvOccupied->AutoRelaySwitch( false );
+        }
+    }
+}
+
+void TTrain::OnCommand_tempomattoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggScndCtrlButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_RELEASE ) {
+            // just move the button back to default position
+            // visual feedback
+            Train->ggScndCtrlButton.UpdateValue( 0.0, Train->dsbSwitch );
+            return;
+        }
+        // glfw_press
+        if( Train->mvControlled->ScndCtrlPos == 0 ) {
+            // turn on if needed
+            Train->mvControlled->IncScndCtrl( 1 );
+        }
+        // visual feedback
+        Train->ggScndCtrlButton.UpdateValue( 1.0, Train->dsbSwitch );
+    }
+    else {
+        // two-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
+        if( Train->mvControlled->ScndCtrlPos == 0 ) {
+            // turn on
+            Train->mvControlled->IncScndCtrl( 1 );
+            // visual feedback
+            Train->ggScndCtrlButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            //turn off
+            Train->mvControlled->DecScndCtrl( 2 );
+            // visual feedback
+            Train->ggScndCtrlButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
@@ -3059,6 +3100,13 @@ void TTrain::OnCommand_motorblowersdisableall( TTrain *Train, command_data const
     }
 }
 
+void TTrain::OnCommand_coolingfanstoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    Train->mvControlled->RVentForceOn = ( !Train->mvControlled->RVentForceOn );
+}
+
 void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command ) {
 
     // TODO: don't rely on presense of 3d model to determine presence of the switch
@@ -5189,10 +5237,10 @@ bool TTrain::Update( double const Deltatime )
                 fPress[i][0] = p->MoverParameters->BrakePress;
                 fPress[i][1] = p->MoverParameters->PipePress;
                 fPress[i][2] = p->MoverParameters->ScndPipePress;
-                bDoors[i][1] = ( false == p->MoverParameters->Doors.instances[ side::left ].is_closed );
-                bDoors[i][2] = ( false == p->MoverParameters->Doors.instances[ side::right ].is_closed );
-                bDoors[i][3] = ( p->MoverParameters->Doors.instances[ side::left ].step_position > 0.0 );
-                bDoors[i][4] = ( p->MoverParameters->Doors.instances[ side::right ].step_position > 0.0 );
+                bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
+                bDoors[i][2] = ( p->MoverParameters->Doors.instances[ side::right ].position > 0.f );
+                bDoors[i][3] = ( p->MoverParameters->Doors.instances[ side::left ].step_position > 0.f );
+                bDoors[i][4] = ( p->MoverParameters->Doors.instances[ side::right ].step_position > 0.f );
                 bDoors[i][0] = ( bDoors[i][1] || bDoors[i][2] );
                 iDoorNo[i] = p->iAnimType[ANIM_DOORS];
                 iUnits[i] = iUnitNo;
@@ -5868,6 +5916,7 @@ bool TTrain::Update( double const Deltatime )
                 dsbNastawnikBocz );
             ggScndCtrl.Update();
         }
+        ggScndCtrlButton.Update();
         if (ggDirKey.SubModel) {
             if (mvControlled->TrainType != dt_EZT)
                 ggDirKey.UpdateValue(
@@ -7193,6 +7242,7 @@ void TTrain::clear_cab_controls()
     ggMainCtrl.Clear();
     ggMainCtrlAct.Clear();
     ggScndCtrl.Clear();
+    ggScndCtrlButton.Clear();
     ggDirKey.Clear();
     ggBrakeCtrl.Clear();
     ggLocalBrake.Clear();
@@ -7661,6 +7711,13 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f );
     }
+    // tempomat
+    if( ggScndCtrlButton.type() != TGaugeType::push ) {
+        ggScndCtrlButton.PutValue(
+            ( mvControlled->ScndCtrlPos > 0 ) ?
+                1.f :
+                0.f );
+    }
     
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
@@ -7919,6 +7976,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
         { "battery_sw:", ggBatteryButton },
+        { "tempomat_sw:", ggScndCtrlButton },
         { "universal0:", ggUniversals[ 0 ] },
         { "universal1:", ggUniversals[ 1 ] },
         { "universal2:", ggUniversals[ 2 ] },
@@ -7940,7 +7998,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
     // TODO: move viable dedicated gauges to the automatic array
     std::unordered_map<std::string, bool *> const autoboolgauges = {
-        { "doorstep_sw:", &mvOccupied->Doors.step_enabled }
+        { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
+        { "coolingfans_sw:", &mvControlled->RVentForceOn }
     };
     {
         auto lookup = autoboolgauges.find( Label );

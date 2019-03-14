@@ -46,7 +46,7 @@ enum string {
     driver_scenario_bank,
 
     driver_timetable_header,
-    driver_timetable_time,
+    driver_timetable_name,
     driver_timetable_notimetable,
     driver_timetable_consistdata,
 
@@ -73,6 +73,7 @@ enum string {
     cab_jointctrl,
     cab_scndctrl,
     cab_shuntmodepower,
+    cab_tempomat,
     cab_dirkey,
     cab_brakectrl,
     cab_localbrake,
@@ -93,6 +94,7 @@ enum string {
     cab_motorblowersfront_sw,
     cab_motorblowersrear_sw,
     cab_motorblowersalloff_sw,
+    cab_coolingfans_sw,
     cab_main_off_bt,
     cab_main_on_bt,
     cab_security_reset_bt,

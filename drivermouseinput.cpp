@@ -494,6 +494,9 @@ drivermouse_input::default_bindings() {
         { "shuntmodepower:", {
             user_command::secondcontrollerincrease,
             user_command::secondcontrollerdecrease } },
+        { "tempomat_sw:", {
+            user_command::tempomattoggle,
+            user_command::none } },
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
@@ -551,6 +554,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "motorblowersalloff_sw:", {
             user_command::motorblowersdisableall,
+            user_command::none } },
+        { "coolingfans_sw:", {
+            user_command::coolingfanstoggle,
             user_command::none } },
         { "main_off_bt:", {
             user_command::linebreakeropen,

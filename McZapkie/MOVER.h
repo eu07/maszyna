@@ -976,12 +976,13 @@ public:
 	double TUHEX_Sum2 = 750; /*nastawa2 sterownika hamowania ED*/
 	double TUHEX_Sum3 = 750; /*nastawa3 sterownika hamowania ED*/
 	int TUHEX_Stages = 0; /*liczba stopni hamowania ED*/
-
+    // TODO: wrap resistor fans variables and state into a device
 	int RVentType = 0;        /*0 - brak, 1 - jest, 2 - automatycznie wlaczany*/
 	double RVentnmax = 1.0;      /*maks. obroty wentylatorow oporow rozruchowych*/
 	double RVentCutOff = 0.0;      /*rezystancja wylaczania wentylatorow dla RVentType=2*/
     double RVentSpeed { 0.5 }; //rozpedzanie sie wentylatora obr/s^2}
     double RVentMinI { 50.0 }; //przy jakim pradzie sie wylaczaja}
+    bool RVentForceOn { false }; // forced activation switch
 	int CompressorPower = 1; // 0: main circuit, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 3: diesel engine, 4: converter of unit in front, 5: converter of unit behind
 	int SmallCompressorPower = 0; /*Winger ZROBIC*/
 	bool Trafo = false;      /*pojazd wyposażony w transformator*/
