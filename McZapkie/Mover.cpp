@@ -5055,7 +5055,6 @@ double TMoverParameters::TractionForce( double dt ) {
                 }
                 else
                 {
-                    PosRatio = static_cast<double>( MainCtrlPos ) / static_cast<double>( MainCtrlPosNo );
 					PosRatio = Max0R(eimic, 0);
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))

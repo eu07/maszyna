@@ -2705,6 +2705,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->CheckSpeedCtrl();
 
 			auto eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
+			MoverParameters->eimic = eimic;
 			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
 			auto LBR = Max0R(-eimic, 0);
 
