@@ -5309,7 +5309,7 @@ bool TTrain::Update( double const Deltatime )
 //        else
 //            fEIMParams[0][3] =
 //                mvControlled->eimv[eimv_Fzad] - mvOccupied->LocalBrakeRatio(); // procent zadany
-		fEIMParams[0][3] = mvOccupied->eimic;
+		fEIMParams[0][3] = mvOccupied->eimic_real;
         fEIMParams[0][4] = Max0R(fEIMParams[0][3], 0);
         fEIMParams[0][5] = -Min0R(fEIMParams[0][3], 0);
         fEIMParams[0][1] = fEIMParams[0][4] * mvControlled->eimv[eimv_Fful];
