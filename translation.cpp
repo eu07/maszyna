@@ -89,6 +89,7 @@ init() {
 
 	    "Straight |",
 	    "Divert /",
+	    "Insert obstacle:",
 
         "master controller",
         "second controller",
@@ -260,6 +261,7 @@ init() {
 
 	    u8"Prosto |",
 	    u8"W bok /",
+	    u8"Wstaw przeszkodę:",
 
         u8"nastawnik jazdy",
         u8"nastawnik dodatkowy",

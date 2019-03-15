@@ -175,9 +175,8 @@ void state_manager::process_commands() {
 	}
 }
 
-TAnimModel *
-state_manager::deserialize_model(cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata) {
-	return m_serializer.deserialize_model(Input, Scratchpad, Nodedata);
+TAnimModel * state_manager::create_model(const std::string &src, const std::string &name, const glm::dvec3 &position) {
+	return m_serializer.create_model(src, name, position);
 }
 
 void

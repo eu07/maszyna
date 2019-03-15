@@ -38,10 +38,9 @@ public:
 	// process input commands
 	void
 	    process_commands();
-
-	// temporary for editor
+	// create model from node string
 	TAnimModel *
-	    deserialize_model(cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata);
+	    create_model(const std::string &src, const std::string &name, const glm::dvec3 &position);
 
 private:
 // members

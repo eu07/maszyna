@@ -278,32 +278,15 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 				}
 				else if (mode == nodebank_panel::ADD) {
 					const std::string *src = ui->get_active_node_template();
+					std::string name =  "editor_" + std::to_string(LocalRandom(0.0, 100000.0));
 
 					if (!src)
 						return;
 
-					cParser parser(*src);
-					parser.getTokens(); // "node"
-					parser.getTokens(2); // ranges
-
-					scene::node_data nodedata;
-					parser >> nodedata.range_max >> nodedata.range_min;
-
-					parser.getTokens(2); // name, type
-					nodedata.name = "editor_" + std::to_string(LocalRandom(0.0, 100000.0));
-					nodedata.type = "model";
-
-					scene::scratch_data scratch;
-
-					TAnimModel *cloned = simulation::State.deserialize_model(parser, scratch, nodedata);
+					TAnimModel *cloned = simulation::State.create_model(*src, name, Camera.Pos + GfxRenderer.Mouse_Position());
 
 					if (!cloned)
 						return;
-
-					cloned->mark_dirty();
-					cloned->location(Camera.Pos + GfxRenderer.Mouse_Position());
-					simulation::Instances.insert(cloned);
-					simulation::Region->insert(cloned);
 
 					if (!m_dragging)
 						return;

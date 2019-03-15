@@ -259,13 +259,11 @@ void ui::map_panel::render_contents()
 					register_popup(std::make_unique<ui::disambiguation_popup>(*this, std::move(objects)));
 				else if (objects.size() == 1)
 					handle_map_object_click(*this, objects.begin()->second);
-
-				glm::vec3 nearest = simulation::Region->find_nearest_track_point(world_pos);
-				if (!glm::isnan(nearest.x)) {
-					WriteLog(glm::to_string(nearest));
+				else {
+					glm::vec3 nearest = simulation::Region->find_nearest_track_point(world_pos);
+					if (!glm::isnan(nearest.x) && glm::distance(world_pos, nearest) < (0.03f / zoom))
+						register_popup(std::make_unique<obstacle_window>(*this, std::move(nearest)));
 				}
-				//scene::basic_section &clicked_section = simulation::Region->section(world_pos);
-				//clicked_section.
 			}
 			else if (!objects.empty()) {
 				handle_map_object_hover(objects.begin()->second);
@@ -409,5 +407,36 @@ void ui::switch_window::render_content()
 	if (ImGui::Button(LOC_STR(map_divert))) {
 		m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(m_switch->divert_event), 0.0, GLFW_PRESS, 0);
 		ImGui::CloseCurrentPopup();
+	}
+}
+
+ui::obstacle_window::obstacle_window(ui_panel &panel, glm::dvec3 const &pos)
+    : popup(panel), m_position(pos)
+{
+	std::ifstream file;
+	file.open("obstaclebank.txt", std::ios_base::in | std::ios_base::binary);
+
+	std::string line;
+	while (std::getline(file, line)) {
+		std::istringstream entry(line);
+
+		std::string name;
+		std::string data;
+		std::getline(entry, name, ':');
+		std::getline(entry, data, ':');
+
+		m_obstacles.push_back(std::make_pair(name, data));
+	}
+}
+
+void ui::obstacle_window::render_content()
+{
+	ImGui::TextUnformatted(LOC_STR(map_obstacle_insert));
+	for (auto const &entry : m_obstacles) {
+		if (ImGui::Button(entry.first.c_str())) {
+			std::string name("obstacle_" + std::to_string(LocalRandom(0.0, 100000.0)));
+			TAnimModel *cloned = simulation::State.create_model(entry.second, name, m_position);
+			ImGui::CloseCurrentPopup();
+		}
 	}
 }

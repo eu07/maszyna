@@ -38,6 +38,16 @@ public:
 	virtual void render_content() override;
 };
 
+class obstacle_window : public popup {
+	glm::dvec3 m_position;
+	std::vector<std::pair<std::string, std::string>> m_obstacles;
+
+public:
+	obstacle_window(ui_panel &panel, glm::dvec3 const &pos);
+
+	virtual void render_content() override;
+};
+
 class map_panel : public ui_panel {
 	std::unique_ptr<gl::program> m_shader;
     std::unique_ptr<gl::framebuffer> m_msaa_fb;

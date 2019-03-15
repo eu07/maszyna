@@ -1002,6 +1002,33 @@ state_serializer::export_as_text(std::string const &Scenariofile) const {
     WriteLog( "Scenery data export done." );
 }
 
+TAnimModel *state_serializer::create_model(const std::string &src, const std::string &name, const glm::dvec3 &position) {
+	cParser parser(src);
+	parser.getTokens(); // "node"
+	parser.getTokens(2); // ranges
+
+	scene::node_data nodedata;
+	parser >> nodedata.range_max >> nodedata.range_min;
+
+	parser.getTokens(2); // name, type
+	nodedata.name = name;
+	nodedata.type = "model";
+
+	scene::scratch_data scratch;
+
+	TAnimModel *cloned = deserialize_model(parser, scratch, nodedata);
+
+	if (!cloned)
+		return nullptr;
+
+	cloned->mark_dirty();
+	cloned->location(position);
+	simulation::Instances.insert(cloned);
+	simulation::Region->insert(cloned);
+
+	return cloned;
+}
+
 void
 state_serializer::export_nodes_to_stream(std::ostream &scmfile, bool Dirty) const {
 	// groups

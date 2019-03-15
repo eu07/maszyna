@@ -78,6 +78,7 @@ enum string {
 
 	map_straight,
 	map_divert,
+	map_obstacle_insert,
 
     cab_mainctrl,
     cab_scndctrl,
