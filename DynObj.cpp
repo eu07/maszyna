@@ -2700,7 +2700,10 @@ bool TDynamicObject::Update(double dt, double dt1)
             auto osie { 0 };
 			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania 
 			if (MoverParameters->Power < 1)
+			{
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
+				MoverParameters->ScndCtrlActualPos = ctOwner->Controlling()->ScndCtrlActualPos;
+			}
 			MoverParameters->CheckEIMIC(dt1);
 			MoverParameters->CheckSpeedCtrl();
 
