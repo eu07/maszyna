@@ -2274,6 +2274,11 @@ double TDriverHandle::GetEP(double pos)
 {
     return 0;
 }
+
+void TDriverHandle::OvrldButton(bool Active)
+{
+	ManualOvrldActive = Active;
+}
 //---FV4a---
 
 double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
@@ -2683,7 +2688,7 @@ bool TMHZ_EN57::EQ(double pos, double i_pos)
 double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) {
 	static int const LBDelay = 100;
 
-	double LimPP;
+	double LimCP;
 	double dpPipe;
 	double dpMainValve;
 	double ActFlowSpeed;
@@ -2710,29 +2715,28 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 	}
 	
 	if (EQ(i_bcp, 1)) //odcięcie - nie rób nic
-		LimPP = CP;
+		LimCP = CP;
 	else if (i_bcp > 1) //hamowanie
-		LimPP = 3.4;
+		LimCP = 3.4;
 	else //luzowanie
-		LimPP = 5.0;
+		LimCP = 5.0;
 	pom = CP;
-	LimPP = Min0R(LimPP + TP + RedAdj, HP); // pozycja + czasowy lub zasilanie
+	LimCP = Min0R(LimCP, HP); // pozycja + czasowy lub zasilanie
 	ActFlowSpeed = 4;
 
-	if ((LimPP > CP)) // podwyzszanie szybkie
-		CP = CP + 9 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy;
+	if ((LimCP > CP)) // podwyzszanie szybkie
+		CP = CP + 9 * Min0R(abs(LimCP - CP), 0.05) * PR(CP, LimCP) * dt; // zbiornik sterujacy;
 	else
-		CP = CP + 9 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
+		CP = CP + 9 * Min0R(abs(LimCP - CP), 0.05) * PR(CP, LimCP) * dt; // zbiornik sterujacy
 
-	LimPP = pom; // cp
-    dpPipe = Min0R(HP, LimPP);
+    dpPipe = Min0R(HP, CP + TP + RedAdj);
 
 	if (dpPipe > PP)
 		dpMainValve = -PFVa(HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 	else
 		dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 
-	if (EQ(i_bcp, -1))
+	if ((EQ(i_bcp, -1)&&(AutoOvrld))||(ManualOvrld && ManualOvrldActive))
 	{
 		if ((TP < 1))
 			TP = TP + 0.03  * dt;
@@ -2784,6 +2788,12 @@ double TMHZ_K5P::GetPos(int i)
 double TMHZ_K5P::GetCP()
 {
 	return RP;
+}
+
+void TMHZ_K5P::SetParams(bool AO, bool MO, double, double)
+{
+	AutoOvrld = AO;
+	ManualOvrld = MO;
 }
 
 bool TMHZ_K5P::EQ(double pos, double i_pos)

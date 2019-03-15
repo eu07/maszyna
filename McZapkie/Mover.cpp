@@ -8421,6 +8421,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 TBrakeHandle::NoHandle;
         }
+		Handle_AutomaticOverload = (extract_value("HAO", line) == "Yes");
+		Handle_ManualOverload = (extract_value("HMO", line) == "Yes");
         // brakelochandle
         {
             std::map<std::string, TBrakeHandle> locbrakehandles{
@@ -9253,6 +9255,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         default:
             Handle = std::make_shared<TDriverHandle>();
     }
+	Handle->SetParams(Handle_AutomaticOverload, Handle_ManualOverload, 0.0, 0.0);
 
     switch( BrakeLocHandle ) {
         case TBrakeHandle::FD1:
