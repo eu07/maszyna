@@ -894,6 +894,8 @@ public:
 	double P2FTrans = 0.0;
 	double TrackBrakeForce = 0.0;    /*sila nacisku hamulca szynowego*/
 	int BrakeMethod = 0;        /*flaga rodzaju hamulca*/
+	bool Handle_AutomaticOverload = false;
+	bool Handle_ManualOverload = false;
 							/*max. cisnienie w cyl. ham., stala proporcjonalnosci p-K*/
 	double HighPipePress = 0.0;
     double LowPipePress = 0.0;
