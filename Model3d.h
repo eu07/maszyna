@@ -137,7 +137,7 @@ public: // chwilowo
     float m_boundingradius { 0 };
     std::uintptr_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ TAnimType::at_None }; // kody animacji oddzielnie, bo zerowane
-    float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
+	std::shared_ptr<float4x4> mAnimMatrix; // macierz do animacji kwaternionowych
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
     TSubModel *Parent{ nullptr }; // nadrzędny, np. do wymnażania macierzy
     int iVisible { 1 }; // roboczy stan widoczności

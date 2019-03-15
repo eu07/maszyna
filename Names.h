@@ -69,6 +69,17 @@ public:
 		        lookup->second :
 		        -1 );
 	}
+	void purge (Type_ *Item)
+	{
+		for (auto it = m_items.begin(); it != m_items.end(); it++) {
+			if (*it == Item) {
+				delete *it;
+				*it = nullptr;
+				return;
+			}
+		}
+	}
+
     // locates item with specified name. returns pointer to the item, or nullptr
     Type_ *
         find( std::string const &Name ) const {

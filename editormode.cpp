@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Console.h"
 #include "renderer.h"
+#include "AnimModel.h"
 
 bool
 editor_mode::editormode_input::init() {
@@ -179,6 +180,22 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
             break;
         }
 
+	    case GLFW_KEY_DELETE: {
+		    TAnimModel *model = dynamic_cast<TAnimModel*>(m_node);
+			if (!model)
+				break;
+
+			m_node = nullptr;
+			m_dragging = false;
+			Application.set_cursor( GLFW_CURSOR_NORMAL );
+			static_cast<editor_ui*>( m_userinterface.get() )->set_node(nullptr);
+
+			simulation::Region->erase(model);
+			simulation::Instances.purge(model);
+
+			break;
+	    }
+
         default: {
             break;
         }
@@ -229,19 +246,75 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
     if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
 
         if( Action == GLFW_PRESS ) {
-            // left button press
-            GfxRenderer.pick_node([this](scene::basic_node *node)
-            {
-                if (!m_dragging)
-                    return;
-                m_node = node;
-                if( m_node )
-                    Application.set_cursor( GLFW_CURSOR_DISABLED );
-                else
-                    m_dragging = false;
-                dynamic_cast<editor_ui*>( m_userinterface.get() )->set_node( m_node );
-            });
-            m_dragging = true;
+			// left button press
+			auto const mode = static_cast<editor_ui*>( m_userinterface.get() )->mode();
+
+			m_node = nullptr;
+
+			GfxRenderer.pick_node([this, mode](scene::basic_node *node)
+			{
+				editor_ui *ui = static_cast<editor_ui*>( m_userinterface.get() );
+
+				if (mode == nodebank_panel::MODIFY) {
+					if (!m_dragging)
+						return;
+
+					m_node = node;
+					if( m_node )
+						Application.set_cursor( GLFW_CURSOR_DISABLED );
+					else
+						m_dragging = false;
+					ui->set_node( m_node );
+				}
+				else if (mode == nodebank_panel::COPY) {
+					if (node && typeid(*node) == typeid(TAnimModel)) {
+						std::string as_text;
+						node->export_as_text(as_text);
+
+						ui->add_node_template(as_text);
+					}
+
+					m_dragging = false;
+				}
+				else if (mode == nodebank_panel::ADD) {
+					const std::string *src = ui->get_active_node_template();
+
+					if (!src)
+						return;
+
+					cParser parser(*src);
+					parser.getTokens(); // "node"
+					parser.getTokens(2); // ranges
+
+					scene::node_data nodedata;
+					parser >> nodedata.range_max >> nodedata.range_min;
+
+					parser.getTokens(2); // name, type
+					nodedata.name = "editor_" + std::to_string(LocalRandom(0.0, 100000.0));
+					nodedata.type = "model";
+
+					scene::scratch_data scratch;
+
+					TAnimModel *cloned = simulation::State.deserialize_model(parser, scratch, nodedata);
+
+					if (!cloned)
+						return;
+
+					cloned->mark_dirty();
+					cloned->location(Camera.Pos + GfxRenderer.Mouse_Position());
+					simulation::Instances.insert(cloned);
+					simulation::Region->insert(cloned);
+
+					if (!m_dragging)
+						return;
+
+					m_node = cloned;
+					Application.set_cursor( GLFW_CURSOR_DISABLED );
+					ui->set_node( m_node );
+				}
+			});
+
+			m_dragging = true;
         }
         else {
             // left button release

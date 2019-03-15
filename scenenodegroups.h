@@ -51,7 +51,7 @@ public:
             return m_groupmap[ Group ]; }
     // sends basic content of the class in legacy (text) format to provided stream
     void
-        export_as_text( std::ostream &Output ) const;
+	    export_as_text(std::ostream &Output , bool Dirty) const;
 
 private:
 // types

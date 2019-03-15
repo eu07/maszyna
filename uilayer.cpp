@@ -39,7 +39,7 @@ void ui_panel::render()
 	int flags = window_flags;
 	if (flags == -1)
 		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse |
-		        ((size.x > 0 || size_min.x > 0) ? ImGuiWindowFlags_NoResize : 0);
+		        ((size.x > 0) ? ImGuiWindowFlags_NoResize : 0);
 
     if (size.x > 0)
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y));

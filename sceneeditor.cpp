@@ -23,7 +23,16 @@ namespace scene {
 void
 basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bool const Snaptoground ) {
 
-    auto const initiallocation { Node->location() };
+	auto &initiallocation { Node->location() };
+
+	// fixup NaNs
+	if (std::isnan(initiallocation.x))
+		initiallocation.x = Location.x;
+	if (std::isnan(initiallocation.y))
+		initiallocation.y = Location.y;
+	if (std::isnan(initiallocation.z))
+		initiallocation.z = Location.z;
+
     auto targetlocation { Location };
     if( false == Snaptoground ) {
         targetlocation.y = initiallocation.y;
@@ -31,6 +40,7 @@ basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bo
     // NOTE: bit of a waste for single nodes, for the sake of less varied code down the road
     auto const translation { targetlocation - initiallocation };
 
+	Node->mark_dirty();
     if( Node->group() == null_handle ) {
         translate_node( Node, Node->location() + translation );
     }

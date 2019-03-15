@@ -333,6 +333,8 @@ public:
         location( glm::dvec3 const Location );
     glm::dvec3 const &
         location() const;
+	glm::dvec3 &
+	    location();
     float const &
         radius();
     void
@@ -343,6 +345,10 @@ public:
         group( scene::group_handle Group );
     scene::group_handle
         group() const;
+	void
+	    mark_dirty() { m_dirty = true; }
+	bool
+	    dirty() const { return m_dirty; }
 
 protected:
 // members
@@ -352,6 +358,7 @@ protected:
     double m_rangesquaredmax { 0.0 }; // visibility range, max
     bool m_visible { true }; // visibility flag
     std::string m_name;
+	bool m_dirty { false };
 
 private:
 // methods
@@ -381,6 +388,12 @@ inline
 glm::dvec3 const &
 basic_node::location() const {
     return m_area.center;
+}
+
+inline
+glm::dvec3 &
+basic_node::location() {
+	return m_area.center;
 }
 
 inline

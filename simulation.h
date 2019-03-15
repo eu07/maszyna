@@ -39,6 +39,10 @@ public:
 	void
 	    process_commands();
 
+	// temporary for editor
+	TAnimModel *
+	    deserialize_model(cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata);
+
 private:
 // members
     state_serializer m_serializer;

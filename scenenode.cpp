@@ -743,7 +743,7 @@ basic_node::export_as_text( std::ostream &Output ) const {
         << ' ' << ( m_rangesquaredmax < std::numeric_limits<double>::max() ? std::sqrt( m_rangesquaredmax ) : -1 )
         << ' ' << std::sqrt( m_rangesquaredmin )
         // name
-        << ' ' << m_name << ' ';
+	    << ' ' << ((m_name.length() > 0) ? m_name : "none") << ' ';
     // template method implementation
     export_as_text_( Output );
 }

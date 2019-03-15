@@ -1060,8 +1060,8 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	}
 	if (mAnimMatrix) // można by to dać np. do at_Translate
 	{
-		m *= glm::make_mat4(mAnimMatrix->e);
-		mAnimMatrix = NULL; // jak animator będzie potrzebował, to ustawi ponownie
+		m *= glm::make_mat4(mAnimMatrix.get()->e);
+		mAnimMatrix.reset(); // jak animator będzie potrzebował, to ustawi ponownie
 	}
 };
 
