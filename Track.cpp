@@ -1167,6 +1167,30 @@ void TTrack::get_map_active_switches(std::vector<gfx::geometrybank_handle> &hand
 		handles.push_back(SwitchExtension->map_geometry[1]);
 }
 
+glm::vec3 TTrack::get_nearest_point(const glm::dvec3 &point) const
+{
+	if (eType == tt_Normal) {
+		return Segment->get_nearest_point(point);
+	}
+	else if (eType == tt_Switch) {
+		glm::vec3 nearest;
+		float min = std::numeric_limits<float>::max();
+
+		for (size_t i = 0; i < 2; i++) {
+			glm::dvec3 p = SwitchExtension->Segments[i]->get_nearest_point(point);
+			float dist2 = glm::distance2(p, point);
+			if  (dist2 < min) {
+				nearest = p;
+				min = dist2;
+			}
+		}
+
+		return nearest;
+	}
+
+	return glm::vec3(NAN);
+}
+
 // wypełnianie tablic VBO
 void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
 

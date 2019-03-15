@@ -131,7 +131,10 @@ public:
             return ( fTsBuffer.empty() ? 1 : iSegCount ); };
 
 	void
-	    render_lines(std::vector<gfx::basic_vertex> &out, float quality) const;
+	    render_lines(std::vector<gfx::basic_vertex> &out, float quality = 1.0f) const;
+
+	glm::vec3
+	    get_nearest_point(const glm::dvec3 &point, float quality = 1.0f) const;
 };
 
 //---------------------------------------------------------------------------

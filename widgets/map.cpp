@@ -260,9 +260,9 @@ void ui::map_panel::render_contents()
 				else if (objects.size() == 1)
 					handle_map_object_click(*this, objects.begin()->second);
 
-				TTrack *nearest = simulation::Region->find_nearest_track_point(world_pos);
-				if (nearest) {
-					WriteLog(nearest->name());
+				glm::vec3 nearest = simulation::Region->find_nearest_track_point(world_pos);
+				if (!glm::isnan(nearest.x)) {
+					WriteLog(glm::to_string(nearest));
 				}
 				//scene::basic_section &clicked_section = simulation::Region->section(world_pos);
 				//clicked_section.

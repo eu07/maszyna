@@ -445,7 +445,7 @@ bool opengl_renderer::Render()
 	m_debugstats = debug_stats();
 
 	for (auto &viewport : m_viewports) {
-		Render_pass(*viewport.get(), rendermode::color);
+		Render_pass(*viewport, rendermode::color);
 	}
 
 	glfwMakeContextCurrent(m_window);
@@ -586,6 +586,11 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 		setup_drawing(false);
+
+		glm::ivec2 target_size(vp.width, vp.height);
+		if (vp.main) // TODO: update window sizes also for extra viewports
+			target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+
 		if (!Global.gfx_skippipeline)
 		{
 			vp.msaa_fb->bind();
@@ -604,7 +609,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glViewport(0, 0, vp.width, vp.height);
+			glViewport(0, 0, target_size.x, target_size.y);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
@@ -709,7 +714,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
-			glViewport(0, 0, vp.width, vp.height);
+
+			glViewport(0, 0, target_size.x, target_size.y);
 			m_pfx_tonemapping->apply(*vp.main2_tex, nullptr);
 			opengl_texture::reset_unit_cache();
 		}
@@ -1050,8 +1056,12 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 
 	glm::mat4 frustumtest_proj;
 
+	glm::ivec2 target_size(Viewport.width, Viewport.height);
+	if (Viewport.main) // TODO: update window sizes also for extra viewports
+		target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+
 	float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
-	float const aspect = std::max(1.f, (float)Viewport.width) / std::max(1.f, (float)Viewport.height);
+	float const aspect = (float)target_size.x / std::max(1.f, (float)target_size.y);
 
 	Config.viewport_camera.position() = Global.pCamera.Pos;
 

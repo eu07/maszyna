@@ -624,22 +624,26 @@ void basic_cell::get_map_active_switches(std::vector<gfx::geometrybank_handle> &
 		path->get_map_active_switches(handles);
 }
 
-TTrack* basic_cell::find_nearest_track_point(const glm::dvec3 &pos)
+glm::vec3 basic_cell::find_nearest_track_point(const glm::dvec3 &pos)
 {
 	float min = std::numeric_limits<float>::max();
 	TTrack *nearest = nullptr;
+	glm::vec3 point;
 
 	for (auto *path : m_paths) {
-		for (auto &ep : path->endpoints()) {
-			float dist2 = glm::distance2(ep, pos);
-			if (dist2 < min) {
-				min = dist2;
-				nearest = path;
-			}
+		glm::dvec3 ep = path->get_nearest_point(pos);
+
+		float dist2 = glm::distance2(ep, pos);
+		if (dist2 < min) {
+			point = ep;
+			min = dist2;
+			nearest = path;
 		}
 	}
 
-	return nearest;
+	if (!nearest)
+		return glm::vec3(NAN);
+	return point;
 }
 
 // executes event assigned to specified launcher
@@ -962,12 +966,30 @@ void basic_section::get_map_active_switches(std::vector<gfx::geometrybank_handle
 		cell.get_map_active_switches(handles);
 }
 
+glm::vec3 basic_section::find_nearest_track_point(const glm::dvec3 &point)
+{
+	glm::vec3 nearest(NAN);
+	float min = std::numeric_limits<float>::max();
+
+	for (int x = -1; x < 2; x++)
+		for (int y = -1; y < 2; y++) {
+			glm::vec3 p = cell(point, glm::ivec2(x, y)).find_nearest_track_point(point);
+			float dist2 = glm::distance2(p, (glm::vec3)point);
+			if (dist2 < min) {
+				min = dist2;
+				nearest = p;
+			}
+		}
+
+	return nearest;
+}
+
 // provides access to section enclosing specified point
 basic_cell &
-basic_section::cell( glm::dvec3 const &Location ) {
+basic_section::cell( glm::dvec3 const &Location, const glm::ivec2 &offset ) {
 
-    auto const column = static_cast<int>( std::floor( ( Location.x - ( m_area.center.x - EU07_SECTIONSIZE / 2 ) ) / EU07_CELLSIZE ) );
-    auto const row = static_cast<int>( std::floor( ( Location.z - ( m_area.center.z - EU07_SECTIONSIZE / 2 ) ) / EU07_CELLSIZE ) );
+	auto const column = static_cast<int>( std::floor( ( Location.x - ( m_area.center.x - EU07_SECTIONSIZE / 2 ) ) / EU07_CELLSIZE ) ) + offset.x;
+	auto const row = static_cast<int>( std::floor( ( Location.z - ( m_area.center.z - EU07_SECTIONSIZE / 2 ) ) / EU07_CELLSIZE ) ) + offset.y;
 
     return
         m_cells[

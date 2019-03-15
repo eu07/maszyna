@@ -278,6 +278,7 @@ public:
     void create_geometry( gfx::geometrybank_handle const &Bank ); // wypełnianie VBO
 	void create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
 	void get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
+	glm::vec3 get_nearest_point(const glm::dvec3 &point) const;
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet( scene::basic_cell *o ) {
