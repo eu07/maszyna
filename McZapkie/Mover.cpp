@@ -8409,6 +8409,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 { "MHZ_EN57", TBrakeHandle::MHZ_EN57 },
 				{ "MHZ_K5P", TBrakeHandle::MHZ_K5P },
 				{ "MHZ_K8P", TBrakeHandle::MHZ_K8P },
+				{ "MHZ_6P", TBrakeHandle::MHZ_6P },
                 { "M394", TBrakeHandle::M394 },
                 { "Knorr", TBrakeHandle::Knorr },
                 { "Westinghouse", TBrakeHandle::West },
@@ -8422,6 +8423,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 TBrakeHandle::NoHandle;
         }
+		Handle_AutomaticOverload = (extract_value("HAO", line) == "Yes");
+		Handle_ManualOverload = (extract_value("HMO", line) == "Yes");
+		extract_value(Handle_GenericDoubleParameter1, "HGDP1", line, "");
+		extract_value(Handle_GenericDoubleParameter2, "HGDP2", line, "");
         // brakelochandle
         {
             std::map<std::string, TBrakeHandle> locbrakehandles{
@@ -9233,9 +9238,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		case TBrakeHandle::MHZ_K5P:
 			Handle = std::make_shared<TMHZ_K5P>();
 			break;
+		case TBrakeHandle::MHZ_6P:
+			Handle = std::make_shared<TMHZ_6P>();
+			break;
         default:
             Handle = std::make_shared<TDriverHandle>();
     }
+	Handle->SetParams(Handle_AutomaticOverload, Handle_ManualOverload, Handle_GenericDoubleParameter1, Handle_GenericDoubleParameter2);
 
     switch( BrakeLocHandle ) {
         case TBrakeHandle::FD1:

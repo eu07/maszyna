@@ -359,7 +359,7 @@ enum class TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 /*podtypy hamulcow zespolonych*/
 enum class TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
 enum class TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVE408, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P, MHZ_K8P };
+enum class TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVE408, FVel6, D2, Knorr, FD1, BS2, testH, St113, MHZ_P, MHZ_T, MHZ_EN57, MHZ_K5P, MHZ_K8P, MHZ_6P };
 /*typy hamulcow indywidualnych*/
 enum class TLocalBrake { NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake };
 /*dla osob/towar: opoznienie hamowania/odhamowania*/
@@ -907,6 +907,10 @@ public:
 	double P2FTrans = 0.0;
 	double TrackBrakeForce = 0.0;    /*sila nacisku hamulca szynowego*/
 	int BrakeMethod = 0;        /*flaga rodzaju hamulca*/
+	bool Handle_AutomaticOverload = false;
+	bool Handle_ManualOverload = false;
+	double Handle_GenericDoubleParameter1 = 0.0;
+	double Handle_GenericDoubleParameter2 = 0.0;
 							/*max. cisnienie w cyl. ham., stala proporcjonalnosci p-K*/
 	double HighPipePress = 0.0;
     double LowPipePress = 0.0;

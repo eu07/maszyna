@@ -54,8 +54,8 @@ install_manifest.txt
 *.~pas
 *.opensdf
 *.sdf
-#*.sln
-#*.vcxproj
+*.sln
+*.vcxproj
 *.filters
 format_all_files.py
 *.suo
@@ -71,10 +71,5 @@ ipch/
 *.aps
 
 builds/
-doc/
 
 CMakeLists.txt.user
-
-*.vcxproj
-
-*.sln
