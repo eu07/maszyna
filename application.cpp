@@ -470,7 +470,7 @@ void eu07_application::on_focus_change(bool focus) {
 }
 
 GLFWwindow *
-eu07_application::window( int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor ) {
+eu07_application::window( int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership ) {
 
     if( Windowindex >= 0 ) {
         return (
@@ -483,9 +483,11 @@ eu07_application::window( int const Windowindex, bool visible, int width, int he
 	glfwWindowHint( GLFW_VISIBLE, visible );
 
 	auto *childwindow = glfwCreateWindow( width, height, "eu07helper", monitor, m_windows.front() );
-    if( childwindow != nullptr ) {
-        m_windows.emplace_back( childwindow );
-    }
+	if (!childwindow)
+		return nullptr;
+
+	if (keep_ownership)
+		m_windows.emplace_back( childwindow );
 
 	glfwFocusWindow(m_windows.front()); // restore focus to main window
 

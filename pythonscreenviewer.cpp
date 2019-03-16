@@ -22,7 +22,7 @@ python_screen_viewer::python_screen_viewer(GLuint src, std::string surfacename)
 			conf.offset = viewport.offset;
 			conf.scale = viewport.scale;
 			conf.window = Application.window(-1, true, conf.size.x, conf.size.y,
-			                                 Application.find_monitor(viewport.monitor));
+			                                 Application.find_monitor(viewport.monitor), false);
 
 			glfwSetWindowUserPointer(conf.window, this);
 			glfwSetFramebufferSizeCallback(conf.window, texture_window_fb_resize);
