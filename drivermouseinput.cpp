@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "Logs.h"
 
+auto const EU07_CONTROLLER_MOUSESLIDERSIZE{ 0.65 };
+
 void
 mouse_slider::bind( user_command const &Command ) {
 
@@ -30,6 +32,7 @@ mouse_slider::bind( user_command const &Command ) {
     auto const *train { simulation::Train };
     TMoverParameters const *vehicle { nullptr };
     switch( m_command ) {
+        case user_command::jointcontrollerset:
         case user_command::mastercontrollerset:
         case user_command::secondcontrollerset: {
             vehicle = ( train ? train->Controlled() : nullptr );
@@ -48,6 +51,29 @@ mouse_slider::bind( user_command const &Command ) {
 
     // calculate initial value and accepted range
     switch( m_command ) {
+        case user_command::jointcontrollerset: {
+            // NOTE: special case, merges two separate controls
+            auto const *occupied { train ? train->Occupied() : nullptr };
+            if( occupied == nullptr ) { return; }
+
+            auto const powerrange { static_cast<double>(
+                vehicle->CoupledCtrl ?
+                    vehicle->MainCtrlPosNo + vehicle->ScndCtrlPosNo :
+                    vehicle->MainCtrlPosNo ) };
+            // for simplicity upper half of the range controls power, lower controls brakes
+            auto const brakerangemultiplier { powerrange / LocalBrakePosNo };
+
+            m_valuerange = 1.0;
+            m_value = 
+                0.5
+                + 0.5 * ( vehicle->CoupledCtrl ?
+                        vehicle->MainCtrlPos + vehicle->ScndCtrlPos :
+                        vehicle->MainCtrlPos ) / powerrange
+                - 0.5 * occupied->LocalBrakePosA;
+            m_analogue = true;
+            m_invertrange = false;
+            break;
+        }
         case user_command::mastercontrollerset: {
             m_valuerange = (
                 vehicle->CoupledCtrl ?
@@ -58,24 +84,28 @@ mouse_slider::bind( user_command const &Command ) {
                     vehicle->MainCtrlPos + vehicle->ScndCtrlPos :
                     vehicle->MainCtrlPos );
             m_analogue = false;
+            m_invertrange = false;
             break;
         }
         case user_command::secondcontrollerset: {
             m_valuerange = vehicle->ScndCtrlPosNo;
             m_value = vehicle->ScndCtrlPos;
             m_analogue = false;
+            m_invertrange = true;
             break;
         }
         case user_command::trainbrakeset: {
             m_valuerange = 1.0;
             m_value = ( vehicle->fBrakeCtrlPos - vehicle->Handle->GetPos( bh_MIN ) ) / ( vehicle->Handle->GetPos( bh_MAX ) - vehicle->Handle->GetPos( bh_MIN ) );
             m_analogue = true;
+            m_invertrange = true;
             break;
         }
         case user_command::independentbrakeset: {
             m_valuerange = 1.0;
             m_value = vehicle->LocalBrakePosA;
             m_analogue = true;
+            m_invertrange = true;
             break;
         }
         default: {
@@ -87,14 +117,18 @@ mouse_slider::bind( user_command const &Command ) {
     Application.get_cursor_pos( m_cursorposition.x, m_cursorposition.y );
     Application.set_cursor( GLFW_CURSOR_DISABLED );
 
-    auto const controlsize { Global.iWindowHeight * 0.75 };
+    auto const controlsize { Global.iWindowHeight * EU07_CONTROLLER_MOUSESLIDERSIZE };
     auto const controledge { Global.iWindowHeight * 0.5 + controlsize * 0.5 };
     auto const stepsize { controlsize / m_valuerange };
+
+    if( m_invertrange ) {
+        m_value = ( m_analogue ? 1.0 : m_valuerange ) - m_value;
+    }
 
     Application.set_cursor_pos(
         Global.iWindowWidth * 0.5,
         ( m_analogue ?
-            controledge - ( 1.0 - m_value ) * controlsize :
+            controledge - m_value * controlsize :
             controledge - m_value * stepsize - 0.5 * stepsize ) );
 }
 
@@ -109,15 +143,17 @@ mouse_slider::release() {
 void
 mouse_slider::on_move( double const Mousex, double const Mousey ) {
 
-    auto const controlsize { Global.iWindowHeight * 0.75 };
+    auto const controlsize { Global.iWindowHeight * EU07_CONTROLLER_MOUSESLIDERSIZE };
     auto const controledge { Global.iWindowHeight * 0.5 + controlsize * 0.5 };
     auto const stepsize { controlsize / m_valuerange };
 
     auto mousey = clamp( Mousey, controledge - controlsize, controledge );
     m_value = (
         m_analogue ?
-            1.0 - ( ( controledge - mousey ) / controlsize ) :
+            ( controledge - mousey ) / controlsize :
             std::floor( ( controledge - mousey ) / stepsize ) );
+    if( m_invertrange ) {
+        m_value = ( m_analogue ? 1.0 : m_valuerange ) - m_value; }
 }
 
 
@@ -359,47 +395,49 @@ drivermouse_input::button( int const Button, int const Action ) {
                         }
                     }
 
-                    switch( mousecommand ) {
-                        case user_command::mastercontrollerincrease:
-                        case user_command::mastercontrollerdecrease:
-                        case user_command::secondcontrollerincrease:
-                        case user_command::secondcontrollerdecrease:
-                        case user_command::trainbrakeincrease:
-                        case user_command::trainbrakedecrease:
-                        case user_command::independentbrakeincrease:
-                        case user_command::independentbrakedecrease: {
-                            // these commands trigger varying repeat rate mode,
-                            // which scales the rate based on the distance of the cursor from its point when the command was first issued
-                            m_varyingpollrateorigin = m_cursorposition;
-                            m_varyingpollrate = true;
-                            break;
-                        }
-                        case user_command::mastercontrollerset:
-                        case user_command::secondcontrollerset:
-                        case user_command::trainbrakeset:
-                        case user_command::independentbrakeset: {
-                            m_slider.bind( mousecommand );
-                            mousecommand = user_command::none;
-                            return;
-                        }
-                        default: {
-                            break;
-                        }
-                    }
-                    // NOTE: basic keyboard controls don't have any parameters
-                    // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-                    // TODO: pass correct entity id once the missing systems are in place
+					switch( mousecommand ) {
+					    case user_command::mastercontrollerincrease:
+					    case user_command::mastercontrollerdecrease:
+					    case user_command::secondcontrollerincrease:
+					    case user_command::secondcontrollerdecrease:
+					    case user_command::trainbrakeincrease:
+					    case user_command::trainbrakedecrease:
+					    case user_command::independentbrakeincrease:
+					    case user_command::independentbrakedecrease: {
+						    // these commands trigger varying repeat rate mode,
+						    // which scales the rate based on the distance of the cursor from its point when the command was first issued
+						    m_varyingpollrateorigin = m_cursorposition;
+							m_varyingpollrate = true;
+							break;
+					    }
+					    case user_command::jointcontrollerset:
+					    case user_command::mastercontrollerset:
+					    case user_command::secondcontrollerset:
+					    case user_command::trainbrakeset:
+					    case user_command::independentbrakeset: {
+						    m_slider.bind( mousecommand );
+							mousecommand = user_command::none;
+							return;
+					    }
+					    default: {
+						    break;
+					    }
+					}
+
+					// NOTE: basic keyboard controls don't have any parameters
+					// NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+					// TODO: pass correct entity id once the missing systems are in place
 					m_relay.post( mousecommand, 0, 0, Action, 0 );
-                    if (!pickwaiting) // already depressed
+					if (!pickwaiting) // already depressed
 						m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
-                    m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-                }
-                else {
-                    // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-                    if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-                        m_pickmodepanning = true;
-                    }
-                }
+					m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
+				}
+				else {
+					// if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+					if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+						m_pickmodepanning = true;
+					}
+				}
             });
         }
     }
@@ -452,6 +490,9 @@ void
 drivermouse_input::default_bindings() {
 
     m_buttonbindings = {
+        { "jointctrl:", {
+            user_command::jointcontrollerset,
+            user_command::none } },
         { "mainctrl:", {
             user_command::mastercontrollerset,
             user_command::none } },
@@ -461,6 +502,9 @@ drivermouse_input::default_bindings() {
         { "shuntmodepower:", {
             user_command::secondcontrollerincrease,
             user_command::secondcontrollerdecrease } },
+        { "tempomat_sw:", {
+            user_command::tempomattoggle,
+            user_command::none } },
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
@@ -518,6 +562,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "motorblowersalloff_sw:", {
             user_command::motorblowersdisableall,
+            user_command::none } },
+        { "coolingfans_sw:", {
+            user_command::coolingfanstoggle,
             user_command::none } },
         { "main_off_bt:", {
             user_command::linebreakeropen,
@@ -590,6 +637,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "dooralloff_sw:", {
             user_command::doorcloseall,
+            user_command::none } },
+        { "doorstep_sw:", {
+            user_command::doorsteptoggle,
             user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,

@@ -27,8 +27,6 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "Logs.h"
 
-#undef snprintf // defined by train.h->pyint.h->python
-
 void
 drivingaid_panel::update() {
 
@@ -150,6 +148,79 @@ drivingaid_panel::update() {
 }
 
 void
+scenario_panel::update() {
+
+    if( false == is_open ) { return; }
+
+    text_lines.clear();
+
+    auto const *train { simulation::Train };
+    auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
+    auto const &camera { Global.pCamera };
+    m_nearest = (
+        false == FreeFlyModeFlag ? controlled :
+        camera.m_owner != nullptr ? camera.m_owner :
+        std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
+    if( m_nearest == nullptr ) { return; }
+    auto const *owner { (
+        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+            m_nearest->Mechanik :
+            m_nearest->ctOwner ) };
+    if( owner == nullptr ) { return; }
+
+    std::string textline =
+        locale::strings[ locale::string::driver_scenario_currenttask ] + "\n "
+        + owner->OrderCurrent();
+
+    text_lines.emplace_back( textline, Global.UITextColor );
+}
+
+void
+scenario_panel::render() {
+
+    if( false == is_open ) { return; }
+    if( true == text_lines.empty() ) { return; }
+    if( m_nearest == nullptr ) { return; } // possibly superfluous given the above but, eh
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    auto const panelname { (
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
+    if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
+        // potential assignment section
+        auto const *owner { (
+            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+                m_nearest->Mechanik :
+                m_nearest->ctOwner ) };
+        if( owner != nullptr ) {
+            auto const assignmentheader { locale::strings[ locale::string::driver_scenario_assignment ] };
+            if( ( false == owner->assignment().empty() )
+             && ( true == ImGui::CollapsingHeader( assignmentheader.c_str() ) ) ) {
+                ImGui::TextWrapped( owner->assignment().c_str() );
+                ImGui::Separator();
+            }
+        }
+        // current task
+        for( auto const &line : text_lines ) {
+            ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        }
+    }
+    ImGui::End();
+}
+
+void
 timetable_panel::update() {
 
     if( false == is_open ) { return; }
@@ -164,12 +235,14 @@ timetable_panel::update() {
     { // current time
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-            locale::strings[ locale::string::driver_timetable_time ].c_str(),
+            locale::strings[ locale::string::driver_timetable_header ].c_str(),
+            40, 40,
+            locale::strings[ locale::string::driver_timetable_name ].c_str(),
             time.wHour,
             time.wMinute,
             time.wSecond );
 
-        text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
+        title = m_buffer.data();
     }
 
     auto *vehicle { (
@@ -215,8 +288,7 @@ timetable_panel::update() {
             auto consistmass { owner->fMass };
             auto consistlength { owner->fLength };
             if( ( owner->mvControlling->TrainType != dt_DMU )
-             && ( owner->mvControlling->TrainType != dt_EZT )
-             && ( owner->pVehicles[end::front] != owner->pVehicles[end::rear] ) ) {
+             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
 				//odejmij lokomotywy czynne, a przynajmniej aktualną
                 consistmass -= owner->pVehicle->MoverParameters->TotalMass;
                 // subtract potential other half of a two-part vehicle
@@ -224,7 +296,6 @@ timetable_panel::update() {
                 if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
 				auto const *next { owner->pVehicle->Next( coupling::permanent ) };
                 if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
-//                    consistlength -= owner->pVehicle->MoverParameters->Dim.L;
 			}
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
@@ -369,7 +440,12 @@ debug_panel::render() {
     if( size_min.x > 0 ) {
         ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
     }
-    if( true == ImGui::Begin( name.c_str(), &is_open, flags ) ) {
+    auto const panelname { (
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
+    if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
@@ -568,10 +644,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
 
-    auto const *connected { (
-        Side == end::front ?
-            m_input.vehicle->PrevConnected :
-            m_input.vehicle->NextConnected ) };
+    auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
     if( connected == nullptr ) { return couplerstatus; }
 
@@ -579,10 +652,10 @@ debug_panel::update_vehicle_coupler( int const Side ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        "%s [%d]%s",
+        "%s [%d] (%.1f m)",
         connected->name().c_str(),
         mover.Couplers[ Side ].CouplingFlag,
-        std::string( mover.Couplers[ Side ].CouplingFlag == 0 ? " (" + to_string( mover.Couplers[ Side ].CoupleDist, 1 ) + " m)" : "" ).c_str() );
+        mover.Neighbours[ Side ].distance );
 
     return { m_buffer.data() };
 }
@@ -686,7 +759,9 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     auto const &mechanik{ *m_input.mechanik };
 
     // biezaca komenda dla AI
-    auto textline = "Current order: " + mechanik.OrderCurrent();
+    auto textline =
+        "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
+        + mechanik.OrderCurrent();
 
     if( mechanik.fStopTime < 0.0 ) {
         textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
@@ -704,6 +779,12 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+
+    if( mechanik.Obstacle.distance < 5000 ) {
+        textline +=
+            "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 )
+            + " (" + mechanik.Obstacle.vehicle->asName + ")";
+    }
 
     Output.emplace_back( textline, Global.UITextColor );
 

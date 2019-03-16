@@ -173,17 +173,11 @@ void cSun::move() {
 
     m_body.rascen = clamp_circular( radtodeg * std::atan2( top, bottom ) );
 
-    // Greenwich mean sidereal time
-    m_observer.gmst = 6.697375 + 0.0657098242 * daynumber + m_observer.utime;
+    // Greenwich mean sidereal time (hours)
+    m_observer.gmst = clamp_circular( 6.697375 + 0.0657098242 * daynumber + m_observer.utime, 24.0 );
 
-    m_observer.gmst -= 24.0 * (int)( m_observer.gmst / 24.0 );
-    if( m_observer.gmst < 0.0 ) m_observer.gmst += 24.0;
-
-    // local mean sidereal time
-    m_observer.lmst = m_observer.gmst * 15.0 + m_observer.longitude;
-
-    m_observer.lmst -= 360.0 * (int)( m_observer.lmst / 360.0 );
-    if( m_observer.lmst < 0.0 ) m_observer.lmst += 360.0;
+    // local mean sidereal time (deg)
+    m_observer.lmst = clamp_circular( m_observer.gmst * 15.0 + m_observer.longitude );
 
     // hour angle
     m_body.hrang = m_observer.lmst - m_body.rascen;

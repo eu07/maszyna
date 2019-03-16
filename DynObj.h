@@ -187,12 +187,13 @@ public:
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
 	Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
-    TDynamicObject *NextConnected; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
-    TDynamicObject *PrevConnected; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
-    int NextConnectedNo; // numer sprzęgu podłączonego z tyłu
-    int PrevConnectedNo; // numer sprzęgu podłączonego z przodu
-    double fScanDist; // odległość skanowania torów na obecność innych pojazdów
-    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
+    inline TDynamicObject *NextConnected() { return MoverParameters->Neighbours[ end::rear ].vehicle; }; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
+    inline TDynamicObject *PrevConnected() { return MoverParameters->Neighbours[ end::front ].vehicle; }; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
+    inline TDynamicObject *NextConnected() const { return MoverParameters->Neighbours[ end::rear ].vehicle; }; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
+    inline TDynamicObject *PrevConnected() const { return MoverParameters->Neighbours[ end::front ].vehicle; }; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
+    inline int NextConnectedNo() const { return MoverParameters->Neighbours[ end::rear ].vehicle_end; }
+    inline int PrevConnectedNo() const { return MoverParameters->Neighbours[ end::front ].vehicle_end; }
+//    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
@@ -458,11 +459,8 @@ private:
     int iNumAxles; // ilość osi
     std::string asModel;
 
-  public:
-    void ABuScanObjects(int ScanDir, double ScanDist);
-
   private:
-    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler );
+    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler ) const;
     void ABuCheckMyTrack();
 
   public:
@@ -471,7 +469,6 @@ private:
 	TDynamicObject * PrevAny() const;
 	TDynamicObject * Prev(int C = -1) const;
 	TDynamicObject * Next(int C = -1) const;
-    double NextDistance(double d = -1.0);
     void SetdMoveLen(double dMoveLen) {
         MoverParameters->dMoveLen = dMoveLen; }
     void ResetdMoveLen() {
@@ -486,6 +483,7 @@ private:
         return this ?
             asName :
             std::string(); };
+    std::string asBaseDir;
 
     //    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
     // youBy - dym
@@ -507,7 +505,6 @@ private:
     bool bDisplayCab; // czy wyswietlac kabine w train.cpp
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
-    std::string asBaseDir;
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały jazdę bezprądową
     TTractionParam tmpTraction;
     double fAdjustment; // korekcja - docelowo przenieść do TrkFoll.cpp wraz z odległością od poprzedniego
@@ -522,7 +519,7 @@ private:
     int init_sections( TModel3d const *Model, std::string const &Nameprefix );
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
-    bool UpdateForce(double dt, double dt1, bool FullVer);
+    bool UpdateForce(double dt);
     // initiates load change by specified amounts, with a platform on specified side
     void LoadExchange( int const Disembark, int const Embark, int const Platform );
     // calculates time needed to complete current load change
@@ -606,14 +603,13 @@ private:
             Axle1.GetTranslation() :
             Axle0.GetTranslation(); };
     // zwraca tor z aktywną osią
-    inline TTrack * RaTrackGet() {
+    inline TTrack * RaTrackGet() const {
         return iAxleFirst ?
             Axle1.GetTrack() :
             Axle0.GetTrack(); };
 
     void couple( int const Side );
     int uncouple( int const Side );
-    void CouplersDettach(double MinDist, int MyScanDir);
     void RadioStop();
 	void Damage(char flag);
     void RaLightsSet(int head, int rear);
@@ -627,8 +623,11 @@ private:
         return iDirection + iDirection - 1; };
     int DettachStatus(int dir);
     int Dettach(int dir);
-    TDynamicObject * Neightbour(int &dir);
-    void CoupleDist();
+    TDynamicObject * Neighbour(int &dir);
+    // updates potential collision sources
+    void update_neighbours();
+    // locates potential collision source within specified range, scanning its route in specified direction
+    auto find_vehicle( int const Direction, double const Range ) const -> std::tuple<TDynamicObject *, int, double, bool>;
     TDynamicObject * ControlledFind();
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać

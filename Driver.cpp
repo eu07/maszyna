@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 
 #include "Globals.h"
+#include "translation.h"
 #include "Logs.h"
 #include "Train.h"
 #include "mtable.h"
@@ -349,7 +350,7 @@ std::string TSpeedPos::TableText() const
 
 bool TSpeedPos::IsProperSemaphor(TOrders order)
 { // sprawdzenie czy semafor jest zgodny z trybem jazdy
-	if (order < 0x40) // Wait_for_orders, Prepare_engine, Change_direction, Connect, Disconnect, Shunt
+	if (order < Obey_train) // Wait_for_orders, Prepare_engine, Change_direction, Connect, Disconnect, Shunt
     {
         if (iFlags & (spSemaphor | spShuntSemaphor))
             return true;
@@ -370,18 +371,17 @@ bool TSpeedPos::Set(basic_event *event, double dist, double length, TOrders orde
     iFlags = spEvent;
     evEvent = event;
     vPos = event->input_location(); // współrzędne eventu albo komórki pamięci (zrzutować na tor?)
-    if( dist + length >= 0 ) {
-        iFlags |= spEnabled;
-        CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
-    }
-    else {
-        // located behind the tracking consist, don't bother with it
+    // ignore events located behind the consist, but with exception of stop points which may be needed to update freshly received timetable
+    if( ( dist + length < 0 )
+     && ( event->input_command() != TCommandType::cm_PassengerStopPoint ) ) {
         return false;
     }
+    iFlags |= spEnabled;
+    CommandCheck(); // sprawdzenie typu komendy w evencie i określenie prędkości
 	// zależnie od trybu sprawdzenie czy jest tutaj gdzieś semafor lub tarcza manewrowa
 	// jeśli wskazuje stop wtedy wystawiamy true jako koniec sprawdzania
 	// WriteLog("EventSet: Vel=" + AnsiString(fVelNext) + " iFlags=" + AnsiString(iFlags) + " order="+AnsiString(order));
-	if (order < 0x40) // Wait_for_orders, Prepare_engine, Change_direction, Connect, Disconnect, Shunt
+	if (order < Obey_train) // Wait_for_orders, Prepare_engine, Change_direction, Connect, Disconnect, Shunt
     {
         if (iFlags & (spSemaphor | spShuntSemaphor) && fVelNext == 0.0)
             return true;
@@ -484,6 +484,20 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
 
     if (iTableDirection != iDirection ) {
         // jeśli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
+        TableClear();
+/*
+        // aktualna prędkość // changed to -1 to recognize speed limit, if any
+        fLastVel = -1.0;
+        sSpeedTable.clear();
+        iLast = -1;
+        tLast = nullptr; //żaden nie sprawdzony
+        SemNextIndex = -1;
+        SemNextStopIndex = -1;
+*/
+        if( VelSignalLast == 0.0 ) {
+            // don't allow potential red light overrun keep us from reversing
+            VelSignalLast = -1.0;
+        }
         iTableDirection = iDirection; // ustalenie w jakim kierunku jest wypełniana tabelka względem pojazdu
         pTrack = pVehicle->RaTrackGet(); // odcinek, na którym stoi
         fTrackLength = pVehicle->RaTranslationGet(); // pozycja na tym torze (odległość od Point1)
@@ -501,17 +515,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             .Length();
         // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
         fCurrentDistance = -fLength - fTrackLength;
-        // aktualna prędkość // changed to -1 to recognize speed limit, if any
-        fLastVel = -1.0;
-        sSpeedTable.clear();
-        iLast = -1;
-        tLast = nullptr; //żaden nie sprawdzony
-        SemNextIndex = -1;
-        SemNextStopIndex = -1;
-        if( VelSignalLast == 0.0 ) {
-            // don't allow potential red light overrun keep us from reversing
-            VelSignalLast = -1.0;
-        }
         fTrackLength = pTrack->Length(); //skasowanie zmian w zmiennej żeby poprawnie liczyło w dalszych krokach
         MoveDistanceReset(); // AI startuje 1s po zaczęciu jazdy i mógł już coś przejechać
     }
@@ -537,7 +540,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 return;
             }
             else {
-                if( ( OrderCurrentGet() < 0x40 )
+                if( ( OrderCurrentGet() < Obey_train )
                  && ( sSpeedTable[SemNextStopIndex].iFlags & ( spSemaphor | spShuntSemaphor | spOutsideStation ) ) ) {
                     return;
                 }
@@ -757,7 +760,7 @@ void TController::TableCheck(double fDistance)
 { // przeliczenie odległości w tabelce, ewentualnie doskanowanie (bez analizy prędkości itp.)
     if( iTableDirection != iDirection ) {
         // jak zmiana kierunku, to skanujemy od końca składu
-        TableTraceRoute( fDistance, pVehicles[ 1 ] );
+        TableTraceRoute( fDistance, pVehicles[ end::rear ] );
         TableSort();
     }
     else if (iTableDirection)
@@ -784,7 +787,7 @@ void TController::TableCheck(double fDistance)
                         --iLast;
                     }
                     tLast = sSpeedTable[ i ].trTrack;
-                    TableTraceRoute( fDistance, pVehicles[ 1 ] );
+                    TableTraceRoute( fDistance, pVehicles[ end::rear ] );
                     TableSort();
                     // nie kontynuujemy pętli, trzeba doskanować ciąg dalszy
                     break;
@@ -822,7 +825,7 @@ void TController::TableCheck(double fDistance)
         sSpeedTable[iLast].Update(); // aktualizacja ostatniego
         // WriteLog("TableCheck: Upate last track. Dist=" + AnsiString(sSpeedTable[iLast].fDist));
         if( sSpeedTable[ iLast ].fDist < fDistance ) {
-            TableTraceRoute( fDistance, pVehicles[ 1 ] ); // doskanowanie dalszego odcinka
+            TableTraceRoute( fDistance, pVehicles[ end::rear ] ); // doskanowanie dalszego odcinka
             TableSort();
         }
         // garbage collection
@@ -856,7 +859,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 // jeśli przystanek, trzeba obsłużyć wg rozkładu
                 iDrivigFlags |= moveStopPointFound;
                 // stop points are irrelevant when not in one of the basic modes
-                if( ( OrderCurrentGet() & ( Obey_train | Shunt ) ) == 0 ) { continue; }
+                if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) { continue; }
                 // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
                 if ( ToLower(sSpeedTable[i].evEvent->input_text()).compare( 19, sizeof(asNextStop), ToLower(asNextStop)) != 0 )
                 { // jeśli nazwa nie jest zgodna
@@ -1008,7 +1011,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
                             }
 
-                            if (OrderCurrentGet() & Shunt) {
+                            if (OrderCurrentGet() & ( Shunt | Loose_shunt )) {
                                 OrderNext(Obey_train); // uruchomić jazdę pociągową
                                 CheckVehicles(); // zmienić światła
                             }
@@ -1171,7 +1174,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( mvOccupied->Vel < 2.0 ) {
                         // stanąć nie musi, ale zwolnić przynajmniej
                         if( ( sSpeedTable[ i ].fDist < fMaxProximityDist )
-                         && ( TrackBlock() > 1000.0 ) ) {
+                         && ( Obstacle.distance > 1000 ) ) {
                             // jest w maksymalnym zasięgu to można go pominąć (wziąć drugą prędkosć)
                             // as long as there isn't any obstacle in arbitrary view range
                             eSignSkip = sSpeedTable[ i ].evEvent;
@@ -1257,7 +1260,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                 //sprawdzenie eventów pasywnych przed nami
                 if( ( mvOccupied->CategoryFlag & 1 )
-                 && ( sSpeedTable[ i ].fDist > pVehicles[ 0 ]->fTrackBlock - 20.0 ) ) {
+                 && ( sSpeedTable[ i ].fDist > Obstacle.distance - 20 ) ) {
                     // jak sygnał jest dalej niż zawalidroga
                     v = 0.0; // to może być podany dla tamtego: jechać tak, jakby tam stop był
                 }
@@ -1684,15 +1687,62 @@ std::string TController::Order2Str(TOrders Order) const {
         case Connect:             return "Connect";
         case Disconnect:          return "Disconnect";
         case Shunt:               return "Shunt";
+        case Loose_shunt:         return "Loose_shunt";
         case Obey_train:          return "Obey_train";
+        case Bank:                return "Bank";
         case Jump_to_first_order: return "Jump_to_first_order";
         default:                  return "Undefined";
     }
 }
 
+std::array<char, 64> orderbuffer;
+
 std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
-    return "[" + std::to_string(OrderPos) + "] " + Order2Str(OrderList[OrderPos]);
+    auto const order { OrderCurrentGet() };
+    if( order & Change_direction ) {
+        return locale::strings[ locale::string::driver_scenario_changedirection ];
+    }
+
+    switch( OrderList[ OrderPos ] ) {
+        case Wait_for_orders: { return locale::strings[ locale::string::driver_scenario_waitfororders ]; }
+        case Prepare_engine: { return locale::strings[ locale::string::driver_scenario_prepareengine ]; }
+        case Release_engine: { return locale::strings[ locale::string::driver_scenario_releaseengine ]; }
+        case Change_direction: { return locale::strings[ locale::string::driver_scenario_changedirection ]; }
+        case Connect: { return locale::strings[ locale::string::driver_scenario_connect ]; }
+        case Disconnect: {
+            if( iVehicleCount < 0 ) {
+                // done with uncoupling, order should update shortly
+                return locale::strings[ locale::string::driver_scenario_waitfororders ];
+            }
+            // try to provide some task details
+            auto const count { iVehicleCount };
+
+            if( iVehicleCount > 1 ) {
+                std::snprintf(
+                    orderbuffer.data(), orderbuffer.size(),
+                    ( iVehicleCount < 5 ?
+                        locale::strings[ locale::string::driver_scenario_fewvehicles ].c_str() : // 2-4
+                        locale::strings[ locale::string::driver_scenario_somevehicles ].c_str() ), // 5+
+                    count );
+            }
+            auto const countstring { (
+                count == 0 ? locale::strings[ locale::string::driver_scenario_allvehicles ] :
+                count == 1 ? locale::strings[ locale::string::driver_scenario_onevehicle ] :
+                orderbuffer.data() ) };
+
+            std::snprintf(
+                orderbuffer.data(), orderbuffer.size(),
+                locale::strings[ locale::string::driver_scenario_disconnect ].c_str(),
+                countstring.c_str() );
+            return orderbuffer.data();
+        }
+        case Shunt: { return locale::strings[ locale::string::driver_scenario_shunt ]; }
+        case Loose_shunt: { return locale::strings[ locale::string::driver_scenario_looseshunt ]; }
+        case Obey_train: { return locale::strings[ locale::string::driver_scenario_obeytrain ]; }
+        case Bank: { return locale::strings[ locale::string::driver_scenario_bank ]; }
+        default: { return{}; }
+    }
 };
 
 void TController::OrdersClear()
@@ -1768,7 +1818,7 @@ void TController::Activation()
             // dla 2Ls150 - przed ustawieniem kierunku - można zmienić tryb pracy
             if( mvControlling->ShuntModeAllow ) {
                 mvControlling->CurrentSwitch(
-                    ( ( OrderList[ OrderPos ] & Shunt ) == Shunt )
+                    ( ( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) != 0 )
                    || ( fMass > 224000.0 ) ); // do tego na wzniesieniu może nie dać rady na liniowym
             }
         }
@@ -1903,7 +1953,7 @@ void TController::AutoRewident()
 		fBrake_a1[i+1] = 0;
 	}
 
-    if( OrderCurrentGet() & Shunt ) {
+    if( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) {
         // for uniform behaviour and compatibility with older scenarios set default acceleration table values for shunting
         fAccThreshold = (
             mvOccupied->TrainType == dt_EZT ? -0.55 :
@@ -1916,7 +1966,7 @@ void TController::AutoRewident()
         }
     }
 
-    if( OrderCurrentGet() & Obey_train ) {
+    if( OrderCurrentGet() & ( Obey_train | Bank ) ) {
         // 4. Przeliczanie siły hamowania
         double const velstep = ( mvOccupied->Vmax*0.5 ) / BrakeAccTableSize;
         d = pVehicles[0]; // pojazd na czele składu
@@ -2017,9 +2067,10 @@ double TController::ESMVelocity(bool Main)
 int TController::CheckDirection() {
 
     int d = mvOccupied->DirAbsolute; // który sprzęg jest z przodu
-    if( !d ) // jeśli nie ma ustalonego kierunku
-        d = mvOccupied->CabNo; // to jedziemy wg aktualnej kabiny
-    iDirection = d; // ustalenie kierunku jazdy (powinno zrobić PrepareEngine?)
+    if( !d ) {
+        // jeśli nie ma ustalonego kierunku to jedziemy wg aktualnej kabiny
+        d = mvOccupied->CabNo;
+    }
     return d;
 }
 
@@ -2058,7 +2109,7 @@ bool TController::CheckVehicles(TOrders user)
          && ( p->MoverParameters->BrakeSubsystem != TBrakeSubSystem::ss_LSt ) ) {
             iDrivigFlags &= ~( moveOerlikons );
         }
-        p = p->Neightbour(dir); // pojazd podłączony od wskazanej strony
+        p = p->Neighbour(dir); // pojazd podłączony od wskazanej strony
     }
     if (main)
         iDrivigFlags |= movePrimary; // nie znaleziono innego, można się porządzić
@@ -2071,8 +2122,8 @@ bool TController::CheckVehicles(TOrders user)
         {
             // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
             if( ( p != pVehicle )
-             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control | coupling::permanent ) ) == 0 )
-             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control | coupling::permanent ) ) == 0 ) ) {
+             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
+             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
                 // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                 p->MoverParameters->BatterySwitch( true );
             }
@@ -2107,7 +2158,7 @@ bool TController::CheckVehicles(TOrders user)
                     frontlights,
                     rearlights );
             }
-            else if (OrderCurrentGet() & (Shunt | Connect))
+            else if (OrderCurrentGet() & (Shunt | Loose_shunt | Connect))
             {
                 // HACK: the 'front' and 'rear' of the consist is determined by current consist direction
                 // since direction shouldn't affect Tb1 light configuration, we 'counter' this behaviour by virtually swapping end vehicles
@@ -2139,7 +2190,7 @@ bool TController::CheckVehicles(TOrders user)
                 }
             }
 
-            if( OrderCurrentGet() & ( Obey_train | Shunt ) ) {
+            if( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) {
                 // nastawianie hamulca do jazdy pociągowej
                 AutoRewident();
                 // enable door locks
@@ -2227,6 +2278,15 @@ void TController::DirectionInitial()
     CheckVehicles(); // sprawdzenie świateł oraz skrajnych pojazdów do skanowania
 };
 
+void TController::DirectionChange() {
+
+    auto const initialstate { iDirection };
+    iDirection = CheckDirection();
+    if( iDirection != initialstate ) {
+        CheckVehicles( Change_direction );
+    }
+}
+
 int TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
 { // zmiana kierunku jazdy, niezależnie od kabiny
     int testd = newdir;
@@ -2275,9 +2335,7 @@ void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
     {
         eStopReason = stopNone; // podana prędkość, to nie ma powodów do stania
         // to całe poniżej to warunki zatrąbienia przed ruszeniem
-        if (OrderList[OrderPos] ?
-                OrderList[OrderPos] & (Obey_train | Shunt | Connect | Prepare_engine) :
-                true) // jeśli jedzie w dowolnym trybie
+        if( (OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank | Connect | Prepare_engine ) ) != 0 ) // jeśli jedzie w dowolnym trybie
             if ((mvOccupied->Vel < 1.0)) // jesli stoi (na razie, bo chyba powinien też, gdy hamuje przed semaforem)
                 if (iDrivigFlags & moveStartHorn) // jezeli trąbienie włączone
                     if (!(iDrivigFlags & (moveStartHornDone | moveConnect)))
@@ -2306,7 +2364,7 @@ double TController::BrakeAccFactor() const
 
 void TController::SetDriverPsyche()
 {
-    if ((Psyche == Aggressive) && (OrderList[OrderPos] == Obey_train))
+    if ((Psyche == Aggressive) && (OrderCurrentGet() == Obey_train))
     {
         ReactionTime = HardReactionTime; // w zaleznosci od charakteru maszynisty
         if (mvOccupied->CategoryFlag & 2)
@@ -2350,7 +2408,6 @@ bool TController::PrepareEngine()
 		voltrear = false;
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
-    iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
 
     if ( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
         voltfront = true;
@@ -2405,11 +2462,11 @@ bool TController::PrepareEngine()
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
                     if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
-                        if( mvOccupied->Couplers[ 1 ].CouplingFlag == coupling::faux ) {
+                        if( mvOccupied->Couplers[ end::rear ].Connected == nullptr ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
                         }
-                        if( mvOccupied->Couplers[ 0 ].CouplingFlag == coupling::faux ) {
+                        if( mvOccupied->Couplers[ end::front ].Connected == nullptr ) {
                             // jeśli z przodu nie ma nic
                             iDirection = 1; // jazda w kierunku sprzęgu 0
                         }
@@ -2462,6 +2519,10 @@ bool TController::PrepareEngine()
                 mvOccupied->MotorBlowersSwitch( true, end::front );
                 mvOccupied->MotorBlowersSwitchOff( false, end::rear );
                 mvOccupied->MotorBlowersSwitch( true, end::rear );
+                // enable train brake if it's off
+                if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
+                    mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                }
             }
         }
         else
@@ -2481,6 +2542,8 @@ bool TController::PrepareEngine()
         }
         eAction = TAction::actUnknown;
         iEngineActive = 1;
+        iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
+
         return true;
     }
     else {
@@ -2615,12 +2678,12 @@ bool TController::IncBrake()
              || ( mvOccupied->TrainType == dt_ET42 ) ) {
                 // NOTE: we're doing simplified checks full of presuptions here.
                 // they'll break if someone does strange thing like turning around the second unit
-                if( ( mvOccupied->Couplers[ 1 ].CouplingFlag & coupling::permanent )
-                 && ( mvOccupied->Couplers[ 1 ].Connected->Couplers[ 1 ].CouplingFlag > 0 ) ) {
+                if( ( mvOccupied->Couplers[ end::rear ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ end::rear ].Connected->Couplers[ end::rear ].Connected != nullptr ) ) {
                     standalone = false;
                 }
-                if( ( mvOccupied->Couplers[ 0 ].CouplingFlag & coupling::permanent )
-                 && ( mvOccupied->Couplers[ 0 ].Connected->Couplers[ 0 ].CouplingFlag > 0 ) ) {
+                if( ( mvOccupied->Couplers[ end::front ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ end::front ].Connected->Couplers[ end::front ].Connected != nullptr ) ) {
                     standalone = false;
                 }
             }
@@ -2628,22 +2691,27 @@ bool TController::IncBrake()
                 // enforce use of train brake for DMUs
                 standalone = false;
             }
+            else if( ( ( OrderCurrentGet() & ( Loose_shunt ) ) != 0 )
+                  && ( mvOccupied->Vel - VelDesired < fVelPlus + fVelMinus ) ) {
+                // try to reduce train brake use in loose shunting mode
+                standalone = true;
+            }
             else {
 /*
                 standalone =
                     ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
                    && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
 */
-                if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
+                if( pVehicles[ end::front ] != pVehicles[ end::rear ] ) {
                     // more detailed version, will use manual braking also for coupled sets of controlled vehicles
-                    auto *vehicle = pVehicles[ 0 ]; // start from first
+                    auto *vehicle = pVehicles[ end::front ]; // start from first
                     while( ( true == standalone )
                         && ( vehicle != nullptr ) ) {
                         // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
                         // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
                         standalone =
-                            ( ( ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 0 ].CouplingFlag & coupling::control ) )
-                           && ( ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ) || ( vehicle->MoverParameters->Couplers[ 1 ].CouplingFlag & coupling::control ) ) );
+                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control ) ) );
                         vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
                     }
                 }
@@ -2723,7 +2791,7 @@ bool TController::IncBrake()
 						OK = mvOccupied->BrakeLevelAdd(1.0);
 				}
 				else {
-					OK = mvOccupied->IncLocalBrakeLevel(1);
+					OK = IncBrakeEIM();
 				}
             }
             else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPB ) ) {
@@ -2739,6 +2807,28 @@ bool TController::IncBrake()
         default: { break; }
     }
     return OK;
+}
+
+bool TController::IncBrakeEIM()
+{ // zwiększenie hamowania
+	bool OK = false;
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->IncLocalBrakeLevel(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos > 0;
+		if (OK)
+			mvControlling->MainCtrlPos = 0;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos > 1;
+		if (OK)
+			mvControlling->MainCtrlPos = 1;
+		break;
+	}
+	return OK;
 }
 
 bool TController::DecBrake()
@@ -2778,7 +2868,7 @@ bool TController::DecBrake()
 					OK = mvOccupied->BrakeLevelAdd(-1.0);
 			}
 			else {
-				OK = mvOccupied->DecLocalBrakeLevel(1);
+				OK = DecBrakeEIM();
 			}
 		}
         else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR))
@@ -2796,6 +2886,28 @@ bool TController::DecBrake()
     }
     return OK;
 };
+
+bool TController::DecBrakeEIM()
+{ // zmniejszenie siły hamowania
+	bool OK = false;
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->DecLocalBrakeLevel(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos < 2;
+		if (OK)
+			mvControlling->MainCtrlPos = 2;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos < 3;
+		if (OK)
+			mvControlling->MainCtrlPos = 3;
+		break;
+	}
+	return OK;
+}
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
@@ -3005,7 +3117,7 @@ bool TController::DecSpeed(bool force)
             OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
         break;
 	case TEngineType::ElectricInductionMotor:
-		OK = mvControlling->DecMainCtrl(1);
+		OK = DecSpeedEIM();
 		break;
     case TEngineType::WheelsDriven:
         if (!mvControlling->CabNo)
@@ -3031,6 +3143,28 @@ bool TController::DecSpeed(bool force)
     }
     return OK;
 };
+
+bool TController::DecSpeedEIM()
+{ // zmniejszenie prędkości (ale nie hamowanie)
+	bool OK = false; // domyślnie false, aby wyszło z pętli while
+	switch (mvControlling->EIMCtrlType)
+	{
+	case 0:
+		OK = mvControlling->DecMainCtrl(1);
+		break;
+	case 1:
+		OK = mvControlling->MainCtrlPos > 4;
+		if (OK)
+			mvControlling->MainCtrlPos = 4;
+		break;
+	case 2:
+		OK = mvControlling->MainCtrlPos > 2;
+		if (OK)
+			mvControlling->MainCtrlPos = 2;
+		break;
+	}
+	return OK;
+}
 
 void TController::SpeedSet()
 { // Ra: regulacja prędkości, wykonywana w każdym przebłysku świadomości AI
@@ -3259,14 +3393,18 @@ void TController::Doors( bool const Open, int const Side ) {
          && ( ( fActionTime > -0.5 )
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
-            if( ( pVehicle->MoverParameters->Doors.open_control == control_t::conductor )
+            if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
              || ( ( true == AIControllFlag )
-               && ( ( pVehicle->MoverParameters->Doors.open_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.open_control == control_t::mixed ) ) ) ) {
+               && ( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) ) ) {
                 // if the door are controlled by the driver, we let the user operate them unless this user is an ai
                 // the train conductor, if present, handles door operation also for human-driven trains
                 pVehicle->MoverParameters->OperateDoors( side::right, false );
                 pVehicle->MoverParameters->OperateDoors( side::left, false );
+                if( pVehicle->MoverParameters->Doors.permit_needed ) {
+                    pVehicle->MoverParameters->PermitDoors( side::right, false );
+                    pVehicle->MoverParameters->PermitDoors( side::left, false );
+                }
             }
 
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
@@ -3295,6 +3433,10 @@ void TController::Doors( bool const Open, int const Side ) {
 bool
 TController::doors_open() const {
 
+    return (
+        IsAnyDoorOpen[ side::right ]
+     || IsAnyDoorOpen[ side::left ] );
+/*
     auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
     while( vehicle != nullptr ) {
         if( ( false == vehicle->MoverParameters->Doors.instances[side::right].is_closed )
@@ -3306,6 +3448,7 @@ TController::doors_open() const {
     }
     // if we're still here there's nothing open
     return false;
+*/
 }
 
 void TController::RecognizeCommand()
@@ -3467,7 +3610,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
     {
         if (NewLocation)
             vCommandLocation = *NewLocation;
-        if ((NewValue1 != 0.0) && (OrderList[OrderPos] != Obey_train))
+        if ((NewValue1 != 0.0) && (OrderCurrentGet() != Obey_train))
         { // o ile jazda
             if( iEngineActive == 0 ) {
                 // trzeba odpalić silnik najpierw, światła ustawi
@@ -3546,7 +3689,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
     if (NewCommand == "Change_direction")
     {
-        TOrders o = OrderList[OrderPos]; // co robił przed zmianą kierunku
+        TOrders o = OrderCurrentGet(); // co robił przed zmianą kierunku
         if (!iEngineActive)
             OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
         if (NewValue1 == 0.0)
@@ -3573,18 +3716,29 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         return true;
     }
 
-    if (NewCommand == "Obey_train")
-    {
-        if (!iEngineActive)
-            OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
-        OrderNext(Obey_train);
+    if (NewCommand == "Obey_train") {
+        if( false == iEngineActive ) {
+            OrderNext( Prepare_engine ); // trzeba odpalić silnik najpierw
+        }
+        OrderNext( Obey_train );
         // if (NewValue1>0) TrainNumber=floor(NewValue1); //i co potem ???
         OrderCheck(); // jeśli jazda pociągowa teraz, to wykonać niezbędne operacje
 
         return true;
     }
 
-    if (NewCommand == "Shunt")
+    if (NewCommand == "Bank") {
+        if( false == iEngineActive ) {
+            OrderNext( Prepare_engine ); // trzeba odpalić silnik najpierw
+        }
+        OrderNext( Bank );
+        // if (NewValue1>0) TrainNumber=floor(NewValue1); //i co potem ???
+        OrderCheck(); // jeśli jazda pociągowa teraz, to wykonać niezbędne operacje
+
+        return true;
+    }
+
+    if( ( NewCommand == "Shunt" ) || ( NewCommand == "Loose_shunt" ) )
     { // NewValue1 - ilość wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=dołącz, -1=bez zmian
         //-3,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1), zmienić kierunek i czekać w
         // trybie pociągowym
@@ -3594,8 +3748,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         //-1, y - podłączyć do całego stojącego składu (sprzęgiem y>=1) i jechać dalej
         //-1, 0 - tryb manewrowy bez zmian (odczepianie z pozostawieniem wagonów nie ma sensu)
         // 0, 0 - odczepienie lokomotywy
-        // 1,-y - podłączyć się do składu (sprzęgiem y>=1), a następnie odczepić i zabrać (x)
-        // wagonów
+        // 1,-y - podłączyć się do składu (sprzęgiem y>=1), a następnie odczepić i zabrać (x) wagonów
         // 1, 0 - odczepienie lokomotywy z jednym wagonem
         iDrivigFlags &= ~moveStopHere; // podjeżanie do semaforów zezwolone
         if (!iEngineActive)
@@ -3609,31 +3762,36 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 iDirectionOrder = -iDirection; // zmiana na ciągnięcie
                 OrderPush(Change_direction); // najpierw zmień kierunek, bo odczepiamy z tyłu
                 OrderPush(Disconnect); // a odczep już po zmianie kierunku
+                if( ( NewValue2 > 0.0 )
+                 && ( NewCommand == "Loose_shunt" ) ) {
+                    // after decoupling continue pushing in the original direction
+                    // NOTE: for backward compatibility this option isn't supported for basic shunting mode
+                    iDirectionOrder = iDirection; // back to pushing
+                    OrderPush( Change_direction );
+                }
             }
-            else if (NewValue2 < 0.0) // jeśli wszystkie, a sprzęg ujemny, to tylko zmiana kierunku
-            // po podczepieniu
+            else if (NewValue2 < 0.0) // jeśli wszystkie, a sprzęg ujemny, to tylko zmiana kierunku po podczepieniu
             { // np. Shunt -1 -3
                 iDirectionOrder = -iDirection; // jak się podczepi, to jazda w przeciwną stronę
                 OrderNext(Change_direction);
             }
             WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
-        else // if (NewValue2==0.0) //zerowy sprzęg
-            if (NewValue1 >= 0.0) // jeśli ilość wagonów inna niż wszystkie
-        { // będzie odczepianie, ale jeśli wagony są z przodu, to trzeba najpierw zmienić kierunek
-            if ((mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 1 : 0].CouplingFlag ==
-                 0) ? // z tyłu nic
-                    (mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 0 : 1].CouplingFlag > 0) :
-                    false) // a z przodu skład
-            {
-                iDirectionOrder = -iDirection; // zmiana na ciągnięcie
-                OrderNext(Change_direction); // najpierw zmień kierunek (zastąpi Disconnect)
-                OrderPush(Disconnect); // a odczep już po zmianie kierunku
+        else { // if (NewValue2==0.0) //zerowy sprzęg
+            if( NewValue1 >= 0.0 ) {
+                // jeśli ilość wagonów inna niż wszystkie będzie odczepianie,
+                // ale jeśli wagony są z przodu, to trzeba najpierw zmienić kierunek
+                if( ( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::rear : end::front ].Connected == nullptr ) // z tyłu nic
+                 && ( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::front : end::rear ].Connected != nullptr ) ) { // a z przodu skład
+                    iDirectionOrder = -iDirection; // zmiana na ciągnięcie
+                    OrderNext( Change_direction ); // najpierw zmień kierunek (zastąpi Disconnect)
+                    OrderPush( Disconnect ); // a odczep już po zmianie kierunku
+                }
+                else if( mvOccupied->Couplers[ mvOccupied->DirAbsolute > 0 ? end::rear : end::front ].Connected != nullptr ) { // z tyłu coś
+                    OrderNext( Disconnect ); // jak ciągnie, to tylko odczep (NewValue1) wagonów
+                }
+                WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
             }
-            else if (mvOccupied->Couplers[mvOccupied->DirAbsolute > 0 ? 1 : 0].CouplingFlag >
-                     0) // z tyłu coś
-                OrderNext(Disconnect); // jak ciągnie, to tylko odczep (NewValue1) wagonów
-            WaitingTime = 0.0; // nie ma co dalej czekać, można zatrąbić i jechać, chyba że już jedzie
         }
         if (NewValue1 == -1.0)
         {
@@ -3644,9 +3802,9 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             iDrivigFlags |= moveStopHere; // nie podjeżdżać do semafora, jeśli droga nie jest wolna
         // (nie dotyczy Connect)
         if (NewValue1 < -2.5) // jeśli
-            OrderNext(Obey_train); // to potem jazda pociągowa
+            OrderNext(( NewCommand == "Shunt" ? Obey_train : Bank )); // to potem jazda pociągowa
         else
-            OrderNext(Shunt); // to potem manewruj dalej
+            OrderNext(( NewCommand == "Shunt" ? Shunt : Loose_shunt )); // to potem manewruj dalej
         CheckVehicles(); // sprawdzić światła
         // if ((iVehicleCount>=0)&&(NewValue1<0)) WriteLog("Skasowano ilosć wagonów w Shunt!");
         if (NewValue1 != iVehicleCount)
@@ -3797,11 +3955,17 @@ TController::UpdateSituation(double dt) {
     LastReactionTime += dt;
     LastUpdatedTime += dt;
     if( ( mvOccupied->Vel < 0.05 )
-     && ( ( OrderCurrentGet() & ( Obey_train | Shunt ) ) != 0 ) ) {
+     && ( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) != 0 ) ) {
         IdleTime += dt;
     }
     else {
         IdleTime = 0.0;
+    }
+    // HACK: activate route scanning if an idling vehicle is activated by a human user
+    if( ( OrderCurrentGet() == Wait_for_orders )
+     && ( false == AIControllFlag )
+     && ( true == mvControlling->Battery ) ) {
+        OrderNext( Prepare_engine );
     }
 
     // log vehicle data
@@ -4019,7 +4183,7 @@ TController::UpdateSituation(double dt) {
                         mvControlling->PantFront( true );
                     }
                 }
-                if( mvOccupied->Vel > 10 ) {
+                if( mvOccupied->Vel > 5 ) {
                     // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
                     if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
                         if( iDirection >= 0 ) // jak jedzie w kierunku sprzęgu 0
@@ -4127,20 +4291,22 @@ TController::UpdateSituation(double dt) {
     // następnie w drugą stronę, z drogi hamowania i chwilowej prędkości powinno być wyznaczane zalecane ciśnienie
 
     // przybliżona droga hamowania
-    fBrakeDist = fDriverBraking * mvOccupied->Vel * ( 40.0 + mvOccupied->Vel );
+    // NOTE: we're ensuring some minimal braking distance to reduce ai flipping states between starting and braking
+    auto const velceil { std::max( 2.0, std::ceil( mvOccupied->Vel ) ) };
+    fBrakeDist = fDriverBraking * velceil * ( 40.0 + velceil );
     if( fMass > 1000000.0 ) {
         // korekta dla ciężkich, bo przeżynają - da to coś?
         fBrakeDist *= 2.0;
     }
     if( ( -fAccThreshold > 0.05 )
      && ( mvOccupied->CategoryFlag == 1 ) ) {
-        fBrakeDist = mvOccupied->Vel *	mvOccupied->Vel / 25.92 / -fAccThreshold;
+        fBrakeDist = velceil *	velceil / 25.92 / -fAccThreshold;
     }
     if( mvOccupied->BrakeDelayFlag == bdelay_G ) {
         // dla nastawienia G koniecznie należy wydłużyć drogę na czas reakcji
-        fBrakeDist += 2 * mvOccupied->Vel;
+        fBrakeDist += 2 * velceil;
     }
-    if( ( mvOccupied->Vel > 0.05 )
+    if( ( mvOccupied->Vel > 15.0 )
      && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor )
      && ( ( mvControlling->TrainType & dt_EZT ) != 0 ) ) {
         // HACK: make the induction motor powered EMUs start braking slightly earlier
@@ -4174,55 +4340,48 @@ TController::UpdateSituation(double dt) {
     // 8. Ustalić częstotliwość świadomości AI (zatrzymanie precyzyjne - częściej, brak atrakcji
     // - rzadziej).
 
-    // check for potential colliders
+    // check for potential collisions
     {
-        auto rearvehicle = (
-            pVehicles[ 0 ] == pVehicles[ 1 ] ?
-                pVehicles[ 0 ] :
-                pVehicles[ 1 ] );
+        // HACK: vehicle order in the consist is based on intended travel direction
+        // if our actual travel direction doesn't match that, we should be scanning from the other end of the consist
+        // we cast to int to avoid getting confused by microstutters
+        auto *frontvehicle { pVehicles[ ( static_cast<int>( mvOccupied->V ) * iDirection >= 0 ? end::front : end::rear ) ] };
+
+        int routescandirection;
         // for moving vehicle determine heading from velocity; for standing fall back on the set direction
-        if( ( std::abs( mvOccupied->V ) < 0.1 ? // ignore potential micro-stutters in oposite direction during "almost stop"
+        if( ( std::abs( frontvehicle->MoverParameters->V ) > 0.5 ? // ignore potential micro-stutters in oposite direction during "almost stop"
+            frontvehicle->MoverParameters->V > 0.0 :
+            ( pVehicle->DirectionGet() == frontvehicle->DirectionGet() ?
                 iDirection > 0 :
-                mvOccupied->V > 0.0 ) ) {
+                iDirection < 0 ) ) ) {
             // towards coupler 0
-            if( ( mvOccupied->V * iDirection < 0.0 )
-             || ( ( rearvehicle->NextConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == coupling::faux ) ) ) {
-                // scan behind if we're moving backward, or if we had something connected there and are moving away
-                rearvehicle->ABuScanObjects( (
-                    pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
-                        -1 :
-                         1 ),
-                    fMaxProximityDist );
-            }
-            pVehicles[ 0 ]->ABuScanObjects( (
-                pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
-                     1 :
-                    -1 ),
-                routescanrange );
+            routescandirection = end::front;
         }
         else {
             // towards coupler 1
-            if( ( mvOccupied->V * iDirection < 0.0 )
-             || ( ( rearvehicle->PrevConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == coupling::faux ) ) ) {
-                // scan behind if we're moving backward, or if we had something connected there and are moving away
-                rearvehicle->ABuScanObjects( (
-                    pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
-                         1 :
-                        -1 ),
-                    fMaxProximityDist );
+            routescandirection = end::rear;
+        }
+/*
+        if( pVehicle->MoverParameters->ActiveCab < 0 ) {
+            // flip the scan direction in the rear cab
+            routescandirection ^= routescandirection;
+        }
+*/
+        Obstacle = neighbour_data();
+        auto const lookup { frontvehicle->find_vehicle( routescandirection, routescanrange ) };
+
+        if( std::get<bool>( lookup ) == true ) {
+
+            Obstacle.vehicle = std::get<TDynamicObject *>( lookup );
+            Obstacle.vehicle_end = std::get<int>( lookup );
+            Obstacle.distance = std::get<double>( lookup );
+
+            if( Obstacle.distance < ( mvOccupied->CategoryFlag == 2 ? 50 : 100 ) ) {
+                // at short distances (re)calculate range between couplers directly
+                Obstacle.distance = TMoverParameters::CouplerDist( frontvehicle->MoverParameters, Obstacle.vehicle->MoverParameters );
             }
-            pVehicles[ 0 ]->ABuScanObjects( (
-                pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
-                    -1 :
-                     1 ),
-                routescanrange );
         }
     }
-
-
-
     // tu bedzie logika sterowania
     if (AIControllFlag) {
 
@@ -4271,7 +4430,7 @@ TController::UpdateSituation(double dt) {
         }
     }
 
-    switch (OrderList[OrderPos])
+    switch (OrderCurrentGet())
     { // ustalenie prędkości przy doczepianiu i odczepianiu, dystansów w pozostałych przypadkach
     case Connect: {
         // podłączanie do składu
@@ -4284,37 +4443,17 @@ TController::UpdateSituation(double dt) {
             if (AIControllFlag)
             { // to robi tylko AI, wersję dla człowieka trzeba dopiero zrobić
                 // sprzęgi sprawdzamy w pierwszej kolejności, bo jak połączony, to koniec
-                bool ok; // true gdy się podłączy (uzyskany sprzęg będzie zgodny z żądanym)
-                if (pVehicles[0]->DirectionGet() > 0) // jeśli sprzęg 0
-                { // sprzęg 0 - próba podczepienia
-                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected ) {
-                        // jeśli jest coś wykryte (a chyba jest, nie?)
-                        if( pVehicles[ 0 ]->MoverParameters->Attach(
-                            0, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 0 ].Connected,
-                            iCoupler ) ) {
-                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
-                        }
-                    }
-                    // udało się? (mogło częściowo)
-                    ok = (pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag == iCoupler);
-                }
-                else // if (pVehicles[0]->MoverParameters->DirAbsolute<0) //jeśli sprzęg 1
-                { // sprzęg 1 - próba podczepienia
-                    if( pVehicles[ 0 ]->MoverParameters->Couplers[ 1 ].Connected ) {
-                        // jeśli jest coś wykryte (a chyba jest, nie?)
-                        if( pVehicles[ 0 ]->MoverParameters->Attach(
-                            1, 2, pVehicles[ 0 ]->MoverParameters->Couplers[ 1 ].Connected,
-                            iCoupler ) ) {
-                        // pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                        // pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
-                        }
-                    }
-                    // udało się? (mogło częściowo)
-                    ok = (pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag == iCoupler); 
-                }
-                if (ok)
-                { // jeżeli został podłączony
+                auto *vehicle { pVehicles[ end::front ] };
+                auto *vehicleparameters { vehicle->MoverParameters };
+                int const end { ( vehicle->DirectionGet() > 0 ? end::front : end::rear ) };
+                auto const &neighbour { vehicleparameters->Neighbours[ end ] };
+                // próba podczepienia
+                vehicleparameters->Attach(
+                    end, neighbour.vehicle_end,
+                    neighbour.vehicle->MoverParameters,
+                    iCoupler );
+                if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
+                    // jeżeli został podłączony
                     iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
                     iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
                     SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
@@ -4330,7 +4469,7 @@ TController::UpdateSituation(double dt) {
             fMaxProximityDist = 5.0; //[m] w takim przedziale odległości powinien stanąć
             fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 1.0; // margines prędkości powodujący załączenie napędu
-            if( pVehicles[ 0 ]->fTrackBlock <= 20.0 ) {
+            if( Obstacle.distance <= 20.0 ) {
                 // przy zderzeniu fTrackBlock nie jest miarodajne
                 // początek podczepiania, z wyłączeniem sprawdzania fTrackBlock
                 iDrivigFlags |= moveConnect;
@@ -4360,6 +4499,13 @@ TController::UpdateSituation(double dt) {
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
         fVelMinus = std::min( 0.1 * fShuntVelocity, 3.0 );
+        break;
+    }
+    case Loose_shunt: {
+        fMinProximityDist = -1.0;
+        fMaxProximityDist = 0.0; //[m] dojechać maksymalnie
+        fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+        fVelMinus = 0.5; // margines prędkości powodujący załączenie napędu
         break;
     }
     case Obey_train: {
@@ -4411,6 +4557,10 @@ TController::UpdateSituation(double dt) {
         }
         break;
     }
+    case Bank: {
+        // TODO: implement
+        break;
+    }
     default: {
         fMinProximityDist = 5.0;
         fMaxProximityDist = 10.0; //[m]
@@ -4419,7 +4569,7 @@ TController::UpdateSituation(double dt) {
     }
     } // switch OrderList[OrderPos]
 
-    switch (OrderList[OrderPos])
+    switch (OrderCurrentGet())
     { // co robi maszynista
     case Prepare_engine: // odpala silnik
         // if (AIControllFlag)
@@ -4453,13 +4603,16 @@ TController::UpdateSituation(double dt) {
         break;
     case Wait_for_orders: // jeśli czeka, też ma skanować, żeby odpalić się od semafora
     case Shunt:
+    case Loose_shunt:
     case Obey_train:
+    case Bank:
     case Connect:
     case Disconnect:
     case Change_direction: // tryby wymagające jazdy
     case Change_direction | Shunt: // zmiana kierunku podczas manewrów
+    case Change_direction | Loose_shunt:
     case Change_direction | Connect: // zmiana kierunku podczas podłączania
-        if (OrderList[OrderPos] != Obey_train) // spokojne manewry
+        if ((OrderCurrentGet() & ( Obey_train | Bank )) == 0) // spokojne manewry
         {
             VelSignal = min_speed( VelSignal, 40.0 ); // jeśli manewry, to ograniczamy prędkość
 
@@ -4470,8 +4623,8 @@ TController::UpdateSituation(double dt) {
              && ( false == TestFlag( iDrivigFlags, movePress ) )
              && ( iCoupler == 0 )
 //             && ( mvOccupied->Vel > 0.0 )
-             && ( pVehicle->MoverParameters->Couplers[ end::front ].CouplingFlag == coupling::faux )
-             && ( pVehicle->MoverParameters->Couplers[ end::rear ].CouplingFlag == coupling::faux ) ) {
+             && ( pVehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr )
+             && ( pVehicle->MoverParameters->Couplers[ end::rear ].Connected == nullptr ) ) {
                 SetVelocity(0, 0, stopJoin); // 1. faza odczepiania: zatrzymanie
                 // WriteLog("Zatrzymanie w celu odczepienia");
                 AccPreferred = std::min( 0.0, AccPreferred );
@@ -4481,14 +4634,14 @@ TController::UpdateSituation(double dt) {
         else
             SetDriverPsyche(); // Ra: było w PrepareEngine(), potrzebne tu?
 
-        if (OrderList[OrderPos] & (Shunt | Obey_train | Connect)) {
+        if (OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank | Connect )) {
             // odjechać sam może tylko jeśli jest w trybie jazdy
             // automatyczne ruszanie po odstaniu albo spod SBL
             if( ( VelSignal == 0.0 )
              && ( WaitingTime > 0.0 )
              && ( mvOccupied->RunningTrack.Velmax != 0.0 ) ) {
                 // jeśli stoi, a upłynął czas oczekiwania i tor ma niezerową prędkość
-                if( ( OrderList[ OrderPos ] & ( Obey_train | Shunt ) )
+                if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) )
                  && ( iDrivigFlags & moveStopHere ) ) {
                     // zakaz ruszania z miejsca bez otrzymania wolnej drogi
                     WaitingTime = -WaitingExpireTime;
@@ -4509,7 +4662,7 @@ TController::UpdateSituation(double dt) {
                 else
                 { // samochód ma stać, aż dostanie odjazd, chyba że stoi przez kolizję
                     if (eStopReason == stopBlock)
-                        if (pVehicles[0]->fTrackBlock > fDriverDist)
+                        if (Obstacle.distance > fDriverDist)
                             if (AIControllFlag)
                             {
                                 PrepareEngine(); // zmieni ustawiony kierunek
@@ -4531,14 +4684,14 @@ TController::UpdateSituation(double dt) {
         } // koniec samoistnego odjeżdżania
 
         if( ( true == AIControllFlag)
-         && ( true == TestFlag( OrderList[ OrderPos ], Change_direction ) ) ) {
+         && ( true == TestFlag( OrderCurrentGet(), Change_direction ) ) ) {
             // sprobuj zmienic kierunek (może być zmieszane z jeszcze jakąś komendą)
             if( mvOccupied->Vel < 0.1 ) {
                 // jeśli się zatrzymał, to zmieniamy kierunek jazdy, a nawet kabinę/człon
                 Activation(); // ustawienie zadanego wcześniej kierunku i ewentualne przemieszczenie AI
                 PrepareEngine();
                 JumpToNextOrder(); // następnie robimy, co jest do zrobienia (Shunt albo Obey_train)
-                if( OrderList[ OrderPos ] & ( Shunt | Connect ) ) {
+                if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) {
                     // jeśli dalej mamy manewry
                     if( false == TestFlag( iDrivigFlags, moveStopHere ) ) {
                         // o ile nie ma stać w miejscu,
@@ -4552,7 +4705,7 @@ TController::UpdateSituation(double dt) {
 
         if( ( true == AIControllFlag )
          && ( iEngineActive == 0 )
-         && ( OrderList[ OrderPos ] & ( Change_direction | Connect | Disconnect | Shunt | Obey_train ) ) ) {
+         && ( OrderCurrentGet() & ( Change_direction | Connect | Disconnect | Shunt | Loose_shunt | Obey_train | Bank ) ) ) {
             // jeśli coś ma robić to niech odpala do skutku
             PrepareEngine();
         }
@@ -4591,21 +4744,18 @@ TController::UpdateSituation(double dt) {
                 if (iDrivigFlags & moveStopCloser)
                     VelSignal = -1.0; // ma czekać na sygnał z sygnalizatora!
             case TCommandType::cm_SetVelocity: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
-                if (!(OrderList[OrderPos] &
-                        ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
-                    if (fabs(VelSignal) >=
-                        1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
+                if( ( OrderCurrentGet() & ~( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) // jedzie w dowolnym trybie albo Wait_for_orders
+                    if (fabs(VelSignal) >= 1.0) // 0.1 nie wysyła się do samochodow, bo potem nie ruszą
                         PutCommand("SetVelocity", VelSignal, VelNext, nullptr); // komenda robi dodatkowe operacje
                 break;
             case TCommandType::cm_ShuntVelocity: // od wersji 357 Tm nie budzi wyłączonej lokomotywy
-                if (!(OrderList[OrderPos] &
-                        ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders
+                if( ( OrderCurrentGet() & ~( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) // jedzie w dowolnym trybie albo Wait_for_orders
                     PutCommand("ShuntVelocity", VelSignal, VelNext, nullptr);
                 else if (iCoupler) // jeśli jedzie w celu połączenia
                     SetVelocity(VelSignal, VelNext);
                 break;
             case TCommandType::cm_Command: // komenda z komórki
-                if( !( OrderList[ OrderPos ] & ~( Obey_train | Shunt ) ) ) {
+                if( ( OrderCurrentGet() & ~( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) {
                     // jedzie w dowolnym trybie albo Wait_for_orders
                     if( mvOccupied->Vel < 0.1 ) {
                         // dopiero jak stanie
@@ -4622,139 +4772,153 @@ TController::UpdateSituation(double dt) {
             }
             // disconnect mode potentially overrides scan results
             // TBD: when in this mode skip scanning altogether?
-            if( ( OrderCurrentGet() & Disconnect ) != 0 ) {
+            if( ( true == AIControllFlag )
+             && ( ( OrderCurrentGet() & Disconnect ) != 0 ) ) {
 
-                if (AIControllFlag) {
-                    if (iVehicleCount >= 0) {
-                        // jeśli była podana ilość wagonów
-                        if (iDrivigFlags & movePress) {
-                            // jeśli dociskanie w celu odczepienia
-                            // 3. faza odczepiania.
-                            SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                            if ((mvControlling->MainCtrlPos > 0) ||
-                                (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)) // jeśli jazda
-                            {
-                                WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
-                                TDynamicObject *p =
-                                    pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
-                                int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
-                                int n = iVehicleCount; // ile wagonów ma zostać
-                                do
-                                { // szukanie pojazdu do odczepienia
-                                    d = p->DirectionGet() > 0 ?
-                                            0 :
-                                            1; // numer sprzęgu od strony czoła składu
-                                    // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
-                                    // //jeśli sprzęg typu wózek (za mało)
-                                    if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
-                                        // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
-                                        // (ustalić po czym poznać taki tor)
-                                        ++n; // to  liczymy człony jako jeden
-                                    p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                                    p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
-                                    if (n)
-                                    { // jeśli jeszcze nie koniec
-                                        p = p->Prev(); // kolejny w stronę czoła składu (licząc od
-                                        // tyłu), bo dociskamy
-                                        if (!p)
-                                            iVehicleCount = -2,
-                                            n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
-                                    }
-                                } while (n--);
-                                if( p ? p->MoverParameters->Couplers[ d ].CouplingFlag == coupling::faux : true ) {
-                                    // no target, or already just virtual coupling
-                                    WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
-                                    iVehicleCount = -2; // odczepiono, co było do odczepienia
-                                } else if ( p->Dettach(d) == coupling::faux ) {
-                                    // tylko jeśli odepnie
-                                    WriteLog( mvOccupied->Name + " odczepiony." );
-                                    iVehicleCount = -2;
-                                } // a jak nie, to dociskać dalej
-                            }
-                            if (iVehicleCount >= 0) // zmieni się po odczepieniu
-                                if (!mvOccupied->DecLocalBrakeLevel(1))
-                                { // dociśnij sklad
-                                    WriteLog( mvOccupied->Name + " dociskanie..." );
-                                    // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
-                                    // Ready=true; //zamiast sprawdzenia odhamowania całego składu
-                                    IncSpeed(); // dla (Ready)==false nie ruszy
+                if (iVehicleCount >= 0) {
+                    // jeśli była podana ilość wagonów
+                    if (iDrivigFlags & movePress) {
+                        // jeśli dociskanie w celu odczepienia
+                        // 3. faza odczepiania.
+                        SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
+                        if( ( mvControlling->MainCtrlPos > 0 )
+                         || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) {
+                            // jeśli jazda
+                            WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
+                            TDynamicObject *p = pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
+                            int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
+                            int n = iVehicleCount; // ile wagonów ma zostać
+                            do
+                            { // szukanie pojazdu do odczepienia
+                                d = p->DirectionGet() > 0 ?
+                                        end::front :
+                                        end::rear; // numer sprzęgu od strony czoła składu
+                                // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
+                                // //jeśli sprzęg typu wózek (za mało)
+                                if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
+                                    // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
+                                    // (ustalić po czym poznać taki tor)
+                                    ++n; // to  liczymy człony jako jeden
+                                p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
+                                p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+                                if (n)
+                                { // jeśli jeszcze nie koniec
+                                    p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
+                                    if (!p)
+                                        iVehicleCount = -2,
+                                        n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
                                 }
+                            } while (n--);
+                            if( ( p == nullptr )
+                             || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
+                                // no target, or already just virtual coupling
+                                WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
+                                iVehicleCount = -2; // odczepiono, co było do odczepienia
+                            } else if ( p->Dettach(d) == coupling::faux ) {
+                                // tylko jeśli odepnie
+                                WriteLog( mvOccupied->Name + " odczepiony." );
+                                iVehicleCount = -2;
+                            } // a jak nie, to dociskać dalej
                         }
-                        if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
-                        { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
-                            // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
-                            // powino zostać wyłączone)
-                            // WriteLog("Zahamowanie składu");
-                            mvOccupied->BrakeLevelSet(
-                                mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                                    1 :
-                                    3 );
-                            double p = mvOccupied->BrakePressureActual.PipePressureVal;
-                            if( p < 3.9 ) {
-                                // tu może być 0 albo -1 nawet
-                                // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
-                                p = 3.9;
+                        if (iVehicleCount >= 0) // zmieni się po odczepieniu
+                            if (!mvOccupied->DecLocalBrakeLevel(1))
+                            { // dociśnij sklad
+                                WriteLog( mvOccupied->Name + " dociskanie..." );
+                                // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
+                                // Ready=true; //zamiast sprawdzenia odhamowania całego składu
+                                IncSpeed(); // dla (Ready)==false nie ruszy
                             }
-                            if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                                    mvOccupied->BrakePress > 2 :
-                                    mvOccupied->PipePress < p + 0.1)
-                            { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na
-                                // pozycji 3, zwyle 0.37)
-                                if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic)
-                                    mvOccupied->BrakeLevelSet(0); // wyłączenie EP, gdy wystarczy (może
-                                // nie być potrzebne, bo na początku jest)
-                                WriteLog("Luzowanie lokomotywy i zmiana kierunku");
-                                mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
-                                mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
-                                iDrivigFlags |= movePress; // następnie będzie dociskanie
-                                DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
-                                CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
-        /*
-                                // NOTE: disabled to prevent closing the door before passengers can disembark
-                                fStopTime = 0.0; // nie ma na co czekać z odczepianiem
-        */
+                    }
+                    if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
+                    { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
+                        // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
+                        // powino zostać wyłączone)
+                        // WriteLog("Zahamowanie składu");
+                        mvOccupied->BrakeLevelSet(
+                            mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
+                                1 :
+                                3 );
+                        double p = mvOccupied->BrakePressureActual.PipePressureVal;
+                        if( p < 3.9 ) {
+                            // tu może być 0 albo -1 nawet
+                            // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
+                            p = 3.9;
+                        }
+                        if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
+                                mvOccupied->BrakePress > 2 :
+                                mvOccupied->PipePress < p + 0.1)
+                        { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na pozycji 3, zwyle 0.37)
+                            if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                                // wyłączenie EP, gdy wystarczy (może nie być potrzebne, bo na początku jest)
+                                mvOccupied->BrakeLevelSet( 0 );
                             }
+                            WriteLog("Luzowanie lokomotywy i zmiana kierunku");
+                            mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
+                            mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
+                            iDrivigFlags |= movePress; // następnie będzie dociskanie
+                            DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
+                            CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
                         }
-                        else {
-                            if( mvOccupied->Vel > 0.01 ) {
-                                // 1st phase(?)
-                                // bring it to stop if it's not already stopped
-                                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                            }
+                    }
+                    else {
+                        if( mvOccupied->Vel > 0.01 ) {
+                            // 1st phase(?)
+                            // bring it to stop if it's not already stopped
+                            SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
                         }
-                    } // odczepiania
-                    else // to poniżej jeśli ilość wagonów ujemna
-                        if (iDrivigFlags & movePress)
-                    { // 4. faza odczepiania: zwolnij i zmień kierunek
-                        SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
-                        if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
-                        { // ponowna zmiana kierunku
-                            WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
-                            DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
-                            iDrivigFlags &= ~movePress; // koniec dociskania
-                            JumpToNextOrder(); // zmieni światła
-                            TableClear(); // skanowanie od nowa
-                            iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
-                            SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
-                        }
+                    }
+                } // odczepiania
+                else // to poniżej jeśli ilość wagonów ujemna
+                    if (iDrivigFlags & movePress)
+                { // 4. faza odczepiania: zwolnij i zmień kierunek
+                    SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
+                    if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
+                    { // ponowna zmiana kierunku
+                        WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
+                        DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
+                        iDrivigFlags &= ~movePress; // koniec dociskania
+                        JumpToNextOrder(); // zmieni światła
+                        TableClear(); // skanowanie od nowa
+                        iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
+                        SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
                     }
                 }
             }
 
-            if( true == TestFlag( OrderList[ OrderPos ], Change_direction ) ) {
+            // when loose shunting try to detect situations where engaged brakes in a consist to be pushed prevent movement
+            if( ( true == AIControllFlag )
+             && ( ( OrderCurrentGet() & Loose_shunt ) != 0 )
+             && ( Obstacle.distance < 1.0 )
+             && ( AccDesired > 0.1 )
+             && ( mvOccupied->Vel < 1.0 ) ){
+
+                auto *vehicle { Obstacle.vehicle };
+                auto const direction { ( vehicle->Prev() != nullptr ? end::front : end::rear ) };
+                while( vehicle != nullptr ) {
+                    if( vehicle->MoverParameters->BrakePress > 0.2 ) {
+                        vehicle->MoverParameters->BrakeLevelSet( 0 ); // hamulec na zero, aby nie hamował
+                        vehicle->MoverParameters->BrakeReleaser( 1 ); // wyluzuj pojazd, aby dało się dopychać
+                    }
+                    // NOTE: we trust the consist to be arranged in a valid chain
+                    // TBD, TODO: traversal direction validation?
+                    vehicle = ( direction == end::front ? vehicle->Prev() : vehicle->Next() );
+                }
+            }
+
+            if( true == TestFlag( OrderCurrentGet(), Change_direction ) ) {
                 // if ordered to change direction, try to stop
                 SetVelocity( 0, 0, stopDir );
             }
 
             if( VelNext == 0.0 ) {
-                if( !( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
+                if( !( OrderCurrentGet() & ~( Shunt | Loose_shunt | Connect ) ) ) {
                     // jedzie w Shunt albo Connect, albo Wait_for_orders
                     // w trybie Connect skanować do tyłu tylko jeśli przed kolejnym sygnałem nie ma taboru do podłączenia
                     // Ra 2F1H: z tym (fTrackBlock) to nie jest najlepszy pomysł, bo lepiej by
                     // było porównać z odległością od sygnalizatora z przodu
-                    if( ( OrderList[ OrderPos ] & Connect ) ?
-                            ( pVehicles[ 0 ]->fTrackBlock > 2000 || pVehicles[ 0 ]->fTrackBlock > FirstSemaphorDist ) :
-                            true ) {
+                    if( ( ( OrderCurrentGet() & Connect ) == 0 )
+                     || ( Obstacle.distance > std::min( 2000.0, FirstSemaphorDist ) ) ) {
+
                         if( ( comm = BackwardScan() ) != TCommandType::cm_Unknown ) {
                             // jeśli w drugą można jechać
                             // należy sprawdzać odległość od znalezionego sygnalizatora,
@@ -4766,7 +4930,7 @@ TController::UpdateSituation(double dt) {
                             }
                             iDirectionOrder = -iDirection; // zmiana kierunku jazdy
                             // zmiana kierunku bez psucia kolejnych komend
-                            OrderList[ OrderPos ] = TOrders( OrderList[ OrderPos ] | Change_direction );
+                            OrderList[ OrderPos ] = TOrders( OrderCurrentGet() | Change_direction );
                         }
                     }
                 }
@@ -4779,121 +4943,100 @@ TController::UpdateSituation(double dt) {
                 VelDesired = fVelMax; // bo VelDesired<0 oznacza prędkość maksymalną
 
             // Ra: jazda na widoczność
-/*
-            // condition disabled, it'd prevent setting reduced acceleration in the last connect stage
-            if ((iDrivigFlags & moveConnect) == 0) // przy końcówce podłączania nie hamować
-*/
-            { // sprawdzenie jazdy na widoczność
-                auto const vehicle = pVehicles[ 0 ]; // base calculactions off relevant end of the consist
-                auto const coupler = 
-                    vehicle->MoverParameters->Couplers + (
-                    vehicle->DirectionGet() > 0 ?
-                        0 :
-                        1 ); // sprzęg z przodu składu
-                if( ( coupler->Connected )
-                 && ( coupler->CouplingFlag == coupling::faux ) ) {
-                    // mamy coś z przodu podłączone sprzęgiem wirtualnym
-                    // wyliczanie optymalnego przyspieszenia do jazdy na widoczność
-/*
-                    ActualProximityDist = std::min(
+            // Ra: jazda na widoczność
+            if( Obstacle.distance < 5000 ) {
+                // mamy coś z przodu
+                // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
+                auto const k { Obstacle.vehicle->MoverParameters->Vel };
+                if( k - vel < 5 ) {
+                    // porównanie modułów prędkości [km/h]
+                    // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
+                    ActualProximityDist = std::min<double>(
                         ActualProximityDist,
-                        vehicle->fTrackBlock - (
-                            mvOccupied->CategoryFlag & 2 ?
-                                fMinProximityDist : // cars can bunch up tighter
-                                fMaxProximityDist ) ); // other vehicle types less so
-*/
-                    // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
-                    double k = coupler->Connected->Vel;
-                    if( k - vel < 5 ) {
-                        // porównanie modułów prędkości [km/h]
-                        // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej
-                        ActualProximityDist = std::min(
-                            ActualProximityDist,
-                            vehicle->fTrackBlock );
+                        Obstacle.distance );
 
-                        if( ActualProximityDist <= (
-                            ( mvOccupied->CategoryFlag & 2 ) ?
-                                100.0 : // cars
-                                250.0 ) ) { // others
-                            // regardless of driving mode at close distance take precaution measures:
-                            // match the other vehicle's speed or slow down if the other vehicle is stopped
+                    if( ActualProximityDist <= (
+                        ( mvOccupied->CategoryFlag & 2 ) ?
+                            100.0 : // cars
+                            250.0 ) ) { // others
+                        // regardless of driving mode at close distance take precaution measures:
+                        // match the other vehicle's speed or slow down if the other vehicle is stopped
+                        VelDesired =
+                            min_speed(
+                                VelDesired,
+                                std::max(
+                                    k,
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        40.0 : // cars
+                                        20.0 ) ); // others
+                        if( vel > VelDesired + fVelPlus ) {
+                            // if going too fast force some prompt braking
+                            AccPreferred = std::min( -0.65, AccPreferred );
+                        }
+                    }
+
+                    double const distance = Obstacle.distance - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
+                    if( distance < 0.0 ) {
+                        // jeśli odległość jest zbyt mała
+                        if( k < 10.0 ) // k - prędkość tego z przodu
+                        { // jeśli tamten porusza się z niewielką prędkością albo stoi
+                            if( ( OrderCurrentGet() & ( Connect | Loose_shunt ) ) != 0 ) {
+                                // jeśli spinanie, to jechać dalej
+                                AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
+                                VelDesired = std::floor(
+                                    min_speed(
+                                        VelDesired,
+                                        ( Obstacle.distance > 150 ?
+                                            k + 20.0:
+                                            std::min( 8.0, k + 4.0 ) ) ) );
+                                VelNext = std::floor( std::min( 8.0, k + 2.0 ) ); // i pakuj się na tamtego
+                            }
+                            else {
+                                // a normalnie to hamować
+                                VelNext = 0.0;
+                                if( Obstacle.distance <= fMinProximityDist ) {
+                                    VelDesired = 0.0;
+                                }
+
+                                if( ( mvOccupied->CategoryFlag & 1 )
+                                    && ( OrderCurrentGet() & Obey_train ) ) {
+                                    // trains which move normally should try to stop at safe margin
+                                    ActualProximityDist -= fDriverDist;
+                                }
+                            }
+                        }
+                        else {
+                            // jeśli oba jadą, to przyhamuj lekko i ogranicz prędkość
+                            if( Obstacle.distance < (
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        fMaxProximityDist + 0.5 * vel : // cars
+                                        2.0 * fMaxProximityDist + 2.0 * vel ) ) { //others
+                                // jak tamten jedzie wolniej a jest w drodze hamowania
+                                AccPreferred = std::min( -0.9, AccPreferred );
+                                VelNext = min_speed( std::round( k ) - 5.0, VelDesired );
+                                if( Obstacle.distance <= (
+                                    ( mvOccupied->CategoryFlag & 2 ) ?
+                                        fMaxProximityDist : // cars
+                                        2.0 * fMaxProximityDist ) ) { //others
+                                    // try to force speed change if obstacle is really close
+                                    VelDesired = VelNext;
+                                }
+                            }
+                        }
+                        ReactionTime = (
+                            mvOccupied->Vel > 0.01 ?
+                                0.1 : // orientuj się, bo jest goraco
+                                2.0 ); // we're already standing still, so take it easy
+                    }
+                    else {
+                        if( OrderCurrentGet() & Connect ) {
+                            // if there's something nearby in the connect mode don't speed up too much
                             VelDesired =
                                 min_speed(
                                     VelDesired,
-                                    std::max(
-                                        k,
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            40.0 : // cars
-                                            20.0 ) ); // others
-                            if( vel > VelDesired + fVelPlus ) {
-                                // if going too fast force some prompt braking
-                                AccPreferred = std::min( -0.65, AccPreferred );
-                            }
-                        }
-
-                        double const distance = vehicle->fTrackBlock - fMaxProximityDist - ( fBrakeDist * 1.15 ); // odległość bezpieczna zależy od prędkości
-                        if( distance < 0.0 ) {
-                            // jeśli odległość jest zbyt mała
-                            if( k < 10.0 ) // k - prędkość tego z przodu
-                            { // jeśli tamten porusza się z niewielką prędkością albo stoi
-                                if( OrderCurrentGet() & Connect ) {
-                                    // jeśli spinanie, to jechać dalej
-                                    AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
-                                    VelDesired =
-                                        min_speed(
-                                            VelDesired,
-                                            ( vehicle->fTrackBlock > 150.0 ?
-                                                20.0:
-                                                4.0 ) );
-                                    VelNext = 2.0; // i pakuj się na tamtego
-                                }
-                                else {
-                                    // a normalnie to hamować
-                                    VelNext = 0.0;
-                                    if( vehicle->fTrackBlock <= fMinProximityDist ) {
-                                        VelDesired = 0.0;
-                                    }
-
-                                    if( ( mvOccupied->CategoryFlag & 1 )
-                                     && ( OrderCurrentGet() & Obey_train ) ) {
-                                        // trains which move normally should try to stop at safe margin
-                                        ActualProximityDist -= fDriverDist;
-                                    }
-                                }
-                            }
-                            else {
-                                // jeśli oba jadą, to przyhamuj lekko i ogranicz prędkość
-                                if( vehicle->fTrackBlock < (
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            fMaxProximityDist + 0.5 * vel : // cars
-                                            2.0 * fMaxProximityDist + 2.0 * vel ) ) { //others
-                                    // jak tamten jedzie wolniej a jest w drodze hamowania
-                                    AccPreferred = std::min( -0.9, AccPreferred );
-                                    VelNext = min_speed( std::round( k ) - 5.0, VelDesired );
-                                    if( vehicle->fTrackBlock <= (
-                                        ( mvOccupied->CategoryFlag & 2 ) ?
-                                            fMaxProximityDist : // cars
-                                            2.0 * fMaxProximityDist ) ) { //others
-                                        // try to force speed change if obstacle is really close
-                                        VelDesired = VelNext;
-                                    }
-                                }
-                            }
-                            ReactionTime = (
-                                mvOccupied->Vel > 0.01 ?
-                                    0.1 : // orientuj się, bo jest goraco
-                                    2.0 ); // we're already standing still, so take it easy
-                        }
-                        else {
-                            if( OrderCurrentGet() & Connect ) {
-                                // if there's something nearby in the connect mode don't speed up too much
-                                VelDesired =
-                                    min_speed(
-                                        VelDesired,
-                                        ( vehicle->fTrackBlock > 100.0 ?
-                                            20.0 :
-                                            4.0 ) );
-                            }
+                                    ( Obstacle.distance > 100 ?
+                                        20.0 :
+                                        4.0 ) );
                         }
                     }
                 }
@@ -4949,7 +5092,7 @@ TController::UpdateSituation(double dt) {
                 }
             }
 
-            if( ( OrderCurrentGet() & ( Shunt | Obey_train ) ) != 0 ) {
+            if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) != 0 ) {
                 // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
                 if( ( ( iDrivigFlags & moveStopHere ) != 0 )
                  && ( vel < 0.01 )
@@ -5053,7 +5196,7 @@ TController::UpdateSituation(double dt) {
                                 if( mvOccupied->CategoryFlag & 1 ) {
                                     // trains
                                     if( ( OrderCurrentGet() & ( Shunt | Connect ) )
-                                     && ( pVehicles[0]->fTrackBlock < 50.0 ) ) {
+                                     && ( Obstacle.distance < 50 ) ) {
                                         // crude detection of edge case, if approaching another vehicle coast slowly until min distance
                                         // this should allow to bunch up trainsets more on sidings
                                         VelDesired = min_speed( 5.0, VelDesired );
@@ -5419,7 +5562,7 @@ TController::UpdateSituation(double dt) {
                         // wyluzuj lokomotywę - może być więcej!
                         mvOccupied->BrakeReleaser( 1 );
                     }
-                    else if( OrderList[ OrderPos ] != Disconnect ) {
+                    else if( OrderCurrentGet() != Disconnect ) {
                         // przy odłączaniu nie zwalniamy tu hamulca
                         if( ( fAccGravity * fAccGravity < 0.001 ?
                             true :
@@ -5492,7 +5635,7 @@ TController::UpdateSituation(double dt) {
                         // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
                         IncBrake();
                     }
-                    else if( OrderList[ OrderPos ] != Disconnect ) {
+                    else if( OrderCurrentGet() != Disconnect ) {
                         // przy odłączaniu nie zwalniamy tu hamulca
                         if( AbsAccS < AccDesired - 0.05 ) {
                             // jeśli opóźnienie większe od wymaganego (z histerezą) luzowanie, gdy za dużo
@@ -5537,7 +5680,7 @@ TController::UpdateSituation(double dt) {
                     if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
                         // jak hamuje, to nie tykaj kranu za często
                         // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
-                        if( OrderList[ OrderPos ] != Disconnect ) {
+                        if( OrderCurrentGet() != Disconnect ) {
                             // przy odłączaniu nie zwalniamy tu hamulca
                             DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
                         }
@@ -5580,7 +5723,7 @@ TController::UpdateSituation(double dt) {
         }
         if (AIControllFlag)
         { // odhamowywanie składu po zatrzymaniu i zabezpieczanie lokomotywy
-            if( ( ( OrderList[ OrderPos ] & ( Disconnect | Connect ) ) == 0 )
+            if( ( ( OrderCurrentGet() & ( Disconnect | Connect ) ) == 0 )
              && ( std::abs( fAccGravity ) < 0.01 ) ) {
                 // przy (p)odłączaniu nie zwalniamy tu hamulca
                 // only do this on flats, on slopes keep applied the train brake
@@ -5661,9 +5804,7 @@ void TController::JumpToNextOrder()
         if (OrderList[OrderPos] & Change_direction) // jeśli zmiana kierunku
             if (OrderList[OrderPos] != Change_direction) // ale nałożona na coś
             {
-                OrderList[OrderPos] =
-                    TOrders(OrderList[OrderPos] &
-                            ~Change_direction); // usunięcie zmiany kierunku z innej komendy
+                OrderList[OrderPos] = TOrders(OrderList[OrderPos] & ~Change_direction); // usunięcie zmiany kierunku z innej komendy
                 OrderCheck();
                 return;
             }
@@ -5694,14 +5835,14 @@ void TController::JumpToFirstOrder()
 void TController::OrderCheck()
 { // reakcja na zmianę rozkazu
 
-    if( OrderList[ OrderPos ] != Obey_train ) {
+    if( OrderCurrentGet() != Obey_train ) {
         // reset light hints
         m_lighthints[ end::front ] = m_lighthints[ end::rear ] = -1;
     }
-    if( OrderList[ OrderPos ] & ( Shunt | Connect | Obey_train ) ) {
+    if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect | Obey_train | Bank ) ) {
         CheckVehicles(); // sprawdzić światła
     }
-    if( OrderList[ OrderPos ] & ( Shunt | Connect ) ) {
+    if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) {
         // HACK: ensure consist doors will be closed on departure
         iDrivigFlags |= moveDoorOpened;
     }
@@ -5726,7 +5867,7 @@ void TController::OrderNext(TOrders NewOrder)
     OrderTop = OrderPos; // ale może jest czymś zajęty na razie
     if (NewOrder >= Shunt) // jeśli ma jechać
     { // ale może być zajęty chwilowymi operacjami
-        while (OrderList[OrderTop] ? OrderList[OrderTop] < Shunt : false) // jeśli coś robi
+        while ((OrderList[OrderTop] != Wait_for_orders) && (OrderList[OrderTop] < Shunt)) // jeśli coś robi
             ++OrderTop; // pomijamy wszystkie tymczasowe prace
     }
     else
@@ -5770,16 +5911,6 @@ void TController::OrdersDump()
                 break; // dalej nie trzeba
     }
 };
-
-inline TOrders TController::OrderCurrentGet()
-{
-    return OrderList[OrderPos];
-}
-
-inline TOrders TController::OrderNextGet()
-{
-    return OrderList[OrderPos + 1];
-}
 
 void TController::OrdersInit(double fVel)
 { // wypełnianie tabelki rozkazów na podstawie rozkładu
@@ -6021,7 +6152,7 @@ TCommandType TController::BackwardScan()
     // dzięki temu będzie można stawać za wskazanym sygnalizatorem, a zwłaszcza jeśli będzie jazda na kozioł
     // ograniczenia prędkości nie są wtedy istotne, również koniec toru jest do niczego nie przydatny
     // zwraca true, jeśli należy odwrócić kierunek jazdy pojazdu
-    if( ( OrderList[ OrderPos ] & ~( Shunt | Connect ) ) ) {
+    if( ( OrderCurrentGet() & ~( Shunt | Loose_shunt | Connect ) ) ) {
         // skanowanie sygnałów tylko gdy jedzie w trybie manewrowym albo czeka na rozkazy
         return TCommandType::cm_Unknown;
     }
@@ -6086,14 +6217,14 @@ TCommandType TController::BackwardScan()
                     bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
                     if( e->input_command() == TCommandType::cm_SetVelocity ) {
                         if( ( vmechmax == 0.0 ) ?
-                                ( OrderCurrentGet() & ( Shunt | Connect ) ) :
+                                ( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) :
                                 ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
                             move = true; // AI w trybie manewerowym ma dociągnąć pod S1
                         }
                         else {
                             if( ( scandist > fMinProximityDist )
                              && ( ( mvOccupied->Vel > 0.0 )
-                               && ( OrderCurrentGet() != Shunt ) ) ) {
+                               && ( ( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) == 0 ) ) ) {
                                 // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
                                 // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
 #if LOGBACKSCAN
@@ -6125,14 +6256,13 @@ TCommandType TController::BackwardScan()
                             }
                         }
                     }
-                    if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Connect) :
+                    if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Loose_shunt | Connect) :
                                             true) // w Wait_for_orders też widzi tarcze
                     { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
                         if (move ? true : e->input_command() == TCommandType::cm_ShuntVelocity)
                         { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
-                            if ((scandist > fMinProximityDist) ?
-                                    (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) :
-                                    false)
+                            if ((scandist > fMinProximityDist) &&
+                                    (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) )
                             { // jeśli tarcza jest daleko, to:
                                 //- jesli pojazd jedzie, to informujemy o zmianie prędkości
                                 //- jeśli stoi, to z własnej inicjatywy może podjechać pod zamkniętą
@@ -6243,11 +6373,13 @@ void TController::TakeControl(bool yes)
         if (OrderCurrentGet()) // jeśli coś robi
             PrepareEngine(); // niech sprawdzi stan silnika
         else // jeśli nic nie robi
-        if (pVehicle->iLights[mvOccupied->CabNo < 0 ? 1 : 0] &
-                21) // któreś ze świateł zapalone?
+        if (pVehicle->iLights[ ( mvOccupied->CabNo < 0 ?
+                end::rear :
+                end::front ) ]
+            & (light::headlight_left | light::headlight_right | light::headlight_upper)) // któreś ze świateł zapalone?
         { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
             OrderNext(Prepare_engine);
-            if (pVehicle->iLights[mvOccupied->CabNo < 0 ? 1 : 0] & 4) // górne światło zapalone
+            if (pVehicle->iLights[mvOccupied->CabNo < 0 ? end::rear : end::front] & light::headlight_upper) // górne światło zapalone
                 OrderNext(Obey_train); // jazda pociągowa
             else
                 OrderNext(Shunt); // jazda manewrowa
@@ -6256,27 +6388,8 @@ void TController::TakeControl(bool yes)
             else
                 iDrivigFlags |= moveStopHere; // a jak stoi, to niech czeka
         }
-        /* od wersji 357 oczekujemy podania komend dla AI przez scenerię
-          if (OrderCurrentGet())
-          {if (OrderCurrentGet()<Shunt)
-           {OrderNext(Prepare_engine);
-            if (pVehicle->iLights[mvOccupied->CabNo<0?1:0]&4) //górne światło
-             OrderNext(Obey_train); //jazda pociągowa
-            else
-             OrderNext(Shunt); //jazda manewrowa
-           }
-          }
-          else //jeśli jest w stanie Wait_for_orders
-           JumpToFirstOrder(); //uruchomienie?
-          // czy dac ponizsze? to problematyczne
-          //SetVelocity(pVehicle->GetVelocity(),-1); //utrzymanie dotychczasowej?
-          if (pVehicle->GetVelocity()>0.0)
-           SetVelocity(-1,-1); //AI ustali sobie odpowiednią prędkość
-        */
-        // Activation(); //przeniesie użytkownika w ostatnio wybranym kierunku
         CheckVehicles(); // ustawienie świateł
-        TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z
-        // sygnałami
+        TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z sygnałami
     }
     else
     { // a teraz użytkownik
@@ -6337,7 +6450,7 @@ bool TController::IsStop() const
 double
 TController::TrackBlock() const {
 
-    return pVehicles[ end::front ]->fTrackBlock;
+    return Obstacle.distance;
 }
 
 void TController::MoveTo(TDynamicObject *to)

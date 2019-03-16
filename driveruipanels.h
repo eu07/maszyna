@@ -39,6 +39,21 @@ private:
     std::array<char, 256> m_buffer;
 };
 
+class scenario_panel : public ui_panel {
+
+public:
+    scenario_panel( std::string const &Name, bool const Isopen )
+        : ui_panel( Name, Isopen ) {}
+
+    void update() override;
+    void render() override;
+
+private:
+// members
+//    std::array<char, 256> m_buffer;
+    TDynamicObject const *m_nearest { nullptr };
+};
+
 class debug_panel : public ui_panel {
 
 public:
