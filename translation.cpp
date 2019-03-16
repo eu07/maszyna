@@ -91,6 +91,8 @@ init() {
 	    "Divert /",
 	    "Insert obstacle:",
 
+	    "Vehicle parameters",
+
         "master controller",
         "second controller",
         "shunt mode power",
@@ -262,6 +264,8 @@ init() {
 	    u8"Prosto |",
 	    u8"W bok /",
 	    u8"Wstaw przeszkodę:",
+
+	    u8"Parametry pojazdu",
 
         u8"nastawnik jazdy",
         u8"nastawnik dodatkowy",

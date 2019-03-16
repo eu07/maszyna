@@ -137,11 +137,11 @@ drivingaid_panel::update() {
             }
         }
         std::string textline =
-            ( true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
+		    ( mover->SecuritySystem.is_vigilance_blinking()  ?
                 locale::strings[ locale::string::driver_aid_alerter ] :
                 "          " );
         textline +=
-            ( true == TestFlag( mover->SecuritySystem.Status, s_active ) ?
+		    ( mover->SecuritySystem.is_cabsignal_blinking()  ?
                 locale::strings[ locale::string::driver_aid_shp ] :
                 "     " );
 

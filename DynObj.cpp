@@ -5957,7 +5957,7 @@ void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
     if( Mechanik ) {
         // o ile ktoś go prowadzi
-        if( ( MoverParameters->SecuritySystem.RadioStop )
+		if( ( MoverParameters->SecuritySystem.radiostop_available() )
          && ( MoverParameters->Radio ) ) {
             // jeśli pojazd ma RadioStop i jest on aktywny
             // HACK cast until math types unification

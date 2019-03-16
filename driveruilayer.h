@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "command.h"
 
 #include "widgets/vehiclelist.h"
+#include "widgets/vehicleparams.h"
 #include "widgets/map.h"
 #include "widgets/time.h"
 
@@ -58,6 +59,7 @@ private:
 
 	command_relay m_relay;
 	ui::vehiclelist_panel m_vehiclelist;
+	ui::vehicleparams_panel m_vehicleparams;
 	ui::map_panel m_mappanel;
 	ui::time_panel m_timepanel;
 };

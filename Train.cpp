@@ -486,8 +486,8 @@ dictionary_source *TTrain::GetTrainState() {
 	dict->insert( "brake_delay_flag", mvOccupied->BrakeDelayFlag );
 	dict->insert( "brake_op_mode_flag", mvOccupied->BrakeOpModeFlag );
     // other controls
-    dict->insert( "ca", TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) );
-    dict->insert( "shp", TestFlag( mvOccupied->SecuritySystem.Status, s_active ) );
+	dict->insert( "ca", mvOccupied->SecuritySystem.is_vigilance_blinking() );
+	dict->insert( "shp", mvOccupied->SecuritySystem.is_cabsignal_blinking() );
     dict->insert( "pantpress", std::abs( mvControlled->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
     dict->insert( "radio_channel", iRadioChannel );
@@ -612,7 +612,7 @@ TTrain::get_state() const {
         btLampkaOgrzewanieSkladu.GetValue(),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
-        ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm ) || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ),
+		mvOccupied->SecuritySystem.is_blinking(),
         btLampkaHVoltageB.GetValue(),
         fTachoVelocity,
         static_cast<float>( mvOccupied->Compressor ),
@@ -1612,26 +1612,20 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
 }
 
 void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command ) {
+	if (Train->mvOccupied->TrainType != dt_EZT && Train->mvOccupied->ActiveDir == 0)
+		return; // Ra 2014-03: w EZT nie trzeba ustawiać kierunku
 
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
         Train->ggSecurityResetButton.UpdateValue( 1.0, Train->dsbSwitch );
-        if( Train->CAflag == false ) {
-            Train->CAflag = true;
-            Train->mvOccupied->SecuritySystemReset();
-        }
+
+		Train->mvOccupied->SecuritySystem.acknowledge_press();
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         Train->ggSecurityResetButton.UpdateValue( 0.0 );
 
-        Train->fCzuwakTestTimer = 0.0f;
-        if( TestFlag( Train->mvOccupied->SecuritySystem.Status, s_CAtest ) ) {
-            SetFlag( Train->mvOccupied->SecuritySystem.Status, -s_CAtest );
-            Train->mvOccupied->s_CAtestebrake = false;
-            Train->mvOccupied->SecuritySystem.SystemBrakeCATestTimer = 0.0;
-        }
-        Train->CAflag = false;
+		Train->mvOccupied->SecuritySystem.acknowledge_release();
     }
 }
 
@@ -1666,11 +1660,7 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
             if( Train->mvOccupied->LightsPosNo > 0 ) {
                 Train->SetLights();
             }
-            if( TestFlag( Train->mvOccupied->SecuritySystem.SystemType, 2 ) ) {
-                // Ra: znowu w kabinie jest coś, co być nie powinno!
-                SetFlag( Train->mvOccupied->SecuritySystem.Status, s_active );
-                SetFlag( Train->mvOccupied->SecuritySystem.Status, s_SHPalarm );
-            }
+			Train->mvOccupied->SecuritySystem.set_enabled(true); // Ra: znowu w kabinie jest coś, co być nie powinno!
         }
     }
 }
@@ -5449,36 +5439,23 @@ bool TTrain::Update( double const Deltatime )
         }
 
         if (mvControlled->Battery || mvControlled->ConverterFlag) {
-            // alerter test
-            if( true == CAflag ) {
-                if( ggSecurityResetButton.GetDesiredValue() > 0.95 ) {
-                    fCzuwakTestTimer += Deltatime;
-                }
-                if( fCzuwakTestTimer > 1.0 ) {
-                    SetFlag( mvOccupied->SecuritySystem.Status, s_CAtest );
-                }
-            }
             // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-            if( mvOccupied->SecuritySystem.Status > 0 ) {
+			if( mvOccupied->SecuritySystem.is_vigilance_blinking() ) {
                 if( fBlinkTimer >  fCzuwakBlink )
                     fBlinkTimer = -fCzuwakBlink;
                 else
                     fBlinkTimer += Deltatime;
-                // hunter-091012: dodanie testu czuwaka
-                if( ( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) )
-                 || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAtest ) ) ) {
-                    btLampkaCzuwaka.Turn( fBlinkTimer > 0 );
-                }
-                else
-                    btLampkaCzuwaka.Turn( false );
 
-                btLampkaSHP.Turn( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) );
+				btLampkaCzuwaka.Turn( fBlinkTimer > 0 );
             }
-            else // wylaczone
-            {
+			else {
                 btLampkaCzuwaka.Turn( false );
-                btLampkaSHP.Turn( false );
             }
+
+			if (mvOccupied->SecuritySystem.is_cabsignal_blinking())
+				btLampkaSHP.Turn( true );
+			else
+				btLampkaSHP.Turn( false );
 
             btLampkaWylSzybki.Turn(
                 ( ( (m_linebreakerstate == 2)
@@ -6098,13 +6075,9 @@ bool TTrain::Update( double const Deltatime )
 */
     // screens
     fScreenTimer += Deltatime;
-    if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
-	 && !FreeFlyModeFlag && simulation::Train == this ) { // don't bother if we're outside
-        fScreenTimer = 0.f;
-        for( auto const &screen : m_screens ) {
-			Application.request( { std::get<0>(screen), GetTrainState(), std::get<1>(screen) } );
-        }
-    }
+	if (!FreeFlyModeFlag && simulation::Train == this) // don't bother if we're outside
+		update_screens();
+
     // sounds
     update_sounds( Deltatime );
 
@@ -6299,10 +6272,8 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (mvOccupied->SecuritySystem.Status > 0) {
+	if (mvOccupied->SecuritySystem.is_beeping()) {
         // hunter-091012: rozdzielenie alarmow
-        if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
-         || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
 
             if( false == dsbBuzzer.is_playing() ) {
                 dsbBuzzer
@@ -6313,7 +6284,7 @@ TTrain::update_sounds( double const Deltatime ) {
                 Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
 #endif
             }
-        }
+	    }
         else {
             if( true == dsbBuzzer.is_playing() ) {
                 dsbBuzzer.stop();
@@ -6322,16 +6293,6 @@ TTrain::update_sounds( double const Deltatime ) {
 #endif
             }
         }
-    }
-    else {
-        // wylaczone
-        if( true == dsbBuzzer.is_playing() ) {
-            dsbBuzzer.stop();
-#ifdef _WIN32
-            Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
-#endif
-        }
-    }
 
     update_sounds_radio();
 
@@ -6433,6 +6394,14 @@ void TTrain::update_sounds_radio() {
     else {
         m_radiostop.stop();
     }
+}
+
+void TTrain::update_screens() {
+	if (fScreenTimer > Global.PythonScreenUpdateRate * 0.001f) {
+		fScreenTimer = 0.f;
+		for (auto const &screen : m_screens)
+			Application.request( { std::get<0>(screen), GetTrainState(), std::get<1>(screen) } );
+	}
 }
 
 bool TTrain::CabChange(int iDirection)
@@ -6893,16 +6862,16 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
 				tex->create();
 
+				const std::string rendererpath {
+					substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
+					                        DynamicObject->asBaseDir + renderername :
+					                        renderername };
+
                 // record renderer and material binding for future update requests
-                m_screens.emplace_back(
-                    ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
-                        DynamicObject->asBaseDir + renderername :
-                        renderername ),
-				        tex->id,
-				        nullptr);
+				m_screens.emplace_back(rendererpath, tex->id, nullptr);
 
 				if (Global.python_displaywindows)
-					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(tex->id, submodelname);
+					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(tex->id, rendererpath);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");
@@ -7168,6 +7137,11 @@ TTrain::clamp_inside( Math3D::vector3 const &Point ) const {
         clamp( Point.x, Cabine[ iCabn ].CabPos1.x, Cabine[ iCabn ].CabPos2.x ),
         clamp( Point.y, Cabine[ iCabn ].CabPos1.y + 0.5, Cabine[ iCabn ].CabPos2.y + 1.8 ),
         clamp( Point.z, Cabine[ iCabn ].CabPos1.z, Cabine[ iCabn ].CabPos2.z ) };
+}
+
+const TTrain::screen_map& TTrain::get_screens() {
+	update_screens();
+	return m_screens;
 }
 
 void
@@ -8295,8 +8269,7 @@ std::array<float, 3> TTrain::get_current()
 
 bool TTrain::get_alarm()
 {
-	return (TestFlag(mvOccupied->SecuritySystem.Status, s_CAalarm) ||
-        TestFlag(mvOccupied->SecuritySystem.Status, s_SHPalarm));
+	return mvOccupied->SecuritySystem.is_beeping();
 }
 
 void TTrain::set_mainctrl(int pos)

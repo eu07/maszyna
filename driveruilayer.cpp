@@ -28,6 +28,7 @@ driver_ui::driver_ui() {
     push_back( &m_transcriptspanel );
 
 	//push_back( &m_vehiclelist );
+	push_back( &m_vehicleparams );
 	push_back( &m_timepanel );
 	push_back( &m_mappanel );
     push_back( &m_logpanel );
@@ -56,6 +57,8 @@ void driver_ui::render_menu_contents() {
 
 		if (ImGui::MenuItem(m_timepanel.get_name().c_str()))
 			m_timepanel.open();
+
+		ImGui::MenuItem(m_vehicleparams.get_name().c_str(), nullptr, &m_vehicleparams.is_open);
 
         ImGui::EndMenu();
     }

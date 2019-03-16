@@ -98,6 +98,8 @@ class TTrain
         float hv_voltage;
         std::array<float, 3> hv_current;
     };
+	typedef std::tuple<std::string, GLuint, std::unique_ptr<python_screen_viewer>> screen_entry;
+	typedef std::vector<screen_entry> screen_map;
 
 // methods
     bool CabChange(int iDirection);
@@ -151,6 +153,7 @@ class TTrain
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
     void update_sounds_radio();
+	void update_screens();
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -632,10 +635,7 @@ private:
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
-    float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
     float fScreenTimer { 0.f };
-
-    bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
 
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };
@@ -665,7 +665,7 @@ private:
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
-	std::vector<std::tuple<std::string, GLuint, std::unique_ptr<python_screen_viewer>>> m_screens;
+	screen_map m_screens;
 	uint16_t vid { 0 };
 
   public:
@@ -686,6 +686,7 @@ private:
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
+	const screen_map & get_screens();
 
 	float get_tacho();
 	float get_tank_pressure();

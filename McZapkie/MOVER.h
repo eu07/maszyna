@@ -78,6 +78,7 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 */
 
 #include "dumb3d.h"
+#include "utilities.h"
 
 extern int ConversionError;
 
@@ -200,17 +201,6 @@ static int const dbrake_passive = 1;
 static int const dbrake_switch = 2;
 static int const dbrake_reversal = 4;
 static int const dbrake_automatic = 8;
-
-/*status czuwaka/SHP*/
-//hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
-static int const s_waiting = 1; //działa
-static int const s_aware = 2;   //czuwak miga
-static int const s_active = 4;  //SHP świeci
-static int const s_CAalarm = 8;    //buczy
-static int const s_SHPalarm = 16;  //buczy
-static int const s_CAebrake = 32;  //hamuje
-static int const s_SHPebrake = 64; //hamuje
-static int const s_CAtest = 128;
 
 /*dzwieki*/
 enum sound {
@@ -572,23 +562,43 @@ struct TMotorParameters
     }
 };
 
-struct TSecuritySystem
+class TSecuritySystem
 {
-    int SystemType { 0 }; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
-    double AwareDelay { -1.0 }; // czas powtarzania czuwaka
-	double AwareMinSpeed; // minimalna prędkość załączenia czuwaka, normalnie 10% Vmax
-    double SoundSignalDelay { -1.0 };
-    double EmergencyBrakeDelay { -1.0 };
-    int Status { 0 }; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
-    double SystemTimer { 0.0 };
-    double SystemSoundCATimer { 0.0 };
-    double SystemSoundSHPTimer { 0.0 };
-    double SystemBrakeCATimer { 0.0 };
-    double SystemBrakeSHPTimer { 0.0 };
-    double SystemBrakeCATestTimer { 0.0 }; // hunter-091012
-	int VelocityAllowed;
-	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
-	bool RadioStop; // czy jest RadioStop
+	bool vigilance_enabled = false;
+	bool cabsignal_enabled = false;
+	bool radiostop_enabled = false;
+
+	bool cabsignal_active = false;
+	bool pressed = false;
+	bool enabled = false;
+	bool is_sifa = false; // Sifa-like pedal device, with inverted input for convenient keyboard usage
+
+	double vigilance_timer = 0.0;
+	double alert_timer = 0.0;
+	double press_timer = 0.0;
+
+	double velocity = 0.0;
+
+	double AwareDelay = 30.0;
+	double AwareMinSpeed = 0.0;
+	double SoundSignalDelay = 5.0;
+	double EmergencyBrakeDelay = 5.0;
+	double MaxHoldTime = 5.0;
+
+public:
+	void set_enabled(bool e);
+	void acknowledge_press();
+	void acknowledge_release();
+	void update(double dt, double Vel);
+	void set_cabsignal();
+	bool is_blinking() const;
+	bool is_vigilance_blinking() const;
+	bool is_cabsignal_blinking() const;
+	bool is_beeping() const;
+	bool is_braking() const;
+	bool is_engine_blocked() const;
+	bool radiostop_available() const;
+	void load(std::string const &line, double Vmax);
 };
 
 struct TTransmision
@@ -1372,8 +1382,7 @@ public:
     bool Sandbox( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
-	void SSReset(void);
-	bool SecuritySystemReset(void);
+	void SecuritySystemReset(void);
 	void SecuritySystemCheck(double dt);
 
 	bool BatterySwitch(bool State);
@@ -1516,7 +1525,6 @@ private:
     void LoadFIZ_Cntrl( std::string const &line );
 	void LoadFIZ_Blending(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
-    void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );
     void LoadFIZ_Power( std::string const &Line );
     void LoadFIZ_Engine( std::string const &Input );

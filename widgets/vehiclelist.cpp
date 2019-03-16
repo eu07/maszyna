@@ -3,8 +3,10 @@
 #include "simulation.h"
 #include "Driver.h"
 
-void ui::vehiclelist_panel::render_contents() {
-	for (TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
+void ui::vehiclelist_panel::render_contents()
+{
+	for (TDynamicObject *vehicle : simulation::Vehicles.sequence())
+	{
 		if (vehicle->Prev())
 			continue;
 
@@ -17,9 +19,11 @@ void ui::vehiclelist_panel::render_contents() {
 		std::string label = std::string(name + ", " + timetable + std::to_string(speed) + " km/h");
 		if (!vehicle->Next())
 			ImGui::TextUnformatted(label.c_str());
-		else if (ImGui::TreeNode(vehicle, label.c_str())) {
+		else if (ImGui::TreeNode(vehicle, label.c_str()))
+		{
 			vehicle = vehicle->Next();
-			while (vehicle) {
+			while (vehicle)
+			{
 				ImGui::TextUnformatted(vehicle->name().c_str());
 				vehicle = vehicle->Next();
 			}
@@ -27,5 +31,5 @@ void ui::vehiclelist_panel::render_contents() {
 		}
 	}
 
-	//ImGui::ShowDemoWindow();
+	// ImGui::ShowDemoWindow();
 }

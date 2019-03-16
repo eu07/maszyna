@@ -3759,7 +3759,7 @@ void TController::PhysicsLog()
             << ( mvOccupied->CommandIn.Command.empty() ? "none" : mvOccupied->CommandIn.Command.c_str() ) << " "
             << mvOccupied->CommandIn.Value1 << " "
             << mvOccupied->CommandIn.Value2 << " "
-            << int(mvControlling->SecuritySystem.Status) << " "
+		    << int(mvControlling->SecuritySystem.is_blinking()) << " "
             << int(mvControlling->SlippingWheels) << " "
             << mvControlling->dizel_heat.Ts << " "
             << mvControlling->dizel_heat.To << " "
@@ -4231,17 +4231,9 @@ TController::UpdateSituation(double dt) {
                 // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
                 RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
             }
-        if( mvOccupied->SecuritySystem.Status > 1 ) {
+		if( mvOccupied->SecuritySystem.is_blinking() ) {
             // jak zadziałało CA/SHP
-            if( !mvOccupied->SecuritySystemReset() ) { // to skasuj
-                if( ( mvOccupied->BrakeCtrlPos == 0 )
-                 && ( AccDesired > 0.0 )
-                 && ( ( TestFlag( mvOccupied->SecuritySystem.Status, s_SHPebrake ) )
-                   || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAebrake ) ) ) ) {
-                    //!!! hm, może po prostu normalnie sterować hamulcem?
-                    mvOccupied->BrakeLevelSet( 0 );
-                }
-            }
+			mvOccupied->SecuritySystemReset(); // to skasuj
         }
         // basic emergency stop handling, while at it
         if( ( true == mvOccupied->RadioStopFlag ) // radio-stop

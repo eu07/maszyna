@@ -2,21 +2,23 @@
 
 class ui_panel;
 
-namespace ui {
+namespace ui
+{
 
-class popup {
+class popup
+{
 	std::string m_id;
 	static int id;
 
-public:
+  public:
 	popup(ui_panel &panel);
 	~popup();
 
 	bool render();
 
-protected:
+  protected:
 	ui_panel &m_parent;
 	virtual void render_content() = 0;
 };
 
-}
+} // namespace ui

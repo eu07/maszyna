@@ -80,6 +80,8 @@ enum string {
 	map_divert,
 	map_obstacle_insert,
 
+	vehicleparams_window,
+
     cab_mainctrl,
     cab_scndctrl,
     cab_shuntmodepower,

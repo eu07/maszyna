@@ -78,6 +78,113 @@ int DirF(int CouplerN)
 	}
 }
 
+void TSecuritySystem::set_enabled(bool e) {
+	if (vigilance_enabled || cabsignal_enabled)
+		enabled = e;
+	if (enabled && cabsignal_enabled && !is_sifa) {
+		cabsignal_active = true;
+		alert_timer = SoundSignalDelay;
+	}
+}
+
+void TSecuritySystem::acknowledge_press() {
+	pressed = true;
+
+	if (cabsignal_active) {
+		cabsignal_active = false;
+		alert_timer = 0.0;
+		return;
+	}
+
+	vigilance_timer = 0.0;
+	alert_timer = 0.0;
+}
+
+void TSecuritySystem::acknowledge_release() {
+	pressed = false;
+
+	press_timer = 0.0;
+	alert_timer = 0.0;
+}
+
+void TSecuritySystem::update(double dt, double vel) {
+	if (!enabled) {
+		cabsignal_active = false;
+		vigilance_timer = 0.0;
+		alert_timer = 0.0;
+		press_timer = 0.0;
+		return;
+	}
+
+	velocity = vel;
+
+	if (vigilance_enabled && velocity > AwareMinSpeed)
+		vigilance_timer += dt;
+
+	if (pressed && (!is_sifa || velocity > AwareMinSpeed))
+		press_timer += dt;
+
+	if (vigilance_timer > AwareDelay
+	        || press_timer > MaxHoldTime
+	        || cabsignal_active)
+		alert_timer += dt;
+}
+
+void TSecuritySystem::set_cabsignal() {
+	if (cabsignal_enabled)
+		cabsignal_active = true;
+}
+
+bool TSecuritySystem::is_blinking() const {
+	return alert_timer > 0.0;
+}
+
+bool TSecuritySystem::is_vigilance_blinking() const {
+	return press_timer > MaxHoldTime || vigilance_timer > AwareDelay;
+}
+
+bool TSecuritySystem::is_cabsignal_blinking() const {
+	return cabsignal_active;
+}
+
+bool TSecuritySystem::is_beeping() const {
+	return alert_timer > SoundSignalDelay;
+}
+
+bool TSecuritySystem::is_braking() const {
+	return alert_timer > SoundSignalDelay + EmergencyBrakeDelay
+	        && velocity > AwareMinSpeed;
+}
+
+bool TSecuritySystem::radiostop_available() const {
+	return radiostop_enabled;
+}
+
+bool TSecuritySystem::is_engine_blocked() const {
+	if (!is_sifa)
+		return false;
+
+	return velocity < AwareMinSpeed && pressed;
+}
+
+void TSecuritySystem::load(std::string const &line, double Vmax) {
+	std::string awaresystem = extract_value( "AwareSystem", line );
+	if( awaresystem.find( "Active" ) != std::string::npos )
+		vigilance_enabled = true;
+	if( awaresystem.find( "CabSignal" ) != std::string::npos )
+		cabsignal_enabled = true;
+	if( awaresystem.find( "Sifa" ) != std::string::npos )
+		is_sifa = true;
+
+	extract_value( AwareDelay, "AwareDelay", line, "" );
+	AwareMinSpeed = 0.1 * Vmax; //domyślnie 10% Vmax
+	extract_value( AwareMinSpeed, "AwareMinSpeed", line, "" );
+	extract_value( SoundSignalDelay, "SoundSignalDelay", line, "" );
+	extract_value( EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
+	extract_value( MaxHoldTime, "MaxHoldTime", line, "" );
+	extract_value( radiostop_enabled, "RadioStop", line, "" );
+}
+
 // *************************************************************************************************
 // Q: 20160716
 // Obliczanie natężenie prądu w silnikach
@@ -362,20 +469,6 @@ ActiveCab( Cab )
     RunningTraction.TractionFreq = 0.0;
     RunningTraction.TractionMaxCurrent = 0.0;
     RunningTraction.TractionResistivity = 1.0;
-
-    SecuritySystem.SystemType = 0;
-    SecuritySystem.AwareDelay = -1.0;
-    SecuritySystem.SoundSignalDelay = -1.0;
-    SecuritySystem.EmergencyBrakeDelay = -1.0;
-    SecuritySystem.Status = 0;
-    SecuritySystem.SystemTimer = 0.0;
-    SecuritySystem.SystemBrakeCATimer = 0.0;
-    SecuritySystem.SystemBrakeSHPTimer = 0.0; // hunter-091012
-    SecuritySystem.VelocityAllowed = -1;
-    SecuritySystem.NextVelocityAllowed = -1;
-    SecuritySystem.RadioStop = false; // domyślnie nie ma
-    SecuritySystem.AwareMinSpeed = 0.1 * Vmax;
-    s_CAtestebrake = false;
 };
 
 double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
@@ -2083,7 +2176,7 @@ bool TMoverParameters::CabActivisation(void)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
         DirAbsolute = ActiveDir * CabNo;
-        SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
+		SecuritySystem.set_enabled(true);
         SendCtrlToNext("CabActivisation", 1, CabNo);
     }
     return OK;
@@ -2103,7 +2196,7 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
-        SecuritySystem.Status = 0; // deactivate alerter TODO: make it part of control based cab selection
+		SecuritySystem.set_enabled(false);
 
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
@@ -2181,58 +2274,18 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     return result;
 }
 
-void TMoverParameters::SSReset(void)
-{ // funkcja pomocnicza dla SecuritySystemReset - w Delphi Reset()
-    SecuritySystem.SystemTimer = 0;
-
-    if (TestFlag(SecuritySystem.Status, s_aware))
-    {
-        SecuritySystem.SystemBrakeCATimer = 0;
-        SecuritySystem.SystemSoundCATimer = 0;
-        SetFlag(SecuritySystem.Status, -s_aware);
-        SetFlag(SecuritySystem.Status, -s_CAalarm);
-        SetFlag(SecuritySystem.Status, -s_CAebrake);
-        //   EmergencyBrakeFlag = false; //YB-HN
-        SecuritySystem.VelocityAllowed = -1;
-    }
-    else if (TestFlag(SecuritySystem.Status, s_active))
-    {
-        SecuritySystem.SystemBrakeSHPTimer = 0;
-        SecuritySystem.SystemSoundSHPTimer = 0;
-        SetFlag(SecuritySystem.Status, -s_active);
-        SetFlag(SecuritySystem.Status, -s_SHPalarm);
-        SetFlag(SecuritySystem.Status, -s_SHPebrake);
-        //   EmergencyBrakeFlag = false; //YB-HN
-        SecuritySystem.VelocityAllowed = -1;
-    }
-}
-
 // *****************************************************************************
 // Q: 20160710
 // zbicie czuwaka / SHP
 // *****************************************************************************
 // hunter-091012: rozbicie alarmow, dodanie testu czuwaka
-bool TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
+void TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 {
-    // zbijanie czuwaka/SHP
-    bool SSR = false;
-    // with SecuritySystem do
-    if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0))
-    {
-        SSR = true;
-        if ((TrainType == dt_EZT) ||
-            (ActiveDir != 0)) // Ra 2014-03: w EZT nie trzeba ustawiać kierunku
-            if (!TestFlag(SecuritySystem.Status, s_CAebrake) ||
-                !TestFlag(SecuritySystem.Status, s_SHPebrake))
-                SSReset();
-        // else
-        //  if EmergencyBrakeSwitch(false) then
-        //   Reset;
-    }
-    else
-        SSR = false;
-    //  SendCtrlToNext('SecurityReset',0,CabNo);
-    return SSR;
+	if (TrainType != dt_EZT && ActiveDir == 0)
+		return; // Ra 2014-03: w EZT nie trzeba ustawiać kierunku
+
+	SecuritySystem.acknowledge_press();
+	SecuritySystem.acknowledge_release();
 }
 
 // *************************************************************************************************
@@ -2241,83 +2294,12 @@ bool TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 // *************************************************************************************************
 void TMoverParameters::SecuritySystemCheck(double dt)
 {
-    // Ra: z CA/SHP w EZT jest ten problem, że w rozrządczym nie ma kierunku, a w silnikowym nie ma
-    // obsady
-    // poza tym jest zdefiniowany we wszystkich 3 członach EN57
-	if ((!Radio))
-		RadiostopSwitch(false);
-
-    if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0) &&
-        (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
-    {
-        // CA
-        if( ( SecuritySystem.AwareMinSpeed > 0.0 ?
-                ( Vel >= SecuritySystem.AwareMinSpeed ) :
-                ( ActiveDir != 0 ) ) ) {
-            // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
-            // with defined minspeed of 0 the alerter will activate with reverser out of neutral position
-            // this emulates behaviour of engines like SM42
-            SecuritySystem.SystemTimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 1) &&
-                TestFlag(SecuritySystem.Status, s_aware)) // jeśli świeci albo miga
-                SecuritySystem.SystemSoundCATimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 1) &&
-                TestFlag(SecuritySystem.Status, s_CAalarm)) // jeśli buczy
-                SecuritySystem.SystemBrakeCATimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 1))
-                if ((SecuritySystem.SystemTimer > SecuritySystem.AwareDelay) &&
-                    (SecuritySystem.AwareDelay >= 0)) //-1 blokuje
-                    if (!SetFlag(SecuritySystem.Status, s_aware)) // juz wlaczony sygnal swietlny
-                        if ((SecuritySystem.SystemSoundCATimer > SecuritySystem.SoundSignalDelay) &&
-                            (SecuritySystem.SoundSignalDelay >= 0))
-                            if (!SetFlag(SecuritySystem.Status,
-                                         s_CAalarm)) // juz wlaczony sygnal dzwiekowy
-                                if ((SecuritySystem.SystemBrakeCATimer >
-                                     SecuritySystem.EmergencyBrakeDelay) &&
-                                    (SecuritySystem.EmergencyBrakeDelay >= 0))
-                                    SetFlag(SecuritySystem.Status, s_CAebrake);
-
-            // SHP
-            if (TestFlag(SecuritySystem.SystemType, 2) &&
-                TestFlag(SecuritySystem.Status, s_active)) // jeśli świeci albo miga
-                SecuritySystem.SystemSoundSHPTimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 2) &&
-                TestFlag(SecuritySystem.Status, s_SHPalarm)) // jeśli buczy
-                SecuritySystem.SystemBrakeSHPTimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 2) && TestFlag(SecuritySystem.Status, s_active))
-                if ((Vel > SecuritySystem.VelocityAllowed) && (SecuritySystem.VelocityAllowed >= 0))
-                    SetFlag(SecuritySystem.Status, s_SHPebrake);
-                else if (((SecuritySystem.SystemSoundSHPTimer > SecuritySystem.SoundSignalDelay) &&
-                          (SecuritySystem.SoundSignalDelay >= 0)) ||
-                         ((Vel > SecuritySystem.NextVelocityAllowed) &&
-                          (SecuritySystem.NextVelocityAllowed >= 0)))
-                    if (!SetFlag(SecuritySystem.Status,
-                                 s_SHPalarm)) // juz wlaczony sygnal dzwiekowy}
-                        if ((SecuritySystem.SystemBrakeSHPTimer >
-                             SecuritySystem.EmergencyBrakeDelay) &&
-                            (SecuritySystem.EmergencyBrakeDelay >= 0))
-                            SetFlag(SecuritySystem.Status, s_SHPebrake);
-
-        } // else SystemTimer:=0;
-
-        // TEST CA
-        if (TestFlag(SecuritySystem.Status, s_CAtest)) // jeśli świeci albo miga
-            SecuritySystem.SystemBrakeCATestTimer += dt;
-        if (TestFlag(SecuritySystem.SystemType, 1))
-            if (TestFlag(SecuritySystem.Status, s_CAtest)) // juz wlaczony sygnal swietlny
-                if ((SecuritySystem.SystemBrakeCATestTimer > SecuritySystem.EmergencyBrakeDelay) &&
-                    (SecuritySystem.EmergencyBrakeDelay >= 0))
-                    s_CAtestebrake = true;
-
-        // wdrazanie hamowania naglego
-        //        if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or
-        //        (s_CAtestebrake=true) then
-        //         EmergencyBrakeFlag:=true;  //YB-HN
+	if (Battery) {
+		SecuritySystem.update(dt, Vel);
     }
-    else if (!Battery)
+	else
     { // wyłączenie baterii deaktywuje sprzęt
 		RadiostopSwitch(false);
-        // SecuritySystem.Status = 0; //deaktywacja czuwaka
     }
 }
 
@@ -2339,10 +2321,7 @@ bool TMoverParameters::BatterySwitch(bool State)
         SendCtrlToNext("BatterySwitch", 0, CabNo);
     BS = true;
 
-    if ((Battery) && (ActiveCab != 0)) /*|| (TrainType==dt_EZT)*/
-        SecuritySystem.Status = (SecuritySystem.Status | s_waiting); // aktywacja czuwaka
-    else
-        SecuritySystem.Status = 0; // wyłączenie czuwaka
+	SecuritySystem.set_enabled((Battery) && (ActiveCab != 0));
 
     return BS;
 }
@@ -3569,19 +3548,12 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Pipe2->Flow(dpMainValve);
     }
 
-    // ulepszony hamulec bezp.
-    if( ( true == RadioStopFlag )
-     || ( true == AlarmChainFlag )
-     || ( true == TestFlag( SecuritySystem.Status, s_SHPebrake ) )
-     || ( true == TestFlag( SecuritySystem.Status, s_CAebrake ) )
-/*
-    // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
-    // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
-     || ( true == TestFlag( EngDmgFlag, 32 ) )
-*/
-     || ( true == s_CAtestebrake ) ) {
-        dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
-    }
+	if( ( true == RadioStopFlag )
+	 || ( true == AlarmChainFlag )
+	 || SecuritySystem.is_braking() ) {
+		dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
+	}
+
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);
     Pipe->Flow(-(PipePress)*0.001 * dt);
@@ -5047,7 +5019,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricInductionMotor:
         {
-            if( true == Mains ) {
+			if( true == Mains && !SecuritySystem.is_engine_blocked() ) {
 				//tempomat
 				if (ScndCtrlPosNo > 1)
 				{
@@ -7747,7 +7719,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         {
 			startBPT = false;
             fizlines.emplace( "Security", inputline );
-            LoadFIZ_Security( inputline );
+			SecuritySystem.load(inputline, Vmax);
             continue;
         }
 
@@ -8566,24 +8538,6 @@ void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
     extract_value( NominalVoltage, "Volt", line, "" );
     extract_value( BatteryVoltage, "LMaxVoltage", line, "" );
     NominalBatteryVoltage = BatteryVoltage;
-}
-
-void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
-
-    std::string awaresystem = extract_value( "AwareSystem", line );
-    if( awaresystem.find( "Active" ) != std::string::npos ) {
-        SetFlag( SecuritySystem.SystemType, 1 );
-    }
-    if( awaresystem.find( "CabSignal" ) != std::string::npos ) {
-        SetFlag( SecuritySystem.SystemType, 2 );
-    }
-
-    extract_value( SecuritySystem.AwareDelay, "AwareDelay", line, "" );
-    SecuritySystem.AwareMinSpeed = 0.1 * Vmax; //domyślnie 10% Vmax
-    extract_value( SecuritySystem.AwareMinSpeed, "AwareMinSpeed", line, "" );
-    extract_value( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
-    extract_value( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
-    extract_value( SecuritySystem.RadioStop, "RadioStop", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Clima( std::string const &line ) {
@@ -9677,10 +9631,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             Battery = true;
         else if ((CValue1 == 0))
             Battery = false;
-        if ((Battery) && (ActiveCab != 0) /*or (TrainType=dt_EZT)*/)
-            SecuritySystem.Status = SecuritySystem.Status || s_waiting; // aktywacja czuwaka
-        else
-            SecuritySystem.Status = 0; // wyłączenie czuwaka
+		SecuritySystem.set_enabled(((Battery) && (ActiveCab != 0)));
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}
@@ -9903,16 +9854,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "CabSignal") /*SHP,Indusi*/
 	{ // Ra: to powinno działać tylko w członie obsadzonym
-		if (/*(TrainType=dt_EZT)or*/ (ActiveCab != 0) && (Battery) &&
-			TestFlag(SecuritySystem.SystemType,
-				2)) // jeśli kabina jest obsadzona (silnikowy w EZT?)
-					/*?*/ /* WITH  SecuritySystem */
-		{
-			SecuritySystem.VelocityAllowed = static_cast<int>(floor(CValue1));
-			SecuritySystem.NextVelocityAllowed = static_cast<int>(floor(CValue2));
-			SecuritySystem.SystemSoundSHPTimer = 0; // hunter-091012
-			SetFlag(SecuritySystem.Status, s_active);
-		}
+		SecuritySystem.set_cabsignal();
 		// else OK:=false;
 		OK = true; // true, gdy można usunąć komendę
 	}
