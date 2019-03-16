@@ -1982,7 +1982,7 @@ event_manager::update() {
 
 			if (launcher->check_activation_key()) {
 				WriteLog( "Eventlauncher: " + launcher->name() );
-				m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(launcher->Event1), 0.0, GLFW_PRESS, 0);
+				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &launcher->Event1->name());
 			}
 		}
     }

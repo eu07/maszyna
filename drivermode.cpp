@@ -644,7 +644,7 @@ driver_mode::OnKeyDown(int cKey) {
             // z [Shift] uruchomienie eventu
             if( ( false == Global.iPause ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
-				m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(KeyEvents[i]), 0.0, GLFW_PRESS, 0);
+				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &KeyEvents[i]->name());
             }
         }
         else if( Global.ctrlState ) {

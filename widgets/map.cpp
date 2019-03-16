@@ -384,8 +384,7 @@ void ui::semaphore_window::render_content()
 				if (level >= 3.0f)
 					level = 0.0f;
 
-				int id = simulation::Instances.find_id(model->name());
-				m_relay.post(user_command::setlight, (double)i, level, id, 0);
+				m_relay.post(user_command::setlight, (double)i, level, GLFW_PRESS, 0, glm::vec3(0.0f), &model->name());
 			}
 
 			ImGui::PopStyleColor(2);
@@ -407,7 +406,7 @@ void ui::semaphore_window::render_content()
 
 		if (ImGui::Button(displayname.c_str()))
 		{
-			m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(item), 0.0, GLFW_PRESS, 0);
+			m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &item->name());
 		}
 	}
 }
@@ -420,13 +419,13 @@ void ui::switch_window::render_content()
 
 	if (ImGui::Button(LOC_STR(map_straight)))
 	{
-		m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(m_switch->straight_event), 0.0, GLFW_PRESS, 0);
+		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->straight_event->name());
 		ImGui::CloseCurrentPopup();
 	}
 
 	if (ImGui::Button(LOC_STR(map_divert)))
 	{
-		m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(m_switch->divert_event), 0.0, GLFW_PRESS, 0);
+		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->divert_event->name());
 		ImGui::CloseCurrentPopup();
 	}
 }
@@ -467,12 +466,13 @@ void ui::obstacle_insert_window::render_content()
 		{
 			std::string name("obstacle_" + std::to_string(LocalRandom(0.0, 100000.0)));
 
-			TAnimModel *cloned = simulation::State.create_model(entry.second, name, m_position);
+			std::string payload(name + ':' + entry.second);
+			m_relay.post(user_command::insertmodel, 0.0, 0.0, GLFW_PRESS, 0, m_position, &payload);
 
 			auto obstacle = std::make_shared<map::obstacle>();
 			obstacle->name = entry.first;
 			obstacle->location = m_position;
-			obstacle->model = cloned;
+			obstacle->model_name = name;
 			map::Objects.entries.push_back(std::move(obstacle));
 
 			std::vector<gfx::basic_vertex> vertices;
@@ -490,7 +490,7 @@ ui::obstacle_remove_window::obstacle_remove_window(ui_panel &panel, std::shared_
 void ui::obstacle_remove_window::render_content()
 {
 	if (ImGui::Button(LOC_STR(map_obstacle_remove))) {
-		simulation::State.delete_model(m_obstacle->model);
+		m_relay.post(user_command::deletemodel, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(), &m_obstacle->model_name);
 
 		auto &entries = map::Objects.entries;
 		for (auto it = entries.rbegin(); it != entries.rend(); it++) {

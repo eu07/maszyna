@@ -36,7 +36,7 @@ struct track_switch : public map_object
 // training obstacle description
 struct obstacle : public map_object
 {
-	TAnimModel *model;
+	std::string model_name;
 };
 
 struct objects

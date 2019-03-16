@@ -238,6 +238,8 @@ enum class user_command {
 	entervehicle,
 	queueevent,
 	setlight,
+	insertmodel,
+	deletemodel,
 
     none = -1
 };
@@ -278,6 +280,8 @@ struct command_data {
 
 	bool freefly;
 	glm::vec3 location;
+
+	std::string payload;
 };
 
 // command_queues: collects and holds commands from input sources, for processing by their intended recipients
@@ -363,7 +367,7 @@ public:
 	// posts specified command for the specified recipient
     void
 	    post(user_command const Command, double const Param1, double const Param2,
-	        int const Action, uint16_t Recipient, glm::vec3 Position = glm::vec3(0.0f) ) const;
+	        int const Action, uint16_t Recipient, glm::vec3 Position = glm::vec3(0.0f) , const std::string *Payload = nullptr) const;
 };
 
 //---------------------------------------------------------------------------

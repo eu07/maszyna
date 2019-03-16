@@ -656,9 +656,9 @@ basic_cell::launch_event( TEventLauncher *Launcher, bool local_only ) {
 		}
 	} else {
 		if (Global.shiftState && Launcher->Event2 != nullptr)
-			m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(Launcher->Event2), 0.0, GLFW_PRESS, 0);
+			m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event2->name());
 		else if (Launcher->Event1)
-			m_relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(Launcher->Event1), 0.0, GLFW_PRESS, 0);
+			m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event1->name());
 	}
 }
 

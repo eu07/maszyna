@@ -353,6 +353,8 @@ class TTrain
 	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
 
+	void vehiclemove(float distance);
+
 
 // members
     TDynamicObject *DynamicObject { nullptr }; // przestawia zmiana pojazdu [F5]

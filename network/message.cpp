@@ -42,6 +42,8 @@ void ::network::request_command::serialize(std::ostream &stream) const
 
 			sn_utils::s_bool(stream, data.freefly);
 			sn_utils::s_vec3(stream, data.location);
+
+			sn_utils::s_str(stream, data.payload);
 		}
 	}
 }
@@ -66,6 +68,8 @@ void network::request_command::deserialize(std::istream &stream)
 
 			data.freefly = sn_utils::d_bool(stream);
 			data.location = sn_utils::d_vec3(stream);
+
+			data.payload = sn_utils::d_str(stream);
 
 			sequence.emplace_back(data);
 		}

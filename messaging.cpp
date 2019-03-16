@@ -69,7 +69,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
                      || ( event->m_sibling != 0 ) ) {
                         // tylko jawne albo niejawne Multiple
 						command_relay relay;
-						relay.post(user_command::queueevent, (double)simulation::Events.GetEventId(event), 0.0, GLFW_PRESS, 0);
+						relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &event->name());
                     }
                 }
             }

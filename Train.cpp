@@ -1789,20 +1789,18 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &cmd )
 {
-    command_data Command = cmd;
-
-    if( Command.action == GLFW_PRESS ) {
+	if( cmd.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvControlled->PantFrontUp ) {
             // turn on...
-            OnCommand_pantographraisefront( Train, Command );
+			OnCommand_pantographraisefront( Train, cmd );
         }
         else {
             // ...or turn off
-            OnCommand_pantographlowerfront( Train, Command );
+			OnCommand_pantographlowerfront( Train, cmd );
         }
     }
-    else if( Command.action == GLFW_RELEASE ) {
+	else if( cmd.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         // NOTE: this routine is used also by dedicated raise and lower commands
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
@@ -1825,20 +1823,19 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
 }
 
 void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &cmd ) {
-    command_data Command = cmd;
 
-    if( Command.action == GLFW_PRESS ) {
+	if( cmd.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvControlled->PantRearUp ) {
             // turn on...
-            OnCommand_pantographraiserear( Train, Command );
+			OnCommand_pantographraiserear( Train, cmd );
         }
         else {
             // ...or turn off
-            OnCommand_pantographlowerrear( Train, Command );
+			OnCommand_pantographlowerrear( Train, cmd );
         }
     }
-    else if( Command.action == GLFW_RELEASE ) {
+	else if( cmd.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         // NOTE: this routine is used also by dedicated raise and lower commands
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
@@ -5003,32 +5000,38 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
     }
 }
 
-void TTrain::OnCommand_vehiclemove(TTrain *Train, const command_data &Command) {
-	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
-		return;
-
-	TDynamicObject *d = Train->DynamicObject;
+void TTrain::vehiclemove(float distance) {
+	TDynamicObject *d = DynamicObject;
 	while( d ) {
-		d->Move( Command.param1 * d->DirectionGet() );
+		d->Move( distance * d->DirectionGet() );
 		d = d->Next(); // pozostałe też
 	}
-	d = Train->DynamicObject->Prev();
+	d = DynamicObject->Prev();
 	while( d ) {
-		d->Move( Command.param1 * d->DirectionGet() );
+		d->Move( distance * d->DirectionGet() );
 		d = d->Prev(); // w drugą stronę też
 	}
 }
 
+void TTrain::OnCommand_vehiclemove(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	Train->vehiclemove(Command.param1);
+}
+
 void TTrain::OnCommand_vehiclemoveforwards(TTrain *Train, const command_data &Command) {
-	command_data modified = Command;
-	modified.param1 = 100.0;
-	OnCommand_vehiclemove(Train, modified);
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	Train->vehiclemove(100.0);
 }
 
 void TTrain::OnCommand_vehiclemovebackwards(TTrain *Train, const command_data &Command) {
-	command_data modified = Command;
-	modified.param1 = -100.0;
-	OnCommand_vehiclemove(Train, modified);
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	Train->vehiclemove(-100.0);
 }
 
 void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) {
