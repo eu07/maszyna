@@ -632,6 +632,33 @@ public:
 	{}
 };
 
+class TMHZ_6P : public TDriverHandle {
+
+private:
+	double CP = 0.0; //zbiornik sterujący
+	double TP = 0.0; //zbiornik czasowy
+	double RP = 0.0; //zbiornik redukcyjny
+	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+	bool Fala = false; //czy jest napelnianie uderzeniowe
+	double UnbrakeOverPressure = 0.0; //wartosc napelniania uderzeniowego
+	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
+
+	bool EQ(double pos, double i_pos);
+
+public:
+	double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
+	void Init(double Press)/*override*/;
+	void SetReductor(double nAdj)/*override*/;
+	double GetSound(int i)/*override*/;
+	double GetPos(int i)/*override*/;
+	double GetCP()/*override*/;
+	void SetParams(bool AO, bool MO, double, double); /*ovveride*/
+
+	inline TMHZ_6P(void) :
+		TDriverHandle()
+	{}
+};
+
 /*    FBS2= class(TTDriverHandle)
           private
 			CP, TP, RP: real;      //zbiornik sterujący, czasowy, redukcyjny
