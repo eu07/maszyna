@@ -82,7 +82,7 @@ int DirF(int CouplerN)
 void TSecuritySystem::set_enabled(bool e) {
 	if (vigilance_enabled || cabsignal_enabled)
 		enabled = e;
-	if (enabled && cabsignal_enabled && !is_sifa) {
+	if (enabled && cabsignal_enabled) {
 		cabsignal_active = true;
 		alert_timer = SoundSignalDelay;
 	}
@@ -91,14 +91,15 @@ void TSecuritySystem::set_enabled(bool e) {
 void TSecuritySystem::acknowledge_press() {
 	pressed = true;
 
-	if (cabsignal_active) {
+	if (!separate_acknowledge && cabsignal_active) {
 		cabsignal_active = false;
 		alert_timer = 0.0;
 		return;
 	}
 
+	if (vigilance_timer > AwareDelay)
+		alert_timer = 0.0;
 	vigilance_timer = 0.0;
-	alert_timer = 0.0;
 }
 
 void TSecuritySystem::acknowledge_release() {
@@ -106,6 +107,13 @@ void TSecuritySystem::acknowledge_release() {
 
 	press_timer = 0.0;
 	alert_timer = 0.0;
+}
+
+void TSecuritySystem::cabsignal_reset() {
+	if (cabsignal_active) {
+		cabsignal_active = false;
+		alert_timer = 0.0;
+	}
 }
 
 void TSecuritySystem::update(double dt, double vel) {
@@ -176,6 +184,8 @@ void TSecuritySystem::load(std::string const &line, double Vmax) {
 		cabsignal_enabled = true;
 	if( awaresystem.find( "Sifa" ) != std::string::npos )
 		is_sifa = true;
+	if( awaresystem.find( "SeparateAcknowledge" ) != std::string::npos )
+		separate_acknowledge = true;
 
 	extract_value( AwareDelay, "AwareDelay", line, "" );
 	AwareMinSpeed = 0.1 * Vmax; //domyślnie 10% Vmax

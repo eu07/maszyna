@@ -110,6 +110,7 @@ enum class user_command {
     brakeloadcompensationdecrease,
     mubrakingindicatortoggle,
     alerteracknowledge,
+	cabsignalacknowledge,
     hornlowactivate,
     hornhighactivate,
     whistleactivate,

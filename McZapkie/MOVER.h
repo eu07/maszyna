@@ -572,6 +572,7 @@ class TSecuritySystem
 	bool pressed = false;
 	bool enabled = false;
 	bool is_sifa = false; // Sifa-like pedal device, with inverted input for convenient keyboard usage
+	bool separate_acknowledge = false; // cabsignal reset button is separate from vigilance
 
 	double vigilance_timer = 0.0;
 	double alert_timer = 0.0;
@@ -589,6 +590,7 @@ public:
 	void set_enabled(bool e);
 	void acknowledge_press();
 	void acknowledge_release();
+	void cabsignal_reset();
 	void update(double dt, double Vel);
 	void set_cabsignal();
 	bool is_blinking() const;

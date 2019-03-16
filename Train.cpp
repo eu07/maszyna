@@ -215,6 +215,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::reverserneutral, &TTrain::OnCommand_reverserneutral },
     { user_command::reverserbackward, &TTrain::OnCommand_reverserbackward },
     { user_command::alerteracknowledge, &TTrain::OnCommand_alerteracknowledge },
+    { user_command::cabsignalacknowledge, &TTrain::OnCommand_cabsignalacknowledge },
     { user_command::batterytoggle, &TTrain::OnCommand_batterytoggle },
     { user_command::batteryenable, &TTrain::OnCommand_batteryenable },
     { user_command::batterydisable, &TTrain::OnCommand_batterydisable },
@@ -1728,6 +1729,13 @@ void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Co
 		if (Train->mvOccupied->TrainType == dt_EZT || Train->mvOccupied->ActiveDir != 0)
 			Train->mvOccupied->SecuritySystem.acknowledge_release();
     }
+}
+
+void TTrain::OnCommand_cabsignalacknowledge( TTrain *Train, command_data const &Command ) {
+	// TODO: visual feedback
+	if( Command.action == GLFW_PRESS ) {
+		Train->mvOccupied->SecuritySystem.cabsignal_reset();
+	}
 }
 
 void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command )

@@ -219,6 +219,7 @@ class TTrain
     static void OnCommand_reverserneutral( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserbackward( TTrain *Train, command_data const &Command );
     static void OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command );
+	static void OnCommand_cabsignalacknowledge( TTrain *Train, command_data const &Command );
     static void OnCommand_batterytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_batteryenable( TTrain *Train, command_data const &Command );
     static void OnCommand_batterydisable( TTrain *Train, command_data const &Command );
