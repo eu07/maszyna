@@ -195,9 +195,9 @@ scenario_panel::render() {
     }
     auto const panelname { (
         title.empty() ?
-            name :
+		    m_name :
             title )
-        + "###" + name };
+		+ "###" + m_name };
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // potential assignment section
         auto const *owner { (
@@ -442,9 +442,9 @@ debug_panel::render() {
     }
     auto const panelname { (
         title.empty() ?
-            name :
+		    m_name :
             title )
-        + "###" + name };
+		+ "###" + m_name };
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
@@ -1028,9 +1028,9 @@ transcripts_panel::render() {
     }
     auto const panelname { (
         title.empty() ?
-            name :
+		    m_name :
             title )
-        + "###" + name };
+		+ "###" + m_name };
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {

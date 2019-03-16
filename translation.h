@@ -99,7 +99,11 @@ enum string {
 	map_obstacle_insert,
 	map_obstacle_remove,
 
+	vehiclelist_window,
+
 	vehicleparams_window,
+	vehicleparams_radiostop,
+	vehicleparams_reset,
 
     cab_mainctrl,
     cab_jointctrl,

@@ -48,12 +48,12 @@ public:
     std::deque<text_line> text_lines;
 	int window_flags = -1;
 
-	const std::string& get_name() { return name; }
+	const std::string& name() { return m_name; }
 	void register_popup(std::unique_ptr<ui::popup> &&popup);
 
 protected:
 // members
-    std::string name;
+	std::string m_name;
 	std::list<std::unique_ptr<ui::popup>> popups;
 };
 
@@ -128,7 +128,9 @@ public:
     void
         clear_panels();
     void
-        push_back( ui_panel *Panel ) { m_panels.emplace_back( Panel ); }
+	    add_external_panel( ui_panel *Panel ) { m_panels.emplace_back( Panel ); }
+	void
+	    add_owned_panel( ui_panel *Panel );
 
     // callback functions for imgui input
     // returns true if input is consumed
@@ -180,6 +182,7 @@ private:
 
     texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
     std::vector<ui_panel *> m_panels;
+	std::vector<std::unique_ptr<ui_panel>> m_ownedpanels;
     std::string m_tooltip;
     bool m_quit_active = false;
 };

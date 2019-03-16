@@ -479,10 +479,8 @@ private:
     int GetPneumatic(bool front, bool red);
     void SetPneumatic(bool front, bool red);
     std::string asName;
-    std::string name() const {
-        return this ?
-            asName :
-            std::string(); };
+	const std::string &name() const {
+		return asName; }
     std::string asBaseDir;
 
     //    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych

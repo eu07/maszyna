@@ -29,7 +29,7 @@ GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
 bool ui_layer::m_cursorvisible;
 
-ui_panel::ui_panel(std::string const &Identifier, bool const Isopen) : name(Identifier), is_open(Isopen) {}
+ui_panel::ui_panel(std::string const &Identifier, bool const Isopen) : m_name(Identifier), is_open(Isopen) {}
 
 void ui_panel::render()
 {
@@ -49,7 +49,7 @@ void ui_panel::render()
     if (size_min.x > 0)
         ImGui::SetNextWindowSizeConstraints(ImVec2(size_min.x, size_min.y), ImVec2(size_max.x, size_max.y));
 
-    auto const panelname{(title.empty() ? name : title) + "###" + name};
+	auto const panelname{(title.empty() ? m_name : title) + "###" + m_name};
 	if (ImGui::Begin(panelname.c_str(), &is_open, flags)) {
         render_contents();
 
@@ -118,7 +118,7 @@ bool ui_layer::mouse_button_callback(int button, int action, int mods)
 ui_layer::ui_layer()
 {
     if (Global.loading_log)
-        push_back(&m_logpanel);
+		add_external_panel(&m_logpanel);
     m_logpanel.size = { 700, 400 };
 }
 
@@ -221,9 +221,13 @@ bool ui_layer::on_mouse_button(int const Button, int const Action)
 void ui_layer::update()
 {
     for (auto *panel : m_panels)
-    {
         panel->update();
-    }
+
+	for (auto it = m_ownedpanels.rbegin(); it != m_ownedpanels.rend(); it++) {
+		(*it)->update();
+		if (!(*it)->is_open)
+			m_ownedpanels.erase(std::next(it).base());
+	}
 }
 
 void ui_layer::render()
@@ -301,6 +305,19 @@ void ui_layer::set_background(std::string const &Filename)
 void ui_layer::clear_panels()
 {
     m_panels.clear();
+	m_ownedpanels.clear();
+}
+
+void ui_layer::add_owned_panel(ui_panel *Panel)
+{
+	for (auto &panel : m_ownedpanels)
+		if (panel->name() == Panel->name()) {
+			delete Panel;
+			return;
+		}
+
+	Panel->is_open = true;
+	m_ownedpanels.emplace_back( Panel );
 }
 
 void ui_layer::render_progress()
@@ -322,9 +339,9 @@ void ui_layer::render_progress()
 void ui_layer::render_panels()
 {
     for (auto *panel : m_panels)
-    {
 		panel->render();
-    }
+	for (auto &panel : m_ownedpanels)
+		panel->render();
 }
 
 void ui_layer::render_tooltip()

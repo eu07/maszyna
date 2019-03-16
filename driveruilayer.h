@@ -59,8 +59,7 @@ private:
 	bool m_pause_modal_opened { false };
 
 	command_relay m_relay;
-	ui::vehiclelist_panel m_vehiclelist;
-	ui::vehicleparams_panel m_vehicleparams;
+	ui::vehiclelist_panel m_vehiclelist { ui::vehiclelist_panel(*this) };
 	ui::map_panel m_mappanel;
 	ui::time_panel m_timepanel;
 };

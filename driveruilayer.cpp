@@ -22,17 +22,16 @@ driver_ui::driver_ui() {
 
     clear_panels();
     // bind the panels with ui object. maybe not the best place for this but, eh
-    push_back( &m_aidpanel );
-    push_back( &m_scenariopanel );
-    push_back( &m_timetablepanel );
-    push_back( &m_debugpanel );
-    push_back( &m_transcriptspanel );
+	add_external_panel( &m_aidpanel );
+	add_external_panel( &m_scenariopanel );
+	add_external_panel( &m_timetablepanel );
+	add_external_panel( &m_debugpanel );
+	add_external_panel( &m_transcriptspanel );
 
-	//push_back( &m_vehiclelist );
-	push_back( &m_vehicleparams );
-	push_back( &m_timepanel );
-	push_back( &m_mappanel );
-    push_back( &m_logpanel );
+	add_external_panel( &m_vehiclelist );
+	add_external_panel( &m_timepanel );
+	add_external_panel( &m_mappanel );
+	add_external_panel( &m_logpanel );
     m_logpanel.is_open = false;
 
     m_aidpanel.title = locale::strings[ locale::string::driver_aid_header ];
@@ -57,13 +56,12 @@ void driver_ui::render_menu_contents() {
     {
         ImGui::MenuItem(m_aidpanel.title.c_str(), "F1", &m_aidpanel.is_open);
 		ImGui::MenuItem(locale::strings[locale::string::driver_timetable_name].c_str(), "F2", &m_timetablepanel.is_open);
-        ImGui::MenuItem(m_debugpanel.get_name().c_str(), "F12", &m_debugpanel.is_open);
-		ImGui::MenuItem(m_mappanel.get_name().c_str(), "Tab", &m_mappanel.is_open);
+		ImGui::MenuItem(m_debugpanel.name().c_str(), "F12", &m_debugpanel.is_open);
+		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);
+		ImGui::MenuItem(m_vehiclelist.name().c_str(), nullptr, &m_vehiclelist.is_open);
 
-		if (ImGui::MenuItem(m_timepanel.get_name().c_str()))
+		if (ImGui::MenuItem(m_timepanel.name().c_str()))
 			m_timepanel.open();
-
-		ImGui::MenuItem(m_vehicleparams.get_name().c_str(), nullptr, &m_vehicleparams.is_open);
 
         ImGui::EndMenu();
     }

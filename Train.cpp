@@ -5013,7 +5013,7 @@ void TTrain::vehiclemove(float distance) {
 	while( d ) {
 		d->Move( distance * d->DirectionGet() );
 		d = d->Next(); // pozostałe też
-	}
+	    }
 	d = DynamicObject->Prev();
 	while( d ) {
 		d->Move( distance * d->DirectionGet() );

@@ -17,8 +17,8 @@ editor_ui::editor_ui() {
 
     clear_panels();
     // bind the panels with ui object. maybe not the best place for this but, eh
-    push_back( &m_itempropertiespanel );
-	push_back( &m_nodebankpanel );
+    add_external_panel( &m_itempropertiespanel );
+	add_external_panel( &m_nodebankpanel );
 }
 
 // potentially processes provided input key. returns: true if key was processed, false otherwise

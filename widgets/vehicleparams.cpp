@@ -5,17 +5,14 @@
 #include "Driver.h"
 #include "Train.h"
 
-ui::vehicleparams_panel::vehicleparams_panel()
-    : ui_panel(LOC_STR(vehicleparams_window), false)
+ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
+    : ui_panel(std::string(LOC_STR(vehicleparams_window)) + ": " + vehicle, false), m_vehicle_name(vehicle)
 {
 
 }
 
 void ui::vehicleparams_panel::render_contents()
 {
-	if (m_vehicle_name.empty())
-		m_vehicle_name = simulation::Vehicles.sequence()[0]->name();
-
 	TDynamicObject *vehicle_ptr = simulation::Vehicles.find(m_vehicle_name);
 	if (!vehicle_ptr) {
 		is_open = false;
@@ -186,4 +183,12 @@ void ui::vehicleparams_panel::render_contents()
 	    vehicle.GetPosition().z );
 
 	ImGui::TextUnformatted(buffer.data());
+
+	if (ImGui::Button(LOC_STR(vehicleparams_radiostop)))
+		m_relay.post(user_command::radiostop, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
+
+	ImGui::SameLine();
+
+	if (ImGui::Button(LOC_STR(vehicleparams_reset)))
+		m_relay.post(user_command::resettrainset, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 }

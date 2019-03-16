@@ -223,6 +223,7 @@ enum class user_command {
     coolingfanstoggle,
     tempomattoggle,
 
+	radiostop,
 	timejump,
 	timejumplarge,
 	timejumpsmall,
@@ -237,6 +238,7 @@ enum class user_command {
 	focuspauseset,
 	pausetoggle,
 	entervehicle,
+	resettrainset,
 	queueevent,
 	setlight,
 	insertmodel,

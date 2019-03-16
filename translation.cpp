@@ -110,7 +110,11 @@ init() {
 	    "Insert obstacle:",
 	    "Delete obstacle",
 
+	    "Vehicle list",
+
 	    "Vehicle parameters",
+	    "Radiostop",
+	    "Reset trainset",
 
         "master controller",
         "master controller",
@@ -307,7 +311,11 @@ init() {
 	    u8"Wstaw przeszkodę:",
 	    u8"Usuń przeszkodę",
 
+	    u8"Lista pojazdów",
+
 	    u8"Parametry pojazdu",
+	    u8"Radiostop",
+	    u8"Zresetuj skład",
 
         u8"nastawnik jazdy",
         u8"nastawnik jazdy",

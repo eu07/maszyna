@@ -177,6 +177,32 @@ void state_manager::process_commands() {
 			simulation::State.delete_model(simulation::Instances.find(commanddata.payload));
 		}
 
+		if (commanddata.command == user_command::radiostop) {
+			simulation::Region->RadioStop( commanddata.location );
+		}
+
+		if (commanddata.command == user_command::resettrainset) {
+			TDynamicObject *found_vehicle = simulation::Vehicles.find(commanddata.payload);
+			TDynamicObject *vehicle = found_vehicle;
+
+			while (vehicle) {
+				vehicle->MoverParameters->DamageFlag = 0;
+				vehicle->MoverParameters->EngDmgFlag = 0;
+				vehicle->MoverParameters->V = 0.0;
+				vehicle->MoverParameters->DistCounter = 0.0;
+				vehicle = vehicle->Next();
+			}
+
+			vehicle = found_vehicle;
+			while (vehicle) {
+				vehicle->MoverParameters->DamageFlag = 0;
+				vehicle->MoverParameters->EngDmgFlag = 0;
+				vehicle->MoverParameters->V = 0.0;
+				vehicle->MoverParameters->DistCounter = 0.0;
+				vehicle = vehicle->Prev();
+			}
+		}
+
 		if (DebugModeFlag) {
 			if (commanddata.command == user_command::timejump) {
 				Time.update(commanddata.param1);

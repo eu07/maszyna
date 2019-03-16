@@ -253,9 +253,9 @@ itemproperties_panel::render() {
     }
     auto const panelname { (
         title.empty() ?
-            name :
+		    m_name :
             title )
-        + "###" + name };
+		+ "###" + m_name };
     if( true == ImGui::Begin( panelname.c_str(), nullptr, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
