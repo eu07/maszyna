@@ -67,6 +67,9 @@ private:
     // returns number of days between specified days of week
     int
         weekdays( int const First, int const Second ) const;
+    // returns true if specified year is a leap year, false otherwise
+    bool
+        is_leap( int const Year ) const;
 
     SYSTEMTIME m_time;
     double m_milliseconds{ 0.0 };

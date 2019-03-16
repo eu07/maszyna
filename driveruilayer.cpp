@@ -23,11 +23,16 @@ driver_ui::driver_ui() {
     clear_panels();
     // bind the panels with ui object. maybe not the best place for this but, eh
     push_back( &m_aidpanel );
+    push_back( &m_scenariopanel );
     push_back( &m_timetablepanel );
     push_back( &m_debugpanel );
     push_back( &m_transcriptspanel );
 
     m_aidpanel.title = locale::strings[ locale::string::driver_aid_header ];
+
+    m_scenariopanel.title = locale::strings[ locale::string::driver_scenario_header ];
+    m_scenariopanel.size_min = { 435, 85 };
+    m_scenariopanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 
     m_timetablepanel.title = locale::strings[ locale::string::driver_timetable_header ];
     m_timetablepanel.size_min = { 435, 110 };
@@ -67,6 +72,7 @@ driver_ui::on_key( int const Key, int const Action ) {
 
         case GLFW_KEY_F1:
         case GLFW_KEY_F2:
+        case GLFW_KEY_F3:
         case GLFW_KEY_F10:
         case GLFW_KEY_F12: { // ui mode selectors
 
@@ -111,6 +117,12 @@ driver_ui::on_key( int const Key, int const Action ) {
             m_timetablepanel.is_open = ( state > 0 );
             m_timetablepanel.is_expanded = ( state > 1 );
 
+            return true;
+        }
+
+        case GLFW_KEY_F3: {
+            // debug panel
+            m_scenariopanel.is_open = !m_scenariopanel.is_open;
             return true;
         }
 

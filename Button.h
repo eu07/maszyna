@@ -30,7 +30,7 @@ public:
     bool Active() {
         return ( ( pModelOn != nullptr )
               || ( pModelOff != nullptr ) ); }
-    void Update();
+    void Update( bool const Power = true );
     bool Init( std::string const &asName, TModel3d const *pModel, bool bNewOn = false );
     void Load( cParser &Parser, TDynamicObject const *Owner );
     void AssignBool(bool const *bValue);

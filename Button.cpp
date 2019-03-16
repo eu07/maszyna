@@ -123,12 +123,13 @@ TButton::Turn( bool const State ) {
     }
 }
 
-void TButton::Update() {
+void TButton::Update( bool const Power ) {
 
-    if( (  bData != nullptr )
-     && ( *bData != m_state ) ) {
+    auto const state { Power && ( bData ? *bData : m_state ) };
 
-        m_state = ( *bData );
+    if( state != m_state ) {
+
+        m_state = state;
         play();
     }
 

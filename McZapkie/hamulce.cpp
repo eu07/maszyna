@@ -31,6 +31,7 @@ double const TSt113::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {1
 double const TSt113::BEP_K[7] = {0, -1, 1, 0, 0, 0, 0};
 double const TSt113::pos_table[11] = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
 double const TFVel6::pos_table[11] = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
+double const TFVE408::pos_table[11] = { 0, 10, 0, 0, 10, 7, 8, 9, 0, 1, 5 };
 
 double PR(double P1, double P2)
 {
@@ -131,6 +132,11 @@ double PFVd( double PH, double PL, double const S, double LIM, double const DP )
     }
     else
         return 0;
+}
+
+bool is_EQ(double pos, double i_pos)
+{
+	return (pos <= i_pos + 0.5) && (pos > i_pos - 0.5);
 }
 
 //---ZBIORNIKI---
@@ -863,10 +869,7 @@ double TEStEP2::GetPF( double const PP, double const dt, double const Vel )
     dV1 = dV1 - 0.96 * dv;
 
     // hamulec EP
-    temp = BVP * int(EPS > 0);
-    dv = PF(temp, LBP, 0.00053 + 0.00060 * int(EPS < 0)) * dt * EPS * EPS *
-         int(LBP * EPS < MaxBP * LoadC);
-    LBP = LBP - dv;
+	EPCalc(dt);
 
     // luzowanie KI
     if ((BrakeStatus & b_hld) == b_off)
@@ -934,6 +937,24 @@ void TEStEP2::SetLP( double const TM, double const LM, double const TBP )
     TareM = TM;
     LoadM = LM;
     TareBP = TBP;
+}
+
+void TEStEP2::EPCalc(double dt)
+{
+	double temp = BrakeRes->P() * int(EPS > 0);
+	double dv = PF(temp, LBP, 0.00053 + 0.00060 * int(EPS < 0)) * dt * EPS * EPS *
+		int(LBP * EPS < MaxBP * LoadC);
+	LBP = LBP - dv;
+}
+
+
+void TEStEP1::EPCalc(double dt)
+{
+	double temp = EPS - std::floor(EPS); //część ułamkowa jest hamulcem EP
+	double LBPLim = Min0R(MaxBP * LoadC * temp, BrakeRes->P()); //do czego dążymy
+	double S = 10 * clamp(LBPLim - LBP, -0.1, 0.1); //przymykanie zaworku
+	double dv = PF(( S > 0 ? BrakeRes->P() : 0 ), LBP, abs(S)*(0.00053 + 0.00060 * int(S < 0))) * dt; //przepływ
+	LBP = LBP - dv;
 }
 
 //---EST3--
@@ -3133,4 +3154,71 @@ void TFVel6::Init(double Press)
     TimeEP = true;
 }
 
+//---FVE408---
+
+double TFVE408::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+	static int const LBDelay = 100;
+
+	double LimPP;
+	double dpMainValve;
+	double ActFlowSpeed;
+
+	LimPP = Min0R(5 * int(i_bcp < 6.5), HP);
+	if ((i_bcp >= 6.5) && ((i_bcp < 7.5) || (i_bcp > 9.5)))
+		ActFlowSpeed = 0;
+	else if ((i_bcp > 7.5) && (i_bcp < 8.5))
+		ActFlowSpeed = 2; // konsultacje wawa1 - bylo 8;
+	else if ((i_bcp < 6.5))
+		ActFlowSpeed = 2;
+	else
+		ActFlowSpeed = 4;
+	dpMainValve = PF(LimPP, PP, ActFlowSpeed / LBDelay) * dt;
+
+	Sounds[s_fv4a_e] = 0;
+	Sounds[s_fv4a_u] = 0;
+	Sounds[s_fv4a_b] = 0;
+	if ((i_bcp < 6.5))
+		Sounds[s_fv4a_u] = -dpMainValve;
+	else if ((i_bcp < 8.5))
+		Sounds[s_fv4a_b] = dpMainValve;
+	else if ((i_bcp < 9.5))
+		Sounds[s_fv4a_e] = dpMainValve;
+
+	if (is_EQ(i_bcp, 1)) EPS = 1.15; else
+	if (is_EQ(i_bcp, 2)) EPS = 1.40; else
+	if (is_EQ(i_bcp, 3)) EPS = 2.64; else
+	if (is_EQ(i_bcp, 4)) EPS = 3.84; else
+	if (is_EQ(i_bcp, 5)) EPS = 3.99; else
+						 EPS = 0;
+
+	return dpMainValve;
+}
+
+double TFVE408::GetCP()
+{
+	return EPS;
+}
+
+double TFVE408::GetPos(int i)
+{
+	return pos_table[i];
+}
+
+double TFVE408::GetSound(int i)
+{
+	if (i > 2)
+		return 0;
+	else
+		return Sounds[i];
+}
+
+void TFVE408::Init(double Press)
+{
+	Time = true;
+	TimeEP = false;
+}
+
 // END
+
+
