@@ -89,6 +89,7 @@
 #define GLFW_FALSE 0
 #define GLFW_TRUE 1
 #define glfwGetKeyName(a, b) ("")
+#define glfwFocusWindow(w)
 #endif
 
 #define GLM_ENABLE_EXPERIMENTAL
