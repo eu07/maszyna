@@ -33,6 +33,12 @@ struct track_switch : public map_object
 	basic_event *divert_event = nullptr;
 };
 
+// training obstacle description
+struct obstacle : public map_object
+{
+	TAnimModel *model;
+};
+
 struct objects
 {
 	std::vector<std::shared_ptr<map_object>> entries;

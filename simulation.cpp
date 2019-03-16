@@ -179,6 +179,11 @@ TAnimModel * state_manager::create_model(const std::string &src, const std::stri
 	return m_serializer.create_model(src, name, position);
 }
 
+void state_manager::delete_model(TAnimModel *model) {
+	Region->erase(model);
+	Instances.purge(model);
+}
+
 void
 state_manager::update_clocks() {
 

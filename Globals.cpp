@@ -592,16 +592,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> asLang;
         }
-        else if( token == "pyscreenrendererpriority" )
+		else if( token == "python.updatetime" )
         {
-            // old variable, repurposed as update rate of python screen renderer
             Parser.getTokens();
-            Parser >> token;
-            auto const priority { ToLower( token ) };
-            PythonScreenUpdateRate = (
-                priority == "lower" ? 500 :
-                priority == "lowest" ? 1000 :
-                200 );
+			Parser >> PythonScreenUpdateRate;
         }
         else if( token == "uitextcolor" ) {
             // color of the ui text. NOTE: will be obsolete once the real ui is in place

@@ -97,6 +97,7 @@ enum string {
 	map_straight,
 	map_divert,
 	map_obstacle_insert,
+	map_obstacle_remove,
 
 	vehicleparams_window,
 

@@ -108,6 +108,7 @@ init() {
 	    "Straight |",
 	    "Divert /",
 	    "Insert obstacle:",
+	    "Delete obstacle",
 
 	    "Vehicle parameters",
 
@@ -304,6 +305,7 @@ init() {
 	    u8"Prosto |",
 	    u8"W bok /",
 	    u8"Wstaw przeszkodę:",
+	    u8"Usuń przeszkodę",
 
 	    u8"Parametry pojazdu",
 

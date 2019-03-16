@@ -190,8 +190,7 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
 			Application.set_cursor( GLFW_CURSOR_NORMAL );
 			static_cast<editor_ui*>( m_userinterface.get() )->set_node(nullptr);
 
-			simulation::Region->erase(model);
-			simulation::Instances.purge(model);
+			simulation::State.delete_model(model);
 
 			break;
 	    }

@@ -1714,20 +1714,19 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
 }
 
 void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command ) {
-	if (Train->mvOccupied->TrainType != dt_EZT && Train->mvOccupied->ActiveDir == 0)
-		return; // Ra 2014-03: w EZT nie trzeba ustawiać kierunku
-
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
         Train->ggSecurityResetButton.UpdateValue( 1.0, Train->dsbSwitch );
 
-		Train->mvOccupied->SecuritySystem.acknowledge_press();
+		if (Train->mvOccupied->TrainType == dt_EZT || Train->mvOccupied->ActiveDir != 0)
+			Train->mvOccupied->SecuritySystem.acknowledge_press();
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         Train->ggSecurityResetButton.UpdateValue( 0.0 );
 
-		Train->mvOccupied->SecuritySystem.acknowledge_release();
+		if (Train->mvOccupied->TrainType == dt_EZT || Train->mvOccupied->ActiveDir != 0)
+			Train->mvOccupied->SecuritySystem.acknowledge_release();
     }
 }
 

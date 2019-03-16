@@ -406,6 +406,8 @@ public:
         sections( glm::dvec3 const &Point, float const Radius );
 	void
 	    create_map_geometry();
+	void
+	    update_poi_geometry();
     basic_section* get_section(size_t section)
 	    { return m_sections[section]; }
 	gfx::geometrybank_handle
