@@ -27,6 +27,7 @@ driverkeyboard_input::default_bindings() {
     m_bindingsetups = {
         { user_command::aidriverenable, GLFW_KEY_Q | keymodifier::shift },
         { user_command::aidriverdisable, GLFW_KEY_Q },
+        // jointcontrollerset,
         { user_command::mastercontrollerincrease, GLFW_KEY_KP_ADD },
         { user_command::mastercontrollerincreasefast, GLFW_KEY_KP_ADD | keymodifier::shift },
         { user_command::mastercontrollerdecrease, GLFW_KEY_KP_SUBTRACT },
@@ -154,6 +155,7 @@ driverkeyboard_input::default_bindings() {
         // doorcloseleft,
         // doorcloseright,
         { user_command::doorcloseall, GLFW_KEY_SLASH | keymodifier::control },
+        // doorsteptoggle,
         { user_command::departureannounce, GLFW_KEY_SLASH },
         { user_command::doorlocktoggle, GLFW_KEY_S | keymodifier::control },
         { user_command::pantographcompressorvalvetoggle, GLFW_KEY_V | keymodifier::control },
@@ -225,6 +227,9 @@ driverkeyboard_input::default_bindings() {
         { user_command::motorblowerstogglefront, GLFW_KEY_N | keymodifier::shift },
         { user_command::motorblowerstogglerear, GLFW_KEY_M | keymodifier::shift },
 	    { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control },
+        // coolingfanstoggle
+        // tempomattoggle
+
 	    // admin_timejump,
 	    { user_command::timejumplarge, GLFW_KEY_F1 | keymodifier::control },
 	    { user_command::timejumpsmall, GLFW_KEY_F1 | keymodifier::shift },

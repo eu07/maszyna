@@ -48,6 +48,7 @@ private:
 // methods
 	// restores class data from provided stream
     void deserialize_area( cParser &Input, scene::scratch_data &Scratchpad );
+    void deserialize_assignment( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_camera( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_config( cParser &Input, scene::scratch_data &Scratchpad );

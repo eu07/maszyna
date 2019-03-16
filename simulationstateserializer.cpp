@@ -56,6 +56,7 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 	        std::string,
 	        deserializefunction> > functionlist = {
 	            { "area",        &state_serializer::deserialize_area },
+	            { "assignment",  &state_serializer::deserialize_assignment },
 	            { "atmo",        &state_serializer::deserialize_atmo },
 	            { "camera",      &state_serializer::deserialize_camera },
 	            { "config",      &state_serializer::deserialize_config },
@@ -140,6 +141,20 @@ state_serializer::deserialize_area( cParser &Input, scene::scratch_data &Scratch
         // bind the children with their parent
         auto *isolated { TIsolated::Find( token ) };
         isolated->parent( groupowner );
+    }
+}
+
+void
+state_serializer::deserialize_assignment( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    std::string token { Input.getToken<std::string>() };
+    while( ( false == token.empty() )
+        && ( token != "endassignment" ) ) {
+        // assignment is expected to come as string pairs: language id and the actual assignment enclosed in quotes to form a single token
+        auto assignment{ Input.getToken<std::string>() };
+        win1250_to_ascii( assignment );
+        Scratchpad.trainset.assignment.emplace( token, assignment );
+        token = Input.getToken<std::string>();
     }
 }
 
@@ -640,6 +655,11 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
          && ( vehicle->Mechanik->Primary() ) ) {
             // primary driver will receive the timetable for this trainset
             Scratchpad.trainset.driver = vehicle;
+            // they'll also receive assignment data if there's any
+            auto const lookup { Scratchpad.trainset.assignment.find( Global.asLang ) };
+            if( lookup != Scratchpad.trainset.assignment.end() ) {
+                vehicle->Mechanik->assignment() = lookup->second;
+            }
         }
         if( vehicleindex > 0 ) {
             // from second vehicle on couple it with the previous one

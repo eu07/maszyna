@@ -46,10 +46,12 @@ bounding_area::serialize( std::ostream &Output ) const {
 
 // restores content of the struct from provided input stream
 void
-bounding_area::deserialize( std::istream &Input ) {
+bounding_area::deserialize( std::istream &Input, bool const Preserveradius ) {
 
     center = sn_utils::d_dvec3( Input );
-	radius = std::max(radius, sn_utils::ld_float32( Input ));
+    radius = ( Preserveradius ?
+        std::max( radius, sn_utils::ld_float32( Input ) ) :
+        sn_utils::ld_float32( Input ) );
 }
 
 

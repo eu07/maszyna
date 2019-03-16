@@ -960,7 +960,11 @@ whois_event::run_() {
                         1 :
                         0, // 1, gdy ma tu zatrzymanie
                     m_input.flags );
-                WriteLog( "Train detected: " + m_activator->Mechanik->TrainName() );
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[train: " + m_activator->Mechanik->TrainName() + "], "
+                    + "[stations left: " + to_string( m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex() ) + "], "
+                    + "[stop at next: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
             }
         }
     }

@@ -59,9 +59,9 @@ struct bounding_area {
     // stores content of the struct in provided output stream
     void
         serialize( std::ostream &Output ) const;
-    // restores content of the struct from provided input stream
+    // restores content of the struct from provided input stream. 
     void
-        deserialize( std::istream &Input );
+        deserialize( std::istream &Input, bool const Preserveradius = true );
 };
 
 //using group_handle = std::size_t;

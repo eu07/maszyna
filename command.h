@@ -17,6 +17,7 @@ enum class user_command {
 
 	aidriverenable = 0,
     aidriverdisable,
+    jointcontrollerset,
     mastercontrollerincrease,
     mastercontrollerincreasefast,
     mastercontrollerdecrease,
@@ -146,6 +147,7 @@ enum class user_command {
     doorcloseleft,
     doorcloseright,
     doorcloseall,
+    doorsteptoggle,
     departureannounce,
     doorlocktoggle,
     pantographcompressorvalvetoggle,
@@ -217,6 +219,8 @@ enum class user_command {
     motorblowerstogglefront,
     motorblowerstogglerear,
     motorblowersdisableall,
+    coolingfanstoggle,
+    tempomattoggle,
 
 	timejump,
 	timejumplarge,
