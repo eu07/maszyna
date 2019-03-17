@@ -228,6 +228,8 @@ gl::shader::shader(const std::string &filename)
         type = GL_VERTEX_SHADER;
     else if (strcend(filename, ".frag"))
         type = GL_FRAGMENT_SHADER;
+	else if (strcend(filename, ".geom"))
+		type = GL_GEOMETRY_SHADER;
     else
         throw shader_exception("unknown shader " + filename);
 

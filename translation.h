@@ -96,6 +96,8 @@ enum string {
 
 	map_straight,
 	map_divert,
+	map_open,
+	map_close,
 	map_obstacle_insert,
 	map_obstacle_remove,
 

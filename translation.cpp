@@ -107,6 +107,8 @@ init() {
 
 	    "Straight |",
 	    "Divert /",
+	    "Open |",
+	    "Close -",
 	    "Insert obstacle:",
 	    "Delete obstacle",
 
@@ -308,6 +310,8 @@ init() {
 
 	    u8"Prosto |",
 	    u8"W bok /",
+	    u8"Otwórz |",
+	    u8"Zamknij -",
 	    u8"Wstaw przeszkodę:",
 	    u8"Usuń przeszkodę",
 

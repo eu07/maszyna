@@ -16,8 +16,11 @@ ui::map_panel::map_panel() : ui_panel(LOC_STR(ui_map), false)
 
 	gl::shader vert("map.vert");
 	gl::shader frag("map.frag");
-	gl::program *prog = new gl::program({vert, frag});
-	m_shader = std::unique_ptr<gl::program>(prog);
+	gl::shader poi_frag("map_poi.frag");
+	gl::shader poi_geom("map_poi.geom");
+	m_track_shader = std::unique_ptr<gl::program>(new gl::program({vert, frag}));
+	m_poi_shader = std::unique_ptr<gl::program>(new gl::program({vert, poi_frag, poi_geom}));
+	m_icon_atlas = GfxRenderer.Fetch_Texture("map_icons");
 
 	m_tex = std::make_unique<opengl_texture>();
 	m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, fb_size, fb_size);
@@ -100,7 +103,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 		m_fb->bind();
 	}
 
-	m_shader->bind();
+	m_track_shader->bind();
 	glLineWidth(1.5f);
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
@@ -117,7 +120,10 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
 
-	glPointSize(5.0f);
+	GfxRenderer.Bind_Texture(0, m_icon_atlas);
+	m_poi_shader->bind();
+	scene_ubs.scene_extra = glm::vec3(1.0f / (surface_size / 200.0f), 1.0f);
+
 	scene_ubs.time = 1.0f;
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
@@ -126,7 +132,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 		m_fb->blit_from(m_msaa_fb.get(), surface_size.x, surface_size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 
 	gl::framebuffer::unbind();
-	m_shader->unbind();
+	gl::program::unbind();
 }
 
 void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 surface_size)
@@ -285,9 +291,9 @@ void ui::handle_map_object_click(ui_panel &parent, std::shared_ptr<map::map_obje
 	{
 		parent.register_popup(std::make_unique<semaphore_window>(parent, std::move(sem)));
 	}
-	else if (auto track = std::dynamic_pointer_cast<map::track_switch>(obj))
+	else if (auto track = std::dynamic_pointer_cast<map::launcher>(obj))
 	{
-		parent.register_popup(std::make_unique<switch_window>(parent, std::move(track)));
+		parent.register_popup(std::make_unique<launcher_window>(parent, std::move(track)));
 	}
 	else if (auto obstacle = std::dynamic_pointer_cast<map::obstacle>(obj))
 	{
@@ -411,21 +417,29 @@ void ui::semaphore_window::render_content()
 	}
 }
 
-ui::switch_window::switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw) : popup(panel), m_switch(sw) {}
+ui::launcher_window::launcher_window(ui_panel &panel, std::shared_ptr<map::launcher> &&sw) : popup(panel), m_switch(sw) {}
 
-void ui::switch_window::render_content()
+void ui::launcher_window::render_content()
 {
 	ImGui::TextUnformatted(m_switch->name.c_str());
 
-	if (ImGui::Button(LOC_STR(map_straight)))
+	const std::string &open_label = locale::strings[
+	        m_switch->type == map::launcher::track_switch
+	        ? locale::string::map_straight : locale::string::map_open];
+
+	const std::string &close_label = locale::strings[
+	        m_switch->type == map::launcher::track_switch
+	        ? locale::string::map_divert : locale::string::map_close];
+
+	if (ImGui::Button(open_label.c_str()))
 	{
-		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->straight_event->name());
+		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->first_event->name());
 		ImGui::CloseCurrentPopup();
 	}
 
-	if (ImGui::Button(LOC_STR(map_divert)))
+	if (ImGui::Button(close_label.c_str()))
 	{
-		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->divert_event->name());
+		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->second_event->name());
 		ImGui::CloseCurrentPopup();
 	}
 }
@@ -473,11 +487,12 @@ void ui::obstacle_insert_window::render_content()
 			obstacle->name = entry.first;
 			obstacle->location = m_position;
 			obstacle->model_name = name;
-			map::Objects.entries.push_back(std::move(obstacle));
 
 			std::vector<gfx::basic_vertex> vertices;
-			vertices.emplace_back((glm::vec3)m_position, glm::vec3(), glm::vec3());
+			vertices.emplace_back(std::move(obstacle->vertex()));
 			GfxRenderer.Append(vertices, simulation::Region->get_map_poi_geometry(), GL_POINTS);
+
+			map::Objects.entries.push_back(std::move(obstacle));
 
 			ImGui::CloseCurrentPopup();
 		}

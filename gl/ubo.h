@@ -37,8 +37,8 @@ namespace gl
     {
         glm::mat4 projection;
         glm::mat4 lightview;
+		glm::vec3 scene_extra;
         float time;
-        UBS_PAD(12);
     };
 
     static_assert(sizeof(scene_ubs) == 144, "bad size of ubs");

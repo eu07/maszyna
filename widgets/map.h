@@ -31,13 +31,13 @@ class semaphore_window : public popup
 	virtual void render_content() override;
 };
 
-class switch_window : public popup
+class launcher_window : public popup
 {
-	std::shared_ptr<map::track_switch> m_switch;
+	std::shared_ptr<map::launcher> m_switch;
 	command_relay m_relay;
 
   public:
-	switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw);
+	launcher_window(ui_panel &panel, std::shared_ptr<map::launcher> &&sw);
 
 	virtual void render_content() override;
 };
@@ -67,9 +67,11 @@ class obstacle_remove_window : public popup
 
 class map_panel : public ui_panel
 {
-	std::unique_ptr<gl::program> m_shader;
+	std::unique_ptr<gl::program> m_track_shader;
+	std::unique_ptr<gl::program> m_poi_shader;
 	std::unique_ptr<gl::framebuffer> m_msaa_fb;
 	std::unique_ptr<gl::renderbuffer> m_msaa_rb;
+	texture_handle m_icon_atlas;
 
 	std::unique_ptr<gl::framebuffer> m_fb;
 	std::unique_ptr<opengl_texture> m_tex;

@@ -6,7 +6,7 @@
 #include "Train.h"
 
 ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
-    : ui_panel(std::string(LOC_STR(vehicleparams_window)) + ": " + vehicle, false), m_vehicle_name(vehicle)
+    : ui_panel(std::string(locale::strings[locale::string::vehicleparams_window]) + ": " + vehicle, false), m_vehicle_name(vehicle)
 {
 
 }

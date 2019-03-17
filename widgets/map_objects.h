@@ -13,6 +13,9 @@ struct map_object
 	glm::vec3 location;
 
 	virtual ~map_object() = default;
+	virtual gfx::basic_vertex vertex() {
+		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.0f, 0.25f));
+	}
 };
 
 using object_list = std::vector<std::shared_ptr<map::map_object>>;
@@ -22,21 +25,38 @@ using sorted_object_list = std::map<float, std::shared_ptr<map::map_object>>;
 struct semaphore : public map_object
 {
 	std::vector<TAnimModel *> models;
-
 	std::vector<basic_event *> events;
+
+	virtual gfx::basic_vertex vertex() override {
+		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.0f, 0.25f));
+	}
 };
 
-// switch description (only for minimap purposes)
-struct track_switch : public map_object
+// event launcher description (only for minimap purposes)
+struct launcher : public map_object
 {
-	basic_event *straight_event = nullptr;
-	basic_event *divert_event = nullptr;
+	basic_event *first_event = nullptr;
+	basic_event *second_event = nullptr;
+
+	enum type_e {
+		track_switch,
+		level_crossing
+	} type;
+
+	virtual gfx::basic_vertex vertex() {
+		return gfx::basic_vertex(location, glm::vec3(),
+		    type == track_switch ? glm::vec2(0.25f, 0.5f) : glm::vec2(0.5f, 0.75f));
+	}
 };
 
 // training obstacle description
 struct obstacle : public map_object
 {
 	std::string model_name;
+
+	virtual gfx::basic_vertex vertex() {
+		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.75f, 1.0f));
+	}
 };
 
 struct objects

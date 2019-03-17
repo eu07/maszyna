@@ -1718,7 +1718,7 @@ void basic_region::update_poi_geometry()
 {
 	std::vector<gfx::basic_vertex> vertices;
 	for (const auto sem : map::Objects.entries)
-		vertices.push_back(gfx::basic_vertex(sem->location, glm::vec3(), glm::vec3()));
+		vertices.push_back(std::move(sem->vertex()));
 
 	if (!m_map_poipoints) {
 		gfx::geometrybank_handle poibank = GfxRenderer.Create_Bank();

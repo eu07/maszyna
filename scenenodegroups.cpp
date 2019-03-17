@@ -89,13 +89,20 @@ node_groups::update_map()
 				if (!launcher || !launcher->Event1 || !launcher->Event2)
 					continue;
 
-				auto track_switch = std::make_shared<map::track_switch>();
-				map::Objects.entries.push_back(track_switch);
+				auto map_launcher = std::make_shared<map::launcher>();
+				map::Objects.entries.push_back(map_launcher);
 
-				track_switch->location = node->location();
-				track_switch->name = node->name();
-				track_switch->straight_event = launcher->Event1;
-				track_switch->divert_event = launcher->Event2;
+				map_launcher->location = node->location();
+				map_launcher->name = node->name();
+				map_launcher->first_event = launcher->Event1;
+				map_launcher->second_event = launcher->Event2;
+				if (map_launcher->name.empty())
+					map_launcher->name = launcher->Event1->name();
+
+				if (launcher->Event1->name().find_first_of("-+:") != std::string::npos)
+					map_launcher->type = map::launcher::track_switch;
+				else
+					map_launcher->type = map::launcher::level_crossing;
 			}
 		}
 	}
