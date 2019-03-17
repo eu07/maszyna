@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "widgets/popup.h"
 
 ui::popup::popup(ui_panel &panel) : m_parent(panel) {}

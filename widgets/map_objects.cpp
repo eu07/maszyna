@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "widgets/map_objects.h"
 
 map::objects map::Objects;

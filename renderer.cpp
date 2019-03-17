@@ -3901,6 +3901,9 @@ bool opengl_renderer::Init_caps()
 
 		if (GLAD_GL_EXT_clip_control)
 			WriteLog("EXT_clip_control supported!");
+
+		if (GLAD_GL_EXT_geometry_shader)
+			WriteLog("EXT_geometry_shader supported!");
 	}
 
 	glGetError();

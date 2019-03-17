@@ -202,6 +202,17 @@ void gl::shader::log_error(const std::string &str)
 gl::shader::shader(const std::string &filename)
 {
     name = filename;
+
+	GLuint type;
+	if (strcend(filename, ".vert"))
+		type = GL_VERTEX_SHADER;
+	else if (strcend(filename, ".frag"))
+		type = GL_FRAGMENT_SHADER;
+	else if (strcend(filename, ".geom"))
+		type = GL_GEOMETRY_SHADER;
+	else
+		throw shader_exception("unknown shader " + filename);
+
     std::string str;
     if (!Global.gfx_usegles)
     {
@@ -209,7 +220,13 @@ gl::shader::shader(const std::string &filename)
     }
     else
     {
-        str += "#version 300 es\n";
+		if (type == GL_GEOMETRY_SHADER) {
+			str += "#version 310 es\n";
+			str += "#extension EXT_geometry_shader : require\n";
+		}
+		else {
+			str += "#version 300 es\n";
+		}
         str += "precision highp float;\n";
         str += "precision highp sampler2DShadow;\n";
     }
@@ -222,16 +239,6 @@ gl::shader::shader(const std::string &filename)
 
     if (!cstr[0])
         throw shader_exception("cannot read shader: " + filename);
-
-    GLuint type;
-    if (strcend(filename, ".vert"))
-        type = GL_VERTEX_SHADER;
-    else if (strcend(filename, ".frag"))
-        type = GL_FRAGMENT_SHADER;
-	else if (strcend(filename, ".geom"))
-		type = GL_GEOMETRY_SHADER;
-    else
-        throw shader_exception("unknown shader " + filename);
 
     **this = glCreateShader(type);
     glShaderSource(*this, 1, &cstr, 0);
