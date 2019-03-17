@@ -4108,9 +4108,14 @@ TController::UpdateSituation(double dt) {
     // TODO: check if this situation still happens and the hack is still needed
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->Doors.close_control != control_t::driver )
-     && ( mvControlling->MainCtrlPos > ( mvControlling->EngineType != TEngineType::DieselEngine ? 0 : 1 ) ) ) { // for diesel 1st position is effectively 0
-        Doors( false );
+     && ( mvOccupied->Doors.close_control != control_t::driver ) ) {
+        // for diesel engines react when engine is put past idle revolutions
+        // for others straightforward master controller check
+        if( ( mvControlling->EngineType == TEngineType::DieselEngine ?
+                mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 :
+                mvControlling->MainCtrlPos > 0 ) ) {
+            Doors( false );
+        }
     }
 
     // basic situational ai operations

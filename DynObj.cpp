@@ -4066,7 +4066,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbBufferClamp
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }
@@ -4091,7 +4091,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbCouplerStretch
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }
