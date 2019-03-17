@@ -633,6 +633,7 @@ private:
     void DestinationSet(std::string to, std::string numer);
     void OverheadTrack(float o);
 	glm::dvec3 get_future_movement() const;
+	void move_set(double distance);
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

@@ -18,7 +18,7 @@ ui::map_panel::map_panel() : ui_panel(LOC_STR(ui_map), false)
 	gl::shader frag("map.frag");
 
 	m_track_shader = std::unique_ptr<gl::program>(new gl::program({vert, frag}));
-	if (GLAD_GL_EXT_geometry_shader) {
+	if (!Global.gfx_usegles || GLAD_GL_EXT_geometry_shader) {
 		gl::shader poi_frag("map_poi.frag");
 		gl::shader poi_geom("map_poi.geom");
 		m_poi_shader = std::unique_ptr<gl::program>(new gl::program({vert, poi_frag, poi_geom}));
@@ -123,7 +123,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
 
-	if (GLAD_GL_EXT_geometry_shader) {
+	if (!Global.gfx_usegles || GLAD_GL_EXT_geometry_shader) {
 		GfxRenderer.Bind_Texture(0, m_icon_atlas);
 		m_poi_shader->bind();
 		scene_ubs.scene_extra = glm::vec3(1.0f / (surface_size / 200.0f), 1.0f);

@@ -3507,6 +3507,20 @@ glm::dvec3 TDynamicObject::get_future_movement() const
 	return m_future_movement;
 }
 
+void TDynamicObject::move_set(double distance)
+{
+	TDynamicObject *d = this;
+	while( d ) {
+		d->Move( distance * d->DirectionGet() );
+		d = d->Next(); // pozostałe też
+	    }
+	d = Prev();
+	while( d ) {
+		d->Move( distance * d->DirectionGet() );
+		d = d->Prev(); // w drugą stronę też
+	}
+}
+
 bool TDynamicObject::FastUpdate(double dt)
 {
     if (dt == 0.0)

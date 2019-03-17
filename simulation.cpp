@@ -203,6 +203,12 @@ void state_manager::process_commands() {
 			}
 		}
 
+		if (commanddata.command == user_command::dynamicmove) {
+			TDynamicObject *vehicle = simulation::Vehicles.find(commanddata.payload);
+			if (vehicle)
+				vehicle->move_set(commanddata.param1);
+		}
+
 		if (DebugModeFlag) {
 			if (commanddata.command == user_command::timejump) {
 				Time.update(commanddata.param1);

@@ -230,7 +230,6 @@ enum class user_command {
 	setdatetime,
 	setweather,
 	settemperature,
-	vehiclemove,
 	vehiclemoveforwards,
 	vehiclemovebackwards,
 	vehicleboost,
@@ -243,6 +242,7 @@ enum class user_command {
 	setlight,
 	insertmodel,
 	deletemodel,
+	dynamicmove,
 
     none = -1
 };

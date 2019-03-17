@@ -236,7 +236,6 @@ commanddescription_sequence Commands_descriptions = {
     { "setdatetime", command_target::simulation, command_mode::oneoff },
     { "setweather", command_target::simulation, command_mode::oneoff },
     { "settemperature", command_target::simulation, command_mode::oneoff },
-    { "vehiclemove", command_target::vehicle, command_mode::oneoff },
     { "vehiclemoveforwards", command_target::vehicle, command_mode::oneoff },
     { "vehiclemovebackwards", command_target::vehicle, command_mode::oneoff },
     { "vehicleboost", command_target::vehicle, command_mode::oneoff },
@@ -249,6 +248,7 @@ commanddescription_sequence Commands_descriptions = {
     { "setlight", command_target::simulation, command_mode::oneoff },
     { "insertmodel", command_target::simulation, command_mode::oneoff },
     { "deletemodel", command_target::simulation, command_mode::oneoff },
+    { "trainsetmove", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation

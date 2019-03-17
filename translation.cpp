@@ -117,6 +117,8 @@ init() {
 	    "Vehicle parameters",
 	    "Radiostop",
 	    "Reset trainset",
+	    "Move +500m",
+	    "Move -500m",
 
         "master controller",
         "master controller",
@@ -320,6 +322,8 @@ init() {
 	    u8"Parametry pojazdu",
 	    u8"Radiostop",
 	    u8"Zresetuj skład",
+	    u8"Przesuń +500m",
+	    u8"Przesuń -500m",
 
         u8"nastawnik jazdy",
         u8"nastawnik jazdy",

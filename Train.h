@@ -349,13 +349,9 @@ class TTrain
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
-	static void OnCommand_vehiclemove( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehiclemoveforwards( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
-
-	void vehiclemove(float distance);
-
 
 // members
     TDynamicObject *DynamicObject { nullptr }; // przestawia zmiana pojazdu [F5]
