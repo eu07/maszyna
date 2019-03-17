@@ -6135,8 +6135,8 @@ bool TMoverParameters::dizel_StartupCheck() {
 
     // test the fuel pump
     // TODO: add fuel pressure check
-    if( ( RList[ MainCtrlPos ].R == 0.0 )
-     || ( false == FuelPump.is_active ) ) {
+    if( ( false == FuelPump.is_active )
+     || ( ( EngineType == TEngineType::DieselEngine ) && ( RList[ MainCtrlPos ].R == 0.0 ) ) ) {
         engineisready = false;
 //        if( FuelPump.start_type == start_t::manual ) {
             // with manual pump control startup procedure is done only once per starter switch press
