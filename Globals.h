@@ -180,6 +180,7 @@ struct global_settings {
 	bool loading_log = true;
 	bool dds_upper_origin = false;
     bool captureonstart = true;
+	bool render_cab = true;
 
 	std::chrono::duration<float> minframetime {0.0f};
 

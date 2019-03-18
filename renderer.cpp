@@ -2280,6 +2280,8 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha)
 {
+	if (!Global.render_cab)
+		return false;
 
 	if (Dynamic == nullptr)
 	{
