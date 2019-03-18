@@ -52,7 +52,7 @@ void python_screen_viewer::threadfunc()
 	for (auto &window : m_windows) {
 		glfwMakeContextCurrent(window.window);
 
-		glfwSwapInterval(1);
+		glfwSwapInterval(Global.python_vsync ? 1 : 0);
 		GLuint v;
 		glGenVertexArrays(1, &v);
 		glBindVertexArray(v);

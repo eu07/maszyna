@@ -480,9 +480,17 @@ eu07_application::window( int const Windowindex, bool visible, int width, int he
     }
     // for index -1 create a new child window
 
+	auto const *vmode { glfwGetVideoMode( monitor ? monitor : glfwGetPrimaryMonitor() ) };
+
+	glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
+	glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
+	glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
+	glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+
 	glfwWindowHint( GLFW_VISIBLE, visible );
 
-	auto *childwindow = glfwCreateWindow( width, height, "eu07helper", monitor, m_windows.front() );
+	auto *childwindow = glfwCreateWindow( width, height, "eu07helper", monitor,
+	                                      !m_windows.empty() ? m_windows.front() : nullptr);
 	if (!childwindow)
 		return nullptr;
 
@@ -620,15 +628,6 @@ eu07_application::init_glfw() {
 	}
 
 	auto *monitor { find_monitor(Global.fullscreen_monitor) };
-	if (!monitor)
-		monitor = glfwGetPrimaryMonitor();
-
-    auto const *vmode { glfwGetVideoMode( monitor ) };
-
-    glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
-    glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
-    glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
-    glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
@@ -653,22 +652,14 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
-    auto *window {
-        glfwCreateWindow(
-            Global.iWindowWidth,
-            Global.iWindowHeight,
-            Global.AppName.c_str(),
-            ( Global.bFullScreen ?
-                monitor :
-                nullptr ),
-            nullptr ) };
+	auto *win = window(-1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr);
 
-    if( window == nullptr ) {
+	if( win == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );
         return -1;
     }
 
-    glfwMakeContextCurrent( window );
+	glfwMakeContextCurrent( win );
     glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
 
 #ifdef _WIN32
@@ -682,12 +673,10 @@ eu07_application::init_glfw() {
 	if (Global.captureonstart)
 	{
 		Global.ControlPicking = false;
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 	else
 		Global.ControlPicking = true;
-
-    m_windows.emplace_back( window );
 
     return 0;
 }

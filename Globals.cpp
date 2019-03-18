@@ -796,6 +796,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_threadedupload;
 		}
+		else if (token == "python.vsync")
+		{
+			Parser.getTokens(1);
+			Parser >> python_vsync;
+		}
 		else if (token == "python.mipmaps")
 		{
 			Parser.getTokens(1);
