@@ -660,7 +660,6 @@ eu07_application::init_glfw() {
     }
 
 	glfwMakeContextCurrent( win );
-    glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages

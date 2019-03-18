@@ -311,6 +311,8 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 
 	WriteLog("init viewport: " + std::to_string(vp.width) + ", " + std::to_string(vp.height));
 
+	glfwSwapInterval( Global.VSync ? 1 : 0 );
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
