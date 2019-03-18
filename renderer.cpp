@@ -3674,35 +3674,14 @@ void opengl_renderer::Update(double const Deltatime)
 	m_framerate = 1000.f / (Timer::subsystem.mainloop_total.average());
 
 	// adjust draw ranges etc, based on recent performance
-	auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
+	// TODO: it doesn't make much sense with vsync
 
-	float targetfactor;
-	if (framerate > 90.0)
-	{
-		targetfactor = 3.0f;
-	}
-	else if (framerate > 60.0)
-	{
-		targetfactor = 1.5f;
-	}
-	else if (framerate > 30.0)
-	{
-		targetfactor = 1.25;
-	}
-	else
-	{
-		targetfactor = std::max(Global.iWindowHeight / 768.f, 1.f);
-	}
-
-	if (targetfactor > Global.fDistanceFactor)
-	{
-
-		Global.fDistanceFactor = std::min(targetfactor, Global.fDistanceFactor + 0.05f);
-	}
-	else if (targetfactor < Global.fDistanceFactor)
-	{
-
-		Global.fDistanceFactor = std::max(targetfactor, Global.fDistanceFactor - 0.05f);
+	if (Global.targetfps != 0.0f) {
+		float fps_diff = Global.targetfps - m_framerate;
+		if (fps_diff > 0.0f)
+			Global.fDistanceFactor = std::max(0.5f, Global.fDistanceFactor - 0.05f);
+		else
+			Global.fDistanceFactor = std::min(3.0f, Global.fDistanceFactor + 0.05f);
 	}
 
 	if ((true == Global.ResourceSweep) && (true == simulation::is_ready))

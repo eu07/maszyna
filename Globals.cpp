@@ -75,10 +75,19 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "heightbase")
         {
-
             Parser.getTokens(1, false);
             Parser >> fDistanceFactor;
         }
+		else if (token == "targetfps")
+		{
+			Parser.getTokens(1, false);
+			Parser >> targetfps;
+		}
+		else if (token == "basedrawrange")
+		{
+			Parser.getTokens(1);
+			Parser >> BaseDrawRange;
+		}
         else if (token == "fullscreen")
         {
             Parser.getTokens();
