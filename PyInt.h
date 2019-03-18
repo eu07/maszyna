@@ -68,25 +68,43 @@ struct dictionary_source {
     inline void insert( std::string const &Key, std::string const Value ) { strings.emplace_back( Key, Value ); }
 };
 
+// python rendertarget
+struct python_rt {
+	std::mutex mutex;
+
+	GLuint shared_tex;
+
+	int format;
+	int components;
+	int width;
+	int height;
+	unsigned char *image = nullptr;
+
+	~python_rt() {
+		if (image)
+			delete[] image;
+	}
+};
+
 // TODO: extract common base and inherit specialization from it
 class render_task {
 
 public:
 // constructors
-    render_task( PyObject *Renderer, dictionary_source *Input, GLuint Target ) :
+	render_task( PyObject *Renderer, dictionary_source *Input, std::shared_ptr<python_rt> Target ) :
         m_renderer( Renderer ), m_input( Input ), m_target( Target )
     {}
 // methods
 	void run();
 	void upload();
     void cancel();
-    auto target() const -> texture_handle { return m_target; }
+	auto target() const -> std::shared_ptr<python_rt> { return m_target; }
 
 private:
 // members
     PyObject *m_renderer {nullptr};
     dictionary_source *m_input { nullptr };
-    GLuint m_target { 0 };
+	std::shared_ptr<python_rt> m_target { nullptr };
 
 	unsigned char *m_image = nullptr;
 	int m_width, m_height;
@@ -101,7 +119,7 @@ public:
 
         std::string const &renderer;
         dictionary_source *input;
-        GLuint target;
+		std::shared_ptr<python_rt> target;
     };
 // constructors
     python_taskqueue() = default;

@@ -78,7 +78,7 @@ public:
 	    on_focus_change(bool focus);
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
-	    window(int const Windowindex = 0 , bool visible = false, int width = 1, int height = 1, GLFWmonitor *monitor = nullptr, bool keep_ownership = true);
+	    window(int const Windowindex = 0 , bool visible = false, int width = 1, int height = 1, GLFWmonitor *monitor = nullptr, bool keep_ownership = true, bool share_ctx = true);
 	GLFWmonitor *
 	    find_monitor(const std::string &str);
 	// generate network sync verification number

@@ -6995,11 +6995,14 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 					                        DynamicObject->asBaseDir + renderername :
 					                        renderername };
 
+				auto rt = std::make_shared<python_rt>();
+				rt->shared_tex = tex->id;
+
                 // record renderer and material binding for future update requests
-				m_screens.emplace_back(rendererpath, tex->id, nullptr);
+				m_screens.emplace_back(rendererpath, rt, nullptr);
 
 				if (Global.python_displaywindows)
-					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(tex->id, rendererpath);
+					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(rt, rendererpath);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

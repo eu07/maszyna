@@ -100,7 +100,7 @@ class TTrain
         float hv_voltage;
         std::array<float, 3> hv_current;
     };
-	typedef std::tuple<std::string, GLuint, std::unique_ptr<python_screen_viewer>> screen_entry;
+	typedef std::tuple<std::string, std::shared_ptr<python_rt>, std::unique_ptr<python_screen_viewer>> screen_entry;
 	typedef std::vector<screen_entry> screen_map;
 
 // methods
@@ -672,7 +672,7 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
 	screen_map m_screens;
-	uint16_t vid { 0 };
+	uint16_t vid { 0 }; // train network recipient id
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

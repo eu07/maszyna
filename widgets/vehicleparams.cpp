@@ -35,7 +35,7 @@ void ui::vehicleparams_panel::render_contents()
 				glm::vec2 uv0 = glm::vec2(proj * glm::vec3(0.0f, 1.0f, 1.0f));
 				glm::vec2 uv1 = glm::vec2(proj * glm::vec3(1.0f, 0.0f, 1.0f));
 
-				ImGui::Image(reinterpret_cast<void*>(std::get<GLuint>(entry)), ImVec2(500, 500 * aspect), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+				ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), ImVec2(500, 500 * aspect), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
 			}
 		}
 	}

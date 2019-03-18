@@ -45,7 +45,7 @@ void render_task::run() {
         // upload texture data
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr )
-         && m_target != -1) {
+		 && m_target) {
 			m_width = PyInt_AsLong( outputwidth );
 			m_height = PyInt_AsLong( outputheight );
 
@@ -86,12 +86,28 @@ void render_task::upload()
 {
 	if (m_image)
 	{
-		glBindTexture(GL_TEXTURE_2D, m_target);
+		glBindTexture(GL_TEXTURE_2D, m_target->shared_tex);
 		glTexImage2D(
 		    GL_TEXTURE_2D, 0,
 		    m_format,
 		    m_width, m_height, 0,
 		    m_components, GL_UNSIGNED_BYTE, m_image);
+
+		{
+			std::lock_guard<std::mutex> guard(m_target->mutex);
+			if (m_target->image)
+				delete[] m_target->image;
+
+			size_t size = m_width * m_height * (m_components == GL_RGB ? 3 : 4);
+			m_target->image = new unsigned char[size];
+
+			memcpy(m_target->image, m_image, size);
+
+			m_target->width = m_width;
+			m_target->height = m_height;
+			m_target->components = m_components;
+			m_target->format = m_format;
+		}
 
 		delete[] m_image;
 

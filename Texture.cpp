@@ -278,7 +278,10 @@ opengl_texture::make_request() {
         }
     }
 
-    Application.request( { ToLower( components.front() ), dictionary, id } );
+	auto rt = std::make_shared<python_rt>();
+	rt->shared_tex = id;
+
+	Application.request( { ToLower( components.front() ), dictionary, rt } );
 }
 
 void

@@ -470,7 +470,7 @@ void eu07_application::on_focus_change(bool focus) {
 }
 
 GLFWwindow *
-eu07_application::window( int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership ) {
+eu07_application::window(int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership , bool share_ctx) {
 
     if( Windowindex >= 0 ) {
         return (
@@ -489,8 +489,8 @@ eu07_application::window( int const Windowindex, bool visible, int width, int he
 
 	glfwWindowHint( GLFW_VISIBLE, visible );
 
-	auto *childwindow = glfwCreateWindow( width, height, "eu07helper", monitor,
-	                                      !m_windows.empty() ? m_windows.front() : nullptr);
+	auto *childwindow = glfwCreateWindow( width, height, "eu07window", monitor,
+	                                      share_ctx ? m_windows.front() : nullptr);
 	if (!childwindow)
 		return nullptr;
 
@@ -652,7 +652,7 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
-	auto *win = window(-1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr);
+	auto *win = window(-1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false);
 
 	if( win == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );

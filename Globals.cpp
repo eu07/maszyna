@@ -796,6 +796,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_threadedupload;
 		}
+		else if (token == "python.sharectx")
+		{
+			Parser.getTokens(1);
+			Parser >> python_sharectx;
+		}
 		else if (token == "python.vsync")
 		{
 			Parser.getTokens(1);
