@@ -2260,7 +2260,8 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 	if (Battery) {
 		SecuritySystem.update(dt, Vel);
     }
-	else
+
+	if (!Battery || !Radio)
     { // wyłączenie baterii deaktywuje sprzęt
 		RadiostopSwitch(false);
     }

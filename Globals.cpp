@@ -854,6 +854,7 @@ global_settings::ConfigParse(cParser &Parser) {
 
 			extraviewport_config conf;
 			Parser >> conf.monitor >> conf.width >> conf.height;
+			Parser >> conf.draw_range;
 			for (size_t i = 0; i < 16; i++)
 				Parser >> conf.transform[i / 4][i % 4];
 

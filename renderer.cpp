@@ -166,6 +166,7 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	default_viewport.height = Global.gfx_framebuffer_height;
 	default_viewport.main = true;
 	default_viewport.window = m_window;
+	default_viewport.draw_range = 1.0f;
 
 	if (!init_viewport(default_viewport))
 		return false;
@@ -297,6 +298,7 @@ bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &c
 	vp.height = conf.height;
 	vp.window = Application.window(-1, true, vp.width, vp.height, Application.find_monitor(conf.monitor));
 	vp.camera_transform = conf.transform;
+	vp.draw_range = conf.draw_range;
 
 	bool ret = init_viewport(vp);
 	glfwMakeContextCurrent(m_window);
@@ -1051,6 +1053,9 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 		break;
 	}
 	}
+
+	Config.draw_range *= Viewport.draw_range;
+
 	// setup camera
 	auto &camera = Config.pass_camera;
 

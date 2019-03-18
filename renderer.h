@@ -241,6 +241,8 @@ class opengl_renderer
 		int width;
 		int height;
 
+		float draw_range;
+
 		bool main = false;
 		GLFWwindow *window = nullptr;
 
