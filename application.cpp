@@ -664,7 +664,7 @@ eu07_application::init_glfw() {
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages
-    Hwnd = glfwGetWin32Window( window );
+	Hwnd = glfwGetWin32Window( win );
     BaseWindowProc = ( WNDPROC )::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
