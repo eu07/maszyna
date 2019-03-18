@@ -188,7 +188,8 @@ struct global_settings {
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;
 	bool python_vsync = true;
-	bool python_sharectx = false;
+	bool python_sharectx = true;
+	std::chrono::duration<float> python_minframetime {0.01f};
 
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;

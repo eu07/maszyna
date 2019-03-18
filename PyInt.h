@@ -80,6 +80,8 @@ struct python_rt {
 	int height;
 	unsigned char *image = nullptr;
 
+	std::chrono::high_resolution_clock::time_point timestamp;
+
 	~python_rt() {
 		if (image)
 			delete[] image;
@@ -105,10 +107,6 @@ private:
     PyObject *m_renderer {nullptr};
     dictionary_source *m_input { nullptr };
 	std::shared_ptr<python_rt> m_target { nullptr };
-
-	unsigned char *m_image = nullptr;
-	int m_width, m_height;
-	GLenum m_components, m_format;
 };
 
 class python_taskqueue {

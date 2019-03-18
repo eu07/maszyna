@@ -46,35 +46,47 @@ void render_task::run() {
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr )
 		 && m_target) {
-			m_width = PyInt_AsLong( outputwidth );
-			m_height = PyInt_AsLong( outputheight );
+			int width = PyInt_AsLong( outputwidth );
+			int height = PyInt_AsLong( outputheight );
+			int components, format;
 
             const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
+
+			std::lock_guard<std::mutex> guard(m_target->mutex);
+			if (m_target->image)
+				delete[] m_target->image;
+
 			if (!Global.gfx_usegles)
 			{
-				int size = m_width * m_height * 3;
-				m_format = GL_SRGB8;
-				m_components = GL_RGB;
-				m_image = new unsigned char[size];
-				memcpy(m_image, image, size);
+				int size = width * height * 3;
+				format = GL_SRGB8;
+				components = GL_RGB;
+				m_target->image = new unsigned char[size];
+				memcpy(m_target->image, image, size);
 			}
 			else
 			{
-				m_format = GL_SRGB8_ALPHA8;
-				m_components = GL_RGBA;
-				m_image = new unsigned char[m_width * m_height * 4];
+				format = GL_SRGB8_ALPHA8;
+				components = GL_RGBA;
+				m_target->image = new unsigned char[width * height * 4];
 
-				int w = m_width;
-				int h = m_height;
+				int w = width;
+				int h = height;
 				for (int y = 0; y < h; y++)
 					for (int x = 0; x < w; x++)
 					{
-						m_image[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
-						m_image[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
-						m_image[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
-						m_image[(y * w + x) * 4 + 3] = 0xFF;
+						m_target->image[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
+						m_target->image[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
+						m_target->image[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
+						m_target->image[(y * w + x) * 4 + 3] = 0xFF;
 					}
 			}
+
+			m_target->width = width;
+			m_target->height = height;
+			m_target->components = components;
+			m_target->format = format;
+			m_target->timestamp = std::chrono::high_resolution_clock::now();
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
         if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
@@ -84,32 +96,14 @@ void render_task::run() {
 
 void render_task::upload()
 {
-	if (m_image)
+	if (m_target->image)
 	{
 		glBindTexture(GL_TEXTURE_2D, m_target->shared_tex);
 		glTexImage2D(
 		    GL_TEXTURE_2D, 0,
-		    m_format,
-		    m_width, m_height, 0,
-		    m_components, GL_UNSIGNED_BYTE, m_image);
-
-		{
-			std::lock_guard<std::mutex> guard(m_target->mutex);
-			if (m_target->image)
-				delete[] m_target->image;
-
-			size_t size = m_width * m_height * (m_components == GL_RGB ? 3 : 4);
-			m_target->image = new unsigned char[size];
-
-			memcpy(m_target->image, m_image, size);
-
-			m_target->width = m_width;
-			m_target->height = m_height;
-			m_target->components = m_components;
-			m_target->format = m_format;
-		}
-
-		delete[] m_image;
+		    m_target->format,
+		    m_target->width, m_target->height, 0,
+		    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
 
 		if (Global.python_mipmaps)
 		{

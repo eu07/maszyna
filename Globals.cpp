@@ -801,6 +801,13 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> python_sharectx;
 		}
+		else if (token == "python.fpslimit")
+		{
+			Parser.getTokens(1);
+			float fpslimit;
+			Parser >> fpslimit;
+			python_minframetime = std::chrono::duration<float>(1.0f / fpslimit);
+		}
 		else if (token == "python.vsync")
 		{
 			Parser.getTokens(1);

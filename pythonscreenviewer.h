@@ -14,6 +14,8 @@ class python_screen_viewer
 		std::unique_ptr<gl::ubo> ubo;
 		std::unique_ptr<gl::program> shader;
 
+		std::chrono::high_resolution_clock::time_point timestamp;
+
 		window_state() = default;
 		~window_state();
 	};
