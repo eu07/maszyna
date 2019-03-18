@@ -609,9 +609,6 @@ bool TMoverParameters::DirectionForward()
     {
         ++ActiveDir;
         DirAbsolute = ActiveDir * CabNo;
-        if (DirAbsolute)
-            if (Battery) // jeśli bateria jest już załączona
-                BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
         SendCtrlToNext("Direction", ActiveDir, CabNo);
         return true;
     }
@@ -2144,8 +2141,7 @@ bool TMoverParameters::CabActivisation(void)
     if (OK)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
-        DirAbsolute = ActiveDir * CabNo;
-		SecuritySystem.set_enabled(true);
+		DirAbsolute = ActiveDir * CabNo;
         SendCtrlToNext("CabActivisation", 1, CabNo);
     }
     return OK;
@@ -2164,8 +2160,7 @@ bool TMoverParameters::CabDeactivisation(void)
     {
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
-        DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
-		SecuritySystem.set_enabled(false);
+		DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
 
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
@@ -2250,11 +2245,10 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
 // hunter-091012: rozbicie alarmow, dodanie testu czuwaka
 void TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 {
-	if (TrainType != dt_EZT && ActiveDir == 0)
-		return; // Ra 2014-03: w EZT nie trzeba ustawiać kierunku
-
+	// reset all, used by AI
 	SecuritySystem.acknowledge_press();
 	SecuritySystem.acknowledge_release();
+	SecuritySystem.cabsignal_reset();
 }
 
 // *************************************************************************************************
@@ -2290,7 +2284,7 @@ bool TMoverParameters::BatterySwitch(bool State)
         SendCtrlToNext("BatterySwitch", 0, CabNo);
     BS = true;
 
-	SecuritySystem.set_enabled((Battery) && (ActiveCab != 0));
+	SecuritySystem.set_enabled(Battery);
 
     return BS;
 }
@@ -2332,9 +2326,6 @@ bool TMoverParameters::DirectionBackward(void)
         //    else
         ActiveDir--;
         DirAbsolute = ActiveDir * CabNo;
-        if (DirAbsolute != 0)
-            if (Battery) // jeśli bateria jest już załączona
-                BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
         DB = true;
         SendCtrlToNext("Direction", ActiveDir, CabNo);
     }
@@ -9750,7 +9741,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             Battery = true;
         else if ((CValue1 == 0))
             Battery = false;
-		SecuritySystem.set_enabled(((Battery) && (ActiveCab != 0)));
+		SecuritySystem.set_enabled(Battery);
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}

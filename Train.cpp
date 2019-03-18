@@ -1768,7 +1768,6 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
             if( Train->mvOccupied->LightsPosNo > 0 ) {
                 Train->SetLights();
             }
-			Train->mvOccupied->SecuritySystem.set_enabled(true); // Ra: znowu w kabinie jest coś, co być nie powinno!
         }
     }
 }
