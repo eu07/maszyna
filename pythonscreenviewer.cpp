@@ -143,7 +143,7 @@ void python_screen_viewer::threadfunc()
 		auto frametime = std::chrono::high_resolution_clock::now() - start_time;
 
 		if ((Global.python_minframetime - frametime).count() > 0.0f)
-			std::this_thread::sleep_for(Global.minframetime - frametime);
+			std::this_thread::sleep_for(Global.python_minframetime - frametime);
 	}
 }
 
