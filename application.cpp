@@ -628,6 +628,8 @@ eu07_application::init_glfw() {
 	}
 
 	auto *monitor { find_monitor(Global.fullscreen_monitor) };
+	if (!monitor)
+		monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
