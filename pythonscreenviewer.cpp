@@ -79,6 +79,32 @@ void python_screen_viewer::threadfunc()
 		auto start_time = std::chrono::high_resolution_clock::now();
 
 		for (auto &window : m_windows) {
+
+			unsigned char *image = nullptr;
+			int format, components, width, height;
+
+			if (!Global.python_sharectx) {
+				std::lock_guard<std::mutex> guard(m_rt->mutex);
+
+				if (window->timestamp == m_rt->timestamp)
+					continue;
+
+				window->timestamp = m_rt->timestamp;
+
+				if (!m_rt->image)
+					continue;
+
+				format = m_rt->format;
+				components = m_rt->components;
+				width = m_rt->width;
+				height = m_rt->height;
+
+				size_t size = width * height * (components == GL_RGB ? 3 : 4);
+
+				image = new unsigned char[size];
+				memcpy(image, m_rt->image, size);
+			}
+
 			glfwMakeContextCurrent(window->window);
 			gl::program::unbind();
 			gl::buffer::unbind();
@@ -89,32 +115,7 @@ void python_screen_viewer::threadfunc()
 			m_ubs.projection = glm::mat4(glm::mat3(glm::translate(glm::scale(glm::mat3(), 1.0f / window->scale), window->offset)));
 			window->ubo->update(m_ubs);
 
-			if (!Global.python_sharectx) {
-				unsigned char *image;
-				int format, components, width, height;
-
-				{
-					std::lock_guard<std::mutex> guard(m_rt->mutex);
-
-					if (window->timestamp == m_rt->timestamp)
-						continue;
-
-					if (!m_rt->image)
-						continue;
-
-					format = m_rt->format;
-					components = m_rt->components;
-					width = m_rt->width;
-					height = m_rt->height;
-
-					size_t size = width * height * (components == GL_RGB ? 3 : 4);
-
-					image = new unsigned char[size];
-					memcpy(image, m_rt->image, size);
-
-					window->timestamp = m_rt->timestamp;
-				}
-
+			if (image) {
 				glTexImage2D(
 				    GL_TEXTURE_2D, 0,
 				    format,
