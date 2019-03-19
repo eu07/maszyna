@@ -1591,6 +1591,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         Error("Parameters mismatch: dynamic object " + asName + " from \"" + BaseDir + "/" + Type_Name + "\"" );
         return 0.0; // zerowa długość to brak pojazdu
     }
+    // controller position
+    MoverParameters->MainCtrlPos = MoverParameters->MainCtrlZeroPos();
     // ustawienie pozycji hamulca
     MoverParameters->LocalBrakePosA = 0.0;
     if (driveractive)
@@ -2969,7 +2971,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				}
 				MEDLogTime += dt1;
 
-				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPos > 0))
+				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPowerPos() > 0))
 				{
 					MEDLogInactiveTime += dt1;
 				}

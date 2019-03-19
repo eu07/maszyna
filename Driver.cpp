@@ -1765,15 +1765,10 @@ void TController::Activation()
     if (iDirection)
     { // jeśli jest ustalony kierunek
         TDynamicObject *old = pVehicle, *d = pVehicle; // w tym siedzi AI
-        TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci
-        // poprzez nadpisanie
+        TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci poprzez nadpisanie
         auto const localbrakelevel { mvOccupied->LocalBrakePosA };
-        while (mvControlling->MainCtrlPos) // samo zapętlenie DecSpeed() nie wystarcza :/
-            DecSpeed(true); // wymuszenie zerowania nastawnika jazdy
-        while (mvOccupied->ActiveDir < 0)
-            mvOccupied->DirectionForward(); // kierunek na 0
-        while (mvOccupied->ActiveDir > 0)
-            mvOccupied->DirectionBackward();
+        ZeroSpeed();
+        ZeroDirection();
         if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag, ctrain_controll)) {
             mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
@@ -2396,7 +2391,7 @@ void TController::SetDriverPsyche()
     }
     if (mvControlling && mvOccupied)
     { // with Controlling do
-        if (mvControlling->MainCtrlPos < 3)
+        if (mvControlling->MainCtrlPowerPos() < 3)
             ReactionTime = mvControlling->InitialCtrlDelay + ReactionTime;
         if (mvOccupied->BrakeCtrlPos > 1)
             ReactionTime = 0.5 * ReactionTime;
@@ -2493,17 +2488,16 @@ bool TController::PrepareEngine()
         { // część wykonawcza dla sterowania przez komputer
             if (mvControlling->ConvOvldFlag)
             { // wywalił bezpiecznik nadmiarowy przetwornicy
-                while (DecSpeed(true))
-                    ; // zerowanie napędu
+                ZeroSpeed();
                 mvControlling->ConvOvldFlag = false; // reset nadmiarowego
             }
             else if (false == IsLineBreakerClosed) {
-                while (DecSpeed(true))
-                    ; // zerowanie napędu
+                ZeroSpeed();
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
-                    if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
-                        mvControlling->IncMainCtrl( 1 );
+                    while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 )
+                        && ( mvControlling->IncMainCtrl( 1 ) ) ) {
+                        ;
                     }
                 }
                 if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
@@ -2562,9 +2556,7 @@ bool TController::ReleaseEngine() {
         VelDesired = 0.0;
         AccDesired = std::min( AccDesired, -1.25 ); // hamuj solidnie
         ReactionTime = 0.1;
-        while( DecSpeed( true ) ) {
-            ; // zerowanie nastawników
-        }
+        ZeroSpeed();
         IncBrake();
         // don't bother with the rest until we're standing still
         return false;
@@ -2601,12 +2593,8 @@ bool TController::ReleaseEngine() {
                 ;
             }
         }
-        while( DecSpeed( true ) ) {
-            ; // zerowanie nastawników
-        }
-        // set direction to neutral
-        while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
-        while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+        ZeroSpeed();
+        ZeroDirection();
 
         // zamykanie drzwi
         mvOccupied->OperateDoors( side::right, false );
@@ -2948,7 +2936,7 @@ bool TController::IncSpeed()
                 return false; // to nici z ruszania
         }
         if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
-            if ((mvControlling->MainCtrlPos == 0) ||
+            if ((mvControlling->IsMainCtrlZero()) ||
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
@@ -3030,7 +3018,7 @@ bool TController::IncSpeed()
                             }
 
                             if( ( mvControlling->Im == 0 )
-                             && ( mvControlling->MainCtrlPos > 2 ) ) {
+                             && ( mvControlling->MainCtrlPowerPos() > 1 ) ) {
                                 // brak prądu na dalszych pozycjach
                                 // nie załączona lokomotywa albo wywalił nadmiarowy
                                 Need_TryAgain = true;
@@ -3098,6 +3086,24 @@ bool TController::IncSpeed()
     return OK;
 }
 
+void TController::ZeroSpeed( bool const Enforce ) {
+
+    while( DecSpeed( Enforce ) ) {
+        ;
+    }
+}
+
+void TController::ZeroMasterController( bool const Enforce ) {
+
+    // combined controller may be set to braking, i.e. position lower than neutral
+    auto const neutralposition { mvControlling->MainCtrlZeroPos() };
+    while( ( mvControlling->MainCtrlPos < neutralposition )
+        && ( DecBrake() ) ) {
+        ;
+    }
+    ZeroSpeed( Enforce );
+}
+
 bool TController::DecSpeed(bool force)
 { // zmniejszenie prędkości (ale nie hamowanie)
     bool OK = false; // domyślnie false, aby wyszło z pętli while
@@ -3107,20 +3113,20 @@ bool TController::DecSpeed(bool force)
         iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi jazdy
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
             if (mvControlling->MainCtrlPosNo > 0) // McZapkie-041003: wagon sterowniczy, np. EZT
-                mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+                mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         return false;
     case TEngineType::ElectricSeriesMotor:
         OK = mvControlling->DecScndCtrl(2); // najpierw bocznik na zero
         if (!OK)
-            OK = mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case TEngineType::Dumb:
     case TEngineType::DieselElectric:
         OK = mvControlling->DecScndCtrl(2);
         if (!OK)
-            OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
+            OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPowerPos() / 2));
         break;
 	case TEngineType::ElectricInductionMotor:
 		OK = DecSpeedEIM();
@@ -3139,12 +3145,14 @@ bool TController::DecSpeed(bool force)
             if (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0)
                 OK = mvControlling->DecMainCtrl(1);
         }
-        else
-            while ((mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0) &&
-                   (mvControlling->MainCtrlPos > 1))
-                OK = mvControlling->DecMainCtrl(1);
+        else {
+            while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 )
+                && ( mvControlling->MainCtrlPowerPos() > 1 ) ) {
+                OK = mvControlling->DecMainCtrl( 1 );
+            }
+        }
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
-            OK = mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 2 ? 2 : 1));
         break;
     }
     return OK;
@@ -3244,8 +3252,7 @@ void TController::SpeedSet()
         if( ( false == mvControlling->StLinFlag )
          && ( false == mvControlling->DelayCtrlFlag ) ) {
             // styczniki liniowe rozłączone    yBARC
-            while( DecSpeed() )
-                ; // zerowanie napędu
+            ZeroSpeed();
         }
         else if (Ready || (iDrivigFlags & movePress)) // o ile może jechać
             if (fAccGravity < -0.10) // i jedzie pod górę większą niż 10 promil
@@ -4113,7 +4120,7 @@ TController::UpdateSituation(double dt) {
         // for others straightforward master controller check
         if( ( mvControlling->EngineType == TEngineType::DieselEngine ?
                 mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 :
-                mvControlling->MainCtrlPos > 0 ) ) {
+                mvControlling->MainCtrlPowerPos() > 0 ) ) {
             Doors( false );
         }
     }
@@ -4176,7 +4183,7 @@ TController::UpdateSituation(double dt) {
                 // is moving
                 if( ( fOverhead2 >= 0.0 ) || iOverheadZero ) {
                     // jeśli jazda bezprądowa albo z opuszczonym pantografem
-                    while( DecSpeed( true ) ) { ; } // zerowanie napędu
+                    ZeroSpeed();
                 }
                 if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
                     // jazda z opuszczonymi pantografami
@@ -4272,7 +4279,7 @@ TController::UpdateSituation(double dt) {
         if( ( true == TestFlag( iDrivigFlags, moveStartHornNow ) )
          && ( true == Ready )
          && ( iEngineActive != 0 )
-         && ( mvControlling->MainCtrlPos > 0 ) ) {
+         && ( mvControlling->MainCtrlPowerPos() > 0 ) ) {
             // uruchomienie trąbienia przed ruszeniem
             fWarningDuration = 0.3; // czas trąbienia
             mvOccupied->WarningSignal = pVehicle->iHornWarning; // wysokość tonu (2=wysoki)
@@ -4792,7 +4799,7 @@ TController::UpdateSituation(double dt) {
                         // jeśli dociskanie w celu odczepienia
                         // 3. faza odczepiania.
                         SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                        if( ( mvControlling->MainCtrlPos > 0 )
+                        if( ( mvControlling->MainCtrlPowerPos() > 0 )
                          || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) {
                             // jeśli jazda
                             WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
@@ -4883,16 +4890,15 @@ TController::UpdateSituation(double dt) {
                     if (iDrivigFlags & movePress)
                 { // 4. faza odczepiania: zwolnij i zmień kierunek
                     SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
-                    if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
-                    { // ponowna zmiana kierunku
-                        WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
-                        DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
-                        iDrivigFlags &= ~movePress; // koniec dociskania
-                        JumpToNextOrder(); // zmieni światła
-                        TableClear(); // skanowanie od nowa
-                        iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
-                        SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
-                    }
+                    ZeroSpeed();
+                    // ponowna zmiana kierunku
+                    WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
+                    DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
+                    iDrivigFlags &= ~movePress; // koniec dociskania
+                    JumpToNextOrder(); // zmieni światła
+                    TableClear(); // skanowanie od nowa
+                    iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
+                    SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
                 }
             }
 
@@ -5458,7 +5464,7 @@ TController::UpdateSituation(double dt) {
                 if( ( true == mvOccupied->RadioStopFlag ) // radio-stop
                  && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
                     // if the radio-stop was issued don't waste effort trying to fight it
-                    while( true == DecSpeed() ) { ; } // just throttle down...
+                    ZeroSpeed(); // just throttle down...
                     return; // ...and don't touch any other controls
                 }
 
@@ -5622,7 +5628,7 @@ TController::UpdateSituation(double dt) {
                 if( false == TestFlag( iDrivigFlags, movePress ) ) {
                     // jeśli nie dociskanie
                     if( AccDesired < -0.05 ) {
-                        while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
+                        ZeroSpeed();
                     }
                     else if( ( vel > VelDesired )
                           || ( fAccGravity < -0.01 ?
@@ -6411,21 +6417,35 @@ void TController::TakeControl(bool yes)
 
 void TController::DirectionForward(bool forward)
 { // ustawienie jazdy do przodu dla true i do tyłu dla false (zależy od kabiny)
-    while (mvControlling->MainCtrlPos) // samo zapętlenie DecSpeed() nie wystarcza
-        DecSpeed(true); // wymuszenie zerowania nastawnika jazdy, inaczej się może zawiesić
-    if (forward)
-        while (mvOccupied->ActiveDir <= 0)
-            mvOccupied->DirectionForward(); // do przodu w obecnej kabinie
-    else
-        while (mvOccupied->ActiveDir >= 0)
-            mvOccupied->DirectionBackward(); // do tyłu w obecnej kabinie
-    if( mvOccupied->TrainType == dt_SN61 ) {
-        // specjalnie dla SN61 żeby nie zgasł
-        if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
-            mvControlling->IncMainCtrl( 1 );
+    ZeroSpeed( true ); // TODO: check if force switch is needed anymore here
+    if( forward ) {
+        // do przodu w obecnej kabinie
+        while( ( mvOccupied->ActiveDir <= 0 )
+            && ( mvOccupied->DirectionForward() ) ) {
+            ; // all work is done in the header
         }
     }
-};
+    else {
+        // do tyłu w obecnej kabinie
+        while( ( mvOccupied->ActiveDir >= 0 )
+            && ( mvOccupied->DirectionBackward() ) ) {
+            ; // all work is done in the header
+        }
+    }
+    if( mvOccupied->TrainType == dt_SN61 ) {
+        // specjalnie dla SN61 żeby nie zgasł
+        while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 )
+            && ( mvControlling->IncMainCtrl( 1 ) ) ) {
+            ; // all work is done in the header
+        }
+    }
+}
+
+void TController::ZeroDirection() {
+
+    while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
+    while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+}
 
 Mtable::TTrainParameters const *
 TController::TrainTimetable() const {

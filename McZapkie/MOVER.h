@@ -1392,6 +1392,9 @@ public:
 	/*! glowny nastawnik:*/
 	bool IncMainCtrl(int CtrlSpeed);
 	bool DecMainCtrl(int CtrlSpeed);
+    bool IsMainCtrlZero() const;
+    int MainCtrlZeroPos() const;
+    int MainCtrlPowerPos() const;
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
