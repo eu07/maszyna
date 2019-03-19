@@ -571,7 +571,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			Timer::subsystem.gfx_shadows.start();
 
 			Render_pass(vp, rendermode::shadows);
-			if (!FreeFlyModeFlag)
+			if (!FreeFlyModeFlag && Global.render_cab)
 				Render_pass(vp, rendermode::cabshadows);
 			setup_pass(vp, m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
 
@@ -644,7 +644,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		// without rain/snow we can render the cab early to limit the overdraw
 		// precipitation happens when overcast is in 1-2 range
-		if (!FreeFlyModeFlag && Global.Overcast <= 1.0f)
+		if (!FreeFlyModeFlag && Global.Overcast <= 1.0f && Global.render_cab)
 		{
 			glDebug("render cab opaque");
 			if (Global.gfx_shadowmap_enabled)
@@ -672,7 +672,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		Render_precipitation();
 
 		// cab render
-		if (false == FreeFlyModeFlag)
+		if (false == FreeFlyModeFlag && Global.render_cab)
 		{
 			glDebug("render translucent cab");
 			model_ubs.future = glm::mat4();
@@ -2280,8 +2280,6 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha)
 {
-	if (!Global.render_cab)
-		return false;
 
 	if (Dynamic == nullptr)
 	{
