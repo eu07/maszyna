@@ -82,10 +82,6 @@ int DirF(int CouplerN)
 void TSecuritySystem::set_enabled(bool e) {
 	if (vigilance_enabled || cabsignal_enabled)
 		enabled = e;
-	if (enabled && cabsignal_enabled) {
-		cabsignal_active = true;
-		alert_timer = SoundSignalDelay;
-	}
 }
 
 void TSecuritySystem::acknowledge_press() {
@@ -105,8 +101,9 @@ void TSecuritySystem::acknowledge_press() {
 void TSecuritySystem::acknowledge_release() {
 	pressed = false;
 
+	if (press_timer > MaxHoldTime)
+		alert_timer = 0.0;
 	press_timer = 0.0;
-	alert_timer = 0.0;
 }
 
 void TSecuritySystem::cabsignal_reset() {
@@ -116,15 +113,22 @@ void TSecuritySystem::cabsignal_reset() {
 	}
 }
 
-void TSecuritySystem::update(double dt, double vel) {
-	if (!enabled) {
+void TSecuritySystem::update(double dt, double vel, bool pwr) {
+	if (!enabled || !pwr) {
 		cabsignal_active = false;
+		power = false;
 		vigilance_timer = 0.0;
 		alert_timer = 0.0;
 		press_timer = 0.0;
 		return;
 	}
 
+	if (!power && pwr && cabsignal_enabled) {
+		cabsignal_active = true;
+		alert_timer = SoundSignalDelay;
+	}
+
+	power = pwr;
 	velocity = vel;
 
 	if (vigilance_enabled && velocity > AwareMinSpeed)
@@ -2142,6 +2146,8 @@ bool TMoverParameters::CabActivisation(void)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
 		DirAbsolute = ActiveDir * CabNo;
+		SecuritySystem.set_enabled(true); // activate the alerter TODO: make it part of control based cab selection
+
         SendCtrlToNext("CabActivisation", 1, CabNo);
     }
     return OK;
@@ -2161,6 +2167,7 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
 		DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
+		SecuritySystem.set_enabled(false);
 
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
@@ -2257,9 +2264,7 @@ void TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 // *************************************************************************************************
 void TMoverParameters::SecuritySystemCheck(double dt)
 {
-	if (Battery) {
-		SecuritySystem.update(dt, Vel);
-    }
+	SecuritySystem.update(dt, Vel, Battery || ConverterFlag);
 
 	if (!Battery || !Radio)
     { // wyłączenie baterii deaktywuje sprzęt
@@ -2284,8 +2289,6 @@ bool TMoverParameters::BatterySwitch(bool State)
     else
         SendCtrlToNext("BatterySwitch", 0, CabNo);
     BS = true;
-
-	SecuritySystem.set_enabled(Battery);
 
     return BS;
 }
@@ -9741,8 +9744,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         if ((CValue1 == 1))
             Battery = true;
         else if ((CValue1 == 0))
-            Battery = false;
-		SecuritySystem.set_enabled(Battery);
+			Battery = false;
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}

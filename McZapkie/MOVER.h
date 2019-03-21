@@ -579,6 +579,7 @@ class TSecuritySystem
 	double press_timer = 0.0;
 
 	double velocity = 0.0;
+	bool power = false;
 
 	double AwareDelay = 30.0;
 	double AwareMinSpeed = 0.0;
@@ -591,7 +592,7 @@ public:
 	void acknowledge_press();
 	void acknowledge_release();
 	void cabsignal_reset();
-	void update(double dt, double Vel);
+	void update(double dt, double Vel, bool pwr);
 	void set_cabsignal();
 	bool is_blinking() const;
 	bool is_vigilance_blinking() const;
