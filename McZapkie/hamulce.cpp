@@ -346,7 +346,7 @@ double TBrake::GetVRP()
 // cisnienie zbiornika sterujacego
 double TBrake::GetCRP()
 {
-    return 0;
+    return GetBRP();
 }
 
 // przeplyw z przewodu glowneg
