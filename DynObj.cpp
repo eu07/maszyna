@@ -1591,6 +1591,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         Error("Parameters mismatch: dynamic object " + asName + " from \"" + BaseDir + "/" + Type_Name + "\"" );
         return 0.0; // zerowa długość to brak pojazdu
     }
+    // controller position
+    MoverParameters->MainCtrlPos = MoverParameters->MainCtrlNoPowerPos();
     // ustawienie pozycji hamulca
     MoverParameters->LocalBrakePosA = 0.0;
     if (driveractive)
@@ -2298,6 +2300,8 @@ void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int co
         }
     }
 */
+    if( Platform == 0 ) { return; } // edge case, if there's no accessible platforms discard the request
+
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
     m_exchange.platforms = Platform;
@@ -2967,7 +2971,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				}
 				MEDLogTime += dt1;
 
-				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPos > 0))
+				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPowerPos() > 0))
 				{
 					MEDLogInactiveTime += dt1;
 				}
@@ -4067,7 +4071,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbBufferClamp
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }
@@ -4092,7 +4096,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbCouplerStretch
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }

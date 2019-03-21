@@ -211,6 +211,7 @@ private:
     bool DecBrake();
     bool IncSpeed();
     bool DecSpeed(bool force = false);
+    void ZeroSpeed( bool const Enforce = false );
 	bool IncBrakeEIM();
 	bool DecBrakeEIM();
 	bool IncSpeedEIM();
@@ -224,6 +225,7 @@ private:
     int CheckDirection();
     void WaitingSet(double Seconds);
     void DirectionForward(bool forward);
+    void ZeroDirection();
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
     std::string StopReasonText() const;

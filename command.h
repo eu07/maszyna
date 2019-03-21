@@ -218,6 +218,8 @@ enum class user_command {
     motorblowerstogglefront,
     motorblowerstogglerear,
     motorblowersdisableall,
+    coolingfanstoggle,
+    tempomattoggle,
 
     none = -1
 };

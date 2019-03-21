@@ -227,7 +227,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::motorblowerstogglefront, GLFW_KEY_N | keymodifier::shift },
         { user_command::motorblowerstogglerear, GLFW_KEY_M | keymodifier::shift },
         { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control }
-
+        // coolingfanstoggle
+        // tempomattoggle
     };
 }
 

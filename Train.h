@@ -169,6 +169,7 @@ class TTrain
     static void OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command );
     static void OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_tempomattoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincreasefast( TTrain *Train, command_data const &Command );
@@ -265,6 +266,7 @@ class TTrain
     static void OnCommand_motorblowersenablerear( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersdisablerear( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersdisableall( TTrain *Train, command_data const &Command );
+    static void OnCommand_coolingfanstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command );
     static void OnCommand_motorconnectorsclose( TTrain *Train, command_data const &Command );
     static void OnCommand_motordisconnect( TTrain *Train, command_data const &Command );
@@ -379,7 +381,7 @@ public: // reszta może by?publiczna
     TGauge ggMainCtrl;
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
-    TGauge ggScndCtrlButton; // NOTE: not used?
+    TGauge ggScndCtrlButton;
     TGauge ggDirKey;
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
@@ -580,6 +582,7 @@ public: // reszta może by?publiczna
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;
     TButton btLampkaMotorBlowers;
+    TButton btLampkaCoolingFans;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys

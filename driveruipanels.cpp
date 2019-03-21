@@ -238,12 +238,14 @@ timetable_panel::update() {
     { // current time
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-            locale::strings[ locale::string::driver_timetable_time ].c_str(),
+            locale::strings[ locale::string::driver_timetable_header ].c_str(),
+            40, 40,
+            locale::strings[ locale::string::driver_timetable_name ].c_str(),
             time.wHour,
             time.wMinute,
             time.wSecond );
 
-        text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
+        title = m_buffer.data();
     }
 
     auto *vehicle { (
