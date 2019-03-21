@@ -216,6 +216,8 @@ private:
 	bool DecBrakeEIM();
 	bool IncSpeedEIM();
 	bool DecSpeedEIM();
+	bool BrakeLevelSet(double b);
+	bool BrakeLevelAdd(double b);
     void SpeedSet();
 	void SpeedCntrl(double DesiredSpeed);
 	void SetTimeControllers(); /*setting state of time controllers depending of desired action*/
@@ -310,6 +312,7 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown {}; // prevents the ai from trying to charge the train brake too frequently
+	double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
