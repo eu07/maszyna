@@ -3181,6 +3181,16 @@ bool TController::DecSpeedEIM()
 	return OK;
 }
 
+bool TController::BrakeLevelSet(double b)
+{
+	return false;
+}
+
+bool TController::BrakeLevelAdd(double b)
+{
+	return false;
+}
+
 void TController::SpeedSet()
 { // Ra: regulacja prędkości, wykonywana w każdym przebłysku świadomości AI
     // ma dokręcać do bezoporowych i zdejmować pozycje w przypadku przekroczenia prądu
@@ -3356,13 +3366,52 @@ void TController::SpeedCntrl(double DesiredSpeed)
 
 void TController::SetTimeControllers()
 {
+	//1. Check the type of Main Brake Handle
+	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic)
+	{
+		if (mvOccupied->Handle->Time)
+		{
+			if ((BrakeCtrlPosition > 0) && (mvOccupied->PipePress - 0.05 > mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
+			else if ((BrakeCtrlPosition > 0) && (mvOccupied->PipePress + 0.05 < mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == 0)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == -1)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FS));
+		}
+		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
+	}
+	//2. Check the type of Secondary Brake Handle
 
+	//3. Check the type od EIMCtrlType
+	if (mvOccupied->EIMCtrlType > 0)
+	{
+		if (mvOccupied->EIMCtrlType == 1) //traxx
+		{
+			if (mvOccupied->LocalBrakePosA > 0.95 * LocalBrakePosNo) mvOccupied->MainCtrlPos = 0;
+		}
+		else if (mvOccupied->EIMCtrlType == 2) //elf
+		{
+			if (mvOccupied->LocalBrakePosA > 0.95 * LocalBrakePosNo) mvOccupied->MainCtrlPos = 1;
+		}
+	}
 };
 
 void TController::CheckTimeControllers()
 {
 	//1. Check the type of Main Brake Handle
-
+	if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP)
+	{
+		mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPN));
+	}
+	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic && mvOccupied->Handle->Time)
+	{
+		if (BrakeCtrlPosition > 0)
+			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
+		else
+			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+	}
 	//2. Check the type of Secondary Brake Handle
 
 	//3. Check the type od EIMCtrlType
