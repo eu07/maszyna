@@ -1776,6 +1776,7 @@ void TController::Activation()
             //   zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
             mvOccupied->BrakeLevelSet(
                 mvOccupied->Handle->GetPos(bh_NP)); // odcięcie na zaworze maszynisty
+			BrakeLevelSet(gbh_NP); //ustawienie zmiennej GBH
         }
         mvOccupied->ActiveCab = mvOccupied->CabNo; // użytkownik moze zmienić ActiveCab wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
@@ -2354,7 +2355,7 @@ double TController::BrakeAccFactor() const
 	double Factor = 1.0;
     if( ( ActualProximityDist > fMinProximityDist )
      || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) {
-        Factor += ( fBrakeReaction * ( mvOccupied->BrakeCtrlPosR < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
+        Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
 	return Factor;
 }
@@ -2393,7 +2394,7 @@ void TController::SetDriverPsyche()
     { // with Controlling do
         if (mvControlling->MainCtrlPowerPos() < 3)
             ReactionTime = mvControlling->InitialCtrlDelay + ReactionTime;
-        if (mvOccupied->BrakeCtrlPos > 1)
+        if (/* GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 1)
             ReactionTime = 0.5 * ReactionTime;
     }
 };
@@ -2518,6 +2519,7 @@ bool TController::PrepareEngine()
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+					BrakeLevelSet(gbh_RP); // GBH
                 }
             }
         }
@@ -2719,9 +2721,9 @@ bool TController::IncBrake()
                 }
             }
             else {
-                if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
+                if( /*GBH mvOccupied->BrakeCtrlPos*/ BrakeCtrlPosition + 1 == mvOccupied->BrakeCtrlPosNo ) {
 					if (AccDesired < -1.5) // hamowanie nagle
-						OK = mvOccupied->BrakeLevelAdd(1.0);
+						OK = /*mvOccupied->*/BrakeLevelAdd(1.0); //GBH
                     else
                         OK = false;
                 }
@@ -2745,12 +2747,12 @@ bool TController::IncBrake()
 						pos_corr += mvOccupied->Handle->GetCP()*0.2;
 						
 					}
-					double deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4.0 * (mvOccupied->BrakeCtrlPosR - 1 - pos_corr)*fBrake_a1[0]);
+					double deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4.0 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - 1 - pos_corr)*fBrake_a1[0]);
 
                     if( deltaAcc > fBrake_a1[0])
 					{
-                        if( mvOccupied->BrakeCtrlPosR < 0.1 ) {
-                            OK = mvOccupied->BrakeLevelAdd( BrakingInitialLevel );
+                        if( /*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.1 ) {
+                            OK = /*mvOccupied->*/BrakeLevelAdd( BrakingInitialLevel ); //GBH
 /*
                             // HACK: stronger braking to overcome SA134 engine behaviour
                             if( ( mvOccupied->TrainType == dt_DMU )
@@ -2765,19 +2767,23 @@ bool TController::IncBrake()
                         }
 						else
 						{
-                            OK = mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
+                            OK = /*mvOccupied->*/BrakeLevelAdd( BrakingLevelIncrease ); //GBH
                             // brake harder if the acceleration is much higher than desired
-                            if( ( deltaAcc > 2 * fBrake_a1[ 0 ] )
+                            /*if( ( deltaAcc > 2 * fBrake_a1[ 0 ] )
                              && ( mvOccupied->BrakeCtrlPosR + BrakingLevelIncrease <= 5.0 ) ) {
                                 mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
-                            }
+                            }  GBH */
+							if ((deltaAcc > 2 * fBrake_a1[0])
+								&& (BrakeCtrlPosition + BrakingLevelIncrease <= 5.0)) {
+								/*mvOccupied->*/BrakeLevelAdd(BrakingLevelIncrease);
+							}
 						}
                     }
                     else
                         OK = false;
                 }
             }
-            if( mvOccupied->BrakeCtrlPos > 0 ) {
+            if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 0 ) {
                 mvOccupied->BrakeReleaser( 0 );
             }
             break;
@@ -2842,16 +2848,17 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case TBrakeSystem::Pneumatic:
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR-1.0)*fBrake_a1[0]);
+		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition -1.0)*fBrake_a1[0]);
 		if (deltaAcc < 0)
 		{
-			if (mvOccupied->BrakeCtrlPosR > 0)
+			if (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition > 0)
 			{
-				OK = mvOccupied->BrakeLevelAdd(-0.25);
+				OK = /*mvOccupied->*/BrakeLevelAdd(-0.25);
 				//if ((deltaAcc < 5 * fBrake_a1[0]) && (mvOccupied->BrakeCtrlPosR >= 1.2))
 				//	mvOccupied->BrakeLevelAdd(-1.0);
-				if (mvOccupied->BrakeCtrlPosR < 0.74)
-					mvOccupied->BrakeLevelSet(0.0);
+				/* if (mvOccupied->BrakeCtrlPosR < 0.74) GBH */
+				if (BrakeCtrlPosition < 0.74)
+					/*mvOccupied->*/BrakeLevelSet(0.0);
 			}
 		}
         if( !OK ) {
@@ -3181,14 +3188,20 @@ bool TController::DecSpeedEIM()
 	return OK;
 }
 
-bool TController::BrakeLevelSet(double b)
-{
-	return false;
+void TController::BrakeLevelSet(double b)
+{ // ustawienie pozycji hamulca na wartość (b) w zakresie od -2 do BrakeCtrlPosNo
+  // jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
+	if (BrakeCtrlPosition == b)
+		return; // nie przeliczać, jak nie ma zmiany
+	BrakeCtrlPosition = clamp(b, (double)gbh_MIN, (double)gbh_MAX);
 }
 
 bool TController::BrakeLevelAdd(double b)
-{
-	return false;
+{ // dodanie wartości (b) do pozycji hamulca (w tym ujemnej)
+  // zwraca false, gdy po dodaniu było by poza zakresem
+	BrakeLevelSet(BrakeCtrlPosition + b);
+	return b > 0.0 ? (BrakeCtrlPosition < gbh_MAX) :
+		(BrakeCtrlPosition > -1.0); // true, jeśli można kontynuować
 }
 
 void TController::SpeedSet()
@@ -3371,14 +3384,16 @@ void TController::SetTimeControllers()
 	{
 		if (mvOccupied->Handle->Time)
 		{
-			if ((BrakeCtrlPosition > 0) && (mvOccupied->PipePress - 0.05 > mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
-				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
-			else if ((BrakeCtrlPosition > 0) && (mvOccupied->PipePress + 0.05 < mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+			if ((BrakeCtrlPosition > 0) && (mvOccupied->Handle->GetCP() - 0.05 > mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FB));
+			else if ((BrakeCtrlPosition > 0) && (mvOccupied->Handle->GetCP() + 0.05 < mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
 			else if (BrakeCtrlPosition == 0)
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
 			else if (BrakeCtrlPosition == -1)
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FS));
+			else if (BrakeCtrlPosition == -2)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
 		}
 		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
 	}
@@ -3389,11 +3404,11 @@ void TController::SetTimeControllers()
 	{
 		if (mvOccupied->EIMCtrlType == 1) //traxx
 		{
-			if (mvOccupied->LocalBrakePosA > 0.95 * LocalBrakePosNo) mvOccupied->MainCtrlPos = 0;
+			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 0;
 		}
 		else if (mvOccupied->EIMCtrlType == 2) //elf
 		{
-			if (mvOccupied->LocalBrakePosA > 0.95 * LocalBrakePosNo) mvOccupied->MainCtrlPos = 1;
+			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 1;
 		}
 	}
 };
@@ -4103,7 +4118,7 @@ TController::UpdateSituation(double dt) {
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
                 if (AIControllFlag) // skład jak dotąd był wyluzowany
                 {
-                    if( ( mvOccupied->BrakeCtrlPos == 0 ) // jest pozycja jazdy
+                    if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 ) // jest pozycja jazdy
                      && ( ( vehicle->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) // brake isn't broken
                      && ( vehicle->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
                      && ( vehicle->Hamulec->GetCRP() > vehicle->PipePress + 0.12 ) ) { // za dużo w zbiorniku
@@ -4490,12 +4505,13 @@ TController::UpdateSituation(double dt) {
         if( mvOccupied->SecuritySystem.Status > 1 ) {
             // jak zadziałało CA/SHP
             if( !mvOccupied->SecuritySystemReset() ) { // to skasuj
-                if( ( mvOccupied->BrakeCtrlPos == 0 )
+                if( ( /*mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
                  && ( AccDesired > 0.0 )
                  && ( ( TestFlag( mvOccupied->SecuritySystem.Status, s_SHPebrake ) )
                    || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAebrake ) ) ) ) {
                     //!!! hm, może po prostu normalnie sterować hamulcem?
-                    mvOccupied->BrakeLevelSet( 0 );
+                    //mvOccupied->BrakeLevelSet( 0 ); GBH
+					BrakeLevelSet(gbh_RP);
                 }
             }
         }
@@ -4897,7 +4913,8 @@ TController::UpdateSituation(double dt) {
                                     // (ustalić po czym poznać taki tor)
                                     ++n; // to  liczymy człony jako jeden
                                 p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                                p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+                                // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+								BrakeLevelSet(gbh_RP);
                                 if (n)
                                 { // jeśli jeszcze nie koniec
                                     p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
@@ -5589,17 +5606,18 @@ TController::UpdateSituation(double dt) {
                     }
                 }
                 if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P)
+                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P
+						|| mvOccupied->BrakeHandle == TBrakeHandle::M394)
                     {
-                        if( mvOccupied->BrakeCtrlPos == -2 ) {
-                            mvOccupied->BrakeLevelSet( 0 );
+                        if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == -2 ) {
+                            /*mvOccupied->*/BrakeLevelSet( gbh_RP );
                         }
                         if( ( mvOccupied->PipePress < 3.0 )
                          && ( AccDesired > -0.03 ) ) {
                             mvOccupied->BrakeReleaser( 1 );
                         }
 
-                        if( ( mvOccupied->BrakeCtrlPos == 0 )
+                        if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
                          && ( AbsAccS < 0.03 )
                          && ( AccDesired > -0.03 )
                          && ( VelDesired - mvOccupied->Vel > 2.0 ) ) {
@@ -5611,7 +5629,8 @@ TController::UpdateSituation(double dt) {
                                 if( ( iDrivigFlags & moveOerlikons )
                                  || ( true == IsCargoTrain ) ) {
                                     // napełnianie w Oerlikonie
-                                    mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) );
+                                    /* mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) ); GBH */
+									BrakeLevelSet(gbh_FS);
                                     // don't charge the brakes too often, or we risk overcharging
                                     BrakeChargingCooldown = -120.0;
                                 }
@@ -5622,9 +5641,10 @@ TController::UpdateSituation(double dt) {
                             }
                         }
 
-                        if( ( mvOccupied->BrakeCtrlPos < 0 )
+                        if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 )
                          && ( mvOccupied->EqvtPipePress > ( fReady < 0.25 ? 5.1 : 5.2 ) ) ) {
-                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                            /* GBH mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); */
+							BrakeLevelSet(gbh_RP);
                         }
                     }
 #if LOGVELOCITY
@@ -5727,7 +5747,7 @@ TController::UpdateSituation(double dt) {
                             std::max( -0.2, fAccThreshold ) ) };
                     if( ( AccDesired <= accthreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
                      && ( ( AbsAccS > AccDesired )
-                       || ( mvOccupied->BrakeCtrlPos < 0 ) ) ) {
+                       || ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 ) ) ) {
                         // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
                         IncBrake();
                     }
@@ -5735,7 +5755,7 @@ TController::UpdateSituation(double dt) {
                         // przy odłączaniu nie zwalniamy tu hamulca
                         if( AbsAccS < AccDesired - 0.05 ) {
                             // jeśli opóźnienie większe od wymaganego (z histerezą) luzowanie, gdy za dużo
-                            if( mvOccupied->BrakeCtrlPos >= 0 ) {
+                            if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition >= 0 ) {
                                 DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
                             }
                         }
@@ -5758,7 +5778,7 @@ TController::UpdateSituation(double dt) {
                         // u góry ustawia się hamowanie na fAccThreshold
                         if( ( fBrakeTime < 0.0 )
                          || ( AccDesired < fAccGravity - 0.5 )
-                         || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
+                         || ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition <= 0 ) ) {
                             // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
                             if( true == IncBrake() ) {
                                 fBrakeTime =
@@ -5831,13 +5851,15 @@ TController::UpdateSituation(double dt) {
                         mvOccupied->IncLocalBrakeLevel( 1 );
                     }
                     else {
-                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); //GBH
+						BrakeLevelSet(gbh_RP);
                     }
                 }
             }
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])
+	if (AIControllFlag) SetTimeControllers();
 }
 
 // configures vehicle heating given current situation; returns: true if vehicle can be operated normally, false otherwise
