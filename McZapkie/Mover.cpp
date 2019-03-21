@@ -502,7 +502,7 @@ bool TMoverParameters::Dettach(int ConnectNo)
 
 bool TMoverParameters::DirectionForward()
 {
-    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (IsMainCtrlZero()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
     {
         ++ActiveDir;
         DirAbsolute = ActiveDir * CabNo;
@@ -512,7 +512,7 @@ bool TMoverParameters::DirectionForward()
         SendCtrlToNext("Direction", ActiveDir, CabNo);
         return true;
     }
-    else if ((ActiveDir == 1) && (IsMainCtrlZero()) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
+    else if ((ActiveDir == 1) && (IsMainCtrlNoPowerPos()) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         return MinCurrentSwitch(true); //"wysoki rozruch" EN57
     return false;
 };
@@ -641,7 +641,7 @@ TMoverParameters::CurrentSwitch(bool const State) {
     // for SM42/SP42
     if( ( EngineType == TEngineType::DieselElectric )
      && ( true == ShuntModeAllow )
-     && ( IsMainCtrlZero() ) ) {
+     && ( IsMainCtrlNoPowerPos() ) ) {
         ShuntMode = State;
         return true;
     }
@@ -1904,23 +1904,23 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
     return OK;
 }
 
-bool TMoverParameters::IsMainCtrlZero() const {
+bool TMoverParameters::IsMainCtrlNoPowerPos() const {
     // TODO: wrap controller pieces into a class for potential specializations, similar to brake subsystems
-    return MainCtrlPos == MainCtrlZeroPos();
+    return MainCtrlPos <= MainCtrlNoPowerPos();
 }
 
-int TMoverParameters::MainCtrlZeroPos() const {
+int TMoverParameters::MainCtrlNoPowerPos() const {
 
     switch( EIMCtrlType ) {
-        case 1:  { return 4; }
-        case 2:  { return 2; }
+        case 1:  { return 3; }
+        case 2:  { return 3; }
         default: { return 0; }
     }
 }
 
 int TMoverParameters::MainCtrlPowerPos() const {
 
-    return MainCtrlPos - MainCtrlZeroPos();
+    return MainCtrlPos - MainCtrlNoPowerPos();
 }
 
 // *************************************************************************************************
@@ -1931,7 +1931,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 {
     bool OK = false;
 
-    if ((IsMainCtrlZero()) && (CabNo != 0) && (TrainType == dt_ET42) && (ScndCtrlPos == 0) && (DynamicBrakeFlag))
+    if ((IsMainCtrlNoPowerPos()) && (CabNo != 0) && (TrainType == dt_ET42) && (ScndCtrlPos == 0) && (DynamicBrakeFlag))
     {
         OK = DynamicBrakeSwitch(false);
     }
@@ -1992,7 +1992,7 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 {
     bool OK = false;
 
-    if ((IsMainCtrlZero()) && (CabNo != 0) && (TrainType == dt_ET42) && (ScndCtrlPos == 0) &&
+    if ((IsMainCtrlNoPowerPos()) && (CabNo != 0) && (TrainType == dt_ET42) && (ScndCtrlPos == 0) &&
         !(DynamicBrakeFlag) && (CtrlSpeed == 1))
     {
         // Ra: AI wywołuje z CtrlSpeed=2 albo gdy ScndCtrlPos>0
@@ -2339,16 +2339,13 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 bool TMoverParameters::DirectionBackward(void)
 {
     bool DB = false;
-    if ( ( TrainType == dt_EZT )
-      && ( EngineType != TEngineType::ElectricInductionMotor )
-      && ( ActiveDir == 1 )
-      && (IsMainCtrlZero() ) )
+    if ((ActiveDir == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         if (MinCurrentSwitch(false))
         {
             DB = true; //
             return DB; // exit;  TODO: czy dobrze przetlumaczone?
         }
-    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (IsMainCtrlZero()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
     {
         if (EngineType == TEngineType::WheelsDriven)
             CabNo--;
@@ -2364,6 +2361,13 @@ bool TMoverParameters::DirectionBackward(void)
     else
         DB = false;
     return DB;
+}
+
+bool TMoverParameters::EIMDirectionChangeAllow(void)
+{
+    bool OK = false;
+    OK = (EngineType != TEngineType::ElectricInductionMotor || ((eimic <= 0) && (eimic_real <= 0) && (Vel < 0.1)));
+    return OK;
 }
 
 // *************************************************************************************************
@@ -2968,7 +2972,7 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
 {
     bool DBS;
 
-    if ((DynamicBrakeType == dbrake_switch) && (IsMainCtrlZero()))
+    if ((DynamicBrakeType == dbrake_switch) && (IsMainCtrlNoPowerPos()))
     {
         DynamicBrakeFlag = Switch;
         DBS = true;
@@ -4841,7 +4845,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 Voltage = 0;
 
             // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-            if ((IsMainCtrlZero()) || (ShuntMode) || (false==Mains))
+            if ((IsMainCtrlNoPowerPos()) || (ShuntMode) || (false==Mains))
                 ScndCtrlPos = 0;
 
             else {
@@ -5324,7 +5328,7 @@ bool TMoverParameters::FuseFlagCheck(void) const
 bool TMoverParameters::FuseOn(void)
 {
     bool FO = false;
-    if ((IsMainCtrlZero()) && (ScndCtrlPos == 0) && (TrainType != dt_ET40) &&
+    if ((IsMainCtrlNoPowerPos()) && (ScndCtrlPos == 0) && (TrainType != dt_ET40) &&
         ((Mains) || (TrainType != dt_EZT)) && (!TestFlag(EngDmgFlag, 1)))
     { // w ET40 jest blokada nastawnika, ale czy działa dobrze?
         SendCtrlToNext("FuseSwitch", 1, CabNo);
@@ -5812,7 +5816,7 @@ bool TMoverParameters::MotorConnectorsCheck() {
         ( false == Mains )
      || ( true == FuseFlag )
      || ( true == StLinSwitchOff )
-     || ( IsMainCtrlZero() )
+     || ( IsMainCtrlNoPowerPos() )
      || ( ActiveDir == 0 ) };
 
     if( connectorsoff ) { return false; }
@@ -6070,7 +6074,7 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
         {
             if (dizel_engagestate > 0)
                 dizel_EngageSwitch(0);
-            if ((IsMainCtrlZero()) && (ScndCtrlActualPos > 0))
+            if ((IsMainCtrlNoPowerPos()) && (ScndCtrlActualPos > 0))
                 dizel_automaticgearstatus = -1;
         }
         else
@@ -6357,7 +6361,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		if ((MainCtrlPowerPos() > 0) && (Mains) && (enrot>dizel_nmin*0.9))
 			hydro_TC_Fill += hydro_TC_FillRateInc * dt;
 		//oproznianie przetwornika
-		if (((IsMainCtrlZero()) && (Vel<3))
+		if (((IsMainCtrlNoPowerPos()) && (Vel<3))
 			|| (!Mains)
 			|| (enrot<dizel_nmin*0.8))
 			hydro_TC_Fill -= hydro_TC_FillRateDec * dt;
@@ -8523,6 +8527,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     extract_value( MainCtrlPosNo, "MCPN", line, "" );
     extract_value( ScndCtrlPosNo, "SCPN", line, "" );
     extract_value( ScndInMain, "SCIM", line, "" );
+    extract_value( MaxMainCtrlPosNoDirChange, "DirChangeMaxPos", line, "" );
 
     std::string autorelay;
     extract_value( autorelay, "AutoRelay", line, "" );

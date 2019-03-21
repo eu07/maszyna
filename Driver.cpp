@@ -2706,9 +2706,17 @@ bool TController::IncBrake()
                     }
                 }
             }
+
+            standalone = standalone && ( mvControlling->EIMCtrlType == 0 );
+
             if( true == standalone ) {
-                OK = mvOccupied->IncLocalBrakeLevel(
-                    1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+                if( mvControlling->EIMCtrlType > 0 ) {
+                    OK = IncBrakeEIM();
+                }
+                else {
+                    OK = mvOccupied->IncLocalBrakeLevel(
+                        1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+                }
             }
             else {
                 if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
@@ -2846,8 +2854,10 @@ bool TController::DecBrake()
 					mvOccupied->BrakeLevelSet(0.0);
 			}
 		}
-        if (!OK)
-            OK = mvOccupied->DecLocalBrakeLevel(2);
+        if( !OK ) {
+            OK = DecBrakeEIM();
+//            OK = mvOccupied->DecLocalBrakeLevel(2);
+        }
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
         break;
@@ -2936,7 +2946,7 @@ bool TController::IncSpeed()
                 return false; // to nici z ruszania
         }
         if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
-            if ((mvControlling->IsMainCtrlZero()) ||
+            if ((mvControlling->IsMainCtrlNoPowerPos()) ||
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
@@ -3091,17 +3101,6 @@ void TController::ZeroSpeed( bool const Enforce ) {
     while( DecSpeed( Enforce ) ) {
         ;
     }
-}
-
-void TController::ZeroMasterController( bool const Enforce ) {
-
-    // combined controller may be set to braking, i.e. position lower than neutral
-    auto const neutralposition { mvControlling->MainCtrlZeroPos() };
-    while( ( mvControlling->MainCtrlPos < neutralposition )
-        && ( DecBrake() ) ) {
-        ;
-    }
-    ZeroSpeed( Enforce );
 }
 
 bool TController::DecSpeed(bool force)

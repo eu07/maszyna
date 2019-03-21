@@ -212,7 +212,6 @@ private:
     bool IncSpeed();
     bool DecSpeed(bool force = false);
     void ZeroSpeed( bool const Enforce = false );
-    void ZeroMasterController( bool const Enforce = false );
 	bool IncBrakeEIM();
 	bool DecBrakeEIM();
 	bool IncSpeedEIM();

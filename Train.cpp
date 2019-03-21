@@ -783,7 +783,7 @@ void TTrain::OnCommand_jointcontrollerset( TTrain *Train, command_data const &Co
                     1.0 - ( Command.param1 * 2 ),
                     0.0, 1.0 ) );
             if( Train->mvControlled->MainCtrlPowerPos() > 0 ) {
-                Train->set_master_controller( Train->mvControlled->MainCtrlZeroPos() );
+                Train->set_master_controller( Train->mvControlled->MainCtrlNoPowerPos() );
             }
         }
     }
@@ -839,7 +839,7 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->IsMainCtrlZero() ) ) {
+         && ( Train->mvControlled->IsMainCtrlNoPowerPos() ) ) {
             OnCommand_independentbrakeincrease( Train, Command );
         }
         else {
@@ -859,7 +859,7 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->IsMainCtrlZero() ) ) {
+         && ( Train->mvControlled->IsMainCtrlNoPowerPos() ) ) {
             OnCommand_independentbrakeincreasefast( Train, Command );
         }
         else {

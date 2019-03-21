@@ -1592,7 +1592,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         return 0.0; // zerowa długość to brak pojazdu
     }
     // controller position
-    MoverParameters->MainCtrlPos = MoverParameters->MainCtrlZeroPos();
+    MoverParameters->MainCtrlPos = MoverParameters->MainCtrlNoPowerPos();
     // ustawienie pozycji hamulca
     MoverParameters->LocalBrakePosA = 0.0;
     if (driveractive)

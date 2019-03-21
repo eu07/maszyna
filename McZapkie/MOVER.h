@@ -1208,6 +1208,7 @@ public:
 	int LightsPos = 0;
 	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
 				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+    int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
 	int CabNo = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
 	int ActiveCab = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład)
@@ -1356,6 +1357,7 @@ public:
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
 	bool DirectionForward();
+    bool DirectionBackward( void );/*! kierunek ruchu*/
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
 	bool IncBrakeLevel(); // wersja na użytek AI
@@ -1392,9 +1394,9 @@ public:
 	/*! glowny nastawnik:*/
 	bool IncMainCtrl(int CtrlSpeed);
 	bool DecMainCtrl(int CtrlSpeed);
-    bool IsMainCtrlZero() const;
-    int MainCtrlZeroPos() const;
-    int MainCtrlPowerPos() const;
+    bool IsMainCtrlNoPowerPos() const; // whether the master controller is set to position which won't generate any extra power
+    int MainCtrlNoPowerPos() const; // highest setting of master controller which won't cause engine to generate extra power
+    int MainCtrlPowerPos() const; // current setting of master controller, relative to the highest setting not generating extra power
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
@@ -1458,7 +1460,6 @@ public:
 	double ComputeRotatingWheel(double WForce, double dt, double n) const;
 
 	/*--funkcje dla lokomotyw*/
-	bool DirectionBackward(void);/*! kierunek ruchu*/
     bool WaterPumpBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water pump breaker state toggle
     bool WaterPumpSwitch( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
     bool WaterPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
@@ -1582,6 +1583,7 @@ private:
     bool readLightsList( std::string const &Input );
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
+    bool EIMDirectionChangeAllow( void );
 };
 
 //double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
