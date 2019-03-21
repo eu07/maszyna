@@ -169,6 +169,12 @@ static const int maxorders = 64; // ilość rozkazów w tabelce
 static const int maxdriverfails = 4; // ile błędów może zrobić AI zanim zmieni nastawienie
 extern bool WriteLogFlag; // logowanie parametrów fizycznych
 static const int BrakeAccTableSize = 20;
+
+static const int gbh_NP = -2; //odciecie w hamulcu ogolnym
+static const int gbh_RP = 0; //jazda w hamulcu ogolnym
+static const int gbh_FS = -1; //napelnianie uderzeniowe w hamulcu ogolnym
+static const int gbh_MIN = -2; //minimalna pozycja w hamulcu ogolnym
+static const int gbh_MAX = 6; //maksymalna pozycja w hamulcu ogolnym
 //----------------------------------------------------------------------------
 
 class TController {
@@ -216,7 +222,7 @@ private:
 	bool DecBrakeEIM();
 	bool IncSpeedEIM();
 	bool DecSpeedEIM();
-	bool BrakeLevelSet(double b);
+	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
     void SpeedSet();
 	void SpeedCntrl(double DesiredSpeed);
