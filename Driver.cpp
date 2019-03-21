@@ -2721,7 +2721,7 @@ bool TController::IncBrake()
                 }
             }
             else {
-                if( /*GBH mvOccupied->BrakeCtrlPos*/ BrakeCtrlPosition + 1 == mvOccupied->BrakeCtrlPosNo ) {
+                if( /*GBH mvOccupied->BrakeCtrlPos*/ BrakeCtrlPosition + 1 == gbh_MAX ) {
 					if (AccDesired < -1.5) // hamowanie nagle
 						OK = /*mvOccupied->*/BrakeLevelAdd(1.0); //GBH
                     else
