@@ -96,6 +96,7 @@ static int const maxcc = 4;                    /*max. ilosc odbierakow pradu*/
 //static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/
 static int const ManualBrakePosNo = 20;        /*ilosc nastaw hamulca recznego*/
 static int const LightsSwitchPosNo = 16;
+static int const UniversalCtrlArraySize = 32;            /*max liczba pozycji uniwersalnego nastawnika*/
 
 /*uszkodzenia toru*/
 static int const dtrack_railwear = 2;
@@ -572,6 +573,20 @@ struct TMotorParameters
     }
 };
 
+struct TUniversalCtrl
+{
+	int mode = 0; /*tryb pracy zadajnika - pomocnicze*/
+	double MinCtrlVal = 0.0; /*minimalna wartosc nastawy*/
+	double MaxCtrlVal = 0.0; /*maksymalna wartosc nastawy*/
+	double SetCtrlVal = 0.0; /*docelowa wartosc nastawy*/
+	double SpeedUp = 0.0; /*szybkosc zwiekszania nastawy*/
+	double SpeedDown = 0.0; /*szybkosc zmniejszania nastawy*/
+	int ReturnPosition = 0; /*pozycja na ktora odskakuje zadajnik*/
+	int NextPosFastInc = 0; /*nastepna duza pozycja przy przechodzeniu szybkim*/
+	int PrevPosFastDec = 0; /*poprzednia duza pozycja przy przechodzeniu szybkim*/
+};
+typedef TUniversalCtrl TUniversalCtrlTable[UniversalCtrlArraySize + 1]; /*tablica sterowania uniwersalnego nastawnika*/
+
 struct TSecuritySystem
 {
     int SystemType { 0 }; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
@@ -940,6 +955,8 @@ public:
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
 	TSecuritySystem SecuritySystem;
+	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
+	int UniCtrlListSize = 0;	/*wielkosc listy pozycji uniwersalnego nastawnika*/
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/
@@ -1563,6 +1580,7 @@ private:
     void LoadFIZ_MotorParamTable( std::string const &Input );
     void LoadFIZ_Circuit( std::string const &Input );
     void LoadFIZ_RList( std::string const &Input );
+	void LoadFIZ_UCList(std::string const &Input);
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
     void LoadFIZ_LightsList( std::string const &Input );
@@ -1577,6 +1595,7 @@ private:
     bool readMPTDieselEngine( std::string const &line );
 	bool readBPT(/*int const ln,*/ std::string const &line);                                             //Q 20160721
     bool readRList( std::string const &Input );
+	bool readUCList(std::string const &Input);
     bool readDList( std::string const &line );
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );

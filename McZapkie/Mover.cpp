@@ -5994,6 +5994,10 @@ void TMoverParameters::CheckEIMIC(double dt)
 			break;
 		}
 		break;
+	case 3:
+		eimic -= clamp(-UniCtrlList[MainCtrlPos].SetCtrlVal + eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedDown); //odejmuj do X
+		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
+		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
 	}
 	eimic = clamp(eimic, -1.0, 1.0);
 }
@@ -7242,7 +7246,7 @@ bool TMoverParameters::switch_physics(bool const State) // DO PRZETLUMACZENIA NA
 // *************************************************************************************************
 bool startBPT;
 bool startMPT, startMPT0;
-bool startRLIST;
+bool startRLIST, startUCLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 int LISTLINE;
@@ -7437,6 +7441,31 @@ bool TMoverParameters::readRList( std::string const &Input ) {
     return true;
 }
 
+bool TMoverParameters::readUCList(std::string const &line) {
+
+	cParser parser(line);
+	parser.getTokens(10, false);
+	auto idx = LISTLINE++;
+	if (idx >= sizeof(UniCtrlList) / sizeof(TUniversalCtrl)) {
+		WriteLog("Read UCList: number of entries exceeded capacity of the data table");
+		return false;
+	}
+	int i = 0;
+	parser
+		>> i
+		>> UniCtrlList[idx].mode
+		>> UniCtrlList[idx].MinCtrlVal
+		>> UniCtrlList[idx].MaxCtrlVal
+		>> UniCtrlList[idx].SetCtrlVal
+		>> UniCtrlList[idx].SpeedUp
+		>> UniCtrlList[idx].SpeedDown
+		>> UniCtrlList[idx].ReturnPosition
+		>> UniCtrlList[idx].NextPosFastInc
+		>> UniCtrlList[idx].PrevPosFastDec;
+
+	return true;
+}
+
 bool TMoverParameters::readDList( std::string const &line ) {
 
     cParser parser( line );
@@ -7626,6 +7655,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     startMPT = false;
     startMPT0 = false;
     startRLIST = false;
+	startUCLIST = false;
     startDLIST = false;
     startFFLIST = false;
     startWWLIST = false;
@@ -7675,6 +7705,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if( issection( "END-RL", inputline ) ) {
 			startBPT = false;
 			startRLIST = false;
+			continue;
+		}
+		if (issection("END-RL", inputline)) {
+			startBPT = false;
+			startUCLIST = false;
 			continue;
 		}
         if( issection( "END-DL", inputline ) ) {
@@ -7880,6 +7915,15 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("UCList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("UCList", inputline);
+			startUCLIST = true; LISTLINE = 0;
+			LoadFIZ_RList(inputline);
+			continue;
+		}
+
         if( issection( "DList:", inputline ) )
         {
 			startBPT = false;
@@ -7929,6 +7973,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readRList( inputline );
             continue;
         }
+		if (true == startUCLIST) {
+			readRList(inputline);
+			continue;
+		}
         if( true == startDLIST ) {
             readDList( inputline );
             continue;
@@ -8537,7 +8585,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
 	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
-	clamp( EIMCtrlType, 0, 2 );
+	clamp( EIMCtrlType, 0, 3 );
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
@@ -8964,6 +9012,12 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 	extract_value( DynamicBrakeRes, "DynBrakeRes", Input, "");
 	extract_value( DynamicBrakeRes1, "DynBrakeRes1", Input, "");
 	extract_value( DynamicBrakeRes2, "DynBrakeRes2", Input, "");
+}
+
+void TMoverParameters::LoadFIZ_UCList(std::string const &Input) {
+
+	extract_value(UniCtrlListSize, "Size", Input, "");
+
 }
 
 void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
