@@ -5732,8 +5732,9 @@ TController::UpdateSituation(double dt) {
                     else if( ( vel > VelDesired )
                           || ( fAccGravity < -0.01 ?
                                     AccDesired < 0.0 :
-                                    AbsAccS > AccDesired ) ) {
+                                    (AbsAccS > AccDesired && AccDesired < 0.75) ) ) {
                         // jak za bardzo przyspiesza albo prędkość przekroczona
+						// dodany wyjatek na "pelna w przod"
                         DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
                     }
                 }
