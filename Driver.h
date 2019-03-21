@@ -218,6 +218,8 @@ private:
 	bool DecSpeedEIM();
     void SpeedSet();
 	void SpeedCntrl(double DesiredSpeed);
+	void SetTimeControllers(); /*setting state of time controllers depending of desired action*/
+	void CheckTimeControllers(); /*checking state of time controllers to reset them to stable position*/
 	double ESMVelocity(bool Main);
     bool UpdateHeating();
     // uaktualnia informacje o prędkości

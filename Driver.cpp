@@ -2707,7 +2707,7 @@ bool TController::IncBrake()
                 }
             }
 
-            standalone = standalone && ( mvControlling->EIMCtrlType == 0 );
+            //standalone = standalone && ( mvControlling->EIMCtrlType == 0 );
 
             if( true == standalone ) {
                 if( mvControlling->EIMCtrlType > 0 ) {
@@ -2855,9 +2855,11 @@ bool TController::DecBrake()
 			}
 		}
         if( !OK ) {
-            OK = DecBrakeEIM();
-//            OK = mvOccupied->DecLocalBrakeLevel(2);
+            OK = mvOccupied->DecLocalBrakeLevel(2);
         }
+		if (!OK) {
+			OK = DecBrakeEIM();
+		}
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
         break;
@@ -3349,6 +3351,33 @@ void TController::SpeedCntrl(double DesiredSpeed)
 		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
         while( ( mvControlling->ScndCtrlPos > DesiredPos ) && ( true == mvControlling->DecScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
         while( ( mvControlling->ScndCtrlPos < DesiredPos ) && ( true == mvControlling->IncScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
+	}
+};
+
+void TController::SetTimeControllers()
+{
+
+};
+
+void TController::CheckTimeControllers()
+{
+	//1. Check the type of Main Brake Handle
+
+	//2. Check the type of Secondary Brake Handle
+
+	//3. Check the type od EIMCtrlType
+	if (mvOccupied->EIMCtrlType > 0)
+	{
+		if (mvOccupied->EIMCtrlType == 1) //traxx
+		{
+			if (mvOccupied->MainCtrlPos > 3) mvOccupied->MainCtrlPos = 5;
+			if (mvOccupied->MainCtrlPos < 3) mvOccupied->MainCtrlPos = 1;
+		}
+		else if (mvOccupied->EIMCtrlType == 2) //elf
+		{
+			if (mvOccupied->eimic > 0) mvOccupied->MainCtrlPos = 3;
+			if (mvOccupied->eimic < 0) mvOccupied->MainCtrlPos = 2;
+		}
 	}
 };
 
@@ -4290,6 +4319,8 @@ TController::UpdateSituation(double dt) {
     // main ai update routine
     auto const reactiontime = std::min( ReactionTime, 2.0 );
     if( LastReactionTime < reactiontime ) { return; }
+
+	CheckTimeControllers();
 
     LastReactionTime -= reactiontime;
     // Ra: nie wiem czemu ReactionTime potrafi dostać 12 sekund, to jest przegięcie, bo przeżyna STÓJ
@@ -5509,7 +5540,7 @@ TController::UpdateSituation(double dt) {
                     }
                 }
                 if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
+                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P)
                     {
                         if( mvOccupied->BrakeCtrlPos == -2 ) {
                             mvOccupied->BrakeLevelSet( 0 );
