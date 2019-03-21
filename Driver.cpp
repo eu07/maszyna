@@ -4384,7 +4384,9 @@ TController::UpdateSituation(double dt) {
     auto const reactiontime = std::min( ReactionTime, 2.0 );
     if( LastReactionTime < reactiontime ) { return; }
 
-	CheckTimeControllers();
+	if (AIControllFlag) {
+		CheckTimeControllers();
+	}
 
     LastReactionTime -= reactiontime;
     // Ra: nie wiem czemu ReactionTime potrafi dostać 12 sekund, to jest przegięcie, bo przeżyna STÓJ
