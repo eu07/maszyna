@@ -5544,7 +5544,7 @@ TController::UpdateSituation(double dt) {
                 // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
 
                 // zapobieganie poslizgowi u nas
-                if (mvControlling->SlippingWheels) {
+                if (mvControlling->SlippingWheels && mvControlling->EngineType != TEngineType::ElectricInductionMotor) {
 
                     if( false == mvControlling->DecScndCtrl( 2 ) ) {
                         // bocznik na zero

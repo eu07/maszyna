@@ -820,7 +820,8 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
-        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 );
+        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
+		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2);
 
     Output.emplace_back( textline, Global.UITextColor );
 
