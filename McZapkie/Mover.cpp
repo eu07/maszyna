@@ -4001,12 +4001,18 @@ void TMoverParameters::ComputeTotalForce(double dt) {
      && ( std::abs(Fwheels) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) {
         SlippingWheels = true;
     }
-    if( true == SlippingWheels ) {
+	double temp_nrot = nrot;
+	if (true == SlippingWheels) {
 
-        double temp_nrot = ComputeRotatingWheel(Fwheels - 
-                                        Sign(nrot * M_PI * WheelDiameter - V) *
-                                            Adhesive(RunningTrack.friction) * TotalMassxg,
-                                    dt, nrot);
+		temp_nrot = ComputeRotatingWheel(Fwheels - Sign(nrot * M_PI * WheelDiameter - V) *
+			Adhesive(RunningTrack.friction) * TotalMassxg, dt, nrot);
+		if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
+		{
+			SlippingWheels = false;
+			temp_nrot = V / M_PI / WheelDiameter;
+		}
+	}
+	if (true == SlippingWheels) {
         Fwheels = Sign(temp_nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
 		if (Fwheels*Sign(V)>0)
 		{
@@ -4025,12 +4031,6 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 		{
 			WheelFlat = sqrt(square(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
 		}
-		if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
-		{
-			SlippingWheels = false;
-			temp_nrot = V / M_PI / WheelDiameter;
-		}
-
 
 		nrot = temp_nrot;
     }
@@ -5368,9 +5368,9 @@ double TMoverParameters::v2n(void)
 
     n = V / (M_PI * WheelDiameter); // predkosc obrotowa wynikajaca z liniowej [obr/s]
     deltan = n - nrot; //"pochodna" prędkości obrotowej
-    if (SlippingWheels)
+    /* if (SlippingWheels)
         if (std::abs(deltan) < 0.001)
-            SlippingWheels = false; // wygaszenie poslizgu
+            SlippingWheels = false; // wygaszenie poslizgu */ //poslizg jest w innym miejscu wygaszany też
     if (SlippingWheels) // nie ma zwiazku z predkoscia liniowa V
     { // McZapkie-221103: uszkodzenia kol podczas poslizgu
         if (deltan > dmgn)
