@@ -4950,10 +4950,12 @@ TController::UpdateSituation(double dt) {
                         // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
-                        mvOccupied->BrakeLevelSet(
-                            mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                                1 :
-                                3 );
+                        if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
+                        }
+                        else {
+                            BrakeCtrlPosition = 3;
+                        }
                         double p = mvOccupied->BrakePressureActual.PipePressureVal;
                         if( p < 3.9 ) {
                             // tu może być 0 albo -1 nawet

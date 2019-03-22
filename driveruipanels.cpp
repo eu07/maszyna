@@ -211,7 +211,7 @@ scenario_panel::render() {
             auto const assignmentheader { locale::strings[ locale::string::driver_scenario_assignment ] };
             if( ( false == owner->assignment().empty() )
              && ( true == ImGui::CollapsingHeader( assignmentheader.c_str() ) ) ) {
-                ImGui::TextWrapped( owner->assignment().c_str() );
+                ImGui::TextWrapped( "%s", owner->assignment().c_str() );
                 ImGui::Separator();
             }
         }
@@ -1034,7 +1034,7 @@ transcripts_panel::render() {
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
-            ImGui::TextWrapped( line.data.c_str() );
+            ImGui::TextWrapped( "%s", line.data.c_str() );
         }
     }
     ImGui::End();
