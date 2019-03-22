@@ -118,6 +118,11 @@ world_environment::update() {
             duskfactor );
     }
     // ...update skydome to match the current sun position as well...
+    // turbidity varies from 2-3 during the day based on overcast, 3-4 after sunset to deal with sunlight bleeding too much into the sky from below horizon
+    m_skydome.SetTurbidity(
+        2.f
+        + clamp( Global.Overcast, 0.f, 1.f )
+        + interpolate( 0.f, 1.f, clamp( twilightfactor * 1.5f, 0.f, 1.f ) ) );
     m_skydome.SetOvercastFactor( Global.Overcast );
     m_skydome.Update( m_sun.getDirection() );
     // ...retrieve current sky colour and brightness...
