@@ -211,7 +211,7 @@ scenario_panel::render() {
             auto const assignmentheader { locale::strings[ locale::string::driver_scenario_assignment ] };
             if( ( false == owner->assignment().empty() )
              && ( true == ImGui::CollapsingHeader( assignmentheader.c_str() ) ) ) {
-                ImGui::TextWrapped( owner->assignment().c_str() );
+                ImGui::TextWrapped( "%s", owner->assignment().c_str() );
                 ImGui::Separator();
             }
         }
@@ -828,7 +828,8 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
-        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 );
+        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
+		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2);
 
     Output.emplace_back( textline, Global.UITextColor );
 
@@ -1007,10 +1008,8 @@ transcripts_panel::update() {
     text_lines.clear();
 
     for( auto const &transcript : ui::Transcripts.aLines ) {
-        if( Global.fTimeAngleDeg >= transcript.fShow ) {
-            // NOTE: legacy transcript lines use | as new line mark
-            text_lines.emplace_back( ExchangeCharInString( transcript.asText, '|', ' ' ), colors::white );
-        }
+        if( Global.fTimeAngleDeg + ( transcript.fShow - Global.fTimeAngleDeg > 180 ? 360 : 0 ) < transcript.fShow ) { continue; }
+        text_lines.emplace_back( ExchangeCharInString( transcript.asText, '|', ' ' ), colors::white );
     }
 }
 
@@ -1039,7 +1038,7 @@ transcripts_panel::render() {
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // header section
         for( auto const &line : text_lines ) {
-            ImGui::TextWrapped( line.data.c_str() );
+            ImGui::TextWrapped( "%s", line.data.c_str() );
         }
     }
     ImGui::End();

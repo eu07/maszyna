@@ -169,6 +169,12 @@ static const int maxorders = 64; // ilość rozkazów w tabelce
 static const int maxdriverfails = 4; // ile błędów może zrobić AI zanim zmieni nastawienie
 extern bool WriteLogFlag; // logowanie parametrów fizycznych
 static const int BrakeAccTableSize = 20;
+
+static const int gbh_NP = -2; //odciecie w hamulcu ogolnym
+static const int gbh_RP = 0; //jazda w hamulcu ogolnym
+static const int gbh_FS = -1; //napelnianie uderzeniowe w hamulcu ogolnym
+static const int gbh_MIN = -2; //minimalna pozycja w hamulcu ogolnym
+static const int gbh_MAX = 6; //maksymalna pozycja w hamulcu ogolnym
 //----------------------------------------------------------------------------
 
 class TController {
@@ -211,12 +217,17 @@ private:
     bool DecBrake();
     bool IncSpeed();
     bool DecSpeed(bool force = false);
+    void ZeroSpeed( bool const Enforce = false );
 	bool IncBrakeEIM();
 	bool DecBrakeEIM();
 	bool IncSpeedEIM();
 	bool DecSpeedEIM();
+	void BrakeLevelSet(double b);
+	bool BrakeLevelAdd(double b);
     void SpeedSet();
 	void SpeedCntrl(double DesiredSpeed);
+	void SetTimeControllers(); /*setting state of time controllers depending of desired action*/
+	void CheckTimeControllers(); /*checking state of time controllers to reset them to stable position*/
 	double ESMVelocity(bool Main);
     bool UpdateHeating();
     // uaktualnia informacje o prędkości
@@ -224,6 +235,7 @@ private:
     int CheckDirection();
     void WaitingSet(double Seconds);
     void DirectionForward(bool forward);
+    void ZeroDirection();
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
     std::string StopReasonText() const;
@@ -306,6 +318,7 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown {}; // prevents the ai from trying to charge the train brake too frequently
+	double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
