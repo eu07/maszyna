@@ -861,6 +861,13 @@ sound_source::update_counter( sound_handle const Sound, int const Value ) {
 
 //    sound( Sound ).playing = std::max( 0, sound( Sound ).playing + Value );
     sound( Sound ).playing += Value;
+    if( ( m_properties.gain > 0.f )
+     && ( sound( Sound ).playing == 1 ) ) {
+        auto const &buffer { audio::renderer.buffer( sound( Sound ).buffer ) };
+        if( false == buffer.caption.empty() ) {
+            ui::Transcripts.Add( buffer.caption );
+        }
+    }
     assert( sound( Sound ).playing >= 0 );
 }
 

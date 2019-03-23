@@ -206,6 +206,7 @@ public:
     bool JointCabs{ false }; // flag for vehicles with multiple virtual 'cabs' sharing location and 3d model(s)
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
     float LoadOffset { 0.f };
+    std::unordered_map<std::string, std::string> LoadModelOverrides; // potential overrides of default load visualization models
     glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
     float InteriorLightLevel { 0.0f }; // current level of interior lighting
     struct vehicle_section {

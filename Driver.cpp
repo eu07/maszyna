@@ -1406,9 +1406,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
                 }
-                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno
-                    // dotyczyć samochodów?)
-                    a = (v == 0.0 ? -1.0 : fAcc); // ruszanie albo hamowanie
+                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno dotyczyć samochodów?)
+                    a = (v > 0.0 ?
+                            fAcc :
+                            mvOccupied->Vel < 0.01 ?
+                                0.0 : // already standing still so no need to bother with brakes
+                               -2.0 ); // ruszanie albo hamowanie
 
                 if ((a < fAcc) && (v == std::min(v, fNext))) {
                     // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
@@ -1763,15 +1766,10 @@ void TController::Activation()
     if (iDirection)
     { // jeśli jest ustalony kierunek
         TDynamicObject *old = pVehicle, *d = pVehicle; // w tym siedzi AI
-        TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci
-        // poprzez nadpisanie
+        TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci poprzez nadpisanie
         auto const localbrakelevel { mvOccupied->LocalBrakePosA };
-        while (mvControlling->MainCtrlPos) // samo zapętlenie DecSpeed() nie wystarcza :/
-            DecSpeed(true); // wymuszenie zerowania nastawnika jazdy
-        while (mvOccupied->ActiveDir < 0)
-            mvOccupied->DirectionForward(); // kierunek na 0
-        while (mvOccupied->ActiveDir > 0)
-            mvOccupied->DirectionBackward();
+        ZeroSpeed();
+        ZeroDirection();
         if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag, ctrain_controll)) {
             mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
@@ -1779,6 +1777,7 @@ void TController::Activation()
             //   zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
             mvOccupied->BrakeLevelSet(
                 mvOccupied->Handle->GetPos(bh_NP)); // odcięcie na zaworze maszynisty
+			BrakeLevelSet(gbh_NP); //ustawienie zmiennej GBH
         }
         mvOccupied->ActiveCab = mvOccupied->CabNo; // użytkownik moze zmienić ActiveCab wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
@@ -2357,7 +2356,7 @@ double TController::BrakeAccFactor() const
 	double Factor = 1.0;
     if( ( ActualProximityDist > fMinProximityDist )
      || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) {
-        Factor += ( fBrakeReaction * ( mvOccupied->BrakeCtrlPosR < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
+        Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
 	return Factor;
 }
@@ -2394,9 +2393,9 @@ void TController::SetDriverPsyche()
     }
     if (mvControlling && mvOccupied)
     { // with Controlling do
-        if (mvControlling->MainCtrlPos < 3)
+        if (mvControlling->MainCtrlPowerPos() < 3)
             ReactionTime = mvControlling->InitialCtrlDelay + ReactionTime;
-        if (mvOccupied->BrakeCtrlPos > 1)
+        if (/* GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 1)
             ReactionTime = 0.5 * ReactionTime;
     }
 };
@@ -2491,17 +2490,16 @@ bool TController::PrepareEngine()
         { // część wykonawcza dla sterowania przez komputer
             if (mvControlling->ConvOvldFlag)
             { // wywalił bezpiecznik nadmiarowy przetwornicy
-                while (DecSpeed(true))
-                    ; // zerowanie napędu
+                ZeroSpeed();
                 mvControlling->ConvOvldFlag = false; // reset nadmiarowego
             }
             else if (false == IsLineBreakerClosed) {
-                while (DecSpeed(true))
-                    ; // zerowanie napędu
+                ZeroSpeed();
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
-                    if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
-                        mvControlling->IncMainCtrl( 1 );
+                    while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 )
+                        && ( mvControlling->IncMainCtrl( 1 ) ) ) {
+                        ;
                     }
                 }
                 if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
@@ -2522,6 +2520,7 @@ bool TController::PrepareEngine()
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+					BrakeLevelSet(gbh_RP); // GBH
                 }
             }
         }
@@ -2560,9 +2559,7 @@ bool TController::ReleaseEngine() {
         VelDesired = 0.0;
         AccDesired = std::min( AccDesired, -1.25 ); // hamuj solidnie
         ReactionTime = 0.1;
-        while( DecSpeed( true ) ) {
-            ; // zerowanie nastawników
-        }
+        ZeroSpeed();
         IncBrake();
         // don't bother with the rest until we're standing still
         return false;
@@ -2599,12 +2596,8 @@ bool TController::ReleaseEngine() {
                 ;
             }
         }
-        while( DecSpeed( true ) ) {
-            ; // zerowanie nastawników
-        }
-        // set direction to neutral
-        while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
-        while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+        ZeroSpeed();
+        ZeroDirection();
 
         // zamykanie drzwi
         mvOccupied->OperateDoors( side::right, false );
@@ -2716,14 +2709,22 @@ bool TController::IncBrake()
                     }
                 }
             }
+
+            //standalone = standalone && ( mvControlling->EIMCtrlType == 0 );
+
             if( true == standalone ) {
-                OK = mvOccupied->IncLocalBrakeLevel(
-                    1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+                if( mvControlling->EIMCtrlType > 0 ) {
+                    OK = IncBrakeEIM();
+                }
+                else {
+                    OK = mvOccupied->IncLocalBrakeLevel(
+                        1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+                }
             }
             else {
-                if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
+                if( /*GBH mvOccupied->BrakeCtrlPos*/ BrakeCtrlPosition + 1 == gbh_MAX ) {
 					if (AccDesired < -1.5) // hamowanie nagle
-						OK = mvOccupied->BrakeLevelAdd(1.0);
+						OK = /*mvOccupied->*/BrakeLevelAdd(1.0); //GBH
                     else
                         OK = false;
                 }
@@ -2747,12 +2748,12 @@ bool TController::IncBrake()
 						pos_corr += mvOccupied->Handle->GetCP()*0.2;
 						
 					}
-					double deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4.0 * (mvOccupied->BrakeCtrlPosR - 1 - pos_corr)*fBrake_a1[0]);
+					double deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4.0 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - 1 - pos_corr)*fBrake_a1[0]);
 
                     if( deltaAcc > fBrake_a1[0])
 					{
-                        if( mvOccupied->BrakeCtrlPosR < 0.1 ) {
-                            OK = mvOccupied->BrakeLevelAdd( BrakingInitialLevel );
+                        if( /*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.1 ) {
+                            OK = /*mvOccupied->*/BrakeLevelAdd( BrakingInitialLevel ); //GBH
 /*
                             // HACK: stronger braking to overcome SA134 engine behaviour
                             if( ( mvOccupied->TrainType == dt_DMU )
@@ -2767,19 +2768,23 @@ bool TController::IncBrake()
                         }
 						else
 						{
-                            OK = mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
+                            OK = /*mvOccupied->*/BrakeLevelAdd( BrakingLevelIncrease ); //GBH
                             // brake harder if the acceleration is much higher than desired
-                            if( ( deltaAcc > 2 * fBrake_a1[ 0 ] )
+                            /*if( ( deltaAcc > 2 * fBrake_a1[ 0 ] )
                              && ( mvOccupied->BrakeCtrlPosR + BrakingLevelIncrease <= 5.0 ) ) {
                                 mvOccupied->BrakeLevelAdd( BrakingLevelIncrease );
-                            }
+                            }  GBH */
+							if ((deltaAcc > 2 * fBrake_a1[0])
+								&& (BrakeCtrlPosition + BrakingLevelIncrease <= 5.0)) {
+								/*mvOccupied->*/BrakeLevelAdd(BrakingLevelIncrease);
+							}
 						}
                     }
                     else
                         OK = false;
                 }
             }
-            if( mvOccupied->BrakeCtrlPos > 0 ) {
+            if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 0 ) {
                 mvOccupied->BrakeReleaser( 0 );
             }
             break;
@@ -2844,20 +2849,25 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case TBrakeSystem::Pneumatic:
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR-1.0)*fBrake_a1[0]);
+		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition -1.0)*fBrake_a1[0]);
 		if (deltaAcc < 0)
 		{
-			if (mvOccupied->BrakeCtrlPosR > 0)
+			if (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition > 0)
 			{
-				OK = mvOccupied->BrakeLevelAdd(-0.25);
+				OK = /*mvOccupied->*/BrakeLevelAdd(-0.25);
 				//if ((deltaAcc < 5 * fBrake_a1[0]) && (mvOccupied->BrakeCtrlPosR >= 1.2))
 				//	mvOccupied->BrakeLevelAdd(-1.0);
-				if (mvOccupied->BrakeCtrlPosR < 0.74)
-					mvOccupied->BrakeLevelSet(0.0);
+				/* if (mvOccupied->BrakeCtrlPosR < 0.74) GBH */
+				if (BrakeCtrlPosition < 0.74)
+					/*mvOccupied->*/BrakeLevelSet(0.0);
 			}
 		}
-        if (!OK)
+        if( !OK ) {
             OK = mvOccupied->DecLocalBrakeLevel(2);
+        }
+		if (!OK) {
+			OK = DecBrakeEIM();
+		}
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
         break;
@@ -2942,7 +2952,7 @@ bool TController::IncSpeed()
                 return false; // to nici z ruszania
         }
         if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
-            if ((mvControlling->MainCtrlPos == 0) ||
+            if ((mvControlling->IsMainCtrlNoPowerPos()) ||
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
@@ -3024,7 +3034,7 @@ bool TController::IncSpeed()
                             }
 
                             if( ( mvControlling->Im == 0 )
-                             && ( mvControlling->MainCtrlPos > 2 ) ) {
+                             && ( mvControlling->MainCtrlPowerPos() > 1 ) ) {
                                 // brak prądu na dalszych pozycjach
                                 // nie załączona lokomotywa albo wywalił nadmiarowy
                                 Need_TryAgain = true;
@@ -3092,6 +3102,13 @@ bool TController::IncSpeed()
     return OK;
 }
 
+void TController::ZeroSpeed( bool const Enforce ) {
+
+    while( DecSpeed( Enforce ) ) {
+        ;
+    }
+}
+
 bool TController::DecSpeed(bool force)
 { // zmniejszenie prędkości (ale nie hamowanie)
     bool OK = false; // domyślnie false, aby wyszło z pętli while
@@ -3101,20 +3118,20 @@ bool TController::DecSpeed(bool force)
         iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi jazdy
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
             if (mvControlling->MainCtrlPosNo > 0) // McZapkie-041003: wagon sterowniczy, np. EZT
-                mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+                mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         return false;
     case TEngineType::ElectricSeriesMotor:
         OK = mvControlling->DecScndCtrl(2); // najpierw bocznik na zero
         if (!OK)
-            OK = mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case TEngineType::Dumb:
     case TEngineType::DieselElectric:
         OK = mvControlling->DecScndCtrl(2);
         if (!OK)
-            OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
+            OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPowerPos() / 2));
         break;
 	case TEngineType::ElectricInductionMotor:
 		OK = DecSpeedEIM();
@@ -3133,12 +3150,14 @@ bool TController::DecSpeed(bool force)
             if (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0)
                 OK = mvControlling->DecMainCtrl(1);
         }
-        else
-            while ((mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0) &&
-                   (mvControlling->MainCtrlPos > 1))
-                OK = mvControlling->DecMainCtrl(1);
+        else {
+            while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 )
+                && ( mvControlling->MainCtrlPowerPos() > 1 ) ) {
+                OK = mvControlling->DecMainCtrl( 1 );
+            }
+        }
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
-            OK = mvControlling->DecMainCtrl(1 + (mvControlling->MainCtrlPos > 2 ? 1 : 0));
+            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 2 ? 2 : 1));
         break;
     }
     return OK;
@@ -3164,6 +3183,22 @@ bool TController::DecSpeedEIM()
 		break;
 	}
 	return OK;
+}
+
+void TController::BrakeLevelSet(double b)
+{ // ustawienie pozycji hamulca na wartość (b) w zakresie od -2 do BrakeCtrlPosNo
+  // jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
+	if (BrakeCtrlPosition == b)
+		return; // nie przeliczać, jak nie ma zmiany
+	BrakeCtrlPosition = clamp(b, (double)gbh_MIN, (double)gbh_MAX);
+}
+
+bool TController::BrakeLevelAdd(double b)
+{ // dodanie wartości (b) do pozycji hamulca (w tym ujemnej)
+  // zwraca false, gdy po dodaniu było by poza zakresem
+	BrakeLevelSet(BrakeCtrlPosition + b);
+	return b > 0.0 ? (BrakeCtrlPosition < gbh_MAX) :
+		(BrakeCtrlPosition > -1.0); // true, jeśli można kontynuować
 }
 
 void TController::SpeedSet()
@@ -3238,8 +3273,7 @@ void TController::SpeedSet()
         if( ( false == mvControlling->StLinFlag )
          && ( false == mvControlling->DelayCtrlFlag ) ) {
             // styczniki liniowe rozłączone    yBARC
-            while( DecSpeed() )
-                ; // zerowanie napędu
+            ZeroSpeed();
         }
         else if (Ready || (iDrivigFlags & movePress)) // o ile może jechać
             if (fAccGravity < -0.10) // i jedzie pod górę większą niż 10 promil
@@ -3337,6 +3371,74 @@ void TController::SpeedCntrl(double DesiredSpeed)
 		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
         while( ( mvControlling->ScndCtrlPos > DesiredPos ) && ( true == mvControlling->DecScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
         while( ( mvControlling->ScndCtrlPos < DesiredPos ) && ( true == mvControlling->IncScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
+	}
+};
+
+void TController::SetTimeControllers()
+{
+	//1. Check the type of Main Brake Handle
+	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic)
+	{
+		if (mvOccupied->Handle->Time)
+		{
+			if ((BrakeCtrlPosition > 0) && (mvOccupied->Handle->GetCP() - 0.05 > mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FB));
+			else if ((BrakeCtrlPosition > 0) && (mvOccupied->Handle->GetCP() + 0.05 < mvOccupied->HighPipePress - BrakeCtrlPosition*0.25*mvOccupied->DeltaPipePress))
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == 0)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == -1)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FS));
+			else if (BrakeCtrlPosition == -2)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
+		}
+		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
+	}
+	//2. Check the type of Secondary Brake Handle
+
+	//3. Check the type od EIMCtrlType
+	if (mvOccupied->EIMCtrlType > 0)
+	{
+		if (mvOccupied->EIMCtrlType == 1) //traxx
+		{
+			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 0;
+		}
+		else if (mvOccupied->EIMCtrlType == 2) //elf
+		{
+			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 1;
+		}
+	}
+};
+
+void TController::CheckTimeControllers()
+{
+	//1. Check the type of Main Brake Handle
+	if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP)
+	{
+		mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPN));
+	}
+	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic && mvOccupied->Handle->Time)
+	{
+		if (BrakeCtrlPosition > 0)
+			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
+		else
+			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+	}
+	//2. Check the type of Secondary Brake Handle
+
+	//3. Check the type od EIMCtrlType
+	if (mvOccupied->EIMCtrlType > 0)
+	{
+		if (mvOccupied->EIMCtrlType == 1) //traxx
+		{
+			if (mvOccupied->MainCtrlPos > 3) mvOccupied->MainCtrlPos = 5;
+			if (mvOccupied->MainCtrlPos < 3) mvOccupied->MainCtrlPos = 1;
+		}
+		else if (mvOccupied->EIMCtrlType == 2) //elf
+		{
+			if (mvOccupied->eimic > 0) mvOccupied->MainCtrlPos = 3;
+			if (mvOccupied->eimic < 0) mvOccupied->MainCtrlPos = 2;
+		}
 	}
 };
 
@@ -4013,7 +4115,7 @@ TController::UpdateSituation(double dt) {
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
                 if (AIControllFlag) // skład jak dotąd był wyluzowany
                 {
-                    if( ( mvOccupied->BrakeCtrlPos == 0 ) // jest pozycja jazdy
+                    if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 ) // jest pozycja jazdy
                      && ( ( vehicle->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) // brake isn't broken
                      && ( vehicle->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
                      && ( vehicle->Hamulec->GetCRP() > vehicle->PipePress + 0.12 ) ) { // za dużo w zbiorniku
@@ -4102,9 +4204,14 @@ TController::UpdateSituation(double dt) {
     // TODO: check if this situation still happens and the hack is still needed
     if( ( false == AIControllFlag )
      && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->Doors.close_control != control_t::driver )
-     && ( mvControlling->MainCtrlPos > ( mvControlling->EngineType != TEngineType::DieselEngine ? 0 : 1 ) ) ) { // for diesel 1st position is effectively 0
-        Doors( false );
+     && ( mvOccupied->Doors.close_control != control_t::driver ) ) {
+        // for diesel engines react when engine is put past idle revolutions
+        // for others straightforward master controller check
+        if( ( mvControlling->EngineType == TEngineType::DieselEngine ?
+                mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 :
+                mvControlling->MainCtrlPowerPos() > 0 ) ) {
+            Doors( false );
+        }
     }
 
     // basic situational ai operations
@@ -4165,7 +4272,7 @@ TController::UpdateSituation(double dt) {
                 // is moving
                 if( ( fOverhead2 >= 0.0 ) || iOverheadZero ) {
                     // jeśli jazda bezprądowa albo z opuszczonym pantografem
-                    while( DecSpeed( true ) ) { ; } // zerowanie napędu
+                    ZeroSpeed();
                 }
                 if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
                     // jazda z opuszczonymi pantografami
@@ -4261,7 +4368,7 @@ TController::UpdateSituation(double dt) {
         if( ( true == TestFlag( iDrivigFlags, moveStartHornNow ) )
          && ( true == Ready )
          && ( iEngineActive != 0 )
-         && ( mvControlling->MainCtrlPos > 0 ) ) {
+         && ( mvControlling->MainCtrlPowerPos() > 0 ) ) {
             // uruchomienie trąbienia przed ruszeniem
             fWarningDuration = 0.3; // czas trąbienia
             mvOccupied->WarningSignal = pVehicle->iHornWarning; // wysokość tonu (2=wysoki)
@@ -4273,6 +4380,10 @@ TController::UpdateSituation(double dt) {
     // main ai update routine
     auto const reactiontime = std::min( ReactionTime, 2.0 );
     if( LastReactionTime < reactiontime ) { return; }
+
+	if (AIControllFlag) {
+		CheckTimeControllers();
+	}
 
     LastReactionTime -= reactiontime;
     // Ra: nie wiem czemu ReactionTime potrafi dostać 12 sekund, to jest przegięcie, bo przeżyna STÓJ
@@ -4393,6 +4504,13 @@ TController::UpdateSituation(double dt) {
 		if( mvOccupied->SecuritySystem.is_blinking() ) {
             // jak zadziałało CA/SHP
 			mvOccupied->SecuritySystemReset(); // to skasuj
+                if( ( /*mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
+                 && ( AccDesired > 0.0 )
+                 && mvOccupied->SecuritySystem.is_braking() ) {
+                    //!!! hm, może po prostu normalnie sterować hamulcem?
+                    //mvOccupied->BrakeLevelSet( 0 ); GBH
+					BrakeLevelSet(gbh_RP);
+                }
         }
         // basic emergency stop handling, while at it
         if( ( true == mvOccupied->RadioStopFlag ) // radio-stop
@@ -4773,7 +4891,7 @@ TController::UpdateSituation(double dt) {
                         // jeśli dociskanie w celu odczepienia
                         // 3. faza odczepiania.
                         SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                        if( ( mvControlling->MainCtrlPos > 0 )
+                        if( ( mvControlling->MainCtrlPowerPos() > 0 )
                          || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) {
                             // jeśli jazda
                             WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
@@ -4792,7 +4910,8 @@ TController::UpdateSituation(double dt) {
                                     // (ustalić po czym poznać taki tor)
                                     ++n; // to  liczymy człony jako jeden
                                 p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                                p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+                                // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+								BrakeLevelSet(gbh_RP);
                                 if (n)
                                 { // jeśli jeszcze nie koniec
                                     p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
@@ -4826,10 +4945,12 @@ TController::UpdateSituation(double dt) {
                         // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
-                        mvOccupied->BrakeLevelSet(
-                            mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                                1 :
-                                3 );
+                        if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
+                        }
+                        else {
+                            BrakeCtrlPosition = 3;
+                        }
                         double p = mvOccupied->BrakePressureActual.PipePressureVal;
                         if( p < 3.9 ) {
                             // tu może być 0 albo -1 nawet
@@ -4864,16 +4985,16 @@ TController::UpdateSituation(double dt) {
                     if (iDrivigFlags & movePress)
                 { // 4. faza odczepiania: zwolnij i zmień kierunek
                     SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
-                    if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
-                    { // ponowna zmiana kierunku
-                        WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
-                        DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
-                        iDrivigFlags &= ~movePress; // koniec dociskania
-                        JumpToNextOrder(); // zmieni światła
-                        TableClear(); // skanowanie od nowa
-                        iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
-                        SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
-                    }
+                    ZeroSpeed();
+                    // ponowna zmiana kierunku
+                    WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
+                    DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
+                    iDrivigFlags &= ~movePress; // koniec dociskania
+                    JumpToNextOrder(); // zmieni światła
+                    TableClear(); // skanowanie od nowa
+                    iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
+                    SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
+					mvOccupied->BrakeReleaser(0); // wyłączyć luzowanie
                 }
             }
 
@@ -5419,7 +5540,7 @@ TController::UpdateSituation(double dt) {
                 // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
 
                 // zapobieganie poslizgowi u nas
-                if (mvControlling->SlippingWheels) {
+                if (mvControlling->SlippingWheels && mvControlling->EngineType != TEngineType::ElectricInductionMotor) {
 
                     if( false == mvControlling->DecScndCtrl( 2 ) ) {
                         // bocznik na zero
@@ -5439,7 +5560,7 @@ TController::UpdateSituation(double dt) {
                 if( ( true == mvOccupied->RadioStopFlag ) // radio-stop
                  && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
                     // if the radio-stop was issued don't waste effort trying to fight it
-                    while( true == DecSpeed() ) { ; } // just throttle down...
+                    ZeroSpeed(); // just throttle down...
                     return; // ...and don't touch any other controls
                 }
 
@@ -5485,17 +5606,18 @@ TController::UpdateSituation(double dt) {
                     }
                 }
                 if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
+                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P
+						|| mvOccupied->BrakeHandle == TBrakeHandle::M394)
                     {
-                        if( mvOccupied->BrakeCtrlPos == -2 ) {
-                            mvOccupied->BrakeLevelSet( 0 );
+                        if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == -2 ) {
+                            /*mvOccupied->*/BrakeLevelSet( gbh_RP );
                         }
                         if( ( mvOccupied->PipePress < 3.0 )
                          && ( AccDesired > -0.03 ) ) {
                             mvOccupied->BrakeReleaser( 1 );
                         }
 
-                        if( ( mvOccupied->BrakeCtrlPos == 0 )
+                        if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
                          && ( AbsAccS < 0.03 )
                          && ( AccDesired > -0.03 )
                          && ( VelDesired - mvOccupied->Vel > 2.0 ) ) {
@@ -5507,7 +5629,8 @@ TController::UpdateSituation(double dt) {
                                 if( ( iDrivigFlags & moveOerlikons )
                                  || ( true == IsCargoTrain ) ) {
                                     // napełnianie w Oerlikonie
-                                    mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) );
+                                    /* mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) ); GBH */
+									BrakeLevelSet(gbh_FS);
                                     // don't charge the brakes too often, or we risk overcharging
                                     BrakeChargingCooldown = -120.0;
                                 }
@@ -5518,9 +5641,10 @@ TController::UpdateSituation(double dt) {
                             }
                         }
 
-                        if( ( mvOccupied->BrakeCtrlPos < 0 )
+                        if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 )
                          && ( mvOccupied->EqvtPipePress > ( fReady < 0.25 ? 5.1 : 5.2 ) ) ) {
-                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                            /* GBH mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); */
+							BrakeLevelSet(gbh_RP);
                         }
                     }
 #if LOGVELOCITY
@@ -5603,13 +5727,14 @@ TController::UpdateSituation(double dt) {
                 if( false == TestFlag( iDrivigFlags, movePress ) ) {
                     // jeśli nie dociskanie
                     if( AccDesired < -0.05 ) {
-                        while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
+                        ZeroSpeed();
                     }
                     else if( ( vel > VelDesired )
                           || ( fAccGravity < -0.01 ?
                                     AccDesired < 0.0 :
-                                    AbsAccS > AccDesired ) ) {
+                                    (AbsAccS > AccDesired && AccDesired < 0.75) ) ) {
                         // jak za bardzo przyspiesza albo prędkość przekroczona
+						// dodany wyjatek na "pelna w przod"
                         DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
                     }
                 }
@@ -5623,7 +5748,7 @@ TController::UpdateSituation(double dt) {
                             std::max( -0.2, fAccThreshold ) ) };
                     if( ( AccDesired <= accthreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
                      && ( ( AbsAccS > AccDesired )
-                       || ( mvOccupied->BrakeCtrlPos < 0 ) ) ) {
+                       || ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 ) ) ) {
                         // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
                         IncBrake();
                     }
@@ -5631,7 +5756,7 @@ TController::UpdateSituation(double dt) {
                         // przy odłączaniu nie zwalniamy tu hamulca
                         if( AbsAccS < AccDesired - 0.05 ) {
                             // jeśli opóźnienie większe od wymaganego (z histerezą) luzowanie, gdy za dużo
-                            if( mvOccupied->BrakeCtrlPos >= 0 ) {
+                            if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition >= 0 ) {
                                 DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
                             }
                         }
@@ -5654,7 +5779,7 @@ TController::UpdateSituation(double dt) {
                         // u góry ustawia się hamowanie na fAccThreshold
                         if( ( fBrakeTime < 0.0 )
                          || ( AccDesired < fAccGravity - 0.5 )
-                         || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
+                         || ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition <= 0 ) ) {
                             // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
                             if( true == IncBrake() ) {
                                 fBrakeTime =
@@ -5727,13 +5852,15 @@ TController::UpdateSituation(double dt) {
                         mvOccupied->IncLocalBrakeLevel( 1 );
                     }
                     else {
-                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
+                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); //GBH
+						BrakeLevelSet(gbh_RP);
                     }
                 }
             }
         }
         break; // rzeczy robione przy jezdzie
     } // switch (OrderList[OrderPos])
+	if (AIControllFlag) SetTimeControllers();
 }
 
 // configures vehicle heating given current situation; returns: true if vehicle can be operated normally, false otherwise
@@ -6392,21 +6519,35 @@ void TController::TakeControl(bool yes)
 
 void TController::DirectionForward(bool forward)
 { // ustawienie jazdy do przodu dla true i do tyłu dla false (zależy od kabiny)
-    while (mvControlling->MainCtrlPos) // samo zapętlenie DecSpeed() nie wystarcza
-        DecSpeed(true); // wymuszenie zerowania nastawnika jazdy, inaczej się może zawiesić
-    if (forward)
-        while (mvOccupied->ActiveDir <= 0)
-            mvOccupied->DirectionForward(); // do przodu w obecnej kabinie
-    else
-        while (mvOccupied->ActiveDir >= 0)
-            mvOccupied->DirectionBackward(); // do tyłu w obecnej kabinie
-    if( mvOccupied->TrainType == dt_SN61 ) {
-        // specjalnie dla SN61 żeby nie zgasł
-        if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
-            mvControlling->IncMainCtrl( 1 );
+    ZeroSpeed( true ); // TODO: check if force switch is needed anymore here
+    if( forward ) {
+        // do przodu w obecnej kabinie
+        while( ( mvOccupied->ActiveDir <= 0 )
+            && ( mvOccupied->DirectionForward() ) ) {
+            ; // all work is done in the header
         }
     }
-};
+    else {
+        // do tyłu w obecnej kabinie
+        while( ( mvOccupied->ActiveDir >= 0 )
+            && ( mvOccupied->DirectionBackward() ) ) {
+            ; // all work is done in the header
+        }
+    }
+    if( mvOccupied->TrainType == dt_SN61 ) {
+        // specjalnie dla SN61 żeby nie zgasł
+        while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 )
+            && ( mvControlling->IncMainCtrl( 1 ) ) ) {
+            ; // all work is done in the header
+        }
+    }
+}
+
+void TController::ZeroDirection() {
+
+    while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
+    while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+}
 
 Mtable::TTrainParameters const *
 TController::TrainTimetable() const {
