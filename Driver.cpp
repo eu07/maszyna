@@ -5002,6 +5002,7 @@ TController::UpdateSituation(double dt) {
                     TableClear(); // skanowanie od nowa
                     iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
                     SetVelocity(fShuntVelocity, fShuntVelocity); // ustawienie prędkości jazdy
+					mvOccupied->BrakeReleaser(0); // wyłączyć luzowanie
                 }
             }
 
