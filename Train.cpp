@@ -453,6 +453,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "main_ctrl_actual_pos", mover->MainCtrlActualPos );
     dict->insert( "scndctrl_pos", mover->ScndCtrlPos );
     dict->insert( "scnd_ctrl_actual_pos", mover->ScndCtrlActualPos );
+	dict->insert( "new_speed", mover->NewSpeed);
     // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
