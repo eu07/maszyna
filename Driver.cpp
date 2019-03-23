@@ -1408,9 +1408,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
                 }
-                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno
-                    // dotyczyć samochodów?)
-                    a = (v == 0.0 ? -1.0 : fAcc); // ruszanie albo hamowanie
+                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno dotyczyć samochodów?)
+                    a = (v > 0.0 ?
+                            fAcc :
+                            mvOccupied->Vel < 0.01 ?
+                                0.0 : // already standing still so no need to bother with brakes
+                               -2.0 ); // ruszanie albo hamowanie
 
                 if ((a < fAcc) && (v == std::min(v, fNext))) {
                     // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania

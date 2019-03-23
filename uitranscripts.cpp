@@ -17,11 +17,12 @@ TTranscripts::AddLine( std::string const &txt, float show, float hide, bool it )
 
     if( show == hide ) { return; } // komentarz jest ignorowany
 
+    // TODO: replace the timeangledeg mess with regular time points math
     show = Global.fTimeAngleDeg + show / 240.0; // jeśli doba to 360, to 1s będzie równe 1/240
     hide = Global.fTimeAngleDeg + hide / 240.0;
 
     TTranscript transcript;
-    transcript.asText = txt;
+    transcript.asText = ExchangeCharInString( txt, '|', ' ' ); // NOTE: legacy transcript lines use | as new line mark
     transcript.fShow = show;
     transcript.fHide = hide;
     transcript.bItalic = it;
@@ -64,12 +65,25 @@ TTranscripts::Add( std::string const &txt, bool backgorund ) {
 void
 TTranscripts::Update() {
 
+    // HACK: detect day change
+    if( fRefreshTime - Global.fTimeAngleDeg > 180 ) {
+        fRefreshTime -= 360;
+    }
+
     if( Global.fTimeAngleDeg < fRefreshTime ) { return; } // nie czas jeszcze na zmiany
 
-    while( ( false == aLines.empty() )
-        && ( Global.fTimeAngleDeg >= aLines.front().fHide ) ) {
-        // remove expired lines
-        aLines.pop_front();
+    // remove expired lines
+    while( false == aLines.empty() ) {
+        // HACK: detect day change
+        if( aLines.front().fHide - Global.fTimeAngleDeg > 180 ) {
+            aLines.front().fShow -= 360;
+            aLines.front().fHide -= 360;
+        }
+        if( Global.fTimeAngleDeg <= aLines.front().fHide ) {
+            // no expired lines yet
+            break;
+        }
+        aLines.pop_front(); // this line expired, discard it and start anew with the next one
     }
     // update next refresh time
     if( false == aLines.empty() ) { fRefreshTime = aLines.front().fHide; }
