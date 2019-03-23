@@ -481,6 +481,12 @@ double TWest::GetPF( double const PP, double const dt, double const Vel )
         dv = 0;
     BrakeCyl->Flow(-dv);
 
+	if ((BrakeStatus & b_rls) == b_rls) //odluzniacz
+		dv = PF(0, CVP, 0.1 * SizeBC) * dt;
+	else
+		dv = 0;
+	BrakeCyl->Flow(-dv);
+
     // hamulec EP
     temp = BVP * int(EPS > 0);
     dv = PF(temp, LBP, 0.0015) * dt * EPS * EPS * int(LBP * EPS < MaxBP * LoadC);
