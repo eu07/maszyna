@@ -3372,7 +3372,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 		mvControlling->IncScndCtrl(1);
 		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
 	}
-	else if (mvControlling->ScndCtrlPosNo > 1)
+	else if ((mvControlling->ScndCtrlPosNo > 1) && (!mvOccupied->SpeedCtrlTypeTime))
 	{
 		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
         while( ( mvControlling->ScndCtrlPos > DesiredPos ) && ( true == mvControlling->DecScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
@@ -3414,6 +3414,22 @@ void TController::SetTimeControllers()
 			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 1;
 		}
 	}
+	//4. Check Speed Control System
+	if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor && mvOccupied->ScndCtrlPosNo > 1 && mvOccupied->SpeedCtrlTypeTime)
+	{
+		double SpeedCntrlVel =
+			(ActualProximityDist > std::max(50.0, fMaxProximityDist)) ?
+			VelDesired :
+			min_speed(VelDesired, VelNext);
+		SpeedCntrlVel = 10 * std::floor(SpeedCntrlVel*0.1);
+		if (mvOccupied->ScndCtrlPosNo == 4)
+		{
+			if (mvOccupied->NewSpeed + 0.1 < SpeedCntrlVel)
+				mvOccupied->ScndCtrlPos = 3;
+			if (mvOccupied->NewSpeed - 0.1 > SpeedCntrlVel)
+				mvOccupied->ScndCtrlPos = 1;
+		}
+	}
 };
 
 void TController::CheckTimeControllers()
@@ -3444,6 +3460,14 @@ void TController::CheckTimeControllers()
 		{
 			if (mvOccupied->eimic > 0) mvOccupied->MainCtrlPos = 3;
 			if (mvOccupied->eimic < 0) mvOccupied->MainCtrlPos = 2;
+		}
+	}
+	//4. Check Speed Control System
+	if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor && mvOccupied->ScndCtrlPosNo>1 && mvOccupied->SpeedCtrlTypeTime)
+	{
+		if (mvOccupied->ScndCtrlPosNo == 4)
+		{
+				mvOccupied->ScndCtrlPos = 2;
 		}
 	}
 };
