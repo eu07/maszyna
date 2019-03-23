@@ -1408,9 +1408,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
                 }
-                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno
-                    // dotyczyć samochodów?)
-                    a = (v == 0.0 ? -1.0 : fAcc); // ruszanie albo hamowanie
+                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno dotyczyć samochodów?)
+                    a = (v > 0.0 ?
+                            fAcc :
+                            mvOccupied->Vel < 0.01 ?
+                                0.0 : // already standing still so no need to bother with brakes
+                               -2.0 ); // ruszanie albo hamowanie
 
                 if ((a < fAcc) && (v == std::min(v, fNext))) {
                     // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
@@ -4950,10 +4953,12 @@ TController::UpdateSituation(double dt) {
                         // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
-                        mvOccupied->BrakeLevelSet(
-                            mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
-                                1 :
-                                3 );
+                        if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
+                        }
+                        else {
+                            BrakeCtrlPosition = 3;
+                        }
                         double p = mvOccupied->BrakePressureActual.PipePressureVal;
                         if( p < 3.9 ) {
                             // tu może być 0 albo -1 nawet

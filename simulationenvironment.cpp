@@ -92,6 +92,17 @@ world_environment::update() {
     // NOTE: sun light receives extra padding to prevent moon from kicking in too soon
     auto const sunlightlevel = m_sun.getIntensity() + 0.05f * ( 1.f - twilightfactor );
     auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
+
+    // ...update skydome to match the current sun position as well...
+    // twilight factor can be reset later down, so we do it here while it's still reflecting state of the sun
+    // turbidity varies from 2-3 during the day based on overcast, 3-4 after sunset to deal with sunlight bleeding too much into the sky from below horizon
+    m_skydome.SetTurbidity(
+        2.f
+        + clamp( Global.Overcast, 0.f, 1.f )
+        + interpolate( 0.f, 1.f, clamp( twilightfactor * 1.5f, 0.f, 1.f ) ) );
+    m_skydome.SetOvercastFactor( Global.Overcast );
+    m_skydome.Update( m_sun.getDirection() );
+
     float keylightintensity;
     glm::vec3 keylightcolor;
     if( moonlightlevel > sunlightlevel ) {
@@ -117,9 +128,6 @@ world_environment::update() {
             glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
             duskfactor );
     }
-    // ...update skydome to match the current sun position as well...
-    m_skydome.SetOvercastFactor( Global.Overcast );
-    m_skydome.Update( m_sun.getDirection() );
     // ...retrieve current sky colour and brightness...
     auto const skydomecolour = m_skydome.GetAverageColor();
     auto const skydomehsv = colors::RGBtoHSV( skydomecolour );

@@ -4332,6 +4332,20 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
                 }
 
+                else if(token == "loads:") {
+					// default load visualization models overrides
+                    // content provided as "key: value" pairs together enclosed in "{}"
+                    // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "}" ) ) {
+                        if( token[ token.size() - 1 ] == ':' ) {
+                            auto loadmodel { deserialize_random_set( parser ) };
+                            replace_slashes( loadmodel );
+                            LoadModelOverrides.emplace( token.erase( token.size() - 1 ), loadmodel );
+                        }
+                    }
+                }
+
 				else if( token == "brakemode:" ) {
                 // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
@@ -5644,8 +5658,17 @@ TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
 
     if( Name.empty() ) { return nullptr; }
 
-    // try first specialized version of the load model, vehiclename_loadname
     TModel3d *loadmodel { nullptr };
+
+    // check if we don't have model override for this load type
+    auto const lookup { LoadModelOverrides.find( Name ) };
+    if( lookup != LoadModelOverrides.end() ) {
+        loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
+        // if the override was succesfully loaded call it a day
+        if( loadmodel != nullptr ) { return loadmodel; }
+    }
+    // regular routine if there's no override or it couldn't be loaded
+    // try first specialized version of the load model, vehiclename_loadname
     auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
     if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
      || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
