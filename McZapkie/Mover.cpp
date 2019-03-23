@@ -5021,7 +5021,44 @@ double TMoverParameters::TractionForce( double dt ) {
         {
             if( true == Mains ) {
 				//tempomat
-				if (ScndCtrlPosNo > 1)
+				if (ScndCtrlPosNo == 4 && SpeedCtrlTypeTime)
+				{
+					switch (ScndCtrlPos) {
+					case 0:
+						NewSpeed = 0;
+						ScndCtrlActualPos = 0;
+						SpeedCtrlTimer = 10;
+						break;
+					case 1:
+						if (SpeedCtrlTimer > SpeedCtrlDelay) {
+							SpeedCtrlTimer = 0;
+							NewSpeed -= 10;
+							if (NewSpeed < 0) NewSpeed = 0;
+						}
+						else
+							SpeedCtrlTimer += dt;
+					break;
+					case 2:
+						SpeedCtrlTimer = 10;
+						ScndCtrlActualPos = NewSpeed;
+						break;
+					case 3:
+						if (SpeedCtrlTimer > SpeedCtrlDelay) {
+							SpeedCtrlTimer = 0;
+							NewSpeed += 10;
+							if (NewSpeed > Vmax) NewSpeed = Vmax;
+						}
+						else
+							SpeedCtrlTimer += dt;
+						break;
+					case 4:
+						NewSpeed = Vmax;
+						ScndCtrlActualPos = Vmax;
+						SpeedCtrlTimer = 10;
+						break;
+					}
+				}
+				else if (ScndCtrlPosNo > 1)
 				{
 					if (ScndCtrlPos != NewSpeed)
 					{
@@ -8619,6 +8656,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     // speed control
     extract_value( SpeedCtrlDelay, "SpeedCtrlDelay", line, "" );
+	SpeedCtrlTypeTime =
+		(extract_value("SpeedCtrlType", line) == "Time") ?
+		true :
+		false;
 
     // converter
     {
