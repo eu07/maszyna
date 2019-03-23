@@ -346,7 +346,7 @@ double TBrake::GetVRP()
 // cisnienie zbiornika sterujacego
 double TBrake::GetCRP()
 {
-    return 0;
+    return GetBRP();
 }
 
 // przeplyw z przewodu glowneg
@@ -2788,7 +2788,7 @@ double TMHZ_K5P::GetPos(int i)
 
 double TMHZ_K5P::GetCP()
 {
-	return RP;
+	return CP;
 }
 
 void TMHZ_K5P::SetParams(bool AO, bool MO, double, double)
@@ -2890,6 +2890,8 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 void TMHZ_6P::Init(double Press)
 {
 	CP = Press;
+	Time = true;
+	TimeEP = true;
 }
 
 void TMHZ_6P::SetReductor(double nAdj)
@@ -2912,7 +2914,7 @@ double TMHZ_6P::GetPos(int i)
 
 double TMHZ_6P::GetCP()
 {
-	return RP;
+	return CP;
 }
 
 void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double)

@@ -171,7 +171,7 @@ bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
 
 void CSkyDome::SetTurbidity( float const Turbidity ) {
 
-	m_turbidity = clamp( Turbidity, 1.0f, 512.0f );
+	m_turbidity = clamp( Turbidity, 1.f, 4.f );
 }
 
 void CSkyDome::SetExposure( bool const Linearexposure, float const Expfactor ) {

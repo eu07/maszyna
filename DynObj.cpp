@@ -1589,6 +1589,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         Error("Parameters mismatch: dynamic object " + asName + " from \"" + BaseDir + "/" + Type_Name + "\"" );
         return 0.0; // zerowa długość to brak pojazdu
     }
+    // controller position
+    MoverParameters->MainCtrlPos = MoverParameters->MainCtrlNoPowerPos();
     // ustawienie pozycji hamulca
     MoverParameters->LocalBrakePosA = 0.0;
     if (driveractive)
@@ -2956,7 +2958,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				}
 				MEDLogTime += dt1;
 
-				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPos > 0))
+				if ((MoverParameters->Vel < 0.1) || (MoverParameters->MainCtrlPowerPos() > 0))
 				{
 					MEDLogInactiveTime += dt1;
 				}
@@ -4072,7 +4074,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbBufferClamp
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }
@@ -4097,7 +4099,7 @@ void TDynamicObject::RenderSounds() {
             else {
                 // basic clash
                 couplersounds.dsbCouplerStretch
-                    .gain( 0.65f )
+                    .gain( 1.f )
                     .play( sound_flags::exclusive );
             }
         }
@@ -4333,6 +4335,20 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
+                }
+
+                else if(token == "loads:") {
+					// default load visualization models overrides
+                    // content provided as "key: value" pairs together enclosed in "{}"
+                    // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "}" ) ) {
+                        if( token[ token.size() - 1 ] == ':' ) {
+                            auto loadmodel { deserialize_random_set( parser ) };
+                            replace_slashes( loadmodel );
+                            LoadModelOverrides.emplace( token.erase( token.size() - 1 ), loadmodel );
+                        }
+                    }
                 }
 
 				else if( token == "brakemode:" ) {
@@ -5647,8 +5663,17 @@ TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
 
     if( Name.empty() ) { return nullptr; }
 
-    // try first specialized version of the load model, vehiclename_loadname
     TModel3d *loadmodel { nullptr };
+
+    // check if we don't have model override for this load type
+    auto const lookup { LoadModelOverrides.find( Name ) };
+    if( lookup != LoadModelOverrides.end() ) {
+        loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
+        // if the override was succesfully loaded call it a day
+        if( loadmodel != nullptr ) { return loadmodel; }
+    }
+    // regular routine if there's no override or it couldn't be loaded
+    // try first specialized version of the load model, vehiclename_loadname
     auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
     if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
      || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {

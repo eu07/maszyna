@@ -789,8 +789,8 @@ void TTrain::OnCommand_jointcontrollerset( TTrain *Train, command_data const &Co
                 clamp(
                     1.0 - ( Command.param1 * 2 ),
                     0.0, 1.0 ) );
-            if( Train->mvControlled->MainCtrlPos > 0 ) {
-                Train->set_master_controller( 0 );
+            if( Train->mvControlled->MainCtrlPowerPos() > 0 ) {
+                Train->set_master_controller( Train->mvControlled->MainCtrlNoPowerPos() );
             }
         }
     }
@@ -846,7 +846,7 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+         && ( Train->mvControlled->IsMainCtrlNoPowerPos() ) ) {
             OnCommand_independentbrakeincrease( Train, Command );
         }
         else {
@@ -866,7 +866,7 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->MainCtrlPos == 0 ) ) {
+         && ( Train->mvControlled->IsMainCtrlNoPowerPos() ) ) {
             OnCommand_independentbrakeincreasefast( Train, Command );
         }
         else {
@@ -5543,7 +5543,12 @@ bool TTrain::Update( double const Deltatime )
             }
             if (ggIgnitionKey.SubModel)
             {
-                ggIgnitionKey.UpdateValue(mvControlled->dizel_startup);
+                ggIgnitionKey.UpdateValue(
+                    ( mvControlled->Mains )
+                 || ( mvControlled->dizel_startup )
+                 || ( fMainRelayTimer > 0.f )
+                 || ( ggMainButton.GetDesiredValue() > 0.95 )
+                 || ( ggMainOnButton.GetDesiredValue() > 0.95 ) );
                 ggIgnitionKey.Update();
             }
         }
@@ -5754,6 +5759,7 @@ bool TTrain::Update( double const Deltatime )
             // others
             btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
             btLampkaMotorBlowers.Turn( ( mvControlled->MotorBlowers[ end::front ].is_active ) && ( mvControlled->MotorBlowers[ end::rear ].is_active ) );
+            btLampkaCoolingFans.Turn( mvControlled->RventRot > 1.0 );
             // universal devices state indicators
             for( auto idx = 0; idx < btUniversals.size(); ++idx ) {
                 btUniversals[ idx ].Turn( ggUniversals[ idx ].GetValue() > 0.5 );
@@ -5814,6 +5820,7 @@ bool TTrain::Update( double const Deltatime )
             // others
             btLampkaMalfunction.Turn( false );
             btLampkaMotorBlowers.Turn( false );
+            btLampkaCoolingFans.Turn( false );
             // universal devices state indicators
             for( auto &universal : btUniversals ) {
                 universal.Turn( false );
@@ -7570,6 +7577,7 @@ void TTrain::clear_cab_controls()
     btLampkaMalfunction.Clear();
     btLampkaMalfunctionB.Clear();
     btLampkaMotorBlowers.Clear();
+    btLampkaCoolingFans.Clear();
 
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
@@ -7914,6 +7922,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-highcurrent:", btLampkaWysRozr },
         { "i-vent_trim:", btLampkaWentZaluzje },
         { "i-motorblowers:", btLampkaMotorBlowers },
+        { "i-coolingfans:", btLampkaCoolingFans },
         { "i-trainheating:", btLampkaOgrzewanieSkladu },
         { "i-security_aware:", btLampkaCzuwaka },
         { "i-security_cabsignal:", btLampkaSHP },

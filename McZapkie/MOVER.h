@@ -96,6 +96,7 @@ static int const maxcc = 4;                    /*max. ilosc odbierakow pradu*/
 //static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/
 static int const ManualBrakePosNo = 20;        /*ilosc nastaw hamulca recznego*/
 static int const LightsSwitchPosNo = 16;
+static int const UniversalCtrlArraySize = 32;            /*max liczba pozycji uniwersalnego nastawnika*/
 
 /*uszkodzenia toru*/
 static int const dtrack_railwear = 2;
@@ -572,6 +573,20 @@ struct TMotorParameters
     }
 };
 
+struct TUniversalCtrl
+{
+	int mode = 0; /*tryb pracy zadajnika - pomocnicze*/
+	double MinCtrlVal = 0.0; /*minimalna wartosc nastawy*/
+	double MaxCtrlVal = 0.0; /*maksymalna wartosc nastawy*/
+	double SetCtrlVal = 0.0; /*docelowa wartosc nastawy*/
+	double SpeedUp = 0.0; /*szybkosc zwiekszania nastawy*/
+	double SpeedDown = 0.0; /*szybkosc zmniejszania nastawy*/
+	int ReturnPosition = 0; /*pozycja na ktora odskakuje zadajnik*/
+	int NextPosFastInc = 0; /*nastepna duza pozycja przy przechodzeniu szybkim*/
+	int PrevPosFastDec = 0; /*poprzednia duza pozycja przy przechodzeniu szybkim*/
+};
+typedef TUniversalCtrl TUniversalCtrlTable[UniversalCtrlArraySize + 1]; /*tablica sterowania uniwersalnego nastawnika*/
+
 struct TSecuritySystem
 {
     int SystemType { 0 }; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
@@ -941,6 +956,8 @@ public:
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
 	TSecuritySystem SecuritySystem;
+	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
+	int UniCtrlListSize = 0;	/*wielkosc listy pozycji uniwersalnego nastawnika*/
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/
@@ -1209,6 +1226,7 @@ public:
 	int LightsPos = 0;
 	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
 				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+    int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
 	int CabNo = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
 	int ActiveCab = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład)
@@ -1357,6 +1375,7 @@ public:
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
 	bool DirectionForward();
+    bool DirectionBackward( void );/*! kierunek ruchu*/
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
 	bool IncBrakeLevel(); // wersja na użytek AI
@@ -1393,6 +1412,9 @@ public:
 	/*! glowny nastawnik:*/
 	bool IncMainCtrl(int CtrlSpeed);
 	bool DecMainCtrl(int CtrlSpeed);
+    bool IsMainCtrlNoPowerPos() const; // whether the master controller is set to position which won't generate any extra power
+    int MainCtrlNoPowerPos() const; // highest setting of master controller which won't cause engine to generate extra power
+    int MainCtrlPowerPos() const; // current setting of master controller, relative to the highest setting not generating extra power
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
@@ -1456,7 +1478,6 @@ public:
 	double ComputeRotatingWheel(double WForce, double dt, double n) const;
 
 	/*--funkcje dla lokomotyw*/
-	bool DirectionBackward(void);/*! kierunek ruchu*/
     bool WaterPumpBreakerSwitch( bool State, range_t const Notify = range_t::consist ); // water pump breaker state toggle
     bool WaterPumpSwitch( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
     bool WaterPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // water pump state toggle
@@ -1560,6 +1581,7 @@ private:
     void LoadFIZ_MotorParamTable( std::string const &Input );
     void LoadFIZ_Circuit( std::string const &Input );
     void LoadFIZ_RList( std::string const &Input );
+	void LoadFIZ_UCList(std::string const &Input);
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
     void LoadFIZ_LightsList( std::string const &Input );
@@ -1574,12 +1596,14 @@ private:
     bool readMPTDieselEngine( std::string const &line );
 	bool readBPT(/*int const ln,*/ std::string const &line);                                             //Q 20160721
     bool readRList( std::string const &Input );
+	bool readUCList(std::string const &Input);
     bool readDList( std::string const &line );
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readLightsList( std::string const &Input );
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
+    bool EIMDirectionChangeAllow( void );
 };
 
 //double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
