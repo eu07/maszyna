@@ -27,7 +27,7 @@ std::deque<std::string> log_scrollback;
 std::string filename_date() {
     ::SYSTEMTIME st;
 
-#ifdef __linux__
+#ifdef __unix__
     timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     tm *tms = localtime(&ts.tv_sec);
