@@ -45,9 +45,11 @@ driver_mode::drivermode_input::poll() {
     if( true == Global.InputGamepad ) {
         gamepad.poll();
     }
+#ifdef WITH_UART
     if( uart != nullptr ) {
         uart->poll();
     }
+#endif
 /*
     // TBD, TODO: wrap current command in object, include other input sources?
     input::command = (
@@ -67,10 +69,12 @@ driver_mode::drivermode_input::init() {
     if( true == Global.InputGamepad ) {
         gamepad.init();
     }
+#ifdef WITH_UART
     if( true == Global.uart_conf.enable ) {
         uart = std::make_unique<uart_input>();
         uart->init();
     }
+#endif
     if (Global.motiontelemetry_conf.enable)
         telemetry = std::make_unique<motiontelemetry>();
 

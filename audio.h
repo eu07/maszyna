@@ -9,8 +9,13 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#ifdef __APPLE__
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else
 #include <AL/al.h>
 #include <AL/alc.h>
+#endif
 
 namespace audio {
 

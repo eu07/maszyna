@@ -30,6 +30,9 @@ file(GLOB HEADERS "*.h"
 "network/backend/*.h"
 "widgets/*.h")
 
+option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
+option(WITH_UART "Compile with libserialport" OFF)
+
 set(SOURCES
 "Texture.cpp"
 "Timer.cpp"
@@ -86,7 +89,6 @@ set(SOURCES
 "material.cpp"
 "lua.cpp"
 "stdafx.cpp"
-"uart.cpp"
 "messaging.cpp"
 "scene.cpp"
 "scenenode.cpp"
@@ -150,13 +152,15 @@ set(SOURCES
 "imgui/imgui_impl_glfw.cpp"
 )
 
-option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
-
 if (USE_IMGUI_GL3)
 	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl3.cpp")
 else()
 	add_definitions(-DEU07_USEIMGUIIMPLOPENGL2)
 	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl2.cpp")
+endif()
+
+if (WITH_UART)
+	set(SOURCES ${SOURCES} "uart.cpp")
 endif()
 
 set (PREFIX "")
@@ -188,7 +192,7 @@ if (WIN32)
 	set(OPENAL_LIBRARY ${OPENAL_LIBRARY} "${DEPS_DIR}/openal/lib/${ARCH}/OpenAL32.lib")
 	set(LIBSNDFILE_LIBRARY ${LIBSNDFILE_LIBRARY} "${DEPS_DIR}/libsndfile/lib/${ARCH}/libsndfile-1.lib")
 	set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/${ARCH}/lua51.lib")
-	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")	
+	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")
 	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")
 endif()
 
@@ -230,9 +234,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
 
 find_package(PNG REQUIRED)
-include_directories(${PNG_INCLUDE_DIRS} ${PNG_PNG_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PNG::PNG)
 
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} Threads::Threads)
@@ -252,9 +254,11 @@ find_package(LuaJIT REQUIRED)
 include_directories(${LUAJIT_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
 
-find_package(libserialport REQUIRED)
-include_directories(${libserialport_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
+if (WITH_UART)
+	find_package(libserialport REQUIRED)
+	include_directories(${libserialport_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${libserialport_LIBRARY})
+endif()
 
 find_package(ASIO REQUIRED)
 target_link_libraries(${PROJECT_NAME} ASIO::ASIO)
