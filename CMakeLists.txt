@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-#include(PrecompiledHeader)
 include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
@@ -165,11 +164,6 @@ endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
-cotire(${PROJECT_NAME})
-#add_precompiled_header(${PROJECT_NAME} stdafx.h FORCEINCLUDE SOURCE_CXX stdafx.cpp)
-
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
 	# /wd4244: disable warnings for conversion with possible loss of data
@@ -198,8 +192,7 @@ include_directories(${OPENGL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
 
 find_package(GLEW REQUIRED)
-include_directories(${GLEW_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} GLEW::GLEW)
 
 find_package(GLFW3 REQUIRED)
 include_directories(${GLFW3_INCLUDE_DIR})
@@ -239,3 +232,7 @@ endif()
 if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)
 endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
+set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+cotire(${PROJECT_NAME})

@@ -154,7 +154,8 @@ void python_taskqueue::exit() {
     m_condition.notify_all();
     // let them free up their shit before we proceed
     for( auto &worker : m_workers ) {
-        worker.join();
+	if (worker.joinable())
+	        worker.join();
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore

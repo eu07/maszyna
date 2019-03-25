@@ -81,12 +81,7 @@
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
-#ifndef __ANDROID__
-#include "GL/glew.h"
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
+#include <GL/glew.h>
 #ifdef _WIN32
 #include "GL/wglew.h"
 #endif
