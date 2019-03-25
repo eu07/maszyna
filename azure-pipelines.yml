@@ -24,6 +24,26 @@ jobs:
         artifactName: binaries
       displayName: 'Publish binaries'
 
+  - job: macos1013
+    pool:
+      vmImage: 'macOS-10.13'
+    displayName: 'MacOS 10.13'
+    steps:
+    - script: |
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile
+      displayName: 'Install dependencies'
+    - script: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake --build .
+      displayName: 'Build'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'build/bin'
+        artifactName: binaries
+      displayName: 'Publish binaries'
+
   - job: windows_x64
     pool:
       vmImage: 'vs2017-win2016'
