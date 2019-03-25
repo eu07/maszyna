@@ -647,6 +647,7 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> Global.screenshot_dir;
 		}
+#ifdef WITH_UART
         else if( token == "uart" ) {
             uart_conf.enable = true;
             Parser.getTokens( 3, false );
@@ -685,6 +686,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> uart_conf.debug;
         }
+#endif
 		else if (token == "loadinglog") {
             Parser.getTokens( 1 );
             Parser >> loading_log;
