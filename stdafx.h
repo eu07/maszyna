@@ -29,7 +29,7 @@
 #include <shlobj.h>
 #undef NOMINMAX
 #endif
-#ifdef __linux__
+#ifdef __unix__
 #include <sys/stat.h>
 #endif
 // stl
