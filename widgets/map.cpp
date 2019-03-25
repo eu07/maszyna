@@ -194,11 +194,11 @@ void ui::map_panel::render_contents()
 
 	static enum { MODE_MANUAL = 0, MODE_CAMERA, MODE_VEHICLE } mode = MODE_MANUAL;
 
-	ImGui::RadioButton("manual", (int *)&mode, 0);
+	ImGui::RadioButton("Pan", (int *)&mode, 0);
 	ImGui::SameLine();
-	ImGui::RadioButton("cam", (int *)&mode, 1);
+	ImGui::RadioButton("Follow camera", (int *)&mode, 1);
 	ImGui::SameLine();
-	ImGui::RadioButton("vehicle", (int *)&mode, 2);
+	ImGui::RadioButton("Follow vehicle", (int *)&mode, 2);
 
 	ImVec2 surface_size_im = ImGui::GetContentRegionAvail();
 	glm::vec2 surface_size(surface_size_im.x, surface_size_im.y);

@@ -28,6 +28,7 @@ driver_ui::driver_ui() {
 	add_external_panel( &m_debugpanel );
 	add_external_panel( &m_transcriptspanel );
 
+	add_external_panel( &m_trainingcardpanel );
 	add_external_panel( &m_vehiclelist );
 	add_external_panel( &m_timepanel );
 	add_external_panel( &m_mappanel );
@@ -59,6 +60,7 @@ void driver_ui::render_menu_contents() {
 		ImGui::MenuItem(m_debugpanel.name().c_str(), "F12", &m_debugpanel.is_open);
 		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);
 		ImGui::MenuItem(m_vehiclelist.name().c_str(), nullptr, &m_vehiclelist.is_open);
+		ImGui::MenuItem(m_trainingcardpanel.name().c_str(), nullptr, &m_trainingcardpanel.is_open);
 
 		if (ImGui::MenuItem(m_timepanel.name().c_str()))
 			m_timepanel.open();

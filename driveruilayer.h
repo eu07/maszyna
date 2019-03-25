@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "widgets/vehicleparams.h"
 #include "widgets/map.h"
 #include "widgets/time.h"
+#include "widgets/trainingcard.h"
 
 class driver_ui : public ui_layer {
 
@@ -55,6 +56,7 @@ private:
     timetable_panel m_timetablepanel { "Timetable", false };
     debug_panel m_debugpanel { "Debug Data", false };
     transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts
+	trainingcard_panel  m_trainingcardpanel;
     bool m_paused { false };
 	bool m_pause_modal_opened { false };
 

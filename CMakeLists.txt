@@ -129,6 +129,7 @@ set(SOURCES
 "widgets/popup.cpp"
 "widgets/time.cpp"
 "widgets/vehicleparams.cpp"
+"widgets/trainingcard.cpp"
 
 "ref/glad/src/glad.c"
 
