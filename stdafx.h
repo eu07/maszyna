@@ -6,6 +6,12 @@
 #ifndef STDAFX_H
 #define STDAFX_H
 
+#ifdef __APPLE__
+#ifndef __unix__
+#define __unix__ 1
+#endif
+#endif
+
 #define _USE_MATH_DEFINES
 #include <cmath>
 #ifdef _MSC_VER

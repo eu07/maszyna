@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories("." "Console" "McZapkie")
 file(GLOB HEADERS "*.h" "Console/*.h" "McZapkie/*.h")
 
+if (APPLE)
+	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
+endif()
+
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" OFF)
 option(WITH_UART "Compile with libserialport" OFF)
 

@@ -34,9 +34,9 @@ int main( int argc, char *argv[] )
         auto result { Application.init( argc, argv ) };
         if( result == 0 ) {
             result = Application.run();
+	    Application.exit();
         }
-        Application.exit();
-		std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
+	std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
         return result;
     }
     catch( std::bad_alloc const &Error )
