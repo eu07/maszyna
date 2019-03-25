@@ -203,7 +203,9 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
 
 find_package(PNG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PNG::PNG)
+include_directories(${PNG_INCLUDE_DIRS} ${PNG_PNG_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARY})
 
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} Threads::Threads)
