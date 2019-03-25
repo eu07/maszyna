@@ -34,8 +34,8 @@ int main( int argc, char *argv[] )
         auto result { Application.init( argc, argv ) };
         if( result == 0 ) {
             result = Application.run();
+	    Application.exit();
         }
-        Application.exit();
     }
     catch( std::bad_alloc const &Error )
 	{

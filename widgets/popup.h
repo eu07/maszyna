@@ -10,7 +10,7 @@ class popup {
 
 public:
 	popup(ui_panel &panel);
-	~popup();
+	virtual ~popup();
 
 	bool render();
 

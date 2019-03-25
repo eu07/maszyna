@@ -30,6 +30,10 @@ file(GLOB HEADERS "*.h"
 "network/backend/*.h"
 "widgets/*.h")
 
+if (APPLE)
+	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
+endif()
+
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_UART "Compile with libserialport" OFF)
 
