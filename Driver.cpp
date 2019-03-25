@@ -1638,7 +1638,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     if( WriteLogFlag ) {
 #ifdef _WIN32
 		CreateDirectory( "physicslog", NULL );
-#elif __linux__
+#elif __unix__
         mkdir( "physicslog", 0644 );
 #endif
         LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ),
