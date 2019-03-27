@@ -33,18 +33,23 @@ public:
             m_start = std::chrono::steady_clock::now(); }
 	std::chrono::duration<float, std::milli>
         stop() {
-		    auto duration = std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_start ) );
-			m_accumulator = 0.95f * m_accumulator + duration.count() / 1000.f;
-			return duration;
+		    m_last = std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_start ) );
+			m_accumulator = 0.95f * m_accumulator + m_last.count() / 1000.f;
+			return m_last;
 	    }
     float
         average() const {
             return m_accumulator / 20.f;}
+	std::chrono::microseconds
+	last() const {
+		return m_last;
+	}
 
 private:
 // members
     std::chrono::time_point<std::chrono::steady_clock> m_start { std::chrono::steady_clock::now() };
     float m_accumulator { 1000.f / 30.f * 20.f }; // 20 last samples, initial 'neutral' rate of 30 fps
+	std::chrono::microseconds m_last;
 };
 
 struct subsystem_stopwatches {
