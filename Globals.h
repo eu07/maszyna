@@ -191,6 +191,7 @@ struct global_settings {
 	bool python_threadedupload = true;
 	bool python_vsync = true;
 	bool python_sharectx = true;
+	bool python_uploadmain = true;
 	std::chrono::duration<float> python_minframetime {0.01f};
 
     int gfx_framebuffer_width = -1;

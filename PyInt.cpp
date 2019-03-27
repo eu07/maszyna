@@ -96,23 +96,14 @@ void render_task::run() {
 
 void render_task::upload()
 {
-	if (m_target->image)
+	if (Global.python_uploadmain && m_target->image)
 	{
-		static bool width = 0;
-
 		glBindTexture(GL_TEXTURE_2D, m_target->shared_tex);
-		if (!width != m_target->width) {
-			glTexImage2D(
-			    GL_TEXTURE_2D, 0,
-			    m_target->format,
-			    m_target->width, m_target->height, 0,
-			    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
-			width = m_target->width;
-		}
-		else {
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_target->width, m_target->height, m_target->components, GL_UNSIGNED_BYTE, m_target->image);
-		}
-
+		glTexImage2D(
+		    GL_TEXTURE_2D, 0,
+		    m_target->format,
+		    m_target->width, m_target->height, 0,
+		    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
 
 		if (Global.python_mipmaps)
 		{
