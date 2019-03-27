@@ -502,7 +502,7 @@ bool TMoverParameters::Dettach(int ConnectNo)
 
 bool TMoverParameters::DirectionForward()
 {
-    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (EIMDirectionChangeAllow()))
     {
         ++ActiveDir;
         DirAbsolute = ActiveDir * CabNo;
@@ -2345,7 +2345,7 @@ bool TMoverParameters::DirectionBackward(void)
             DB = true; //
             return DB; // exit;  TODO: czy dobrze przetlumaczone?
         }
-    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (EIMDirectionChangeAllow()))
     {
         if (EngineType == TEngineType::WheelsDriven)
             CabNo--;
@@ -2366,7 +2366,11 @@ bool TMoverParameters::DirectionBackward(void)
 bool TMoverParameters::EIMDirectionChangeAllow(void)
 {
     bool OK = false;
+/*
+    // NOTE: disabled while eimic variables aren't immediately synced with master controller changes inside ai module
     OK = (EngineType != TEngineType::ElectricInductionMotor || ((eimic <= 0) && (eimic_real <= 0) && (Vel < 0.1)));
+*/
+    OK = ( MainCtrlPos <= MaxMainCtrlPosNoDirChange );
     return OK;
 }
 
@@ -4326,6 +4330,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                 // zderzenie
                 coupler.CheckCollision = true;
                 if( ( coupler.CouplerType == TCouplerType::Automatic )
+                 && ( coupler.CouplerType == othercoupler.CouplerType )
                  && ( coupler.CouplingFlag == coupling::faux ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
                     // EN57

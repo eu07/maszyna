@@ -5725,6 +5725,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
             btLampkaMotorBlowers.Turn( ( mvControlled->MotorBlowers[ end::front ].is_active ) && ( mvControlled->MotorBlowers[ end::rear ].is_active ) );
             btLampkaCoolingFans.Turn( mvControlled->RventRot > 1.0 );
+            btLampkaTempomat.Turn( mvControlled->ScndCtrlPos > 0 );
             // universal devices state indicators
             for( auto idx = 0; idx < btUniversals.size(); ++idx ) {
                 btUniversals[ idx ].Turn( ggUniversals[ idx ].GetValue() > 0.5 );
@@ -5786,6 +5787,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMalfunction.Turn( false );
             btLampkaMotorBlowers.Turn( false );
             btLampkaCoolingFans.Turn( false );
+            btLampkaTempomat.Turn( false );
             // universal devices state indicators
             for( auto &universal : btUniversals ) {
                 universal.Turn( false );
@@ -7424,6 +7426,7 @@ void TTrain::clear_cab_controls()
     btLampkaMalfunctionB.Clear();
     btLampkaMotorBlowers.Clear();
     btLampkaCoolingFans.Clear();
+    btLampkaTempomat.Clear();
 
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
@@ -7769,6 +7772,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-vent_trim:", btLampkaWentZaluzje },
         { "i-motorblowers:", btLampkaMotorBlowers },
         { "i-coolingfans:", btLampkaCoolingFans },
+        { "i-tempomat:", btLampkaTempomat },
         { "i-trainheating:", btLampkaOgrzewanieSkladu },
         { "i-security_aware:", btLampkaCzuwaka },
         { "i-security_cabsignal:", btLampkaSHP },
