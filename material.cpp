@@ -124,6 +124,9 @@ void opengl_material::finalize(bool Loadnow)
         parse_info.reset();
     }
 
+	if (!shader)
+		return;
+
     for (auto it : shader->param_conf)
     {
         gl::shader::param_entry entry = it.second;
@@ -376,10 +379,15 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
 	if( false == material.name.empty() ) {
 		// if we have material name and shader it means resource was processed succesfully
-		material.finalize(Loadnow);
-        materialhandle = m_materials.size();
-		m_materialmappings.emplace( material.name, materialhandle );
-		m_materials.emplace_back( std::move(material) );
+		try {
+			material.finalize(Loadnow);
+			materialhandle = m_materials.size();
+			m_materialmappings.emplace( material.name, materialhandle );
+			m_materials.emplace_back( std::move(material) );
+		} catch (gl::shader_exception const &e) {
+			ErrorLog("invalid shader: " + std::string(e.what()));
+			m_materialmappings.emplace( filename, materialhandle );
+		}
     }
     else {
         // otherwise record our failure to process the resource, to speed up subsequent attempts
