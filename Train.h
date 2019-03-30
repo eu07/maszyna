@@ -583,6 +583,7 @@ public: // reszta może by?publiczna
     TButton btLampkaMalfunctionB;
     TButton btLampkaMotorBlowers;
     TButton btLampkaCoolingFans;
+    TButton btLampkaTempomat;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
