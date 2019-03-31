@@ -2127,6 +2127,11 @@ bool TController::CheckVehicles(TOrders user)
              && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
                 // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                 p->MoverParameters->BatterySwitch( true );
+                // enable heating and converter in carriages with can be heated
+                if( p->MoverParameters->HeatingPower > 0 ) {
+                    p->MoverParameters->HeatingAllow = true;
+                    p->MoverParameters->ConverterSwitch( true, range_t::local );
+                }
             }
 
             if (p->asDestination == "none")
@@ -2358,6 +2363,7 @@ double TController::BrakeAccFactor() const
 	double Factor = 1.0;
 
     if( ( fAccThreshold != 0.0 )
+     && ( AccDesired < 0.0 )
      && ( ( ActualProximityDist > fMinProximityDist )
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
@@ -3551,7 +3557,7 @@ void TController::Doors( bool const Open, int const Side ) {
         }
 
         if( AIControllFlag ) {
-            if( ( true == mvOccupied->Doors.has_autowarning )
+            if( ( true == mvOccupied->Doors.has_warning )
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                 mvOccupied->signal_departure( true ); // załącenie bzyczka

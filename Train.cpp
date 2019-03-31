@@ -4153,7 +4153,7 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvControlled->Heating ) {
+        if( false == Train->mvControlled->HeatingAllow ) {
             // turn on
             OnCommand_heatingenable( Train, Command );
         }
@@ -4167,24 +4167,20 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
 void TTrain::OnCommand_heatingenable( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        Train->mvControlled->HeatingAllow = true;
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->Heating ) { return; } // already enabled
-
-        Train->mvControlled->Heating = true;
     }
 }
 
 void TTrain::OnCommand_heatingdisable( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        Train->mvControlled->HeatingAllow = false;
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
-
-        if( false == Train->mvControlled->Heating ) { return; } // already disabled
-
-        Train->mvControlled->Heating = false;
     }
 }
 
@@ -6027,7 +6023,6 @@ bool TTrain::Update( double const Deltatime )
         //---------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
         if( ( mvControlled->Heating == true )
-         && ( mvControlled->Mains == true )
          && ( mvControlled->ConvOvldFlag == false ) )
             btLampkaOgrzewanieSkladu.Turn( true );
         else

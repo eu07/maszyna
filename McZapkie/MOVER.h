@@ -1351,6 +1351,7 @@ public:
     std::string StLinSwitchType;
 
 	bool Heating = false; //ogrzewanie 'Winger 020304
+    bool HeatingAllow { false }; // heating switch // TODO: wrap heating in a basic device
 	int DoubleTr = 1; //trakcja ukrotniona - przedni pojazd 'Winger 160304
 
 	bool PhysicActivation = true;
@@ -1497,6 +1498,7 @@ public:
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck( double const Timestep ); // przetwornica
+    void HeatingCheck( double const Timestep );
     void WaterPumpCheck( double const Timestep );
     void WaterHeaterCheck( double const Timestep );
     void FuelPumpCheck( double const Timestep );
