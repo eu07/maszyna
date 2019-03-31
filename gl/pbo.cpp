@@ -49,3 +49,16 @@ bool gl::pbo::is_busy()
 
     return true;
 }
+
+void* gl::pbo::map(GLuint mode, targets target)
+{
+	bind(target);
+	return glMapBuffer(buffer::glenum_target(target), mode);
+}
+
+void gl::pbo::unmap(targets target)
+{
+	bind(target);
+	glUnmapBuffer(buffer::glenum_target(target));
+	sync.emplace();
+}

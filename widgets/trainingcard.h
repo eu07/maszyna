@@ -19,7 +19,7 @@ class trainingcard_panel : public ui_panel
 		return 1;
 	}
 	virtual int EndRecording( std::string training_identifier ) {
-		std::this_thread::sleep_for(std::chrono::duration<float>(5.0f));
+		std::this_thread::sleep_for(std::chrono::duration<float>(1.0f));
 		return 1;
 	}
 

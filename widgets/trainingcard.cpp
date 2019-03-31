@@ -59,8 +59,6 @@ void trainingcard_panel::render_contents()
 			ImGui::TextUnformatted(u8"Proszę czekać, trwa archiwizacja nagrania...");
 
 		ImGui::EndPopup();
-
-		return;
 	}
 
 	if (start_time_wall) {
@@ -82,10 +80,8 @@ void trainingcard_panel::render_contents()
 	ImGui::SameLine();
 	ImGui::InputText("##instructor", &instructor_name[0], instructor_name.size());
 
-	/*
 	ImGui::TextUnformatted("Uwagi");
 	ImGui::InputTextMultiline("##remarks", &remarks[0], remarks.size(), ImVec2(-1.0f, 200.0f));
-	*/
 
 	if (!start_time_wall) {
 		if (ImGui::Button("Rozpocznij szkolenie")) {

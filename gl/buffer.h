@@ -27,7 +27,7 @@ namespace gl
             UNIFORM_BUFFER
         };
 
-    private:
+	protected:
         static GLenum glenum_target(targets target);
 
     public:
