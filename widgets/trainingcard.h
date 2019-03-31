@@ -4,7 +4,10 @@ class trainingcard_panel : public ui_panel
 {
 	std::string place;
 	std::string trainee_name;
+	std::string trainee_birthdate;
+	std::string trainee_company;
 	std::string instructor_name;
+	std::string track_segment;
 	std::string remarks;
 
 	std::optional<std::time_t> start_time_wall;
