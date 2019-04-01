@@ -190,6 +190,7 @@ void state_manager::process_commands() {
 				vehicle->MoverParameters->EngDmgFlag = 0;
 				vehicle->MoverParameters->V = 0.0;
 				vehicle->MoverParameters->DistCounter = 0.0;
+				vehicle->MoverParameters->PipePress = 4.5;
 				vehicle = vehicle->Next();
 			}
 
@@ -199,6 +200,7 @@ void state_manager::process_commands() {
 				vehicle->MoverParameters->EngDmgFlag = 0;
 				vehicle->MoverParameters->V = 0.0;
 				vehicle->MoverParameters->DistCounter = 0.0;
+				vehicle->MoverParameters->PipePress = 4.5;
 				vehicle = vehicle->Prev();
 			}
 		}

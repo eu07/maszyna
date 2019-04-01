@@ -1,5 +1,11 @@
 #include "stdafx.h"
 #include "widgets/trainingcard.h"
+#include "simulation.h"
+
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
 
 trainingcard_panel::trainingcard_panel()
     : ui_panel("Raport szkolenia", false)
@@ -21,6 +27,8 @@ void trainingcard_panel::clear()
 	track_segment.clear();
 	remarks.clear();
 
+	distance = 0.0f;
+
 	place.resize(256, 0);
 	trainee_name.resize(256, 0);
 	trainee_birthdate.resize(256, 0);
@@ -28,6 +36,21 @@ void trainingcard_panel::clear()
 	instructor_name.resize(256, 0);
 	track_segment.resize(256, 0);
 	remarks.resize(4096, 0);
+}
+
+std::string trainingcard_panel::json_escape(const std::string &s) {
+	std::ostringstream o;
+	for (auto c = s.cbegin(); c != s.cend(); c++) {
+		if (*c == '\x00')
+			return o.str();
+		if (*c == '"' || *c == '\\' || ('\x00' <= *c && *c <= '\x1f')) {
+			o << "\\u"
+			  << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
+		} else {
+			o << *c;
+		}
+	}
+	return o.str();
 }
 
 void trainingcard_panel::save_thread_func()
@@ -39,35 +62,26 @@ void trainingcard_panel::save_thread_func()
 	tm = std::localtime(&now);
 	std::string to = std::to_string(tm->tm_hour) + ":" + std::to_string(tm->tm_min);
 
-	std::fstream temp("input.json", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-
-	temp << "{" << std::endl;
-	temp << "\"place\": \"" << place.c_str() << "\"," << std::endl;
-	temp << "\"date\": \"" << date << "\"," << std::endl;
-	temp << "\"from\": \"" << from << "\"," << std::endl;
-	temp << "\"to\": \"" << to << "\"," << std::endl;
-	temp << "\"trainee_name\": \"" << trainee_name.c_str() << "\"," << std::endl;
-	temp << "\"trainee_birthdate\": \"" << trainee_birthdate.c_str() << "\"," << std::endl;
-	temp << "\"company\": \"" << trainee_company.c_str() << "\"," << std::endl;
-	temp << "\"instructor_name\": \"" << instructor_name.c_str() << "\"," << std::endl;
-	temp << "\"track_segment\": \"" << track_segment.c_str() << "\"," << std::endl;
-	temp << "\"remarks\": \"" << remarks.c_str() << "\"" << std::endl;
-	temp << "}" << std::endl;
-
-	temp.close();
-
 	std::string rep = std::to_string(tm->tm_year + 1900) + std::to_string(tm->tm_mon + 1) + std::to_string(tm->tm_mday)
 	        + std::to_string(tm->tm_hour) + std::to_string(tm->tm_min) + "_" + std::string(trainee_name.c_str()) + "_" + std::string(instructor_name.c_str());
 
-#ifdef _WIN32
-	std::string generator("./fillpdf.exe");
-#else
-	std::string generator("./fillpdf");
-#endif
+	std::fstream temp("reports/" + rep + ".html", std::ios_base::out | std::ios_base::binary);
 
-	std::string cmd(generator + " complete -d input.json -t template.json doc.pdf " + rep + ".pdf");
-	std::cout << cmd<< std::endl;
-	system(cmd.c_str());
+	temp << "<!DOCTYPE html>" << std::endl;
+	temp << "<body>" << std::endl;
+	temp << "<div><b>Miejsce: </b>" << (std::string(place.c_str())) << "</div><br>" << std::endl;
+	temp << "<div><b>Data: </b>" << (date) << "</div><br>" << std::endl;
+	temp << "<div><b>Czas: </b>" << (from) << " - " << (to) << "</div><br>" << std::endl;
+	temp << "<div><b>Imię (imiona) i nazwisko szkolonego: </b>" << (trainee_name) << "</div><br>" << std::endl;
+	temp << "<div><b>Data urodzenia: </b>" << (trainee_birthdate) << "</div><br>" << std::endl;
+	temp << "<div><b>Firma: </b>" << (trainee_company) << "</div><br>" << std::endl;
+	temp << "<div><b>Imię i nazwisko instruktora: </b>"  << (instructor_name) << "</div><br>" << std::endl;
+	temp << "<div><b>Odcinek trasy: </b>"  << (track_segment) << "</div><br>" << std::endl;
+	if (distance > 0.0f)
+		temp << "<div><b>Przebyta odległość: </b>"  << std::round(distance) << " km</div><br>" << std::endl;
+	temp << "<div><b>Uwagi: </b><br>"  << (remarks) << "</div><br>" << std::endl;
+
+	temp.close();
 
 	state.store(EndRecording(rep));
 }
@@ -133,9 +147,7 @@ void trainingcard_panel::render_contents()
 	ImGui::InputText("##segment", &track_segment[0], track_segment.size());
 
 	ImGui::TextUnformatted("Uwagi");
-	ImGui::SameLine();
-	ImGui::InputText("##remarks", &remarks[0], remarks.size());
-	//ImGui::InputTextMultiline("##remarks", &remarks[0], remarks.size(), ImVec2(-1.0f, 200.0f));
+	ImGui::InputTextMultiline("##remarks", &remarks[0], remarks.size(), ImVec2(-1.0f, 200.0f));
 
 	if (!start_time_wall) {
 		if (ImGui::Button("Rozpocznij szkolenie")) {
@@ -151,6 +163,9 @@ void trainingcard_panel::render_contents()
 	else {
 		if (ImGui::Button(u8"Zakończ szkolenie")) {
 			state.store(2);
+			if (simulation::Trains.sequence().size() > 0)
+				distance = simulation::Trains.sequence()[0]->Dynamic()->MoverParameters->DistCounter;
+
 			if (save_thread.joinable())
 				save_thread.join();
 			save_thread = std::thread(&trainingcard_panel::save_thread_func, this);
