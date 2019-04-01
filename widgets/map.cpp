@@ -74,8 +74,10 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	cFrustum frustum;
 	frustum.calculate(transform, glm::mat4());
 
+	m_colored_paths.switches.clear();
+	m_colored_paths.occupied.clear();
+	m_colored_paths.future.clear();
 	m_section_handles.clear();
-	m_switch_handles.clear();
 
 	for (int row = 0; row < scene::EU07_REGIONSIDESECTIONCOUNT; row++)
 	{
@@ -88,7 +90,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 				if (handle != null_handle)
 				{
 					m_section_handles.push_back(handle);
-					section->get_map_active_switches(m_switch_handles);
+					section->get_map_active_paths(m_colored_paths);
 				}
 			}
 		}
@@ -111,17 +113,21 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
 	scene_ubs.projection = transform;
-	scene_ubs.time = 0.3f; // color is stuffed in time variable
+	scene_ubs.time = 0.5f; // color is stuffed in time variable
 	scene_ubo->update(scene_ubs);
 	scene_ubo->bind_uniform();
 
 	GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
-	glLineWidth(3.0f);
+	glLineWidth(2.0f);
 
-	scene_ubs.time = 0.6f; // color is stuffed in time variable
+	scene_ubs.time = 0.27f; // color is stuffed in time variable
 	scene_ubo->update(scene_ubs);
-	GfxRenderer.Draw_Geometry(m_switch_handles.begin(), m_switch_handles.end());
+	GfxRenderer.Draw_Geometry(m_colored_paths.switches.begin(), m_colored_paths.switches.end());
+	GfxRenderer.Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
+	scene_ubs.time = 1.0f; // color is stuffed in time variable
+	scene_ubo->update(scene_ubs);
+	GfxRenderer.Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
 
 	if (!Global.gfx_usegles || GLAD_GL_EXT_geometry_shader) {
 		GfxRenderer.Bind_Texture(0, m_icon_atlas);

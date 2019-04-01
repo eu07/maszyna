@@ -157,7 +157,7 @@ public:
 	void
 	    create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
 	void
-	    get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
+	    get_map_active_paths(map_colored_paths &handles);
 	glm::vec3 find_nearest_track_point(const glm::dvec3 &pos);
     // provides access to bounding area data
     bounding_area const &
@@ -285,11 +285,12 @@ public:
 	void
 	    create_map_geometry(const gfx::geometrybank_handle handle);
 	void
-	    get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
+	    get_map_active_paths(map_colored_paths &handles);
     // provides access to bounding area data
     bounding_area const &
         area() const {
             return m_area; }
+
     const gfx::geometrybank_handle get_map_geometry()
 	    { return m_map_geometryhandle;}
 	glm::vec3 find_nearest_track_point(const glm::dvec3 &point);

@@ -1135,9 +1135,15 @@ void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx
 
 	switch (eType)
 	{
-	case tt_Normal:
-		Segment->render_lines(Bank, 0.5f);
+	case tt_Normal: {
+		std::vector<gfx::basic_vertex> vertices;
+		Segment->render_lines(vertices, 0.5f);
+
+		extra_map_geometry = GfxRenderer.Insert(vertices, Extra, GL_LINES);
+		std::copy(vertices.begin(), vertices.end(), std::back_inserter(Bank));
+
 		break;
+	}
 	case tt_Switch: {
 		std::vector<gfx::basic_vertex> vertices;
 
@@ -1156,15 +1162,77 @@ void TTrack::create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx
 	}
 }
 
-void TTrack::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+TTrack *TTrack::Next(TTrack *visitor) {
+	if (eType == tt_Normal) {
+		if (trNext != visitor)
+			return trNext;
+		else
+			return trPrev;
+	} else if (eType == tt_Switch) {
+		int state = GetSwitchState();
+
+		if (SwitchExtension->pPrevs[0] == visitor
+		        || SwitchExtension->pPrevs[1] == visitor)
+		{
+			// we came from 'previous' side
+			return SwitchExtension->pNexts[state];
+		}
+
+		if (SwitchExtension->pNexts[0] == visitor
+		        || SwitchExtension->pNexts[1] == visitor)
+		{
+			// we came from 'next' side
+			return SwitchExtension->pPrevs[state];
+		}
+	}
+	return nullptr;
+}
+
+void TTrack::get_map_active_paths(map_colored_paths &handles)
 {
-	if (iCategoryFlag != 1 || eType != tt_Switch)
+	if (iCategoryFlag != 1)
 		return;
 
-	if (GetSwitchState() == 0)
-		handles.push_back(SwitchExtension->map_geometry[0]);
-	else
-		handles.push_back(SwitchExtension->map_geometry[1]);
+	if (eType == tt_Switch) {
+		if (GetSwitchState() == 0)
+			handles.switches.push_back(SwitchExtension->map_geometry[0]);
+		else
+			handles.switches.push_back(SwitchExtension->map_geometry[1]);
+	}
+
+	if (!Dynamics.empty()) {
+		handles.occupied.push_back(extra_map_geometry);
+
+		static int stamp = 0;
+		stamp++;
+
+		int limit = 15;
+		TTrack *track = trPrev;
+		TTrack *visitor = this;
+
+		while (limit-- > 0 && track && track->iterate_stamp != stamp) {
+			handles.future.push_back(track->extra_map_geometry);
+			track->iterate_stamp = stamp;
+
+			TTrack *tmp = track;
+			track = track->Next(visitor);
+			visitor = tmp;
+		}
+
+		limit = 15;
+		stamp++;
+		track = trNext;
+		visitor = this;
+
+		while (limit-- > 0 && track && track->iterate_stamp != stamp) {
+			handles.future.push_back(track->extra_map_geometry);
+			track->iterate_stamp = stamp;
+
+			TTrack *tmp = track;
+			track = track->Next(visitor);
+			visitor = tmp;
+		}
+	}
 }
 
 glm::vec3 TTrack::get_nearest_point(const glm::dvec3 &point) const

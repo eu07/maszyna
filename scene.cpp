@@ -618,10 +618,10 @@ void basic_cell::create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const
 		path->create_map_geometry(Bank, Extra);
 }
 
-void basic_cell::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+void basic_cell::get_map_active_paths(map_colored_paths &handles)
 {
 	for (auto *path : m_paths)
-		path->get_map_active_switches(handles);
+		path->get_map_active_paths(handles);
 }
 
 glm::vec3 basic_cell::find_nearest_track_point(const glm::dvec3 &pos)
@@ -960,10 +960,10 @@ void basic_section::create_map_geometry(const gfx::geometrybank_handle handle)
     m_map_geometryhandle = GfxRenderer.Insert(lines, handle, GL_LINES);
 }
 
-void basic_section::get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles)
+void basic_section::get_map_active_paths(map_colored_paths &handles)
 {
 	for (auto &cell : m_cells)
-		cell.get_map_active_switches(handles);
+		cell.get_map_active_paths(handles);
 }
 
 glm::vec3 basic_section::find_nearest_track_point(const glm::dvec3 &point)

@@ -14,6 +14,12 @@ http://mozilla.org/MPL/2.0/.
 #include "openglgeometrybank.h"
 #include "utilities.h"
 
+struct map_colored_paths {
+	std::vector<gfx::geometrybank_handle> switches;
+	std::vector<gfx::geometrybank_handle> occupied;
+	std::vector<gfx::geometrybank_handle> future;
+};
+
 struct segment_data {
 // types
     enum point {

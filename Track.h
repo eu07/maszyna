@@ -180,6 +180,7 @@ private:
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
 
     std::vector<segment_data> m_paths; // source data for owned paths
+	int iterate_stamp = 0;
 
 public:
     using dynamics_sequence = std::deque<TDynamicObject *>;
@@ -275,9 +276,13 @@ public:
     std::vector<glm::dvec3>
         endpoints() const;
 
+	gfx::geometrybank_handle extra_map_geometry; // handle for map highlighting
+
+	TTrack *Next(TTrack *visitor);
+
     void create_geometry( gfx::geometrybank_handle const &Bank ); // wypełnianie VBO
 	void create_map_geometry(std::vector<gfx::basic_vertex> &Bank, const gfx::geometrybank_handle Extra);
-	void get_map_active_switches(std::vector<gfx::geometrybank_handle> &handles);
+	void get_map_active_paths(map_colored_paths &handles);
 	glm::vec3 get_nearest_point(const glm::dvec3 &point) const;
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
