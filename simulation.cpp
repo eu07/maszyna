@@ -78,6 +78,22 @@ state_manager::update( double const Deltatime, int Iterationcount ) {
 void state_manager::process_commands() {
 	command_data commanddata;
 	while( Commands.pop( commanddata, (uint32_t)command_target::simulation )) {
+		if (commanddata.command == user_command::consistreleaser) {
+			TDynamicObject *found_vehicle = simulation::Vehicles.find(commanddata.payload);
+			TDynamicObject *vehicle = found_vehicle;
+
+			while (vehicle) {
+				vehicle->MoverParameters->Hamulec->Releaser(commanddata.action != GLFW_RELEASE ? 1 : 0);
+				vehicle = vehicle->Next();
+			}
+
+			vehicle = found_vehicle;
+			while (vehicle) {
+				vehicle->MoverParameters->Hamulec->Releaser(commanddata.action != GLFW_RELEASE ? 1 : 0);
+				vehicle = vehicle->Prev();
+			}
+		}
+
 		if (commanddata.action == GLFW_RELEASE)
 			continue;
 
@@ -181,7 +197,7 @@ void state_manager::process_commands() {
 			simulation::Region->RadioStop( commanddata.location );
 		}
 
-		if (commanddata.command == user_command::resettrainset) {
+		if (commanddata.command == user_command::resetconsist) {
 			TDynamicObject *found_vehicle = simulation::Vehicles.find(commanddata.payload);
 			TDynamicObject *vehicle = found_vehicle;
 
@@ -190,7 +206,7 @@ void state_manager::process_commands() {
 				vehicle->MoverParameters->EngDmgFlag = 0;
 				vehicle->MoverParameters->V = 0.0;
 				vehicle->MoverParameters->DistCounter = 0.0;
-				vehicle->MoverParameters->PipePress = 4.5;
+				vehicle->MoverParameters->WheelFlat = 0.0;
 				vehicle = vehicle->Next();
 			}
 
@@ -200,9 +216,14 @@ void state_manager::process_commands() {
 				vehicle->MoverParameters->EngDmgFlag = 0;
 				vehicle->MoverParameters->V = 0.0;
 				vehicle->MoverParameters->DistCounter = 0.0;
-				vehicle->MoverParameters->PipePress = 4.5;
+				vehicle->MoverParameters->WheelFlat = 0.0;
 				vehicle = vehicle->Prev();
 			}
+		}
+
+		if (commanddata.command == user_command::fillcompressor) {
+			TDynamicObject *found_vehicle = simulation::Vehicles.find(commanddata.payload);
+			found_vehicle->MoverParameters->CompressedVolume = 8.0f * found_vehicle->MoverParameters->VeselVolume;
 		}
 
 		if (commanddata.command == user_command::dynamicmove) {

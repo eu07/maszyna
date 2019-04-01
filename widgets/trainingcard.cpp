@@ -67,7 +67,7 @@ void trainingcard_panel::save_thread_func()
 
 	std::fstream temp("reports/" + rep + ".html", std::ios_base::out | std::ios_base::binary);
 
-	temp << "<!DOCTYPE html>" << std::endl;
+	temp << "<!DOCTYPE html><meta charset=\"utf-8\"> " << std::endl;
 	temp << "<body>" << std::endl;
 	temp << "<div><b>Miejsce: </b>" << (std::string(place.c_str())) << "</div><br>" << std::endl;
 	temp << "<div><b>Data: </b>" << (date) << "</div><br>" << std::endl;
