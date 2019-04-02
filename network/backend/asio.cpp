@@ -11,6 +11,7 @@ network::tcp::connection::connection(asio::io_context &io_ctx, bool client, size
 
 network::tcp::connection::~connection()
 {
+	m_socket.shutdown(m_socket.shutdown_both);
 	m_socket.close();
 }
 

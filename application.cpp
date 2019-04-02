@@ -338,6 +338,7 @@ eu07_application::release_python_lock() {
 
 void
 eu07_application::exit() {
+	m_network.reset();
 
     SafeDelete( simulation::Train );
     SafeDelete( simulation::Region );

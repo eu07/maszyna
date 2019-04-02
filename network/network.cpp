@@ -188,13 +188,14 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 		consume_counter += speed;
 	}
 
-	if (size > MAX_BUFFER_SIZE || consume_counter > mult) {
+	float last_rcv_diff = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_rcv).count();
+
+	if (size > MAX_BUFFER_SIZE || consume_counter > mult || last_rcv_diff > 3.0f) {
 		if (consume_counter > mult) {
 			consume_counter = std::clamp(consume_counter - mult, -MAX_BUFFER_SIZE, MAX_BUFFER_SIZE);
 		}
 
 		delta_queue.pop();
-		last_update = now;
 
 		return std::make_tuple(entry.dt, entry.sync, entry.commands);
 	} else {
@@ -246,6 +247,7 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 
 		auto delta = dynamic_cast<const frame_info&>(msg);
 		delta_queue.push(delta);
+		last_rcv = std::chrono::high_resolution_clock::now();
 	}
 }
 

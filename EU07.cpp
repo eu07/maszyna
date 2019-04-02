@@ -41,5 +41,5 @@ int main( int argc, char *argv[] )
 	{
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
     }
-    std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
+	std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
 }
