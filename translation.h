@@ -105,6 +105,7 @@ enum string {
 
 	vehicleparams_window,
 	vehicleparams_radiostop,
+	vehicleparams_resetposition,
 	vehicleparams_reset,
 	vehicleparams_resetpipe,
 	vehicleparams_move500f,

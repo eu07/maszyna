@@ -245,6 +245,9 @@ enum class user_command {
 	insertmodel,
 	deletemodel,
 	dynamicmove,
+	consistteleport,
+
+	quitsimulation,
 
     none = -1
 };

@@ -508,8 +508,12 @@ private:
     TTractionParam tmpTraction;
     double fAdjustment; // korekcja - docelowo przenieść do TrkFoll.cpp wraz z odległością od poprzedniego
 
+	TTrack *initial_track = nullptr;
+
     TDynamicObject();
     ~TDynamicObject();
+
+	void place_on_track(TTrack *Track, double fDist, bool Reversed);
     // zwraca długość pojazdu albo 0, jeśli błąd
     double Init(
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,

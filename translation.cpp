@@ -116,8 +116,9 @@ init() {
 
 	    "Vehicle parameters",
 	    "Radiostop",
-	    "Reset trainset",
-	    "Reset main pipe",
+	    "Reset position",
+	    "Stop and repair",
+	    "Refill main pipe",
 	    "Move +500m",
 	    "Move -500m",
 
@@ -322,7 +323,8 @@ init() {
 
 	    u8"Parametry pojazdu",
 	    u8"Radiostop",
-	    u8"Zresetuj skład",
+	    u8"Zresetuj pozycję",
+	    u8"Zatrzymaj i napraw",
 	    u8"Napełnij ZG",
 	    u8"Przesuń +500m",
 	    u8"Przesuń -500m",

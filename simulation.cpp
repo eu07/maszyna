@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "scene.h"
 #include "Train.h"
+#include "application.h"
 
 namespace simulation {
 
@@ -230,6 +231,37 @@ void state_manager::process_commands() {
 			TDynamicObject *vehicle = simulation::Vehicles.find(commanddata.payload);
 			if (vehicle)
 				vehicle->move_set(commanddata.param1);
+		}
+
+		if (commanddata.command == user_command::consistteleport) {
+			std::istringstream ss(commanddata.payload);
+
+			std::string track_name;
+			std::string vehicle_name;
+			std::getline(ss, vehicle_name, '%');
+			std::getline(ss, track_name, '%');
+
+			TTrack *track = simulation::Paths.find(track_name);
+			TDynamicObject *vehicle = simulation::Vehicles.find(vehicle_name);
+
+			while (vehicle) {
+				if (vehicle->Next())
+					vehicle = vehicle->Next();
+				else
+					break;
+			}
+
+			double offset = 0.0;
+
+			while (vehicle) {
+				vehicle->place_on_track(track, offset, false);
+				offset += vehicle->MoverParameters->Dim.L;
+				vehicle = vehicle->Prev();
+			}
+		}
+
+		if (commanddata.command == user_command::quitsimulation) {
+			Application.queue_quit();
 		}
 
 		if (DebugModeFlag) {

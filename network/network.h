@@ -90,6 +90,7 @@ namespace network
 		float jitteriness = 1.0f;
 		float consume_counter = 0.0f;
 
+		std::chrono::high_resolution_clock::time_point last_update;
 		std::chrono::high_resolution_clock::time_point last_frame;
 		std::chrono::high_resolution_clock::duration frame_time;
 

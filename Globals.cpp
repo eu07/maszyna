@@ -882,6 +882,10 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> map_highlight_distance;
 		}
+		else if (token == "gui.screensscale") {
+			Parser.getTokens(1);
+			Parser >> gui_screensscale;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

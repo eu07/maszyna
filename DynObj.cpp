@@ -1519,6 +1519,44 @@ TDynamicObject::~TDynamicObject() {
     SafeDeleteArray( pAnimated ); // lista animowanych submodeli
 }
 
+void TDynamicObject::place_on_track(TTrack *Track, double fDist, bool Reversed)
+{
+	for( auto &axle : m_axlesounds ) {
+		// wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
+		axle.distance = (
+		    Reversed ?
+		         -axle.offset :
+		        ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
+	}
+	double fAxleDistHalf = fAxleDist * 0.5;
+	// przesuwanie pojazdu tak, aby jego początek był we wskazanym miejcu
+	fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pół długości pojazdu, bo ustawiamy jego środek (zliczanie na minus)
+	switch (iNumAxles) {
+	    // Ra: pojazdy wstawiane są na tor początkowy, a potem przesuwane
+	case 2: // ustawianie osi na torze
+		Axle0.Init(Track, this, iDirection ? 1 : -1);
+		Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
+		Axle1.Init(Track, this, iDirection ? 1 : -1);
+		Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf, false); // false, żeby nie generować eventów
+		break;
+	case 4:
+		Axle0.Init(Track, this, iDirection ? 1 : -1);
+		Axle0.Move((iDirection ? fDist : -fDist) + (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
+		Axle1.Init(Track, this, iDirection ? 1 : -1);
+		Axle1.Move((iDirection ? fDist : -fDist) - (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
+		// Axle2.Init(Track,this,iDirection?1:-1);
+		// Axle2.Move((iDirection?fDist:-fDist)-(fAxleDistHalf-MoverParameters->ADist*0.5),false);
+		// Axle3.Init(Track,this,iDirection?1:-1);
+		// Axle3.Move((iDirection?fDist:-fDist)+(fAxleDistHalf-MoverParameters->ADist*0.5),false);
+		break;
+	}
+	// potrzebne do wyliczenia aktualnej pozycji; nie może być zero, bo nie przeliczy pozycji
+	// teraz jeszcze trzeba przypisać pojazdy do nowego toru, bo przesuwanie początkowe osi nie
+	// zrobiło tego
+	Move( 0.0001 );
+	ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
+}
+
 double
 TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      std::string BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
@@ -1964,13 +2002,6 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 smBuforPrawy[ i ]->WillBeAnimated();
         }
     }
-    for( auto &axle : m_axlesounds ) {
-        // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
-        axle.distance = (
-            Reversed ?
-                 -axle.offset :
-                ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
-    }
     // McZapkie-250202 end.
     Track->AddDynamicObject(this); // wstawiamy do toru na pozycję 0, a potem przesuniemy
     // McZapkie: zmieniono na ilosc osi brane z chk
@@ -1981,33 +2012,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             std::max( MoverParameters->BDist, MoverParameters->ADist ),
             0.2, //żeby się dało wektory policzyć
             MoverParameters->Dim.L - 0.2 ); // nie mogą być za daleko bo będzie "walenie w mur"
-    double fAxleDistHalf = fAxleDist * 0.5;
-    // przesuwanie pojazdu tak, aby jego początek był we wskazanym miejcu
-    fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pół długości pojazdu, bo ustawiamy jego środek (zliczanie na minus)
-    switch (iNumAxles) {
-        // Ra: pojazdy wstawiane są na tor początkowy, a potem przesuwane
-    case 2: // ustawianie osi na torze
-        Axle0.Init(Track, this, iDirection ? 1 : -1);
-        Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
-        Axle1.Init(Track, this, iDirection ? 1 : -1);
-        Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf, false); // false, żeby nie generować eventów
-        break;
-    case 4:
-        Axle0.Init(Track, this, iDirection ? 1 : -1);
-        Axle0.Move((iDirection ? fDist : -fDist) + (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
-        Axle1.Init(Track, this, iDirection ? 1 : -1);
-        Axle1.Move((iDirection ? fDist : -fDist) - (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
-        // Axle2.Init(Track,this,iDirection?1:-1);
-        // Axle2.Move((iDirection?fDist:-fDist)-(fAxleDistHalf-MoverParameters->ADist*0.5),false);
-        // Axle3.Init(Track,this,iDirection?1:-1);
-        // Axle3.Move((iDirection?fDist:-fDist)+(fAxleDistHalf-MoverParameters->ADist*0.5),false);
-        break;
-    }
-    // potrzebne do wyliczenia aktualnej pozycji; nie może być zero, bo nie przeliczy pozycji
-    // teraz jeszcze trzeba przypisać pojazdy do nowego toru, bo przesuwanie początkowe osi nie
-    // zrobiło tego
-    Move( 0.0001 );
-    ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
+	place_on_track(Track, fDist, Reversed);
+	initial_track = MyTrack;
     // Ra: ustawienie pozycji do obliczania sprzęgów
     MoverParameters->Loc = {
         -vPosition.x,

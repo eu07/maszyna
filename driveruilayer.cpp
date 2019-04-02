@@ -237,7 +237,7 @@ driver_ui::render_() {
 			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
         if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
-            glfwSetWindowShouldClose( m_window, 1 );
+			m_relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
         }
 		if (!m_paused)
 		{

@@ -150,6 +150,10 @@ double eu07_application::generate_sync() {
 	return sync;
 }
 
+void eu07_application::queue_quit() {
+	glfwSetWindowShouldClose(m_windows[0], GLFW_TRUE);
+}
+
 int
 eu07_application::run() {
 
@@ -302,7 +306,7 @@ eu07_application::run() {
     }
     die:
 
-    return 0;
+	return 0;
 }
 
 // issues request for a worker thread to perform specified task. returns: true if task was scheduled

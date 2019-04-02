@@ -84,6 +84,8 @@ public:
 	// generate network sync verification number
 	double
 	    generate_sync();
+	void
+	    queue_quit();
 
 private:
 // types

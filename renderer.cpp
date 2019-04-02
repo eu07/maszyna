@@ -2170,6 +2170,9 @@ bool opengl_renderer::Render(TDynamicObject *Dynamic)
 {
 	glDebug("Render TDynamicObject");
 
+	if (!Global.render_cab && Global.pCamera.m_owner == Dynamic)
+		return false;
+
 	Dynamic->renderme = m_renderpass.pass_camera.visible(Dynamic);
 	if (false == Dynamic->renderme)
 	{
@@ -3184,6 +3187,8 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 
 bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
 {
+	if (!Global.render_cab && Global.pCamera.m_owner == Dynamic)
+		return false;
 
 	if (false == Dynamic->renderme)
 	{

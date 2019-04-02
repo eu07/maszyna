@@ -160,8 +160,8 @@ void network::client::update()
 // client
 std::tuple<double, double, command_queue::commands_map> network::client::get_next_delta(int counter)
 {
+	auto now = std::chrono::high_resolution_clock::now();
 	if (counter == 1) {
-		auto now = std::chrono::high_resolution_clock::now();
 		frame_time = now - last_frame;
 		last_frame = now;
 	}
@@ -194,6 +194,7 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 		}
 
 		delta_queue.pop();
+		last_update = now;
 
 		return std::make_tuple(entry.dt, entry.sync, entry.commands);
 	} else {

@@ -35,7 +35,9 @@ void ui::vehicleparams_panel::render_contents()
 				glm::vec2 uv0 = glm::vec2(proj * glm::vec3(0.0f, 1.0f, 1.0f));
 				glm::vec2 uv1 = glm::vec2(proj * glm::vec3(1.0f, 0.0f, 1.0f));
 
-				ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), ImVec2(500, 500 * aspect), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+				glm::vec2 size = glm::vec2(500.0f, 500.0f * aspect) * Global.gui_screensscale;
+
+				ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), ImVec2(size.x, size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
 			}
 		}
 	}
@@ -191,6 +193,11 @@ void ui::vehicleparams_panel::render_contents()
 	if (ImGui::Button(LOC_STR(vehicleparams_reset)))
 		m_relay.post(user_command::resetconsist, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	ImGui::SameLine();
+
+	if (ImGui::Button(LOC_STR(vehicleparams_resetposition))) {
+		std::string payload = vehicle_ptr->name() + '%' + vehicle_ptr->initial_track->name();
+		m_relay.post(user_command::consistteleport, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &payload);
+	}
 
 	if (ImGui::Button(LOC_STR(vehicleparams_resetpipe)))
 		m_relay.post(user_command::fillcompressor, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());

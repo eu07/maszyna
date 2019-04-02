@@ -31,6 +31,8 @@ bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
     fDirection = fDir;
     Owner = NewOwner;
     SetCurrentTrack(pTrack, 0);
+	fCurrentDistance = 0.0;
+	fDirection = 1.0;
     iEventFlag = 3; // na torze startowym również wykonać eventy 1/2
     iEventallFlag = 3;
     if ((pCurrentSegment)) // && (pCurrentSegment->GetLength()<fFirstDistance))
