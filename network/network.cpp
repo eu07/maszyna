@@ -190,7 +190,7 @@ std::tuple<double, double, command_queue::commands_map> network::client::get_nex
 
 	float last_rcv_diff = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_rcv).count();
 
-	if (size > MAX_BUFFER_SIZE || consume_counter > mult || last_rcv_diff > 3.0f) {
+	if (size > MAX_BUFFER_SIZE || consume_counter > mult || last_rcv_diff > 1.0f) {
 		if (consume_counter > mult) {
 			consume_counter = std::clamp(consume_counter - mult, -MAX_BUFFER_SIZE, MAX_BUFFER_SIZE);
 		}

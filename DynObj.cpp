@@ -2047,6 +2047,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 	// zrobiło tego
 	Move( 0.0001 );
 	ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
+	// Ra: ustawienie pozycji do obliczania sprzęgów
+	MoverParameters->Loc = {
+	    -vPosition.x,
+	     vPosition.z,
+	     vPosition.y }; // normalnie przesuwa ComputeMovement() w Update()
     // ABuWozki 060504
     if (mdModel) // jeśli ma w czym szukać
     {
