@@ -2783,6 +2783,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->eimic_real = eimic;
 			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
 			auto LBR = Max0R(-eimic, 0);
+			auto eim_lb = (Mechanik->AIControllFlag || !MoverParameters->LocHandleTimeTraxx ? 0 : MoverParameters->eim_localbrake);
 
 			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
@@ -3013,6 +3014,11 @@ bool TDynamicObject::Update(double dt, double dt1)
 						p->MoverParameters->LocalBrakePosAEIM = p->MoverParameters->LocalBrakePosAEIM;
 				else
 					p->MoverParameters->LocalBrakePosAEIM = 0;
+				if (p->MoverParameters->LocHandleTimeTraxx)
+				{
+					p->MoverParameters->eim_localbrake = eim_lb;
+					p->MoverParameters->LocalBrakePosAEIM = std::max(p->MoverParameters->LocalBrakePosAEIM, eim_lb);
+				}
 				++i;
 			}
 
