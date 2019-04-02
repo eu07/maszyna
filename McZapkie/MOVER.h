@@ -891,6 +891,7 @@ public:
 	TBrakeValve BrakeValve = TBrakeValve::NoValve;
 	TBrakeHandle BrakeHandle = TBrakeHandle::NoHandle;
 	TBrakeHandle BrakeLocHandle = TBrakeHandle::NoHandle;
+	bool LocHandleTimeTraxx = false; /*hamulec dodatkowy typu traxx*/
 	double MBPM = 1.0; /*masa najwiekszego cisnienia*/
 
 	std::shared_ptr<TBrake> Hamulec;
@@ -1306,6 +1307,7 @@ public:
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimic = 0; /*aktualna pozycja zintegrowanego sterowania jazda i hamowaniem*/
 	double eimic_real = 0; /*faktycznie uzywana pozycja zintegrowanego sterowania jazda i hamowaniem*/
+	double eim_localbrake = 0; /*nastawa hamowania dodatkowego pneumatycznego lokomotywy*/
 	int EIMCtrlType = 0; /*rodzaj wariantu zadajnika jazdy*/
 	bool SpeedCtrlTypeTime = false; /*czy tempomat sterowany czasowo*/
 	double eimv_pr = 0; /*realizowany procent dostepnej sily rozruchu/hamowania*/
