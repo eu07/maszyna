@@ -2734,6 +2734,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->eimic_real = eimic;
 			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
 			auto LBR = Max0R(-eimic, 0);
+			auto eim_lb = (Mechanik->AIControllFlag || !MoverParameters->LocHandleTimeTraxx ? 0 : MoverParameters->eim_localbrake);
 
 			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
@@ -2964,6 +2965,11 @@ bool TDynamicObject::Update(double dt, double dt1)
 						p->MoverParameters->LocalBrakePosAEIM = p->MoverParameters->LocalBrakePosAEIM;
 				else
 					p->MoverParameters->LocalBrakePosAEIM = 0;
+				if (p->MoverParameters->LocHandleTimeTraxx)
+				{
+					p->MoverParameters->eim_localbrake = eim_lb;
+					p->MoverParameters->LocalBrakePosAEIM = std::max(p->MoverParameters->LocalBrakePosAEIM, eim_lb);
+				}
 				++i;
 			}
 
@@ -6854,6 +6860,9 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
             if( pantograph->hvPowerWire != nullptr ) {
                 // jeżeli znamy drut z poprzedniego przebiegu
                 for( int attempts = 0; attempts < 30; ++attempts ) {
+                    // sanity check. shouldn't happen in theory, but did happen in practice
+                    if( pantograph->hvPowerWire == nullptr ) { break; }
+
                     // powtarzane aż do znalezienia odpowiedniego odcinka na liście dwukierunkowej
                     if( pantograph->hvPowerWire->iLast & 0x3 ) {
                         // dla ostatniego i przedostatniego przęsła wymuszamy szukanie innego
@@ -6869,6 +6878,7 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
                     }
                     // obliczamy wyraz wolny równania płaszczyzny (to miejsce nie jest odpowienie)
                     // podstawiamy równanie parametryczne drutu do równania płaszczyzny pantografu
+                    // TODO: investigate this routine with reardriver/negative speed, does it picks the right wire?
                     auto const fRaParam =
                         -( glm::dot( pantograph->hvPowerWire->pPoint1, vFront ) - glm::dot( pant0, vFront ) )
                          / glm::dot( pantograph->hvPowerWire->vParametric, vFront );
