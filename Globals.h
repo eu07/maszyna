@@ -207,6 +207,8 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
 
+	float map_highlight_distance = 3000.0f;
+
 	struct extraviewport_config {
 		std::string monitor;
 		int width, height;

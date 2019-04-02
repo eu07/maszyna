@@ -878,6 +878,10 @@ global_settings::ConfigParse(cParser &Parser) {
 
 			extra_viewports.push_back(conf);
 		}
+		else if (token == "map.highlightdistance") {
+			Parser.getTokens(1);
+			Parser >> map_highlight_distance;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

@@ -1188,6 +1188,18 @@ TTrack *TTrack::Next(TTrack *visitor) {
 	return nullptr;
 }
 
+double TTrack::ActiveLength() {
+	if (eType == tt_Normal) {
+		return Segment->GetLength();
+	} else if (eType == tt_Switch) {
+		if (GetSwitchState() == 0)
+			return SwitchExtension->Segments[0]->GetLength();
+		else
+			return SwitchExtension->Segments[1]->GetLength();
+	}
+	return 1.0f;
+}
+
 void TTrack::get_map_active_paths(map_colored_paths &handles)
 {
 	if (iCategoryFlag != 1)
@@ -1199,34 +1211,48 @@ void TTrack::get_map_active_paths(map_colored_paths &handles)
 		else
 			handles.switches.push_back(SwitchExtension->map_geometry[1]);
 	}
+}
+
+void TTrack::get_map_future_paths(map_colored_paths &handles) {
+	if (iCategoryFlag != 1)
+		return;
 
 	if (!Dynamics.empty()) {
-		handles.occupied.push_back(extra_map_geometry);
+		if (eType == tt_Switch) {
+			if (GetSwitchState() == 0)
+				handles.occupied.push_back(SwitchExtension->map_geometry[0]);
+			else
+				handles.occupied.push_back(SwitchExtension->map_geometry[1]);
+		} else if (eType == tt_Normal) {
+			handles.occupied.push_back(extra_map_geometry);
+		}
 
 		static int stamp = 0;
 		stamp++;
 
-		int limit = 15;
+		float distance = Global.map_highlight_distance;
 		TTrack *track = trPrev;
 		TTrack *visitor = this;
 
-		while (limit-- > 0 && track && track->iterate_stamp != stamp) {
+		while (distance > 0.0f && track && track->iterate_stamp != stamp) {
 			handles.future.push_back(track->extra_map_geometry);
 			track->iterate_stamp = stamp;
+			distance -= track->ActiveLength();
 
 			TTrack *tmp = track;
 			track = track->Next(visitor);
 			visitor = tmp;
 		}
 
-		limit = 15;
+		distance = Global.map_highlight_distance;
 		stamp++;
 		track = trNext;
 		visitor = this;
 
-		while (limit-- > 0 && track && track->iterate_stamp != stamp) {
+		while (distance > 0.0f && track && track->iterate_stamp != stamp) {
 			handles.future.push_back(track->extra_map_geometry);
 			track->iterate_stamp = stamp;
+			distance -= track->ActiveLength();
 
 			TTrack *tmp = track;
 			track = track->Next(visitor);

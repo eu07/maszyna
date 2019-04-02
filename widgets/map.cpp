@@ -96,6 +96,10 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 		}
 	}
 
+	for (TTrack *track : simulation::Paths.sequence()) {
+		track->get_map_future_paths(m_colored_paths);
+	}
+
 	glDisable(GL_DEPTH_TEST);
 	if (Global.iMultisampling)
 	{
@@ -113,19 +117,23 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
 	scene_ubs.projection = transform;
-	scene_ubs.time = 0.5f; // color is stuffed in time variable
+	scene_ubs.scene_extra = glm::vec3(0.5f);
 	scene_ubo->update(scene_ubs);
 	scene_ubo->bind_uniform();
 
 	GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
-	glLineWidth(2.0f);
+	scene_ubs.scene_extra = glm::vec3(0.7f, 0.7f, 0.0f);
+	scene_ubo->update(scene_ubs);
+	GfxRenderer.Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
 
-	scene_ubs.time = 0.27f; // color is stuffed in time variable
+	glLineWidth(3.0f);
+	scene_ubs.scene_extra = glm::vec3(0.0f, 1.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_colored_paths.switches.begin(), m_colored_paths.switches.end());
-	GfxRenderer.Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
-	scene_ubs.time = 1.0f; // color is stuffed in time variable
+
+	glLineWidth(1.5f);
+	scene_ubs.scene_extra = glm::vec3(1.0f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
 
@@ -135,7 +143,6 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 		scene_ubs.scene_extra = glm::vec3(1.0f / (surface_size / 200.0f), 1.0f);
 	}
 
-	scene_ubs.time = 1.0f;
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
 
