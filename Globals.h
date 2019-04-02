@@ -210,6 +210,8 @@ struct global_settings {
 	float map_highlight_distance = 3000.0f;
 	float gui_screensscale = 0.5f;
 
+	std::string exec_on_exit;
+
 	struct extraviewport_config {
 		std::string monitor;
 		int width, height;

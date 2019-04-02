@@ -350,6 +350,9 @@ eu07_application::exit() {
     }
     m_taskqueue.exit();
     glfwTerminate();
+
+	if (!Global.exec_on_exit.empty())
+		system(Global.exec_on_exit.c_str());
 }
 
 void

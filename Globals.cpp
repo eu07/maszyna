@@ -886,6 +886,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> gui_screensscale;
 		}
+		else if (token == "execonexit") {
+			Parser.getTokens(1);
+			Parser >> exec_on_exit;
+			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
