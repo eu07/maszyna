@@ -203,28 +203,26 @@ void state_manager::process_commands() {
 			TDynamicObject *vehicle = found_vehicle;
 
 			while (vehicle) {
-				vehicle->MoverParameters->DamageFlag = 0;
-				vehicle->MoverParameters->EngDmgFlag = 0;
-				vehicle->MoverParameters->V = 0.0;
-				vehicle->MoverParameters->DistCounter = 0.0;
-				vehicle->MoverParameters->WheelFlat = 0.0;
-				vehicle = vehicle->Next();
+				if (vehicle->Next())
+					vehicle = vehicle->Next();
+				else
+					break;
 			}
 
-			vehicle = found_vehicle;
 			while (vehicle) {
 				vehicle->MoverParameters->DamageFlag = 0;
 				vehicle->MoverParameters->EngDmgFlag = 0;
 				vehicle->MoverParameters->V = 0.0;
 				vehicle->MoverParameters->DistCounter = 0.0;
 				vehicle->MoverParameters->WheelFlat = 0.0;
+				vehicle->MoverParameters->AlarmChainFlag = false;
 				vehicle = vehicle->Prev();
 			}
 		}
 
 		if (commanddata.command == user_command::fillcompressor) {
-			TDynamicObject *found_vehicle = simulation::Vehicles.find(commanddata.payload);
-			found_vehicle->MoverParameters->CompressedVolume = 8.0f * found_vehicle->MoverParameters->VeselVolume;
+			TDynamicObject *vehicle = simulation::Vehicles.find(commanddata.payload);
+			vehicle->MoverParameters->CompressedVolume = 8.0f * vehicle->MoverParameters->VeselVolume;
 		}
 
 		if (commanddata.command == user_command::dynamicmove) {
@@ -254,10 +252,16 @@ void state_manager::process_commands() {
 			double offset = 0.0;
 
 			while (vehicle) {
-				vehicle->place_on_track(track, offset, false);
 				offset += vehicle->MoverParameters->Dim.L;
+				vehicle->place_on_track(track, offset, false);
 				vehicle = vehicle->Prev();
 			}
+		}
+
+		if (commanddata.command == user_command::pullalarmchain) {
+			TDynamicObject *vehicle = simulation::Vehicles.find(commanddata.payload);
+			if (vehicle)
+				vehicle->MoverParameters->AlarmChainSwitch(true);
 		}
 
 		if (commanddata.command == user_command::quitsimulation) {

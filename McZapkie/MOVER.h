@@ -613,6 +613,7 @@ public:
 	bool is_vigilance_blinking() const;
 	bool is_cabsignal_blinking() const;
 	bool is_beeping() const;
+	bool is_cabsignal_beeping() const;
 	bool is_braking() const;
 	bool is_engine_blocked() const;
 	bool radiostop_available() const;

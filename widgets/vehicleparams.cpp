@@ -197,10 +197,15 @@ void ui::vehicleparams_panel::render_contents()
 	if (ImGui::Button(LOC_STR(vehicleparams_resetposition))) {
 		std::string payload = vehicle_ptr->name() + '%' + vehicle_ptr->initial_track->name();
 		m_relay.post(user_command::consistteleport, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &payload);
+		m_relay.post(user_command::resetconsist, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	}
 
 	if (ImGui::Button(LOC_STR(vehicleparams_resetpipe)))
 		m_relay.post(user_command::fillcompressor, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
+	ImGui::SameLine();
+
+	if (ImGui::Button(LOC_STR(vehicleparams_rupturepipe)))
+		m_relay.post(user_command::pullalarmchain, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	ImGui::SameLine();
 
 	ImGui::Button(LOC_STR(cab_releaser_bt));

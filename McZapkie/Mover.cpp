@@ -161,7 +161,11 @@ bool TSecuritySystem::is_cabsignal_blinking() const {
 }
 
 bool TSecuritySystem::is_beeping() const {
-	return alert_timer > SoundSignalDelay;
+	return alert_timer > SoundSignalDelay && (!separate_acknowledge || is_vigilance_blinking());
+}
+
+bool TSecuritySystem::is_cabsignal_beeping() const {
+	return alert_timer > SoundSignalDelay && is_cabsignal_blinking();
 }
 
 bool TSecuritySystem::is_braking() const {
@@ -1141,6 +1145,8 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
 
                 if ((coupler.CouplingFlag & ctrain_pneumatic) == ctrain_pneumatic)
                     AlarmChainFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
+				// M7TMP: disable coupler breaking because consist cannot be teleported to starting place in one piece
+				/*
                 coupler.CouplingFlag = 0;
 
                 switch (CouplerN) // wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone
@@ -1152,6 +1158,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
                     coupler.Connected->Couplers[0].CouplingFlag = 0;
                     break;
                 }
+				*/
                 WriteLog( "Bad driving: " + Name + " broke a coupler" );
             }
     }
@@ -3023,14 +3030,12 @@ bool TMoverParameters::RadiostopSwitch(bool Switch)
 
 bool TMoverParameters::AlarmChainSwitch( bool const State ) {
 
-    bool stateswitched { false };
-
-    if( AlarmChainFlag != State ) {
+	 if( AlarmChainFlag != State ) {
         // simple routine for the time being
         AlarmChainFlag = State;
-        stateswitched = true;
+		return true;
     }
-    return stateswitched;
+	return false;
 }
 
 // *************************************************************************************************

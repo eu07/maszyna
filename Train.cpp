@@ -6429,6 +6429,18 @@ TTrain::update_sounds( double const Deltatime ) {
             }
         }
 
+	if (mvOccupied->SecuritySystem.is_cabsignal_beeping()) {
+		if (!dsbCabsignalBuzzer.is_playing()) {
+			    dsbCabsignalBuzzer
+				    .pitch( dsbCabsignalBuzzer.m_frequencyoffset + dsbCabsignalBuzzer.m_frequencyfactor )
+				    .gain( dsbCabsignalBuzzer.m_amplitudeoffset + dsbCabsignalBuzzer.m_amplitudefactor )
+				    .play( sound_flags::looping );
+		}
+	}
+	else if (dsbCabsignalBuzzer.is_playing()) {
+		dsbCabsignalBuzzer.stop();
+	}
+
     update_sounds_radio();
 
     if( fTachoCount >= 3.f ) {
@@ -6613,10 +6625,16 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             }
             else if (token == "buzzer:")
             {
-                // bzyczek shp:
+				// bzyczek czuwaka:
                 dsbBuzzer.deserialize( parser, sound_type::single );
                 dsbBuzzer.owner( DynamicObject );
             }
+			else if (token == "cabsignalbuzzer:")
+			{
+				// bzyczek shp:
+				dsbCabsignalBuzzer.deserialize( parser, sound_type::single );
+				dsbCabsignalBuzzer.owner( DynamicObject );
+			}
             else if( token == "radiostop:" ) {
                 // radiostop
                 m_radiostop.deserialize( parser, sound_type::single );
@@ -6753,7 +6771,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         &rsFadeSound, &rsRunningNoise, &rsHuntingNoise,
-        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound, &m_radiostop
+	    &dsbHasler, &dsbBuzzer, &dsbCabsignalBuzzer, &dsbSlipAlarm, &m_radiosound, &m_radiostop
     };
     for( auto sound : sounds ) {
         sound->offset( nullvector );
@@ -7039,6 +7057,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         if( dsbBuzzer.offset() == nullvector ) {
             dsbBuzzer.offset( btLampkaCzuwaka.model_offset() );
         }
+		if( dsbCabsignalBuzzer.offset() == nullvector ) {
+			dsbCabsignalBuzzer.offset( btLampkaCzuwaka.model_offset() );
+		}
         // radio has two potential items which can provide the position
         if( m_radiosound.offset() == nullvector ) {
             m_radiosound.offset( btLampkaRadio.model_offset() );

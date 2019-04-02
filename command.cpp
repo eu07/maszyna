@@ -252,6 +252,7 @@ commanddescription_sequence Commands_descriptions = {
     { "deletemodel", command_target::simulation, command_mode::oneoff },
     { "trainsetmove", command_target::simulation, command_mode::oneoff },
     { "consistteleport", command_target::simulation, command_mode::oneoff },
+    { "pullalarmchain", command_target::simulation, command_mode::oneoff },
     { "notifyquit", command_target::simulation, command_mode::oneoff },
 };
 

@@ -118,7 +118,8 @@ init() {
 	    "Radiostop",
 	    "Reset position",
 	    "Stop and repair",
-	    "Refill main pipe",
+	    "Refill main tank",
+	    "Rupture main pipe",
 	    "Move +500m",
 	    "Move -500m",
 
@@ -326,6 +327,7 @@ init() {
 	    u8"Zresetuj pozycję",
 	    u8"Zatrzymaj i napraw",
 	    u8"Napełnij ZG",
+	    u8"Zerwij PG",
 	    u8"Przesuń +500m",
 	    u8"Przesuń -500m",
 

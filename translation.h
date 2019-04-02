@@ -108,6 +108,7 @@ enum string {
 	vehicleparams_resetposition,
 	vehicleparams_reset,
 	vehicleparams_resetpipe,
+	vehicleparams_rupturepipe,
 	vehicleparams_move500f,
 	vehicleparams_move500b,
 
