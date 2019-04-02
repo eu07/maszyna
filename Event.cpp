@@ -2050,7 +2050,7 @@ event_manager::insert( basic_event *Event ) {
 
 basic_event * event_manager::FindEventById(uint32_t id)
 {
-	if (id < m_eventmap.size())
+	if (id < m_events.size())
 		return m_events[id];
 	else
 		return nullptr;
