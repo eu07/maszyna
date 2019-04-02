@@ -3708,7 +3708,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Flow( temp * Hamulec->GetPF( temp * PipePress, dt, Vel ) + GetDVc( dt ) );
 
     if (ASBType == 128)
-        Hamulec->ASB(int(SlippingWheels));
+        Hamulec->ASB(int(SlippingWheels && (Vel>1))*(1+2*int(nrot_eps<-0.01)));
 
     dpPipe = 0;
 
@@ -3956,6 +3956,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     // juz zoptymalizowane:
     FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
+	double old_nrot = abs(nrot);
     nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
 
     if( ( true == TestFlag( BrakeMethod, bp_MHS ) )
@@ -4028,8 +4029,9 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 		}
 		else
 		{
-			Fb = -Fwheels*Sign(V);
-			FTrain = 0;
+			double factor = (FTrain - Fb * Sign(V) != 0 ? Fwheels/(FTrain - Fb * Sign(V)) : 1.0);
+			Fb *= factor;
+			FTrain *= factor;
 		}
 		if (nrot < 0.1)
 		{
@@ -4038,6 +4040,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
 		nrot = temp_nrot;
     }
+	nrot_eps = (abs(nrot) - (old_nrot))/dt;
     // doliczenie sił z innych pojazdów
     for( int end = end::front; end <= end::rear; ++end ) {
         if( Neighbours[ end ].vehicle != nullptr ) {

@@ -1130,6 +1130,7 @@ public:
 	double AccN = 0.0; // przyspieszenie normalne w [m/s^2]
 	double AccVert = 0.0; // vertical acceleration
 	double nrot = 0.0;
+	double nrot_eps = 0.0; //przyspieszenie kątowe kół (bez kierunku)
 	double WheelFlat = 0.0;
     bool TruckHunting { true }; // enable/disable truck hunting calculation
 	/*! rotacja kol [obr/s]*/
