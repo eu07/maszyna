@@ -160,6 +160,39 @@ void TAnim::Parovoz(){
     // animowanie tłoka i rozrządu parowozu
 };
 */
+
+
+void TDynamicObject::destination_data::deserialize( cParser &Input ) {
+
+    while( true == deserialize_mapping( Input ) ) {
+        ; // all work done by while()
+    }
+}
+
+bool TDynamicObject::destination_data::deserialize_mapping( cParser &Input ) {
+    // token can be a key or block end
+    auto const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
+
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
+
+    if( key == "{" ) {
+        script = Input.getToken<std::string>();
+    }
+    else if( key == "update:" ) {
+        auto const value { Input.getToken<std::string>() };
+        // TODO: implement
+    }
+    else if( key == "instance:" ) {
+        instancing = Input.getToken<std::string>();
+    }
+    else if( key == "parameters:" ) {
+        parameters = Input.getToken<std::string>();
+    }
+
+    return true;
+}
+
+
 //---------------------------------------------------------------------------
 TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr, int cf)
 { // szukanie skrajnego połączonego pojazdu w pociagu
@@ -5569,6 +5602,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     parser >> JointCabs;
                 }
 
+                else if( token == "pydestinationsign:" ) {
+                    DestinationSign.deserialize( parser );
+                    // supply vehicle folder as script path if none is provided
+                    if( ( false == DestinationSign.script.empty() )
+                     && ( substr_path( DestinationSign.script ).empty() ) ) {
+                        DestinationSign.script = asBaseDir + DestinationSign.script;
+                    }
+                }
+
             } while( token != "" );
 
         } // internaldata:
@@ -6147,9 +6189,41 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer) {
         DestinationSign.destination = DestinationFind( destination );
         if( DestinationSign.destination != null_handle ) {
             // got what we wanted, we're done here
-            break;
+            return;
         }
     }
+    // if we didn't get static texture we might be able to make one
+    if( DestinationSign.script.empty() ) { return; } // no script so no way to make the texture
+    if( numer == "none" )                { return; } // blank or incomplete/malformed timetable, don't bother
+
+    std::string signrequest {
+          "make:"
+        + DestinationSign.script + "?"
+        // timetable include
+        + "$timetable=" + (
+            ctOwner == nullptr ?
+                MoverParameters->Name : // leading vehicle, can point to it directly
+                ctOwner->Vehicle()->MoverParameters->Name ) + "&" // owned vehicle, safer to point to owner as carriages can have identical names
+        // basic instancing string
+        // NOTE: underscore doesn't have any magic meaning for the time being, it's just less likely to conflict with regular dictionary keys
+        + "_id1=" + (
+            ctOwner != nullptr ? ctOwner->TrainName() :
+            Mechanik != nullptr ? Mechanik->TrainName() :
+            "none" ) }; // shouldn't get here but, eh
+    // TBD, TODO: replace instancing with support for variables in extra parameters string?
+    if( false == DestinationSign.instancing.empty() ) {
+        signrequest +=
+            "&_id2=" + (
+                DestinationSign.instancing == "name" ? MoverParameters->Name :
+                DestinationSign.instancing == "type" ? MoverParameters->TypeName :
+                "none" );
+    }
+    // optionl extra parameters
+    if( false == DestinationSign.parameters.empty() ) {
+        signrequest += "&" + DestinationSign.parameters;
+    }
+
+    DestinationSign.destination = GfxRenderer.Fetch_Material( signrequest );
 }
 
 material_handle TDynamicObject::DestinationFind( std::string Destination ) {

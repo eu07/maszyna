@@ -30,6 +30,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "application.h"
 #include "renderer.h"
+#include "dictionary.h"
 /*
 namespace input {
 
@@ -543,31 +544,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    auto const *timetable{ driver->TrainTimetable() };
-
-    dict->insert( "trainnumber", driver->TrainName() );
-    dict->insert( "train_brakingmassratio", timetable->BrakeRatio );
-    dict->insert( "train_enginetype", timetable->LocSeries );
-    dict->insert( "train_engineload", timetable->LocLoad );
-
-    dict->insert( "train_stationindex", driver->iStationStart );
-    auto const stationcount { driver->StationCount() };
-    dict->insert( "train_stationcount", stationcount );
-    if( stationcount > 0 ) {
-        // timetable stations data, if there's any
-        for( auto stationidx = 1; stationidx <= stationcount; ++stationidx ) {
-            auto const stationlabel { "train_station" + std::to_string( stationidx ) + "_" };
-            auto const &timetableline { timetable->TimeTable[ stationidx ] };
-            dict->insert( ( stationlabel + "name" ), Bezogonkow( timetableline.StationName ) );
-            dict->insert( ( stationlabel + "fclt" ), Bezogonkow( timetableline.StationWare ) );
-            dict->insert( ( stationlabel + "lctn" ), timetableline.km );
-            dict->insert( ( stationlabel + "vmax" ), timetableline.vmax );
-            dict->insert( ( stationlabel + "ah" ), timetableline.Ah );
-            dict->insert( ( stationlabel + "am" ), timetableline.Am );
-            dict->insert( ( stationlabel + "dh" ), timetableline.Dh );
-            dict->insert( ( stationlabel + "dm" ), timetableline.Dm );
-        }
-    }
+    driver->TrainTimetable()->serialize( dict );
+    dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     // world state data
     dict->insert( "scenario", Global.SceneryFile );

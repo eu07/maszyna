@@ -83,6 +83,7 @@ class TTrainParameters
     bool LoadTTfile(std::string scnpath, int iPlus, double vmax);
     bool DirectionChange();
     void StationIndexInc();
+    void serialize( dictionary_source *Output ) const;
 };
 
 class TMTableTime
