@@ -391,7 +391,8 @@ void TBrake::SetEPS( double const nEPS )
 
 void TBrake::ASB( int const state )
 { // 255-b_asb(32)
-    BrakeStatus = (BrakeStatus & ~b_asb) | ( state * b_asb );
+    BrakeStatus = (BrakeStatus & ~b_asb) | ( (state / 2) * b_asb );
+	BrakeStatus = (BrakeStatus & ~b_asb_unbrake) | ( (state % 2) * b_asb_unbrake);
 }
 
 int TBrake::GetStatus()
@@ -1551,7 +1552,7 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
     // powtarzacz — podwojny zawor zwrotny
     temp = Max0R(LoadC * BCP / temp * Min0R(Max0R(1 - EDFlag, 0), 1), LBP);
 	double speed = 1;
-	if ((ASBP < 0.1) && ((BrakeStatus & b_asb) == b_asb))
+	if ((ASBP < 0.1) && ((BrakeStatus & b_asb_unbrake) == b_asb_unbrake))
 	{
 		temp = 0;
 		speed = 3;
@@ -1559,7 +1560,7 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
 
     if ((BrakeCyl->P() > temp))
         dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC * speed, temp) * dt;
-    else if ((BrakeCyl->P() < temp))
+    else if ((BrakeCyl->P() < temp) && ((BrakeStatus & b_asb) == 0))
         dv = PFVa(BVP, BrakeCyl->P(), 0.02 * SizeBC, temp) * dt;
     else
         dv = 0;
