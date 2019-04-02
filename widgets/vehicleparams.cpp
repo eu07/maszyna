@@ -213,13 +213,13 @@ void ui::vehicleparams_panel::render_contents()
 		m_relay.post(user_command::consistreleaser, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	if (ImGui::IsItemDeactivated())
 		m_relay.post(user_command::consistreleaser, 0.0, 0.0, GLFW_RELEASE, 0, glm::vec3(0.0f), &vehicle_ptr->name());
-	ImGui::SameLine();
 
-	if (ImGui::Button(LOC_STR(vehicleparams_move500f)))
-		m_relay.post(user_command::dynamicmove, 500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
-	ImGui::SameLine();
+	if (vehicle_ptr->MoverParameters->V < 0.01) {
+		if (ImGui::Button(LOC_STR(vehicleparams_move500f)))
+			m_relay.post(user_command::dynamicmove, 500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
+		ImGui::SameLine();
 
-	if (ImGui::Button(LOC_STR(vehicleparams_move500b)))
-		m_relay.post(user_command::dynamicmove, -500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
-	ImGui::SameLine();
+		if (ImGui::Button(LOC_STR(vehicleparams_move500b)))
+			m_relay.post(user_command::dynamicmove, -500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
+	}
 }
