@@ -2533,9 +2533,9 @@ bool TController::PrepareEngine()
                 }
                 // sync virtual brake state with the 'real' one
                 std::unordered_map<int, int> const brakepositions {
-                    { mvOccupied->Handle->GetPos( bh_RP ), gbh_RP },
-                    { mvOccupied->Handle->GetPos( bh_NP ), gbh_NP },
-                    { mvOccupied->Handle->GetPos( bh_FS ), gbh_FS } };
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ), gbh_RP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_NP ) ), gbh_NP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_FS ) ), gbh_FS } };
                 auto const lookup { brakepositions.find( static_cast<int>( mvOccupied->fBrakeCtrlPos ) ) };
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
@@ -4676,11 +4676,11 @@ TController::UpdateSituation(double dt) {
         // TODO: test if we can use the distances calculation from obey_train
         fMinProximityDist = std::min( 5 + iVehicles, 25 );
         fMaxProximityDist = std::min( 10 + iVehicles, 50 );
-/*
-        if( IsHeavyCargoTrain ) {
-            fMaxProximityDist *= 1.5;
+        // HACK: modern vehicles might brake slower at low speeds, increase safety margin as crude counter
+        if( mvControlling->EIMCtrlType > 0 ) {
+            fMinProximityDist += 5.0;
+            fMaxProximityDist += 5.0;
         }
-*/
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -5160,7 +5160,11 @@ TController::UpdateSituation(double dt) {
                                         20.0 ) ); // others
                         if( vel > VelDesired + fVelPlus ) {
                             // if going too fast force some prompt braking
-                            AccPreferred = std::min( -0.65, AccPreferred );
+                            AccPreferred = std::min(
+                                ( ( mvOccupied->CategoryFlag & 2 ) ?
+                                -0.65 : // cars
+                                -0.30 ), // others
+                                AccPreferred );
                         }
                     }
 
@@ -5673,7 +5677,7 @@ TController::UpdateSituation(double dt) {
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
                             / ( 1.2 * braking_distance_multiplier( VelNext ) ) ) {
-                            AccDesired = std::max( -0.1, AccDesired );
+                            AccDesired = std::max( -0.06, AccDesired );
                         }
                     }
                     if( AccDesired < -0.1 ) {
@@ -5778,8 +5782,8 @@ TController::UpdateSituation(double dt) {
                 // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej zwiekszanie predkosci
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                if( ( AccDesired > -0.1 ) // don't add power if not asked for actual speed-up
-                 && ( AccDesired - AbsAccS > 0.025 ) ) {
+                if( ( AccDesired > -0.06 ) // don't add power if not asked for actual speed-up
+                 && ( AccDesired - AbsAccS > 0.05 ) ) {
                     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
                     if( vel < (
                         VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
@@ -5871,7 +5875,8 @@ TController::UpdateSituation(double dt) {
                             }
                         }
                     }
-                    if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
+                    if ( ( AccDesired < fAccGravity - 0.05 )
+                    && ( ( AccDesired - fBrake_a1[0]*0.51 ) ) - AbsAccS > 0.05 ) {
                         // jak hamuje, to nie tykaj kranu za często
                         // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
                         if( OrderCurrentGet() != Disconnect ) {

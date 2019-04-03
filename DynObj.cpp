@@ -4087,6 +4087,10 @@ void TDynamicObject::RenderSounds() {
     }
     if( volume > 0.05 ) {
         rscurve
+            .pitch(
+                true == rscurve.is_combined() ?
+                    MoverParameters->Vel * 0.01f :
+                    rscurve.m_frequencyoffset + rscurve.m_frequencyfactor * 1.f )
             .gain( 2.5 * volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
