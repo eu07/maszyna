@@ -1375,7 +1375,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( ( mvOccupied->Vel < v )
                          || ( v == 0.0 ) ) {
                             // if we're going slower than the target velocity and there's enough room for safe stop, speed up
-                            auto const brakingdistance = fBrakeDist * braking_distance_multiplier( v );
+                            auto const brakingdistance { 1.2 * fBrakeDist * braking_distance_multiplier( v ) };
                             if( brakingdistance > 0.0 ) {
                                 // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
                                 // try to make a smooth transition instead of sharp change
@@ -5672,11 +5672,11 @@ TController::UpdateSituation(double dt) {
                            || ( VelNext > vel - 40.0 ) ) ?
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
-                            / braking_distance_multiplier( VelNext ) ) {
-                            AccDesired = std::max( -0.06, AccDesired );
+                            / ( 1.2 * braking_distance_multiplier( VelNext ) ) ) {
+                            AccDesired = std::max( -0.1, AccDesired );
                         }
                     }
-                    else {
+                    if( AccDesired < -0.1 ) {
                         // i orientuj się szybciej, jeśli hamujesz
                         ReactionTime = 0.25;
                     }
@@ -5775,11 +5775,11 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
-                // zwiekszanie predkosci
+                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej zwiekszanie predkosci
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                if( ( AccDesired - AbsAccS > 0.01 ) ) {
+                if( ( AccDesired > -0.1 ) // don't add power if not asked for actual speed-up
+                 && ( AccDesired - AbsAccS > 0.025 ) ) {
                     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
                     if( vel < (
                         VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
