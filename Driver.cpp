@@ -3443,6 +3443,21 @@ void TController::SetTimeControllers()
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
 		}
 		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
+		if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)
+		{
+			if (BrakeCtrlPosition == 0)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == -1)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FS));
+			else if (BrakeCtrlPosition == -2)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
+			else if (BrakeCtrlPosition > 4.5)
+				mvOccupied->BrakeLevelSet(10);
+			else if (BrakeCtrlPosition > 3.70)
+				mvOccupied->BrakeLevelSet(9);
+			else
+				mvOccupied->BrakeLevelSet(round((BrakeCtrlPosition * 0.4 - 0.1) / 0.15));
+		}
 	}
 	//2. Check the type of Secondary Brake Handle
 
