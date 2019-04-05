@@ -74,17 +74,11 @@
 #include <condition_variable>
 #include <typeinfo>
 
-#ifdef EU07_BUILD_STATIC
-#define GLEW_STATIC
-#else
-#ifdef _WIN32
-#define GLFW_DLL
-#endif // _windows
-#endif // build_static
 #include <GL/glew.h>
 #ifdef _WIN32
-#include "GL/wglew.h"
+#include <GL/wglew.h>
 #endif
+
 #define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
