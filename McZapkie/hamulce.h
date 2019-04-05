@@ -53,7 +53,8 @@ static int const b_on = 2;   //napelnianie
 static int const b_rfl = 4;   //uzupelnianie
 static int const b_rls = 8;   //odluzniacz
 static int const b_ep = 16;   //elektropneumatyczny
-static int const b_asb = 32;   //elektropneumatyczny   
+static int const b_asb = 32;   //przeciwposlizg-wstrzymanie
+static int const b_asb_unbrake = 64; //przeciwposlizg-luzowanie
 static int const b_dmg = 128;   //wylaczony z dzialania
 
 /*uszkodzenia hamulca*/

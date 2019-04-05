@@ -407,9 +407,9 @@ private:
 // methods
 public:
     std::string TrainName() const;
+    Mtable::TTrainParameters const * TrainTimetable() const;
 private:
     std::string Relation() const;
-    Mtable::TTrainParameters const * TrainTimetable() const;
     int StationIndex() const;
     int StationCount() const;
     bool IsStop() const;

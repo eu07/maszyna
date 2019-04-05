@@ -502,7 +502,7 @@ bool TMoverParameters::Dettach(int ConnectNo)
 
 bool TMoverParameters::DirectionForward()
 {
-    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (EIMDirectionChangeAllow()))
     {
         ++ActiveDir;
         DirAbsolute = ActiveDir * CabNo;
@@ -1075,11 +1075,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
     for( int side = 0; side < 2; ++side ) {
         // przekazywanie napiec
-        auto const oppositeside = ( side == end::front ? end::rear : end::front );
+        auto const oppositeside { ( side == end::front ? end::rear : end::front ) };
+        auto const liveconnection{
+            ( Couplers[ side ].CouplingFlag & ctrain_power )
+            || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+              && ( Couplers[ side ].Connected->Heating ) ) };
 
-        if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-         || ( ( Heating )
-           && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+        if( liveconnection ) {
             auto const &connectedcoupler = Couplers[ side ].Connected->Couplers[ Couplers[ side ].ConnectedNr ];
             Couplers[ oppositeside ].power_high.voltage =
                 std::max(
@@ -1103,8 +1105,8 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 Couplers[ side ].power_high.local = false; // power, if any, will be from external source
 
                 if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-                 || ( ( Heating )
-                   && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+                 || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+                   && ( Couplers[ side ].Connected->Heating ) ) ) {
                     auto const &connectedcoupler =
                         Couplers[ side ].Connected->Couplers[
                             ( Couplers[ side ].ConnectedNr == end::front ?
@@ -1127,8 +1129,8 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             Couplers[ side ].power_high.local = true; // power is coming from local pantographs
 
             if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-             || ( ( Heating )
-               && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+             || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+               && ( Couplers[ side ].Connected->Heating ) ) ) {
                 auto const &connectedcoupler =
                     Couplers[ side ].Connected->Couplers[
                         ( Couplers[ side ].ConnectedNr == end::front ?
@@ -1409,6 +1411,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         // w rozrządczym nie (jest błąd w FIZ!) - Ra 2014-07: teraz we wszystkich
         UpdatePantVolume( Deltatime ); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
     }
+    // heating
+    HeatingCheck( Deltatime );
 
     UpdateBrakePressure(Deltatime);
     UpdatePipePressure(Deltatime);
@@ -1462,7 +1466,8 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     if( ( ConverterAllow )
      && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
-     && ( Mains ) ) {
+     && ( ( Mains )
+       || ( GetTrainsetVoltage() > 0 ) ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
         if( ConverterStartDelayTimer <= 0.0 ) {
             ConverterFlag = true;
@@ -1476,6 +1481,17 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
         ConverterStartDelayTimer = static_cast<double>( ConverterStartDelay );
     }
 };
+
+// heating system status check
+void TMoverParameters::HeatingCheck( double const Timestep ) {
+
+    Heating = (
+        ( true == HeatingAllow )
+        // powered vehicles are generally required to activate their power source to provide heating
+        // passive vehicles get a pass in this regard
+     && ( ( Power < 0.1 )
+       || ( true == Mains ) ) );
+}
 
 // water pump status check
 void TMoverParameters::WaterPumpCheck( double const Timestep ) {
@@ -2355,7 +2371,7 @@ bool TMoverParameters::DirectionBackward(void)
             DB = true; //
             return DB; // exit;  TODO: czy dobrze przetlumaczone?
         }
-    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (MainCtrlPos <= MaxMainCtrlPosNoDirChange) && (EIMDirectionChangeAllow()))
+    if ((MainCtrlPosNo > 0) && (ActiveDir > -1) && (EIMDirectionChangeAllow()))
     {
         if (EngineType == TEngineType::WheelsDriven)
             CabNo--;
@@ -2376,7 +2392,11 @@ bool TMoverParameters::DirectionBackward(void)
 bool TMoverParameters::EIMDirectionChangeAllow(void)
 {
     bool OK = false;
+/*
+    // NOTE: disabled while eimic variables aren't immediately synced with master controller changes inside ai module
     OK = (EngineType != TEngineType::ElectricInductionMotor || ((eimic <= 0) && (eimic_real <= 0) && (Vel < 0.1)));
+*/
+    OK = ( MainCtrlPos <= MaxMainCtrlPosNoDirChange );
     return OK;
 }
 
@@ -3714,7 +3734,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Flow( temp * Hamulec->GetPF( temp * PipePress, dt, Vel ) + GetDVc( dt ) );
 
     if (ASBType == 128)
-        Hamulec->ASB(int(SlippingWheels));
+        Hamulec->ASB(int(SlippingWheels && (Vel>1))*(1+2*int(nrot_eps<-0.01)));
 
     dpPipe = 0;
 
@@ -3962,6 +3982,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     // juz zoptymalizowane:
     FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
+	double old_nrot = abs(nrot);
     nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
 
     if( ( true == TestFlag( BrakeMethod, bp_MHS ) )
@@ -4034,8 +4055,9 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 		}
 		else
 		{
-			Fb = -Fwheels*Sign(V);
-			FTrain = 0;
+			double factor = (FTrain - Fb * Sign(V) != 0 ? Fwheels/(FTrain - Fb * Sign(V)) : 1.0);
+			Fb *= factor;
+			FTrain *= factor;
 		}
 		if (nrot < 0.1)
 		{
@@ -4044,6 +4066,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
 		nrot = temp_nrot;
     }
+	nrot_eps = (abs(nrot) - (old_nrot))/dt;
     // doliczenie sił z innych pojazdów
     for( int end = end::front; end <= end::rear; ++end ) {
         if( Neighbours[ end ].vehicle != nullptr ) {
@@ -4336,6 +4359,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                 // zderzenie
                 coupler.CheckCollision = true;
                 if( ( coupler.CouplerType == TCouplerType::Automatic )
+                 && ( coupler.CouplerType == othercoupler.CouplerType )
                  && ( coupler.CouplingFlag == coupling::faux ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
                     // EN57
@@ -6018,6 +6042,26 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		if (MainCtrlPos >= 3 && eimic < 0) eimic = 0;
 		if (MainCtrlPos <= 3 && eimic > 0) eimic = 0;
+		if (LocHandleTimeTraxx)
+		{
+			if (LocalBrakeRatio() < 0.05) //pozycja 0
+			{
+				eim_localbrake -= dt*0.17; //zmniejszanie
+			}
+
+			if (LocalBrakeRatio() > 0.15) //pozycja 2
+			{
+				eim_localbrake += dt*0.17; //wzrastanie
+				eim_localbrake = std::max(eim_localbrake, BrakePress / MaxBrakePress[0]);
+			}
+			else
+			{
+				if (eim_localbrake < Hamulec->GetEDBCP() / MaxBrakePress[0])
+					eim_localbrake = 0;
+			}
+			eim_localbrake = clamp(eim_localbrake, 0.0, 1.0);
+			if (eim_localbrake > 0.04 && eimic > 0) eimic = 0;
+		}
 		break;
 	case 2:
 		switch (MainCtrlPos)
@@ -7261,14 +7305,14 @@ double TMoverParameters::GetTrainsetVoltage(void)
     return std::max(
         ( ( ( Couplers[end::front].Connected )
          && ( ( Couplers[ end::front ].CouplingFlag & ctrain_power )
-           || ( ( Heating )
-             && ( Couplers[ end::front ].CouplingFlag & ctrain_heating ) ) ) ) ?
+           || ( ( Couplers[ end::front ].CouplingFlag & ctrain_heating )
+             && ( Couplers[ end::front ].Connected->Heating ) ) ) ) ?
             Couplers[end::front].Connected->Couplers[ Couplers[end::front].ConnectedNr ].power_high.voltage :
             0.0 ),
         ( ( ( Couplers[end::rear].Connected )
          && ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power )
-           || ( ( Heating )
-             && ( Couplers[ end::rear ].CouplingFlag & ctrain_heating ) ) ) ) ?
+           || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_heating )
+             && ( Couplers[ end::rear ].Connected->Heating ) ) ) ) ?
             Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
 }
@@ -8638,6 +8682,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
 	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
 	clamp( EIMCtrlType, 0, 3 );
+	LocHandleTimeTraxx = (extract_value("LocalBrakeTraxx", line) == "Yes");
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 

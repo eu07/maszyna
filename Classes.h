@@ -40,6 +40,7 @@ class powergridsource_table;
 class instance_table;
 class vehicle_table;
 struct light_array;
+struct dictionary_source;
 
 namespace scene {
 struct node_data;

@@ -169,6 +169,8 @@ public:
 	TSubModel * ChildGet() { return Child; };
     int count_siblings();
     int count_children();
+    // locates submodel mapped with replacable -4
+    std::tuple<TSubModel *, bool> find_replacable4();
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ( Math3D::vector3 vNewAngles);

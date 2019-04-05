@@ -33,24 +33,6 @@ http://mozilla.org/MPL/2.0/.
 #define PyGetBool(param) param ? Py_True : Py_False
 #define PyGetString(param) PyString_FromString(param)
 
-// collection of keyword-value pairs
-// NOTE: since our python dictionary operates on a few types, most of the class was hardcoded for simplicity
-struct dictionary_source {
-// types
-    template <typename Type_>
-    using keyvaluepair_sequence = std::vector<std::pair<std::string, Type_>>;
-// members
-    keyvaluepair_sequence<double> floats;
-    keyvaluepair_sequence<int> integers;
-    keyvaluepair_sequence<bool> bools;
-    keyvaluepair_sequence<std::string> strings;
-// methods
-    inline void insert( std::string const &Key, double const Value )      { floats.emplace_back( Key, Value ); }
-    inline void insert( std::string const &Key, int const Value )         { integers.emplace_back( Key, Value ); }
-    inline void insert( std::string const &Key, bool const Value )        { bools.emplace_back( Key, Value ); }
-    inline void insert( std::string const &Key, std::string const Value ) { strings.emplace_back( Key, Value ); }
-};
-
 // TODO: extract common base and inherit specialization from it
 class render_task {
 

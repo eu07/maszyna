@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "Globals.h"
 #include "simulationtime.h"
+#include "dictionary.h"
 #include "utilities.h"
 
 double TTrainParameters::CheckTrainLatency()
@@ -522,4 +523,30 @@ bool TTrainParameters::DirectionChange()
         if (TimeTable[StationIndex].StationWare.find('@') != std::string::npos)
             return true;
     return false;
+}
+
+void TTrainParameters::serialize( dictionary_source *Output ) const {
+
+    Output->insert( "trainnumber", TrainName );
+    Output->insert( "train_brakingmassratio", BrakeRatio );
+    Output->insert( "train_enginetype", LocSeries );
+    Output->insert( "train_engineload", LocLoad );
+
+    Output->insert( "train_stationindex", StationIndex );
+    Output->insert( "train_stationcount", StationCount );
+    if( StationCount > 0 ) {
+        // timetable stations data, if there's any
+        for( auto stationidx = 1; stationidx <= StationCount; ++stationidx ) {
+            auto const stationlabel { "train_station" + std::to_string( stationidx ) + "_" };
+            auto const &timetableline { TimeTable[ stationidx ] };
+            Output->insert( ( stationlabel + "name" ), Bezogonkow( timetableline.StationName ) );
+            Output->insert( ( stationlabel + "fclt" ), Bezogonkow( timetableline.StationWare ) );
+            Output->insert( ( stationlabel + "lctn" ), timetableline.km );
+            Output->insert( ( stationlabel + "vmax" ), timetableline.vmax );
+            Output->insert( ( stationlabel + "ah" ), timetableline.Ah );
+            Output->insert( ( stationlabel + "am" ), timetableline.Am );
+            Output->insert( ( stationlabel + "dh" ), timetableline.Dh );
+            Output->insert( ( stationlabel + "dm" ), timetableline.Dm );
+        }
+    }
 }
