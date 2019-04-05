@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 #include "Train.h"
 #include "Timer.h"
+#include "dictionary.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")

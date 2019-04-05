@@ -10,10 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "PyInt.h"
 
-#include "Globals.h"
+#include "dictionary.h"
 #include "application.h"
-#include "renderer.h"
 #include "Logs.h"
+#include "Globals.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wwrite-strings"
@@ -204,7 +204,8 @@ void python_taskqueue::exit() {
     m_condition.notify_all();
     // let them free up their shit before we proceed
     for( auto &worker : m_workers ) {
-        worker.join();
+	if (worker.joinable())
+	        worker.join();
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore

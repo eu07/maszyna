@@ -204,6 +204,20 @@ public:
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
     std::array<TSubModel *, 3> LowPolyIntCabs {}; // pointers to low fidelity version of individual driver cabs
     bool JointCabs{ false }; // flag for vehicles with multiple virtual 'cabs' sharing location and 3d model(s)
+    struct destination_data {
+        TSubModel *sign { nullptr }; // submodel mapped with replacable texture -4
+        bool has_light { false }; // the submodel was originally configured with self-illumination attribute
+        material_handle destination { null_handle }; // most recently assigned non-blank destination texture
+        material_handle destination_off { null_handle }; // blank destination sign
+        std::string script; // potential python script used to generate texture data
+        int update_rate { 0 }; // -1: per stop, 0: none, >0: fps // TBD, TODO: implement?
+        std::string instancing; // potential method to generate more than one texture per timetable
+        std::string parameters; // potential extra parameters supplied by mmd file
+    // methods
+        void deserialize( cParser &Input );
+    private:
+        bool deserialize_mapping( cParser &Input );
+    } DestinationSign;
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
     float LoadOffset { 0.f };
     std::unordered_map<std::string, std::string> LoadModelOverrides; // potential overrides of default load visualization models
@@ -518,6 +532,7 @@ private:
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
     int init_sections( TModel3d const *Model, std::string const &Nameprefix );
+    bool init_destination( TModel3d *Model );
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt);
@@ -532,6 +547,7 @@ private:
     void update_load_visibility();
     void update_load_offset();
     void shuffle_load_sections();
+    void update_destinations();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);
     void Move(double fDistance);
@@ -634,6 +650,7 @@ private:
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
     void DestinationSet(std::string to, std::string numer);
+    material_handle DestinationFind( std::string Destination );
     void OverheadTrack(float o);
 	glm::dvec3 get_future_movement() const;
 

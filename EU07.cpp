@@ -36,6 +36,8 @@ int main( int argc, char *argv[] )
             result = Application.run();
 	    Application.exit();
         }
+		std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
+        return result;
     }
     catch( std::bad_alloc const &Error )
 	{

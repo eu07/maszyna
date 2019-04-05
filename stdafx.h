@@ -84,11 +84,9 @@
 #define GLFW_DLL
 #endif // _windows
 #endif // build_static
-
 #include "glad/glad.h"
 
 #define GLFW_INCLUDE_NONE
-//#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
 #ifndef GLFW_TRUE
