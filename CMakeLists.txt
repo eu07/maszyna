@@ -118,6 +118,7 @@ else()
 endif()
 
 if (WITH_UART)
+	add_definitions(-DWITH_UART)
 	set(SOURCES ${SOURCES} "uart.cpp")
 endif()
 
