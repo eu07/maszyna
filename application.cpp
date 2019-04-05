@@ -22,6 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "screenshot.h"
 #include "translation.h"
+#include "dictionary.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")

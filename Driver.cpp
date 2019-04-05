@@ -1373,7 +1373,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( ( mvOccupied->Vel < v )
                          || ( v == 0.0 ) ) {
                             // if we're going slower than the target velocity and there's enough room for safe stop, speed up
-                            auto const brakingdistance = fBrakeDist * braking_distance_multiplier( v );
+                            auto const brakingdistance { 1.2 * fBrakeDist * braking_distance_multiplier( v ) };
                             if( brakingdistance > 0.0 ) {
                                 // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
                                 // try to make a smooth transition instead of sharp change
@@ -1822,8 +1822,7 @@ void TController::Activation()
             }
         }
         // Ra: to przełączanie poniżej jest tu bez sensu
-        mvOccupied->ActiveCab =
-            iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)
+        mvOccupied->ActiveCab = iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)
         // mvOccupied->CabNo=iDirection;
         // mvOccupied->ActiveDir=0; //żeby sam ustawił kierunek
         mvOccupied->CabActivisation(); // uruchomienie kabin w członach
@@ -1963,6 +1962,7 @@ void TController::AutoRewident()
          && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) ) {
             fAccThreshold += 0.10;
         }
+        fNominalAccThreshold = fAccThreshold;
     }
 
     if( OrderCurrentGet() & ( Obey_train | Bank ) ) {
@@ -2125,6 +2125,11 @@ bool TController::CheckVehicles(TOrders user)
              && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
                 // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                 p->MoverParameters->BatterySwitch( true );
+                // enable heating and converter in carriages with can be heated
+                if( p->MoverParameters->HeatingPower > 0 ) {
+                    p->MoverParameters->HeatingAllow = true;
+                    p->MoverParameters->ConverterSwitch( true, range_t::local );
+                }
             }
 
             if (p->asDestination == "none")
@@ -2354,8 +2359,11 @@ void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
 double TController::BrakeAccFactor() const
 {
 	double Factor = 1.0;
-    if( ( ActualProximityDist > fMinProximityDist )
-     || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) {
+
+    if( ( fAccThreshold != 0.0 )
+     && ( AccDesired < 0.0 )
+     && ( ( ActualProximityDist > fMinProximityDist )
+       || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
 	return Factor;
@@ -2520,7 +2528,15 @@ bool TController::PrepareEngine()
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
-					BrakeLevelSet(gbh_RP); // GBH
+                }
+                // sync virtual brake state with the 'real' one
+                std::unordered_map<int, int> const brakepositions {
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ), gbh_RP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_NP ) ), gbh_NP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_FS ) ), gbh_FS } };
+                auto const lookup { brakepositions.find( static_cast<int>( mvOccupied->fBrakeCtrlPos ) ) };
+                if( lookup != brakepositions.end() ) {
+                    BrakeLevelSet( lookup->second ); // GBH
                 }
             }
         }
@@ -2859,7 +2875,7 @@ bool TController::DecBrake()
 				//	mvOccupied->BrakeLevelAdd(-1.0);
 				/* if (mvOccupied->BrakeCtrlPosR < 0.74) GBH */
 				if (BrakeCtrlPosition < 0.74)
-					/*mvOccupied->*/BrakeLevelSet(0.0);
+					/*mvOccupied->*/BrakeLevelSet(gbh_RP);
 			}
 		}
         if( !OK ) {
@@ -3065,7 +3081,7 @@ bool TController::IncSpeed()
         if (!mvControlling->FuseFlag)
 			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
-                OK = mvControlling->IncMainCtrl(std::max(1,mvOccupied->MainCtrlPosNo/10));
+                OK = IncSpeedEIM();
                 // cruise control
                 auto const SpeedCntrlVel { (
                     ( ActualProximityDist > std::max( 50.0, fMaxProximityDist ) ) ?
@@ -3167,6 +3183,34 @@ bool TController::DecSpeed(bool force)
     return OK;
 };
 
+bool TController::IncSpeedEIM() {
+
+    bool OK = false; // domyślnie false, aby wyszło z pętli while
+    switch( mvControlling->EIMCtrlType ) {
+        case 0:
+            OK = mvControlling->IncMainCtrl( std::max( 1, mvOccupied->MainCtrlPosNo / 10 ) );
+            break;
+        case 1:
+            OK = mvControlling->MainCtrlPos < 6;
+            if( OK )
+                mvControlling->MainCtrlPos = 6;
+/*
+            // TBD, TODO: set position based on desired acceleration?
+            OK = mvControlling->MainCtrlPos < mvControlling->MainCtrlPosNo;
+            if( OK ) {
+                mvControlling->MainCtrlPos = clamp( mvControlling->MainCtrlPos + 1, 6, mvControlling->MainCtrlPosNo );
+            }
+*/
+            break;
+        case 2:
+            OK = mvControlling->MainCtrlPos < 4;
+            if( OK )
+                mvControlling->MainCtrlPos = 4;
+            break;
+    }
+    return OK;
+}
+
 bool TController::DecSpeedEIM()
 { // zmniejszenie prędkości (ale nie hamowanie)
 	bool OK = false; // domyślnie false, aby wyszło z pętli while
@@ -3214,59 +3258,59 @@ void TController::SpeedSet()
         if (mvControlling->MainCtrlPosNo > 0)
         { // jeśli ma czym kręcić
             // TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-            if ((AccDesired < fAccGravity - 0.05) ||
-                (mvOccupied->Vel > VelDesired)) // jeśli nie ma przyspieszać
-                mvControlling->DecMainCtrl(2); // na zero
-            else if (fActionTime >= 0.0)
-            { // jak już można coś poruszać, przetok rozłączać od razu
-                if (iDrivigFlags & moveIncSpeed)
-                { // jak ma jechać
-                    if (fReady < 0.4) // 0.05*Controlling->MaxBrakePress)
-                    { // jak jest odhamowany
-                        if (mvOccupied->ActiveDir > 0)
-                            mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
-                        {
-                            if (mvControlling->MainCtrlPos &&
-                                !mvControlling->StLinFlag) // jak niby jedzie, ale ma rozłączone liniowe
-                                mvControlling->DecMainCtrl(2); // to na zero i czekać na przewalenie kułakowego
-                            else
-                                switch (mvControlling->MainCtrlPos)
-                                { // ruch nastawnika uzależniony jest od aktualnie ustawionej
-                                // pozycji
-                                case 0:
-                                    if (mvControlling->MainCtrlActualPos) // jeśli kułakowy nie jest
-                                        // wyzerowany
-                                        break; // to czekać na wyzerowanie
-                                    mvControlling->IncMainCtrl(1); // przetok; bez "break", bo nie
-                                // ma czekania na 1. pozycji
-                                case 1:
-                                    if (VelDesired >= 20)
-                                        mvControlling->IncMainCtrl(1); // szeregowa
-                                case 2:
-                                    if (VelDesired >= 50)
-                                        mvControlling->IncMainCtrl(1); // równoległa
-                                case 3:
-                                    if (VelDesired >= 80)
-                                        mvControlling->IncMainCtrl(1); // bocznik 1
-                                case 4:
-                                    if (VelDesired >= 90)
-                                        mvControlling->IncMainCtrl(1); // bocznik 2
-                                case 5:
-                                    if (VelDesired >= 100)
-                                        mvControlling->IncMainCtrl(1); // bocznik 3
-                                }
-                            if (mvControlling->MainCtrlPos) // jak załączył pozycję
-                            {
-                                fActionTime = -5.0; // niech trochę potrzyma
-                                mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
+            if( ( iDrivigFlags & moveIncSpeed ) == 0 ) {
+                // przetok rozłączać od razu (no dependency on fActionTime)
+                while( ( mvControlling->MainCtrlPos )
+                    && ( mvControlling->DecMainCtrl( 1 ) ) ) {
+                    ; // na zero
+                }
+                if( fActionTime >= 0.0 ) {
+                    fActionTime = -5.0; // niech trochę potrzyma
+                }
+                mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
+            }
+            else {
+                // jak ma jechać
+                if( fActionTime < 0.0 ) { break; }
+                if( fReady > 0.4 ) { break; }
+
+                if( mvOccupied->ActiveDir > 0 ) {
+                    mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
+                }
+
+                if( ( mvControlling->MainCtrlPos > 0 )
+                 && ( false == mvControlling->StLinFlag ) ) {
+                    // jak niby jedzie, ale ma rozłączone liniowe to na zero i czekać na przewalenie kułakowego
+                    mvControlling->DecMainCtrl( 2 );
+                }
+                else {
+                    // ruch nastawnika uzależniony jest od aktualnie ustawionej pozycji
+                    switch( mvControlling->MainCtrlPos ) {
+                        case 0:
+                            if( mvControlling->MainCtrlActualPos ) {
+                                // jeśli kułakowy nie jest wyzerowany to czekać na wyzerowanie
+                                break; 
                             }
-                        }
+                            mvControlling->IncMainCtrl( 1 ); // przetok; bez "break", bo nie ma czekania na 1. pozycji
+                        case 1:
+                            if( VelDesired >= 20 )
+                                mvControlling->IncMainCtrl( 1 ); // szeregowa
+                        case 2:
+                            if( VelDesired >= 50 )
+                                mvControlling->IncMainCtrl( 1 ); // równoległa
+                        case 3:
+                            if( VelDesired >= 80 )
+                                mvControlling->IncMainCtrl( 1 ); // bocznik 1
+                        case 4:
+                            if( VelDesired >= 90 )
+                                mvControlling->IncMainCtrl( 1 ); // bocznik 2
+                        case 5:
+                            if( VelDesired >= 100 )
+                                mvControlling->IncMainCtrl( 1 ); // bocznik 3
                     }
                 }
-                else
+                if( mvControlling->MainCtrlPos ) // jak załączył pozycję
                 {
-                    while (mvControlling->MainCtrlPos)
-                        mvControlling->DecMainCtrl(1); // na zero
                     fActionTime = -5.0; // niech trochę potrzyma
                     mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
                 }
@@ -3370,7 +3414,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 		mvControlling->IncScndCtrl(1);
 		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
 	}
-	else if (mvControlling->ScndCtrlPosNo > 1)
+	else if ((mvControlling->ScndCtrlPosNo > 1) && (!mvOccupied->SpeedCtrlTypeTime))
 	{
 		int DesiredPos = 1 + mvControlling->ScndCtrlPosNo * ((DesiredSpeed - 1.0) / mvControlling->Vmax);
         while( ( mvControlling->ScndCtrlPos > DesiredPos ) && ( true == mvControlling->DecScndCtrl( 1 ) ) ) { ; } // all work is done in the condition loop
@@ -3412,6 +3456,22 @@ void TController::SetTimeControllers()
 			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 1;
 		}
 	}
+	//4. Check Speed Control System
+	if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor && mvOccupied->ScndCtrlPosNo > 1 && mvOccupied->SpeedCtrlTypeTime)
+	{
+		double SpeedCntrlVel =
+			(ActualProximityDist > std::max(50.0, fMaxProximityDist)) ?
+			VelDesired :
+			min_speed(VelDesired, VelNext);
+		SpeedCntrlVel = 10 * std::floor(SpeedCntrlVel*0.1);
+		if (mvOccupied->ScndCtrlPosNo == 4)
+		{
+			if (mvOccupied->NewSpeed + 0.1 < SpeedCntrlVel)
+				mvOccupied->ScndCtrlPos = 3;
+			if (mvOccupied->NewSpeed - 0.1 > SpeedCntrlVel)
+				mvOccupied->ScndCtrlPos = 1;
+		}
+	}
 };
 
 void TController::CheckTimeControllers()
@@ -3442,6 +3502,14 @@ void TController::CheckTimeControllers()
 		{
 			if (mvOccupied->eimic > 0) mvOccupied->MainCtrlPos = 3;
 			if (mvOccupied->eimic < 0) mvOccupied->MainCtrlPos = 2;
+		}
+	}
+	//4. Check Speed Control System
+	if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor && mvOccupied->ScndCtrlPosNo>1 && mvOccupied->SpeedCtrlTypeTime)
+	{
+		if (mvOccupied->ScndCtrlPosNo == 4)
+		{
+				mvOccupied->ScndCtrlPos = 2;
 		}
 	}
 };
@@ -3487,7 +3555,7 @@ void TController::Doors( bool const Open, int const Side ) {
         }
 
         if( AIControllFlag ) {
-            if( ( true == mvOccupied->Doors.has_autowarning )
+            if( ( true == mvOccupied->Doors.has_warning )
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                 mvOccupied->signal_departure( true ); // załącenie bzyczka
@@ -3846,15 +3914,14 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
     if( ( NewCommand == "Shunt" ) || ( NewCommand == "Loose_shunt" ) )
     { // NewValue1 - ilość wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=dołącz, -1=bez zmian
-        //-3,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1), zmienić kierunek i czekać w
-        // trybie pociągowym
+        //-3,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1), zmienić kierunek i czekać w trybie pociągowym
         //-2,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1), zmienić kierunek i czekać
         //-2, y - podłączyć do całego stojącego składu (sprzęgiem y>=1) i czekać
         //-1,-y - podłączyć do całego stojącego składu (sprzęgiem y>=1) i jechać w powrotną stronę
         //-1, y - podłączyć do całego stojącego składu (sprzęgiem y>=1) i jechać dalej
         //-1, 0 - tryb manewrowy bez zmian (odczepianie z pozostawieniem wagonów nie ma sensu)
         // 0, 0 - odczepienie lokomotywy
-        // 1,-y - podłączyć się do składu (sprzęgiem y>=1), a następnie odczepić i zabrać (x) wagonów
+        // x,-y - podłączyć się do składu (sprzęgiem y>=1), a następnie odczepić i zabrać (x) wagonów
         // 1, 0 - odczepienie lokomotywy z jednym wagonem
         iDrivigFlags &= ~moveStopHere; // podjeżanie do semaforów zezwolone
         if (!iEngineActive)
@@ -4141,7 +4208,7 @@ TController::UpdateSituation(double dt) {
             Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
         }
         // check door state
-        auto const switchsides { p->DirectionGet() <= 0 };
+        auto const switchsides { p->DirectionGet() != iDirection };
         IsAnyDoorOpen[ side::right ] =
             IsAnyDoorOpen[ side::right ]
          || ( false == vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].is_closed );
@@ -4563,20 +4630,21 @@ TController::UpdateSituation(double dt) {
                 auto *vehicleparameters { vehicle->MoverParameters };
                 int const end { ( vehicle->DirectionGet() > 0 ? end::front : end::rear ) };
                 auto const &neighbour { vehicleparameters->Neighbours[ end ] };
-                // próba podczepienia
-                vehicleparameters->Attach(
-                    end, neighbour.vehicle_end,
-                    neighbour.vehicle->MoverParameters,
-                    iCoupler );
-                if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
-                    // jeżeli został podłączony
-                    iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
-                    iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
-                    SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
-                    CheckVehicles(); // sprawdzić światła nowego składu
-                    JumpToNextOrder(); // wykonanie następnej komendy
+                if( neighbour.vehicle != nullptr ) {
+                    // próba podczepienia
+                    vehicleparameters->Attach(
+                        end, neighbour.vehicle_end,
+                        neighbour.vehicle->MoverParameters,
+                        iCoupler );
+                    if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
+                        // jeżeli został podłączony
+                        iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
+                        iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
+                        SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                        CheckVehicles(); // sprawdzić światła nowego składu
+                        JumpToNextOrder(); // wykonanie następnej komendy
+                    }
                 }
-
             } // if (AIControllFlag) //koniec zblokowania, bo była zmienna lokalna
         }
         else {
@@ -4606,11 +4674,11 @@ TController::UpdateSituation(double dt) {
         // TODO: test if we can use the distances calculation from obey_train
         fMinProximityDist = std::min( 5 + iVehicles, 25 );
         fMaxProximityDist = std::min( 10 + iVehicles, 50 );
-/*
-        if( IsHeavyCargoTrain ) {
-            fMaxProximityDist *= 1.5;
+        // HACK: modern vehicles might brake slower at low speeds, increase safety margin as crude counter
+        if( mvControlling->EIMCtrlType > 0 ) {
+            fMinProximityDist += 5.0;
+            fMaxProximityDist += 5.0;
         }
-*/
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -5090,7 +5158,11 @@ TController::UpdateSituation(double dt) {
                                         20.0 ) ); // others
                         if( vel > VelDesired + fVelPlus ) {
                             // if going too fast force some prompt braking
-                            AccPreferred = std::min( -0.65, AccPreferred );
+                            AccPreferred = std::min(
+                                ( ( mvOccupied->CategoryFlag & 2 ) ?
+                                -0.65 : // cars
+                                -0.30 ), // others
+                                AccPreferred );
                         }
                     }
 
@@ -5602,11 +5674,11 @@ TController::UpdateSituation(double dt) {
                            || ( VelNext > vel - 40.0 ) ) ?
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
-                            / braking_distance_multiplier( VelNext ) ) {
+                            / ( 1.2 * braking_distance_multiplier( VelNext ) ) ) {
                             AccDesired = std::max( -0.06, AccDesired );
                         }
                     }
-                    else {
+                    if( AccDesired < -0.1 ) {
                         // i orientuj się szybciej, jeśli hamujesz
                         ReactionTime = 0.25;
                     }
@@ -5705,11 +5777,11 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
-                // zwiekszanie predkosci
+                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej zwiekszanie predkosci
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                if( ( AccDesired - AbsAccS > 0.01 ) ) {
+                if( ( AccDesired > -0.06 ) // don't add power if not asked for actual speed-up
+                 && ( AccDesired - AbsAccS > 0.05 ) ) {
                     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
                     if( vel < (
                         VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
@@ -5762,6 +5834,7 @@ TController::UpdateSituation(double dt) {
                         // przy odłączaniu nie zwalniamy tu hamulca
                         if( AbsAccS < AccDesired - 0.05 ) {
                             // jeśli opóźnienie większe od wymaganego (z histerezą) luzowanie, gdy za dużo
+                            // TBD: check if the condition isn't redundant with the DecBrake() code
                             if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition >= 0 ) {
                                 DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
                             }
@@ -5800,7 +5873,8 @@ TController::UpdateSituation(double dt) {
                             }
                         }
                     }
-                    if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
+                    if ( ( AccDesired < fAccGravity - 0.05 )
+                    && ( ( AccDesired - fBrake_a1[0]*0.51 ) ) - AbsAccS > 0.05 ) {
                         // jak hamuje, to nie tykaj kranu za często
                         // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
                         if( OrderCurrentGet() != Disconnect ) {
@@ -6526,6 +6600,9 @@ void TController::TakeControl(bool yes)
 void TController::DirectionForward(bool forward)
 { // ustawienie jazdy do przodu dla true i do tyłu dla false (zależy od kabiny)
     ZeroSpeed( true ); // TODO: check if force switch is needed anymore here
+    // HACK: make sure the master controller isn't set in position which prevents direction change
+    mvControlling->MainCtrlPos = std::min( mvControlling->MainCtrlPos, mvControlling->MaxMainCtrlPosNoDirChange );
+
     if( forward ) {
         // do przodu w obecnej kabinie
         while( ( mvOccupied->ActiveDir <= 0 )

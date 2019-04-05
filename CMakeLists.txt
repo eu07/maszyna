@@ -102,6 +102,7 @@ set(SOURCES
 "simulationstateserializer.cpp"
 "precipitation.cpp"
 "openglcolor.cpp"
+"dictionary.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

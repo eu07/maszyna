@@ -791,6 +791,27 @@ int TSubModel::count_children() {
             1 + Child->count_siblings() );
 }
 
+// locates submodel mapped with replacable -4
+std::tuple<TSubModel *, bool>
+TSubModel::find_replacable4() {
+
+    if( m_material == -4 ) {
+        return std::make_tuple( this, ( fLight != -1.0 ) );
+    }
+
+    if( Next != nullptr ) {
+        auto lookup { Next->find_replacable4() };
+        if( std::get<TSubModel *>( lookup ) != nullptr ) { return lookup; }
+    }
+
+    if( Child != nullptr ) {
+        auto lookup { Child->find_replacable4() };
+        if( std::get<TSubModel *>( lookup ) != nullptr ) { return lookup; }
+    }
+
+    return std::make_tuple( nullptr, false );
+}
+
 uint32_t TSubModel::FlagsCheck()
 { // analiza koniecznych zmian pomiędzy submodelami
   // samo pomijanie glBindTexture() nie poprawi wydajności
