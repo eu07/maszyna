@@ -32,7 +32,7 @@ jobs:
     displayName: 'MacOS 10.13'
     steps:
     - script: |
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile asio pkg-config
       displayName: 'Install dependencies'
     - script: |
         mkdir build

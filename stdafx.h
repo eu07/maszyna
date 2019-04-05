@@ -77,13 +77,6 @@
 #include <chrono>
 #include <optional>
 
-#ifdef EU07_BUILD_STATIC
-#define GLEW_STATIC
-#else
-#ifdef _WIN32
-#define GLFW_DLL
-#endif // _windows
-#endif // build_static
 #include "glad/glad.h"
 
 #define GLFW_INCLUDE_NONE
