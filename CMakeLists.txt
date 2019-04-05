@@ -130,6 +130,7 @@ set(SOURCES
 "simulationstateserializer.cpp"
 "precipitation.cpp"
 "pythonscreenviewer.cpp"
+"dictionary.cpp"
 
 "network/network.cpp"
 "network/message.cpp"
