@@ -35,7 +35,7 @@ jobs:
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_UART=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1

@@ -13,7 +13,7 @@ if (APPLE)
 endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" OFF)
-option(WITH_UART "Compile with libserialport" OFF)
+option(WITH_UART "Compile with libserialport" ON)
 
 set(SOURCES
 "Texture.cpp"
