@@ -78,15 +78,15 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
         // TBD, TODO: customized vorbis_decode to avoid unnecessary shuffling around of the decoded data
         int channels, samplerate;
         std::int16_t *filedata { nullptr };
-        auto const samplecount{ stb_vorbis_decode_filename( Filename.c_str(), &channels, &samplerate, &filedata ) };
+        auto const samplecount { stb_vorbis_decode_filename( Filename.c_str(), &channels, &samplerate, &filedata ) };
         if( samplecount > 0 ) {
             rate = samplerate;
-            data.resize( samplecount );
-            std::copy( filedata, filedata + samplecount, std::begin( data ) );
+            data.resize( samplecount * channels );
+            std::copy( filedata, filedata + data.size(), std::begin( data ) );
             free( filedata );
             if( channels > 1 ) {
                 narrow_to_mono( channels );
-                data.resize( samplecount / channels );
+                data.resize( samplecount );
             }
         }
         else {
@@ -109,7 +109,7 @@ void
 openal_buffer::narrow_to_mono( std::uint16_t const Channelcount ) {
  
     std::size_t monodataindex { 0 };
-    std::int32_t accumulator { 0 };
+    std::int64_t accumulator { 0 };
     auto channelcount { Channelcount };
 
     for( auto const channeldata : data ) {
@@ -117,7 +117,7 @@ openal_buffer::narrow_to_mono( std::uint16_t const Channelcount ) {
         accumulator += channeldata;
         if( --channelcount == 0 ) {
 
-            data[ monodataindex++ ] = accumulator / Channelcount;
+            data[ monodataindex++ ] = static_cast<std::int16_t>( accumulator / Channelcount );
             accumulator = 0;
             channelcount = Channelcount;
         }

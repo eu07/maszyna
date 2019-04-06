@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "Logs.h"
 
-auto const EU07_CONTROLLER_MOUSESLIDERSIZE{ 0.65 };
+auto const EU07_CONTROLLER_MOUSESLIDERSIZE{ 0.6 };
 
 void
 mouse_slider::bind( user_command const &Command ) {

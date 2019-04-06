@@ -2170,34 +2170,36 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             m_renderspecular = true; // vehicles are rendered with specular component. static models without, at least for the time being
             // render
             if( Dynamic->mdLowPolyInt ) {
-                // low poly interior
-                /*
-                if( ( true == FreeFlyModeFlag )
-                 || ( ( Dynamic->mdKabina == nullptr ) || ( false == Dynamic->bDisplayCab ) ) ) {
-                 */
-/*
-                    // enable cab light if needed
-                    if( Dynamic->InteriorLightLevel > 0.0f ) {
+                // HACK: reduce light level for vehicle interior if there's strong global lighting source
+                auto const luminance { static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
+                m_sunlight.apply_intensity(
+                    clamp( (
+                        Dynamic->fShade > 0.f ?
+                            Dynamic->fShade :
+                            1.f )
+                        - luminance,
+                        0.f, 1.f ) );
 
-                        // crude way to light the cabin, until we have something more complete in place
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
-                    }
-*/
-                    Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-/*
-                    if( Dynamic->InteriorLightLevel > 0.0f ) {
-                        // reset the overall ambient
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
-                    }
-*/
-                /*
+                // low poly interior
+                Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+                // HACK: if the model has low poly interior, we presume the load is placed inside and also affected by reduced light level
+                if( Dynamic->mdLoad ) {
+                    // renderowanie nieprzezroczystego ładunku
+                    Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
                 }
-                */
+
+                m_sunlight.apply_intensity( Dynamic->fShade > 0.f ? Dynamic->fShade : 1.f );
             }
-            if( Dynamic->mdModel )
+            else {
+                // HACK: if the model lacks low poly interior, we presume the load is placed outside
+                if( Dynamic->mdLoad ) {
+                    // renderowanie nieprzezroczystego ładunku
+                    Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+                }
+            }
+            if( Dynamic->mdModel ) {
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-            if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+            }
             // post-render cleanup
             m_renderspecular = false;
             if( Dynamic->fShade > 0.0f ) {

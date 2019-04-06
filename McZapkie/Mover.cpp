@@ -7071,9 +7071,14 @@ TMoverParameters::update_doors( double const Deltatime ) {
         door.local_close  = door.local_close  && ( false == door.is_closed );
         door.remote_close = door.remote_close && ( false == door.is_closed );
 
+        auto const autoopenrequest {
+            ( Doors.open_control == control_t::autonomous )
+         && ( ( false == Doors.permit_needed ) || door.open_permit )
+        };
         auto const openrequest {
             ( localopencontrol && door.local_open )
-         || ( remoteopencontrol && door.remote_open ) };
+         || ( remoteopencontrol && door.remote_open )
+         || ( autoopenrequest && ( false == door.is_open ) ) };
 
         auto const autocloserequest {
             ( ( Doors.auto_velocity != -1.f ) && ( Vel > Doors.auto_velocity ) )
@@ -8360,12 +8365,6 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
             lookup != doorcontrols.end() ?
                 lookup->second :
                 control_t::passenger;
-
-        if( Doors.close_control == control_t::autonomous ) {
-            // convert legacy method
-            Doors.close_control = control_t::passenger;
-            Doors.auto_velocity = 10.0;
-        }
     }
     // automatic closing conditions
     extract_value( Doors.auto_duration, "DoorStayOpen", line, "" );

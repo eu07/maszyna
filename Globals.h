@@ -70,7 +70,6 @@ struct global_settings {
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
-    double fFogStart{ 1700 };
     double fFogEnd{ 2000 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather

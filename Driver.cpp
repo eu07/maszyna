@@ -3585,13 +3585,14 @@ void TController::Doors( bool const Open, int const Side ) {
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
             if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
-             || ( ( true == AIControllFlag )
-               && ( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) ) ) {
+             || ( ( true == AIControllFlag ) ) ) {
                 // if the door are controlled by the driver, we let the user operate them unless this user is an ai
                 // the train conductor, if present, handles door operation also for human-driven trains
-                pVehicle->MoverParameters->OperateDoors( side::right, false );
-                pVehicle->MoverParameters->OperateDoors( side::left, false );
+                if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
+                    pVehicle->MoverParameters->OperateDoors( side::right, false );
+                    pVehicle->MoverParameters->OperateDoors( side::left, false );
+                }
                 if( pVehicle->MoverParameters->Doors.permit_needed ) {
                     pVehicle->MoverParameters->PermitDoors( side::right, false );
                     pVehicle->MoverParameters->PermitDoors( side::left, false );

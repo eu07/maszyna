@@ -4289,37 +4289,73 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->PermitDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+        auto const side { (
+            Train->mvOccupied->ActiveCab == 1 ?
                 side::left :
-                side::right ) );
+                side::right ) };
 
-        // visual feedback
-        Train->ggDoorLeftPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            Train->mvOccupied->PermitDoors( side );
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // two-state switch
+            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+
+            Train->mvOccupied->PermitDoors( side, newstate );
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( ( newstate ? 1.0 : 0.0 ), Train->dsbSwitch );
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
-        Train->ggDoorLeftPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
     }
 }
 
 void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->PermitDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+        auto const side { (
+            Train->mvOccupied->ActiveCab == 1 ?
                 side::right :
-                side::left ) );
+                side::left ) };
 
-        // visual feedback
-        Train->ggDoorRightPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        if( Train->ggDoorRightPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            Train->mvOccupied->PermitDoors( side );
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // two-state switch
+            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+
+            Train->mvOccupied->PermitDoors( side, newstate );
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( ( newstate ? 1.0 : 0.0 ), Train->dsbSwitch );
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
-        Train->ggDoorRightPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( Train->ggDoorRightPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
     }
 }
 
@@ -7585,7 +7621,12 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f ) );
     // doors
-    // NOTE: for the time being permit switches are presumed to be impulse switches
+    if( ggDoorLeftPermitButton.type() != TGaugeType::push ) {
+        ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
+    }
+    if( ggDoorRightPermitButton.type() != TGaugeType::push ) {
+        ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
+    }
     ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
     ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
     ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
@@ -7814,8 +7855,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     }
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool *> const autolights = {
-        { "i-doorpermit_left:", &mvOccupied->Doors.instances[side::left].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit },
+        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit },
+        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled }
     };
     {
