@@ -1370,7 +1370,7 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
         temp = 10000;
 
     // powtarzacz — podwojny zawor zwrotny
-    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb) == b_asb)) / temp, LBP);
+    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb_unbrake) == b_asb_unbrake)) / temp, LBP);
     // luzowanie CH
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
         //   dV:=PF(0,BrakeCyl->P(),0.0015*3*sizeBC)*dt
