@@ -532,6 +532,8 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
     Output->insert( "train_enginetype", LocSeries );
     Output->insert( "train_engineload", LocLoad );
 
+    Output->insert( "train_stationfrom", Relation1 );
+    Output->insert( "train_stationto", Relation2 );
     Output->insert( "train_stationindex", StationIndex );
     Output->insert( "train_stationcount", StationCount );
     if( StationCount > 0 ) {

@@ -32,17 +32,18 @@ int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental 
 void
 opengl_light::apply_intensity( float const Factor ) {
 
-    if( Factor == 1.0 ) {
+    if( Factor == 1.f ) {
 
         ::glLightfv( id, GL_AMBIENT, glm::value_ptr( ambient ) );
         ::glLightfv( id, GL_DIFFUSE, glm::value_ptr( diffuse ) );
         ::glLightfv( id, GL_SPECULAR, glm::value_ptr( specular ) );
     }
     else {
+        auto const factor{ clamp( Factor, 0.05f, 1.f ) };
         // temporary light scaling mechanics (ultimately this work will be left to the shaders
-        glm::vec4 scaledambient( ambient.r * Factor, ambient.g * Factor, ambient.b * Factor, ambient.a );
-        glm::vec4 scaleddiffuse( diffuse.r * Factor, diffuse.g * Factor, diffuse.b * Factor, diffuse.a );
-        glm::vec4 scaledspecular( specular.r * Factor, specular.g * Factor, specular.b * Factor, specular.a );
+        glm::vec4 scaledambient( ambient.r * factor, ambient.g * factor, ambient.b * factor, ambient.a );
+        glm::vec4 scaleddiffuse( diffuse.r * factor, diffuse.g * factor, diffuse.b * factor, diffuse.a );
+        glm::vec4 scaledspecular( specular.r * factor, specular.g * factor, specular.b * factor, specular.a );
         glLightfv( id, GL_AMBIENT, glm::value_ptr( scaledambient ) );
         glLightfv( id, GL_DIFFUSE, glm::value_ptr( scaleddiffuse ) );
         glLightfv( id, GL_SPECULAR, glm::value_ptr( scaledspecular ) );
