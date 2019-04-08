@@ -154,6 +154,7 @@ set(SOURCES
 "imgui/imgui_impl_glfw.cpp"
 
 "stb/stb_image.c"
+"extras/VS_Dev.cpp"
 )
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
