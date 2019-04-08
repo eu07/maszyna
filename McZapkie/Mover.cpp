@@ -6080,7 +6080,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
 		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
 	}
-	eimic = clamp(eimic, -1.0, 1.0);
+	eimic = clamp(eimic, -1.0, Mains ? 1.0 : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl()
