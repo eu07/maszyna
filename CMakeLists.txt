@@ -131,6 +131,7 @@ set(SOURCES
 "widgets/vehicleparams.cpp"
 "widgets/trainingcard.cpp"
 "widgets/perfgraphs.cpp"
+"widgets/cameraview.cpp"
 
 "ref/glad/src/glad.c"
 

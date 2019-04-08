@@ -123,6 +123,8 @@ init() {
 	    "Move +500m",
 	    "Move -500m",
 
+	    "Camera preview",
+
         "master controller",
         "master controller",
         "second controller",
@@ -330,6 +332,8 @@ init() {
 	    u8"Zerwij PG",
 	    u8"Przesuń +500m",
 	    u8"Przesuń -500m",
+
+	    u8"Podgląd kamery",
 
         u8"nastawnik jazdy",
         u8"nastawnik jazdy",

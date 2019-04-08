@@ -112,6 +112,8 @@ enum string {
 	vehicleparams_move500f,
 	vehicleparams_move500b,
 
+	cameraview_window,
+
     cab_mainctrl,
     cab_jointctrl,
     cab_scndctrl,

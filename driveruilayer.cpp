@@ -34,6 +34,7 @@ driver_ui::driver_ui() {
 	add_external_panel( &m_mappanel );
 	add_external_panel( &m_logpanel );
 	add_external_panel( &m_perfgraphpanel );
+	add_external_panel( &m_cameraviewpanel );
     m_logpanel.is_open = false;
 
     m_aidpanel.title = locale::strings[ locale::string::driver_aid_header ];
@@ -62,7 +63,9 @@ void driver_ui::render_menu_contents() {
 		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);
 		ImGui::MenuItem(m_vehiclelist.name().c_str(), nullptr, &m_vehiclelist.is_open);
 		ImGui::MenuItem(m_trainingcardpanel.name().c_str(), nullptr, &m_trainingcardpanel.is_open);
-		ImGui::MenuItem(m_perfgraphpanel.name().c_str(), nullptr, &m_perfgraphpanel.is_open);
+		ImGui::MenuItem(m_cameraviewpanel.name().c_str(), nullptr, &m_cameraviewpanel.is_open);
+		if (DebugModeFlag)
+			ImGui::MenuItem(m_perfgraphpanel.name().c_str(), nullptr, &m_perfgraphpanel.is_open);
 
 		if (ImGui::MenuItem(m_timepanel.name().c_str()))
 			m_timepanel.open();

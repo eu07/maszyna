@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "widgets/map.h"
 #include "widgets/time.h"
 #include "widgets/trainingcard.h"
+#include "widgets/cameraview.h"
 #include "widgets/perfgraphs.h"
 
 class driver_ui : public ui_layer {
@@ -57,7 +58,7 @@ private:
     timetable_panel m_timetablepanel { "Timetable", false };
     debug_panel m_debugpanel { "Debug Data", false };
     transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts
-	trainingcard_panel  m_trainingcardpanel;
+	trainingcard_panel m_trainingcardpanel;
 	perfgraph_panel m_perfgraphpanel;
     bool m_paused { false };
 	bool m_pause_modal_opened { false };
@@ -66,4 +67,5 @@ private:
 	ui::vehiclelist_panel m_vehiclelist { ui::vehiclelist_panel(*this) };
 	ui::map_panel m_mappanel;
 	ui::time_panel m_timepanel;
+	ui::cameraview_panel m_cameraviewpanel;
 };
