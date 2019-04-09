@@ -1,5 +1,4 @@
 #include "widgets/cameraview.h"
-#include "extras/VS_Dev.h"
 #include "stb/stb_image.h"
 #include "Globals.h"
 #include "Logs.h"
@@ -12,6 +11,20 @@ ui::cameraview_panel::cameraview_panel()
 
 void cameraview_window_callback(ImGuiSizeCallbackData *data) {
 	data->DesiredSize.y = data->DesiredSize.x * 9.0f / 16.0f;
+}
+
+ui::cameraview_panel::~cameraview_panel() {
+	if (!exit_thread) {
+		exit_thread = true;
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			stbi_image_free(image_ptr);
+			image_ptr = nullptr;
+		}
+		cv.notify_all();
+	}
+	if (workthread.joinable())
+		workthread.join();
 }
 
 void ui::cameraview_panel::render()
@@ -81,11 +94,12 @@ void ui::cameraview_panel::render_contents()
 
 void ui::cameraview_panel::workthread_func()
 {
-	VSDev vsdev;
+	if (!device)
+		device = std::make_unique<VSDev>();
 
 	while (!exit_thread) {
 		uint8_t *buffer = nullptr;
-		size_t len = vsdev.GetFrameFromStream((char**)&buffer);
+		size_t len = device->GetFrameFromStream((char**)&buffer);
 
 		if (buffer) {
 			int w, h;
@@ -93,7 +107,7 @@ void ui::cameraview_panel::workthread_func()
 			if (!image)
 				ErrorLog(std::string(stbi_failure_reason()));
 
-			vsdev.FreeFrameBuffer((char*)buffer);
+			device->FreeFrameBuffer((char*)buffer);
 
 			std::unique_lock<std::mutex> lock(mutex);
 			if (image_ptr)

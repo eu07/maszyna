@@ -338,6 +338,9 @@ eu07_application::release_python_lock() {
 
 void
 eu07_application::exit() {
+	for (auto &mode : m_modes)
+		mode.reset();
+
 	m_network.reset();
 
     SafeDelete( simulation::Train );

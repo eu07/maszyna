@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "uilayer.h"
 #include "translation.h"
+#include "extras/VS_Dev.h"
 
 namespace ui
 {
@@ -17,10 +18,13 @@ class cameraview_panel : public ui_panel
 
 	std::optional<opengl_texture> texture;
 
+	std::unique_ptr<VSDev> device;
+
 	void workthread_func();
 
   public:
 	cameraview_panel();
+	~cameraview_panel();
 
 	void render() override;
 	void render_contents() override;
