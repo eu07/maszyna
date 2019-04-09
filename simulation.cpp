@@ -187,8 +187,9 @@ void state_manager::process_commands() {
 			std::getline(ss, name, ':');
 			std::getline(ss, data, ':');
 
-			simulation::State.create_model(data, name, commanddata.location);
-			simulation::State.create_eventlauncher("node -1 0 launcher eventlauncher 0 0 0 20 none -0.1 obstacle_collision end", name + "_snd", commanddata.location);
+			TAnimModel *model = simulation::State.create_model(data, name, commanddata.location);
+			simulation::State.create_eventlauncher("node -1 0 launcher eventlauncher 0 0 0 " + std::to_string(model->radius())
+			                                       + " none -0.1 obstacle_collision end", name + "_snd", commanddata.location);
 		}
 
 		if (commanddata.command == user_command::deletemodel) {
