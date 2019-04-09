@@ -50,8 +50,8 @@ void ui::cameraview_panel::render_contents()
 	if (exit_thread) {
 		if (workthread.joinable())
 			workthread.join();
-		workthread = std::thread(&cameraview_panel::workthread_func, this);
 		exit_thread = false;
+		workthread = std::thread(&cameraview_panel::workthread_func, this);
 	}
 
 	if (!texture) {
