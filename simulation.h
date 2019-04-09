@@ -41,9 +41,15 @@ public:
 	// create model from node string
 	TAnimModel *
 	    create_model(const std::string &src, const std::string &name, const glm::dvec3 &position);
+	// create eventlauncher from node string
+	TEventLauncher *
+	    create_eventlauncher(const std::string &src, const std::string &name, const glm::dvec3 &position);
 	// delete TAnimModel instance
 	void
 	    delete_model(TAnimModel *model);
+	// delete TEventLauncher instance
+	void
+	    delete_eventlauncher(TEventLauncher *launcher);
 
 private:
 // members

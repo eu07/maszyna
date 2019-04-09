@@ -43,6 +43,8 @@ public:
 	    export_as_text(std::string const &Scenariofile) const;
 	// create new model from node stirng
 	TAnimModel * create_model(std::string const &src, std::string const &name, const glm::dvec3 &position);
+	// create new eventlauncher from node stirng
+	TEventLauncher * create_eventlauncher(std::string const &src, std::string const &name, const glm::dvec3 &position);
 
 private:
 // methods

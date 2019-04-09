@@ -188,10 +188,12 @@ void state_manager::process_commands() {
 			std::getline(ss, data, ':');
 
 			simulation::State.create_model(data, name, commanddata.location);
+			simulation::State.create_eventlauncher("node -1 0 launcher eventlauncher 0 0 0 20 none -0.1 obstacle_collision end", name + "_snd", commanddata.location);
 		}
 
 		if (commanddata.command == user_command::deletemodel) {
 			simulation::State.delete_model(simulation::Instances.find(commanddata.payload));
+			simulation::State.delete_eventlauncher(simulation::Events.FindEventlauncher(commanddata.payload + "_snd"));
 		}
 
 		if (commanddata.command == user_command::radiostop) {
@@ -288,9 +290,17 @@ TAnimModel * state_manager::create_model(const std::string &src, const std::stri
 	return m_serializer.create_model(src, name, position);
 }
 
+TEventLauncher * state_manager::create_eventlauncher(const std::string &src, const std::string &name, const glm::dvec3 &position) {
+	return m_serializer.create_eventlauncher(src, name, position);
+}
+
 void state_manager::delete_model(TAnimModel *model) {
 	Region->erase(model);
 	Instances.purge(model);
+}
+
+void state_manager::delete_eventlauncher(TEventLauncher *launcher) {
+	launcher->dRadius = 0.0f; // disable it
 }
 
 void

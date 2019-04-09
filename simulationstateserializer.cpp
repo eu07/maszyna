@@ -1049,6 +1049,33 @@ TAnimModel *state_serializer::create_model(const std::string &src, const std::st
 	return cloned;
 }
 
+TEventLauncher *state_serializer::create_eventlauncher(const std::string &src, const std::string &name, const glm::dvec3 &position) {
+	cParser parser(src);
+	parser.getTokens(); // "node"
+	parser.getTokens(2); // ranges
+
+	scene::node_data nodedata;
+	parser >> nodedata.range_max >> nodedata.range_min;
+
+	parser.getTokens(2); // name, type
+	nodedata.name = name;
+	nodedata.type = "eventlauncher";
+
+	scene::scratch_data scratch;
+
+	TEventLauncher *launcher = deserialize_eventlauncher(parser, scratch, nodedata);
+
+	if (!launcher)
+		return nullptr;
+
+	launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
+	launcher->location(position);
+	simulation::Events.insert(launcher);
+	simulation::Region->insert(launcher);
+
+	return launcher;
+}
+
 void
 state_serializer::export_nodes_to_stream(std::ostream &scmfile, bool Dirty) const {
 	// groups

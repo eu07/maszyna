@@ -589,6 +589,9 @@ public:
     bool
         insert( TEventLauncher *Launcher ) {
             return m_launchers.insert( Launcher ); }
+	inline void purge (TEventLauncher *Launcher) {
+		m_launchers.purge(Launcher);
+	}
     // returns first event in the queue
     inline
     basic_event *
@@ -603,6 +606,9 @@ public:
     // legacy method, returns pointer to specified event, or null
     basic_event *
         FindEvent( std::string const &Name );
+	inline TEventLauncher* FindEventlauncher(std::string const &Name) {
+		return m_launchers.find(Name);
+	}
     // legacy method, inserts specified event in the event query
     bool
         AddToQuery( basic_event *Event, TDynamicObject const *Owner, double delay = 0.0 );
