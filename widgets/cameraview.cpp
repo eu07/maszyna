@@ -7,8 +7,11 @@
 ui::cameraview_panel::cameraview_panel()
     : ui_panel(LOC_STR(cameraview_window), false)
 {
-	size_min = {200, 200};
-	size_max = {2000, 2000};
+	size_min = { -2, -2 };
+}
+
+void cameraview_window_callback(ImGuiSizeCallbackData *data) {
+	data->DesiredSize.y = data->DesiredSize.x * 9.0f / 16.0f;
 }
 
 void ui::cameraview_panel::render()
@@ -22,6 +25,10 @@ void ui::cameraview_panel::render()
 		}
 		cv.notify_all();
 	}
+
+	if (is_open)
+		ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), cameraview_window_callback);
+
 	ui_panel::render();
 }
 

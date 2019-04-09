@@ -7,7 +7,7 @@ using namespace std;
 VSDev::VSDev()
 {
 	ifstream DevFile;
-	DevFile.open("test01.bin");
+	DevFile.open("test01.bin", std::ios_base::binary);
 	DevFile.read(this->Frame1TestBuf, sizeof(this->Frame1TestBuf));
 	DevFile.close();
 	DevFile.open("test02.bin");
