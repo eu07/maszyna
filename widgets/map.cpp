@@ -548,7 +548,12 @@ ui::vehicle_click_window::vehicle_click_window(ui_panel &panel, std::shared_ptr<
 
 void ui::vehicle_click_window::render_content()
 {
-	std::string name = m_obstacle->name + "%" + "SetSignal";
+	std::string name = m_obstacle->name + "%SetSignal";
+
+	if (!m_obstacle->dynobj->MoverParameters->Battery) {
+		std::string name_enable = m_obstacle->name + "%Prepare_engine";
+		m_relay.post(user_command::sendaicommand, 1.0, 1.0, GLFW_PRESS, 0, glm::vec3(), &name_enable);
+	}
 
 	if (ImGui::Button(u8"wyłącz")) {
 		m_relay.post(user_command::sendaicommand, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(), &name);
@@ -556,13 +561,11 @@ void ui::vehicle_click_window::render_content()
 		ImGui::CloseCurrentPopup();
 	}
 	if (ImGui::Button(u8"Pc6")) {
-		std::string name = m_obstacle->name + "%" + "SetSignal";
 		m_relay.post(user_command::sendaicommand, Signal_Pc6, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
 	}
 	if (ImGui::Button(u8"A1")) {
-		std::string name = m_obstacle->name + "%" + "SetSignal";
 		m_relay.post(user_command::sendaicommand, Signal_A1, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
