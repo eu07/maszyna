@@ -253,7 +253,10 @@ commanddescription_sequence Commands_descriptions = {
     { "trainsetmove", command_target::simulation, command_mode::oneoff },
     { "consistteleport", command_target::simulation, command_mode::oneoff },
     { "pullalarmchain", command_target::simulation, command_mode::oneoff },
-    { "notifyquit", command_target::simulation, command_mode::oneoff },
+    { "sendaicommand", command_target::simulation, command_mode::oneoff },
+    { "spawntrainset", command_target::simulation, command_mode::oneoff },
+    { "destroytrainset", command_target::simulation, command_mode::oneoff },
+    { "quitsimulation", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation

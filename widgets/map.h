@@ -65,6 +65,17 @@ class obstacle_remove_window : public popup
 	virtual void render_content() override;
 };
 
+class vehicle_click_window : public popup
+{
+	std::shared_ptr<map::vehicle> m_obstacle;
+	command_relay m_relay;
+
+  public:
+	vehicle_click_window(ui_panel &panel, std::shared_ptr<map::vehicle> &&obstacle);
+
+	virtual void render_content() override;
+};
+
 class map_panel : public ui_panel
 {
 	std::unique_ptr<gl::program> m_track_shader;

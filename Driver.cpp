@@ -4045,6 +4045,20 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         return true;
     }
 
+	if (NewCommand == "SetSignal") {
+		TSignals signal = (TSignals)std::round(NewValue1);
+
+		mvOccupied->iLights[0] = 0;
+		mvOccupied->iLights[1] = 0;
+		mvOccupied->WarningSignal = 0;
+
+		for (int i = Signal_START; i <= Signal_MAX; i++)
+			iDrivigFlags &= ~(1 << i);
+
+		if (NewValue2 > 0.5)
+			iDrivigFlags |= 1 << (uint32_t)signal;
+	}
+
     return false; // nierozpoznana - wysłać bezpośrednio do pojazdu
 };
 
@@ -4413,18 +4427,56 @@ TController::UpdateSituation(double dt) {
             }
         }
 
-        // horn control
-        if( fWarningDuration > 0.0 ) {
-            // jeśli pozostało coś do wytrąbienia trąbienie trwa nadal
-            fWarningDuration -= dt;
-            if( fWarningDuration < 0.05 )
-                mvOccupied->WarningSignal = 0; // a tu się kończy
-        }
-        if( mvOccupied->Vel >= 5.0 ) {
-            // jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
-            iDrivigFlags &= ~moveStartHornDone; // zatrąbi dopiero jak następnym razem stanie
-            iDrivigFlags |= moveStartHorn; // i trąbić przed następnym ruszeniem
-        }
+		if (iDrivigFlags & (1 << Signal_A1)) {
+			if (fWarningDuration < 2.0)
+				mvOccupied->WarningSignal = 1;
+			else if (fWarningDuration < 2.5)
+				mvOccupied->WarningSignal = 0;
+			else if (fWarningDuration < 3.0)
+				mvOccupied->WarningSignal = 1;
+			else if (fWarningDuration < 3.5)
+				mvOccupied->WarningSignal = 0;
+			else if (fWarningDuration < 4.0)
+				mvOccupied->WarningSignal = 1;
+			else if (fWarningDuration < 4.5)
+				mvOccupied->WarningSignal = 0;
+			else if (fWarningDuration < 5.0)
+				mvOccupied->WarningSignal = 1;
+			else if (fWarningDuration < 7.0)
+				mvOccupied->WarningSignal = 0;
+			else
+				fWarningDuration = 0.0;
+
+			if (std::fmod(fWarningDuration, 1.0) < 0.5) {
+				mvOccupied->iLights[0] = headlight_right | headlight_left;
+				mvOccupied->iLights[1] = headlight_right | headlight_left;
+			}
+			else {
+				mvOccupied->iLights[0] = 0;
+				mvOccupied->iLights[1] = 0;
+			}
+
+			fWarningDuration += dt;
+		}
+		else if (iDrivigFlags & (1 << Signal_Pc6)) {
+			mvOccupied->WarningSignal = 0;
+			mvOccupied->iLights[0] = redmarker_right | redmarker_left | headlight_upper;
+			mvOccupied->iLights[1] = redmarker_right | redmarker_left | headlight_upper;
+		}
+		else {
+			// horn control
+			if( fWarningDuration > 0.0 ) {
+				// jeśli pozostało coś do wytrąbienia trąbienie trwa nadal
+				fWarningDuration -= dt;
+				if( fWarningDuration < 0.05 )
+					mvOccupied->WarningSignal = 0; // a tu się kończy
+			}
+			if( mvOccupied->Vel >= 5.0 ) {
+				// jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
+				iDrivigFlags &= ~moveStartHornDone; // zatrąbi dopiero jak następnym razem stanie
+				iDrivigFlags |= moveStartHorn; // i trąbić przed następnym ruszeniem
+			}
+		}
 
         if( ( true == TestFlag( iDrivigFlags, moveStartHornNow ) )
          && ( true == Ready )

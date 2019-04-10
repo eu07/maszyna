@@ -247,6 +247,9 @@ enum class user_command {
 	dynamicmove,
 	consistteleport,
 	pullalarmchain,
+	sendaicommand,
+	spawntrainset,
+	destroytrainset,
 
 	quitsimulation,
 

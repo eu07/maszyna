@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 #include "Train.h"
 #include "application.h"
+#include "Driver.h"
 
 namespace simulation {
 
@@ -263,10 +264,28 @@ void state_manager::process_commands() {
 			}
 		}
 
+		if (commanddata.command == user_command::spawntrainset) {
+
+		}
+
 		if (commanddata.command == user_command::pullalarmchain) {
 			TDynamicObject *vehicle = simulation::Vehicles.find(commanddata.payload);
 			if (vehicle)
 				vehicle->MoverParameters->AlarmChainSwitch(true);
+		}
+
+		if (commanddata.command == user_command::sendaicommand) {
+			std::istringstream ss(commanddata.payload);
+
+			std::string vehicle_name;
+			std::string command;
+			std::getline(ss, vehicle_name, '%');
+			std::getline(ss, command, '%');
+
+			TDynamicObject *vehicle = simulation::Vehicles.find(vehicle_name);
+			glm::dvec3 location = commanddata.location;
+			if (vehicle && vehicle->Mechanik)
+				vehicle->Mechanik->PutCommand(command, commanddata.param1, commanddata.param2, &location);
 		}
 
 		if (commanddata.command == user_command::quitsimulation) {

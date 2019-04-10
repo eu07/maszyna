@@ -30,7 +30,16 @@ enum TOrders
     Obey_train =            1 << 7, // tryb pociągowy
     Bank =                  1 << 8, // assist mode
     // others
-    Jump_to_first_order =   1 << 9 // zapęlenie do pierwszej pozycji (po co?)
+	Jump_to_first_order =   1 << 9, // zapęlenie do pierwszej pozycji (po co?)
+};
+
+// TSignals is shifted into TMovementStatus
+enum TSignals
+{
+	Signal_START = 30,
+	Signal_Pc6 = 30,
+	Signal_A1 = 31,
+	Signal_MAX = 31
 };
 
 enum TMovementStatus

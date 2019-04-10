@@ -59,6 +59,12 @@ struct obstacle : public map_object
 	}
 };
 
+// vehicle wrapper for map display
+struct vehicle : public map_object
+{
+	TDynamicObject *dynobj = nullptr;
+};
+
 struct objects
 {
 	std::vector<std::shared_ptr<map_object>> entries;

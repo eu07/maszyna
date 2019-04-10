@@ -317,6 +317,10 @@ void ui::handle_map_object_click(ui_panel &parent, std::shared_ptr<map::map_obje
 	{
 		parent.register_popup(std::make_unique<obstacle_remove_window>(parent, std::move(obstacle)));
 	}
+	else if (auto obstacle = std::dynamic_pointer_cast<map::vehicle>(obj))
+	{
+		parent.register_popup(std::make_unique<vehicle_click_window>(parent, std::move(obstacle)));
+	}
 }
 
 void ui::handle_map_object_hover(std::shared_ptr<map::map_object> &obj)
@@ -534,6 +538,32 @@ void ui::obstacle_remove_window::render_content()
 		}
 
 		simulation::Region->update_poi_geometry();
+
+		ImGui::CloseCurrentPopup();
+	}
+}
+
+ui::vehicle_click_window::vehicle_click_window(ui_panel &panel, std::shared_ptr<map::vehicle> &&obstacle)
+    : popup(panel), m_obstacle(obstacle) { }
+
+void ui::vehicle_click_window::render_content()
+{
+	std::string name = m_obstacle->name + "%" + "SetSignal";
+
+	if (ImGui::Button(u8"wyłącz")) {
+		m_relay.post(user_command::sendaicommand, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(), &name);
+
+		ImGui::CloseCurrentPopup();
+	}
+	if (ImGui::Button(u8"Pc6")) {
+		std::string name = m_obstacle->name + "%" + "SetSignal";
+		m_relay.post(user_command::sendaicommand, Signal_Pc6, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
+
+		ImGui::CloseCurrentPopup();
+	}
+	if (ImGui::Button(u8"A1")) {
+		std::string name = m_obstacle->name + "%" + "SetSignal";
+		m_relay.post(user_command::sendaicommand, Signal_A1, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
 	}
