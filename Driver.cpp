@@ -2362,6 +2362,8 @@ double TController::BrakeAccFactor() const
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
+	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40)
+		Factor *= 1 + (1600 / mvOccupied->Vel / mvOccupied->Vel);
 	return Factor;
 }
 
