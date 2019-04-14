@@ -178,7 +178,7 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
 
         Global.fFogEnd =
             clamp(
-                Random( fograngestart, fograngeend ),
+                Random( std::min( fograngestart, fograngeend ), std::max( fograngestart, fograngeend ) ),
                 100.0, 2000.0 );
     }
 

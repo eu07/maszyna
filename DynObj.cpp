@@ -2319,7 +2319,9 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 { // Ra: doczepia Object na końcu składu (nazwa funkcji może być myląca)
     // Ra: używane tylko przy wczytywaniu scenerii
     MoverParameters->Attach( iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true, false );
+    // update neighbour data for both affected vehicles
     update_neighbours();
+    Object->update_neighbours();
 }
 
 bool TDynamicObject::UpdateForce(double dt)
@@ -4343,10 +4345,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_materialdata.textures_alpha |= 0x08080008;
                 }
             }
-            if( false == MoverParameters->LoadAttributes.empty() ) {
-                // Ra: tu wczytywanie modelu ładunku jest w porządku
-                mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
-            }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
 				token = "";
@@ -4926,6 +4924,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
 			} while( ( token != "" )
 	              && ( token != "endmodels" ) );
+
+            if( false == MoverParameters->LoadAttributes.empty() ) {
+                // Ra: tu wczytywanie modelu ładunku jest w porządku
+                mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
+            }
 
         } // models
 

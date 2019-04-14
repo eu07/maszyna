@@ -6625,14 +6625,16 @@ void TController::DirectionForward(bool forward)
         // do przodu w obecnej kabinie
         while( ( mvOccupied->ActiveDir <= 0 )
             && ( mvOccupied->DirectionForward() ) ) {
-            ; // all work is done in the header
+            // force scan table update
+            iTableDirection = 0;
         }
     }
     else {
         // do tyłu w obecnej kabinie
         while( ( mvOccupied->ActiveDir >= 0 )
             && ( mvOccupied->DirectionBackward() ) ) {
-            ; // all work is done in the header
+            // force scan table update
+            iTableDirection = 0;
         }
     }
     if( mvOccupied->TrainType == dt_SN61 ) {

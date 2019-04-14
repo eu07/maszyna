@@ -4406,7 +4406,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
             if( enrot != tmp ) {
                 enrot = clamp(
-                    enrot + ( dt / 1.25 ) * ( // TODO: equivalent of dizel_aim instead of fixed inertia
+                    enrot + ( dt / dizel_AIM ) * (
                         enrot < tmp ?
                         1.0 :
                         -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
@@ -6080,7 +6080,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
 		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
 	}
-	eimic = clamp(eimic, -1.0, Mains ? 1.0 : 0.0);
+	eimic = clamp(eimic, -1.0, ( ( true == Mains ) || ( Power == 0.0 ) ) ? 1.0 : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl()
@@ -8945,6 +8945,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 ImaxLo = 1;
             }
             extract_value( EngineHeatingRPM, "HeatingRPM", Input, "" );
+            extract_value( dizel_AIM, "AIM", Input, "1.25" );
             break;
         }
         case TEngineType::ElectricInductionMotor: {
