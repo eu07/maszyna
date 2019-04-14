@@ -2010,7 +2010,7 @@ void TController::AutoRewident()
 		    fBrakeReaction = 0.25;
 	    }
         else if( mvOccupied->TrainType == dt_DMU ) {
-            fNominalAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            fNominalAccThreshold = std::max( -0.65, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
             fBrakeReaction = 0.25;
         }
         else if (ustaw > 16) {
@@ -2362,8 +2362,8 @@ double TController::BrakeAccFactor() const
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
-	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40)
-		Factor *= 1 + (1600 / mvOccupied->Vel / mvOccupied->Vel);
+	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40 && VelNext<40)
+		Factor *= 1 + ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
 	return Factor;
 }
 

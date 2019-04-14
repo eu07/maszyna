@@ -2773,6 +2773,8 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TMHZ_K5P::Init(double Press)
 {
 	CP = Press;
+	Time = true;
+	TimeEP = true;
 }
 
 void TMHZ_K5P::SetReductor(double nAdj)
