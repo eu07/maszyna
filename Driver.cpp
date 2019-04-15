@@ -1375,7 +1375,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( ( mvOccupied->Vel < v )
                          || ( v == 0.0 ) ) {
                             // if we're going slower than the target velocity and there's enough room for safe stop, speed up
-                            auto const brakingdistance = fBrakeDist * braking_distance_multiplier( v );
+                            auto const brakingdistance { 1.2 * fBrakeDist * braking_distance_multiplier( v ) };
                             if( brakingdistance > 0.0 ) {
                                 // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
                                 // try to make a smooth transition instead of sharp change
@@ -2127,6 +2127,11 @@ bool TController::CheckVehicles(TOrders user)
              && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
                 // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                 p->MoverParameters->BatterySwitch( true );
+                // enable heating and converter in carriages with can be heated
+                if( p->MoverParameters->HeatingPower > 0 ) {
+                    p->MoverParameters->HeatingAllow = true;
+                    p->MoverParameters->ConverterSwitch( true, range_t::local );
+                }
             }
 
             if (p->asDestination == "none")
@@ -2358,6 +2363,7 @@ double TController::BrakeAccFactor() const
 	double Factor = 1.0;
 
     if( ( fAccThreshold != 0.0 )
+     && ( AccDesired < 0.0 )
      && ( ( ActualProximityDist > fMinProximityDist )
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
@@ -2529,9 +2535,9 @@ bool TController::PrepareEngine()
                 }
                 // sync virtual brake state with the 'real' one
                 std::unordered_map<int, int> const brakepositions {
-                    { mvOccupied->Handle->GetPos( bh_RP ), gbh_RP },
-                    { mvOccupied->Handle->GetPos( bh_NP ), gbh_NP },
-                    { mvOccupied->Handle->GetPos( bh_FS ), gbh_FS } };
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ), gbh_RP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_NP ) ), gbh_NP },
+                    { static_cast<int>( mvOccupied->Handle->GetPos( bh_FS ) ), gbh_FS } };
                 auto const lookup { brakepositions.find( static_cast<int>( mvOccupied->fBrakeCtrlPos ) ) };
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
@@ -3568,7 +3574,7 @@ void TController::Doors( bool const Open, int const Side ) {
         }
 
         if( AIControllFlag ) {
-            if( ( true == mvOccupied->Doors.has_autowarning )
+            if( ( true == mvOccupied->Doors.has_warning )
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                 mvOccupied->signal_departure( true ); // załącenie bzyczka
@@ -3581,13 +3587,14 @@ void TController::Doors( bool const Open, int const Side ) {
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
             if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
-             || ( ( true == AIControllFlag )
-               && ( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) ) ) {
+             || ( ( true == AIControllFlag ) ) ) {
                 // if the door are controlled by the driver, we let the user operate them unless this user is an ai
                 // the train conductor, if present, handles door operation also for human-driven trains
-                pVehicle->MoverParameters->OperateDoors( side::right, false );
-                pVehicle->MoverParameters->OperateDoors( side::left, false );
+                if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
+                    pVehicle->MoverParameters->OperateDoors( side::right, false );
+                    pVehicle->MoverParameters->OperateDoors( side::left, false );
+                }
                 if( pVehicle->MoverParameters->Doors.permit_needed ) {
                     pVehicle->MoverParameters->PermitDoors( side::right, false );
                     pVehicle->MoverParameters->PermitDoors( side::left, false );
@@ -4687,11 +4694,11 @@ TController::UpdateSituation(double dt) {
         // TODO: test if we can use the distances calculation from obey_train
         fMinProximityDist = std::min( 5 + iVehicles, 25 );
         fMaxProximityDist = std::min( 10 + iVehicles, 50 );
-/*
-        if( IsHeavyCargoTrain ) {
-            fMaxProximityDist *= 1.5;
+        // HACK: modern vehicles might brake slower at low speeds, increase safety margin as crude counter
+        if( mvControlling->EIMCtrlType > 0 ) {
+            fMinProximityDist += 5.0;
+            fMaxProximityDist += 5.0;
         }
-*/
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -5171,7 +5178,11 @@ TController::UpdateSituation(double dt) {
                                         20.0 ) ); // others
                         if( vel > VelDesired + fVelPlus ) {
                             // if going too fast force some prompt braking
-                            AccPreferred = std::min( -0.65, AccPreferred );
+                            AccPreferred = std::min(
+                                ( ( mvOccupied->CategoryFlag & 2 ) ?
+                                -0.65 : // cars
+                                -0.30 ), // others
+                                AccPreferred );
                         }
                     }
 
@@ -5683,11 +5694,11 @@ TController::UpdateSituation(double dt) {
                            || ( VelNext > vel - 40.0 ) ) ?
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
-                            / braking_distance_multiplier( VelNext ) ) {
+                            / ( 1.2 * braking_distance_multiplier( VelNext ) ) ) {
                             AccDesired = std::max( -0.06, AccDesired );
                         }
                     }
-                    else {
+                    if( AccDesired < -0.1 ) {
                         // i orientuj się szybciej, jeśli hamujesz
                         ReactionTime = 0.25;
                     }
@@ -5786,11 +5797,11 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
-                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
-                // zwiekszanie predkosci
+                // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej zwiekszanie predkosci
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                if( ( AccDesired - AbsAccS > 0.01 ) ) {
+                if( ( AccDesired > -0.06 ) // don't add power if not asked for actual speed-up
+                 && ( AccDesired - AbsAccS > 0.05 ) ) {
                     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
                     if( vel < (
                         VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
@@ -5882,7 +5893,8 @@ TController::UpdateSituation(double dt) {
                             }
                         }
                     }
-                    if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
+                    if ( ( AccDesired < fAccGravity - 0.05 )
+                    && ( ( AccDesired - fBrake_a1[0]*0.51 ) ) - AbsAccS > 0.05 ) {
                         // jak hamuje, to nie tykaj kranu za często
                         // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
                         if( OrderCurrentGet() != Disconnect ) {

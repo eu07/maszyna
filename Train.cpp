@@ -30,6 +30,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "application.h"
 #include "renderer.h"
+#include "dictionary.h"
 /*
 namespace input {
 
@@ -543,31 +544,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    auto const *timetable{ driver->TrainTimetable() };
-
-    dict->insert( "trainnumber", driver->TrainName() );
-    dict->insert( "train_brakingmassratio", timetable->BrakeRatio );
-    dict->insert( "train_enginetype", timetable->LocSeries );
-    dict->insert( "train_engineload", timetable->LocLoad );
-
-    dict->insert( "train_stationindex", driver->iStationStart );
-    auto const stationcount { driver->StationCount() };
-    dict->insert( "train_stationcount", stationcount );
-    if( stationcount > 0 ) {
-        // timetable stations data, if there's any
-        for( auto stationidx = 1; stationidx <= stationcount; ++stationidx ) {
-            auto const stationlabel { "train_station" + std::to_string( stationidx ) + "_" };
-            auto const &timetableline { timetable->TimeTable[ stationidx ] };
-            dict->insert( ( stationlabel + "name" ), Bezogonkow( timetableline.StationName ) );
-            dict->insert( ( stationlabel + "fclt" ), Bezogonkow( timetableline.StationWare ) );
-            dict->insert( ( stationlabel + "lctn" ), timetableline.km );
-            dict->insert( ( stationlabel + "vmax" ), timetableline.vmax );
-            dict->insert( ( stationlabel + "ah" ), timetableline.Ah );
-            dict->insert( ( stationlabel + "am" ), timetableline.Am );
-            dict->insert( ( stationlabel + "dh" ), timetableline.Dh );
-            dict->insert( ( stationlabel + "dm" ), timetableline.Dm );
-        }
-    }
+    driver->TrainTimetable()->serialize( dict );
+    dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     // world state data
     dict->insert( "scenario", Global.SceneryFile );
@@ -4153,7 +4131,7 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvControlled->Heating ) {
+        if( false == Train->mvControlled->HeatingAllow ) {
             // turn on
             OnCommand_heatingenable( Train, Command );
         }
@@ -4167,24 +4145,20 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
 void TTrain::OnCommand_heatingenable( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        Train->mvControlled->HeatingAllow = true;
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->Heating ) { return; } // already enabled
-
-        Train->mvControlled->Heating = true;
     }
 }
 
 void TTrain::OnCommand_heatingdisable( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        Train->mvControlled->HeatingAllow = false;
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
-
-        if( false == Train->mvControlled->Heating ) { return; } // already disabled
-
-        Train->mvControlled->Heating = false;
     }
 }
 
@@ -4315,37 +4289,73 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->PermitDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+        auto const side { (
+            Train->mvOccupied->ActiveCab == 1 ?
                 side::left :
-                side::right ) );
+                side::right ) };
 
-        // visual feedback
-        Train->ggDoorLeftPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            Train->mvOccupied->PermitDoors( side );
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // two-state switch
+            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+
+            Train->mvOccupied->PermitDoors( side, newstate );
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( ( newstate ? 1.0 : 0.0 ), Train->dsbSwitch );
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
-        Train->ggDoorLeftPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggDoorLeftPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
     }
 }
 
 void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvOccupied->PermitDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+        auto const side { (
+            Train->mvOccupied->ActiveCab == 1 ?
                 side::right :
-                side::left ) );
+                side::left ) };
 
-        // visual feedback
-        Train->ggDoorRightPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        if( Train->ggDoorRightPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            Train->mvOccupied->PermitDoors( side );
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // two-state switch
+            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+
+            Train->mvOccupied->PermitDoors( side, newstate );
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( ( newstate ? 1.0 : 0.0 ), Train->dsbSwitch );
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
-        Train->ggDoorRightPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( Train->ggDoorRightPermitButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggDoorRightPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
     }
 }
 
@@ -6027,7 +6037,6 @@ bool TTrain::Update( double const Deltatime )
         //---------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
         if( ( mvControlled->Heating == true )
-         && ( mvControlled->Mains == true )
          && ( mvControlled->ConvOvldFlag == false ) )
             btLampkaOgrzewanieSkladu.Turn( true );
         else
@@ -7612,7 +7621,12 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f ) );
     // doors
-    // NOTE: for the time being permit switches are presumed to be impulse switches
+    if( ggDoorLeftPermitButton.type() != TGaugeType::push ) {
+        ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
+    }
+    if( ggDoorRightPermitButton.type() != TGaugeType::push ) {
+        ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
+    }
     ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
     ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
     ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
@@ -7841,8 +7855,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     }
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool *> const autolights = {
-        { "i-doorpermit_left:", &mvOccupied->Doors.instances[side::left].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ side::right ].open_permit },
+        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit },
+        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled }
     };
     {

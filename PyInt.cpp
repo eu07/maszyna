@@ -10,9 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "PyInt.h"
 
-#include "Globals.h"
+#include "dictionary.h"
 #include "application.h"
-#include "renderer.h"
 #include "Logs.h"
 
 void render_task::run() {

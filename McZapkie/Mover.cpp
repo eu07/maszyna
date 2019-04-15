@@ -1075,11 +1075,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 
     for( int side = 0; side < 2; ++side ) {
         // przekazywanie napiec
-        auto const oppositeside = ( side == end::front ? end::rear : end::front );
+        auto const oppositeside { ( side == end::front ? end::rear : end::front ) };
+        auto const liveconnection{
+            ( Couplers[ side ].CouplingFlag & ctrain_power )
+            || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+              && ( Couplers[ side ].Connected->Heating ) ) };
 
-        if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-         || ( ( Heating )
-           && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+        if( liveconnection ) {
             auto const &connectedcoupler = Couplers[ side ].Connected->Couplers[ Couplers[ side ].ConnectedNr ];
             Couplers[ oppositeside ].power_high.voltage =
                 std::max(
@@ -1103,8 +1105,8 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 Couplers[ side ].power_high.local = false; // power, if any, will be from external source
 
                 if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-                 || ( ( Heating )
-                   && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+                 || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+                   && ( Couplers[ side ].Connected->Heating ) ) ) {
                     auto const &connectedcoupler =
                         Couplers[ side ].Connected->Couplers[
                             ( Couplers[ side ].ConnectedNr == end::front ?
@@ -1127,8 +1129,8 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             Couplers[ side ].power_high.local = true; // power is coming from local pantographs
 
             if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-             || ( ( Heating )
-               && ( Couplers[ side ].CouplingFlag & ctrain_heating ) ) ) {
+             || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
+               && ( Couplers[ side ].Connected->Heating ) ) ) {
                 auto const &connectedcoupler =
                     Couplers[ side ].Connected->Couplers[
                         ( Couplers[ side ].ConnectedNr == end::front ?
@@ -1409,6 +1411,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         // w rozrządczym nie (jest błąd w FIZ!) - Ra 2014-07: teraz we wszystkich
         UpdatePantVolume( Deltatime ); // Ra 2014-07: obsługa zbiornika rozrządu oraz pantografów
     }
+    // heating
+    HeatingCheck( Deltatime );
 
     UpdateBrakePressure(Deltatime);
     UpdatePipePressure(Deltatime);
@@ -1462,7 +1466,8 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     if( ( ConverterAllow )
      && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
-     && ( Mains ) ) {
+     && ( ( Mains )
+       || ( GetTrainsetVoltage() > 0 ) ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
         if( ConverterStartDelayTimer <= 0.0 ) {
             ConverterFlag = true;
@@ -1476,6 +1481,17 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
         ConverterStartDelayTimer = static_cast<double>( ConverterStartDelay );
     }
 };
+
+// heating system status check
+void TMoverParameters::HeatingCheck( double const Timestep ) {
+
+    Heating = (
+        ( true == HeatingAllow )
+        // powered vehicles are generally required to activate their power source to provide heating
+        // passive vehicles get a pass in this regard
+     && ( ( Power < 0.1 )
+       || ( true == Mains ) ) );
+}
 
 // water pump status check
 void TMoverParameters::WaterPumpCheck( double const Timestep ) {
@@ -7055,9 +7071,14 @@ TMoverParameters::update_doors( double const Deltatime ) {
         door.local_close  = door.local_close  && ( false == door.is_closed );
         door.remote_close = door.remote_close && ( false == door.is_closed );
 
+        auto const autoopenrequest {
+            ( Doors.open_control == control_t::autonomous )
+         && ( ( false == Doors.permit_needed ) || door.open_permit )
+        };
         auto const openrequest {
             ( localopencontrol && door.local_open )
-         || ( remoteopencontrol && door.remote_open ) };
+         || ( remoteopencontrol && door.remote_open )
+         || ( autoopenrequest && ( false == door.is_open ) ) };
 
         auto const autocloserequest {
             ( ( Doors.auto_velocity != -1.f ) && ( Vel > Doors.auto_velocity ) )
@@ -7279,14 +7300,14 @@ double TMoverParameters::GetTrainsetVoltage(void)
     return std::max(
         ( ( ( Couplers[end::front].Connected )
          && ( ( Couplers[ end::front ].CouplingFlag & ctrain_power )
-           || ( ( Heating )
-             && ( Couplers[ end::front ].CouplingFlag & ctrain_heating ) ) ) ) ?
+           || ( ( Couplers[ end::front ].CouplingFlag & ctrain_heating )
+             && ( Couplers[ end::front ].Connected->Heating ) ) ) ) ?
             Couplers[end::front].Connected->Couplers[ Couplers[end::front].ConnectedNr ].power_high.voltage :
             0.0 ),
         ( ( ( Couplers[end::rear].Connected )
          && ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power )
-           || ( ( Heating )
-             && ( Couplers[ end::rear ].CouplingFlag & ctrain_heating ) ) ) ) ?
+           || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_heating )
+             && ( Couplers[ end::rear ].Connected->Heating ) ) ) ) ?
             Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
 }
@@ -8344,12 +8365,6 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
             lookup != doorcontrols.end() ?
                 lookup->second :
                 control_t::passenger;
-
-        if( Doors.close_control == control_t::autonomous ) {
-            // convert legacy method
-            Doors.close_control = control_t::passenger;
-            Doors.auto_velocity = 10.0;
-        }
     }
     // automatic closing conditions
     extract_value( Doors.auto_duration, "DoorStayOpen", line, "" );
