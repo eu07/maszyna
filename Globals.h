@@ -14,10 +14,12 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "light.h"
-#include "uart.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
 #include "version.h"
+#ifdef WITH_UART
+#include "uart.h"
+#endif
 
 struct global_settings {
 // members
@@ -169,7 +171,9 @@ struct global_settings {
         0, 0, 0, 0, 0, 0, 0 };
     int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
+#ifdef WITH_UART
     uart_input::conf_t uart_conf;
+#endif
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other

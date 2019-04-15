@@ -162,6 +162,39 @@ void TAnim::Parovoz(){
     // animowanie tłoka i rozrządu parowozu
 };
 */
+
+
+void TDynamicObject::destination_data::deserialize( cParser &Input ) {
+
+    while( true == deserialize_mapping( Input ) ) {
+        ; // all work done by while()
+    }
+}
+
+bool TDynamicObject::destination_data::deserialize_mapping( cParser &Input ) {
+    // token can be a key or block end
+    auto const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
+
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
+
+    if( key == "{" ) {
+        script = Input.getToken<std::string>();
+    }
+    else if( key == "update:" ) {
+        auto const value { Input.getToken<std::string>() };
+        // TODO: implement
+    }
+    else if( key == "instance:" ) {
+        instancing = Input.getToken<std::string>();
+    }
+    else if( key == "parameters:" ) {
+        parameters = Input.getToken<std::string>();
+    }
+
+    return true;
+}
+
+
 //---------------------------------------------------------------------------
 TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr, int cf)
 { // szukanie skrajnego połączonego pojazdu w pociagu
@@ -918,6 +951,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btEndSignalsTab2.Turn( true );
             btnOn = true;
         }
+        // destination signs
+        update_destinations();
         // else btEndSignalsTab2.TurnOff();
         // McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
         if (iAnimType[ANIM_LEVERS])
@@ -1535,19 +1570,11 @@ void TDynamicObject::place_on_track(TTrack *Track, double fDist, bool Reversed)
 	    // Ra: pojazdy wstawiane są na tor początkowy, a potem przesuwane
 	case 2: // ustawianie osi na torze
 		Axle0.Init(Track, this, iDirection ? 1 : -1);
+		Axle0.Reset();
 		Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
 		Axle1.Init(Track, this, iDirection ? 1 : -1);
+		Axle1.Reset();
 		Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf, false); // false, żeby nie generować eventów
-		break;
-	case 4:
-		Axle0.Init(Track, this, iDirection ? 1 : -1);
-		Axle0.Move((iDirection ? fDist : -fDist) + (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
-		Axle1.Init(Track, this, iDirection ? 1 : -1);
-		Axle1.Move((iDirection ? fDist : -fDist) - (fAxleDistHalf + MoverParameters->ADist * 0.5), false);
-		// Axle2.Init(Track,this,iDirection?1:-1);
-		// Axle2.Move((iDirection?fDist:-fDist)-(fAxleDistHalf-MoverParameters->ADist*0.5),false);
-		// Axle3.Init(Track,this,iDirection?1:-1);
-		// Axle3.Move((iDirection?fDist:-fDist)+(fAxleDistHalf-MoverParameters->ADist*0.5),false);
 		break;
 	}
 	// potrzebne do wyliczenia aktualnej pozycji; nie może być zero, bo nie przeliczy pozycji
@@ -1982,6 +2009,10 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             init_sections( mdLowPolyInt, nameprefix );
         }
     }
+    // destination sign 
+    if( mdModel ) {
+        init_destination( mdModel );
+    }
     // 'external_load' is an optional special section in the main model, pointing to submodel of external load
     if( mdModel ) {
         init_sections( mdModel, "external_load" );
@@ -2104,6 +2135,16 @@ TDynamicObject::init_sections( TModel3d const *Model, std::string const &Namepre
           || ( sectionindex < 2 ) ); // chain can start from prefix00 or prefix01
 
     return sectioncount;
+}
+
+bool
+TDynamicObject::init_destination( TModel3d *Model ) {
+
+    if( Model->GetSMRoot() == nullptr ) { return false; }
+
+    std::tie( DestinationSign.sign, DestinationSign.has_light ) = Model->GetSMRoot()->find_replacable4();
+
+    return DestinationSign.sign != nullptr;
 }
 
 void
@@ -2578,6 +2619,27 @@ ona np. 10km, to traktować składy jako uproszczone, np. bez wnikania w siły
 na sprzęgach, opóźnienie działania hamulca itp. Oczywiście musi mieć to pewną
 histerezę czasową, aby te tryby pracy nie przełączały się zbyt szybko.
 */
+
+void TDynamicObject::update_destinations() {
+
+    if( DestinationSign.sign == nullptr ) { return; }
+
+    DestinationSign.sign->fLight = (
+        ( ( DestinationSign.has_light ) && ( MoverParameters->Battery ) ) ?
+             2.0 :
+            -1.0 );
+
+    // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
+    if( std::abs( m_materialdata.multi_textures ) >= 4 ) { return; }
+    // TODO: dedicated setting to discern electronic signs, instead of fallback on light presence
+    m_materialdata.replacable_skins[ 4 ] = (
+        ( ( DestinationSign.destination != null_handle )
+       && ( ( false == DestinationSign.has_light ) // physical destination signs remain up until manually changed
+         || ( ( true == MoverParameters->Battery ) // lcd signs are off without power
+           && ( ctOwner != nullptr ) ) ) ) ? // lcd signs are off for carriages without engine, potentially left on a siding
+            DestinationSign.destination :
+            DestinationSign.destination_off );
+}
 
 bool TDynamicObject::Update(double dt, double dt1)
 {
@@ -4073,6 +4135,10 @@ void TDynamicObject::RenderSounds() {
     }
     if( volume > 0.05 ) {
         rscurve
+            .pitch(
+                true == rscurve.is_combined() ?
+                    MoverParameters->Vel * 0.01f :
+                    rscurve.m_frequencyoffset + rscurve.m_frequencyfactor * 1.f )
             .gain( 2.5 * volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
@@ -4298,7 +4364,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 // potentially set blank destination texture
-                DestinationSet( {}, {} );
+                DestinationSign.destination_off = DestinationFind( "nowhere" );
+//                DestinationSet( {}, {} );
 
                 if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
@@ -5595,6 +5662,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     parser >> JointCabs;
                 }
 
+                else if( token == "pydestinationsign:" ) {
+                    DestinationSign.deserialize( parser );
+                    // supply vehicle folder as script path if none is provided
+                    if( ( false == DestinationSign.script.empty() )
+                     && ( substr_path( DestinationSign.script ).empty() ) ) {
+                        DestinationSign.script = asBaseDir + DestinationSign.script;
+                    }
+                }
+
             } while( token != "" );
 
         } // internaldata:
@@ -6142,45 +6218,92 @@ int TDynamicObject::RouteWish(TTrack *tr)
     return Mechanik ? Mechanik->CrossRoute(tr) : 0; // wg AI albo prosto
 };
 
-void TDynamicObject::DestinationSet(std::string to, std::string numer)
-{ // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
+void TDynamicObject::DestinationSet(std::string to, std::string numer) {
+    // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
     // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
     // zwłaszcza w towarowych, pod kątem zautomatyzowania maewrów albo pracy górki
     // ale to jeszcze potrwa, zanim będzie możliwe, na razie można wpisać stację z
     // rozkładu
-    if( std::abs( m_materialdata.multi_textures ) >= 4 ) {
-        // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
-        return;
-    }
-	numer = Bezogonkow(numer);
+
     asDestination = to;
-    to = Bezogonkow(to); // do szukania pliku obcinamy ogonki
-    if( true == to.empty() ) {
-        to = "nowhere";
+
+    if( std::abs( m_materialdata.multi_textures ) >= 4 ) { return; } // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
+    if( DestinationSign.sign == nullptr )                { return; } // no sign submodel, no problem
+
+    // now see if we can find any version of the destination texture
+    std::vector<std::string> const destinations = {
+        numer, // try dedicated timetable sign first...
+        to }; // ...then generic destination sign
+
+    for( auto const &destination : destinations ) {
+
+        DestinationSign.destination = DestinationFind( destination );
+        if( DestinationSign.destination != null_handle ) {
+            // got what we wanted, we're done here
+            return;
+        }
     }
+    // if we didn't get static texture we might be able to make one
+    if( DestinationSign.script.empty() ) { return; } // no script so no way to make the texture
+    if( numer == "none" )                { return; } // blank or incomplete/malformed timetable, don't bother
+
+    std::string signrequest {
+          "make:"
+        + DestinationSign.script + "?"
+        // timetable include
+        + "$timetable=" + (
+            ctOwner == nullptr ?
+                MoverParameters->Name : // leading vehicle, can point to it directly
+                ctOwner->Vehicle()->MoverParameters->Name ) + "&" // owned vehicle, safer to point to owner as carriages can have identical names
+        // basic instancing string
+        // NOTE: underscore doesn't have any magic meaning for the time being, it's just less likely to conflict with regular dictionary keys
+        + "_id1=" + (
+            ctOwner != nullptr ? ctOwner->TrainName() :
+            Mechanik != nullptr ? Mechanik->TrainName() :
+            "none" ) }; // shouldn't get here but, eh
+    // TBD, TODO: replace instancing with support for variables in extra parameters string?
+    if( false == DestinationSign.instancing.empty() ) {
+        signrequest +=
+            "&_id2=" + (
+                DestinationSign.instancing == "name" ? MoverParameters->Name :
+                DestinationSign.instancing == "type" ? MoverParameters->TypeName :
+                "none" );
+    }
+    // optionl extra parameters
+    if( false == DestinationSign.parameters.empty() ) {
+        signrequest += "&" + DestinationSign.parameters;
+    }
+
+    DestinationSign.destination = GfxRenderer.Fetch_Material( signrequest );
+}
+
+material_handle TDynamicObject::DestinationFind( std::string Destination ) {
+
+    if( Destination.empty() ) { return null_handle; }
+
+    Destination = Bezogonkow( Destination ); // do szukania pliku obcinamy ogonki
     // destination textures are kept in the vehicle's directory so we point the current texture path there
     auto const currenttexturepath { Global.asCurrentTexturePath };
     Global.asCurrentTexturePath = asBaseDir;
     // now see if we can find any version of the texture
-    std::vector<std::string> destinations = {
-        numer + '@' + MoverParameters->TypeName,
-        numer,
-        to + '@' + MoverParameters->TypeName,
-        to,
-        "nowhere" + '@' + MoverParameters->TypeName,
-        "nowhere" };
+    std::vector<std::string> const destinations {
+        Destination + '@' + MoverParameters->TypeName,
+        Destination };
+
+    auto destinationhandle { null_handle };
 
     for( auto const &destination : destinations ) {
-
         auto material = TextureTest( ToLower( destination ) );
         if( false == material.empty() ) {
-            m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Material( material );
+            destinationhandle = GfxRenderer.Fetch_Material( material );
             break;
         }
     }
     // whether we got anything, restore previous texture path
     Global.asCurrentTexturePath = currenttexturepath;
-};
+
+    return destinationhandle;
+}
 
 void TDynamicObject::OverheadTrack(float o)
 { // ewentualne wymuszanie jazdy

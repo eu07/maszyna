@@ -17,13 +17,15 @@ http://mozilla.org/MPL/2.0/.
 #include "Texture.h"
 
 #include "application.h"
-#include "utilities.h"
+#include "dictionary.h"
 #include "Globals.h"
 #include "Logs.h"
+#include "utilities.h"
 #include "sn_utils.h"
 #include "utilities.h"
 #include "flip-s3tc.h"
 #include <png.h>
+
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
@@ -266,17 +268,9 @@ void
 opengl_texture::make_request() {
 
     auto const components { Split( name, '?' ) };
-    auto const query { Split( components.back(), '&' ) };
 
-    auto *dictionary { new dictionary_source };
-    if( dictionary != nullptr ) {
-        for( auto const &querypair : query ) {
-            auto const valuepos { querypair.find( '=' ) };
-            dictionary->insert(
-                ToLower( querypair.substr( 0, valuepos ) ),
-                querypair.substr( valuepos + 1 ) );
-        }
-    }
+    auto *dictionary { new dictionary_source( components.back() ) };
+    if( dictionary == nullptr ) { return; }
 
 	auto rt = std::make_shared<python_rt>();
 	rt->shared_tex = id;

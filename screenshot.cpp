@@ -38,7 +38,7 @@ void screenshot_manager::screenshot_save_thread( char *img, int w, int h )
 	uint64_t perf;
 #ifdef _WIN32
 	QueryPerformanceCounter((LARGE_INTEGER*)&perf);
-#elif __linux__
+#elif __unix__
 	timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	perf = ts.tv_nsec;

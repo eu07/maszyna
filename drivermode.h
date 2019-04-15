@@ -14,10 +14,12 @@ http://mozilla.org/MPL/2.0/.
 #include "driverkeyboardinput.h"
 #include "drivermouseinput.h"
 #include "gamepadinput.h"
-#include "uart.h"
 #include "Console.h"
 #include "Camera.h"
 #include "Classes.h"
+#ifdef WITH_UART
+#include "uart.h"
+#endif
 
 class driver_mode : public application_mode {
 
@@ -77,7 +79,9 @@ private:
 #ifdef _WIN32
         Console console;
 #endif
+#ifdef WITH_UART
         std::unique_ptr<uart_input> uart;
+#endif
         std::unique_ptr<motiontelemetry> telemetry;
 
         bool init();

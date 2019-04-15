@@ -415,10 +415,10 @@ private:
 // timetable
 // methods
 public:
-	const std::string &TrainName() const;
-private:
-	std::string Relation() const;
+    const std::string &TrainName() const;
     Mtable::TTrainParameters const * TrainTimetable() const;
+private:
+    std::string Relation() const;
     int StationIndex() const;
     int StationCount() const;
     bool IsStop() const;

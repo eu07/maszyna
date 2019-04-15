@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 #include "Train.h"
 #include "Timer.h"
+#include "dictionary.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
@@ -32,7 +33,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
 
-#ifdef __linux__
+#ifdef __unix__
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -560,7 +561,7 @@ eu07_application::init_files() {
     DeleteFile( "log.txt" );
     DeleteFile( "errors.txt" );
     CreateDirectory( "logs", NULL );
-#elif __linux__
+#elif __unix__
 	unlink("log.txt");
 	unlink("errors.txt");
 	mkdir("logs", 0755);
