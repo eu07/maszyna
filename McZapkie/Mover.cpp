@@ -6080,7 +6080,11 @@ void TMoverParameters::CheckEIMIC(double dt)
 		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
 		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
 	}
-	eimic = clamp(eimic, -1.0, ( ( true == Mains ) || ( Power == 0.0 ) ) ? 1.0 : 0.0);
+    auto const eimicpowerenabled {
+        ( ( true == Mains ) || ( Power == 0.0 ) )
+     && ( ( Doors.instances[ side::left  ].open_permit == false )
+       && ( Doors.instances[ side::right ].open_permit == false ) ) };
+	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl()
