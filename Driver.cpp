@@ -456,7 +456,7 @@ bool TController::TableAddNew()
     return true; // false gdy się nałoży
 };
 
-bool TController::TableNotFound(basic_event const *Event) const
+bool TController::TableNotFound(basic_event const *Event, double const Distance ) const
 { // sprawdzenie, czy nie został już dodany do tabelki (np. podwójne W4 robi problemy)
     auto lookup =
         std::find_if(
@@ -471,7 +471,11 @@ bool TController::TableNotFound(basic_event const *Event) const
         WriteLog( "Speed table for " + OwnerName() + " already contains event " + lookup->evEvent->m_name );
     }
 
-    return lookup == sSpeedTable.end();
+    // ignore duplicates which seem to be reasonably apart from each other, on account of looping tracks
+    // NOTE: since supplied distance is only rough approximation of distance to the event, we're using large safety margin
+    return (
+        ( lookup == sSpeedTable.end() )
+     || ( Distance - lookup->fDist > 100.0 ) );
 };
 
 void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
@@ -575,7 +579,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             for( auto *pEvent : events ) {
                 if( pEvent != nullptr ) // jeśli jest semafor na tym torze
                 { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-                    if (TableNotFound(pEvent)) // jeśli nie ma
+                    if (TableNotFound(pEvent, fCurrentDistance)) // jeśli nie ma
                     {
                         TableAddNew(); // zawsze jest true
 
@@ -2368,6 +2372,10 @@ double TController::BrakeAccFactor() const
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
+/*
+	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40 && VelNext<40)
+		Factor *= 1 + ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
+*/
 	return Factor;
 }
 
@@ -2984,6 +2992,7 @@ bool TController::IncSpeed()
                     // if it generates enough traction force
                     // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
                     auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
+                    auto const sufficientacceleration { AbsAccS_pub >= ( IsHeavyCargoTrain ? 0.02 : 0.04 ) };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
                     auto const useseriesmodevoltage {
@@ -2995,6 +3004,7 @@ bool TController::IncSpeed()
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
                      || ( ( true == sufficienttractionforce )
+                       && ( true == sufficientacceleration ) 
                        && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
@@ -3004,6 +3014,7 @@ bool TController::IncSpeed()
                      && ( useseriesmode ?
                             mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 :
                             ( ( true == sufficienttractionforce )
+                           && ( true == sufficientacceleration )
                            && ( mvOccupied->Vel <= ( IsCargoTrain ? 55 : 45 ) + ( parallelmodefieldshunting ? 5 : 0 ) ) ?
                                 mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 :
                                 mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );

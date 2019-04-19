@@ -6537,7 +6537,7 @@ void TTrain::update_sounds_radio() {
         auto const volume {
             ( true == radioenabled )
          && ( message.first == iRadioChannel ) ?
-                1.0 :
+                Global.RadioVolume :
                 0.0 };
         message.second->gain( volume );
     }

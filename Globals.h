@@ -133,7 +133,8 @@ struct global_settings {
     double fFpsMax{ 65.0 }; // górna granica FPS, przy której promień scenerii będzie zwiększany
     // audio
     bool bSoundEnabled{ true };
-    float AudioVolume{ 1.25f };
+    float AudioVolume{ 1.f };
+    float RadioVolume{ 0.75f };
     std::string AudioRenderer;
     // input
     float fMouseXScale{ 1.5f };

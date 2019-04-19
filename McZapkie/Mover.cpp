@@ -3891,7 +3891,18 @@ void TMoverParameters::ComputeConstans(void)
     }
     Ff = TotalMassxg * (BearingF + RollF * V * V / 10.0) / 1000.0;
     // dorobic liczenie temperatury lozyska!
-    FrictConst1 = ((TotalMassxg * RollF) / 10000.0) + (Cx * Dim.W * Dim.H);
+    FrictConst1 = ( TotalMassxg * RollF ) / 10000.0;
+    // drag calculation
+    {
+        // NOTE: draft effect of previous vehicle is simplified and doesn't have much to do with reality
+        auto const *previousvehicle { Couplers[ ( V >= 0.0 ? end::front : end::rear ) ].Connected };
+        auto dragarea { Dim.W * Dim.H };
+        if( previousvehicle ) {
+            dragarea = std::max( 0.0, dragarea - ( 0.85 * previousvehicle->Dim.W * previousvehicle->Dim.H ) );
+        }
+        FrictConst1 += Cx * dragarea;
+    }
+
     Curvature = abs(RunningShape.R); // zero oznacza nieskończony promień
     if (Curvature > 0.0)
         Curvature = 1.0 / Curvature;
