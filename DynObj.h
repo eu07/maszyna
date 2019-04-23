@@ -357,6 +357,7 @@ private:
         sound_source linebreaker_open { sound_placement::engine };
         sound_source rsWentylator { sound_placement::engine }; // McZapkie-030302
         sound_source engine { sound_placement::engine }; // generally diesel engine
+		sound_source fake_engine { sound_placement::engine };
         sound_source engine_ignition { sound_placement::engine }; // moved from cab
         sound_source engine_shutdown { sound_placement::engine };
         bool engine_state_last { false }; // helper, cached previous state of the engine

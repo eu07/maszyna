@@ -9142,7 +9142,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
-            collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0 };
+			collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false };
 
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
@@ -9161,6 +9161,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             //maksymalne ciśnienie za reduktorem
 //            collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
             extract_value( collectorparameters.MaxPress, "MaxPress", Line, "5.0" );
+			extract_value( collectorparameters.FakePower, "FakePower", Line, "" );
             break;
         }
         case TPowerSource::PowerCable: {

@@ -3545,6 +3545,12 @@ bool TDynamicObject::Update(double dt, double dt1)
             */
         }
 
+	if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector
+	        && MoverParameters->EnginePowerSource.CollectorParameters.FakePower) {
+		MoverParameters->PantRearVolt = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
+		MoverParameters->PantFrontVolt = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
+	}
+
     // mirrors
     if( MoverParameters->Vel > 5.0 ) {
         // automatically fold mirrors when above velocity threshold
@@ -5019,6 +5025,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         MoverParameters->EngineType == TEngineType::DieselElectric ? 1 :
                         MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) );
                     m_powertrainsounds.engine.m_amplitudefactor /= amplitudedivisor;
+
+				} else if (token == "fakeengine:") {
+					m_powertrainsounds.fake_engine.deserialize(parser, sound_type::single);
+					m_powertrainsounds.fake_engine.owner(this);
 				}
 
                 else if( token == "dieselinc:" ) {
@@ -5502,8 +5512,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 } else if (token == "shutdown:") {
                     m_powertrainsounds.engine_shutdown.deserialize(parser, sound_type::single);
                     m_powertrainsounds.engine_shutdown.owner(this);
-                }
-                else if( token == "engageslippery:" ) {
+				} else if( token == "engageslippery:" ) {
                     // tarcie tarcz sprzegla:
                     m_powertrainsounds.rsEngageSlippery.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
                     m_powertrainsounds.rsEngageSlippery.owner( this );
@@ -6639,6 +6648,19 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             engine.stop();
         }
     }
+
+	if (Vehicle.Mains) {
+		float power = std::clamp(Vehicle.eimv_pr, 0.0, 1.0);
+
+		fake_engine
+		        .pitch(fake_engine.m_frequencyoffset + power * fake_engine.m_frequencyfactor)
+		        .gain(fake_engine.m_amplitudeoffset + power * fake_engine.m_amplitudefactor)
+		        .play(sound_flags::exclusive | sound_flags::looping);
+	}
+	else {
+		fake_engine.stop();
+	}
+
     engine_volume = interpolate( engine_volume, volume, 0.25 );
     if( engine_volume < 0.05 ) {
         engine.stop();
