@@ -16,8 +16,6 @@ class trainingcard_panel : public ui_panel
 	std::thread save_thread;
 	std::atomic<int> state;
 
-	std::string json_escape(const std::string &s);
-
 	void save_thread_func();
 	void clear();
 
@@ -30,6 +28,7 @@ class trainingcard_panel : public ui_panel
 
   public:
 	trainingcard_panel();
+	~trainingcard_panel();
 
 	void render_contents() override;
 };

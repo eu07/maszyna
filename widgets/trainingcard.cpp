@@ -14,6 +14,12 @@ trainingcard_panel::trainingcard_panel()
 	clear();
 }
 
+trainingcard_panel::~trainingcard_panel()
+{
+	if (save_thread.joinable())
+		save_thread.join();
+}
+
 void trainingcard_panel::clear()
 {
 	start_time_wall.reset();
@@ -38,21 +44,6 @@ void trainingcard_panel::clear()
 	remarks.resize(4096, 0);
 }
 
-std::string trainingcard_panel::json_escape(const std::string &s) {
-	std::ostringstream o;
-	for (auto c = s.cbegin(); c != s.cend(); c++) {
-		if (*c == '\x00')
-			return o.str();
-		if (*c == '"' || *c == '\\' || ('\x00' <= *c && *c <= '\x1f')) {
-			o << "\\u"
-			  << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
-		} else {
-			o << *c;
-		}
-	}
-	return o.str();
-}
-
 void trainingcard_panel::save_thread_func()
 {
 	std::tm *tm = std::localtime(&(*start_time_wall));
@@ -66,21 +57,29 @@ void trainingcard_panel::save_thread_func()
 	        + std::to_string(tm->tm_hour) + std::to_string(tm->tm_min) + "_" + std::string(trainee_name.c_str()) + "_" + std::string(instructor_name.c_str());
 
 	std::fstream temp("reports/" + rep + ".html", std::ios_base::out | std::ios_base::binary);
+	std::fstream input("report_template.html", std::ios_base::in | std::ios_base::binary);
 
-	temp << "<!DOCTYPE html><meta charset=\"utf-8\"> " << std::endl;
-	temp << "<body>" << std::endl;
-	temp << "<div><b>Miejsce: </b>" << (std::string(place.c_str())) << "</div><br>" << std::endl;
-	temp << "<div><b>Data: </b>" << (date) << "</div><br>" << std::endl;
-	temp << "<div><b>Czas: </b>" << (from) << " - " << (to) << "</div><br>" << std::endl;
-	temp << "<div><b>Imię (imiona) i nazwisko szkolonego: </b>" << (trainee_name) << "</div><br>" << std::endl;
-	temp << "<div><b>Data urodzenia: </b>" << (trainee_birthdate) << "</div><br>" << std::endl;
-	temp << "<div><b>Firma: </b>" << (trainee_company) << "</div><br>" << std::endl;
-	temp << "<div><b>Imię i nazwisko instruktora: </b>"  << (instructor_name) << "</div><br>" << std::endl;
-	temp << "<div><b>Odcinek trasy: </b>"  << (track_segment) << "</div><br>" << std::endl;
-	if (distance > 0.0f)
-		temp << "<div><b>Przebyta odległość: </b>"  << std::round(distance) << " km</div><br>" << std::endl;
-	temp << "<div><b>Uwagi: </b><br>"  << (remarks) << "</div><br>" << std::endl;
+	std::string in_line;
+	while (std::getline(input, in_line)) {
+		const std::string magic("{{CONTENT}}");
+		if (in_line.compare(0, magic.size(), magic) == 0) {
+			temp << "<div><b>Miejsce: </b>" << (std::string(place.c_str())) << "</div><br />" << std::endl;
+			temp << "<div><b>Data: </b>" << (date) << "</div><br />" << std::endl;
+			temp << "<div><b>Czas: </b>" << (from) << " - " << (to) << "</div><br />" << std::endl;
+			temp << "<div><b>Imię (imiona) i nazwisko szkolonego: </b>" << (trainee_name) << "</div><br />" << std::endl;
+			temp << "<div><b>Data urodzenia: </b>" << (trainee_birthdate) << "</div><br />" << std::endl;
+			temp << "<div><b>Firma: </b>" << (trainee_company) << "</div><br />" << std::endl;
+			temp << "<div><b>Imię i nazwisko instruktora: </b>"  << (instructor_name) << "</div><br />" << std::endl;
+			temp << "<div><b>Odcinek trasy: </b>"  << (track_segment) << "</div><br />" << std::endl;
+			if (distance > 0.0f)
+				temp << "<div><b>Przebyta odległość: </b>"  << std::round(distance) << " km</div><br />" << std::endl;
+			temp << "<div><b>Uwagi: </b><br />"  << (remarks) << "</div>" << std::endl;
+		} else {
+			temp << in_line;
+		}
+	}
 
+	input.close();
 	temp.close();
 
 	state.store(EndRecording(rep));
