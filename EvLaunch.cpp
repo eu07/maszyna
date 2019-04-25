@@ -68,7 +68,7 @@ bool TEventLauncher::Load(cParser *parser)
     }
     parser->getTokens();
     *parser >> DeltaTime;
-	if (DeltaTime <= 0)
+	if (DeltaTime < 0.0)
         DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
     else if (DeltaTime > 0)
     { // wartość dodatnia oznacza wyzwalanie o określonej godzinie
@@ -157,7 +157,7 @@ bool TEventLauncher::check_activation() {
 
     auto bCond { false };
 
-	if (DeltaTime == 0.0) {
+	if (DeltaTime == 10000.0) {
 		if (UpdatedTime == 0.0)
 			bCond = true;
 		UpdatedTime = 1.0;
@@ -260,10 +260,7 @@ TEventLauncher::export_as_text_( std::ostream &Output ) const {
         Output << "none ";
     }
     // activation interval or hour
-	if (DeltaTime == 0.0) {
-		Output << "0 ";
-	}
-	else if( DeltaTime < 0.0 ) {
+	if( DeltaTime != 0.0 ) {
         // cyclical launcher
         Output << -DeltaTime << ' ';
     }
