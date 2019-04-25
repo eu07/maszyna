@@ -263,6 +263,8 @@ global_settings::ConfigParse(cParser &Parser) {
 
             Parser.getTokens( 1, false );
             Parser >> AnisotropicFiltering;
+			if (AnisotropicFiltering < 1.0f)
+				AnisotropicFiltering = 1.0f;
         }
         else if (token == "feedbackmode")
         {
