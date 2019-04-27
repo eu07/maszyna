@@ -363,7 +363,7 @@ private:
     // Ra: metody obsługujące skanowanie toru
     std::vector<basic_event *> CheckTrackEvent( TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
-    bool TableNotFound( basic_event const *Event ) const;
+    bool TableNotFound( basic_event const *Event, double const Distance ) const;
     void TableTraceRoute( double fDistance, TDynamicObject *pVehicle );
     void TableCheck( double fDistance );
     TCommandType TableUpdate( double &fVelDes, double &fDist, double &fNext, double &fAcc );

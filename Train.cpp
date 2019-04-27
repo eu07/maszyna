@@ -5221,7 +5221,7 @@ bool TTrain::Update( double const Deltatime )
         }
 
         bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
-        TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);
+        TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? end::rear : end::front, 4);
         int in = 0;
         fEIMParams[0][6] = 0;
         iCarNo = 0;
@@ -6537,7 +6537,7 @@ void TTrain::update_sounds_radio() {
         auto const volume {
             ( true == radioenabled )
          && ( message.first == iRadioChannel ) ?
-                1.0 :
+                Global.RadioVolume :
                 0.0 };
         message.second->gain( volume );
     }
