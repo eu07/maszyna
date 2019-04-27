@@ -2010,7 +2010,7 @@ void TController::AutoRewident()
 		    fBrakeReaction = 0.25;
 	    }
         else if( mvOccupied->TrainType == dt_DMU ) {
-            fNominalAccThreshold = std::max( -0.65, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
             fBrakeReaction = 0.25;
         }
         else if (ustaw > 16) {
@@ -2369,7 +2369,7 @@ double TController::BrakeAccFactor() const
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
 	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40 && VelNext<40)
-		Factor *= 1 + ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
+		Factor *= 1 + 0.25 * ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
 	return Factor;
 }
 
@@ -2860,6 +2860,7 @@ bool TController::DecBrake()
 { // zmniejszenie siły hamowania
     bool OK = false;
 	double deltaAcc = 0;
+	double pos_diff = 1.0;
     switch (mvOccupied->BrakeSystem)
     {
     case TBrakeSystem::Individual:
@@ -2869,7 +2870,9 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case TBrakeSystem::Pneumatic:
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition -1.0)*fBrake_a1[0]);
+		if (mvOccupied->TrainType == dt_DMU)
+			pos_diff = 0.25;
+		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - pos_diff)*fBrake_a1[0]);
 		if (deltaAcc < 0)
 		{
 			if (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition > 0)
