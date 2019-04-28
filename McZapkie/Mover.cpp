@@ -6068,8 +6068,6 @@ void TMoverParameters::CheckEIMIC(double dt)
 		switch (MainCtrlPos)
 		{
 		case 0:
-			eimic = -1.0;
-			break;
 		case 1:
 			eimic -= clamp(1.0 + eimic, 0.0, dt*0.15); //odejmuj do -1
 			if (eimic > 0) eimic = 0;
