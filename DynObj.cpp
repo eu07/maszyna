@@ -2783,6 +2783,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 
 			auto eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
 			MoverParameters->eimic_real = eimic;
+			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos == 0)
+				eimic = -1.0;
 			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
 			auto LBR = Max0R(-eimic, 0);
 			auto eim_lb = (Mechanik->AIControllFlag || !MoverParameters->LocHandleTimeTraxx ? 0 : MoverParameters->eim_localbrake);
@@ -2892,6 +2894,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
+			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos < 2 && MoverParameters->eimic > -0.999)
+			{
+				FzadED = std::min(FzadED, MED_oldFED);
+			}
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
 				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
 				FzadED = 0; //pętla bezpieczeństwa - bez ED
@@ -3069,6 +3075,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 			delete[] FzED;
 			delete[] FzEP;
 			delete[] FmaxEP;
+
+			MED_oldFED = FzadED;
         }
 
         Mechanik->UpdateSituation(dt1); // przebłyski świadomości AI
