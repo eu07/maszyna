@@ -4927,7 +4927,14 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
             if( false == MoverParameters->LoadAttributes.empty() ) {
                 // Ra: tu wczytywanie modelu ładunku jest w porządku
+
+                // bieżąca ścieżka do tekstur to dynamic/...
+                Global.asCurrentTexturePath = asBaseDir;
+
                 mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
+
+                // z powrotem defaultowa sciezka do tekstur
+                Global.asCurrentTexturePath = std::string( szTexturePath );
             }
 
         } // models

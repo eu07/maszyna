@@ -450,10 +450,10 @@ dictionary_source *TTrain::GetTrainState() {
     // reverser
     dict->insert( "direction", mover->ActiveDir );
     // throttle
-    dict->insert( "mainctrl_pos", mover->MainCtrlPos );
-    dict->insert( "main_ctrl_actual_pos", mover->MainCtrlActualPos );
-    dict->insert( "scndctrl_pos", mover->ScndCtrlPos );
-    dict->insert( "scnd_ctrl_actual_pos", mover->ScndCtrlActualPos );
+    dict->insert( "mainctrl_pos", mvControlled->MainCtrlPos );
+    dict->insert( "main_ctrl_actual_pos", mvControlled->MainCtrlActualPos );
+    dict->insert( "scndctrl_pos", mvControlled->ScndCtrlPos );
+    dict->insert( "scnd_ctrl_actual_pos", mvControlled->ScndCtrlActualPos );
 	dict->insert( "new_speed", mover->NewSpeed);
     // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
