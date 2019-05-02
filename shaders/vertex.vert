@@ -10,7 +10,7 @@ out vec4 f_pos;
 out mat3 f_tbn;
 out vec4 f_tangent;
 out vec4 f_light_pos;
-
+out vec3 TangentFragPos;
 out vec4 f_clip_pos;
 out vec4 f_clip_future_pos;
 
@@ -35,4 +35,6 @@ void main()
 	vec3 B = normalize(modelviewnormal * cross(v_normal, v_tangent.xyz) * v_tangent.w);
 	vec3 N = normalize(modelviewnormal * v_normal);
 	f_tbn = mat3(T, B, N);
+	mat3 TBN = transpose(mat3(T, B, N));
+	TangentFragPos = TBN * f_pos.xyz;
 }
