@@ -52,7 +52,7 @@ void main()
 
 	if (tex_color.a < opacity)
 		discard;
-	vec3 normal = f_normal;
+	vec3 normal;
 	normal.xy = (texture(normalmap, f_coord_p).rg * 2.0 - 1.0);
 	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	normal_p = normalize(f_tbn * normalize(normal.xyz));
