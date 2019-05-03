@@ -35,7 +35,8 @@ uniform sampler2DShadow shadowmap;
 uniform samplerCube envmap;
 #endif
 
-#define NORMALMAP
+vec3 normal_p;
+#define PARALLAX
 #include <light_common.glsl>
 #include <tonemapping.glsl>
 
@@ -51,8 +52,11 @@ void main()
 
 	if (tex_color.a < opacity)
 		discard;
-	vec3 normal = normalize(f_tbn * normalize(texture(normalmap, f_coord_p).rgb * 2.0 - 1.0));
-	vec3 refvec = reflect(f_pos.xyz, normal);
+	vec3 normal = f_normal;
+	normal.xy = (texture(normalmap, f_coord_p).rg * 2.0 - 1.0);
+	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	normal_p = normalize(f_tbn * normalize(normal.xyz));
+	vec3 refvec = reflect(f_pos.xyz, normal_p);
 #if ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
 #else
