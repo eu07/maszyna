@@ -646,7 +646,8 @@ void TTrain::zero_charging_train_brake() {
      && ( DynamicObject->Controller != AIdriver )
      && ( Global.iFeedbackMode < 3 )
      && ( ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
-       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57 ) ) ) {
+		 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57)
+		 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)) ) {
         // Odskakiwanie hamulce EP
         set_train_brake( 0 );
     }
