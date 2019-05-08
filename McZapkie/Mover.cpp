@@ -1994,6 +1994,10 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 			ScndCtrlActualPos = Round(Vel);
 		else
 			ScndCtrlActualPos = Round(Vel * 0.5);
+		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
+		{
+			MainCtrlActualPos = MainCtrlPos;
+		}
 		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
 	}
 
@@ -6015,6 +6019,13 @@ void TMoverParameters::CheckEIMIC(double dt)
 	{
 	case 0:
 		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
+		if (EIMCtrlAdditionalZeros)
+		{
+			if (eimic > 0.001)
+				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
+			if (eimic < -0.001)
+				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
+		}
 		break;
 	case 1:
 		switch (MainCtrlPos)
@@ -6065,23 +6076,34 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 2:
-		switch (MainCtrlPos)
+		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
 		{
-		case 0:
-		case 1:
-			eimic -= clamp(1.0 + eimic, 0.0, dt*0.15); //odejmuj do -1
-			if (eimic > 0) eimic = 0;
-			break;
-		case 2:
-			eimic -= clamp(0.0 + eimic, 0.0, dt*0.15); //odejmuj do 0
-			break;
-		case 3:
-			eimic += clamp(0.0 - eimic, 0.0, dt*0.15); //dodawaj do 0
-			break;
-		case 4:
-			eimic += clamp(1.0 - eimic, 0.0, dt*0.15); //dodawaj do 1
-			if (eimic < 0) eimic = 0;
-			break;
+			double delta = (MainCtrlActualPos == MainCtrlPos ? dt*CtrlDelay : 0.01);
+			switch (MainCtrlPos)
+			{
+			case 0:
+			case 1:
+				eimic -= clamp(1.0 + eimic, 0.0, delta); //odejmuj do -1
+				if (eimic > 0) eimic = 0;
+				break;
+			case 2:
+				eimic -= clamp(0.0 + eimic, 0.0, delta); //odejmuj do 0
+				break;
+			case 3:
+				eimic += clamp(0.0 - eimic, 0.0, delta); //dodawaj do 0
+				break;
+			case 4:
+				eimic += clamp(1.0 - eimic, 0.0, delta); //dodawaj do 1
+				if (eimic < 0) eimic = 0;
+				break;
+			}
+		}
+		if (MainCtrlActualPos == MainCtrlPos)
+			LastRelayTime += dt;
+		else
+		{
+			LastRelayTime = 0;
+			MainCtrlActualPos = MainCtrlPos;
 		}
 		break;
 	case 3:
@@ -6105,6 +6127,15 @@ void TMoverParameters::CheckSpeedCtrl()
 			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos * 2 - Vel), -1.0, 1.0);
 	else
 		eimicSpeedCtrl = 1;
+	if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+	{
+		DecScndCtrl(1);
+		if (CabNo == 0)
+		{
+			SendCtrlToNext("ScndCtrl", ScndCtrlPos, 1);
+			SendCtrlToNext("ScndCtrl", ScndCtrlPos, -1);
+		}
+	}
 }
 
 // *************************************************************************************************
@@ -8680,6 +8711,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
 	clamp( EIMCtrlType, 0, 3 );
 	LocHandleTimeTraxx = (extract_value("LocalBrakeTraxx", line) == "Yes");
+	EIMCtrlAdditionalZeros = (extract_value("EIMCtrlAddZeros", line) == "Yes");
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
@@ -8702,6 +8734,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 		(extract_value("SpeedCtrlType", line) == "Time") ?
 		true :
 		false;
+	extract_value(SpeedCtrlAutoTurnOffFlag, "SpeedCtrlATOF", line, "");
 
     // converter
     {

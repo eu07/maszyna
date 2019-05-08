@@ -2841,20 +2841,20 @@ bool TController::IncBrake()
 bool TController::IncBrakeEIM()
 { // zwiększenie hamowania
 	bool OK = false;
-	switch (mvControlling->EIMCtrlType)
+	switch (mvOccupied->EIMCtrlType)
 	{
 	case 0:
-		OK = mvControlling->IncLocalBrakeLevel(1);
+		OK = mvOccupied->IncLocalBrakeLevel(1);
 		break;
 	case 1:
-		OK = mvControlling->MainCtrlPos > 0;
+		OK = mvOccupied->MainCtrlPos > 0;
 		if (OK)
-			mvControlling->MainCtrlPos = 0;
+			mvOccupied->MainCtrlPos = 0;
 		break;
 	case 2:
-		OK = mvControlling->MainCtrlPos > 1;
+		OK = mvOccupied->MainCtrlPos > 1;
 		if (OK)
-			mvControlling->MainCtrlPos = 1;
+			mvOccupied->MainCtrlPos = 1;
 		break;
 	}
 	return OK;
@@ -2927,20 +2927,20 @@ bool TController::DecBrake()
 bool TController::DecBrakeEIM()
 { // zmniejszenie siły hamowania
 	bool OK = false;
-	switch (mvControlling->EIMCtrlType)
+	switch (mvOccupied->EIMCtrlType)
 	{
 	case 0:
-		OK = mvControlling->DecLocalBrakeLevel(1);
+		OK = mvOccupied->DecLocalBrakeLevel(1);
 		break;
 	case 1:
-		OK = mvControlling->MainCtrlPos < 2;
+		OK = mvOccupied->MainCtrlPos < 2;
 		if (OK)
-			mvControlling->MainCtrlPos = 2;
+			mvOccupied->MainCtrlPos = 2;
 		break;
 	case 2:
-		OK = mvControlling->MainCtrlPos < 3;
+		OK = mvOccupied->MainCtrlPos < 3;
 		if (OK)
-			mvControlling->MainCtrlPos = 3;
+			mvOccupied->MainCtrlPos = 3;
 		break;
 	}
 	return OK;
