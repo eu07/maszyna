@@ -1476,7 +1476,8 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
         if( ( mvOccupied->TrainType == dt_DMU )
          && ( mvOccupied->Vel < 40.0 )
          && ( Targetvelocity == 0.f ) ) {
-            return interpolate( 2.f, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
+            auto const multiplier { clamp( 1.f + iVehicles * 0.5f, 2.f, 4.f ) };
+            return interpolate( multiplier, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
         }
         // HACK: cargo trains or trains going downhill with high braking threshold need more distance to come to a full stop
         if( ( fBrake_a0[ 1 ] > 0.2 )
@@ -2372,8 +2373,10 @@ double TController::BrakeAccFactor() const
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
+/*
 	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40 && VelNext<40)
 		Factor *= 1 + 0.25 * ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
+*/
 	return Factor;
 }
 
@@ -2778,17 +2781,15 @@ bool TController::IncBrake()
 					{
                         if( /*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.1 ) {
                             OK = /*mvOccupied->*/BrakeLevelAdd( BrakingInitialLevel ); //GBH
-/*
                             // HACK: stronger braking to overcome SA134 engine behaviour
                             if( ( mvOccupied->TrainType == dt_DMU )
                              && ( VelNext == 0.0 ) 
                              && ( fBrakeDist < 200.0 ) ) {
-                                mvOccupied->BrakeLevelAdd(
+                                BrakeLevelAdd(
                                     fBrakeDist / ActualProximityDist < 0.8 ?
-                                        1.0 :
-                                        3.0 );
+                                        0.5 :
+                                        1.0 );
                             }
-*/
                         }
 						else
 						{
@@ -2809,7 +2810,9 @@ bool TController::IncBrake()
                 }
             }
             if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 0 ) {
-                mvOccupied->BrakeReleaser( 0 );
+                if( mvOccupied->Hamulec->Releaser() ) {
+                    mvOccupied->BrakeReleaser( 0 );
+                }
             }
             break;
         }
@@ -2863,8 +2866,8 @@ bool TController::IncBrakeEIM()
 bool TController::DecBrake()
 { // zmniejszenie siły hamowania
     bool OK = false;
-	double deltaAcc = 0;
-	double pos_diff = 1.0;
+	double deltaAcc = -1.0;
+    double pos_diff = 1.0;
     switch (mvOccupied->BrakeSystem)
     {
     case TBrakeSystem::Individual:
@@ -2874,9 +2877,12 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case TBrakeSystem::Pneumatic:
-		if (mvOccupied->TrainType == dt_DMU)
-			pos_diff = 0.25;
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - pos_diff)*fBrake_a1[0]);
+        if( ( fBrake_a0[ 0 ] != 0.0 )
+         || ( fBrake_a1[ 0 ] != 0.0 ) ) {
+            if( mvOccupied->TrainType == dt_DMU )
+                pos_diff = 0.25;
+            deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - pos_diff)*fBrake_a1[0]);
+        }
 		if (deltaAcc < 0)
 		{
 			if (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition > 0)
@@ -2895,8 +2901,11 @@ bool TController::DecBrake()
 		if (!OK) {
 			OK = DecBrakeEIM();
 		}
+/*
+// NOTE: disabled, duplicate of AI's behaviour in UpdateSituation()
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
+*/
         break;
     case TBrakeSystem::ElectroPneumatic:
 		if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor) {
@@ -5713,16 +5722,32 @@ TController::UpdateSituation(double dt) {
                         ReactionTime = 0.25;
                     }
                 }
-                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P
-						|| mvOccupied->BrakeHandle == TBrakeHandle::M394)
-                    {
+                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) {
+                    // napełnianie uderzeniowe
+                    if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
+                     || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
+                     || ( mvOccupied->BrakeHandle == TBrakeHandle::M394 ) ) {
+
                         if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == -2 ) {
                             /*mvOccupied->*/BrakeLevelSet( gbh_RP );
                         }
-                        if( ( mvOccupied->PipePress < 3.0 )
-                         && ( AccDesired > -0.03 ) ) {
-                            mvOccupied->BrakeReleaser( 1 );
+
+                        // TODO: combine all releaser handling in single decision tree instead of having bits all over the place
+                        if( ( AccDesired > -0.03 )
+                         && ( false == mvOccupied->Hamulec->Releaser() ) ) {
+                            if( mvOccupied->PipePress < 3.0 ) {
+                                mvOccupied->BrakeReleaser( 1 );
+                            }
+                            if( ( mvOccupied->BrakePress > 0.4 )
+                             && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
+                                // wyluzuj lokomotywę, to szybciej ruszymy
+                                mvOccupied->BrakeReleaser( 1 );
+                            }
+                        }
+                        if( ( mvOccupied->PipePress > 3.0 )
+                         && ( mvOccupied->Hamulec->Releaser() ) ) {
+                            // don't overcharge train brake pipe
+                            mvOccupied->BrakeReleaser( 0 );
                         }
 
                         if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
@@ -5730,31 +5755,37 @@ TController::UpdateSituation(double dt) {
                          && ( AccDesired > -0.03 )
                          && ( VelDesired - mvOccupied->Vel > 2.0 ) ) {
 
-                            if( ( mvOccupied->EqvtPipePress < 4.95 )
+                            if( ( mvOccupied->EqvtPipePress < 4.5 )
                              && ( fReady > 0.35 )
-                             && ( BrakeChargingCooldown >= 0.0 ) )  {
+                             && ( BrakeChargingCooldown >= 0.0 )
+                             && ( ( ActualProximityDist > 100.0 ) // don't charge if we're about to be braking soon
+                               || ( min_speed( mvOccupied->Vel, VelNext ) == mvOccupied->Vel ) ) ) {
 
                                 if( ( iDrivigFlags & moveOerlikons )
                                  || ( true == IsCargoTrain ) ) {
                                     // napełnianie w Oerlikonie
                                     /* mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) ); GBH */
-									BrakeLevelSet(gbh_FS);
+                                    BrakeLevelSet( gbh_FS );
                                     // don't charge the brakes too often, or we risk overcharging
                                     BrakeChargingCooldown = -120.0;
                                 }
                             }
+/*
+// NOTE: disabled, duplicate of release activation in #5732
                             else if( Need_BrakeRelease ) {
                                 Need_BrakeRelease = false;
                                 mvOccupied->BrakeReleaser( 1 );
                             }
+*/
                         }
 
                         if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 )
                          && ( mvOccupied->EqvtPipePress > ( fReady < 0.25 ? 5.1 : 5.2 ) ) ) {
                             /* GBH mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); */
-							BrakeLevelSet(gbh_RP);
+                            BrakeLevelSet( gbh_RP );
                         }
                     }
+                }
 #if LOGVELOCITY
                 WriteLog("Dist=" + FloatToStrF(ActualProximityDist, ffFixed, 7, 1) +
                             ", VelDesired=" + FloatToStrF(VelDesired, ffFixed, 7, 1) +
@@ -5793,17 +5824,6 @@ TController::UpdateSituation(double dt) {
                             AccDesired > 0.0 ) ) {
                             // on slopes disengage the brakes only if you actually intend to accelerate
                             while( true == DecBrake() ) { ; } // jeśli przyspieszamy, to nie hamujemy
-                            if( ( mvOccupied->BrakePress > 0.4 )
-                             && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
-                                // wyluzuj lokomotywę, to szybciej ruszymy
-                                mvOccupied->BrakeReleaser( 1 );
-                            }
-                            else {
-                                if( mvOccupied->PipePress >= 3.0 ) {
-                                    // TODO: combine all releaser handling in single decision tree instead of having bits all over the place
-                                    mvOccupied->BrakeReleaser( 0 );
-                                }
-                            }
                         }
                     }
                 }

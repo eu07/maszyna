@@ -385,6 +385,11 @@ void TBrake::Releaser( int const state )
     BrakeStatus = (BrakeStatus & ~b_rls) | ( state * b_rls );
 }
 
+bool TBrake::Releaser() const {
+
+    return ( ( BrakeStatus & b_rls ) == b_rls );
+}
+
 void TBrake::SetEPS( double const nEPS )
 {
 }
