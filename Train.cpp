@@ -327,6 +327,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::dooropenall, &TTrain::OnCommand_dooropenall },
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
+    { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -778,7 +779,7 @@ void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+         && ( Train->mvOccupied->LocalBrakePosA > 0.0 ) ) {
             OnCommand_independentbrakedecrease( Train, Command );
         }
         else {
@@ -798,7 +799,7 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+         && ( Train->mvOccupied->LocalBrakePosA > 0.0 ) ) {
             OnCommand_independentbrakedecreasefast( Train, Command );
         }
         else {
@@ -1722,10 +1723,11 @@ void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Co
     }
 }
 
+// TODO: replace battery with a two-state device, update switch code accordingly
 void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action != GLFW_REPEAT ) {
+        // keep the switch from flipping back and forth if key is held down
         if( false == Train->mvOccupied->Battery ) {
             // turn on
             OnCommand_batteryenable( Train, Command );
@@ -1739,16 +1741,13 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
 
 void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command ) {
 
-    if( true == Train->mvOccupied->Battery ) { return; } // already on
-
     if( Command.action == GLFW_PRESS ) {
-        // ignore repeats
-        // wyłącznik jest też w SN61, ewentualnie załączać prąd na stałe z poziomu FIZ
+        // visual feedback
+        Train->ggBatteryButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvOccupied->Battery ) { return; } // already on
+
         if( Train->mvOccupied->BatterySwitch( true ) ) {
-            // bateria potrzebna np. do zapalenia świateł
-            if( Train->ggBatteryButton.SubModel ) {
-                Train->ggBatteryButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
             // side-effects
             if( Train->mvOccupied->LightsPosNo > 0 ) {
                 Train->SetLights();
@@ -1760,25 +1759,35 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
             }
         }
     }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
+            // return the switch to neutral position
+            Train->ggBatteryButton.UpdateValue( 0.5f );
+        }
+    }
 }
 
 void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Command ) {
-
-    if( false == Train->mvOccupied->Battery ) { return; } // already off
-
+    // TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
     if( Command.action == GLFW_PRESS ) {
-        // ignore repeats
+        // visual feedback
+        Train->ggBatteryButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvOccupied->Battery ) { return; } // already off
+
         if( Train->mvOccupied->BatterySwitch( false ) ) {
-            // ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
-            if( Train->ggBatteryButton.SubModel ) {
-                Train->ggBatteryButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
             // side-effects
             if( false == Train->mvControlled->ConverterFlag ) {
                 // if there's no (low voltage) power source left, drop pantographs
                 Train->mvControlled->PantFront( false );
                 Train->mvControlled->PantRear( false );
             }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
+            // return the switch to neutral position
+            Train->ggBatteryButton.UpdateValue( 0.5f );
         }
     }
 }
@@ -4725,6 +4734,13 @@ void TTrain::OnCommand_doorsteptoggle( TTrain *Train, command_data const &Comman
     }
 }
 
+void TTrain::OnCommand_doormodetoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->ChangeDoorControlMode( false == Train->mvOccupied->Doors.remote_only );
+    }
+}
+
 void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
@@ -7456,9 +7472,10 @@ void TTrain::clear_cab_controls()
 void TTrain::set_cab_controls( int const Cab ) {
     // switches
     // battery
-    if( true == mvOccupied->Battery ) {
-        ggBatteryButton.PutValue( 1.f );
-    }
+    ggBatteryButton.PutValue(
+        ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
+          mvOccupied->Battery ? 1.f :
+          0.f ) );
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -8026,6 +8043,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
     // TODO: move viable dedicated gauges to the automatic array
     std::unordered_map<std::string, bool *> const autoboolgauges = {
+        { "doormode_sw:", &mvOccupied->Doors.remote_only },
         { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
         { "coolingfans_sw:", &mvControlled->RVentForceOn }
     };

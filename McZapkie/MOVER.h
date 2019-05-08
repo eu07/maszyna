@@ -766,6 +766,7 @@ private:
         // ld inputs
         bool lock_enabled { true };
         bool step_enabled { true };
+        bool remote_only { false }; // door ignores local control signals
         // internal data
         int permit_preset { -1 }; // curent position of preset selection switch
         // vehicle parts
@@ -1162,6 +1163,7 @@ public:
     bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
     start_t CompressorStart{ start_t::manual }; // whether the compressor is started manually, or another way
+    start_t PantographCompressorStart{ start_t::manual };
     // TODO converter parameters, for when we start cleaning up mover parameters
     start_t ConverterStart{ start_t::manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
@@ -1344,8 +1346,6 @@ public:
 	bool PantRearUp = false;
 	bool PantFrontSP = true;  //dzwiek patykow 'Winger 010304
     bool PantRearSP = true;
-	int PantFrontStart = 0;  //stan patykow 'Winger 160204
-	int PantRearStart = 0;
 	double PantFrontVolt = 0.0;   //pantograf pod napieciem? 'Winger 160404
 	double PantRearVolt = 0.0;
     // TODO: move these switch types where they belong, cabin definition
@@ -1553,6 +1553,7 @@ public:
     bool PermitDoors( side const Door, bool const State = true, range_t const Notify = range_t::consist );
     bool ChangeDoorPermitPreset( int const Change, range_t const Notify = range_t::consist );
     bool PermitDoorStep( bool const State, range_t const Notify = range_t::consist );
+    bool ChangeDoorControlMode( bool const State, range_t const Notify = range_t::consist );
     bool OperateDoors( side const Door, bool const State, range_t const Notify = range_t::consist );
     bool LockDoors( bool const State, range_t const Notify = range_t::consist );
     bool signal_departure( bool const State, range_t const Notify = range_t::consist ); // toggles departure warning
