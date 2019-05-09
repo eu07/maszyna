@@ -1684,7 +1684,9 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 				else {
 					++MainCtrlPos;
                         OK = true;
-                    }
+						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+							DecScndCtrl(2);
+					}
                     break;
                 }
 
@@ -1846,6 +1848,8 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                         {
                             MainCtrlPos--;
                             OK = true;
+							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+								DecScndCtrl(2);
                         }
                         else if (CtrlSpeed > 1)
                             OK = (DecMainCtrl(1) && DecMainCtrl(2)); // CtrlSpeed-1);
@@ -1987,7 +1991,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1))
+	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1) && (MainCtrlPos>0))
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
@@ -6127,15 +6131,6 @@ void TMoverParameters::CheckSpeedCtrl()
 			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos * 2 - Vel), -1.0, 1.0);
 	else
 		eimicSpeedCtrl = 1;
-	if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
-	{
-		DecScndCtrl(1);
-		if (CabNo == 0)
-		{
-			SendCtrlToNext("ScndCtrl", ScndCtrlPos, 1);
-			SendCtrlToNext("ScndCtrl", ScndCtrlPos, -1);
-		}
-	}
 }
 
 // *************************************************************************************************
