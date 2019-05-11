@@ -3510,6 +3510,22 @@ void TController::SetTimeControllers()
 				mvOccupied->ScndCtrlPos = 1;
 		}
 	}
+	//5. Check Main Controller in Dizels
+	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->hydro_TC))
+	{
+		int MaxPos = mvControlling->MainCtrlPosNo;
+		int MinPos = MaxPos;
+		for (int i = MaxPos; (i > 1) && (mvControlling->RList[i].Mn > 0); i--) MinPos = i;
+		if ((MaxPos > MinPos)&&(mvControlling->MainCtrlPos>0)&&(AccDesired>0))
+		{
+			double Factor = 5 * (mvControlling->Vmax) / (mvControlling->Vmax + mvControlling->Vel);
+			int DesiredPos = MinPos + (MaxPos - MinPos)*(VelDesired > mvControlling->Vel ? (VelDesired - mvControlling->Vel) / Factor : 0);
+			if (DesiredPos > MaxPos) DesiredPos = MaxPos;
+			if (DesiredPos < MinPos) DesiredPos = MinPos;
+			while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
+			while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+		}
+	}
 };
 
 void TController::CheckTimeControllers()
