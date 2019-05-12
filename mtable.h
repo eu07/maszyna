@@ -32,9 +32,9 @@ struct TMTableLine
     std::string StationWare; // typ i wyposazenie stacji, oddz. przecinkami}
     int TrackNo; // ilosc torow szlakowych
     int Ah;
-    int Am; // godz. i min. przyjazdu, -1 gdy bez postoju
+    double Am; // godz. i min. przyjazdu, -1 gdy bez postoju
     int Dh;
-    int Dm; // godz. i min. odjazdu
+    double Dm; // godz. i min. odjazdu
     double tm; // czas jazdy do tej stacji w min. (z kolumny)
     TMTableLine()
     {
