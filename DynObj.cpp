@@ -6625,7 +6625,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
 		auto const pitch_diesel { Vehicle.EngineType == TEngineType::DieselEngine ? Vehicle.enrot / Vehicle.dizel_nmax : 0 };
-        auto const goalpitch { std::max( 0.025, ( engine_volume + pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
+        auto const goalpitch { std::max( 0.025, ( engine_volume * pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
         auto const goalvolume { (
             ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?
                 std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) :

@@ -717,7 +717,8 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
 
         std::string parameterstext = "param       value";
         std::vector< std::pair <std::string, double> > const paramvalues {
-            { "efill: ", mover.dizel_fill },
+			{ "  rpm: ", mover.enrot * 60.0 },
+			{ "efill: ", mover.dizel_fill },
             { "etorq: ", mover.dizel_Torque },
             { "creal: ", mover.dizel_engage },
             { "cdesi: ", mover.dizel_engagestate },
