@@ -1024,7 +1024,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                             if (TrainParams->StationIndex < TrainParams->StationCount) {
                                 // jeśli są dalsze stacje, czekamy do godziny odjazdu
-                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute)) {
+                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 )) {
                                     // z dalszą akcją czekamy do godziny odjazdu
                                     IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój

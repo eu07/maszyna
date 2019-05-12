@@ -353,7 +353,7 @@ timetable_panel::update() {
                        ( owner->iStationStart < table->StationIndex )
                     && ( i < table->StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
-                      || ( time.wHour * 60 + time.wMinute >= tableline->Dh * 60 + tableline->Dm ) ) );
+                      || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167  >= tableline->Dh * 60 + tableline->Dm ) ) );
                 auto traveltime =
                     "   "
                     + ( i < 2 ? "" :
