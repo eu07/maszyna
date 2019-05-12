@@ -3511,7 +3511,7 @@ void TController::SetTimeControllers()
 		}
 	}
 	//5. Check Main Controller in Dizels
-	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->hydro_TC))
+	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->Vmax>30))
 	{
 		int MaxPos = mvControlling->MainCtrlPosNo;
 		int MinPos = MaxPos;
@@ -3522,8 +3522,12 @@ void TController::SetTimeControllers()
 			int DesiredPos = MinPos + (MaxPos - MinPos)*(VelDesired > mvControlling->Vel ? (VelDesired - mvControlling->Vel) / Factor : 0);
 			if (DesiredPos > MaxPos) DesiredPos = MaxPos;
 			if (DesiredPos < MinPos) DesiredPos = MinPos;
-			while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
-			while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+			if (!mvControlling->SlippingWheels)
+			{
+				while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
+				if (mvControlling->Vel>mvControlling->dizel_minVelfullengage)
+				  while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+			}
 		}
 	}
 };
