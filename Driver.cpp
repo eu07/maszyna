@@ -6603,12 +6603,12 @@ std::string TController::NextStop() const
     if( t->Ah >= 0 ) {
         // przyjazd
         nextstop += " przyj." + std::to_string( t->Ah ) + ":"
-      + ( t->Am < 10 ? "0" : "" ) + std::to_string( t->Am );
+      + ( t->Am < 10 ? "0" : "" ) + std::to_string( int(t->Am) ) + "." + std::to_string(int(t->Am * 10) % 10);
     }
     if( t->Dh >= 0 ) {
         // jeśli jest godzina odjazdu
         nextstop += " odj." + std::to_string( t->Dh ) + ":"
-      + ( t->Dm < 10 ? "0" : "" ) + std::to_string( t->Dm );
+      + ( t->Dm < 10 ? "0" : "" ) + std::to_string( int( t->Dm )) + "." + std::to_string(int(t->Dm * 10) % 10);
     }
     return nextstop;
 };
