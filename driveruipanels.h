@@ -50,12 +50,14 @@ public:
         : ui_panel( Name, Isopen ) {}
 
     void update() override;
+    void render() override;
 
     bool is_expanded{ false };
 
 private:
-    // members
+// members
     std::array<char, 256> m_buffer;
+    std::vector<text_line> m_tablelines;
 };
 
 class debug_panel : public ui_panel {

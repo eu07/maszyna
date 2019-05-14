@@ -6595,17 +6595,18 @@ std::string TController::NextStop() const
     // dodać godzinę odjazdu
     if (!TrainParams)
         return ""; // tu nie powinno nigdy wejść
-    std::string nextstop = asNextStop;
+    std::string nextstop = Bezogonkow( asNextStop, true );
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
     if( t->Ah >= 0 ) {
         // przyjazd
-        nextstop += " przyj." + std::to_string( t->Ah ) + ":"
-      + ( t->Am < 10 ? "0" : "" ) + std::to_string( t->Am );
+        nextstop += "  przyj." + std::to_string( t->Ah ) + ":"
+      + to_minutes_str( t->Am, true, 3 );
+
     }
     if( t->Dh >= 0 ) {
         // jeśli jest godzina odjazdu
         nextstop += " odj." + std::to_string( t->Dh ) + ":"
-      + ( t->Dm < 10 ? "0" : "" ) + std::to_string( t->Dm );
+      + to_minutes_str( t->Dm, true, 3 );
     }
     return nextstop;
 };
