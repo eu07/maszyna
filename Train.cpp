@@ -388,8 +388,11 @@ TTrain::TTrain() {
         bHeat[ i ] = false;
     }
     for( int i = 0; i < 9; ++i )
-        for( int j = 0; j < 10; ++j )
-            fEIMParams[ i ][ j ] = 0.0;
+		for (int j = 0; j < 10; ++j)
+		{
+			fEIMParams[i][j] = 0.0;
+			fDieselParams[i][j] = 0.0;
+		}
 
     for( int i = 0; i < 20; ++i )
         for( int j = 0; j < 3; ++j )
@@ -492,12 +495,16 @@ dictionary_source *TTrain::GetTrainState() {
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
+	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "res1", "res2" };
     char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
     for( int i = 0; i < 8; ++i ) {
         for( int j = 0; j < 10; ++j )
             dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_" + std::string( TXTC[ j ] ) ), fEIMParams[ i + 1 ][ j ] );
+
+		for (int j = 0; j < 10; ++j)
+			dict->insert(("diesel_param_" + std::to_string(i + 1) + "_" + std::string(TXTD[j])), fDieselParams[i + 1][j]);
 
         dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_ms" ), bMains[ i ] );
         dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_cv" ), fCntVol[ i ] );
@@ -5291,6 +5298,27 @@ bool TTrain::Update( double const Deltatime )
                     in++;
                     iPowerNo = in;
                 }
+				if ((in < 8) && (p->MoverParameters->EngineType==TEngineType::DieselEngine))
+				{
+					fDieselParams[1 + in][0] = p->MoverParameters->enrot*60;
+					fDieselParams[1 + in][1] = p->MoverParameters->nrot;
+					fDieselParams[1 + in][2] = p->MoverParameters->RList[p->MoverParameters->MainCtrlPos].R;
+					fDieselParams[1 + in][3] = p->MoverParameters->dizel_fill;
+					fDieselParams[1 + in][4] = p->MoverParameters->RList[p->MoverParameters->MainCtrlPos].Mn;
+					fDieselParams[1 + in][5] = p->MoverParameters->dizel_engage;
+					fDieselParams[1 + in][6] = p->MoverParameters->dizel_heat.Twy;
+					fDieselParams[1 + in][7] = p->MoverParameters->OilPump.pressure;
+					//fDieselParams[1 + in][8] = p->MoverParameters->
+					//fDieselParams[1 + in][9] = p->MoverParameters->
+					bMains[in] = p->MoverParameters->Mains;
+					fCntVol[in] = p->MoverParameters->BatteryVoltage;
+					bFuse[in] = p->MoverParameters->FuseFlag;
+					bBatt[in] = p->MoverParameters->Battery;
+					bConv[in] = p->MoverParameters->ConverterFlag;
+					bHeat[in] = p->MoverParameters->Heating;
+					in++;
+					iPowerNo = in;
+				}
                 //                p = p->NextC(4);                                       //prev
                 if ((kier ? p->NextC(128) : p->PrevC(128)) != (kier ? p->NextC(4) : p->PrevC(4)))
                     iUnitNo++;
@@ -5333,16 +5361,11 @@ bool TTrain::Update( double const Deltatime )
 
         for (int i = in; i < 8; i++)
         {
-            fEIMParams[1 + i][0] = 0;
-            fEIMParams[1 + i][1] = 0;
-            fEIMParams[1 + i][2] = 0;
-            fEIMParams[1 + i][3] = 0;
-            fEIMParams[1 + i][4] = 0;
-            fEIMParams[1 + i][5] = 0;
-            fEIMParams[1 + i][6] = 0;
-            fEIMParams[1 + i][7] = 0;
-            fEIMParams[1 + i][8] = 0;
-            fEIMParams[1 + i][9] = 0;
+			for (int j = 0; j <= 9; j++)
+			{
+				fEIMParams[1 + i][j] = 0;
+				fDieselParams[1 + i][j] = 0;
+			}
         }
 #ifdef _WIN32
         if (Global.iFeedbackMode == 4) {

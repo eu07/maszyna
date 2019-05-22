@@ -674,6 +674,7 @@ private:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
+	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() const { return iRadioChannel; };
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );
