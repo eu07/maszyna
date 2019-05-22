@@ -4140,7 +4140,7 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
     }
 
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        // ignore repeats so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvControlled->HeatingAllow ) {
             // turn on
             OnCommand_heatingenable( Train, Command );
@@ -4148,6 +4148,14 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
         else {
             //turn off
             OnCommand_heatingdisable( Train, Command );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( Train->ggTrainHeatingButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
@@ -4168,7 +4176,11 @@ void TTrain::OnCommand_heatingdisable( TTrain *Train, command_data const &Comman
 
         Train->mvControlled->HeatingAllow = false;
         // visual feedback
-        Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
+        Train->ggTrainHeatingButton.UpdateValue( 
+            ( Train->ggTrainHeatingButton.type() == TGaugeType::push ?
+                1.0 :
+                0.0 ),
+            Train->dsbSwitch );
     }
 }
 
@@ -7637,8 +7649,11 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f );
     // heating
-    if( true == mvControlled->Heating ) {
-        ggTrainHeatingButton.PutValue( 1.f );
+    if( ggTrainHeatingButton.type() != TGaugeType::push ) {
+        ggTrainHeatingButton.PutValue(
+            mvControlled->Heating ?
+                1.f :
+                0.f );
     }
     // brake acting time
     if( ggBrakeProfileCtrl.SubModel != nullptr ) {

@@ -2127,11 +2127,12 @@ bool TController::CheckVehicles(TOrders user)
         while (p)
         {
             // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
-            if( ( p != pVehicle )
-             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
-             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
-                // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
-                p->MoverParameters->BatterySwitch( true );
+            if( p != pVehicle ) {
+                if( ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
+                 && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
+                    // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
+                    p->MoverParameters->BatterySwitch( true );
+                }
                 // enable heating and converter in carriages with can be heated
                 if( p->MoverParameters->HeatingPower > 0 ) {
                     p->MoverParameters->HeatingAllow = true;
@@ -2730,8 +2731,12 @@ bool TController::IncBrake()
                         // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
                         // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
                         standalone =
-                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control ) )
-                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control ) ) );
+                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::front ].Connected->Power > 1 ) ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected->Power > 1 ) ) ) );
                         vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
                     }
                 }
