@@ -329,6 +329,7 @@ class TTrain
     static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );

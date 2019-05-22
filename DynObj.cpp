@@ -6120,30 +6120,32 @@ TDynamicObject * TDynamicObject::ControlledFind()
     // problematyczna może być kwestia wybranej kabiny (w silnikowym...)
     // jeśli silnikowy będzie zapięty odwrotnie (tzn. -1), to i tak powinno jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
-    TDynamicObject *d = this; // zaczynamy od aktualnego
-    if( ( d->MoverParameters->TrainType == dt_EZT )
-     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
-        // na razie dotyczy to EZT
-        if( ( d->NextConnected() != nullptr )
-         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
-            // gdy jest człon od sprzęgu 1, a sprzęg łączony warsztatowo (powiedzmy)
-            if( ( d->MoverParameters->Power < 1.0 )
-             && ( d->NextConnected()->MoverParameters->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                d = d->NextConnected(); // będziemy sterować tym z mocą
-            }
-        }
-        else if( ( d->PrevConnected() != nullptr )
-              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
-            // gdy jest człon od sprzęgu 0, a sprzęg łączony warsztatowo (powiedzmy)
-            if( ( d->MoverParameters->Power < 1.0 )
-             && ( d->PrevConnected()->MoverParameters->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                d = d->PrevConnected(); // będziemy sterować tym z mocą
-            }
+    if( MoverParameters->Power > 1.0 ) { return this; }
+
+    auto const couplingtype { (
+        ( MoverParameters->TrainType == dt_EZT )
+     || ( MoverParameters->TrainType == dt_DMU ) ) ?
+        coupling::permanent :
+        coupling::control
+    };
+    // try first to look towards the rear
+    auto *d = this; // zaczynamy od aktualnego
+
+    while( ( d = d->NextC( couplingtype ) ) != nullptr ) {
+        if( d->MoverParameters->Power > 1.0 ) {
+            return d;
         }
     }
-    return d;
+    // if we didn't yet find a suitable vehicle try in the other direction
+    d = this; // zaczynamy od aktualnego
+
+    while( ( d = d->PrevC( couplingtype ) ) != nullptr ) {
+        if( d->MoverParameters->Power > 1.0 ) {
+            return d;
+        }
+    }
+    // if we still don't have a match give up
+    return this;
 };
 //---------------------------------------------------------------------------
 

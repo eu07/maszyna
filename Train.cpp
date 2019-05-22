@@ -327,6 +327,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::dooropenall, &TTrain::OnCommand_dooropenall },
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
+    { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -786,7 +787,7 @@ void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+         && ( Train->mvOccupied->LocalBrakePosA > 0.0 ) ) {
             OnCommand_independentbrakedecrease( Train, Command );
         }
         else {
@@ -806,7 +807,7 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
         if( ( Train->ggJointCtrl.SubModel != nullptr )
-         && ( Train->mvControlled->LocalBrakePosA > 0.0 ) ) {
+         && ( Train->mvOccupied->LocalBrakePosA > 0.0 ) ) {
             OnCommand_independentbrakedecreasefast( Train, Command );
         }
         else {
@@ -1730,10 +1731,11 @@ void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Co
     }
 }
 
+// TODO: replace battery with a two-state device, update switch code accordingly
 void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action != GLFW_REPEAT ) {
+        // keep the switch from flipping back and forth if key is held down
         if( false == Train->mvOccupied->Battery ) {
             // turn on
             OnCommand_batteryenable( Train, Command );
@@ -1747,16 +1749,13 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
 
 void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command ) {
 
-    if( true == Train->mvOccupied->Battery ) { return; } // already on
-
     if( Command.action == GLFW_PRESS ) {
-        // ignore repeats
-        // wyłącznik jest też w SN61, ewentualnie załączać prąd na stałe z poziomu FIZ
+        // visual feedback
+        Train->ggBatteryButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+        if( true == Train->mvOccupied->Battery ) { return; } // already on
+
         if( Train->mvOccupied->BatterySwitch( true ) ) {
-            // bateria potrzebna np. do zapalenia świateł
-            if( Train->ggBatteryButton.SubModel ) {
-                Train->ggBatteryButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
             // side-effects
             if( Train->mvOccupied->LightsPosNo > 0 ) {
                 Train->SetLights();
@@ -1768,25 +1767,35 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
             }
         }
     }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
+            // return the switch to neutral position
+            Train->ggBatteryButton.UpdateValue( 0.5f );
+        }
+    }
 }
 
 void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Command ) {
-
-    if( false == Train->mvOccupied->Battery ) { return; } // already off
-
+    // TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
     if( Command.action == GLFW_PRESS ) {
-        // ignore repeats
+        // visual feedback
+        Train->ggBatteryButton.UpdateValue( 0.0, Train->dsbSwitch );
+
+        if( false == Train->mvOccupied->Battery ) { return; } // already off
+
         if( Train->mvOccupied->BatterySwitch( false ) ) {
-            // ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
-            if( Train->ggBatteryButton.SubModel ) {
-                Train->ggBatteryButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
             // side-effects
             if( false == Train->mvControlled->ConverterFlag ) {
                 // if there's no (low voltage) power source left, drop pantographs
                 Train->mvControlled->PantFront( false );
                 Train->mvControlled->PantRear( false );
             }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
+            // return the switch to neutral position
+            Train->ggBatteryButton.UpdateValue( 0.5f );
         }
     }
 }
@@ -4138,7 +4147,7 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
     }
 
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        // ignore repeats so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvControlled->HeatingAllow ) {
             // turn on
             OnCommand_heatingenable( Train, Command );
@@ -4146,6 +4155,14 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
         else {
             //turn off
             OnCommand_heatingdisable( Train, Command );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( Train->ggTrainHeatingButton.type() == TGaugeType::push ) {
+            // impulse switch
+            // visual feedback
+            Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
 }
@@ -4166,7 +4183,11 @@ void TTrain::OnCommand_heatingdisable( TTrain *Train, command_data const &Comman
 
         Train->mvControlled->HeatingAllow = false;
         // visual feedback
-        Train->ggTrainHeatingButton.UpdateValue( 0.0, Train->dsbSwitch );
+        Train->ggTrainHeatingButton.UpdateValue( 
+            ( Train->ggTrainHeatingButton.type() == TGaugeType::push ?
+                1.0 :
+                0.0 ),
+            Train->dsbSwitch );
     }
 }
 
@@ -4730,6 +4751,13 @@ void TTrain::OnCommand_doorsteptoggle( TTrain *Train, command_data const &Comman
 
     if( Command.action == GLFW_PRESS ) {
         Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+    }
+}
+
+void TTrain::OnCommand_doormodetoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->ChangeDoorControlMode( false == Train->mvOccupied->Doors.remote_only );
     }
 }
 
@@ -7135,28 +7163,11 @@ void TTrain::DynamicSet(TDynamicObject *d)
     // jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
     DynamicObject = d; // jedyne miejsce zmiany
-    mvOccupied = mvControlled = d ? DynamicObject->MoverParameters : NULL; // albo silnikowy w EZT
-    if (!DynamicObject)
-        return;
-    // TODO: leverage code already present in TDynamicObject::ControlledFind()
-    if( ( d->MoverParameters->TrainType == dt_EZT )
-     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
+    mvOccupied = mvControlled = ( d ? DynamicObject->MoverParameters : nullptr ); // albo silnikowy w EZT
 
-        if( ( d->NextConnected() != nullptr )
-         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
-            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 1 ].Connected->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                mvControlled = DynamicObject->NextConnected()->MoverParameters; // będziemy sterować tym z mocą
-            }
-        }
-        else if( ( d->PrevConnected() != nullptr )
-              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
-            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 0 ].Connected->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                mvControlled = DynamicObject->PrevConnected()->MoverParameters; // będziemy sterować tym z mocą
-            }
-        }
-    }
+    if( DynamicObject == nullptr ) { return; }
+
+    mvControlled = DynamicObject->ControlledFind()->MoverParameters;
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?
@@ -7480,9 +7491,10 @@ void TTrain::clear_cab_controls()
 void TTrain::set_cab_controls( int const Cab ) {
     // switches
     // battery
-    if( true == mvOccupied->Battery ) {
-        ggBatteryButton.PutValue( 1.f );
-    }
+    ggBatteryButton.PutValue(
+        ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
+          mvOccupied->Battery ? 1.f :
+          0.f ) );
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -7660,8 +7672,11 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f );
     // heating
-    if( true == mvControlled->Heating ) {
-        ggTrainHeatingButton.PutValue( 1.f );
+    if( ggTrainHeatingButton.type() != TGaugeType::push ) {
+        ggTrainHeatingButton.PutValue(
+            mvControlled->Heating ?
+                1.f :
+                0.f );
     }
     // brake acting time
     if( ggBrakeProfileCtrl.SubModel != nullptr ) {
@@ -8050,6 +8065,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
     // TODO: move viable dedicated gauges to the automatic array
     std::unordered_map<std::string, bool *> const autoboolgauges = {
+        { "doormode_sw:", &mvOccupied->Doors.remote_only },
         { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
         { "coolingfans_sw:", &mvControlled->RVentForceOn }
     };

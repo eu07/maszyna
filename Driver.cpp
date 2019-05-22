@@ -2127,11 +2127,12 @@ bool TController::CheckVehicles(TOrders user)
         while (p)
         {
             // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
-            if( ( p != pVehicle )
-             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
-             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
-                // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
-                p->MoverParameters->BatterySwitch( true );
+            if( p != pVehicle ) {
+                if( ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
+                 && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
+                    // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
+                    p->MoverParameters->BatterySwitch( true );
+                }
                 // enable heating and converter in carriages with can be heated
                 if( p->MoverParameters->HeatingPower > 0 ) {
                     p->MoverParameters->HeatingAllow = true;
@@ -2730,8 +2731,12 @@ bool TController::IncBrake()
                         // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
                         // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
                         standalone =
-                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control ) )
-                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control ) ) );
+                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::front ].Connected->Power > 1 ) ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected->Power > 1 ) ) ) );
                         vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
                     }
                 }
@@ -4196,6 +4201,7 @@ TController::UpdateSituation(double dt) {
     // HACK: activate route scanning if an idling vehicle is activated by a human user
     if( ( OrderCurrentGet() == Wait_for_orders )
      && ( false == AIControllFlag )
+     && ( false == iEngineActive )
      && ( true == mvControlling->Battery ) ) {
         OrderNext( Prepare_engine );
     }
@@ -5024,54 +5030,50 @@ TController::UpdateSituation(double dt) {
                         // jeśli dociskanie w celu odczepienia
                         // 3. faza odczepiania.
                         SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                        if( ( mvControlling->MainCtrlPowerPos() > 0 )
-                         || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) {
-                            // jeśli jazda
-                            WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
-                            TDynamicObject *p = pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
-                            int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
-                            int n = iVehicleCount; // ile wagonów ma zostać
-                            do
-                            { // szukanie pojazdu do odczepienia
-                                d = p->DirectionGet() > 0 ?
-                                        end::front :
-                                        end::rear; // numer sprzęgu od strony czoła składu
-                                // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
-                                // //jeśli sprzęg typu wózek (za mało)
-                                if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
-                                    // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
-                                    // (ustalić po czym poznać taki tor)
-                                    ++n; // to  liczymy człony jako jeden
-                                p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                                // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
-								BrakeLevelSet(gbh_RP);
-                                if (n)
-                                { // jeśli jeszcze nie koniec
-                                    p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
-                                    if (!p)
-                                        iVehicleCount = -2,
-                                        n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
-                                }
-                            } while (n--);
-                            if( ( p == nullptr )
-                             || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
-                                // no target, or already just virtual coupling
-                                WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
-                                iVehicleCount = -2; // odczepiono, co było do odczepienia
-                            } else if ( p->Dettach(d) == coupling::faux ) {
-                                // tylko jeśli odepnie
-                                WriteLog( mvOccupied->Name + " odczepiony." );
-                                iVehicleCount = -2;
-                            } // a jak nie, to dociskać dalej
-                        }
-                        if (iVehicleCount >= 0) // zmieni się po odczepieniu
-                            if (!mvOccupied->DecLocalBrakeLevel(1))
-                            { // dociśnij sklad
-                                WriteLog( mvOccupied->Name + " dociskanie..." );
-                                // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
-                                // Ready=true; //zamiast sprawdzenia odhamowania całego składu
-                                IncSpeed(); // dla (Ready)==false nie ruszy
+                        if( iVehicleCount >= 0 ) {
+                            // zmieni się po odczepieniu
+                            WriteLog( mvOccupied->Name + " dociskanie..." );
+                            while( mvOccupied->DecLocalBrakeLevel( 1 ) ) { // dociśnij sklad
+                                ;
                             }
+                            IncSpeed();
+                        }
+                        WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
+                        TDynamicObject *p = pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
+                        int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
+                        int n = iVehicleCount; // ile wagonów ma zostać
+                        do
+                        { // szukanie pojazdu do odczepienia
+                            d = p->DirectionGet() > 0 ?
+                                    end::front :
+                                    end::rear; // numer sprzęgu od strony czoła składu
+                            // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
+                            // //jeśli sprzęg typu wózek (za mało)
+                            if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
+                                // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
+                                // (ustalić po czym poznać taki tor)
+                                ++n; // to  liczymy człony jako jeden
+                            p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
+                            // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+							BrakeLevelSet(gbh_RP);
+                            if (n)
+                            { // jeśli jeszcze nie koniec
+                                p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
+                                if (!p)
+                                    iVehicleCount = -2,
+                                    n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
+                            }
+                        } while (n--);
+                        if( ( p == nullptr )
+                         || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
+                            // no target, or already just virtual coupling
+                            WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
+                            iVehicleCount = -2; // odczepiono, co było do odczepienia
+                        } else if ( p->Dettach(d) == coupling::faux ) {
+                            // tylko jeśli odepnie
+                            WriteLog( mvOccupied->Name + " odczepiony." );
+                            iVehicleCount = -2;
+                        } // a jak nie, to dociskać dalej
                     }
                     if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
                     { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
@@ -6598,17 +6600,18 @@ std::string TController::NextStop() const
     // dodać godzinę odjazdu
     if (!TrainParams)
         return ""; // tu nie powinno nigdy wejść
-    std::string nextstop = asNextStop;
+    std::string nextstop = Bezogonkow( asNextStop, true );
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
     if( t->Ah >= 0 ) {
         // przyjazd
-        nextstop += " przyj." + std::to_string( t->Ah ) + ":"
-      + ( t->Am < 10 ? "0" : "" ) + std::to_string( int(t->Am) ) + "." + std::to_string(int(t->Am * 10) % 10);
+        nextstop += "  przyj." + std::to_string( t->Ah ) + ":"
+      + to_minutes_str( t->Am, true, 3 );
+
     }
     if( t->Dh >= 0 ) {
         // jeśli jest godzina odjazdu
         nextstop += " odj." + std::to_string( t->Dh ) + ":"
-      + ( t->Dm < 10 ? "0" : "" ) + std::to_string( int( t->Dm )) + "." + std::to_string(int(t->Dm * 10) % 10);
+      + to_minutes_str( t->Dm, true, 3 );
     }
     return nextstop;
 };

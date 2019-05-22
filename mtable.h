@@ -24,18 +24,18 @@ static char const *hrsd = ".";
 
 struct TMTableLine
 {
-    double km; // kilometraz linii
-    double vmax; // predkosc rozkladowa przed przystankiem
+    float km; // kilometraz linii
+    float vmax; // predkosc rozkladowa przed przystankiem
     // StationName:string[32]; //nazwa stacji ('_' zamiast spacji)
     // StationWare:string[32]; //typ i wyposazenie stacji, oddz. przecinkami}
     std::string StationName; // nazwa stacji ('_' zamiast spacji)
     std::string StationWare; // typ i wyposazenie stacji, oddz. przecinkami}
     int TrackNo; // ilosc torow szlakowych
     int Ah;
-    double Am; // godz. i min. przyjazdu, -1 gdy bez postoju
+    float Am; // godz. i min. przyjazdu, -1 gdy bez postoju
     int Dh;
-    double Dm; // godz. i min. odjazdu
-    double tm; // czas jazdy do tej stacji w min. (z kolumny)
+    float Dm; // godz. i min. odjazdu
+    float tm; // czas jazdy do tej stacji w min. (z kolumny)
     TMTableLine()
     {
         km = 0;

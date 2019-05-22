@@ -201,6 +201,10 @@ public:
     inline
     TMoverParameters const *Controlling() const {
         return mvControlling; }
+    inline
+        TMoverParameters const *Occupied() const {
+        return mvOccupied;
+    }
     void DirectionInitial();
     void DirectionChange();
     inline
@@ -251,6 +255,7 @@ public:
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
     int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
     int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
+    double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
 private:
     bool Psyche = false;
     int HelperState = 0; //stan pomocnika maszynisty
@@ -318,7 +323,6 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown {}; // prevents the ai from trying to charge the train brake too frequently
-	double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations

@@ -480,14 +480,14 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         {
             if ((TimeTable[i].Ah >= 0))
             {
-                adjustedtime = clamp_circular( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 24.0 * 60.0 ); // nowe minuty
-                TimeTable[i].Am = (int(60 * adjustedtime) % 3600) / 60.0;
+                adjustedtime = clamp_circular<float>( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Am = (int(60 * adjustedtime) % 3600) / 60.f;
                 TimeTable[i].Ah = int((adjustedtime) / 60) % 24;
             }
             if ((TimeTable[i].Dh >= 0))
             {
-                adjustedtime = clamp_circular( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 24.0 * 60.0 ); // nowe minuty
-                TimeTable[i].Dm = (int(60 * adjustedtime) % 3600) / 60.0;
+                adjustedtime = clamp_circular<float>( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Dm = (int(60 * adjustedtime) % 3600) / 60.f;
                 TimeTable[i].Dh = int((adjustedtime) / 60) % 24;
             }
         }
