@@ -7128,28 +7128,11 @@ void TTrain::DynamicSet(TDynamicObject *d)
     // jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
     DynamicObject = d; // jedyne miejsce zmiany
-    mvOccupied = mvControlled = d ? DynamicObject->MoverParameters : NULL; // albo silnikowy w EZT
-    if (!DynamicObject)
-        return;
-    // TODO: leverage code already present in TDynamicObject::ControlledFind()
-    if( ( d->MoverParameters->TrainType == dt_EZT )
-     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
+    mvOccupied = mvControlled = ( d ? DynamicObject->MoverParameters : nullptr ); // albo silnikowy w EZT
 
-        if( ( d->NextConnected() != nullptr )
-         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
-            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 1 ].Connected->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                mvControlled = DynamicObject->NextConnected()->MoverParameters; // będziemy sterować tym z mocą
-            }
-        }
-        else if( ( d->PrevConnected() != nullptr )
-              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
-            if( ( mvControlled->Power < 1.0 ) && ( mvControlled->Couplers[ 0 ].Connected->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                mvControlled = DynamicObject->PrevConnected()->MoverParameters; // będziemy sterować tym z mocą
-            }
-        }
-    }
+    if( DynamicObject == nullptr ) { return; }
+
+    mvControlled = DynamicObject->ControlledFind()->MoverParameters;
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?
