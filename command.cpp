@@ -155,6 +155,7 @@ commanddescription_sequence Commands_descriptions = {
     { "doorcloseright", command_target::vehicle, command_mode::oneoff },
     { "doorcloseall", command_target::vehicle, command_mode::oneoff },
     { "doorsteptoggle", command_target::vehicle, command_mode::oneoff },
+    { "doormodetoggle", command_target::vehicle, command_mode::oneoff },
     { "departureannounce", command_target::vehicle, command_mode::oneoff },
     { "doorlocktoggle", command_target::vehicle, command_mode::oneoff },
     { "pantographcompressorvalvetoggle", command_target::vehicle, command_mode::oneoff },

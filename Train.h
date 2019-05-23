@@ -331,6 +331,7 @@ class TTrain
     static void OnCommand_dooropenall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
@@ -681,6 +682,7 @@ private:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
+	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() const { return iRadioChannel; };
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );

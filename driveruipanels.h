@@ -33,10 +33,12 @@ public:
         : ui_expandable_panel( Name, Isopen ) {}
 
     void update() override;
+    void render() override;
 
 private:
     // members
     std::array<char, 256> m_buffer;
+    std::vector<text_line> m_tablelines;
 };
 
 class scenario_panel : public ui_panel {
@@ -48,10 +50,12 @@ public:
     void update() override;
     void render() override;
 
+    bool is_expanded{ false };
+
 private:
 // members
-//    std::array<char, 256> m_buffer;
-    TDynamicObject const *m_nearest { nullptr };
+    std::array<char, 256> m_buffer;
+	TDynamicObject const *m_nearest { nullptr };
 };
 
 class debug_panel : public ui_panel {

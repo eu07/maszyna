@@ -203,6 +203,7 @@ class TBrake {
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
         bool SetBDF( int const nBDF ); //nastawiacz GPRM
         void Releaser( int const state ); //odluzniacz
+        bool Releaser() const;
         virtual void SetEPS( double const nEPS ); //hamulec EP
         virtual void SetRM( double const RMR ) {};   //ustalenie przelozenia rapida
 		virtual void SetRV( double const RVR) {};   //ustalenie przelozenia rapida

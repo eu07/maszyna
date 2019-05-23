@@ -137,6 +137,8 @@ bool ui_layer::init(GLFWwindow *Window)
     {
         0x0020, 0x00FF, // Basic Latin + Latin Supplement
         0x0100, 0x017F, // Latin Extended-A
+        0x2070, 0x2079, // superscript
+        0x2500, 0x256C, // box drawings
         0,
     };
 

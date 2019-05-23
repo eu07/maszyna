@@ -76,7 +76,7 @@ struct global_settings {
     float FrictionWeatherFactor { 1.f };
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
-	glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
+    glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
     double fFogEnd{ 2000 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
@@ -136,7 +136,8 @@ struct global_settings {
     double fFpsMax{ 65.0 }; // górna granica FPS, przy której promień scenerii będzie zwiększany
     // audio
     bool bSoundEnabled{ true };
-    float AudioVolume{ 1.25f };
+    float AudioVolume{ 1.f };
+    float RadioVolume{ 0.75f };
 	int audio_max_sources = 30;
     std::string AudioRenderer;
     // input

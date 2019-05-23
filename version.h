@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 (GL3 NET) 5.04.2019, based on tmj-a081077c"
+#define VERSION_INFO "M7 (gfx-work) 23.05.2019"

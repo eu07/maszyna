@@ -2306,7 +2306,9 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 { // Ra: doczepia Object na końcu składu (nazwa funkcji może być myląca)
     // Ra: używane tylko przy wczytywaniu scenerii
     MoverParameters->Attach( iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true, false );
+    // update neighbour data for both affected vehicles
     update_neighbours();
+    Object->update_neighbours();
 }
 
 bool TDynamicObject::UpdateForce(double dt)
@@ -2768,6 +2770,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 
 			auto eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
 			MoverParameters->eimic_real = eimic;
+			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos == 0)
+				eimic = -1.0;
 			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
 			auto LBR = Max0R(-eimic, 0);
 			auto eim_lb = (Mechanik->AIControllFlag || !MoverParameters->LocHandleTimeTraxx ? 0 : MoverParameters->eim_localbrake);
@@ -2877,6 +2881,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
+			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos < 2 && MoverParameters->eimic > -0.999)
+			{
+				FzadED = std::min(FzadED, MED_oldFED);
+			}
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
 				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
 				FzadED = 0; //pętla bezpieczeństwa - bez ED
@@ -3054,6 +3062,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 			delete[] FzED;
 			delete[] FzEP;
 			delete[] FmaxEP;
+
+			MED_oldFED = FzadED;
         }
 
         Mechanik->UpdateSituation(dt1); // przebłyski świadomości AI
@@ -4347,10 +4357,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_materialdata.textures_alpha |= 0x08080008;
                 }
             }
-            if( false == MoverParameters->LoadAttributes.empty() ) {
-                // Ra: tu wczytywanie modelu ładunku jest w porządku
-                mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
-            }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
 				token = "";
@@ -4931,6 +4937,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
 			} while( ( token != "" )
 	              && ( token != "endmodels" ) );
+
+            if( false == MoverParameters->LoadAttributes.empty() ) {
+                // Ra: tu wczytywanie modelu ładunku jest w porządku
+
+                // bieżąca ścieżka do tekstur to dynamic/...
+                Global.asCurrentTexturePath = asBaseDir;
+
+                mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
+
+                // z powrotem defaultowa sciezka do tekstur
+                Global.asCurrentTexturePath = std::string( szTexturePath );
+            }
 
         } // models
 
@@ -6098,30 +6116,32 @@ TDynamicObject * TDynamicObject::ControlledFind()
     // problematyczna może być kwestia wybranej kabiny (w silnikowym...)
     // jeśli silnikowy będzie zapięty odwrotnie (tzn. -1), to i tak powinno jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
-    TDynamicObject *d = this; // zaczynamy od aktualnego
-    if( ( d->MoverParameters->TrainType == dt_EZT )
-     || ( d->MoverParameters->TrainType == dt_DMU ) ) {
-        // na razie dotyczy to EZT
-        if( ( d->NextConnected() != nullptr )
-         && ( true == TestFlag( d->MoverParameters->Couplers[ end::rear ].AllowedFlag, coupling::permanent ) ) ) {
-            // gdy jest człon od sprzęgu 1, a sprzęg łączony warsztatowo (powiedzmy)
-            if( ( d->MoverParameters->Power < 1.0 )
-             && ( d->NextConnected()->MoverParameters->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                d = d->NextConnected(); // będziemy sterować tym z mocą
-            }
-        }
-        else if( ( d->PrevConnected() != nullptr )
-              && ( true == TestFlag( d->MoverParameters->Couplers[ end::front ].AllowedFlag, coupling::permanent ) ) ) {
-            // gdy jest człon od sprzęgu 0, a sprzęg łączony warsztatowo (powiedzmy)
-            if( ( d->MoverParameters->Power < 1.0 )
-             && ( d->PrevConnected()->MoverParameters->Power > 1.0 ) ) {
-                // my nie mamy mocy, ale ten drugi ma
-                d = d->PrevConnected(); // będziemy sterować tym z mocą
-            }
+    if( MoverParameters->Power > 1.0 ) { return this; }
+
+    auto const couplingtype { (
+        ( MoverParameters->TrainType == dt_EZT )
+     || ( MoverParameters->TrainType == dt_DMU ) ) ?
+        coupling::permanent :
+        coupling::control
+    };
+    // try first to look towards the rear
+    auto *d = this; // zaczynamy od aktualnego
+
+    while( ( d = d->Next( couplingtype ) ) != nullptr ) {
+        if( d->MoverParameters->Power > 1.0 ) {
+            return d;
         }
     }
-    return d;
+    // if we didn't yet find a suitable vehicle try in the other direction
+    d = this; // zaczynamy od aktualnego
+
+    while( ( d = d->Prev( couplingtype ) ) != nullptr ) {
+        if( d->MoverParameters->Power > 1.0 ) {
+            return d;
+        }
+    }
+    // if we still don't have a match give up
+    return this;
 };
 //---------------------------------------------------------------------------
 
@@ -6602,7 +6622,8 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
-        auto const goalpitch { std::max( 0.025, ( engine_volume + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
+		auto const pitch_diesel { Vehicle.EngineType == TEngineType::DieselEngine ? Vehicle.enrot / Vehicle.dizel_nmax : 0 };
+        auto const goalpitch { std::max( 0.025, ( engine_volume * pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
         auto const goalvolume { (
             ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?
                 std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) :

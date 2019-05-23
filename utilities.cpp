@@ -268,6 +268,24 @@ bool string_starts_with(const std::string &string, const std::string &begin)
 	return string.compare(0, begin.length(), begin) == 0;
 }
 
+std::string const fractionlabels[] = { " ", u8"¹", u8"²", u8"³", u8"⁴", u8"⁵", u8"⁶", u8"⁷", u8"⁸", u8"⁹" };
+
+std::string to_minutes_str( float const Minutes, bool const Leadingzero, int const Width ) {
+
+    float minutesintegral;
+    auto const minutesfractional { std::modf( Minutes, &minutesintegral ) };
+    auto const width { Width - 1 };
+    auto minutes = (
+        std::string( width - 1, ' ' )
+        + ( Leadingzero ?
+            to_string( 100 + minutesintegral ).substr( 1, 2 ) :
+            to_string( minutesintegral, 0 ) ) );
+    return (
+        minutes.substr( minutes.size() - width, width )
+        + fractionlabels[ static_cast<int>( std::floor( minutesfractional * 10 + 0.1 ) ) ] );
+}
+
+
 int stol_def(const std::string &str, const int &DefaultValue) {
 
     int result { DefaultValue };
