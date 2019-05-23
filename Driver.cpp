@@ -454,7 +454,7 @@ bool TController::TableAddNew()
     return true; // false gdy się nałoży
 };
 
-bool TController::TableNotFound(basic_event const *Event) const
+bool TController::TableNotFound(basic_event const *Event, double const Distance ) const
 { // sprawdzenie, czy nie został już dodany do tabelki (np. podwójne W4 robi problemy)
     auto lookup =
         std::find_if(
@@ -469,7 +469,11 @@ bool TController::TableNotFound(basic_event const *Event) const
         WriteLog( "Speed table for " + OwnerName() + " already contains event " + lookup->evEvent->m_name );
     }
 
-    return lookup == sSpeedTable.end();
+    // ignore duplicates which seem to be reasonably apart from each other, on account of looping tracks
+    // NOTE: since supplied distance is only rough approximation of distance to the event, we're using large safety margin
+    return (
+        ( lookup == sSpeedTable.end() )
+     || ( Distance - lookup->fDist > 100.0 ) );
 };
 
 void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
@@ -573,7 +577,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             for( auto *pEvent : events ) {
                 if( pEvent != nullptr ) // jeśli jest semafor na tym torze
                 { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-                    if (TableNotFound(pEvent)) // jeśli nie ma
+                    if (TableNotFound(pEvent, fCurrentDistance)) // jeśli nie ma
                     {
                         TableAddNew(); // zawsze jest true
 
@@ -1018,7 +1022,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                             if (TrainParams->StationIndex < TrainParams->StationCount) {
                                 // jeśli są dalsze stacje, czekamy do godziny odjazdu
-                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute)) {
+                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 )) {
                                     // z dalszą akcją czekamy do godziny odjazdu
                                     IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
@@ -1470,7 +1474,8 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
         if( ( mvOccupied->TrainType == dt_DMU )
          && ( mvOccupied->Vel < 40.0 )
          && ( Targetvelocity == 0.f ) ) {
-            return interpolate( 2.f, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
+            auto const multiplier { clamp( 1.f + iVehicles * 0.5f, 2.f, 4.f ) };
+            return interpolate( multiplier, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
         }
         // HACK: cargo trains or trains going downhill with high braking threshold need more distance to come to a full stop
         if( ( fBrake_a0[ 1 ] > 0.2 )
@@ -2008,7 +2013,7 @@ void TController::AutoRewident()
 		    fBrakeReaction = 0.25;
 	    }
         else if( mvOccupied->TrainType == dt_DMU ) {
-            fNominalAccThreshold = std::max( -0.45, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+            fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
             fBrakeReaction = 0.25;
         }
         else if (ustaw > 16) {
@@ -2120,11 +2125,12 @@ bool TController::CheckVehicles(TOrders user)
         while (p)
         {
             // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
-            if( ( p != pVehicle )
-             && ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
-             && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
-                // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
-                p->MoverParameters->BatterySwitch( true );
+            if( p != pVehicle ) {
+                if( ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
+                 && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
+                    // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
+                    p->MoverParameters->BatterySwitch( true );
+                }
                 // enable heating and converter in carriages with can be heated
                 if( p->MoverParameters->HeatingPower > 0 ) {
                     p->MoverParameters->HeatingAllow = true;
@@ -2366,6 +2372,10 @@ double TController::BrakeAccFactor() const
        || ( mvOccupied->Vel > VelDesired + fVelPlus ) ) ) {
         Factor += ( fBrakeReaction * ( /*mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.5 ? 1.5 : 1 ) ) * mvOccupied->Vel / ( std::max( 0.0, ActualProximityDist ) + 1 ) * ( ( AccDesired - AbsAccS_pub ) / fAccThreshold );
     }
+/*
+	if (mvOccupied->TrainType == dt_DMU && mvOccupied->Vel > 40 && VelNext<40)
+		Factor *= 1 + 0.25 * ( (1600 - VelNext * VelNext) / (mvOccupied->Vel * mvOccupied->Vel) );
+*/
 	return Factor;
 }
 
@@ -2719,8 +2729,12 @@ bool TController::IncBrake()
                         // NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
                         // TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
                         standalone =
-                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control ) )
-                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr ) || ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control ) ) );
+                            ( ( ( vehicle->MoverParameters->Couplers[ end::front ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::front ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::front ].Connected->Power > 1 ) ) )
+                           && ( ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected == nullptr )
+                             || ( ( vehicle->MoverParameters->Couplers[ end::rear  ].CouplingFlag & coupling::control )
+                               && ( vehicle->MoverParameters->Couplers[ end::rear  ].Connected->Power > 1 ) ) ) );
                         vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
                     }
                 }
@@ -2770,17 +2784,15 @@ bool TController::IncBrake()
 					{
                         if( /*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.1 ) {
                             OK = /*mvOccupied->*/BrakeLevelAdd( BrakingInitialLevel ); //GBH
-/*
                             // HACK: stronger braking to overcome SA134 engine behaviour
                             if( ( mvOccupied->TrainType == dt_DMU )
                              && ( VelNext == 0.0 ) 
                              && ( fBrakeDist < 200.0 ) ) {
-                                mvOccupied->BrakeLevelAdd(
+                                BrakeLevelAdd(
                                     fBrakeDist / ActualProximityDist < 0.8 ?
-                                        1.0 :
-                                        3.0 );
+                                        0.5 :
+                                        1.0 );
                             }
-*/
                         }
 						else
 						{
@@ -2801,7 +2813,9 @@ bool TController::IncBrake()
                 }
             }
             if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition > 0 ) {
-                mvOccupied->BrakeReleaser( 0 );
+                if( mvOccupied->Hamulec->Releaser() ) {
+                    mvOccupied->BrakeReleaser( 0 );
+                }
             }
             break;
         }
@@ -2833,20 +2847,20 @@ bool TController::IncBrake()
 bool TController::IncBrakeEIM()
 { // zwiększenie hamowania
 	bool OK = false;
-	switch (mvControlling->EIMCtrlType)
+	switch (mvOccupied->EIMCtrlType)
 	{
 	case 0:
-		OK = mvControlling->IncLocalBrakeLevel(1);
+		OK = mvOccupied->IncLocalBrakeLevel(1);
 		break;
 	case 1:
-		OK = mvControlling->MainCtrlPos > 0;
+		OK = mvOccupied->MainCtrlPos > 0;
 		if (OK)
-			mvControlling->MainCtrlPos = 0;
+			mvOccupied->MainCtrlPos = 0;
 		break;
 	case 2:
-		OK = mvControlling->MainCtrlPos > 1;
+		OK = mvOccupied->MainCtrlPos > 1;
 		if (OK)
-			mvControlling->MainCtrlPos = 1;
+			mvOccupied->MainCtrlPos = 1;
 		break;
 	}
 	return OK;
@@ -2855,7 +2869,8 @@ bool TController::IncBrakeEIM()
 bool TController::DecBrake()
 { // zmniejszenie siły hamowania
     bool OK = false;
-	double deltaAcc = 0;
+	double deltaAcc = -1.0;
+    double pos_diff = 1.0;
     switch (mvOccupied->BrakeSystem)
     {
     case TBrakeSystem::Individual:
@@ -2865,7 +2880,12 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case TBrakeSystem::Pneumatic:
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition -1.0)*fBrake_a1[0]);
+        if( ( fBrake_a0[ 0 ] != 0.0 )
+         || ( fBrake_a1[ 0 ] != 0.0 ) ) {
+            if( mvOccupied->TrainType == dt_DMU )
+                pos_diff = 0.25;
+            deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - pos_diff)*fBrake_a1[0]);
+        }
 		if (deltaAcc < 0)
 		{
 			if (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition > 0)
@@ -2884,8 +2904,11 @@ bool TController::DecBrake()
 		if (!OK) {
 			OK = DecBrakeEIM();
 		}
+/*
+// NOTE: disabled, duplicate of AI's behaviour in UpdateSituation()
         if (mvOccupied->PipePress < 3.0)
             Need_BrakeRelease = true;
+*/
         break;
     case TBrakeSystem::ElectroPneumatic:
 		if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor) {
@@ -2916,20 +2939,20 @@ bool TController::DecBrake()
 bool TController::DecBrakeEIM()
 { // zmniejszenie siły hamowania
 	bool OK = false;
-	switch (mvControlling->EIMCtrlType)
+	switch (mvOccupied->EIMCtrlType)
 	{
 	case 0:
-		OK = mvControlling->DecLocalBrakeLevel(1);
+		OK = mvOccupied->DecLocalBrakeLevel(1);
 		break;
 	case 1:
-		OK = mvControlling->MainCtrlPos < 2;
+		OK = mvOccupied->MainCtrlPos < 2;
 		if (OK)
-			mvControlling->MainCtrlPos = 2;
+			mvOccupied->MainCtrlPos = 2;
 		break;
 	case 2:
-		OK = mvControlling->MainCtrlPos < 3;
+		OK = mvOccupied->MainCtrlPos < 3;
 		if (OK)
-			mvControlling->MainCtrlPos = 3;
+			mvOccupied->MainCtrlPos = 3;
 		break;
 	}
 	return OK;
@@ -2982,6 +3005,7 @@ bool TController::IncSpeed()
                     // if it generates enough traction force
                     // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
                     auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
+                    auto const sufficientacceleration { AbsAccS_pub >= ( IsHeavyCargoTrain ? 0.02 : 0.04 ) };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
                     auto const useseriesmodevoltage {
@@ -2993,6 +3017,7 @@ bool TController::IncSpeed()
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
                      || ( ( true == sufficienttractionforce )
+                       && ( true == sufficientacceleration ) 
                        && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
@@ -3002,6 +3027,7 @@ bool TController::IncSpeed()
                      && ( useseriesmode ?
                             mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 :
                             ( ( true == sufficienttractionforce )
+                           && ( true == sufficientacceleration )
                            && ( mvOccupied->Vel <= ( IsCargoTrain ? 55 : 45 ) + ( parallelmodefieldshunting ? 5 : 0 ) ) ?
                                 mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 :
                                 mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );
@@ -3441,6 +3467,21 @@ void TController::SetTimeControllers()
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
 		}
 		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
+		if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)
+		{
+			if (BrakeCtrlPosition == 0)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
+			else if (BrakeCtrlPosition == -1)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_FS));
+			else if (BrakeCtrlPosition == -2)
+				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
+			else if (BrakeCtrlPosition > 4.5)
+				mvOccupied->BrakeLevelSet(10);
+			else if (BrakeCtrlPosition > 3.70)
+				mvOccupied->BrakeLevelSet(9);
+			else
+				mvOccupied->BrakeLevelSet(round((BrakeCtrlPosition * 0.4 - 0.1) / 0.15));
+		}
 	}
 	//2. Check the type of Secondary Brake Handle
 
@@ -3470,6 +3511,26 @@ void TController::SetTimeControllers()
 				mvOccupied->ScndCtrlPos = 3;
 			if (mvOccupied->NewSpeed - 0.1 > SpeedCntrlVel)
 				mvOccupied->ScndCtrlPos = 1;
+		}
+	}
+	//5. Check Main Controller in Dizels
+	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->Vmax>30))
+	{
+		int MaxPos = mvControlling->MainCtrlPosNo;
+		int MinPos = MaxPos;
+		for (int i = MaxPos; (i > 1) && (mvControlling->RList[i].Mn > 0); i--) MinPos = i;
+		if ((MaxPos > MinPos)&&(mvControlling->MainCtrlPos>0)&&(AccDesired>0))
+		{
+			double Factor = 5 * (mvControlling->Vmax) / (mvControlling->Vmax + mvControlling->Vel);
+			int DesiredPos = MinPos + (MaxPos - MinPos)*(VelDesired > mvControlling->Vel ? (VelDesired - mvControlling->Vel) / Factor : 0);
+			if (DesiredPos > MaxPos) DesiredPos = MaxPos;
+			if (DesiredPos < MinPos) DesiredPos = MinPos;
+			if (!mvControlling->SlippingWheels)
+			{
+				while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
+				if (mvControlling->Vel>mvControlling->dizel_minVelfullengage)
+				  while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+			}
 		}
 	}
 };
@@ -3568,13 +3629,14 @@ void TController::Doors( bool const Open, int const Side ) {
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
             if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
-             || ( ( true == AIControllFlag )
-               && ( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) ) ) {
+             || ( ( true == AIControllFlag ) ) ) {
                 // if the door are controlled by the driver, we let the user operate them unless this user is an ai
                 // the train conductor, if present, handles door operation also for human-driven trains
-                pVehicle->MoverParameters->OperateDoors( side::right, false );
-                pVehicle->MoverParameters->OperateDoors( side::left, false );
+                if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
+                    pVehicle->MoverParameters->OperateDoors( side::right, false );
+                    pVehicle->MoverParameters->OperateDoors( side::left, false );
+                }
                 if( pVehicle->MoverParameters->Doors.permit_needed ) {
                     pVehicle->MoverParameters->PermitDoors( side::right, false );
                     pVehicle->MoverParameters->PermitDoors( side::left, false );
@@ -4137,6 +4199,7 @@ TController::UpdateSituation(double dt) {
     // HACK: activate route scanning if an idling vehicle is activated by a human user
     if( ( OrderCurrentGet() == Wait_for_orders )
      && ( false == AIControllFlag )
+     && ( false == iEngineActive )
      && ( true == mvControlling->Battery ) ) {
         OrderNext( Prepare_engine );
     }
@@ -4965,54 +5028,50 @@ TController::UpdateSituation(double dt) {
                         // jeśli dociskanie w celu odczepienia
                         // 3. faza odczepiania.
                         SetVelocity(2, 0); // jazda w ustawionym kierunku z prędkością 2
-                        if( ( mvControlling->MainCtrlPowerPos() > 0 )
-                         || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) {
-                            // jeśli jazda
-                            WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
-                            TDynamicObject *p = pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
-                            int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
-                            int n = iVehicleCount; // ile wagonów ma zostać
-                            do
-                            { // szukanie pojazdu do odczepienia
-                                d = p->DirectionGet() > 0 ?
-                                        end::front :
-                                        end::rear; // numer sprzęgu od strony czoła składu
-                                // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
-                                // //jeśli sprzęg typu wózek (za mało)
-                                if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
-                                    // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
-                                    // (ustalić po czym poznać taki tor)
-                                    ++n; // to  liczymy człony jako jeden
-                                p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
-                                // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
-								BrakeLevelSet(gbh_RP);
-                                if (n)
-                                { // jeśli jeszcze nie koniec
-                                    p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
-                                    if (!p)
-                                        iVehicleCount = -2,
-                                        n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
-                                }
-                            } while (n--);
-                            if( ( p == nullptr )
-                             || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
-                                // no target, or already just virtual coupling
-                                WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
-                                iVehicleCount = -2; // odczepiono, co było do odczepienia
-                            } else if ( p->Dettach(d) == coupling::faux ) {
-                                // tylko jeśli odepnie
-                                WriteLog( mvOccupied->Name + " odczepiony." );
-                                iVehicleCount = -2;
-                            } // a jak nie, to dociskać dalej
-                        }
-                        if (iVehicleCount >= 0) // zmieni się po odczepieniu
-                            if (!mvOccupied->DecLocalBrakeLevel(1))
-                            { // dociśnij sklad
-                                WriteLog( mvOccupied->Name + " dociskanie..." );
-                                // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
-                                // Ready=true; //zamiast sprawdzenia odhamowania całego składu
-                                IncSpeed(); // dla (Ready)==false nie ruszy
+                        if( iVehicleCount >= 0 ) {
+                            // zmieni się po odczepieniu
+                            WriteLog( mvOccupied->Name + " dociskanie..." );
+                            while( mvOccupied->DecLocalBrakeLevel( 1 ) ) { // dociśnij sklad
+                                ;
                             }
+                            IncSpeed();
+                        }
+                        WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
+                        TDynamicObject *p = pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
+                        int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
+                        int n = iVehicleCount; // ile wagonów ma zostać
+                        do
+                        { // szukanie pojazdu do odczepienia
+                            d = p->DirectionGet() > 0 ?
+                                    end::front :
+                                    end::rear; // numer sprzęgu od strony czoła składu
+                            // if (p->MoverParameters->Couplers[d].CouplerType==Articulated)
+                            // //jeśli sprzęg typu wózek (za mało)
+                            if (p->MoverParameters->Couplers[d].CouplingFlag & ctrain_depot) // jeżeli sprzęg zablokowany
+                                // if (p->GetTrack()->) //a nie stoi na torze warsztatowym
+                                // (ustalić po czym poznać taki tor)
+                                ++n; // to  liczymy człony jako jeden
+                            p->MoverParameters->BrakeReleaser(1); // wyluzuj pojazd, aby dało się dopychać
+                            // GBH p->MoverParameters->BrakeLevelSet(0); // hamulec na zero, aby nie hamował
+							BrakeLevelSet(gbh_RP);
+                            if (n)
+                            { // jeśli jeszcze nie koniec
+                                p = p->Prev(); // kolejny w stronę czoła składu (licząc od tyłu), bo dociskamy
+                                if (!p)
+                                    iVehicleCount = -2,
+                                    n = 0; // nie ma co dalej sprawdzać, doczepianie zakończone
+                            }
+                        } while (n--);
+                        if( ( p == nullptr )
+                         || ( p->MoverParameters->Couplers[ d ].Connected == nullptr ) ) {
+                            // no target, or already just virtual coupling
+                            WriteLog( mvOccupied->Name + " didn't find anything to disconnect." );
+                            iVehicleCount = -2; // odczepiono, co było do odczepienia
+                        } else if ( p->Dettach(d) == coupling::faux ) {
+                            // tylko jeśli odepnie
+                            WriteLog( mvOccupied->Name + " odczepiony." );
+                            iVehicleCount = -2;
+                        } // a jak nie, to dociskać dalej
                     }
                     if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
                     { // 2. faza odczepiania: zmień kierunek na przeciwny i dociśnij
@@ -5683,16 +5742,32 @@ TController::UpdateSituation(double dt) {
                         ReactionTime = 0.25;
                     }
                 }
-                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) // napełnianie uderzeniowe
-                    if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a || mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P
-						|| mvOccupied->BrakeHandle == TBrakeHandle::M394)
-                    {
+                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) {
+                    // napełnianie uderzeniowe
+                    if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
+                     || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
+                     || ( mvOccupied->BrakeHandle == TBrakeHandle::M394 ) ) {
+
                         if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == -2 ) {
                             /*mvOccupied->*/BrakeLevelSet( gbh_RP );
                         }
-                        if( ( mvOccupied->PipePress < 3.0 )
-                         && ( AccDesired > -0.03 ) ) {
-                            mvOccupied->BrakeReleaser( 1 );
+
+                        // TODO: combine all releaser handling in single decision tree instead of having bits all over the place
+                        if( ( AccDesired > -0.03 )
+                         && ( false == mvOccupied->Hamulec->Releaser() ) ) {
+                            if( mvOccupied->PipePress < 3.0 ) {
+                                mvOccupied->BrakeReleaser( 1 );
+                            }
+                            if( ( mvOccupied->BrakePress > 0.4 )
+                             && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
+                                // wyluzuj lokomotywę, to szybciej ruszymy
+                                mvOccupied->BrakeReleaser( 1 );
+                            }
+                        }
+                        if( ( mvOccupied->PipePress > 3.0 )
+                         && ( mvOccupied->Hamulec->Releaser() ) ) {
+                            // don't overcharge train brake pipe
+                            mvOccupied->BrakeReleaser( 0 );
                         }
 
                         if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
@@ -5700,31 +5775,37 @@ TController::UpdateSituation(double dt) {
                          && ( AccDesired > -0.03 )
                          && ( VelDesired - mvOccupied->Vel > 2.0 ) ) {
 
-                            if( ( mvOccupied->EqvtPipePress < 4.95 )
+                            if( ( mvOccupied->EqvtPipePress < 4.5 )
                              && ( fReady > 0.35 )
-                             && ( BrakeChargingCooldown >= 0.0 ) )  {
+                             && ( BrakeChargingCooldown >= 0.0 )
+                             && ( ( ActualProximityDist > 100.0 ) // don't charge if we're about to be braking soon
+                               || ( min_speed( mvOccupied->Vel, VelNext ) == mvOccupied->Vel ) ) ) {
 
                                 if( ( iDrivigFlags & moveOerlikons )
                                  || ( true == IsCargoTrain ) ) {
                                     // napełnianie w Oerlikonie
                                     /* mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) ); GBH */
-									BrakeLevelSet(gbh_FS);
+                                    BrakeLevelSet( gbh_FS );
                                     // don't charge the brakes too often, or we risk overcharging
                                     BrakeChargingCooldown = -120.0;
                                 }
                             }
+/*
+// NOTE: disabled, duplicate of release activation in #5732
                             else if( Need_BrakeRelease ) {
                                 Need_BrakeRelease = false;
                                 mvOccupied->BrakeReleaser( 1 );
                             }
+*/
                         }
 
                         if( ( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition < 0 )
                          && ( mvOccupied->EqvtPipePress > ( fReady < 0.25 ? 5.1 : 5.2 ) ) ) {
                             /* GBH mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); */
-							BrakeLevelSet(gbh_RP);
+                            BrakeLevelSet( gbh_RP );
                         }
                     }
+                }
 #if LOGVELOCITY
                 WriteLog("Dist=" + FloatToStrF(ActualProximityDist, ffFixed, 7, 1) +
                             ", VelDesired=" + FloatToStrF(VelDesired, ffFixed, 7, 1) +
@@ -5763,17 +5844,6 @@ TController::UpdateSituation(double dt) {
                             AccDesired > 0.0 ) ) {
                             // on slopes disengage the brakes only if you actually intend to accelerate
                             while( true == DecBrake() ) { ; } // jeśli przyspieszamy, to nie hamujemy
-                            if( ( mvOccupied->BrakePress > 0.4 )
-                             && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
-                                // wyluzuj lokomotywę, to szybciej ruszymy
-                                mvOccupied->BrakeReleaser( 1 );
-                            }
-                            else {
-                                if( mvOccupied->PipePress >= 3.0 ) {
-                                    // TODO: combine all releaser handling in single decision tree instead of having bits all over the place
-                                    mvOccupied->BrakeReleaser( 0 );
-                                }
-                            }
                         }
                     }
                 }
@@ -6528,17 +6598,18 @@ std::string TController::NextStop() const
     // dodać godzinę odjazdu
     if (!TrainParams)
         return ""; // tu nie powinno nigdy wejść
-    std::string nextstop = asNextStop;
+    std::string nextstop = Bezogonkow( asNextStop, true );
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
     if( t->Ah >= 0 ) {
         // przyjazd
-        nextstop += " przyj." + std::to_string( t->Ah ) + ":"
-      + ( t->Am < 10 ? "0" : "" ) + std::to_string( t->Am );
+        nextstop += "  przyj." + std::to_string( t->Ah ) + ":"
+      + to_minutes_str( t->Am, true, 3 );
+
     }
     if( t->Dh >= 0 ) {
         // jeśli jest godzina odjazdu
         nextstop += " odj." + std::to_string( t->Dh ) + ":"
-      + ( t->Dm < 10 ? "0" : "" ) + std::to_string( t->Dm );
+      + to_minutes_str( t->Dm, true, 3 );
     }
     return nextstop;
 };
@@ -6607,14 +6678,16 @@ void TController::DirectionForward(bool forward)
         // do przodu w obecnej kabinie
         while( ( mvOccupied->ActiveDir <= 0 )
             && ( mvOccupied->DirectionForward() ) ) {
-            ; // all work is done in the header
+            // force scan table update
+            iTableDirection = 0;
         }
     }
     else {
         // do tyłu w obecnej kabinie
         while( ( mvOccupied->ActiveDir >= 0 )
             && ( mvOccupied->DirectionBackward() ) ) {
-            ; // all work is done in the header
+            // force scan table update
+            iTableDirection = 0;
         }
     }
     if( mvOccupied->TrainType == dt_SN61 ) {

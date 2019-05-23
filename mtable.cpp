@@ -51,7 +51,7 @@ bool TTrainParameters::IsStop() const
 
 bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
 
-    return UpdateMTable( Time.data().wHour, Time.data().wMinute, NewName );
+    return UpdateMTable( Time.data().wHour, Time.data().wMinute + Time.data().wSecond * 0.0167, NewName );
 }
 
 bool TTrainParameters::UpdateMTable(double hh, double mm, std::string const &NewName)
@@ -358,12 +358,12 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 if (s.find(hrsd) != std::string::npos)
                                 {
                                     record->Ah = atoi( s.substr(0, s.find(hrsd)).c_str()); // godzina przyjazdu
-                                    record->Am = atoi(s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta przyjazdu
+                                    record->Am = atof(s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta przyjazdu
                                 }
                                 else
                                 {
                                     record->Ah = TimeTable[StationCount - 1].Ah; // godzina z poprzedniej pozycji
-                                    record->Am = atoi(s.c_str()); // bo tylko minuty podane
+                                    record->Am = atof(s.c_str()); // bo tylko minuty podane
                                 }
                             }
                             do
@@ -408,12 +408,12 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 if (s.find(hrsd) != std::string::npos)
                                 {
                                     record->Dh = atoi(s.substr(0, s.find(hrsd)).c_str()); // godzina odjazdu
-                                    record->Dm = atoi(s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta odjazdu
+                                    record->Dm = atof(s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta odjazdu
                                 }
                                 else
                                 {
                                     record->Dh = TimeTable[StationCount - 1].Dh; // godzina z poprzedniej pozycji
-                                    record->Dm = atoi(s.c_str()); // bo tylko minuty podane
+                                    record->Dm = atof(s.c_str()); // bo tylko minuty podane
                                 }
                             }
                             else
@@ -475,20 +475,20 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
     if( timeoffset != 0 ) // jeżeli jest przesunięcie rozkładu
     {
         long i_end = StationCount + 1;
-        int adjustedtime; // do zwiększania czasu
+        float adjustedtime; // do zwiększania czasu
         for (auto i = 1; i < i_end; ++i) // bez with, bo ciężko się przenosi na C++
         {
             if ((TimeTable[i].Ah >= 0))
             {
-                adjustedtime = clamp_circular( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 24 * 60 ); // nowe minuty
-                TimeTable[i].Am = adjustedtime % 60;
-                TimeTable[i].Ah = (adjustedtime / 60) % 24;
+                adjustedtime = clamp_circular<float>( TimeTable[i].Ah * 60 + TimeTable[i].Am + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Am = (int(60 * adjustedtime) % 3600) / 60.f;
+                TimeTable[i].Ah = int((adjustedtime) / 60) % 24;
             }
             if ((TimeTable[i].Dh >= 0))
             {
-                adjustedtime = clamp_circular( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 24 * 60 ); // nowe minuty
-                TimeTable[i].Dm = adjustedtime % 60;
-                TimeTable[i].Dh = (adjustedtime / 60) % 24;
+                adjustedtime = clamp_circular<float>( TimeTable[i].Dh * 60 + TimeTable[i].Dm + timeoffset, 24 * 60 ); // nowe minuty
+                TimeTable[i].Dm = (int(60 * adjustedtime) % 3600) / 60.f;
+                TimeTable[i].Dh = int((adjustedtime) / 60) % 24;
             }
         }
     }
@@ -532,6 +532,8 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
     Output->insert( "train_enginetype", LocSeries );
     Output->insert( "train_engineload", LocLoad );
 
+    Output->insert( "train_stationfrom", Relation1 );
+    Output->insert( "train_stationto", Relation2 );
     Output->insert( "train_stationindex", StationIndex );
     Output->insert( "train_stationcount", StationCount );
     if( StationCount > 0 ) {

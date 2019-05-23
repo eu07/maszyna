@@ -201,6 +201,10 @@ public:
     inline
     TMoverParameters const *Controlling() const {
         return mvControlling; }
+    inline
+        TMoverParameters const *Occupied() const {
+        return mvOccupied;
+    }
     void DirectionInitial();
     void DirectionChange();
     inline
@@ -251,6 +255,7 @@ public:
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
     int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
     int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
+    double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
 private:
     bool Psyche = false;
     int HelperState = 0; //stan pomocnika maszynisty
@@ -280,7 +285,7 @@ private:
     int iCoupler = 0; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0 gdy jazda bez łączenia
     int iDriverFailCount = 0; // licznik błędów AI
     bool Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
-    bool Need_BrakeRelease = true;
+//    bool Need_BrakeRelease = true;
     bool IsAtPassengerStop{ false }; // true if the consist is within acceptable range of w4 post
     double fMinProximityDist = 30.0; // stawanie między 30 a 60 m przed przeszkodą // minimalna oległość do przeszkody, jaką należy zachować
     double fOverhead1 = 3000.0; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
@@ -318,7 +323,6 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown {}; // prevents the ai from trying to charge the train brake too frequently
-	double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
@@ -363,7 +367,7 @@ private:
     // Ra: metody obsługujące skanowanie toru
     std::vector<basic_event *> CheckTrackEvent( TTrack *Track, double const fDirection ) const;
     bool TableAddNew();
-    bool TableNotFound( basic_event const *Event ) const;
+    bool TableNotFound( basic_event const *Event, double const Distance ) const;
     void TableTraceRoute( double fDistance, TDynamicObject *pVehicle );
     void TableCheck( double fDistance );
     TCommandType TableUpdate( double &fVelDes, double &fDist, double &fNext, double &fAcc );

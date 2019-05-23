@@ -108,6 +108,7 @@ std::string to_string(double Value);
 std::string to_string(double Value, int precision);
 std::string to_string(double Value, int precision, int width);
 std::string to_hex_str( int const Value, int const width = 4 );
+std::string to_minutes_str( float const Minutes, bool const Leadingzero, int const Width );
 
 inline std::string to_string(bool Value) {
 

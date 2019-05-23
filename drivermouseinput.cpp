@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "Logs.h"
 
-auto const EU07_CONTROLLER_MOUSESLIDERSIZE{ 0.65 };
+auto const EU07_CONTROLLER_MOUSESLIDERSIZE{ 0.6 };
 
 void
 mouse_slider::bind( user_command const &Command ) {
@@ -633,6 +633,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "doorstep_sw:", {
             user_command::doorsteptoggle,
+            user_command::none } },
+        { "doormode_sw:", {
+            user_command::doormodetoggle,
             user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,

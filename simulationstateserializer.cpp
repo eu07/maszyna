@@ -163,14 +163,22 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
     // atmosphere color; legacy parameter, no longer used
     Input.getTokens( 3 );
     // fog range
-    Input.getTokens( 2 );
-    Input
-        >> Global.fFogStart
-        >> Global.fFogEnd;
+    {
+        double fograngestart, fograngeend;
+        Input.getTokens( 2 );
+        Input
+            >> fograngestart
+            >> fograngeend;
 
-    if( Global.fFogEnd > 0.0 ) {
-        // fog colour; optional legacy parameter, no longer used
-        Input.getTokens( 3 );
+        if( Global.fFogEnd != 0.0 ) {
+            // fog colour; optional legacy parameter, no longer used
+            Input.getTokens( 3 );
+        }
+
+        Global.fFogEnd =
+            clamp(
+                Random( std::min( fograngestart, fograngeend ), std::max( fograngestart, fograngeend ) ),
+                10.0, 2000.0 );
     }
 
     std::string token { Input.getToken<std::string>() };

@@ -101,8 +101,15 @@ ui_layer::init( GLFWwindow *Window ) {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
+    static ImWchar const glyphranges[] = {
+        0x0020, 0x00FF, // ascii + extension
+        0x2070, 0x2079, // superscript
+        0x2500, 0x256C, // box drawings
+        0,
+    };
     m_imguiio = &ImGui::GetIO();
-    m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f);
+    m_imguiio->Fonts->AddFontFromFileTTF( "fonts/dejavusansmono.ttf", 13.0f, nullptr, &glyphranges[ 0 ] );
 
     ImGui::StyleColorsClassic();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
