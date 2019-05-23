@@ -165,6 +165,7 @@ enum string {
     cab_doorallon_sw,
     cab_dooralloff_sw,
     cab_doorstep_sw,
+    cab_doormode_sw,
     cab_departure_signal_bt,
     cab_upperlight_sw,
     cab_leftlight_sw,

@@ -385,6 +385,11 @@ void TBrake::Releaser( int const state )
     BrakeStatus = (BrakeStatus & ~b_rls) | ( state * b_rls );
 }
 
+bool TBrake::Releaser() const {
+
+    return ( ( BrakeStatus & b_rls ) == b_rls );
+}
+
 void TBrake::SetEPS( double const nEPS )
 {
 }
@@ -1370,7 +1375,7 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
         temp = 10000;
 
     // powtarzacz — podwojny zawor zwrotny
-    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb) == b_asb)) / temp, LBP);
+    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb_unbrake) == b_asb_unbrake)) / temp, LBP);
     // luzowanie CH
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
         //   dV:=PF(0,BrakeCyl->P(),0.0015*3*sizeBC)*dt
@@ -2773,6 +2778,8 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TMHZ_K5P::Init(double Press)
 {
 	CP = Press;
+    Time = true;
+    TimeEP = true;
 }
 
 void TMHZ_K5P::SetReductor(double nAdj)

@@ -761,11 +761,18 @@ void TMoverParameters::UpdatePantVolume(double dt)
 { // KURS90 - sprężarka pantografów; Ra 2014-07: teraz jest to zbiornik rozrządu, chociaż to jeszcze nie tak
 
     // check the pantograph compressor while at it
-    if( PantCompFlag ) {
-        if( ( false == Battery )
-         && ( false == ConverterFlag ) ) {
-            PantCompFlag = false;
-        }
+    if( ( PantPress < 4.2 )
+     && ( ( PantographCompressorStart == start_t::automatic )
+       || ( PantographCompressorStart == start_t::manualwithautofallback ) )
+     && ( ( true == PantRearUp )
+       || ( true == PantFrontUp ) ) ) {
+        // automatic start if the pressure is too low
+        PantCompFlag = true;
+    }
+    if( ( true == PantCompFlag )
+     && ( false == Battery )
+     && ( false == ConverterFlag ) ) {
+        PantCompFlag = false;
     }
 
     if (EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // tylko jeśli pantografujący
@@ -1795,7 +1802,9 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 				else {
 					++MainCtrlPos;
                         OK = true;
-                    }
+						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+							DecScndCtrl(2);
+					}
                     break;
                 }
 
@@ -1957,6 +1966,8 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                         {
                             MainCtrlPos--;
                             OK = true;
+							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+								DecScndCtrl(2);
                         }
                         else if (CtrlSpeed > 1)
                             OK = (DecMainCtrl(1) && DecMainCtrl(2)); // CtrlSpeed-1);
@@ -2098,13 +2109,17 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDelay)
             LastRelayTime = 0;
 
-	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1))
+	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1) && (MainCtrlPos>0))
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
 			ScndCtrlActualPos = Round(Vel);
 		else
 			ScndCtrlActualPos = Round(Vel * 0.5);
+		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
+		{
+			MainCtrlActualPos = MainCtrlPos;
+		}
 		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
 	}
 
@@ -3883,7 +3898,18 @@ void TMoverParameters::ComputeConstans(void)
     }
     Ff = TotalMassxg * (BearingF + RollF * V * V / 10.0) / 1000.0;
     // dorobic liczenie temperatury lozyska!
-    FrictConst1 = ((TotalMassxg * RollF) / 10000.0) + (Cx * Dim.W * Dim.H);
+    FrictConst1 = ( TotalMassxg * RollF ) / 10000.0;
+    // drag calculation
+    {
+        // NOTE: draft effect of previous vehicle is simplified and doesn't have much to do with reality
+        auto const *previousvehicle { Couplers[ ( V >= 0.0 ? end::front : end::rear ) ].Connected };
+        auto dragarea { Dim.W * Dim.H };
+        if( previousvehicle ) {
+            dragarea = std::max( 0.0, dragarea - ( 0.85 * previousvehicle->Dim.W * previousvehicle->Dim.H ) );
+        }
+        FrictConst1 += Cx * dragarea;
+    }
+
     Curvature = abs(RunningShape.R); // zero oznacza nieskończony promień
     if (Curvature > 0.0)
         Curvature = 1.0 / Curvature;
@@ -4398,7 +4424,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
             if( enrot != tmp ) {
                 enrot = clamp(
-                    enrot + ( dt / 1.25 ) * ( // TODO: equivalent of dizel_aim instead of fixed inertia
+                    enrot + ( dt / dizel_AIM ) * (
                         enrot < tmp ?
                         1.0 :
                         -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
@@ -5897,7 +5923,6 @@ bool TMoverParameters::PantFront( bool const State, range_t const Notify )
         if( PantFrontUp != State ) {
             PantFrontUp = State;
             if( State == true ) {
-                PantFrontStart = 0;
                 if( Notify != range_t::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
@@ -5908,7 +5933,6 @@ bool TMoverParameters::PantFront( bool const State, range_t const Notify )
                 }
             }
             else {
-                PantFrontStart = 1;
                 if( Notify != range_t::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
@@ -5950,7 +5974,6 @@ bool TMoverParameters::PantRear( bool const State, range_t const Notify )
         if( PantRearUp != State ) {
             PantRearUp = State;
             if( State == true ) {
-                PantRearStart = 0;
                 if( Notify != range_t::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
@@ -5961,7 +5984,6 @@ bool TMoverParameters::PantRear( bool const State, range_t const Notify )
                 }
             }
             else {
-                PantRearStart = 1;
                 if( Notify != range_t::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
@@ -5996,6 +6018,13 @@ void TMoverParameters::CheckEIMIC(double dt)
 	{
 	case 0:
 		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
+		if (EIMCtrlAdditionalZeros)
+		{
+			if (eimic > 0.001)
+				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
+			if (eimic < -0.001)
+				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
+		}
 		break;
 	case 1:
 		switch (MainCtrlPos)
@@ -6046,25 +6075,34 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 2:
-		switch (MainCtrlPos)
+		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
 		{
-		case 0:
-			eimic = -1.0;
-			break;
-		case 1:
-			eimic -= clamp(1.0 + eimic, 0.0, dt*0.15); //odejmuj do -1
-			if (eimic > 0) eimic = 0;
-			break;
-		case 2:
-			eimic -= clamp(0.0 + eimic, 0.0, dt*0.15); //odejmuj do 0
-			break;
-		case 3:
-			eimic += clamp(0.0 - eimic, 0.0, dt*0.15); //dodawaj do 0
-			break;
-		case 4:
-			eimic += clamp(1.0 - eimic, 0.0, dt*0.15); //dodawaj do 1
-			if (eimic < 0) eimic = 0;
-			break;
+			double delta = (MainCtrlActualPos == MainCtrlPos ? dt*CtrlDelay : 0.01);
+			switch (MainCtrlPos)
+			{
+			case 0:
+			case 1:
+				eimic -= clamp(1.0 + eimic, 0.0, delta); //odejmuj do -1
+				if (eimic > 0) eimic = 0;
+				break;
+			case 2:
+				eimic -= clamp(0.0 + eimic, 0.0, delta); //odejmuj do 0
+				break;
+			case 3:
+				eimic += clamp(0.0 - eimic, 0.0, delta); //dodawaj do 0
+				break;
+			case 4:
+				eimic += clamp(1.0 - eimic, 0.0, delta); //dodawaj do 1
+				if (eimic < 0) eimic = 0;
+				break;
+			}
+		}
+		if (MainCtrlActualPos == MainCtrlPos)
+			LastRelayTime += dt;
+		else
+		{
+			LastRelayTime = 0;
+			MainCtrlActualPos = MainCtrlPos;
 		}
 		break;
 	case 3:
@@ -6072,7 +6110,11 @@ void TMoverParameters::CheckEIMIC(double dt)
 		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
 		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
 	}
-	eimic = clamp(eimic, -1.0, 1.0);
+    auto const eimicpowerenabled {
+        ( ( true == Mains ) || ( Power == 0.0 ) )
+     && ( ( Doors.instances[ side::left  ].open_permit == false )
+       && ( Doors.instances[ side::right ].open_permit == false ) ) };
+	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl()
@@ -6892,12 +6934,7 @@ bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t c
 
     bool const initialstate { Doors.instances[Door].open_permit };
 
-    if( ( false == Doors.permit_presets.empty() ) // HACK: for cases where preset switch is used before battery
-     || ( ( true == Battery )
-       && ( false == Doors.is_locked ) ) ) {
-
-        Doors.instances[ Door ].open_permit = State;
-    }
+    Doors.instances[ Door ].open_permit = State;
 
     if( Notify != range_t::local ) {
 
@@ -6914,6 +6951,34 @@ bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t c
     }
 
     return ( Doors.instances[ Door ].open_permit != initialstate );
+}
+
+bool TMoverParameters::ChangeDoorControlMode( bool const State, range_t const Notify ) {
+
+    auto const initialstate { Doors.remote_only };
+
+    Doors.remote_only = State;
+    if( Notify != range_t::local ) {
+        // wysłanie wyłączenia do pozostałych?
+        SendCtrlToNext(
+            "DoorMode",
+            ( State == true ?
+                1 :
+                0 ),
+            CabNo,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    if( true == State ) {
+        // when door are put in remote control mode they're automatically open
+        // TBD, TODO: make it dependant on config switch?
+        OperateDoors( side::left, true );
+        OperateDoors( side::right, true );
+    }
+
+    return ( Doors.step_enabled != initialstate );
 }
 
 bool TMoverParameters::OperateDoors( side const Door, bool const State, range_t const Notify ) {
@@ -7023,15 +7088,17 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     auto const localopencontrol {
-        ( Doors.open_control == control_t::passenger )
-     || ( Doors.open_control == control_t::mixed ) };
+        ( false == Doors.remote_only )
+     && ( ( Doors.open_control == control_t::passenger )
+       || ( Doors.open_control == control_t::mixed ) ) };
     auto const remoteopencontrol {
         ( Doors.open_control == control_t::driver )
      || ( Doors.open_control == control_t::conductor )
      || ( Doors.open_control == control_t::mixed ) };
     auto const localclosecontrol {
-        ( Doors.close_control == control_t::passenger )
-     || ( Doors.close_control == control_t::mixed ) };
+        ( false == Doors.remote_only )
+     && ( ( Doors.close_control == control_t::passenger )
+       || ( Doors.close_control == control_t::mixed ) ) };
     auto const remoteclosecontrol {
         ( Doors.close_control == control_t::driver )
      || ( Doors.close_control == control_t::conductor )
@@ -7059,13 +7126,18 @@ TMoverParameters::update_doors( double const Deltatime ) {
          && ( door.step_position <= 0.f );
 
         door.local_open  = door.local_open  && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
-        door.remote_open = door.remote_open && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
+        door.remote_open = ( door.remote_open || Doors.remote_only ) && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
         door.local_close  = door.local_close  && ( false == door.is_closed );
         door.remote_close = door.remote_close && ( false == door.is_closed );
 
+        auto const autoopenrequest {
+            ( Doors.open_control == control_t::autonomous )
+         && ( ( false == Doors.permit_needed ) || door.open_permit )
+        };
         auto const openrequest {
             ( localopencontrol && door.local_open )
-         || ( remoteopencontrol && door.remote_open ) };
+         || ( remoteopencontrol && door.remote_open )
+         || ( autoopenrequest && ( false == door.is_open ) ) };
 
         auto const autocloserequest {
             ( ( Doors.auto_velocity != -1.f ) && ( Vel > Doors.auto_velocity ) )
@@ -8357,12 +8429,6 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
             lookup != doorcontrols.end() ?
                 lookup->second :
                 control_t::passenger;
-
-        if( Doors.close_control == control_t::autonomous ) {
-            // convert legacy method
-            Doors.close_control = control_t::passenger;
-            Doors.auto_velocity = 10.0;
-        }
     }
     // automatic closing conditions
     extract_value( Doors.auto_duration, "DoorStayOpen", line, "" );
@@ -8665,6 +8731,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
 	clamp( EIMCtrlType, 0, 3 );
 	LocHandleTimeTraxx = (extract_value("LocalBrakeTraxx", line) == "Yes");
+	EIMCtrlAdditionalZeros = (extract_value("EIMCtrlAddZeros", line) == "Yes");
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
@@ -8687,6 +8754,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 		(extract_value("SpeedCtrlType", line) == "Time") ?
 		true :
 		false;
+	extract_value(SpeedCtrlAutoTurnOffFlag, "SpeedCtrlATOF", line, "");
 
     // converter
     {
@@ -8713,6 +8781,14 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     {
         auto lookup = starts.find( extract_value( "CompressorStart", line ) );
         CompressorStart =
+            lookup != starts.end() ?
+                lookup->second :
+                start_t::manual;
+    }
+    // pantograph compressor
+    {
+        auto lookup = starts.find( extract_value( "PantCompressorStart", line ) );
+        PantographCompressorStart =
             lookup != starts.end() ?
                 lookup->second :
                 start_t::manual;
@@ -8925,6 +9001,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
                 ImaxLo = 1;
             }
             extract_value( EngineHeatingRPM, "HeatingRPM", Input, "" );
+            extract_value( dizel_AIM, "AIM", Input, "1.25" );
             break;
         }
         case TEngineType::ElectricInductionMotor: {
@@ -10009,6 +10086,13 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             false );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
+    else if( Command == "DoorMode" ) {
+        Doors.remote_only = (
+            CValue1 == 1 ?
+            true :
+            false );
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
     else if( Command == "DepartureSignal" ) {
         DepartureSignal = (
             CValue1 == 1 ?
@@ -10025,12 +10109,10 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 			if ((CValue1 == 1))
 			{
 				PantFrontUp = true;
-				PantFrontStart = 0;
 			}
 			else if ((CValue1 == 0))
 			{
 				PantFrontUp = false;
-				PantFrontStart = 1;
 			}
 		}
 		else
@@ -10040,24 +10122,20 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
 				{
 					PantFrontUp = true;
-					PantFrontStart = 0;
 				}
 				else
 				{
 					PantRearUp = true;
-					PantRearStart = 0;
 				}
 			else if ((CValue1 == 0))
 				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
 					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
 				{
 					PantFrontUp = false;
-					PantFrontStart = 1;
 				}
 				else
 				{
 					PantRearUp = false;
-					PantRearStart = 1;
 				}
 		}
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
@@ -10070,12 +10148,10 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 			if ((CValue1 == 1))
 			{
 				PantRearUp = true;
-				PantRearStart = 0;
 			}
 			else if ((CValue1 == 0))
 			{
 				PantRearUp = false;
-				PantRearStart = 1;
 			}
 		}
 		else
@@ -10086,24 +10162,20 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
 				{
 					PantRearUp = true;
-					PantRearStart = 0;
 				}
 				else
 				{
 					PantFrontUp = true;
-					PantFrontStart = 0;
 				}
 			else if ((CValue1 == 0))
 				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
 					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
 				{
 					PantRearUp = false;
-					PantRearStart = 1;
 				}
 				else
 				{
 					PantFrontUp = false;
-					PantFrontStart = 1;
 				}
 		}
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

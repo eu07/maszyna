@@ -664,6 +664,7 @@ private:
 	double MEDLogTime = 0;
 	double MEDLogInactiveTime = 0;
 	int MEDLogCount = 0;
+	double MED_oldFED = 0;
 
 // vehicle shaking calculations
 // TBD, TODO: make an object out of it

@@ -141,7 +141,13 @@ global_settings::ConfigParse(cParser &Parser) {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AudioVolume;
-            AudioVolume = clamp( AudioVolume, 0.0f, 2.f );
+            AudioVolume = clamp( AudioVolume, 0.f, 2.f );
+        }
+        else if( token == "sound.volume.radio" ) {
+            // selected device for audio renderer
+            Parser.getTokens();
+            Parser >> RadioVolume;
+            RadioVolume = clamp( RadioVolume, 0.f, 1.f );
         }
 		else if (token == "sound.maxsources") {
 			Parser.getTokens();

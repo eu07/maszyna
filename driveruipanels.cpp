@@ -226,6 +226,7 @@ timetable_panel::update() {
     if( false == is_open ) { return; }
 
     text_lines.clear();
+    m_tablelines.clear();
 
     auto const *train { simulation::Train };
     auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
@@ -236,7 +237,7 @@ timetable_panel::update() {
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
             locale::strings[ locale::string::driver_timetable_header ].c_str(),
-            40, 40,
+            37, 37,
             locale::strings[ locale::string::driver_timetable_name ].c_str(),
             time.wHour,
             time.wMinute,
@@ -271,7 +272,7 @@ timetable_panel::update() {
     }
 
     { // next station
-        auto const nextstation = Bezogonkow( owner->NextStop(), true );
+        auto const nextstation = owner->NextStop();
         if( false == nextstation.empty() ) {
             // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
             auto textline = " -> " + nextstation;
@@ -314,65 +315,124 @@ timetable_panel::update() {
         } 
         else {
 
+            auto const loadingcolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+            auto const waitcolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
 
 			// header
-            text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
+            m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
             TMTableLine const *tableline;
             for( int i = owner->iStationStart; i <= table->StationCount; ++i ) {
                 // wyświetlenie pozycji z rozkładu
                 tableline = table->TimeTable + i; // linijka rozkładu
 
-                std::string vmax =
-                    "   "
-                    + to_string( tableline->vmax, 0 );
-                vmax = vmax.substr( vmax.size() - 3, 3 ); // z wyrównaniem do prawej
-                std::string const station = (
+                bool vmaxchange { true };
+                if( i > owner->iStationStart ) {
+                    auto const *previoustableline { tableline - 1 };
+                    if( tableline->vmax == previoustableline->vmax ) {
+                        vmaxchange = false;
+                    }
+                }
+                std::string vmax { "   " };
+                if( true == vmaxchange ) {
+                    vmax += to_string( tableline->vmax, 0 );
+                    vmax = vmax.substr( vmax.size() - 3, 3 ); // z wyrównaniem do prawej
+                }
+                auto const station { (
                     Bezogonkow( tableline->StationName, true )
                     + "                                  " )
-                    .substr( 0, 34 );
-                std::string const location = (
+                    .substr( 0, 34 ) };
+                auto const location { (
                     ( tableline->km > 0.0 ?
                         to_string( tableline->km, 2 ) :
                         "" )
                     + "                                  " )
-                    .substr( 0, 34 - tableline->StationWare.size() );
-                std::string const arrival = (
+                    .substr( 0, 34 - tableline->StationWare.size() ) };
+                auto const arrival { (
                     tableline->Ah >= 0 ?
-                        to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Am ) ).substr( 1, 2 ) :
-                        "  |  " );
-                std::string const departure = (
+                        to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Am, true, 3 ) :
+                        u8"  │   " ) };
+                auto const departure { (
                     tableline->Dh >= 0 ?
-                        to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Dm ) ).substr( 1, 2 ) :
-                        "  |  " );
-                auto const candeparture = (
+                        to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
+                        u8"  │   " ) };
+                auto const candeparture { (
                        ( owner->iStationStart < table->StationIndex )
                     && ( i < table->StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
-                      || ( time.wHour * 60 + time.wMinute >= tableline->Dh * 60 + tableline->Dm ) ) );
-                auto traveltime =
-                    "   "
-                    + ( i < 2 ? "" :
-                        tableline->Ah >= 0 ? to_string( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), 0 ) :
-                        to_string( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), 0 ) );
-                traveltime = traveltime.substr( traveltime.size() - 3, 3 ); // z wyrównaniem do prawej
-
-                text_lines.emplace_back(
-                    ( "| " + vmax + " | " + station + " | " + arrival + " | " + traveltime + " |" ),
-                        ( candeparture ?
-                        readycolor :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                        Global.UITextColor ) );
-                text_lines.emplace_back(
-                    ( "|     | " + location + tableline->StationWare + " | " + departure + " |     |" ),
-                        ( candeparture ?
-                        readycolor :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                        Global.UITextColor ) );
+                      || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
+                auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
+                auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };
+                auto const traveltime { (
+                    i < 2 ? "   " :
+                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
+                    to_minutes_str( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
+                auto const linecolor { (
+                    ( i != owner->iStationStart ) ? Global.UITextColor :
+                    loadchangeinprogress ? loadingcolor :
+                    candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
+                    isatpassengerstop ? waitcolor :
+                    Global.UITextColor ) };
+                m_tablelines.emplace_back(
+                    ( u8"│ " + vmax + u8" │ " + station + u8" │  " + arrival + u8" │ " + traveltime + u8" │" ),
+                    linecolor );
+                m_tablelines.emplace_back(
+                    ( u8"│     │ " + location + tableline->StationWare + u8" │  " + departure + u8" │     │" ),
+                    linecolor );
                 // divider/footer
-                text_lines.emplace_back( "+-----+------------------------------------+-------+-----+", Global.UITextColor );
+                if( i < table->StationCount ) {
+                    auto const *nexttableline { tableline + 1 };
+                    if( tableline->vmax == nexttableline->vmax ) {
+                        m_tablelines.emplace_back( u8"│     ├────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
+                    }
+                    else {
+                        m_tablelines.emplace_back( u8"├─────┼────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
+                    }
+                }
+                else {
+                    m_tablelines.emplace_back( u8"└─────┴────────────────────────────────────┴─────────┴─────┘", Global.UITextColor );
+                }
             }
         }
     } // is_expanded
+}
+
+void
+timetable_panel::render() {
+
+    if( false == is_open ) { return; }
+    if( true  == text_lines.empty() ) { return; }
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    auto const panelname { (
+        title.empty() ?
+            m_name :
+            title )
+        + "###" + m_name };
+    if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
+        for( auto const &line : text_lines ) {
+            ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        }
+        if( is_expanded ) {
+            ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 1, 0 ) );
+            for( auto const &line : m_tablelines ) {
+                ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+            }
+            ImGui::PopStyleVar();
+        }
+    }
+    ImGui::End();
 }
 
 void
@@ -722,7 +782,8 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
 
         std::string parameterstext = "param       value";
         std::vector< std::pair <std::string, double> > const paramvalues {
-            { "efill: ", mover.dizel_fill },
+			{ "  rpm: ", mover.enrot * 60.0 },
+			{ "efill: ", mover.dizel_fill },
             { "etorq: ", mover.dizel_Torque },
             { "creal: ", mover.dizel_engage },
             { "cdesi: ", mover.dizel_engagestate },
