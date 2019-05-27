@@ -4567,7 +4567,7 @@ double TMoverParameters::TractionForce( double dt ) {
             EnginePower = ( 2 * dizel_Mstand + dmoment ) * enrot * ( 2.0 * M_PI / 1000.0 );
             if( MainCtrlPowerPos() > 1 ) {
                 // dodatkowe opory z powodu sprezarki}
-                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax );
+//                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax ); //yB: skąd to w ogóle się bierze?!
             }
             break;
         }
@@ -6114,9 +6114,20 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 3:
-		eimic -= clamp(-UniCtrlList[MainCtrlPos].SetCtrlVal + eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedDown); //odejmuj do X
-		eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, dt * UniCtrlList[MainCtrlPos].SpeedUp); //dodawaj do X
-		eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
+		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
+		{
+			eimic -= clamp(-UniCtrlList[MainCtrlPos].SetCtrlVal + eimic, 0.0, (MainCtrlActualPos == MainCtrlPos ? dt * UniCtrlList[MainCtrlPos].SpeedDown : sign(UniCtrlList[MainCtrlPos].SpeedDown) * 0.01)); //odejmuj do X
+			eimic += clamp(UniCtrlList[MainCtrlPos].SetCtrlVal - eimic, 0.0, (MainCtrlActualPos == MainCtrlPos ? dt * UniCtrlList[MainCtrlPos].SpeedUp : sign(UniCtrlList[MainCtrlPos].SpeedUp) * 0.01)); //dodawaj do X
+			eimic = clamp(eimic, UniCtrlList[MainCtrlPos].MinCtrlVal, UniCtrlList[MainCtrlPos].MaxCtrlVal);
+		}
+		if (MainCtrlActualPos == MainCtrlPos)
+			LastRelayTime += dt;
+		else
+		{
+			LastRelayTime = 0;
+			MainCtrlActualPos = MainCtrlPos;
+		}
+		//BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 	}
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
@@ -6239,6 +6250,17 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 
     if (Mains)
     {
+		if (EIMCtrlType > 0) //sterowanie komputerowe
+		{
+			if (dizel_automaticgearstatus == 0)
+				if ((hydro_TC && hydro_TC_Fill > 0.01 )||( eimic_real > 0.0 ))
+					dizel_EngageSwitch(1.0);
+				else
+					dizel_EngageSwitch(0.0);
+			else
+				dizel_EngageSwitch(0.0);
+		}
+		else
         if (dizel_automaticgearstatus == 0) // ustaw cisnienie w silowniku sprzegla}
             switch (RList[MainCtrlPos].Mn)
             {
@@ -6385,6 +6407,7 @@ bool TMoverParameters::dizel_Update(double dt) {
 double TMoverParameters::dizel_fillcheck(int mcp)
 { 
     auto realfill { 0.0 };
+	auto reg_factor { 0.98 };
 
     if( ( true == Mains )
      && ( MainCtrlPosNo > 0 )
@@ -6399,11 +6422,20 @@ double TMoverParameters::dizel_fillcheck(int mcp)
         }
         else {
             // napelnienie zalezne od MainCtrlPos
-            realfill = RList[ mcp ].R;
+			if (EIMCtrlType > 0)
+			{
+				realfill = std::max(0.0, eimic_real);
+				reg_factor = 1.0;
+			}
+			else
+				realfill = RList[mcp].R;
         }
         if (dizel_nmax_cutoff > 0)
         {
             auto nreg { 0.0 };
+			if (EIMCtrlType > 0)
+				nreg = (eimic_real > 0 ? dizel_nmax : dizel_nmin);
+			else
             switch (RList[MainCtrlPos].Mn)
             {
             case 0:
@@ -6442,7 +6474,7 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				realfill = 0; 
 			if (enrot < nreg) //pod predkoscia regulatora dawka zadana
 				realfill = realfill;
-			if ((enrot < dizel_nmin * 0.98)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
+			if ((enrot < dizel_nmin * reg_factor)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
 				realfill = 1;
         }
     }
@@ -6485,10 +6517,11 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	if (hydro_TC) //jesli przetwornik momentu
 	{
 		//napelnianie przetwornika
-		if ((MainCtrlPowerPos() > 0) && (Mains) && (enrot>dizel_nmin*0.9))
+		bool IsPower = (EIMCtrlType > 0 ? eimic_real > 0 : MainCtrlPowerPos() > 0);
+		if ((IsPower) && (Mains) && (enrot>dizel_nmin*0.9))
 			hydro_TC_Fill += hydro_TC_FillRateInc * dt;
 		//oproznianie przetwornika
-		if (((IsMainCtrlNoPowerPos()) && (Vel<3))
+		if (((!IsPower) && (Vel<3))
 			|| (!Mains)
 			|| (enrot<dizel_nmin*0.8))
 			hydro_TC_Fill -= hydro_TC_FillRateDec * dt;
@@ -6496,10 +6529,10 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		hydro_TC_Fill = clamp(hydro_TC_Fill, 0.0, 1.0);
 
 		//blokowanie sprzegla blokującego
-		if ((Vel > hydro_TC_LockupSpeed) && (Mains) && (enrot > 0.9 * dizel_nmin) && (MainCtrlPowerPos() > 0))
+		if ((Vel > hydro_TC_LockupSpeed) && (Mains) && (enrot > 0.9 * dizel_nmin) && (IsPower))
 			hydro_TC_LockupRate += hydro_TC_FillRateInc*dt;
 		//luzowanie sprzegla blokujacego
-		if ((Vel < (MainCtrlPowerPos() > 0 ? hydro_TC_LockupSpeed : hydro_TC_UnlockSpeed)) || (!Mains) || (enrot < 0.8 * dizel_nmin))
+		if ((Vel < (IsPower ? hydro_TC_LockupSpeed : hydro_TC_UnlockSpeed)) || (!Mains) || (enrot < 0.8 * dizel_nmin))
 			hydro_TC_LockupRate -= hydro_TC_FillRateDec*dt;
 		//obcinanie zakresu
 		hydro_TC_LockupRate = clamp(hydro_TC_LockupRate, 0.0, 1.0);
@@ -7860,7 +7893,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			startRLIST = false;
 			continue;
 		}
-		if (issection("END-RL", inputline)) {
+		if (issection("END-UCL", inputline)) {
 			startBPT = false;
 			startUCLIST = false;
 			continue;
@@ -8073,7 +8106,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			startBPT = false;
 			fizlines.emplace("UCList", inputline);
 			startUCLIST = true; LISTLINE = 0;
-			LoadFIZ_RList(inputline);
+			LoadFIZ_UCList(inputline);
 			continue;
 		}
 
@@ -8127,7 +8160,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 		if (true == startUCLIST) {
-			readRList(inputline);
+			readUCList(inputline);
 			continue;
 		}
         if( true == startDLIST ) {

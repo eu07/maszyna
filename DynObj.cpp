@@ -2758,7 +2758,14 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
-        if( ( Mechanik->Primary() )
+		if ((Mechanik->Primary())
+			&& (MoverParameters->EngineType == TEngineType::DieselEngine)
+			&& (MoverParameters->EIMCtrlType > 0)) {
+			MoverParameters->CheckEIMIC(dt1);
+			MoverParameters->eimic_real = MoverParameters->eimic;
+			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic, MoverParameters->CabNo);
+		}
+		if( ( Mechanik->Primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
             // jesli glowny i z asynchronami, to niech steruje hamulcem i napedem lacznie dla calego pociagu/ezt
 			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);

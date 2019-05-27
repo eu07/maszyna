@@ -882,7 +882,9 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
         + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
-		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2);
+		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2)
+		+ "\n desired diesel percentage: " + to_string(mechanik.DizelPercentage, 0)
+	    + "/" + to_string(mechanik.DizelPercentage_Speed, 0);
 
     Output.emplace_back( textline, Global.UITextColor );
 

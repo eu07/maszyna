@@ -3131,6 +3131,14 @@ bool TController::IncSpeed()
         { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga zerowania kierunku)
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
         }
+		if (mvControlling->EIMCtrlType > 0) {
+			if (true == Ready)
+			{
+				DizelPercentage = (mvControlling->Vel > mvControlling->dizel_minVelfullengage ? 100 : 1);
+			}
+			break;
+		}
+		else
         if( true == Ready ) {
             if( ( mvControlling->Vel > mvControlling->dizel_minVelfullengage )
              && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 ) ) {
@@ -3193,6 +3201,12 @@ bool TController::DecSpeed(bool force)
             mvControlling->DecMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
         break;
     case TEngineType::DieselEngine:
+		if (mvControlling->EIMCtrlType > 0)
+		{
+			DizelPercentage = 0;
+			break;
+		}
+
         if ((mvControlling->Vel > mvControlling->dizel_minVelfullengage))
         {
             if (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0)
@@ -3516,6 +3530,37 @@ void TController::SetTimeControllers()
 		}
 	}
 	//5. Check Main Controller in Dizels
+	//5.1. Digital controller in DMUs with hydro
+	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
+	{
+		DizelPercentage_Speed = DizelPercentage;
+		double Factor = 10 * (mvControlling->Vmax) / (mvControlling->Vmax + 3*mvControlling->Vel);
+		double DesiredPercentage = (VelDesired > mvControlling->Vel ? (VelDesired - mvControlling->Vel) / Factor : 0);
+		DesiredPercentage = clamp(DesiredPercentage, 0.0, 1.0);
+		if (VelDesired < 0.5 * mvControlling->Vmax && VelDesired - mvControlling->Vel < 10)
+			DesiredPercentage = std::min(DesiredPercentage, 0.75);
+		if (VelDesired < mvControlling->hydro_TC_LockupSpeed) DizelPercentage = std::min(DizelPercentage,1);
+		int DizelActualPercentage = 100.4 * mvControlling->eimic_real;
+		int PosInc = mvControlling->MainCtrlPosNo;
+		int PosDec = 0;
+		for(int i=PosInc;i>=0;i--)
+			if ((mvControlling->UniCtrlList[i].SetCtrlVal <= 0) && (mvControlling->UniCtrlList[i].SpeedDown > 0.01))
+			{
+				PosDec = i;
+				break;
+			}
+		DizelPercentage_Speed = round(double(DizelPercentage*DesiredPercentage));
+		if (VelDesired < mvControlling->hydro_TC_LockupSpeed) DizelPercentage = std::min(DizelPercentage_Speed, 1);
+		if (abs(DizelPercentage_Speed - DizelActualPercentage)>(DizelPercentage>1?3:0))
+		{
+			if (((DizelPercentage_Speed == 0 && DizelActualPercentage > 10) || (DizelActualPercentage - DizelPercentage_Speed > 50)) && PosDec > 0) PosDec -= 1; //pozycję wczesniej powinno byc szybkie zejscie, jeśli trzeba
+			int DesiredPos = (DizelPercentage_Speed > DizelActualPercentage ? PosInc : PosDec);
+			while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
+			while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+		}
+	}
+	else
+	//5.2. Analog direct controller
 	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->Vmax>30))
 	{
 		int MaxPos = mvControlling->MainCtrlPosNo;
@@ -3574,6 +3619,24 @@ void TController::CheckTimeControllers()
 		{
 				mvOccupied->ScndCtrlPos = 2;
 		}
+	}
+
+	//5. Check Main Controller in Dizels
+	//5.1. Digital controller in DMUs with hydro
+	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
+	{
+		int DizelActualPercentage = 100.4 * mvControlling->eimic_real;
+		int NeutralPos = mvControlling->MainCtrlPosNo - 1; //przedostatnia powinna wstrzymywać - hipoteza robocza
+		for (int i = mvControlling->MainCtrlPosNo; i >= 0; i--)
+			if ((mvControlling->UniCtrlList[i].SetCtrlVal <= 0) && (mvControlling->UniCtrlList[i].SpeedDown < 0.01)) //niby zero, ale nie zmniejsza procentów
+			{
+				NeutralPos = i;
+				break;
+			}
+		if ((DizelActualPercentage >= DizelPercentage_Speed) && (mvControlling->MainCtrlPos > NeutralPos))
+			while (mvControlling->MainCtrlPos > NeutralPos) mvControlling->DecMainCtrl(1);
+		if ((DizelActualPercentage <= DizelPercentage_Speed) && (mvControlling->MainCtrlPos < NeutralPos))
+			while (mvControlling->MainCtrlPos < NeutralPos) mvControlling->IncMainCtrl(1);
 	}
 };
 
