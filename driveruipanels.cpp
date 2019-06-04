@@ -377,24 +377,26 @@ timetable_panel::update() {
                     candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
                     isatpassengerstop ? waitcolor :
                     Global.UITextColor ) };
+                auto const trackcount{ ( tableline->TrackNo == 1 ? u8" ┃  " : u8" ║  " ) };
                 m_tablelines.emplace_back(
-                    ( u8"│ " + vmax + u8" │ " + station + u8" │  " + arrival + u8" │ " + traveltime + u8" │" ),
+                    ( u8"│ " + vmax + u8" │ " + station + trackcount + arrival + u8" │ " + traveltime + u8" │" ),
                     linecolor );
                 m_tablelines.emplace_back(
-                    ( u8"│     │ " + location + tableline->StationWare + u8" │  " + departure + u8" │     │" ),
+                    ( u8"│     │ " + location + tableline->StationWare + trackcount + departure + u8" │     │" ),
                     linecolor );
                 // divider/footer
                 if( i < table->StationCount ) {
                     auto const *nexttableline { tableline + 1 };
-                    if( tableline->vmax == nexttableline->vmax ) {
-                        m_tablelines.emplace_back( u8"│     ├────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
-                    else {
-                        m_tablelines.emplace_back( u8"├─────┼────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
+                    std::string const vmaxnext{ ( tableline->vmax == nexttableline->vmax ? u8"│     ├" : u8"├─────┼" ) };
+                    auto const trackcountnext{ ( nexttableline->TrackNo == 1 ? u8"╂" : u8"╫" ) };
+                    m_tablelines.emplace_back(
+                        vmaxnext + u8"────────────────────────────────────" + trackcountnext + u8"─────────┼─────┤",
+                        Global.UITextColor );
                 }
                 else {
-                    m_tablelines.emplace_back( u8"└─────┴────────────────────────────────────┴─────────┴─────┘", Global.UITextColor );
+                    m_tablelines.emplace_back(
+                        u8"└─────┴────────────────────────────────────┴─────────┴─────┘",
+                        Global.UITextColor );
                 }
             }
         }
