@@ -2133,7 +2133,10 @@ bool TController::CheckVehicles(TOrders user)
                     // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                     p->MoverParameters->BatterySwitch( true );
                 }
-                // enable heating and converter in carriages with can be heated
+            }
+            // enable heating and converter in carriages with can be heated
+            // NOTE: don't touch the controlled vehicle, let the user/ai handle it explicitly
+            if( p->MoverParameters != mvControlling ) {
                 if( p->MoverParameters->HeatingPower > 0 ) {
                     p->MoverParameters->HeatingAllow = true;
                     p->MoverParameters->ConverterSwitch( true, range_t::local );
@@ -2529,14 +2532,14 @@ bool TController::PrepareEngine()
             }
             else { 
                 OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
-                mvOccupied->ConverterSwitch( true );
+                mvControlling->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvOccupied->CompressorSwitch( true );
+                mvControlling->CompressorSwitch( true );
                 // enable motor blowers
-                mvOccupied->MotorBlowersSwitchOff( false, end::front );
-                mvOccupied->MotorBlowersSwitch( true, end::front );
-                mvOccupied->MotorBlowersSwitchOff( false, end::rear );
-                mvOccupied->MotorBlowersSwitch( true, end::rear );
+                mvControlling->MotorBlowersSwitchOff( false, end::front );
+                mvControlling->MotorBlowersSwitch( true, end::front );
+                mvControlling->MotorBlowersSwitchOff( false, end::rear );
+                mvControlling->MotorBlowersSwitch( true, end::rear );
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
@@ -2550,6 +2553,14 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
+                // enable train heating
+                // HACK: to account for su-45/-46 shortcomings diesel-powered engines only activate heating in cold conditions
+                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
+                mvControlling->HeatingAllow = (
+                    ( ( mvControlling->EngineType == TEngineType::DieselElectric )
+                   || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ?
+                        ( Global.AirTemperature < 10 ) :
+                        true );
             }
         }
         else
@@ -2632,7 +2643,9 @@ bool TController::ReleaseEngine() {
         mvOccupied->OperateDoors( side::left, false );
 
         if( true == mvControlling->Mains ) {
-            mvControlling->CompressorSwitch( false );
+            // heating
+            mvControlling->HeatingAllow = false;
+            // devices
             mvControlling->ConverterSwitch( false );
             // line breaker/engine
             OK = mvControlling->MainSwitch( false );
