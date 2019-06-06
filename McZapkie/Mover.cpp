@@ -4750,6 +4750,8 @@ double TMoverParameters::TractionForce( double dt ) {
         {
             Mm = dmoment; //bylo * dizel_engage
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
+			if ((hydro_R) && (hydro_R_Placement == 0))
+				Mw -= dizel_MomentumRetarder(nrot * Transmision.Ratio, dt) * Transmision.Ratio;
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
             Ft = Fw * NPoweredAxles; // sila trakcyjna
             Ft = Ft * DirAbsolute; // ActiveDir*CabNo;
@@ -6500,6 +6502,8 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 
     if( enrot > 0 ) {
         Moment = ( dizel_Mmax - ( dizel_Mmax - dizel_Mnmax ) * square( ( enrot - dizel_nMmax ) / ( dizel_nMmax - dizel_nmax ) ) ) * dizel_fill - dizel_Mstand;
+		if ((hydro_R) && (hydro_R_Placement == 2))
+			Moment -= dizel_MomentumRetarder(enrot, dt);
     }
     else {
         Moment = -dizel_Mstand;
@@ -6619,6 +6623,8 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		double enrot_max = enrot + (Min0R(TorqueC, TorqueL + abs(hydro_TC_TorqueIn)) + Moment) / dizel_AIM * dt;
 		enrot = clamp(n,enrot_min,enrot_max);
 	}
+	if ((hydro_R) && (hydro_R_Placement == 1))
+		gearMoment -= dizel_MomentumRetarder(hydro_TC_nOut, dt);
 
 
     if( ( enrot <= 0 ) && ( false == dizel_spinup ) ) {
@@ -6629,6 +6635,40 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	dizel_n_old = n; //obecna predkosc katowa na potrzeby kolejnej klatki
 
     return gearMoment;
+}
+
+double TMoverParameters::dizel_MomentumRetarder(double n, double dt)
+{
+	double RetarderRequest = (Mains ? std::max(0.0, -eimic_real) : 0);
+	if (Vel < hydro_R_MinVel)
+		RetarderRequest = 0;
+	if ((hydro_R_Placement == 2) && (enrot < dizel_nmin))
+	{
+		RetarderRequest = 0;
+	}
+
+	hydro_R_n = n * 60;
+
+	if (hydro_R_Fill < RetarderRequest) //gdy zadane hamowanie
+	{
+		hydro_R_Fill = std::min(hydro_R_Fill + hydro_R_FillRateInc*dt, RetarderRequest);
+	}
+	else
+	{
+		hydro_R_Fill = std::max(hydro_R_Fill - hydro_R_FillRateDec*dt, RetarderRequest);
+	}
+	
+	double Moment = hydro_R_MaxTorque;
+	double pwr = Moment * n * M_PI * 2 * 0.001;
+	if (pwr > hydro_R_MaxPower)
+		Moment = Moment * hydro_R_MaxPower / pwr;
+	double moment_in = n*n*hydro_R_TorqueInIn;
+	Moment = std::min(moment_in, Moment * hydro_R_Fill);
+	
+	hydro_R_Torque = Moment;
+
+	return Moment;
+
 }
 
 // sets component temperatures to specified value
