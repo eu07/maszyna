@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "Timer.h"
 #include "Event.h"
+#include "TractionPower.h"
 #include "Camera.h"
 #include "mtable.h"
 #include "Train.h"
@@ -476,6 +477,7 @@ debug_panel::update() {
     m_scantablelines.clear();
     m_scenariolines.clear();
     m_eventqueuelines.clear();
+    m_powergridlines.clear();
     m_cameralines.clear();
     m_rendererlines.clear();
 
@@ -485,6 +487,7 @@ debug_panel::update() {
     update_section_scantable( m_scantablelines );
     update_section_scenario( m_scenariolines );
     update_section_eventqueue( m_eventqueuelines );
+    update_section_powergrid( m_powergridlines );
     update_section_camera( m_cameralines );
     update_section_renderer( m_rendererlines );
 }
@@ -525,6 +528,10 @@ debug_panel::render() {
         if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
             // event queue filter
             ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
+        }
+        if( true == render_section( "Power Grid", m_powergridlines ) ) {
+            // traction state debug
+            ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
         }
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
@@ -981,6 +988,46 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
     }
     if( Output.size() == 1 ) {
         Output.front().data = "(no queued events)";
+    }
+}
+
+void
+debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
+
+    auto const lowpowercolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+    auto const nopowercolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+
+    Output.emplace_back( "Name:               Output:   Timeout:", Global.UITextColor );
+
+    std::string textline;
+
+    for( auto const *powerstation : simulation::Powergrid.sequence() ) {
+
+        if( true == powerstation->bSection ) { continue; }
+
+        auto const name { (
+            powerstation->m_name.empty() ?
+                "(unnamed)" :
+                powerstation->m_name )
+            + "                              " };
+
+        textline =
+            name.substr( 0, 20 )
+            + " " + to_string( powerstation->OutputVoltage, 0, 5 )
+            + " " + to_string( powerstation->FuseTimer, 1, 12 )
+            + ( powerstation->FuseCounter == 0 ?
+                "" :
+                " (x" + to_string( powerstation->FuseCounter ) + ")" );
+
+        Output.emplace_back(
+            textline,
+            ( ( powerstation->FastFuse || powerstation->SlowFuse ) ? nopowercolor :
+              powerstation->OutputVoltage < ( 0.8 * powerstation->NominalVoltage ) ? lowpowercolor :
+              Global.UITextColor ) );
+    }
+
+    if( Output.size() == 1 ) {
+        Output.front().data = "(no power stations)";
     }
 }
 

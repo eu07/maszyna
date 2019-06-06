@@ -38,6 +38,7 @@ extern bool DebugModeFlag;
 extern bool FreeFlyModeFlag;
 extern bool EditorModeFlag;
 extern bool DebugCameraFlag;
+extern bool DebugTractionFlag;
 
 /*funkcje matematyczne*/
 double Max0R(double x1, double x2);

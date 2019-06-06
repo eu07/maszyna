@@ -31,6 +31,7 @@ bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
 bool EditorModeFlag = false;
 bool DebugCameraFlag = false;
+bool DebugTractionFlag = false;
 
 double Max0R(double x1, double x2)
 {
