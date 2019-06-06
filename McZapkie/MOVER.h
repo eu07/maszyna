@@ -1544,6 +1544,7 @@ public:
 	bool dizel_AutoGearCheck(void);
 	double dizel_fillcheck(int mcp);
 	double dizel_Momentum(double dizel_fill, double n, double dt);
+	double dizel_MomentumRetarder(double n, double dt);  // moment hamowania retardera
     void dizel_HeatSet( float const Value );
     void dizel_Heat( double const dt );
     bool dizel_StartupCheck();

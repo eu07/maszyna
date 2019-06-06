@@ -806,7 +806,11 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
             { "hTCTI: ", mover.hydro_TC_TorqueIn },
             { "hTCTO: ", mover.hydro_TC_TorqueOut },
             { "hTCfl: ", mover.hydro_TC_Fill },
-            { "hTCLR: ", mover.hydro_TC_LockupRate } };
+            { "hRtFl: ", mover.hydro_R_Fill } ,
+			{ " hRtn: ", mover.hydro_R_n } ,
+			{ "hRtTq: ", mover.hydro_R_Torque }
+		
+		};
         for( auto const &parameter : hydrovalues ) {
             parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
         }
