@@ -6128,6 +6128,19 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 3:
+
+		if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //nie było ruszane nastawnikiem tylko hamulcem
+		{
+			if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode) 
+				BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //przytnij z dołu
+			if (BrakeCtrlPos > UniCtrlList[0].mode)
+				BrakeLevelSet(UniCtrlList[0].mode); //przytnij z góry
+			while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //znajdź najbliższą pozycję
+			while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //znajdź najbliższą pozycję
+		}
+		else //było ruszane nastawnikiem
+			BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
+
 		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
 		{
 			eimic -= clamp(-UniCtrlList[MainCtrlPos].SetCtrlVal + eimic, 0.0, (MainCtrlActualPos == MainCtrlPos ? dt * UniCtrlList[MainCtrlPos].SpeedDown : sign(UniCtrlList[MainCtrlPos].SpeedDown) * 0.01)); //odejmuj do X
@@ -6141,7 +6154,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 			LastRelayTime = 0;
 			MainCtrlActualPos = MainCtrlPos;
 		}
-		//BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
+
 	}
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
