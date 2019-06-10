@@ -3633,10 +3633,13 @@ void TController::CheckTimeControllers()
 				NeutralPos = i;
 				break;
 			}
-		if ((DizelActualPercentage >= DizelPercentage_Speed) && (mvControlling->MainCtrlPos > NeutralPos))
-			while (mvControlling->MainCtrlPos > NeutralPos) mvControlling->DecMainCtrl(1);
-		if ((DizelActualPercentage <= DizelPercentage_Speed) && (mvControlling->MainCtrlPos < NeutralPos))
-			while (mvControlling->MainCtrlPos < NeutralPos) mvControlling->IncMainCtrl(1);
+		if (BrakeCtrlPosition < 0.1) //jesli nie hamuje
+		{
+			if ((DizelActualPercentage >= DizelPercentage_Speed) && (mvControlling->MainCtrlPos > NeutralPos))
+				while (mvControlling->MainCtrlPos > NeutralPos) mvControlling->DecMainCtrl(1);
+			if ((DizelActualPercentage <= DizelPercentage_Speed) && (mvControlling->MainCtrlPos < NeutralPos))
+				while (mvControlling->MainCtrlPos < NeutralPos) mvControlling->IncMainCtrl(1);
+		}
 	}
 };
 
