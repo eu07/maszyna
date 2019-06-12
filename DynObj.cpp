@@ -2702,10 +2702,11 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (v == 0.0) {
                 v = MoverParameters->PantFrontVolt;
                 if( v == 0.0 ) {
-                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
+//                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
                         // dwuczłony mogą mieć sprzęg WN
+                        // NOTE: condition disabled, other vehicles types can have power cables as well
                         v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
-                    }
+//                    }
                 }
             }
             if (v != 0.0)

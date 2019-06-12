@@ -589,14 +589,17 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.ConvOvldFlag ? '!' : '.' ),
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
+        ( mover.Heating ? 'H' : ( mover.HeatingAllow ? 'h' : '.' ) ),
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
-        std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
-        std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-        std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+        std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
+        std::string( vehicle.DirectionGet() ? ":<<" : ":>>" ).c_str(),
+        mover.Voltage,
+        std::string( vehicle.DirectionGet() ? "<<:" : ">>:" ).c_str(),
+        std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
         mover.Couplers[ end::rear ].power_high.current );
 

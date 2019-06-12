@@ -618,7 +618,8 @@ enum class TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic 
 struct power_coupling {
     double current{ 0.0 };
     double voltage{ 0.0 };
-    bool local{ false }; // whether the power comes from external or onboard source
+    bool is_local{ false }; // whether the power comes from external or onboard source
+    bool is_live{ false }; // whether the coupling with next vehicle is live
 };
 
 struct TCoupling {
@@ -1369,6 +1370,7 @@ public:
 
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
+    bool PantAutoValve { false }; // type of installed pantograph compressor valve
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
@@ -1502,7 +1504,8 @@ public:
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
-	void ConverterCheck( double const Timestep ); // przetwornica
+    void PowerCouplersCheck( double const Deltatime );
+    void ConverterCheck( double const Timestep ); // przetwornica
     void HeatingCheck( double const Timestep );
     void WaterPumpCheck( double const Timestep );
     void WaterHeaterCheck( double const Timestep );

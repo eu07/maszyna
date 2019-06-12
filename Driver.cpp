@@ -2459,7 +2459,7 @@ bool TController::PrepareEngine()
             mvOccupied->PantRear( true );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
-                if( mvControlling->TrainType != dt_EZT ) {
+                if( false == mvControlling->PantAutoValve ) {
                     // odłączenie zbiornika głównego, bo z nim nie da rady napompować
                     mvControlling->bPantKurek3 = false;
                 }

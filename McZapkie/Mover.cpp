@@ -673,7 +673,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
         // Ra 2014-07: kurek trójdrogowy łączy spr.pom. z pantografami i wyłącznikiem ciśnieniowym WS
         // Ra 2014-07: zbiornika rozrządu nie pompuje się tu, tylko pantografy; potem można zamknąć
         // WS i odpalić resztę
-        if ((TrainType == dt_EZT) ?
+        if (PantAutoValve ?
             (PantPress < ScndPipePress) :
             bPantKurek3) // kurek zamyka połączenie z ZG
         { // zbiornik pantografu połączony ze zbiornikiem głównym - małą sprężarką się tego nie napompuje
@@ -1070,85 +1070,6 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     const double Vepsilon = 1e-5;
     const double  Aepsilon = 1e-3; // ASBSpeed=0.8;
 
-    // T_MoverParameters::ComputeMovement(dt, dt1, Shape, Track, ElectricTraction, NewLoc, NewRot);
-    // // najpierw kawalek z funkcji w pliku mover.pas
-	TotalCurrent = 0;
-    double hvc =
-        std::max(
-            std::max(
-                PantFrontVolt,
-                PantRearVolt ),
-            ElectricTraction.TractionVoltage * 0.9 );
-
-    for( int side = 0; side < 2; ++side ) {
-        // przekazywanie napiec
-        auto const oppositeside { ( side == end::front ? end::rear : end::front ) };
-        auto const liveconnection{
-            ( Couplers[ side ].CouplingFlag & ctrain_power )
-            || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
-              && ( Couplers[ side ].Connected->Heating ) ) };
-
-        if( liveconnection ) {
-            auto const &connectedcoupler = Couplers[ side ].Connected->Couplers[ Couplers[ side ].ConnectedNr ];
-            Couplers[ oppositeside ].power_high.voltage =
-                std::max(
-                    std::abs( hvc ),
-                    connectedcoupler.power_high.voltage - Couplers[ side ].power_high.current * 0.02 );
-        }
-        else {
-            Couplers[ oppositeside ].power_high.voltage = std::abs( hvc ) - Couplers[ side ].power_high.current * 0.02;
-        }
-    }
-
-    hvc = Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage;
-
-    if( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) < 1.0 ) {
-        // bez napiecia...
-        if( hvc != 0.0 ) {
-            // ...ale jest cos na sprzegach:
-            // przekazywanie pradow
-            for( int side = 0; side < 2; ++side ) {
-
-                Couplers[ side ].power_high.local = false; // power, if any, will be from external source
-
-                if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-                 || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
-                   && ( Couplers[ side ].Connected->Heating ) ) ) {
-                    auto const &connectedcoupler =
-                        Couplers[ side ].Connected->Couplers[
-                            ( Couplers[ side ].ConnectedNr == end::front ?
-                                end::rear :
-                                end::front ) ];
-                    Couplers[ side ].power_high.current =
-                        connectedcoupler.power_high.current
-                        + Itot * Couplers[ side ].power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
-                }
-			    else {
-                    Couplers[ side ].power_high.current = Itot * Couplers[ side ].power_high.voltage / hvc;
-                }
-            }
-        }
-	}
-	else
-	{
-        for( int side = 0; side < 2; ++side ) {
-
-            Couplers[ side ].power_high.local = true; // power is coming from local pantographs
-
-            if( ( Couplers[ side ].CouplingFlag & ctrain_power )
-             || ( ( Couplers[ side ].CouplingFlag & ctrain_heating )
-               && ( Couplers[ side ].Connected->Heating ) ) ) {
-                auto const &connectedcoupler =
-                    Couplers[ side ].Connected->Couplers[
-                        ( Couplers[ side ].ConnectedNr == end::front ?
-                            end::rear :
-                            end::front ) ];
-                TotalCurrent += connectedcoupler.power_high.current;
-                Couplers[ side ].power_high.current = 0.0;
-            }
-        }
-	}
-
     if (!TestFlag(DamageFlag, dtrain_out))
     { // Ra: to przepisywanie tu jest bez sensu
         RunningShape = Shape;
@@ -1399,6 +1320,10 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
             SetFlag( SoundFlag, sound::relay );
         }
     }
+
+    // TODO: gather and move current calculations to dedicated method
+    TotalCurrent = 0;
+
     // traction motors
     MotorBlowersCheck( Deltatime );
     // uklady hamulcowe:
@@ -1436,6 +1361,81 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     BrakeSlippingTimer += Deltatime;
     // automatic doors
     update_doors( Deltatime );
+
+    PowerCouplersCheck( Deltatime );
+}
+
+void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
+
+    // TODO: add support for other power sources
+    auto const localpowersource { ( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) > 1.0 ) };
+
+    auto hvc = std::max( PantFrontVolt, PantRearVolt );
+
+    // przekazywanie napiec
+    for( auto side = 0; side < 2; ++side ) {
+      
+        auto &coupler { Couplers[ side ] };
+        // NOTE: in the loop we actually update the state of the coupler on the opposite end of the vehicle
+        auto &oppositecoupler { Couplers[ ( side == end::front ? end::rear : end::front ) ] };
+        auto const oppositehighvoltagecoupling { ( oppositecoupler.CouplingFlag & coupling::highvoltage ) != 0 };
+        auto const oppositeheatingcoupling { ( oppositecoupler.CouplingFlag & coupling::heating ) != 0 };
+        
+        // start with base voltage
+        oppositecoupler.power_high.voltage = std::abs( hvc );
+        oppositecoupler.power_high.is_live = false;
+        oppositecoupler.power_high.is_local = localpowersource; // indicate power source
+        // draw from external source
+        if( coupler.Connected != nullptr ) {
+            auto const &connectedcoupler { coupler.Connected->Couplers[ coupler.ConnectedNr ] };
+            auto const connectedvoltage { (
+                connectedcoupler.power_high.is_live ?
+                    connectedcoupler.power_high.voltage :
+                    0.0 ) };
+            oppositecoupler.power_high.voltage = std::max(
+                oppositecoupler.power_high.voltage,
+                connectedvoltage - coupler.power_high.current * 0.02 );
+            oppositecoupler.power_high.is_live =
+                ( connectedvoltage > 0.1 )
+             && ( oppositehighvoltagecoupling || oppositeheatingcoupling );
+        }
+        // draw from local source
+        if( localpowersource ) {
+            auto const localvoltage { std::abs( hvc ) };
+            oppositecoupler.power_high.voltage = std::max(
+                oppositecoupler.power_high.voltage,
+                localvoltage - coupler.power_high.current * 0.02 );
+            oppositecoupler.power_high.is_live |=
+                ( localvoltage > 0.1 )
+            &&  ( oppositehighvoltagecoupling || ( oppositeheatingcoupling && localpowersource && Heating ) );
+        }
+    }
+
+    // przekazywanie pradow
+    hvc = Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage;
+
+    for( auto side = 0; side < 2; ++side ) {
+
+        auto &coupler { Couplers[ side ] };
+        auto const &connectedothercoupler { coupler.Connected->Couplers[ ( coupler.ConnectedNr == end::front ? end::rear : end::front ) ] };
+
+        coupler.power_high.current = 0.0;
+        if( false == localpowersource ) {
+            // bez napiecia...
+            if( hvc != 0.0 ) {
+                // ...ale jest cos na sprzegach:
+                coupler.power_high.current = ( Itot + TotalCurrent ) * coupler.power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
+                if( true == coupler.power_high.is_live ) {
+                    coupler.power_high.current += connectedothercoupler.power_high.current;
+                }
+            }
+        }
+        else {
+            if( true == coupler.power_high.is_live ) {
+                TotalCurrent += connectedothercoupler.power_high.current;
+            }
+        }
+    }
 }
 
 double TMoverParameters::ShowEngineRotation(int VehN)
@@ -1492,12 +1492,24 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
 // heating system status check
 void TMoverParameters::HeatingCheck( double const Timestep ) {
 
-    Heating = (
-        ( true == HeatingAllow )
+    auto const heatingpowerthreshold { 0.1 };
+
+    auto const voltage { (
         // powered vehicles are generally required to activate their power source to provide heating
         // passive vehicles get a pass in this regard
-     && ( ( Power < 0.1 )
-       || ( true == Mains ) ) );
+        Power < 0.1 ?
+            GetTrainsetVoltage() :
+            ( true == Mains ?
+                Voltage :
+                GetTrainsetVoltage() ) ) };
+
+    Heating = (
+        ( true == HeatingAllow )
+     && ( std::abs( voltage ) > heatingpowerthreshold ) );
+
+    if( Heating ) {
+        TotalCurrent += 1000 * HeatingPower / voltage; // heater power cost presumably specified in kilowatts
+    }
 }
 
 // water pump status check
@@ -3882,7 +3894,6 @@ void TMoverParameters::ComputeConstans(void)
     double BearingF, RollF, HideModifier;
     double Curvature; // Ra 2014-07: odwrotność promienia
 
-    TotalCurrent = 0; // Ra 2014-04: tu zerowanie, aby EZT mogło pobierać prąd innemu członowi
     TotalMass = ComputeMass();
     TotalMassxg = TotalMass * g; // TotalMass*g
     BearingF = 2.0 * (DamageFlag && dtrain_bearing);
@@ -4021,9 +4032,10 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         else
             Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
     } // bo nie dzialalo
+    // TODO: clean up this elseif to match changes in power coupling code
     else if( ( EngineType == TEngineType::ElectricInductionMotor )
           || ( ( ( Couplers[ end::front ].CouplingFlag & ctrain_power ) == ctrain_power )
-          || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
+            || ( ( Couplers[ end::rear  ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
         // potem ulepszyc! pantogtrafy!
         Voltage =
             std::max(
@@ -4413,7 +4425,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
-                if( ( true == Heating )
+                if( ( true == HeatingAllow )
                  && ( HeatingPower > 0 )
                  && ( EngineHeatingRPM > 0 ) ) {
                     // bump engine revolutions up if needed, when heating is on
@@ -5292,12 +5304,12 @@ double TMoverParameters::TractionForce( double dt ) {
                 Im = eimv[eimv_If];
                 if ((eimv[eimv_Ipoj] >= 0))
                     Vadd *= (1.0 - 2.0 * dt);
-                else if ((Voltage < EnginePowerSource.CollectorParameters.MaxV))
+                else if ((std::abs(Voltage) < EnginePowerSource.CollectorParameters.MaxV))
                     Vadd *= (1.0 - dt);
                 else
                     Vadd = Max0R(
                         Vadd * (1.0 - 0.2 * dt),
-                        0.007 * (Voltage - (EnginePowerSource.CollectorParameters.MaxV - 100)));
+                        0.007 * (std::abs(Voltage) - (EnginePowerSource.CollectorParameters.MaxV - 100)));
                 Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
@@ -7439,15 +7451,11 @@ double TMoverParameters::GetTrainsetVoltage(void)
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
     return std::max(
         ( ( ( Couplers[end::front].Connected )
-         && ( ( Couplers[ end::front ].CouplingFlag & ctrain_power )
-           || ( ( Couplers[ end::front ].CouplingFlag & ctrain_heating )
-             && ( Couplers[ end::front ].Connected->Heating ) ) ) ) ?
+         && ( Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high.is_live ) ) ?
             Couplers[end::front].Connected->Couplers[ Couplers[end::front].ConnectedNr ].power_high.voltage :
             0.0 ),
         ( ( ( Couplers[end::rear].Connected )
-         && ( ( Couplers[ end::rear ].CouplingFlag & ctrain_power )
-           || ( ( Couplers[ end::rear ].CouplingFlag & ctrain_heating )
-             && ( Couplers[ end::rear ].Connected->Heating ) ) ) ) ?
+         && ( Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.is_live ) ) ?
             Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
 }
@@ -7889,13 +7897,19 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     std::string file = chkpath + TypeName + ".fiz";
 
     WriteLog("LOAD FIZ FROM " + file);
-
+/*
     std::ifstream in(file);
 	if (!in.is_open())
 	{
 		WriteLog("E8 - FIZ FILE NOT EXIST.");
 		return false;
 	}
+*/
+    cParser fizparser( file, cParser::buffer_FILE );
+    if( false == fizparser.ok() ) {
+        WriteLog( "E8 - FIZ FILE NOT EXIST." );
+        return false;
+    }
 
     ConversionError = 0;
 
@@ -7903,8 +7917,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::unordered_map<std::string, std::string> fizlines;
     std::string inputline;
+/*
     while (std::getline(in, inputline))
-    {
+*/
+    while( fizparser.ok() ) {
+
+        inputline = fizparser.getToken<std::string>( false, "\n" );
+
         bool comment = ( ( inputline.find('#') != std::string::npos )
 			          || ( inputline.compare( 0, 2, "//" ) == 0 ) );
         if( true == comment ) {
@@ -8220,8 +8239,9 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
     } // while line
+/*
     in.close();
-
+*/
     // Operacje na zebranych parametrach - przypisywanie do wlasciwych zmiennych i ustawianie
     // zaleznosci
 
@@ -8869,6 +8889,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 start_t::manual;
     }
+    // pantograph compressor valve
+    PantAutoValve = ( TrainType == dt_EZT ); // legacy code behaviour, automatic valve was initially installed in all EMUs
+    extract_value( PantAutoValve, "PantAutoValve", line, "" );
     // fuel pump
     {
         auto lookup = starts.find( extract_value( "FuelStart", line ) );

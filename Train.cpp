@@ -4721,8 +4721,11 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
         if( Train->mvOccupied->Doors.has_autowarning ) {
             Train->mvOccupied->signal_departure( true );
         }
-        Train->mvOccupied->OperateDoors( side::right, false );
-        Train->mvOccupied->OperateDoors( side::left, false );
+        if( Train->ggDoorAllOffButton.type() != TGaugeType::push_delayed ) {
+            // delays the action until the button is released
+            Train->mvOccupied->OperateDoors( side::right, false );
+            Train->mvOccupied->OperateDoors( side::left, false );
+        }
         // visual feedback
         Train->ggDoorLeftButton.UpdateValue( 0.0, Train->dsbSwitch );
         Train->ggDoorRightButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -4730,9 +4733,13 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
             Train->ggDoorAllOffButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // release the button
         if( Train->mvOccupied->Doors.has_autowarning ) {
             Train->mvOccupied->signal_departure( false );
+        }
+        if( Train->ggDoorAllOffButton.type() == TGaugeType::push_delayed ) {
+            // now we can actually close the door
+            Train->mvOccupied->OperateDoors( side::right, false );
+            Train->mvOccupied->OperateDoors( side::left, false );
         }
         // visual feedback
         if( Train->ggDoorAllOffButton.SubModel )
