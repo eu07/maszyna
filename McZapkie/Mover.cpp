@@ -1366,12 +1366,46 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
 }
 
 void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
-
     // TODO: add support for other power sources
+    auto localvoltage { 0.0 };
+    // heating power sources
+    if( Heating ) {
+        switch( HeatingPowerSource.SourceType ) {
+            case TPowerSource::Generator: {
+                localvoltage = HeatingPowerSource.EngineGenerator.voltage - TotalCurrent * 0.02;
+                break;
+            }
+            case TPowerSource::Main: {
+                localvoltage = ( true == Mains ? Voltage : 0.0 );
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+    // high voltage power sources
+    switch( EnginePowerSource.SourceType ) {
+        case TPowerSource::CurrentCollector: {
+            localvoltage =
+                std::max(
+                    localvoltage,
+                    std::max(
+                        PantFrontVolt,
+                        PantRearVolt ) );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    auto const abslocalvoltage { std::abs( localvoltage ) };
+    auto const localpowersource { ( abslocalvoltage > 1.0 ) };
+/*
     auto const localpowersource { ( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) > 1.0 ) };
-
     auto hvc = std::max( PantFrontVolt, PantRearVolt );
-
+*/
     // przekazywanie napiec
     for( auto side = 0; side < 2; ++side ) {
       
@@ -1382,7 +1416,7 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
         auto const oppositeheatingcoupling { ( oppositecoupler.CouplingFlag & coupling::heating ) != 0 };
         
         // start with base voltage
-        oppositecoupler.power_high.voltage = std::abs( hvc );
+        oppositecoupler.power_high.voltage = abslocalvoltage;
         oppositecoupler.power_high.is_live = false;
         oppositecoupler.power_high.is_local = localpowersource; // indicate power source
         // draw from external source
@@ -1401,18 +1435,17 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
         }
         // draw from local source
         if( localpowersource ) {
-            auto const localvoltage { std::abs( hvc ) };
             oppositecoupler.power_high.voltage = std::max(
                 oppositecoupler.power_high.voltage,
-                localvoltage - coupler.power_high.current * 0.02 );
+                abslocalvoltage - coupler.power_high.current * 0.02 );
             oppositecoupler.power_high.is_live |=
-                ( localvoltage > 0.1 )
+                ( abslocalvoltage > 0.1 )
             &&  ( oppositehighvoltagecoupling || ( oppositeheatingcoupling && localpowersource && Heating ) );
         }
     }
 
     // przekazywanie pradow
-    hvc = Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage;
+    auto couplervoltage { Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage };
 
     for( auto side = 0; side < 2; ++side ) {
 
@@ -1422,9 +1455,9 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
         coupler.power_high.current = 0.0;
         if( false == localpowersource ) {
             // bez napiecia...
-            if( hvc != 0.0 ) {
+            if( couplervoltage != 0.0 ) {
                 // ...ale jest cos na sprzegach:
-                coupler.power_high.current = ( Itot + TotalCurrent ) * coupler.power_high.voltage / hvc; // obciążenie rozkladane stosownie do napiec
+                coupler.power_high.current = ( Itot + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
                 if( true == coupler.power_high.is_live ) {
                     coupler.power_high.current += connectedothercoupler.power_high.current;
                 }
@@ -1492,20 +1525,64 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
 // heating system status check
 void TMoverParameters::HeatingCheck( double const Timestep ) {
 
+    // update heating devices
+    // TBD, TODO: move this to a separate method?
+    switch( HeatingPowerSource.SourceType ) {
+        case TPowerSource::Generator: {
+            if( ( HeatingPowerSource.EngineGenerator.engine_revolutions != nullptr )
+             && ( HeatingPowerSource.EngineGenerator.revolutions_max > 0 ) ) {
+
+                auto &generator { HeatingPowerSource.EngineGenerator };
+                // TBD, TODO: engine-generator transmission
+                generator.revolutions = *(generator.engine_revolutions);
+
+                auto const absrevolutions { std::abs( generator.revolutions ) };
+                generator.voltage = (
+                    absrevolutions < generator.revolutions_min ? generator.voltage_min * absrevolutions / generator.revolutions_min :
+//                    absrevolutions > generator.revolutions_max ? generator.voltage_max * absrevolutions / generator.revolutions_max :
+                    interpolate(
+                        generator.voltage_min, generator.voltage_max,
+                        clamp(
+                            ( absrevolutions - generator.revolutions_min ) / ( generator.revolutions_max - generator.revolutions_min ),
+                            0.0, 1.0 ) ) )
+                    * sign( generator.revolutions );
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    // quick check first to avoid unnecessary calls...
+    if( false == HeatingAllow ) {
+        Heating = false;
+        return;
+    }
+    // ...detailed check if we're still here
     auto const heatingpowerthreshold { 0.1 };
+    // start with external power sources
+    auto voltage { GetTrainsetVoltage() };
+    // then try internal ones
+    auto localvoltage { 0.0 };
+    switch( HeatingPowerSource.SourceType ) {
+        case TPowerSource::Generator: {
+            localvoltage = HeatingPowerSource.EngineGenerator.voltage;
+            break;
+        }
+        case TPowerSource::Main: {
+            localvoltage = ( true == Mains ? Voltage : 0.0 );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    if( std::abs( localvoltage ) > std::abs( voltage ) ) {
+        voltage = localvoltage;
+    }
 
-    auto const voltage { (
-        // powered vehicles are generally required to activate their power source to provide heating
-        // passive vehicles get a pass in this regard
-        Power < 0.1 ?
-            GetTrainsetVoltage() :
-            ( true == Mains ?
-                Voltage :
-                GetTrainsetVoltage() ) ) };
-
-    Heating = (
-        ( true == HeatingAllow )
-     && ( std::abs( voltage ) > heatingpowerthreshold ) );
+    Heating = ( std::abs( voltage ) > heatingpowerthreshold );
 
     if( Heating ) {
         TotalCurrent += 1000 * HeatingPower / voltage; // heater power cost presumably specified in kilowatts
@@ -9003,12 +9080,13 @@ void TMoverParameters::LoadFIZ_Power( std::string const &Line ) {
 
     EnginePowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "EnginePower", Line ) );
     LoadFIZ_PowerParamsDecode( EnginePowerSource, "", Line );
-
+/*
     if( ( EnginePowerSource.SourceType == TPowerSource::Generator )
      && ( EnginePowerSource.GeneratorEngine == TEngineType::WheelsDriven ) ) {
         // perpetuum mobile?
         ConversionError = 666;
     }
+*/
     if( Power == 0.0 ) {
         //jeśli nie ma mocy, np. rozrządcze EZT
         EnginePowerSource.SourceType = TPowerSource::NotDefined;
@@ -9331,12 +9409,31 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
         }
         case TPowerSource::Transducer: {
             
-            extract_value( Powerparameters.InputVoltage, Prefix + "TransducerInputV", Line, "" );
+            extract_value( Powerparameters.Transducer.InputVoltage, Prefix + "TransducerInputV", Line, "" );
             break;
         }
         case TPowerSource::Generator: {
+            // prime mover for the generator
+            auto &generatorparameters { Powerparameters.EngineGenerator };
 
-            Powerparameters.GeneratorEngine = LoadFIZ_EngineDecode( extract_value( Prefix + "GeneratorEngine", Line ) );
+            auto const enginetype { LoadFIZ_EngineDecode( extract_value( Prefix + "GeneratorEngine", Line ) ) };
+            if( enginetype == TEngineType::Main ) {
+                generatorparameters.engine_revolutions = &enrot;
+            }
+            else {
+                // TODO: for engine types other than Main create requested engine object and link to its revolutions
+                generatorparameters.engine_revolutions = nullptr;
+                generatorparameters.revolutions = 0;
+                generatorparameters.voltage = 0;
+            }
+            // config
+            extract_value( generatorparameters.voltage_min, Prefix + "GeneratorMinVoltage", Line, "0" );
+            extract_value( generatorparameters.voltage_max, Prefix + "GeneratorMaxVoltage", Line, "0" );
+            // NOTE: for consistency the fiz file specifies  revolutions per minute
+            extract_value( generatorparameters.revolutions_min, Prefix + "GeneratorMinRPM", Line, "0" );
+            extract_value( generatorparameters.revolutions_max, Prefix + "GeneratorMaxRPM", Line, "0" );
+            generatorparameters.revolutions_min /= 60;
+            generatorparameters.revolutions_max /= 60;
             break;
         }
         case TPowerSource::Accumulator: {
@@ -9422,7 +9519,8 @@ TPowerSource TMoverParameters::LoadFIZ_SourceDecode( std::string const &Source )
         { "CurrentCollector", TPowerSource::CurrentCollector },
         { "PowerCable", TPowerSource::PowerCable },
         { "Heater", TPowerSource::Heater },
-        { "Internal", TPowerSource::InternalSource }
+        { "Internal", TPowerSource::InternalSource },
+        { "Main", TPowerSource::Main }
     };
     auto lookup = powersources.find( Source );
     return
@@ -9441,7 +9539,8 @@ TEngineType TMoverParameters::LoadFIZ_EngineDecode( std::string const &Engine ) 
         { "Dumb", TEngineType::Dumb },
         { "DieselElectric", TEngineType::DieselElectric },
         { "DumbDE", TEngineType::DieselElectric },
-        { "ElectricInductionMotor", TEngineType::ElectricInductionMotor }
+        { "ElectricInductionMotor", TEngineType::ElectricInductionMotor },
+        { "Main", TEngineType::Main }
     };
     auto lookup = enginetypes.find( Engine );
     return
@@ -9658,6 +9757,12 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
     if( LightsPosNo > 0 )
         LightsPos = LightsDefPos;
+
+    // NOTE: legacy compatibility behaviour for vehicles without defined heating power source
+    if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
+     && ( HeatingPowerSource.SourceType == TPowerSource::NotDefined ) ) {
+        HeatingPowerSource.SourceType = TPowerSource::Main;
+    }
 
     // checking ready flag
     // to dac potem do init

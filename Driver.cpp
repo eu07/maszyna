@@ -5406,7 +5406,8 @@ TController::UpdateSituation(double dt) {
                     exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
                     vehicle = vehicle->Next();
                 }
-                if( exchangetime > 0 ) {
+                if( ( exchangetime > 0 )
+                 || ( mvOccupied->Vel > 2.0 ) ) { // HACK: force timer reset if the load exchange is cancelled due to departure
                     WaitingSet( exchangetime );
                 }
             }

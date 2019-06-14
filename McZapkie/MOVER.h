@@ -387,7 +387,7 @@ struct TBrakePressure
 typedef std::map<int,TBrakePressure> TBrakePressureTable;
 
 /*typy napedow*/
-enum class TEngineType { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric };
+enum class TEngineType { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric, Main };
 /*postac dostarczanej energii*/
 enum class TPowerType { NoPower, BioPower, MechPower, ElectricPower, SteamPower };
 /*rodzaj paliwa*/
@@ -440,10 +440,22 @@ struct TCurrentCollector {
     //}
 };
 /*typy źródeł mocy*/
-enum class TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
+enum class TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater, Main };
 
+struct engine_generator {
+    // ld inputs
+    double *engine_revolutions; // revs per second of the prime mover
+    // config
+    double revolutions_min; // min working revolutions rate, in revs per second
+    double revolutions_max; // max working revolutions rate, in revs per second
+    double voltage_min; // voltage generated at min working revolutions
+    double voltage_max; // voltage generated at max working revolutions
+    // ld outputs
+    double revolutions;
+    double voltage;
+};
 
-struct _mover__1
+struct TAccumulator
 {
 	double MaxCapacity;
 	TPowerSource RechargeSource;
@@ -453,7 +465,7 @@ struct _mover__1
     //}
 };
 
-struct _mover__2
+struct TPowerCable
 {
 	TPowerType PowerTrans;
 	double SteamPressure;
@@ -463,10 +475,15 @@ struct _mover__2
     //}
 };
 
-struct _mover__3
+struct THeater
 {
 	TGrateType Grate;
 	TBoilerType Boiler;
+};
+
+struct TTransducer {
+    // ld inputs
+    double InputVoltage;
 };
 
 /*parametry źródeł mocy*/
@@ -480,11 +497,11 @@ struct TPowerParameters
 	{
 		struct
 		{
-			_mover__3 RHeater;
+			THeater RHeater;
 		};
 		struct
 		{
-			_mover__2 RPowerCable;
+			TPowerCable RPowerCable;
 		};
 		struct
 		{
@@ -492,15 +509,15 @@ struct TPowerParameters
 		};
 		struct
 		{
-			_mover__1 RAccumulator;
+			TAccumulator RAccumulator;
 		};
 		struct
 		{
-			TEngineType GeneratorEngine;
+			engine_generator EngineGenerator;
 		};
 		struct
 		{
-			double InputVoltage;
+			TTransducer Transducer;
 		};
 		struct
 		{
