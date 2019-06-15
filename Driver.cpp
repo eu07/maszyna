@@ -3546,29 +3546,56 @@ void TController::SetTimeControllers()
 	//5.1. Digital controller in DMUs with hydro
 	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
 	{
-		DizelPercentage_Speed = DizelPercentage;
-		double Factor = 10 * (mvControlling->Vmax) / (mvControlling->Vmax + 3*mvControlling->Vel);
-		double DesiredPercentage = (VelDesired > mvControlling->Vel ? (VelDesired - mvControlling->Vel) / Factor : 0);
-		DesiredPercentage = clamp(DesiredPercentage, 0.0, 1.0);
-		if (VelDesired < 0.5 * mvControlling->Vmax && VelDesired - mvControlling->Vel < 10)
-			DesiredPercentage = std::min(DesiredPercentage, 0.75);
-		int DizelActualPercentage = 100.4 * mvControlling->eimic_real;
-		int PosInc = mvControlling->MainCtrlPosNo;
-		int PosDec = 0;
-		for(int i=PosInc;i>=0;i--)
-			if ((mvControlling->UniCtrlList[i].SetCtrlVal <= 0) && (mvControlling->UniCtrlList[i].SpeedDown > 0.01))
-			{
-				PosDec = i;
-				break;
-			}
-		DizelPercentage_Speed = round(double(DizelPercentage*DesiredPercentage));
-		if (VelDesired < std::min(mvControlling->hydro_TC_LockupSpeed,mvControlling->Vmax / 5)) DizelPercentage = std::min(DizelPercentage_Speed, 1);
-		if (abs(DizelPercentage_Speed - DizelActualPercentage)>(DizelPercentage>1?3:0))
-		{
-			if (((DizelPercentage_Speed == 0 && DizelActualPercentage > 10) || (DizelActualPercentage - DizelPercentage_Speed > 50)) && PosDec > 0) PosDec -= 1; //pozycję wczesniej powinno byc szybkie zejscie, jeśli trzeba
-			int DesiredPos = (DizelPercentage_Speed > DizelActualPercentage ? PosInc : PosDec);
-			while (mvControlling->MainCtrlPos > DesiredPos) mvControlling->DecMainCtrl(1);
-			while (mvControlling->MainCtrlPos < DesiredPos) mvControlling->IncMainCtrl(1);
+        if( mvControlling->Vel > 10 ) {
+
+            DizelPercentage_Speed = DizelPercentage;
+            auto const Factor{ 10 * ( mvControlling->Vmax ) / ( mvControlling->Vmax + 3 * mvControlling->Vel ) };
+            auto DesiredPercentage{ clamp(
+                ( VelDesired > mvControlling->Vel ?
+                    ( VelDesired - mvControlling->Vel ) / Factor :
+                    0 ),
+                0.0, 1.0 ) };
+            if( ( VelDesired < 0.5 * mvControlling->Vmax )
+                && ( VelDesired - mvControlling->Vel < 10 ) ) {
+                DesiredPercentage = std::min( DesiredPercentage, 0.75 );
+            }
+            DizelPercentage_Speed = std::round( DesiredPercentage * DizelPercentage );
+            if( VelDesired < std::min( mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 5 ) ) {
+                DizelPercentage = std::min( DizelPercentage_Speed, 1 );
+            }
+        }
+        else {
+            // HACK: workaround for the default mode breaking at low speeds
+            DizelPercentage = DizelPercentage_Speed = ( AccDesired > 0.0 ? 100 : 0 );
+        }
+
+        auto const DizelActualPercentage { 100.4 * mvControlling->eimic_real };
+
+        auto const PosInc { mvControlling->MainCtrlPosNo };
+        auto PosDec { 0 };
+        for( int i = PosInc; i >= 0; --i ) {
+            if( ( mvControlling->UniCtrlList[ i ].SetCtrlVal <= 0 )
+             && ( mvControlling->UniCtrlList[ i ].SpeedDown > 0.01 ) ) {
+                PosDec = i;
+                break;
+            }
+        }
+
+        if( std::abs( DizelPercentage_Speed - DizelActualPercentage ) > ( DizelPercentage > 1 ? 3 : 0 ) ) {
+
+            if( ( PosDec > 0 )
+             && ( ( DizelActualPercentage - DizelPercentage_Speed > 50 )
+               || ( ( DizelPercentage_Speed == 0 )
+                 && ( DizelActualPercentage > 10 ) ) ) ) {
+                //pozycję wczesniej powinno byc szybkie zejscie, jeśli trzeba
+                PosDec -= 1;
+            }
+            auto const DesiredPos { (
+                DizelPercentage_Speed > DizelActualPercentage ?
+                    PosInc :
+                    PosDec ) };
+            while( mvControlling->MainCtrlPos > DesiredPos ) { mvControlling->DecMainCtrl( 1 ); }
+            while( mvControlling->MainCtrlPos < DesiredPos ) { mvControlling->IncMainCtrl( 1 ); }
 		}
 	}
 	else
@@ -5158,6 +5185,7 @@ TController::UpdateSituation(double dt) {
                         // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
+                        AccDesired = std::min( AccDesired, -0.9 ); // HACK: make sure the ai doesn't try to release the brakes to accelerate
                         if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
                             mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
                         }
