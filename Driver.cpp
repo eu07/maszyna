@@ -3539,7 +3539,6 @@ void TController::SetTimeControllers()
 		DesiredPercentage = clamp(DesiredPercentage, 0.0, 1.0);
 		if (VelDesired < 0.5 * mvControlling->Vmax && VelDesired - mvControlling->Vel < 10)
 			DesiredPercentage = std::min(DesiredPercentage, 0.75);
-		if (VelDesired < mvControlling->hydro_TC_LockupSpeed) DizelPercentage = std::min(DizelPercentage,1);
 		int DizelActualPercentage = 100.4 * mvControlling->eimic_real;
 		int PosInc = mvControlling->MainCtrlPosNo;
 		int PosDec = 0;
@@ -3550,7 +3549,7 @@ void TController::SetTimeControllers()
 				break;
 			}
 		DizelPercentage_Speed = round(double(DizelPercentage*DesiredPercentage));
-		if (VelDesired < std::min(mvControlling->hydro_TC_LockupSpeed,mvControlling->Vmax/5)) DizelPercentage = std::min(DizelPercentage_Speed, 1);
+		if (VelDesired < std::min(mvControlling->hydro_TC_LockupSpeed,mvControlling->Vmax / 5)) DizelPercentage = std::min(DizelPercentage_Speed, 1);
 		if (abs(DizelPercentage_Speed - DizelActualPercentage)>(DizelPercentage>1?3:0))
 		{
 			if (((DizelPercentage_Speed == 0 && DizelActualPercentage > 10) || (DizelActualPercentage - DizelPercentage_Speed > 50)) && PosDec > 0) PosDec -= 1; //pozycję wczesniej powinno byc szybkie zejscie, jeśli trzeba
