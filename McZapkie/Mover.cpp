@@ -1562,24 +1562,26 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
     // ...detailed check if we're still here
     auto const heatingpowerthreshold { 0.1 };
     // start with external power sources
-    auto voltage { GetTrainsetVoltage() };
+    auto voltage { 0.0 };
     // then try internal ones
-    auto localvoltage { 0.0 };
     switch( HeatingPowerSource.SourceType ) {
         case TPowerSource::Generator: {
-            localvoltage = HeatingPowerSource.EngineGenerator.voltage;
+            voltage = HeatingPowerSource.EngineGenerator.voltage;
+            break;
+        }
+        case TPowerSource::PowerCable: {
+            if( HeatingPowerSource.PowerType == TPowerType::ElectricPower ) {
+                voltage = GetTrainsetVoltage();
+            }
             break;
         }
         case TPowerSource::Main: {
-            localvoltage = ( true == Mains ? Voltage : 0.0 );
+            voltage = ( true == Mains ? Voltage : 0.0 );
             break;
         }
         default: {
             break;
         }
-    }
-    if( std::abs( localvoltage ) > std::abs( voltage ) ) {
-        voltage = localvoltage;
     }
 
     Heating = ( std::abs( voltage ) > heatingpowerthreshold );
@@ -7082,8 +7084,8 @@ bool TMoverParameters::ChangeDoorPermitPreset( int const Change, range_t const N
 
         Doors.permit_preset = clamp<int>( Doors.permit_preset + Change, 0, Doors.permit_presets.size() - 1 );
         auto const doors { Doors.permit_presets[ Doors.permit_preset ] };
-        auto const permitleft  = doors & 1;
-        auto const permitright = doors & 2;
+        auto const permitleft { ( ( doors & 1 ) != 0 ) };
+        auto const permitright { ( ( doors & 2 ) != 0 ) };
 
         PermitDoors( ( CabNo > 0 ? side::left : side::right ), permitleft, Notify );
         PermitDoors( ( CabNo > 0 ? side::right : side::left ), permitright, Notify );
@@ -9762,6 +9764,11 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
      && ( HeatingPowerSource.SourceType == TPowerSource::NotDefined ) ) {
         HeatingPowerSource.SourceType = TPowerSource::Main;
+    }
+    if( ( HeatingPowerSource.SourceType == TPowerSource::NotDefined )
+     && ( HeatingPower > 0 ) ) {
+        HeatingPowerSource.SourceType = TPowerSource::PowerCable;
+        HeatingPowerSource.PowerType = TPowerType::ElectricPower;
     }
 
     // checking ready flag

@@ -266,23 +266,23 @@ timetable_panel::update() {
     auto const *table = owner->TrainTimetable();
     if( table == nullptr ) { return; }
 
-    { // destination
+    // destination
+    {
         auto textline = Bezogonkow( owner->Relation(), true );
         if( false == textline.empty() ) {
             textline += " (" + Bezogonkow( owner->TrainName(), true ) + ")";
         }
-
         text_lines.emplace_back( textline, Global.UITextColor );
     }
 
-    { // next station
+    if( false == is_expanded ) {
+        // next station
         auto const nextstation = owner->NextStop();
         if( false == nextstation.empty() ) {
             // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
             auto textline = " -> " + nextstation;
 
             text_lines.emplace_back( textline, Global.UITextColor );
-            text_lines.emplace_back( "", Global.UITextColor );
         }
     }
 
@@ -310,7 +310,6 @@ timetable_panel::update() {
                 static_cast<int>( consistlength ) );
 
             text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
-            text_lines.emplace_back( "", Global.UITextColor );
         }
 
         if( 0 == table->StationCount ) {

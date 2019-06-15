@@ -5037,6 +5037,10 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
                          1 );
             }
         }
+        // HACK: match consist door permit state with the preset in the active cab
+        if( Train->ggDoorPermitPresetButton.SubModel != nullptr ) {
+            Train->mvOccupied->ChangeDoorPermitPreset( 0 );
+        }
     }
 }
 
@@ -5052,6 +5056,10 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                         -1 :
                          1 );
             }
+        }
+        // HACK: match consist door permit state with the preset in the active cab
+        if( Train->ggDoorPermitPresetButton.SubModel != nullptr ) {
+            Train->mvOccupied->ChangeDoorPermitPreset( 0 );
         }
     }
 }
@@ -7656,7 +7664,7 @@ void TTrain::set_cab_controls( int const Cab ) {
         TimetableLightActive ?
             1.f :
             0.f ) );
-    // doors
+    // doors permits
     if( ggDoorLeftPermitButton.type() != TGaugeType::push ) {
         ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
     }
@@ -7664,6 +7672,7 @@ void TTrain::set_cab_controls( int const Cab ) {
         ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
     }
     ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
+    // door controls
     ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
     ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
     // door lock
