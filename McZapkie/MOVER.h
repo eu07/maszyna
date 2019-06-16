@@ -1039,7 +1039,10 @@ public:
 						 /*                dizel_auto_min, dizel_auto_max: real; {predkosc obrotowa przelaczania automatycznej skrzyni biegow*/
 	double dizel_nmax_cutoff = 0.0; /*predkosc obrotowa zadzialania ogranicznika predkosci*/
 	double dizel_nmin = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa*/
+	double dizel_nmin_hdrive = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa w czasie jazdy na hydro */
+	double dizel_nmin_hdrive_factor = 0.0; /*wspolczynnik wzrostu obrotow minimalnych hydro zaleznosci od zadanego procentu*/
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
+	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
 	double dizel_engageDia = 0.5; double dizel_engageMaxForce = 6000.0; double dizel_engagefriction = 0.5; /*parametry sprzegla*/
 	double engagedownspeed = 0.9;

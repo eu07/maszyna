@@ -6513,7 +6513,7 @@ bool TMoverParameters::dizel_Update(double dt) {
 double TMoverParameters::dizel_fillcheck(int mcp)
 { 
     auto realfill { 0.0 };
-	auto reg_factor { 0.98 };
+	auto nreg_min { dizel_nmin * 0.98 };
 
     if( ( true == Mains )
      && ( MainCtrlPosNo > 0 )
@@ -6531,7 +6531,14 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 			if (EIMCtrlType > 0)
 			{
 				realfill = std::max(0.0, eimic_real);
-				reg_factor = 1.0;
+				if (eimic_real>0 && !hydro_TC_Lockup)
+				{
+					nreg_min = dizel_nmin_hdrive + eimic_real * dizel_nmin_hdrive_factor;
+				}
+				else
+				{
+					nreg_min = dizel_nmin;
+				}
 			}
 			else
 				realfill = RList[mcp].R;
@@ -6580,7 +6587,7 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				realfill = 0; 
 			if (enrot < nreg) //pod predkoscia regulatora dawka zadana
 				realfill = realfill;
-			if ((enrot < dizel_nmin * reg_factor)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
+			if ((enrot < nreg_min)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
 				realfill = 1;
         }
     }
@@ -6629,7 +6636,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		if ((IsPower) && (Mains) && (enrot>dizel_nmin*0.9))
 			hydro_TC_Fill += hydro_TC_FillRateInc * dt;
 		//oproznianie przetwornika
-		if (((!IsPower) && (Vel<3))
+		if (((!IsPower) && (Vel<dizel_maxVelANS))
 			|| (!Mains)
 			|| (enrot<dizel_nmin*0.8))
 			hydro_TC_Fill -= hydro_TC_FillRateDec * dt;
@@ -9144,6 +9151,13 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
             extract_value( dizel_nmin, "nmin", Input, "" );
             dizel_nmin /= 60.0;
+			extract_value(dizel_nmin_hdrive, "nmin_hdrive", Input, "");
+			dizel_nmin_hdrive /= 60.0;
+			if (dizel_nmin_hdrive == 0.0) {
+				dizel_nmin_hdrive = dizel_nmin;
+			}
+			extract_value(dizel_nmin_hdrive_factor, "nmin_hdrive_factor", Input, "");
+			dizel_nmin_hdrive_factor /= 60.0;
             // TODO: unify naming scheme and sort out which diesel engine params are used where and how
             extract_value( nmax, "nmax", Input, "" );
             nmax /= 60.0; 
@@ -9178,6 +9192,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 				extract_value(hydro_TC_TorqueOutOut, "TC_TOO", Input, "");
 				extract_value(hydro_TC_LockupSpeed, "TC_LS", Input, "");
 				extract_value(hydro_TC_UnlockSpeed, "TC_ULS", Input, "");
+				extract_value(dizel_maxVelANS, "MaxVelANS", Input, "");
 
 				extract_value(hydro_R, "IsRetarder", Input, "");
 				if (true == hydro_R) {
