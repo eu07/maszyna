@@ -3546,30 +3546,29 @@ void TController::SetTimeControllers()
 	//5.1. Digital controller in DMUs with hydro
 	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
 	{
-        if( mvControlling->Vel > 10 ) {
 
-            DizelPercentage_Speed = DizelPercentage;
-            auto const Factor{ 10 * ( mvControlling->Vmax ) / ( mvControlling->Vmax + 3 * mvControlling->Vel ) };
-            auto DesiredPercentage{ clamp(
-                ( VelDesired > mvControlling->Vel ?
-                    ( VelDesired - mvControlling->Vel ) / Factor :
-                    0 ),
-                0.0, 1.0 ) };
-            if( ( VelDesired < 0.5 * mvControlling->Vmax )
-                && ( VelDesired - mvControlling->Vel < 10 ) ) {
-                DesiredPercentage = std::min( DesiredPercentage, 0.75 );
-            }
-            DizelPercentage_Speed = std::round( DesiredPercentage * DizelPercentage );
-            if( VelDesired < std::min( mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 5 ) ) {
-                DizelPercentage = std::min( DizelPercentage_Speed, 1 );
-            }
-        }
-        else {
-            // HACK: workaround for the default mode breaking at low speeds
-            DizelPercentage = DizelPercentage_Speed = ( AccDesired > 0.0 ? 100 : 0 );
-        }
+        DizelPercentage_Speed = DizelPercentage; //wstepnie procenty
+		auto MinVel{ std::min(mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 6) }; //minimal velocity
+		if (VelDesired > MinVel) //more power for faster ride
+		{
+			auto const Factor{ 10 * (mvControlling->Vmax) / (mvControlling->Vmax + 3 * mvControlling->Vel) };
+			auto DesiredPercentage{ clamp(
+				(VelDesired > mvControlling->Vel ?
+					(VelDesired - mvControlling->Vel) / Factor :
+					0),
+				0.0, 1.0) }; //correction for reaching desired velocity
+			if ((VelDesired < 0.5 * mvControlling->Vmax) //low velocity and reaching desired 
+				&& (VelDesired - mvControlling->Vel < 10)) {
+				DesiredPercentage = std::min(DesiredPercentage, 0.75);
+			}
+			DizelPercentage_Speed = std::round(DesiredPercentage * DizelPercentage);
+		}
+		else
+		{
+			DizelPercentage_Speed = std::min(DizelPercentage, mvControlling->Vel > 0.99 * VelDesired ? 1 : 0);
+		}
 
-        auto const DizelActualPercentage { 100.4 * mvControlling->eimic_real };
+        auto const DizelActualPercentage { int(100.4 * mvControlling->eimic_real) };
 
         auto const PosInc { mvControlling->MainCtrlPosNo };
         auto PosDec { 0 };
@@ -3587,7 +3586,7 @@ void TController::SetTimeControllers()
              && ( ( DizelActualPercentage - DizelPercentage_Speed > 50 )
                || ( ( DizelPercentage_Speed == 0 )
                  && ( DizelActualPercentage > 10 ) ) ) ) {
-                //pozycję wczesniej powinno byc szybkie zejscie, jeśli trzeba
+                //one position earlier should be fast decreasing
                 PosDec -= 1;
             }
             auto const DesiredPos { (
