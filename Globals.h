@@ -108,6 +108,7 @@ struct global_settings {
     bool ScaleSpecularValues{ true };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
+    int RenderCabShadowsRange{ 0 };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
         float width{ 250.f }; // no longer used

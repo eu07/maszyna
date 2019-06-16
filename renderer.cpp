@@ -471,10 +471,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 // run shadowmaps pass before color
                 Timer::subsystem.gfx_shadows.start();
-                Render_pass( rendermode::shadows );
                 if( false == FreeFlyModeFlag ) {
                     Render_pass( rendermode::cabshadows );
                 }
+                Render_pass( rendermode::shadows );
                 Timer::subsystem.gfx_shadows.stop();
                 m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
 #ifdef EU07_USE_DEBUG_SHADOWMAP
@@ -663,7 +663,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // setup
                 ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
                 ::glPolygonOffset( 1.f, 1.f );
-                ::glDisable( GL_CULL_FACE );
 
                 ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_cabshadowframebuffer );
                 ::glViewport( 0, 0, m_shadowbuffersize / 2, m_shadowbuffersize / 2 );
@@ -686,6 +685,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 #else
                 setup_units( false, false, false );
 #endif
+                ::glDisable( GL_CULL_FACE );
+
+                if( Global.RenderCabShadowsRange > 0 ) {
+                    Render( simulation::Region );
+                }
                 Render_cab( simulation::Train->Dynamic(), 0.f, false );
                 Render_cab( simulation::Train->Dynamic(), 0.f, true );
                 m_cabshadowpass = m_renderpass;
@@ -830,7 +834,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
     switch( Mode ) {
         case rendermode::color:        { Config.draw_range = Global.BaseDrawRange; break; }
         case rendermode::shadows:      { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
-        case rendermode::cabshadows:   { Config.draw_range = simulation::Train->Occupied()->Dim.L; break; }
+        case rendermode::cabshadows:   { Config.draw_range = ( Global.RenderCabShadowsRange > 0 ? clamp( Global.RenderCabShadowsRange, 5, 100 ) : simulation::Train->Occupied()->Dim.L ); break; }
         case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
         case rendermode::pickscenery:  { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
@@ -1722,6 +1726,7 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             break;
         }
         case rendermode::shadows:
+        case rendermode::cabshadows:
         case rendermode::pickscenery: {
             // these render modes don't bother with lights
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
@@ -1752,7 +1757,8 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
 
             break;
         }
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
             ::glDisable( GL_CULL_FACE );
             break; }
@@ -1775,6 +1781,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
             case rendermode::color:
             case rendermode::reflections:
             case rendermode::shadows:
+            case rendermode::cabshadows:
             case rendermode::pickscenery: {
                 if( false == section->m_shapes.empty() ) {
                     // since all shapes of the section share center point we can optimize out a few calls here
@@ -1798,6 +1805,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
             case rendermode::shadows:
+            case rendermode::cabshadows:
             case rendermode::pickscenery: {
                 for( auto &cell : section->m_cells ) {
                     if( ( true == cell.m_active )
@@ -1821,7 +1829,8 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
     }
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             // restore standard face cull mode
             ::glEnable( GL_CULL_FACE );
             break; }
@@ -1908,6 +1917,22 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 break;
             }
+            case rendermode::cabshadows: {
+                // since all shapes of the section share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset { cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                // render
+                // opaque non-instanced shapes
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
+                // NOTE: tracks aren't likely to cast shadows into the cab, so we skip them in this pass
+
+                // post-render cleanup
+                ::glPopMatrix();
+
+                break;
+            }
             case rendermode::pickscenery: {
                 // same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
                 // since all shapes of the section share center point we can optimize out a few calls here
@@ -1946,7 +1971,8 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
-            case rendermode::shadows: {
+            case rendermode::shadows:
+            case rendermode::cabshadows: {
                 // opaque parts of instanced models
                 for( auto *instance : cell->m_instancesopaque ) { Render( instance ); }
                 // opaque parts of vehicles
@@ -2037,7 +2063,8 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
     if( false == Ignorerange ) {
         double distancesquared;
         switch( m_renderpass.draw_mode ) {
-            case rendermode::shadows: {
+            case rendermode::shadows:
+            case rendermode::cabshadows: {
                 // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
                 distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
                 break;
@@ -2069,6 +2096,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
         }
         // pick modes are painted with custom colours, and shadow pass doesn't use any
         case rendermode::shadows:
+        case rendermode::cabshadows:
         case rendermode::pickscenery:
         case rendermode::pickcontrols:
         default: {
@@ -2091,7 +2119,8 @@ opengl_renderer::Render( TAnimModel *Instance ) {
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
             distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
             break;
@@ -2103,6 +2132,11 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     }
     if( ( distancesquared <  Instance->m_rangesquaredmin )
      || ( distancesquared >= Instance->m_rangesquaredmax ) ) {
+        return;
+    }
+    // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( distancesquared > drawdistancethreshold * drawdistancethreshold ) {
         return;
     }
 
@@ -2137,17 +2171,23 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     if( false == Dynamic->renderme ) {
         return false;
     }
-    // debug data
-    ++m_debugstats.dynamics;
 
-    // setup
-    TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( Dynamic ); //żeby nie robić cudzych animacji
-    glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
+    glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            if( false == FreeFlyModeFlag ) {
+                // filter out small details if we're in vehicle cab
+                squaredistance = std::max( 100.f * 100.f, squaredistance );
+            }
+            break;
+        }
+        case rendermode::cabshadows: {
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            // filter out small details
+            squaredistance = std::max( 100.f * 100.f, squaredistance );
             break;
         }
         default: {
@@ -2155,6 +2195,18 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             break;
         }
     }
+
+    // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
+    auto const drawdistancethreshold { m_renderpass.draw_range + 250 };
+    if( squaredistance > drawdistancethreshold * drawdistancethreshold ) {
+        return false;
+    }
+
+    // debug data
+    ++m_debugstats.dynamics;
+
+    // setup
+    TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( Dynamic ); //żeby nie robić cudzych animacji
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
 
@@ -2209,7 +2261,8 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             }
             break;
         }
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             if( Dynamic->mdLowPolyInt ) {
                 // low poly interior
 //                if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
@@ -2757,7 +2810,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
     ::glColor3fv( glm::value_ptr( colors::white ) );
     // setup
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             // NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
             ::glDisable( GL_CULL_FACE );
             break;
@@ -2797,7 +2851,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 }
                 break;
             }
-            case rendermode::shadows: {
+            case rendermode::shadows:
+            case rendermode::cabshadows: {
                 if( ( std::abs( track->fTexHeight1 ) < 0.35f )
                  || ( track->iCategoryFlag != 2 ) ) {
                     // shadows are only calculated for high enough roads, typically meaning track platforms
@@ -2840,7 +2895,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 }
                break;
             }
-            case rendermode::shadows: {
+            case rendermode::shadows:
+            case rendermode::cabshadows: {
                 if( ( std::abs( track->fTexHeight1 ) < 0.35f )
                  || ( ( track->iCategoryFlag == 1 )
                    && ( track->eType != tt_Normal ) ) ) {
@@ -2887,7 +2943,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                 }
                 break;
             }
-            case rendermode::shadows: {
+            case rendermode::shadows:
+            case rendermode::cabshadows: {
                 if( ( std::abs( track->fTexHeight1 ) < 0.35f )
                  || ( ( track->iCategoryFlag == 1 )
                    && ( track->eType != tt_Normal ) ) ) {
@@ -2907,7 +2964,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
     }
     // post-render reset
     switch( m_renderpass.draw_mode ) {
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             ::glEnable( GL_CULL_FACE );
             break;
         }
@@ -2926,7 +2984,8 @@ opengl_renderer::Render( TMemCell *Memcell ) {
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::color:
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             ::gluSphere( m_quadric, 0.35, 4, 2 );
             break;
         }

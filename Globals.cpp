@@ -362,6 +362,11 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> shadowtune.depth
                 >> shadowtune.distance;
         }
+        else if( token == "gfx.shadows.cab.range" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> RenderCabShadowsRange;
+        }
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient
