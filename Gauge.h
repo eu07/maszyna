@@ -23,7 +23,8 @@ enum class TGaugeAnimation {
 
 enum class TGaugeType {
     toggle,
-    push
+    push,
+    push_delayed
 };
 
 // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich

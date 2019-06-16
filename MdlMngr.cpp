@@ -57,7 +57,7 @@ TModelsManager::LoadModel(std::string const &Name, bool dynamic) {
 }
 
 TModel3d *
-TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
+TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const Logerrors )
 { // model może być we wpisie "node...model" albo "node...dynamic", a także być dodatkowym w dynamic
     // (kabina, wnętrze, ładunek)
     // dla "node...dynamic" mamy podaną ścieżkę w "\dynamic\" i musi być co najmniej 1 poziom, zwkle
@@ -107,7 +107,9 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic)
     }
     else {
         // there's nothing matching in the databank nor on the disk, report failure...
-        ErrorLog( "Bad file: failed do locate 3d model file \"" + filename + "\"", logtype::file );
+        if( Logerrors ) {
+            ErrorLog( "Bad file: failed do locate 3d model file \"" + filename + "\"", logtype::file );
+        }
         // ...and link it with the error model slot
         m_modelsmap.emplace( filename, null_handle );
     }

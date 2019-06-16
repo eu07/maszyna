@@ -2702,10 +2702,11 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (v == 0.0) {
                 v = MoverParameters->PantFrontVolt;
                 if( v == 0.0 ) {
-                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
+//                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
                         // dwuczłony mogą mieć sprzęg WN
+                        // NOTE: condition disabled, other vehicles types can have power cables as well
                         v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
-                    }
+//                    }
                 }
             }
             if (v != 0.0)
@@ -5776,23 +5777,28 @@ TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
     TModel3d *loadmodel { nullptr };
 
     // check if we don't have model override for this load type
-    auto const lookup { LoadModelOverrides.find( Name ) };
-    if( lookup != LoadModelOverrides.end() ) {
-        loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
-        // if the override was succesfully loaded call it a day
-        if( loadmodel != nullptr ) { return loadmodel; }
+    {
+        auto const lookup { LoadModelOverrides.find( Name ) };
+        if( lookup != LoadModelOverrides.end() ) {
+            loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
+            // if the override was succesfully loaded call it a day
+            if( loadmodel != nullptr ) { return loadmodel; }
+        }
     }
     // regular routine if there's no override or it couldn't be loaded
     // try first specialized version of the load model, vehiclename_loadname
-    auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
-    if( ( true == FileExists( specializedloadfilename + ".e3d" ) )
-     || ( true == FileExists( specializedloadfilename + ".t3d" ) ) ) {
-        loadmodel = TModelsManager::GetModel( specializedloadfilename, true );
+    {
+        auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
+        loadmodel = TModelsManager::GetModel( specializedloadfilename, true, false );
+        if( loadmodel != nullptr ) { return loadmodel; }
     }
-    if( loadmodel == nullptr ) {
-        // if this fails, try generic load model
-        loadmodel = TModelsManager::GetModel( asBaseDir + Name, true );
+    // try generic version of the load model next, loadname
+    {
+        auto const genericloadfilename { asBaseDir + Name };
+        loadmodel = TModelsManager::GetModel( genericloadfilename, true, false );
+        if( loadmodel != nullptr ) { return loadmodel; }
     }
+    // if we're still here, give up
     return loadmodel;
 }
 
