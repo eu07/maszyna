@@ -1041,6 +1041,7 @@ public:
 	double dizel_nmin = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa*/
 	double dizel_nmin_hdrive = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa w czasie jazdy na hydro */
 	double dizel_nmin_hdrive_factor = 0.0; /*wspolczynnik wzrostu obrotow minimalnych hydro zaleznosci od zadanego procentu*/
+	double dizel_nmin_retarder = 0.0; /*obroty pracy podczas hamowania retarderem*/
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
@@ -1070,6 +1071,7 @@ public:
 	double hydro_R_FillRateInc = 1.0; /*szybkosc napelniania sprzegla*/
 	double hydro_R_FillRateDec = 1.0; /*szybkosc oprozniania sprzegla*/
 	double hydro_R_MinVel = 1.0; /*minimalna predkosc, przy ktorej retarder dziala*/
+	double hydro_R_EngageVel = 1.0; /*minimalna predkosc hamowania, przy ktorej sprzeglo jest wciaz wlaczone*/
     /*- dla lokomotyw spalinowo-elektrycznych -*/
 	double AnPos = 0.0; // pozycja sterowania dokladnego (analogowego)
 	bool AnalogCtrl = false; //
@@ -1310,6 +1312,7 @@ public:
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
 	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
 	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
+	double dizel_nreg_min = 0.0; /*predkosc regulatora minimalna, zmienna w hydro*/
 
 	/* - zmienne dla przetowrnika momentu */
 	double hydro_TC_Fill = 0.0; /*napelnienie*/
@@ -1565,7 +1568,7 @@ public:
 	bool dizel_EngageSwitch(double state);
 	bool dizel_EngageChange(double dt);
 	bool dizel_AutoGearCheck(void);
-	double dizel_fillcheck(int mcp);
+	double dizel_fillcheck(int mcp, double dt);
 	double dizel_Momentum(double dizel_fill, double n, double dt);
 	double dizel_MomentumRetarder(double n, double dt);  // moment hamowania retardera
     void dizel_HeatSet( float const Value );
