@@ -6207,17 +6207,16 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 3:
-
-		if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //nie było ruszane nastawnikiem tylko hamulcem
+		if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //there was no move of controller, but brake only
 		{
 			if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode) 
-				BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //przytnij z dołu
+				BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
 			if (BrakeCtrlPos > UniCtrlList[0].mode)
-				BrakeLevelSet(UniCtrlList[0].mode); //przytnij z góry
-			while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //znajdź najbliższą pozycję
-			while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //znajdź najbliższą pozycję
+				BrakeLevelSet(UniCtrlList[0].mode); //top clamping
+			while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
+			while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
 		}
-		else //było ruszane nastawnikiem
+		else //controller was moved
 			BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 
 		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
@@ -6233,6 +6232,8 @@ void TMoverParameters::CheckEIMIC(double dt)
 			LastRelayTime = 0;
 			MainCtrlActualPos = MainCtrlPos;
 		}
+		if (Hamulec->GetEDBCP() > 0.3 && eimic < 0) //when braking with pneumatic brake
+			eimic = 0; //shut off retarder
 
 	}
     auto const eimicpowerenabled {
