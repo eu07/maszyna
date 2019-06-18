@@ -6359,10 +6359,15 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 		if (EIMCtrlType > 0) //sterowanie komputerowe
 		{
 			if (dizel_automaticgearstatus == 0)
-				if ((hydro_TC && hydro_TC_Fill > 0.01 )||( eimic_real > 0.0 ))
+			{
+				if ((hydro_TC && hydro_TC_Fill > 0.01) || (eimic_real > 0.0))
 					dizel_EngageSwitch(1.0);
 				else
-					dizel_EngageSwitch(0.0);
+					if (Vel > hydro_R_EngageVel && hydro_R && hydro_R_Fill > 0.01)
+						dizel_EngageSwitch(0.5);
+					else
+						dizel_EngageSwitch(0.0);
+			}
 			else
 				dizel_EngageSwitch(0.0);
 		}
@@ -6498,7 +6503,7 @@ bool TMoverParameters::dizel_Update(double dt) {
         dizel_EngageChange( dt );
         DU = dizel_AutoGearCheck();
         double const fillspeed { 2 };
-        dizel_fill = dizel_fill + fillspeed * dt * ( dizel_fillcheck( MainCtrlPos ) - dizel_fill );
+        dizel_fill = dizel_fill + fillspeed * dt * ( dizel_fillcheck( MainCtrlPos , dt ) - dizel_fill );
     }
 
     dizel_Heat( dt );
@@ -6510,10 +6515,9 @@ bool TMoverParameters::dizel_Update(double dt) {
 // Q: 20160715
 // oblicza napelnienie, uzwglednia regulator obrotow
 // *************************************************************************************************
-double TMoverParameters::dizel_fillcheck(int mcp)
+double TMoverParameters::dizel_fillcheck(int mcp, double dt)
 { 
     auto realfill { 0.0 };
-	auto nreg_min { dizel_nmin * 0.98 };
 
     if( ( true == Mains )
      && ( MainCtrlPosNo > 0 )
@@ -6533,11 +6537,14 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				realfill = std::max(0.0, eimic_real);
 				if (eimic_real>0 && !hydro_TC_Lockup)
 				{
-					nreg_min = dizel_nmin_hdrive + eimic_real * dizel_nmin_hdrive_factor;
+					dizel_nreg_min = std::min(dizel_nreg_min + 2.5 * dt, dizel_nmin_hdrive + eimic_real * dizel_nmin_hdrive_factor);
 				}
 				else
 				{
-					nreg_min = dizel_nmin;
+					if (Vel < hydro_R_EngageVel && hydro_R && hydro_R_Fill > 0.01)
+						dizel_nreg_min = std::min(dizel_nreg_min + 5.0 * dt, dizel_nmin_retarder);
+					else
+						dizel_nreg_min = dizel_nmin;
 				}
 			}
 			else
@@ -6587,7 +6594,7 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 				realfill = 0; 
 			if (enrot < nreg) //pod predkoscia regulatora dawka zadana
 				realfill = realfill;
-			if ((enrot < nreg_min)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
+			if ((enrot < dizel_nreg_min)&&(RList[mcp].R>0.001)) //jesli ponizej biegu jalowego i niezerowa dawka, to dawaj pelna
 				realfill = 1;
         }
     }
@@ -9151,6 +9158,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
             extract_value( dizel_nmin, "nmin", Input, "" );
             dizel_nmin /= 60.0;
+			dizel_nreg_min = dizel_nmin * 0.98;
 			extract_value(dizel_nmin_hdrive, "nmin_hdrive", Input, "");
 			dizel_nmin_hdrive /= 60.0;
 			if (dizel_nmin_hdrive == 0.0) {
@@ -9158,6 +9166,11 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 			}
 			extract_value(dizel_nmin_hdrive_factor, "nmin_hdrive_factor", Input, "");
 			dizel_nmin_hdrive_factor /= 60.0;
+			extract_value(dizel_nmin_retarder, "nmin_retarder", Input, "");
+			dizel_nmin_retarder /= 60.0;
+			if (dizel_nmin_retarder == 0.0) {
+				dizel_nmin_retarder = dizel_nmin;
+			}
             // TODO: unify naming scheme and sort out which diesel engine params are used where and how
             extract_value( nmax, "nmax", Input, "" );
             nmax /= 60.0; 
@@ -9203,6 +9216,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 					extract_value(hydro_R_FillRateInc, "R_FRI", Input, "");
 					extract_value(hydro_R_FillRateDec, "R_FRD", Input, "");
 					extract_value(hydro_R_MinVel, "R_MinVel", Input, "");
+					extract_value(hydro_R_EngageVel, "R_EngageVel", Input, "");
 				}
 			}
             break;
