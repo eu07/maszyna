@@ -3565,7 +3565,7 @@ void TController::SetTimeControllers()
 		}
 		else
 		{
-			DizelPercentage_Speed = std::min(DizelPercentage, mvControlling->Vel > 0.99 * VelDesired ? 1 : 0);
+			DizelPercentage_Speed = std::min(DizelPercentage, mvControlling->Vel < 0.99 * VelDesired ? 1 : 0);
 		}
 
         auto const DizelActualPercentage { int(100.4 * mvControlling->eimic_real) };
