@@ -9037,9 +9037,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 
 	extract_value(MED_Vmax, "MED_Vmax", line, to_string(Vmax));
-	extract_value(MED_Vmin, "MED_Vmin", line, "0");
+	extract_value(MED_Vmin, "MED_Vmin", line, "");
 	extract_value(MED_Vref, "MED_Vref", line, to_string(Vmax));
-	extract_value(MED_amax, "MED_amax", line, "9.81");
+	extract_value(MED_amax, "MED_amax", line, "");
 	extract_value(MED_EPVC, "MED_EPVC", line, "");
 	extract_value(MED_Ncor, "MED_Ncor", line, "");
 
@@ -9047,10 +9047,10 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 
 void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
 
-	extract_value(DCEMUED_CC, "CouplerCheck", line, "0");
-	extract_value(DCEMUED_EP_max_Vel, "EP_max_Vel", line, "0");
-	extract_value(DCEMUED_EP_min_Im, "EP_min_Im", line, "0");
-	extract_value(DCEMUED_EP_delay, "EP_delay", line, "0");
+	extract_value(DCEMUED_CC, "CouplerCheck", line, "");
+	extract_value(DCEMUED_EP_max_Vel, "EP_max_Vel", line, "");
+	extract_value(DCEMUED_EP_min_Im, "EP_min_Im", line, "");
+	extract_value(DCEMUED_EP_delay, "EP_delay", line, "");
 
 }
 

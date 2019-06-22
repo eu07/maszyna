@@ -1103,10 +1103,10 @@ public:
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
 
-	int DCEMUED_CC; //na którym sprzęgu sprawdzać działanie ED
-	double DCEMUED_EP_max_Vel; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
-	double DCEMUED_EP_min_Im; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
-	double DCEMUED_EP_delay; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
+    int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
+    double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
+    double DCEMUED_EP_min_Im{ 0.0 }; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
+    double DCEMUED_EP_delay{ 0.0 }; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
 
 	/*-dla wagonow*/
     struct load_attributes {
