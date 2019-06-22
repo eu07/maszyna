@@ -3596,6 +3596,8 @@ void TController::SetTimeControllers()
             while( mvControlling->MainCtrlPos > DesiredPos ) { mvControlling->DecMainCtrl( 1 ); }
             while( mvControlling->MainCtrlPos < DesiredPos ) { mvControlling->IncMainCtrl( 1 ); }
 		}
+		if (BrakeCtrlPosition < 0.1) //jesli nie hamuje
+			mvOccupied->BrakeLevelSet(mvControlling->UniCtrlList[mvControlling->MainCtrlPos].mode); //zeby nie bruzdzilo machanie zespolonym
 	}
 	else
 	//5.2. Analog direct controller
@@ -3677,6 +3679,7 @@ void TController::CheckTimeControllers()
 				while (mvControlling->MainCtrlPos > NeutralPos) mvControlling->DecMainCtrl(1);
 			if ((DizelActualPercentage <= DizelPercentage_Speed) && (mvControlling->MainCtrlPos < NeutralPos))
 				while (mvControlling->MainCtrlPos < NeutralPos) mvControlling->IncMainCtrl(1);
+			mvOccupied->BrakeLevelSet(mvControlling->UniCtrlList[mvControlling->MainCtrlPos].mode); //zeby nie bruzdzilo machanie zespolonym
 		}
 	}
 };
