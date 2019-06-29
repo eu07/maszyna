@@ -3580,7 +3580,7 @@ void TController::SetTimeControllers()
             }
         }
 
-        if( std::abs( DizelPercentage_Speed - DizelActualPercentage ) > ( DizelPercentage > 1 ? 3 : 0 ) ) {
+        if( std::abs( DizelPercentage_Speed - DizelActualPercentage ) > ( DizelPercentage > 1 ? 0 : 0 ) ) {
 
             if( ( PosDec > 0 )
              && ( ( DizelActualPercentage - DizelPercentage_Speed > 50 )
