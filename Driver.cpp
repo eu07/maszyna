@@ -1392,6 +1392,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             fVelDes = v;
                         }
                     }
+                    if( ( true == TestFlag( sSpeedTable[ i ].iFlags, spEnd ) )
+                     && ( mvOccupied->CategoryFlag & 1 ) ) {
+                        // if the railway track ends here set the velnext accordingly as well
+                        // TODO: test this with turntables and such
+                        fNext = 0.0;
+                    }
                 }
                 else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
                 { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
@@ -1402,12 +1408,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( v < fVelDes ) {
                         // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
                         fVelDes = v;
-                    }
-                    if( ( sSpeedTable[ i ].iFlags & spEnd )
-                     && ( mvOccupied->CategoryFlag & 1 ) ) {
-                        // if the railway track ends here set the velnext accordingly as well
-                        // TODO: test this with turntables and such
-                        fNext = 0.0;
                     }
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
@@ -2270,6 +2270,12 @@ bool TController::CheckVehicles(TOrders user)
         else {
             // zmiana czoła przez manewry
             iDrivigFlags &= ~movePushPull;
+        }
+
+        if( ( user == Connect )
+         || ( user == Disconnect ) ) {
+            // HACK: force route table update on consist change, new consist length means distances to points of interest are now wrong
+            iTableDirection = 0;
         }
     } // blok wykonywany, gdy aktywnie prowadzi
     return true;
@@ -4813,7 +4819,7 @@ TController::UpdateSituation(double dt) {
                         iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
                         iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
                         SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                        CheckVehicles(); // sprawdzić światła nowego składu
+                        CheckVehicles( Connect ); // sprawdzić światła nowego składu
                         JumpToNextOrder(); // wykonanie następnej komendy
                     }
                 }
@@ -5180,6 +5186,7 @@ TController::UpdateSituation(double dt) {
                             // tylko jeśli odepnie
                             WriteLog( mvOccupied->Name + " odczepiony." );
                             iVehicleCount = -2;
+                            CheckVehicles( Disconnect ); // update trainset state
                         } // a jak nie, to dociskać dalej
                     }
                     if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))

@@ -448,6 +448,8 @@ dictionary_source *TTrain::GetTrainState() {
     // basic systems state data
     dict->insert( "battery", mvControlled->Battery );
     dict->insert( "linebreaker", mvControlled->Mains );
+    dict->insert( "main_init", ( mvControlled->MainsInitTimeCountdown < mvControlled->MainsInitTime ) && ( mvControlled->MainsInitTimeCountdown > 0.0 ) );
+    dict->insert( "main_ready", ( false == mvControlled->Mains ) && ( fHVoltage > 0.0 ) && ( mvControlled->MainsInitTimeCountdown <= 0.0 ) );
     dict->insert( "converter", mvControlled->ConverterFlag );
     dict->insert( "converter_overload", mvControlled->ConvOvldFlag );
     dict->insert( "compress", mvControlled->CompressorFlag );
@@ -5107,10 +5109,11 @@ bool TTrain::Update( double const Deltatime )
     if( ( ggMainButton.GetDesiredValue() > 0.95 )
      || ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) {
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
-        if( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
-         || ( ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor )
-           && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor )
-           && ( true == mvControlled->Battery ) ) ) {
+        if( ( mvControlled->MainsInitTimeCountdown <= 0.0 )
+         && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
+           || ( ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor )
+             && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor )
+             && ( true == mvControlled->Battery ) ) ) ) {
             // prevent the switch from working if there's no power
             // TODO: consider whether it makes sense for diesel engines and such
             fMainRelayTimer += Deltatime;
@@ -5648,9 +5651,10 @@ bool TTrain::Update( double const Deltatime )
                  || (true == mvControlled->Mains) ) ?
                     true :
                     false ) );
-            // NOTE: 'off' variant uses the same test, but opposite resulting states
             btLampkaWylSzybkiOff.Turn(
-                ( ( ( m_linebreakerstate == 2 )
+                ( ( ( mvControlled->MainsInitTimeCountdown > 0.0 )
+                 || ( fHVoltage == 0.0 )
+                 || ( m_linebreakerstate == 2 )
                  || ( true == mvControlled->Mains ) ) ?
                     false :
                     true ) );
@@ -5882,7 +5886,7 @@ bool TTrain::Update( double const Deltatime )
                     auto const *mover { tmp->MoverParameters };
 
                     btLampkaWylSzybkiB.Turn( mover->Mains );
-                    btLampkaWylSzybkiBOff.Turn( false == mover->Mains );
+                    btLampkaWylSzybkiBOff.Turn( ( false == mover->Mains ) && ( mover->MainsInitTimeCountdown <= 0.0 ) && ( fHVoltage != 0.0 ) );
 
                     btLampkaOporyB.Turn(mover->ResistorsFlagCheck());
                     btLampkaBezoporowaB.Turn(

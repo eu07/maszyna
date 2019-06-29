@@ -1309,10 +1309,11 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     RunInternalCommand();
 
     // automatyczny rozruch
-    if (EngineType == TEngineType::ElectricSeriesMotor)
-
-        if (AutoRelayCheck())
-            SetFlag(SoundFlag, sound::relay);
+    if( EngineType == TEngineType::ElectricSeriesMotor ) {
+        if( AutoRelayCheck() ) {
+            SetFlag( SoundFlag, sound::relay );
+        }
+    }
 
     if( ( EngineType == TEngineType::DieselEngine )
      || ( EngineType == TEngineType::DieselElectric ) ) {
@@ -1324,6 +1325,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     // TODO: gather and move current calculations to dedicated method
     TotalCurrent = 0;
 
+    // main circuit
+    MainsCheck( Deltatime );
     // traction motors
     MotorBlowersCheck( Deltatime );
     // uklady hamulcowe:
@@ -1363,6 +1366,37 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     update_doors( Deltatime );
 
     PowerCouplersCheck( Deltatime );
+}
+
+void TMoverParameters::MainsCheck( double const Deltatime ) {
+
+    // TODO: move other main circuit checks here
+
+    if( MainsInitTime == 0.0 )          { return; }
+
+    if( MainsInitTimeCountdown > 0.0 ) {
+        MainsInitTimeCountdown -= Deltatime;
+    }
+    // TBD, TODO: move voltage calculation to separate method and use also in power coupler state calculation?
+    auto localvoltage { 0.0 };
+    switch( EnginePowerSource.SourceType ) {
+        case TPowerSource::CurrentCollector: {
+            localvoltage =
+                std::max(
+                    localvoltage,
+                    std::max(
+                        PantFrontVolt,
+                        PantRearVolt ) );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    if( ( localvoltage == 0.0 )
+     && ( GetTrainsetVoltage() == 0 ) ) {
+        MainsInitTimeCountdown = MainsInitTime;
+    }
 }
 
 void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
@@ -2846,6 +2880,7 @@ void TMoverParameters::MainSwitch_( bool const State ) {
     if( ( false == State )
      || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
        && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+       && ( MainsInitTimeCountdown <= 0.0 )
        && ( true == NoVoltRelay )
        && ( true == OvervoltageRelay )
        && ( LastSwitchingTime > CtrlDelay )
@@ -8959,6 +8994,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 		false;
 	extract_value(SpeedCtrlAutoTurnOffFlag, "SpeedCtrlATOF", line, "");
 
+    // main circuit
+    extract_value( MainsInitTime, "MainInitTime", line, "" );
     // converter
     {
         std::map<std::string, start_t> starts {

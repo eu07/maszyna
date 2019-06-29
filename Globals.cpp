@@ -58,7 +58,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1, false );
             Parser >> FieldOfView;
             // guard against incorrect values
-            FieldOfView = clamp( FieldOfView, 15.0f, 75.0f );
+            FieldOfView = clamp( FieldOfView, 10.0f, 75.0f );
         }
         else if (token == "width")
         {

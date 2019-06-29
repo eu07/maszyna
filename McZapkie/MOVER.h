@@ -1247,6 +1247,8 @@ public:
 
     /*-zmienne dla lokomotyw*/
 	bool Mains = false;    /*polozenie glownego wylacznika*/
+    double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
+    double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0;
@@ -1527,6 +1529,7 @@ public:
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
+    void MainsCheck( double const Deltatime );
     void PowerCouplersCheck( double const Deltatime );
     void ConverterCheck( double const Timestep ); // przetwornica
     void HeatingCheck( double const Timestep );
