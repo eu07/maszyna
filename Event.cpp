@@ -1034,7 +1034,7 @@ logvalues_event::export_as_text_( std::ostream &Output ) const {
 void
 multi_event::init() {
 
-    auto const conditiontchecksmemcell { m_conditions.flags & ( flags::text | flags::value_1 | flags::value_2 ) };
+    auto const conditiontchecksmemcell { ( m_conditions.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) != 0 };
     // not all multi-events have memory cell checks, for the ones which don't we can keep quiet about it
     init_targets( simulation::Memory, "memory cell", conditiontchecksmemcell );
     if( m_ignored ) {
@@ -1932,6 +1932,22 @@ event_manager::queue( TEventLauncher *Launcher ) {
     m_launcherqueue.emplace_back( Launcher );
 }
 
+// inserts in the event query events assigned to event launchers capable of receiving specified radio message sent from specified location
+void
+event_manager::queue_receivers( radio_message const Message, glm::dvec3 const &Location ) {
+
+    for( auto *launcher : m_radiodrivenlaunchers.sequence() ) {
+        if( ( launcher->key() == Message )
+         && ( ( launcher->dRadius < 0 )
+           || ( glm::length2( launcher->location() - Location ) < launcher->dRadius ) )
+         && ( true == launcher->check_conditions() ) ) {
+            // NOTE: only execution of event1 is supported for radio messages
+            // TBD, TODO: consider ability/way to execute event2
+            simulation::Events.AddToQuery( launcher->Event1, nullptr );
+        }
+    }
+}
+
 // legacy method, updates event queues
 void
 event_manager::update() {
@@ -2135,32 +2151,39 @@ event_manager::InitEvents() {
 void
 event_manager::InitLaunchers() {
 
-    for( auto *launcher : m_launchers.sequence() ) {
+    std::vector<basic_table<TEventLauncher> *> launchertables {
+        &m_inputdrivenlaunchers,
+        &m_radiodrivenlaunchers
+    };
 
-        if( launcher->iCheckMask != 0 ) {
-            if( launcher->asMemCellName != "none" ) {
-                // jeśli jest powiązana komórka pamięci
-                launcher->MemCell = simulation::Memory.find( launcher->asMemCellName );
-                if( launcher->MemCell == nullptr ) {
-                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find memcell \"" + launcher->asMemCellName + "\"" );
+    for( auto *launchertable : launchertables ) {
+        for( auto *launcher : launchertable->sequence() ) {
+
+            if( launcher->iCheckMask != 0 ) {
+                if( launcher->asMemCellName != "none" ) {
+                    // jeśli jest powiązana komórka pamięci
+                    launcher->MemCell = simulation::Memory.find( launcher->asMemCellName );
+                    if( launcher->MemCell == nullptr ) {
+                        ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find memcell \"" + launcher->asMemCellName + "\"" );
+                    }
+                }
+                else {
+                    launcher->MemCell = nullptr;
                 }
             }
-            else {
-                launcher->MemCell = nullptr;
-            }
-        }
 
-        if( launcher->asEvent1Name != "none" ) {
-            launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
-            if( launcher->Event1 == nullptr ) {
-                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent1Name + "\"" );
+            if( launcher->asEvent1Name != "none" ) {
+                launcher->Event1 = simulation::Events.FindEvent( launcher->asEvent1Name );
+                if( launcher->Event1 == nullptr ) {
+                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent1Name + "\"" );
+                }
             }
-        }
 
-        if( launcher->asEvent2Name != "none" ) {
-            launcher->Event2 = simulation::Events.FindEvent( launcher->asEvent2Name );
-            if( launcher->Event2 == nullptr ) {
-                ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent2Name + "\"" );
+            if( launcher->asEvent2Name != "none" ) {
+                launcher->Event2 = simulation::Events.FindEvent( launcher->asEvent2Name );
+                if( launcher->Event2 == nullptr ) {
+                    ErrorLog( "Bad scenario: event launcher \"" + launcher->name() + "\" can't find event \"" + launcher->asEvent2Name + "\"" );
+                }
             }
         }
     }
@@ -2176,8 +2199,14 @@ event_manager::export_as_text( std::ostream &Output ) const {
             event->export_as_text( Output );
         }
     }
-    Output << "// event launchers\n";
-    for( auto const *launcher : m_launchers.sequence() ) {
+    Output << "// event launchers, basic\n";
+    for( auto const *launcher : m_inputdrivenlaunchers.sequence() ) {
+        if( launcher->group() == null_handle ) {
+            launcher->export_as_text( Output );
+        }
+    }
+    Output << "// event launchers, radio driven\n";
+    for( auto const *launcher : m_radiodrivenlaunchers.sequence() ) {
         if( launcher->group() == null_handle ) {
             launcher->export_as_text( Output );
         }

@@ -711,6 +711,9 @@ drivermouse_input::default_bindings() {
         { "radiotest_sw:", {
             user_command::radiostoptest,
             user_command::none } },
+        { "radiocall3_sw:", {
+            user_command::radiocall3send,
+            user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,
             user_command::none } },

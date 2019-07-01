@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "simulation.h"
+#include "Event.h"
 #include "simulationtime.h"
 #include "Camera.h"
 #include "Logs.h"
@@ -339,6 +340,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
     { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
     { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
+    { user_command::radiocall3send, &TTrain::OnCommand_radiocall3send },
     { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
     { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
@@ -5014,6 +5016,7 @@ void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         if( ( Train->RadioChannel() == 10 )
+         && ( true == Train->mvOccupied->Radio )
          && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
             Train->Dynamic()->RadioStop();
         }
@@ -5023,6 +5026,23 @@ void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         Train->ggRadioTest.UpdateValue( 0.0 );
+    }
+}
+
+void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        if( ( Train->RadioChannel() != 10 )
+         && ( true == Train->mvOccupied->Radio )
+         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
+            simulation::Events.queue_receivers( radio_message::call3, Train->Dynamic()->GetPosition() );
+        }
+        // visual feedback
+        Train->ggRadioCall3.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioCall3.UpdateValue( 0.0 );
     }
 }
 
@@ -6141,6 +6161,7 @@ bool TTrain::Update( double const Deltatime )
         ggRadioChannelNext.Update();
         ggRadioStop.Update();
         ggRadioTest.Update();
+        ggRadioCall3.Update();
         ggDepartureSignalButton.Update();
 
         ggPantFrontButton.Update();
@@ -7351,6 +7372,7 @@ void TTrain::clear_cab_controls()
     ggRadioChannelNext.Clear();
     ggRadioStop.Clear();
     ggRadioTest.Clear();
+    ggRadioCall3.Clear();
     ggDoorLeftPermitButton.Clear();
     ggDoorRightPermitButton.Clear();
     ggDoorPermitPresetButton.Clear();
@@ -8037,6 +8059,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "radiochannelnext_sw:", ggRadioChannelNext },
         { "radiostop_sw:", ggRadioStop },
         { "radiotest_sw:", ggRadioTest },
+        { "radiocall3_sw:", ggRadioCall3 },
         { "pantfront_sw:", ggPantFrontButton },
         { "pantrear_sw:", ggPantRearButton },
         { "pantfrontoff_sw:", ggPantFrontButtonOff },

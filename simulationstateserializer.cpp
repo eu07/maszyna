@@ -516,7 +516,10 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         }
         else {
             scene::Groups.insert( scene::Groups.handle(), eventlauncher );
-            simulation::Region->insert( eventlauncher );
+            if( false == eventlauncher->IsRadioActivated() ) {
+                // NOTE: radio-activated launchers due to potentially large activation radius are resolved on global level rather than put in a region cell
+                simulation::Region->insert( eventlauncher );
+            }
         }
     }
     else if( nodedata.type == "sound" ) {

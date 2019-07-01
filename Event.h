@@ -559,6 +559,9 @@ public:
     // adds specified event launcher to the list of global launchers
     void
         queue( TEventLauncher *Launcher );
+    // inserts in the event query events assigned to event launchers capable of receiving specified radio message sent from specified location
+    void
+        queue_receivers( radio_message const Message, glm::dvec3 const &Location );
     // legacy method, updates event queues
     void
         update();
@@ -569,7 +572,10 @@ public:
     inline
     bool
         insert( TEventLauncher *Launcher ) {
-            return m_launchers.insert( Launcher ); }
+            return (
+                Launcher->IsRadioActivated() ?
+                    m_radiodrivenlaunchers.insert( Launcher ) :
+                    m_inputdrivenlaunchers.insert( Launcher ) ); }
     // returns first event in the queue
     inline
     basic_event *
@@ -609,7 +615,8 @@ private:
     basic_event *QueryRootEvent { nullptr };
     basic_event *m_workevent { nullptr };
     event_map m_eventmap;
-    basic_table<TEventLauncher> m_launchers;
+    basic_table<TEventLauncher> m_inputdrivenlaunchers;
+    basic_table<TEventLauncher> m_radiodrivenlaunchers;
     eventlauncher_sequence m_launcherqueue;
 };
 
