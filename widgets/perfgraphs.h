@@ -2,7 +2,7 @@
 
 class perfgraph_panel : public ui_panel
 {
-	std::array<float, 400> history;
+	std::array<float, 400> history = { 0 };
 	size_t pos = 0;
 
 	enum timers_e {

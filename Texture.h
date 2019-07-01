@@ -68,6 +68,7 @@ private:
 	void load_PNG();
     void load_DDS();
     void load_TEX();
+	void load_STBI();
     void load_TGA();
     void set_filtering() const;
     void downsize( GLuint const Format );

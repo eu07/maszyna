@@ -16,8 +16,7 @@ editorkeyboard_input::init() {
     default_bindings();
     // TODO: re-enable after mode-specific binding import is in place
     // return recall_bindings();
-    bind();
-    m_bindingsetups.clear();
+	bind();
 
     return true;
 }

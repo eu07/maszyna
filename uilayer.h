@@ -16,8 +16,6 @@ http://mozilla.org/MPL/2.0/.
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 
-#define LOC_STR(x) locale::strings[locale::string::x].c_str()
-
 class ui_panel {
 
 public:
@@ -111,6 +109,10 @@ public:
 	// draws requested UI elements
 	void
 	    render();
+	// begins new UI frame
+	// (this is separate from render() to allow for debug GUI outside of proper UI framework)
+	void
+	    begin_ui_frame();
     //
     static
     void
@@ -147,7 +149,7 @@ protected:
     static bool m_cursorvisible;    
 
    virtual void render_menu_contents();
-    ui_log_panel m_logpanel { "Log", true };
+   ui_log_panel m_logpanel { "Log", true };
 
 private:
 // methods
@@ -185,4 +187,5 @@ private:
 	std::vector<std::unique_ptr<ui_panel>> m_ownedpanels;
     std::string m_tooltip;
     bool m_quit_active = false;
+	bool m_imgui_demo = false;
 };

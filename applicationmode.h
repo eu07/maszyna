@@ -28,12 +28,17 @@ public:
     virtual
     bool
         update() = 0;
-    // draws node-specific user interface
+	// draws mode-specific user interface
     inline
     void
         render_ui() {
             if( m_userinterface != nullptr ) {
                 m_userinterface->render(); } }
+	inline
+	void
+	    begin_ui_frame() {
+		    if( m_userinterface != nullptr ) {
+				m_userinterface->begin_ui_frame(); } }
     inline
     void
         set_progress( float const Progress = 0.f, float const Subtaskprogress = 0.f ) {

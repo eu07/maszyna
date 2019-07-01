@@ -19,7 +19,7 @@ class eu07_application {
 public:
 // types
     enum mode {
-//        launcher = 0,
+		launcher = 0,
         scenarioloader,
         driver,
         editor,
@@ -45,6 +45,8 @@ public:
         exit();
     void
         render_ui();
+	void
+	    begin_ui_frame();
     // switches application to specified mode
     bool
         pop_mode();

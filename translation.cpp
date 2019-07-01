@@ -13,13 +13,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "translation.h"
-
+#include "Logs.h"
 #include "Globals.h"
 
-namespace locale {
-
-void
-init() {
+	/*
     // TODO: import localized strings from localization files
     std::unordered_map<std::string, std::vector<std::string>> stringmap;
 
@@ -568,24 +565,264 @@ init() {
             m_cabcontrols.insert( { cabcontrol, strings[ stringidx++ ] } );
         }
     }
+	*/
+
+void locale::init()
+{
+	std::fstream stream("lang/" + Global.asLang + ".po", std::ios_base::in | std::ios_base::binary);
+
+	if (!stream.is_open()) {
+		WriteLog("translation: cannot open lang file: " + Global.asLang);
+		return;
+	}
+
+	while (stream.eof())
+		parse_translation(stream);
+
+	WriteLog("translation: " + std::to_string(lang_mapping.size()) + " strings loaded");
 }
 
-std::string
-label_cab_control( std::string const &Label ) {
+const std::string& locale::lookup_s(const std::string &msg, bool constant)
+{
+	if (constant) {
+		auto it = pointer_cache.find(&msg);
+		if (it != pointer_cache.end())
+			return *(it->second);
+	}
 
+	auto it = lang_mapping.find(msg);
+	if (it != lang_mapping.end()) {
+		if (constant)
+			pointer_cache.emplace(&msg, &(it->second));
+		return it->second;
+	}
+
+	if (constant)
+		pointer_cache.emplace(&msg, &msg);
+	return msg;
+}
+
+const char* locale::lookup(const char *msg, bool constant)
+{
+	if (constant) {
+		auto it = pointer_cache.find(&msg);
+		if (it != pointer_cache.end())
+			return it->second->c_str();
+	}
+
+	auto it = lang_mapping.find(std::string(msg));
+	if (it != lang_mapping.end()) {
+		if (constant)
+			pointer_cache.emplace(&msg, &(it->second));
+		return it->second.c_str();
+	}
+
+	return msg;
+}
+
+void locale::parse_translation(std::istream &stream)
+{
+	std::string line;
+
+	std::string msgid;
+	std::string msgstr;
+	std::string msgctxt;
+	char last = 'x';
+
+	while (std::getline(stream, line)) {
+		if (line.size() > 0 && line[0] == '#')
+			continue;
+
+		if (string_starts_with(line, "msgid"))
+			last = 'i';
+		else if (string_starts_with(line, "msgstr"))
+			last = 's';
+		else if (string_starts_with(line, "msgctxt"))
+			last = 'c';
+
+		if (line.size() > 1 && last != 'x') {
+			if (last == 'i')
+				msgid += parse_c_literal(line);
+			else if (last == 's')
+				msgstr += parse_c_literal(line);
+			else if (last == 'c')
+				msgctxt += parse_c_literal(line);
+		}
+		else {
+			if (!msgid.empty() && !msgstr.empty())
+				lang_mapping.emplace(msgctxt + "\x1d" + msgid, msgstr);
+			return;
+		}
+	}
+}
+
+std::string locale::parse_c_literal(const std::string &str)
+{
+	std::istringstream stream(str);
+	std::string out;
+
+	bool active = false;
+	bool escape = false;
+
+	char c;
+	while ((c = stream.get()) != stream.eof()) {
+		if (!escape && c == '"')
+			active = !active;
+		else if (active && !escape && c == '\\')
+			escape = true;
+		else if (active && escape) {
+			if (c == 'r')
+				out += '\r';
+			else if (c == 'n')
+				out += '\n';
+			else if (c == 't')
+				out += '\t';
+			else if (c == '\\')
+				out += '\\';
+			else if (c == '?')
+				out += '?';
+			else if (c == '\'')
+				out += '\'';
+			else if (c == '"')
+				out += '"';
+			else if (c == 'x') {
+				char n1 = stream.get() - 48;
+				char n2 = stream.get() - 48;
+				if (n1 > 9)
+					n1 -= 7;
+				if (n1 > 16)
+					n1 -= 32;
+				if (n2 > 9)
+					n2 -= 7;
+				if (n2 > 16)
+					n2 -= 32;
+				out += ((n1 << 4) | n2);
+			}
+			escape = false;
+		}
+		else if (active)
+			out += c;
+	}
+
+	return out;
+}
+
+std::string locale::label_cab_control(std::string const &Label)
+{
     if( Label.empty() ) { return ""; }
 
-    auto const lookup = m_cabcontrols.find( Label );
+	static std::unordered_map<std::string, std::string> cabcontrols_labels = {
+	    { "mainctrl:", "master controller" },
+	    { "jointctrl:", "master controller" },
+	    { "scndctrl:", "second controller" },
+	    { "shuntmodepower:", "shunt mode power" },
+	    { "tempomat_sw:", "tempomat" },
+	    { "dirkey:", "reverser" },
+	    { "brakectrl:", "train brake" },
+	    { "localbrake:", "independent brake" },
+	    { "manualbrake:", "manual brake" },
+	    { "alarmchain:", "emergency brake" },
+	    { "brakeprofile_sw:", "brake acting speed" },
+	    { "brakeprofileg_sw:", "brake acting speed: cargo" },
+	    { "brakeprofiler_sw:", "brake acting speed: rapid" },
+	    { "brakeopmode_sw", "brake operation mode" },
+	    { "maxcurrent_sw:", "motor overload relay threshold" },
+	    { "waterpump_sw:", "water pump" },
+	    { "waterpumpbreaker_sw:", "water pump breaker" },
+	    { "waterheater_sw:", "water heater" },
+	    { "waterheaterbreaker_sw:", "water heater breaker" },
+	    { "watercircuitslink_sw:", "water circuits link" },
+	    { "fuelpump_sw:", "fuel pump" },
+	    { "oilpump_sw:", "oil pump" },
+	    { "motorblowersfront_sw:", "motor blowers A" },
+	    { "motorblowersrear_sw:", "motor blowers B" },
+	    { "motorblowersalloff_sw:", "all motor blowers" },
+	    { "coolingfans_sw:", "cooling fans" },
+	    { "main_off_bt:", "line breaker" },
+	    { "main_on_bt:", "line breaker" },
+	    { "security_reset_bt:", "alerter" },
+	    { "releaser_bt:", "independent brake releaser" },
+	    { "sand_bt:", "sandbox" },
+	    { "antislip_bt:", "wheelspin brake" },
+	    { "horn_bt:", "horn" },
+	    { "hornlow_bt:", "low tone horn" },
+	    { "hornhigh_bt:", "high tone horn" },
+	    { "whistle_bt:", "whistle" },
+	    { "fuse_bt:", "motor overload relay reset" },
+	    { "converterfuse_bt:", "converter overload relay reset" },
+	    { "stlinoff_bt:", "motor connectors" },
+	    { "doorleftpermit_sw:", "left door (permit)" },
+	    { "doorrightpermit_sw:", "right door (permit)" },
+	    { "doorpermitpreset_sw:", "door (permit)" },
+	    { "door_left_sw:", "left door" },
+	    { "door_right_sw:", "right door" },
+	    { "doorlefton_sw:", "left door (open)" },
+	    { "doorrighton_sw:", "right door (open)" },
+	    { "doorleftoff_sw:", "left door (close)" },
+	    { "doorrightoff_sw:", "right door (close)" },
+	    { "doorallon_sw:", "all doors (open)" },
+	    { "dooralloff_sw:", "all doors (close)" },
+	    { "doorstep_sw:", "doorstep" },
+	    { "doormode_sw", "door control mode" },
+	    { "departure_signal_bt:", "departure signal" },
+	    { "upperlight_sw:", "upper headlight" },
+	    { "leftlight_sw:", "left headlight" },
+	    { "rightlight_sw:", "right headlight" },
+	    { "dimheadlights_sw:", "headlights dimmer" },
+	    { "leftend_sw:", "left marker light" },
+	    { "rightend_sw:", "right marker light" },
+	    { "lights_sw:", "light pattern" },
+	    { "rearupperlight_sw:", "rear upper headlight" },
+	    { "rearleftlight_sw:", "rear left headlight" },
+	    { "rearrightlight_sw:", "rear right headlight" },
+	    { "rearleftend_sw:", "rear left marker light" },
+	    { "rearrightend_sw:", "rear right marker light" },
+	    { "compressor_sw:", "compressor" },
+	    { "compressorlocal_sw:", "local compressor" },
+	    { "converter_sw:", "converter" },
+	    { "converterlocal_sw:", "local converter" },
+	    { "converteroff_sw:", "converter" },
+	    { "main_sw:", "line breaker" },
+	    { "radio_sw:", "radio" },
+	    { "radiochannel_sw:", "radio channel" },
+	    { "radiochannelprev_sw:", "radio channel" },
+	    { "radiochannelnext_sw:", "radio channel" },
+	    { "radiotest_sw:", "radiostop test" },
+	    { "radiostop_sw:", "radiostop" },
+	    { "pantfront_sw:", "pantograph A" },
+	    { "pantrear_sw:", "pantograph B" },
+	    { "pantfrontoff_sw:", "pantograph A" },
+	    { "pantrearoff_sw:", "pantograph B" },
+	    { "pantalloff_sw:", "all pantographs" },
+	    { "pantselected_sw:", "selected pantograph" },
+	    { "pantselectedoff_sw:", "selected pantograph" },
+	    { "pantcompressor_sw:", "pantograph compressor" },
+	    { "pantcompressorvalve_sw:", "pantograph 3 way valve" },
+	    { "trainheating_sw:", "heating" },
+	    { "signalling_sw:", "braking indicator" },
+	    { "door_signalling_sw:", "door locking" },
+	    { "nextcurrent_sw:", "current indicator source" },
+	    { "instrumentlight_sw:", "instrument light" },
+	    { "dashboardlight_sw:", "dashboard light" },
+	    { "timetablelight_sw:", "timetable light" },
+	    { "cablight_sw:", "interior light" },
+	    { "cablightdim_sw:", "interior light dimmer" },
+	    { "battery_sw:", "battery" },
+	    { "universal0:", "interactive part" },
+	    { "universal1:", "interactive part" },
+	    { "universal2:", "interactive part" },
+	    { "universal3:", "interactive part" },
+	    { "universal4:", "interactive part" },
+	    { "universal5:", "interactive part" },
+	    { "universal6:", "interactive part" },
+	    { "universal7:", "interactive part" },
+	    { "universal8:", "interactive part" },
+	    { "universal9:", "interactive part" }
+	};
+
+	auto const it = cabcontrols_labels.find( Label );
     return (
-        lookup != m_cabcontrols.end() ?
-            lookup->second :
+	    it != cabcontrols_labels.end() ?
+	        lookup_s(it->second) :
             "" );
 }
-
-std::vector<std::string> strings;
-
-std::unordered_map<std::string, std::string> m_cabcontrols;
-
-} // namespace locale
-
-//---------------------------------------------------------------------------

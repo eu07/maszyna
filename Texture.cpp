@@ -24,8 +24,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sn_utils.h"
 #include "utilities.h"
 #include "flip-s3tc.h"
+#include "stb/stb_image.h"
 #include <png.h>
-
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
@@ -161,6 +161,8 @@ void opengl_texture::gles_match_internalformat(GLuint internalformat)
 // TODO: wrap it in a workitem class, for the job system deferred loading
 void
 opengl_texture::load() {
+	if (data_state == resource_state::good)
+		return;
 
     if( type == "make:" ) {
         // for generated texture we delay data creation until texture is bound
@@ -179,6 +181,7 @@ opengl_texture::load() {
         else if( type == ".tga" ) { load_TGA(); }
         else if( type == ".png" ) { load_PNG(); }
         else if( type == ".bmp" ) { load_BMP(); }
+		else if( type == ".jpg" ) { load_STBI(); }
         else if( type == ".tex" ) { load_TEX(); }
         else { goto fail; }
     }
@@ -249,6 +252,29 @@ void opengl_texture::load_PNG()
 
     data_mapcount = 1;
     data_state = resource_state::good;
+}
+
+void opengl_texture::load_STBI()
+{
+	int x, y, n;
+	uint8_t *image = stbi_load((name + type).c_str(), &x, &y, &n, 4);
+
+	if (!image) {
+		data_state = resource_state::failed;
+		ErrorLog(std::string(stbi_failure_reason()));
+		return;
+	}
+
+	data.resize(x * y * 4);
+	memcpy(&data[0], image, data.size());
+	delete image;
+
+	data_format = GL_RGBA;
+	data_components = (n == 4 ? GL_RGBA : GL_RGB);
+	data_width = x;
+	data_height = y;
+	data_mapcount = 1;
+	data_state = resource_state::good;
 }
 
 void
@@ -1343,7 +1369,7 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
     return (
         FileExists(
             filenames,
-            { ".dds", ".tga", ".png", ".bmp", ".ext" } ) );
+	        { ".dds", ".tga", ".png", ".bmp", ".jpg", ".tex" } ) );
 }
 
 //---------------------------------------------------------------------------

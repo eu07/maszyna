@@ -23,8 +23,23 @@ extern bool key_shift;
 }
 
 class keyboard_input {
-
 public:
+// types
+	/*
+	struct binding_setup {
+
+		user_command command;
+		int binding;
+	};*/
+
+	using bindingsetup_sequence = std::map<user_command, int>;
+
+	enum keymodifier : int {
+
+		shift   = 0x10000,
+		control = 0x20000
+	};
+
 // constructors
     keyboard_input() = default;
 
@@ -45,38 +60,31 @@ public:
     user_command const
         command() const {
             return m_command; }
+	bindingsetup_sequence&
+	    bindings() {
+		    return m_bindingsetups; }
+	void
+	    bind();
+	void
+	    dump_bindings();
+
+// members
+	static std::unordered_map<int, std::string> keytonamemap;
 
 protected:
-// types
-    enum keymodifier : int {
-
-        shift   = 0x10000,
-        control = 0x20000
-    };
-
-    struct binding_setup {
-
-        user_command command;
-        int binding;
-    };
-
-    using bindingsetup_sequence = std::vector<binding_setup>;
-
 // methods
     virtual
     void
         default_bindings() = 0;
     bool
         recall_bindings();
-    void
-        bind();
 
 // members
-    bindingsetup_sequence m_bindingsetups;
+	bindingsetup_sequence m_bindingsetups;
 
 private:
 // types
-    using usercommand_map = std::unordered_map<int, user_command>;
+	using usercommand_map = std::unordered_map<int, user_command>;
 
     struct bindings_cache {
 

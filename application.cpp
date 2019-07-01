@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "drivermode.h"
 #include "editormode.h"
 #include "scenarioloadermode.h"
+#include "launcher/launchermode.h"
 
 #include "Globals.h"
 #include "simulation.h"
@@ -163,6 +164,8 @@ eu07_application::run() {
     {
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
+
+		begin_ui_frame();
 
 		// -------------------------------------------------------------------
 		// multiplayer command relaying logic can seem a bit complex
@@ -365,6 +368,13 @@ eu07_application::render_ui() {
     if( m_modestack.empty() ) { return; }
 
     m_modes[ m_modestack.top() ]->render_ui();
+}
+
+void eu07_application::begin_ui_frame() {
+
+	if( m_modestack.empty() ) { return; }
+
+	m_modes[ m_modestack.top() ]->begin_ui_frame();
 }
 
 bool
@@ -761,6 +771,7 @@ eu07_application::init_modes() {
     // but doing it in one go at the start saves us some error checking headache down the road
 
     // create all application behaviour modes
+	m_modes[ mode::launcher ] = std::make_shared<launcher_mode>();
     m_modes[ mode::scenarioloader ] = std::make_shared<scenarioloader_mode>();
     m_modes[ mode::driver ] = std::make_shared<driver_mode>();
     m_modes[ mode::editor ] = std::make_shared<editor_mode>();
@@ -771,7 +782,10 @@ eu07_application::init_modes() {
         }
     }
     // activate the default mode
-    push_mode( mode::scenarioloader );
+	if (Global.SceneryFile.empty())
+		push_mode( mode::launcher );
+	else
+		push_mode( mode::scenarioloader );
 
     return 0;
 }

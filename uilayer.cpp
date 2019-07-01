@@ -130,6 +130,7 @@ bool ui_layer::init(GLFWwindow *Window)
     ImGui::CreateContext();
     m_imguiio = &ImGui::GetIO();
 
+	m_imguiio->ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     // m_imguiio->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // m_imguiio->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
@@ -147,18 +148,13 @@ bool ui_layer::init(GLFWwindow *Window)
 	ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
 #ifdef EU07_USEIMGUIIMPLOPENGL2
-    ImGui_ImplOpenGL2_Init();
-    ImGui_ImplOpenGL2_NewFrame();
+	ImGui_ImplOpenGL2_Init();
 #else
     if (Global.gfx_usegles)
         ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
     else
-        ImGui_ImplOpenGL3_Init("#version 330 core");
-    ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplOpenGL3_Init("#version 330 core");
 #endif
-
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
 
     return true;
 }
@@ -250,15 +246,21 @@ void ui_layer::render()
     ImGui::Render();
 
 #ifdef EU07_USEIMGUIIMPLOPENGL2
-    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-    ImGui_ImplOpenGL2_NewFrame();
+	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 #else
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #endif
+}
 
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+void ui_layer::begin_ui_frame()
+{
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+	ImGui_ImplOpenGL2_NewFrame();
+#else
+	ImGui_ImplOpenGL3_NewFrame();
+#endif
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
 }
 
 void ui_layer::render_quit_widget()
@@ -347,6 +349,9 @@ void ui_layer::render_panels()
 		panel->render();
 	for (auto &panel : m_ownedpanels)
 		panel->render();
+
+	if (m_imgui_demo)
+		ImGui::ShowDemoWindow(&m_imgui_demo);
 }
 
 void ui_layer::render_tooltip()
@@ -384,8 +389,10 @@ void ui_layer::render_menu_contents()
     if (ImGui::BeginMenu(LOC_STR(ui_windows)))
     {
         ImGui::MenuItem(LOC_STR(ui_log), "F9", &m_logpanel.is_open);
-		if (DebugModeFlag)
+		if (DebugModeFlag) {
+			ImGui::MenuItem("ImGui Demo", nullptr, &m_imgui_demo);
 			ImGui::MenuItem("Headlight config", nullptr, &GfxRenderer.debug_ui_active);
+		}
         ImGui::EndMenu();
     }
 }

@@ -28,7 +28,8 @@ file(GLOB HEADERS "*.h"
 "gl/*.h"
 "network/*.h"
 "network/backend/*.h"
-"widgets/*.h")
+"widgets/*.h"
+"launcher/*.h")
 
 if (APPLE)
 	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
@@ -162,6 +163,13 @@ set(SOURCES
 
 "stb/stb_image.c"
 "extras/VS_Dev.cpp"
+
+"launcher/launchermode.cpp"
+"launcher/scenery_list.cpp"
+"launcher/launcheruilayer.cpp"
+"launcher/vehicle_picker.cpp"
+"launcher/keymapper.cpp"
+"launcher/mainmenu.cpp"
 )
 
 if (USE_IMGUI_GL3)

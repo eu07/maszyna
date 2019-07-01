@@ -12,9 +12,8 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <unordered_map>
 
-namespace locale {
+/*
 
-enum string {
     driver_aid_header,
     driver_aid_throttle,
     driver_aid_speedlimit,
@@ -222,18 +221,25 @@ enum string {
     cab_universal9,
 
     string_count
+
+*/
+
+class locale {
+public:
+	static void init();
+	static std::string label_cab_control(const std::string &Label);
+
+	static const char* lookup(const char *msg, bool constant = true);
+	static const std::string& lookup_s(const std::string &msg, bool constant = true);
+
+private:
+	static void parse_translation(std::istream &stream);
+	static std::string parse_c_literal(const std::string &str);
+
+	static std::unordered_map<std::string, std::string> lang_mapping;
+	static std::unordered_map<const void*, std::string*> pointer_cache;
 };
 
-void
-    init();
-std::string
-    label_cab_control( std::string const &Label );
-
-extern std::vector<std::string> strings;
-
-extern std::unordered_map<std::string, std::string> m_cabcontrols;
-
-}
-
-//---------------------------------------------------------------------------
+#define LOC_STR(x) locale::lookup_s(#x)
+#define LOC_STR_C(x) locale::lookup(#x)
 

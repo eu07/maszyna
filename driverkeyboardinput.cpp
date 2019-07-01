@@ -15,8 +15,7 @@ driverkeyboard_input::init() {
 
     default_bindings();
     recall_bindings();
-    bind();
-    m_bindingsetups.clear();
+	bind();
 
     return true;
 }
