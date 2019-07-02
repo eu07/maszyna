@@ -1708,20 +1708,20 @@ std::array<char, 64> orderbuffer;
 std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
     auto const order { OrderCurrentGet() };
-    if( order & Change_direction ) {
-        return locale::strings[ locale::string::driver_scenario_changedirection ];
+	if( order & Change_direction ) {
+		return STR(driver_scenario_changedirection);
     }
 
     switch( OrderList[ OrderPos ] ) {
-        case Wait_for_orders: { return locale::strings[ locale::string::driver_scenario_waitfororders ]; }
-        case Prepare_engine: { return locale::strings[ locale::string::driver_scenario_prepareengine ]; }
-        case Release_engine: { return locale::strings[ locale::string::driver_scenario_releaseengine ]; }
-        case Change_direction: { return locale::strings[ locale::string::driver_scenario_changedirection ]; }
-        case Connect: { return locale::strings[ locale::string::driver_scenario_connect ]; }
+	    case Wait_for_orders: { return STR(driver_scenario_waitfororders); }
+	    case Prepare_engine: { return STR(driver_scenario_prepareengine); }
+	    case Release_engine: { return STR(driver_scenario_releaseengine); }
+	    case Change_direction: { return STR(driver_scenario_changedirection); }
+	    case Connect: { return STR(driver_scenario_connect); }
         case Disconnect: {
             if( iVehicleCount < 0 ) {
                 // done with uncoupling, order should update shortly
-                return locale::strings[ locale::string::driver_scenario_waitfororders ];
+				return STR(driver_scenario_waitfororders);
             }
             // try to provide some task details
             auto const count { iVehicleCount };
@@ -1730,25 +1730,25 @@ std::string TController::OrderCurrent() const
                 std::snprintf(
                     orderbuffer.data(), orderbuffer.size(),
                     ( iVehicleCount < 5 ?
-                        locale::strings[ locale::string::driver_scenario_fewvehicles ].c_str() : // 2-4
-                        locale::strings[ locale::string::driver_scenario_somevehicles ].c_str() ), // 5+
+				        STR_C(driver_scenario_fewvehicles) : // 2-4
+				        STR_C(driver_scenario_somevehicles) ), // 5+
                     count );
             }
             auto const countstring { (
-                count == 0 ? locale::strings[ locale::string::driver_scenario_allvehicles ] :
-                count == 1 ? locale::strings[ locale::string::driver_scenario_onevehicle ] :
+				count == 0 ? STR(driver_scenario_allvehicles) :
+				count == 1 ? STR(driver_scenario_onevehicle) :
                 orderbuffer.data() ) };
 
             std::snprintf(
                 orderbuffer.data(), orderbuffer.size(),
-                locale::strings[ locale::string::driver_scenario_disconnect ].c_str(),
+			    STR_C(driver_scenario_disconnect),
                 countstring.c_str() );
             return orderbuffer.data();
         }
-        case Shunt: { return locale::strings[ locale::string::driver_scenario_shunt ]; }
-        case Loose_shunt: { return locale::strings[ locale::string::driver_scenario_looseshunt ]; }
-        case Obey_train: { return locale::strings[ locale::string::driver_scenario_obeytrain ]; }
-        case Bank: { return locale::strings[ locale::string::driver_scenario_bank ]; }
+	    case Shunt: { return STR(driver_scenario_shunt); }
+	    case Loose_shunt: { return STR(driver_scenario_looseshunt); }
+	    case Obey_train: { return STR(driver_scenario_obeytrain); }
+	    case Bank: { return STR(driver_scenario_bank); }
         default: { return{}; }
     }
 };

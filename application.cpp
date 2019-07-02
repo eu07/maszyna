@@ -622,7 +622,7 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
 int
 eu07_application::init_locale() {
 
-    locale::init();
+	Translations.init();
 
     return 0;
 }

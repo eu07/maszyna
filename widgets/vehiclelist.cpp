@@ -5,7 +5,7 @@
 #include "widgets/vehicleparams.h"
 
 ui::vehiclelist_panel::vehiclelist_panel(ui_layer &parent)
-    : ui_panel(LOC_STR(vehiclelist_window), false), m_parent(parent)
+    : ui_panel(STR_C(vehiclelist_window), false), m_parent(parent)
 {
 
 }

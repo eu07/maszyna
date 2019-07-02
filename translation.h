@@ -226,20 +226,23 @@ http://mozilla.org/MPL/2.0/.
 
 class locale {
 public:
-	static void init();
-	static std::string label_cab_control(const std::string &Label);
+	void init();
+	std::string label_cab_control(const std::string &Label);
 
-	static const char* lookup(const char *msg, bool constant = true);
-	static const std::string& lookup_s(const std::string &msg, bool constant = true);
+	const char* lookup_c(const char *msg, bool constant = false);
+	const std::string& lookup_s(const std::string &msg, bool constant = false);
 
 private:
-	static void parse_translation(std::istream &stream);
-	static std::string parse_c_literal(const std::string &str);
+	bool parse_translation(std::istream &stream);
+	std::string parse_c_literal(const std::string &str);
 
-	static std::unordered_map<std::string, std::string> lang_mapping;
-	static std::unordered_map<const void*, std::string*> pointer_cache;
+	std::unordered_map<std::string, std::string> lang_mapping;
+	std::unordered_map<const void*, const void*> pointer_cache;
 };
 
-#define LOC_STR(x) locale::lookup_s(#x)
-#define LOC_STR_C(x) locale::lookup(#x)
+extern locale Translations;
 
+#define STR(x) Translations.lookup_s(#x, true)
+#define STR_C(x) Translations.lookup_c(#x, true)
+#define STRC(x, c) Translations.lookup_s(c "\x1d" #x, true)
+#define STRC_C(x, c) Translations.lookup_c(c "\x1d" #x, true)

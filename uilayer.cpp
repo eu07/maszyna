@@ -77,7 +77,7 @@ void ui_panel::register_popup(std::unique_ptr<ui::popup> &&popup)
 
 void ui_expandable_panel::render_contents()
 {
-    ImGui::Checkbox(LOC_STR(ui_expand), &is_expanded);
+    ImGui::Checkbox(STR_C(ui_expand), &is_expanded);
     ui_panel::render_contents();
 }
 
@@ -269,14 +269,14 @@ void ui_layer::render_quit_widget()
         return;
 
     ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(LOC_STR(ui_quit), &m_quit_active, ImGuiWindowFlags_NoResize);
-    ImGui::TextUnformatted(LOC_STR(ui_quit_simulation_q));
-	if (ImGui::Button(LOC_STR(ui_yes))) {
+    ImGui::Begin(STR_C(ui_quit), &m_quit_active, ImGuiWindowFlags_NoResize);
+    ImGui::TextUnformatted(STR_C(ui_quit_simulation_q));
+	if (ImGui::Button(STR_C(ui_yes))) {
 		command_relay relay;
 		relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
 	}
     ImGui::SameLine();
-    if (ImGui::Button(LOC_STR(ui_no)))
+    if (ImGui::Button(STR_C(ui_no)))
         m_quit_active = false;
     ImGui::End();
 }
@@ -334,7 +334,7 @@ void ui_layer::render_progress()
 
     ImGui::SetNextWindowPos(ImVec2(50, 50));
     ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(LOC_STR(ui_loading), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin(STR_C(ui_loading), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (!m_progresstext.empty())
         ImGui::ProgressBar(m_progress, ImVec2(300, 0), m_progresstext.c_str());
     else
@@ -366,29 +366,29 @@ void ui_layer::render_tooltip()
 
 void ui_layer::render_menu_contents()
 {
-    if (ImGui::BeginMenu(LOC_STR(ui_general)))
+    if (ImGui::BeginMenu(STR_C(ui_general)))
     {
-        ImGui::MenuItem(LOC_STR(ui_debug_mode), nullptr, &DebugModeFlag);
-        ImGui::MenuItem(LOC_STR(ui_quit), "F10", &m_quit_active);
+        ImGui::MenuItem(STR_C(ui_debug_mode), nullptr, &DebugModeFlag);
+        ImGui::MenuItem(STR_C(ui_quit), "F10", &m_quit_active);
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu(LOC_STR(ui_tools)))
+    if (ImGui::BeginMenu(STR_C(ui_tools)))
     {
         static bool log = Global.iWriteLogEnabled & 1;
 
-        ImGui::MenuItem(LOC_STR(ui_logging_to_log), nullptr, &log);
+        ImGui::MenuItem(STR_C(ui_logging_to_log), nullptr, &log);
         if (log)
             Global.iWriteLogEnabled |= 1;
         else
             Global.iWriteLogEnabled &= ~1;
 
-        if (ImGui::MenuItem(LOC_STR(ui_screenshot), "PrtScr"))
+        if (ImGui::MenuItem(STR_C(ui_screenshot), "PrtScr"))
             Application.queue_screenshot();
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu(LOC_STR(ui_windows)))
+    if (ImGui::BeginMenu(STR_C(ui_windows)))
     {
-        ImGui::MenuItem(LOC_STR(ui_log), "F9", &m_logpanel.is_open);
+        ImGui::MenuItem(STR_C(ui_log), "F9", &m_logpanel.is_open);
 		if (DebugModeFlag) {
 			ImGui::MenuItem("ImGui Demo", nullptr, &m_imgui_demo);
 			ImGui::MenuItem("Headlight config", nullptr, &GfxRenderer.debug_ui_active);

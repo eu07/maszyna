@@ -25,13 +25,6 @@ extern bool key_shift;
 class keyboard_input {
 public:
 // types
-	/*
-	struct binding_setup {
-
-		user_command command;
-		int binding;
-	};*/
-
 	using bindingsetup_sequence = std::map<user_command, int>;
 
 	enum keymodifier : int {

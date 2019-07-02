@@ -576,8 +576,7 @@ void locale::init()
 		return;
 	}
 
-	while (stream.eof())
-		parse_translation(stream);
+	while (parse_translation(stream));
 
 	WriteLog("translation: " + std::to_string(lang_mapping.size()) + " strings loaded");
 }
@@ -587,7 +586,7 @@ const std::string& locale::lookup_s(const std::string &msg, bool constant)
 	if (constant) {
 		auto it = pointer_cache.find(&msg);
 		if (it != pointer_cache.end())
-			return *(it->second);
+			return *((const std::string*)(it->second));
 	}
 
 	auto it = lang_mapping.find(msg);
@@ -602,25 +601,27 @@ const std::string& locale::lookup_s(const std::string &msg, bool constant)
 	return msg;
 }
 
-const char* locale::lookup(const char *msg, bool constant)
+const char* locale::lookup_c(const char *msg, bool constant)
 {
 	if (constant) {
-		auto it = pointer_cache.find(&msg);
+		auto it = pointer_cache.find(msg);
 		if (it != pointer_cache.end())
-			return it->second->c_str();
+			return (const char*)(it->second);
 	}
 
 	auto it = lang_mapping.find(std::string(msg));
 	if (it != lang_mapping.end()) {
 		if (constant)
-			pointer_cache.emplace(&msg, &(it->second));
+			pointer_cache.emplace(msg, it->second.c_str());
 		return it->second.c_str();
 	}
 
+	if (constant)
+		pointer_cache.emplace(msg, msg);
 	return msg;
 }
 
-void locale::parse_translation(std::istream &stream)
+bool locale::parse_translation(std::istream &stream)
 {
 	std::string line;
 
@@ -649,11 +650,17 @@ void locale::parse_translation(std::istream &stream)
 				msgctxt += parse_c_literal(line);
 		}
 		else {
-			if (!msgid.empty() && !msgstr.empty())
-				lang_mapping.emplace(msgctxt + "\x1d" + msgid, msgstr);
-			return;
+			if (!msgid.empty() && !msgstr.empty()) {
+				if (!msgctxt.empty())
+					lang_mapping.emplace(msgctxt + "\x1d" + msgid, msgstr);
+				else
+					lang_mapping.emplace(msgid, msgstr);
+			}
+			return true;
 		}
 	}
+
+	return false;
 }
 
 std::string locale::parse_c_literal(const std::string &str)
@@ -665,7 +672,7 @@ std::string locale::parse_c_literal(const std::string &str)
 	bool escape = false;
 
 	char c;
-	while ((c = stream.get()) != stream.eof()) {
+	while ((c = stream.get()) != std::char_traits<char>::eof()) {
 		if (!escape && c == '"')
 			active = !active;
 		else if (active && !escape && c == '\\')
@@ -826,3 +833,5 @@ std::string locale::label_cab_control(std::string const &Label)
 	        lookup_s(it->second) :
             "" );
 }
+
+locale Translations;

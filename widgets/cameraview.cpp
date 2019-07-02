@@ -4,7 +4,7 @@
 #include "Logs.h"
 
 ui::cameraview_panel::cameraview_panel()
-    : ui_panel(LOC_STR(cameraview_window), false)
+    : ui_panel(STR_C(cameraview_window), false)
 {
 	size_min = { -2, -2 };
 }
