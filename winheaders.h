@@ -38,40 +38,6 @@ typedef struct _SYSTEMTIME {
    BI_CMYKRLE4 = 0x000D
  } Compression;
 
-typedef struct tagBITMAPFILEHEADER {
-  WORD  bfType;
-  DWORD bfSize;
-  WORD  bfReserved1;
-  WORD  bfReserved2;
-  DWORD bfOffBits;
-} __attribute__((packed)) BITMAPFILEHEADER, *PBITMAPFILEHEADER;
-
-typedef struct tagRGBQUAD {
-  BYTE rgbBlue;
-  BYTE rgbGreen;
-  BYTE rgbRed;
-  BYTE rgbReserved;
-} __attribute__((packed)) RGBQUAD;
-
-typedef struct tagBITMAPINFOHEADER {
-  DWORD biSize;
-  LONG  biWidth;
-  LONG  biHeight;
-  WORD  biPlanes;
-  WORD  biBitCount;
-  DWORD biCompression;
-  DWORD biSizeImage;
-  LONG  biXPelsPerMeter;
-  LONG  biYPelsPerMeter;
-  DWORD biClrUsed;
-  DWORD biClrImportant;
-} __attribute__((packed)) BITMAPINFOHEADER, *PBITMAPINFOHEADER;
-
-typedef struct tagBITMAPINFO {
-  BITMAPINFOHEADER bmiHeader;
-  RGBQUAD          bmiColors[1];
-} __attribute__((packed)) BITMAPINFO, *PBITMAPINFO;
-
 #ifndef MAKEFOURCC
     #define MAKEFOURCC(ch0, ch1, ch2, ch3)                              \
                 ((DWORD)(BYTE)(ch0) | ((DWORD)(BYTE)(ch1) << 8) |   \

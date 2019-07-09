@@ -4,7 +4,7 @@
 #include "Logs.h"
 
 ui::cameraview_panel::cameraview_panel()
-    : ui_panel(STR_C(cameraview_window), false)
+    : ui_panel(STR_C("Camera preview"), false)
 {
 	size_min = { -2, -2 };
 }
@@ -103,6 +103,7 @@ void ui::cameraview_panel::workthread_func()
 
 		if (buffer) {
 			int w, h;
+			stbi_set_flip_vertically_on_load(0);
 			uint8_t *image = stbi_load_from_memory(buffer, len, &w, &h, nullptr, 4);
 			if (!image)
 				ErrorLog(std::string(stbi_failure_reason()));

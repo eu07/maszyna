@@ -74,7 +74,7 @@ const std::string *editor_ui::get_active_node_template() {
 void editor_ui::render_menu_contents() {
 	ui_layer::render_menu_contents();
 
-	if (ImGui::BeginMenu(STR_C(ui_mode_windows)))
+	if (ImGui::BeginMenu(STR_C("Mode windows")))
 	{
 		ImGui::MenuItem(m_nodebankpanel.title.c_str(), nullptr, &m_nodebankpanel.is_open);
 		ImGui::EndMenu();

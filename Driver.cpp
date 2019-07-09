@@ -1644,7 +1644,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
 #ifdef _WIN32
 		CreateDirectory( "physicslog", NULL );
 #elif __unix__
-        mkdir( "physicslog", 0644 );
+		mkdir( "physicslog", 0744 );
 #endif
         LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ),
             std::ios::in | std::ios::out | std::ios::trunc );
@@ -1709,19 +1709,19 @@ std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
     auto const order { OrderCurrentGet() };
 	if( order & Change_direction ) {
-		return STR(driver_scenario_changedirection);
+		return STR("Change direction");
     }
 
     switch( OrderList[ OrderPos ] ) {
-	    case Wait_for_orders: { return STR(driver_scenario_waitfororders); }
-	    case Prepare_engine: { return STR(driver_scenario_prepareengine); }
-	    case Release_engine: { return STR(driver_scenario_releaseengine); }
-	    case Change_direction: { return STR(driver_scenario_changedirection); }
-	    case Connect: { return STR(driver_scenario_connect); }
+	    case Wait_for_orders: { return STR("Wait for orders"); }
+	    case Prepare_engine: { return STR("Start the engine"); }
+	    case Release_engine: { return STR("Shut down the engine"); }
+	    case Change_direction: { return STR("Change direction"); }
+	    case Connect: { return STR("Couple to consist ahead"); }
         case Disconnect: {
             if( iVehicleCount < 0 ) {
                 // done with uncoupling, order should update shortly
-				return STR(driver_scenario_waitfororders);
+				return STR("Wait for orders");
             }
             // try to provide some task details
             auto const count { iVehicleCount };
@@ -1729,26 +1729,24 @@ std::string TController::OrderCurrent() const
             if( iVehicleCount > 1 ) {
                 std::snprintf(
                     orderbuffer.data(), orderbuffer.size(),
-                    ( iVehicleCount < 5 ?
-				        STR_C(driver_scenario_fewvehicles) : // 2-4
-				        STR_C(driver_scenario_somevehicles) ), // 5+
+				    STR_C("the engine plus %d next vehicles"), // TODO: implement plural forms
                     count );
             }
             auto const countstring { (
-				count == 0 ? STR(driver_scenario_allvehicles) :
-				count == 1 ? STR(driver_scenario_onevehicle) :
+				count == 0 ? STR("the engine") :
+				count == 1 ? STR("the engine plus the next vehicle") :
                 orderbuffer.data() ) };
 
             std::snprintf(
                 orderbuffer.data(), orderbuffer.size(),
-			    STR_C(driver_scenario_disconnect),
+			    STR_C("Uncouple %s"),
                 countstring.c_str() );
             return orderbuffer.data();
         }
-	    case Shunt: { return STR(driver_scenario_shunt); }
-	    case Loose_shunt: { return STR(driver_scenario_looseshunt); }
-	    case Obey_train: { return STR(driver_scenario_obeytrain); }
-	    case Bank: { return STR(driver_scenario_bank); }
+	    case Shunt: { return STR("Shunt according to signals"); }
+	    case Loose_shunt: { return STR("Loose shunt according to signals"); }
+	    case Obey_train: { return STR("Drive according to signals and timetable"); }
+	    case Bank: { return STR("Bank consist ahead"); }
         default: { return{}; }
     }
 };

@@ -53,7 +53,7 @@ drivingaid_panel::update() {
             if( std::abs( grade ) >= 0.25 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
-				    STR_C(driver_aid_grade),
+				    STR_C(" Grade: %.1f%%%%"),
                     grade );
                 gradetext = m_buffer.data();
             }
@@ -64,7 +64,7 @@ drivingaid_panel::update() {
             if( nextspeedlimit != speedlimit ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
-				    STR_C(driver_aid_nextlimit),
+				    STR_C(", new limit: %d km/h in %.1f km"),
                     nextspeedlimit,
                     driver->ActualProximityDist * 0.001 );
                 nextspeedlimittext = m_buffer.data();
@@ -72,7 +72,7 @@ drivingaid_panel::update() {
             // current speed and limit
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
-			    STR_C(driver_aid_speedlimit),
+			    STR_C(" Speed: %d km/h (limit %d km/h%s)%s"),
                 static_cast<int>( std::floor( mover->Vel ) ),
                 speedlimit,
                 nextspeedlimittext.c_str(),
@@ -82,7 +82,7 @@ drivingaid_panel::update() {
         // base data and optional bits put together
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-		    STR_C(driver_aid_throttle),
+		    STR_C("Throttle:  %2d+%d %c%s"),
             driver->Controlling()->MainCtrlPos,
             driver->Controlling()->ScndCtrlPos,
             ( mover->ActiveDir > 0 ? 'D' : mover->ActiveDir < 0 ? 'R' : 'N' ),
@@ -96,14 +96,14 @@ drivingaid_panel::update() {
         if( is_expanded ) {
             std::snprintf (
                 m_buffer.data(), m_buffer.size(),
-			    STR_C(driver_aid_pressures),
+			    STR_C(" Pressure: %.2f kPa (train pipe: %.2f kPa)"),
                 mover->BrakePress * 100,
                 mover->PipePress * 100 );
             expandedtext = m_buffer.data();
         }
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-		    STR_C(driver_aid_brakes),
+		    STR_C("Brakes:  %4.1f+%-2.0f%c%s"),
             mover->fBrakeCtrlPos,
             mover->LocalBrakePosA * LocalBrakePosNo,
             ( mover->SlippingWheels ? '!' : ' ' ),
@@ -119,7 +119,7 @@ drivingaid_panel::update() {
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
-				    STR_C(driver_aid_loadinginprogress),
+				    STR_C(" Loading/unloading in progress (%d s left)"),
                     stoptime );
                 expandedtext = m_buffer.data();
             }
@@ -128,7 +128,7 @@ drivingaid_panel::update() {
                 if( trackblockdistance <= 75.0 ) {
                     std::snprintf(
                         m_buffer.data(), m_buffer.size(),
-					    STR_C(driver_aid_vehicleahead),
+					    STR_C(" Another vehicle ahead (distance: %.1f m)"),
                         trackblockdistance );
                     expandedtext = m_buffer.data();
                 }
@@ -136,11 +136,11 @@ drivingaid_panel::update() {
         }
         std::string textline =
 		    ( mover->SecuritySystem.is_vigilance_blinking()  ?
-                STR(driver_aid_alerter) :
+                STR("!ALERTER! ") :
                 "          " );
         textline +=
 		    ( mover->SecuritySystem.is_cabsignal_blinking()  ?
-                STR(driver_aid_shp) :
+                STR("!SHP!") :
                 "     " );
 
         text_lines.emplace_back( textline + "  " + expandedtext, Global.UITextColor );
@@ -169,7 +169,7 @@ scenario_panel::update() {
     if( owner == nullptr ) { return; }
 
     std::string textline =
-        STR(driver_scenario_currenttask) + "\n "
+        STR("Current task:") + "\n "
         + owner->OrderCurrent();
 
     text_lines.emplace_back( textline, Global.UITextColor );
@@ -205,7 +205,7 @@ scenario_panel::render() {
                 m_nearest->Mechanik :
                 m_nearest->ctOwner ) };
         if( owner != nullptr ) {
-            auto const assignmentheader { STR(driver_scenario_assignment) };
+            auto const assignmentheader { STR("Assignment") };
             if( ( false == owner->assignment().empty() )
              && ( true == ImGui::CollapsingHeader( assignmentheader.c_str() ) ) ) {
                 ImGui::TextWrapped( "%s", owner->assignment().c_str() );
@@ -236,9 +236,9 @@ timetable_panel::update() {
     { // current time
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-		    STR_C(driver_timetable_header),
+		    STR_C("%-*.*s    Time: %d:%02d:%02d"),
             37, 37,
-		    STR_C(driver_timetable_name),
+		    STR_C("Timetable"),
             time.wHour,
             time.wMinute,
             time.wSecond );
@@ -300,7 +300,7 @@ timetable_panel::update() {
 			}
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
-			    STR_C(driver_timetable_consistdata),
+			    STR_C("Consist weight: %d t (specified) %d t (actual)\nConsist length: %d m"),
                 static_cast<int>( table->LocLoad ),
                 static_cast<int>( consistmass / 1000 ),
                 static_cast<int>( consistlength ) );
@@ -311,7 +311,7 @@ timetable_panel::update() {
 
         if( 0 == table->StationCount ) {
             // only bother if there's stations to list
-            text_lines.emplace_back( STR(driver_timetable_notimetable), Global.UITextColor );
+            text_lines.emplace_back( STR("(no timetable)"), Global.UITextColor );
         } 
         else {
 
@@ -554,9 +554,9 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C(debug_vehicle_nameloadstatuscouplers),
+	    STR_C("Name: %s%s\nLoad: %.0f %s\nStatus: %s%s\nCouplers:\n front: %s\n rear:  %s"),
         mover.Name.c_str(),
-        std::string( isowned ? STR(debug_vehicle_owned) + vehicle.ctOwner->OwnerName() : "" ).c_str(),
+        std::string( isowned ? STR(", owned by: ") + vehicle.ctOwner->OwnerName() : "" ).c_str(),
         mover.LoadAmount,
         mover.LoadType.name.c_str(),
         mover.EngineDescription( 0 ).c_str(),
@@ -569,7 +569,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C(debug_vehicle_devicespower),
+	    STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s%s%s%.0f@%.0f"),
         // devices
         ( mover.Battery ? 'B' : '.' ),
         ( mover.Mains ? 'M' : '.' ),
@@ -585,8 +585,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.ConvOvldFlag ? '!' : '.' ),
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
-        std::string( isplayervehicle ? STR(debug_vehicle_radio) + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
-        std::string( isdieselenginepowered ? STR(debug_vehicle_oilpressure) + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
+        std::string( isplayervehicle ? STR(" radio: ") + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
+        std::string( isdieselenginepowered ? STR(" oil pressure: ") + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
@@ -600,11 +600,11 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C(debug_vehicle_controllersenginerevolutions),
+	    STR_C("Controllers:\n master: %d(%d), secondary: %s\nEngine output: %.1f, current: %.0f\nRevolutions:\n engine: %.0f, motors: %.0f\n engine fans: %.0f, motor fans: %.0f+%.0f, cooling fans: %.0f+%.0f"),
         // controllers
         mover.MainCtrlPos,
         mover.MainCtrlActualPos,
-        std::string( isdieselinshuntmode ? to_string( mover.AnPos, 2 ) + STR(debug_vehicle_shuntmode) : std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" ).c_str(),
+        std::string( isdieselinshuntmode ? to_string( mover.AnPos, 2 ) + STR(" (shunt mode)") : std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" ).c_str(),
         // engine
         mover.EnginePower,
         std::abs( mover.TrainType == dt_EZT ? mover.ShowCurrent( 0 ) : mover.Im ),
@@ -622,7 +622,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     if( isdieselenginepowered ) {
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-		    STR_C(debug_vehicle_temperatures),
+		    STR_C("\nTemperatures:\n engine: %.2f, oil: %.2f, water: %.2f%c%.2f"),
             mover.dizel_heat.Ts,
             mover.dizel_heat.To,
             mover.dizel_heat.temperatura1,
@@ -635,7 +635,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C(debug_vehicle_brakespressures),
+	    STR_C("Brakes:\n train: %.2f, independent: %.2f, mode: %d, delay: %s, load flag: %d\nBrake cylinder pressures:\n train: %.2f, independent: %.2f, status: 0x%.2x\nPipe pressures:\n brake: %.2f (hat: %.2f), main: %.2f, control: %.2f\nTank pressures:\n auxiliary: %.2f, main: %.2f, control: %.2f"),
         // brakes
         mover.fBrakeCtrlPos,
         mover.LocalBrakePosA,
@@ -661,7 +661,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
-		    STR_C(debug_vehicle_pantograph),
+		    STR_C(" pantograph: %.2f%cMT"),
             mover.PantPress,
             ( mover.bPantKurek3 ? '-' : '|' ) );
         textline += m_buffer.data();
@@ -677,7 +677,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C(debug_vehicle_forcesaccelerationvelocityposition),
+	    STR_C("Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]"),
         // forces
         mover.Ft * 0.001f * ( mover.ActiveCab ? mover.ActiveCab : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab : 1 ) + 0.001f,
         mover.Fb * 0.001f,
@@ -702,7 +702,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 std::string
 debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
-    std::string couplerstatus { STR(debug_vehicle_none) };
+    std::string couplerstatus { STR("none") };
 
     auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 

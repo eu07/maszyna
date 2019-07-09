@@ -77,7 +77,7 @@ void ui_panel::register_popup(std::unique_ptr<ui::popup> &&popup)
 
 void ui_expandable_panel::render_contents()
 {
-    ImGui::Checkbox(STR_C(ui_expand), &is_expanded);
+    ImGui::Checkbox(STR_C("expand"), &is_expanded);
     ui_panel::render_contents();
 }
 
@@ -269,14 +269,14 @@ void ui_layer::render_quit_widget()
         return;
 
     ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(STR_C(ui_quit), &m_quit_active, ImGuiWindowFlags_NoResize);
-    ImGui::TextUnformatted(STR_C(ui_quit_simulation_q));
-	if (ImGui::Button(STR_C(ui_yes))) {
+    ImGui::Begin(STR_C("Quit"), &m_quit_active, ImGuiWindowFlags_NoResize);
+    ImGui::TextUnformatted(STR_C("Quit simulation?"));
+	if (ImGui::Button(STR_C("Yes"))) {
 		command_relay relay;
 		relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
 	}
     ImGui::SameLine();
-    if (ImGui::Button(STR_C(ui_no)))
+    if (ImGui::Button(STR_C("No")))
         m_quit_active = false;
     ImGui::End();
 }
@@ -334,7 +334,7 @@ void ui_layer::render_progress()
 
     ImGui::SetNextWindowPos(ImVec2(50, 50));
     ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(STR_C(ui_loading), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin(STR_C("Loading"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (!m_progresstext.empty())
         ImGui::ProgressBar(m_progress, ImVec2(300, 0), m_progresstext.c_str());
     else
@@ -366,32 +366,32 @@ void ui_layer::render_tooltip()
 
 void ui_layer::render_menu_contents()
 {
-    if (ImGui::BeginMenu(STR_C(ui_general)))
+	if (ImGui::BeginMenu(STR_C("General")))
     {
-        ImGui::MenuItem(STR_C(ui_debug_mode), nullptr, &DebugModeFlag);
-        ImGui::MenuItem(STR_C(ui_quit), "F10", &m_quit_active);
+        ImGui::MenuItem(STR_C("Debug mode"), nullptr, &DebugModeFlag);
+        ImGui::MenuItem(STR_C("Quit"), "F10", &m_quit_active);
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu(STR_C(ui_tools)))
+    if (ImGui::BeginMenu(STR_C("Tools")))
     {
         static bool log = Global.iWriteLogEnabled & 1;
 
-        ImGui::MenuItem(STR_C(ui_logging_to_log), nullptr, &log);
+        ImGui::MenuItem(STR_C("Logging to log.txt"), nullptr, &log);
         if (log)
             Global.iWriteLogEnabled |= 1;
         else
             Global.iWriteLogEnabled &= ~1;
 
-        if (ImGui::MenuItem(STR_C(ui_screenshot), "PrtScr"))
+        if (ImGui::MenuItem(STR_C("Screenshot"), "PrtScr"))
             Application.queue_screenshot();
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu(STR_C(ui_windows)))
+    if (ImGui::BeginMenu(STR_C("Windows")))
     {
-        ImGui::MenuItem(STR_C(ui_log), "F9", &m_logpanel.is_open);
+        ImGui::MenuItem(STR_C("Log"), "F9", &m_logpanel.is_open);
 		if (DebugModeFlag) {
-			ImGui::MenuItem("ImGui Demo", nullptr, &m_imgui_demo);
-			ImGui::MenuItem("Headlight config", nullptr, &GfxRenderer.debug_ui_active);
+			ImGui::MenuItem(STR_C("ImGui Demo"), nullptr, &m_imgui_demo);
+			ImGui::MenuItem(STR_C("Headlight config"), nullptr, &GfxRenderer.debug_ui_active);
 		}
         ImGui::EndMenu();
     }

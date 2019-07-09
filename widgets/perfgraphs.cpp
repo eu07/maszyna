@@ -3,13 +3,13 @@
 #include "Timer.h"
 
 perfgraph_panel::perfgraph_panel()
-    : ui_panel("Perf", false)
+    : ui_panel(STR("Performance"), false)
 {
 
 }
 
 void perfgraph_panel::render_contents() {
-	if (ImGui::BeginCombo("Timer", timer_label[current_timer].c_str())) // The second parameter is the label previewed before opening the combo.
+	if (ImGui::BeginCombo(STR_C("Timer"), timer_label[current_timer].c_str())) // The second parameter is the label previewed before opening the combo.
 	{
 		for (size_t i = 0; i < (size_t)TIMER_MAX; i++)
 		{
@@ -57,6 +57,6 @@ void perfgraph_panel::render_contents() {
 	if (pos >= history.size())
 		pos = 0;
 
-	ImGui::SliderFloat("Range", &max, 0.1f, 250.0f);
+	ImGui::SliderFloat(STR_C("Range"), &max, 0.1f, 250.0f);
 	ImGui::PlotLines("##timer", &history[0], history.size(), pos, label.c_str(), 0.0f, max, ImVec2(500, 200));
 }

@@ -8,7 +8,7 @@
 #include "Driver.h"
 #include "AnimModel.h"
 
-ui::map_panel::map_panel() : ui_panel(STR_C(ui_map), false)
+ui::map_panel::map_panel() : ui_panel(STR_C("Map"), false)
 {
 	size_min = {200, 200};
 	size_max = {fb_size, fb_size};
@@ -445,13 +445,13 @@ void ui::launcher_window::render_content()
 {
 	ImGui::TextUnformatted(m_switch->name.c_str());
 
-	const std::string &open_label = STR(
+	const std::string &open_label =
 	        m_switch->type == map::launcher::track_switch
-	        ? locale::string::map_straight : locale::string::map_open);
+	        ? STR("Straight |") : STR("Open |");
 
-	const std::string &close_label = STR(
+	const std::string &close_label =
 	        m_switch->type == map::launcher::track_switch
-	        ? locale::string::map_divert : locale::string::map_close);
+	        ? STR("Divert /") : STR("Close -");
 
 	if (ImGui::Button(open_label.c_str()))
 	{
@@ -495,7 +495,7 @@ void ui::obstacle_insert_window::render_content()
 		return;
 	}
 
-	ImGui::TextUnformatted(STR_C(map_obstacle_insert));
+	ImGui::TextUnformatted(STR_C("Insert obstacle:"));
 	for (auto const &entry : m_obstacles)
 	{
 		if (ImGui::Button(entry.first.c_str()))
@@ -526,7 +526,7 @@ ui::obstacle_remove_window::obstacle_remove_window(ui_panel &panel, std::shared_
 
 void ui::obstacle_remove_window::render_content()
 {
-	if (ImGui::Button(STR_C(map_obstacle_remove))) {
+	if (ImGui::Button(STR_C("Delete obstacle"))) {
 		m_relay.post(user_command::deletemodel, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(), &m_obstacle->model_name);
 
 		auto &entries = map::Objects.entries;

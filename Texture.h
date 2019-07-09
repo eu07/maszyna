@@ -63,8 +63,7 @@ struct opengl_texture {
 
 private:
 // methods
-    void make_request();
-    void load_BMP();
+	void make_request();
 	void load_PNG();
     void load_DDS();
     void load_TEX();

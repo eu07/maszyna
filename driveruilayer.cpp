@@ -37,17 +37,17 @@ driver_ui::driver_ui() {
 	add_external_panel( &m_cameraviewpanel );
     m_logpanel.is_open = false;
 
-    m_aidpanel.title = STR(driver_aid_header);
+    m_aidpanel.title = STR("Driving Aid");
 
-    m_scenariopanel.title = STR(driver_scenario_header);
+    m_scenariopanel.title = STR("Scenario");
     m_scenariopanel.size_min = { 435, 85 };
     m_scenariopanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 
-    m_timetablepanel.title = STR(driver_timetable_header);
+    m_timetablepanel.title = STR("%-*.*s    Time: %d:%02d:%02d");
     m_timetablepanel.size_min = { 435, 110 };
     m_timetablepanel.size_max = { 435, Global.iWindowHeight * 0.95 };
 
-    m_transcriptspanel.title = STR(driver_transcripts_header);
+    m_transcriptspanel.title = STR("Transcripts");
     m_transcriptspanel.size_min = { 435, 85 };
     m_transcriptspanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 }
@@ -55,10 +55,10 @@ driver_ui::driver_ui() {
 void driver_ui::render_menu_contents() {
 	ui_layer::render_menu_contents();
 
-	if (ImGui::BeginMenu(STR_C(ui_mode_windows)))
+	if (ImGui::BeginMenu(STR_C("Mode windows")))
     {
         ImGui::MenuItem(m_aidpanel.title.c_str(), "F1", &m_aidpanel.is_open);
-		ImGui::MenuItem(STR_C(driver_timetable_name), "F2", &m_timetablepanel.is_open);
+		ImGui::MenuItem(STR_C("Timetable"), "F2", &m_timetablepanel.is_open);
 		ImGui::MenuItem(m_debugpanel.name().c_str(), "F12", &m_debugpanel.is_open);
 		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);
 		ImGui::MenuItem(m_vehiclelist.name().c_str(), nullptr, &m_vehiclelist.is_open);
@@ -228,18 +228,18 @@ driver_ui::set_cursor( bool const Visible ) {
 void
 driver_ui::render_() {
     // pause/quit modal
-	auto const popupheader { STR_C(driver_pause_header) };
+	auto const popupheader { STR_C("Simulation Paused") };
 	if (m_paused && !m_pause_modal_opened)
 	{
 		m_pause_modal_opened = true;
 		ImGui::OpenPopup(popupheader);
 	}
     if( ImGui::BeginPopupModal( popupheader, &m_pause_modal_opened, ImGuiWindowFlags_AlwaysAutoResize ) ) {
-        auto const popupwidth{ STR(driver_pause_header).size() * 7 };
-		if( ImGui::Button( STR_C(driver_pause_resume), ImVec2( popupwidth, 0 ) ) ) {
+        auto const popupwidth{ STR("Simulation Paused").size() * 7 };
+		if( ImGui::Button( STR_C("Resume"), ImVec2( popupwidth, 0 ) ) ) {
 			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
-		if( ImGui::Button( STR_C(driver_pause_quit), ImVec2( popupwidth, 0 ) ) ) {
+		if( ImGui::Button( STR_C("Quit"), ImVec2( popupwidth, 0 ) ) ) {
 			m_relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
         }
 		if (!m_paused)

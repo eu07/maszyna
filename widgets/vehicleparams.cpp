@@ -6,7 +6,7 @@
 #include "Train.h"
 
 ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
-    : ui_panel(std::string(STR(vehicleparams_window)) + ": " + vehicle, false), m_vehicle_name(vehicle)
+    : ui_panel(std::string(STR("Vehicle parameters")) + ": " + vehicle, false), m_vehicle_name(vehicle)
 {
 
 }
@@ -53,7 +53,7 @@ void ui::vehicleparams_panel::render_contents()
 
 	std::snprintf(
 	    buffer.data(), buffer.size(),
-	    STR_C(debug_vehicle_devicespower),
+	    STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s%s%s%.0f@%.0f"),
 	    // devices
 	    ( mover.Battery ? 'B' : '.' ),
 	    ( mover.Mains ? 'M' : '.' ),
@@ -70,7 +70,7 @@ void ui::vehicleparams_panel::render_contents()
 	    ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
 	    ( mover.CompressorGovernorLock ? '!' : '.' ),
 	    "",
-	    std::string( isdieselenginepowered ? STR(debug_vehicle_oilpressure) + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
+	    std::string( isdieselenginepowered ? STR(" oil pressure: ") + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
 	    // power transfers
 	    mover.Couplers[ end::front ].power_high.voltage,
 	    mover.Couplers[ end::front ].power_high.current,
@@ -84,11 +84,11 @@ void ui::vehicleparams_panel::render_contents()
 
 	std::snprintf(
 	    buffer.data(), buffer.size(),
-	    STR_C(debug_vehicle_controllersenginerevolutions),
+	    STR_C("Controllers:\n master: %d(%d), secondary: %s\nEngine output: %.1f, current: %.0f\nRevolutions:\n engine: %.0f, motors: %.0f\n engine fans: %.0f, motor fans: %.0f+%.0f, cooling fans: %.0f+%.0f"),
 	    // controllers
 	    mover.MainCtrlPos,
 	    mover.MainCtrlActualPos,
-	    std::string( isdieselinshuntmode ? to_string( mover.AnPos, 2 ) + STR(debug_vehicle_shuntmode) : std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" ).c_str(),
+	    std::string( isdieselinshuntmode ? to_string( mover.AnPos, 2 ) + STR(" (shunt mode)") : std::to_string( mover.ScndCtrlPos ) + "(" + std::to_string( mover.ScndCtrlActualPos ) + ")" ).c_str(),
 	    // engine
 	    mover.EnginePower,
 	    std::abs( mover.TrainType == dt_EZT ? mover.ShowCurrent( 0 ) : mover.Im ),
@@ -106,7 +106,7 @@ void ui::vehicleparams_panel::render_contents()
 	if( isdieselenginepowered ) {
 		std::snprintf(
 		    buffer.data(), buffer.size(),
-		    STR_C(debug_vehicle_temperatures),
+		    STR_C("\nTemperatures:\n engine: %.2f, oil: %.2f, water: %.2f%c%.2f"),
 		    mover.dizel_heat.Ts,
 		    mover.dizel_heat.To,
 		    mover.dizel_heat.temperatura1,
@@ -132,7 +132,7 @@ void ui::vehicleparams_panel::render_contents()
 
 	std::snprintf(
 	    buffer.data(), buffer.size(),
-	    STR_C(debug_vehicle_brakespressures),
+	    STR_C("Brakes:\n train: %.2f, independent: %.2f, mode: %d, delay: %s, load flag: %d\nBrake cylinder pressures:\n train: %.2f, independent: %.2f, status: 0x%.2x\nPipe pressures:\n brake: %.2f (hat: %.2f), main: %.2f, control: %.2f\nTank pressures:\n auxiliary: %.2f, main: %.2f, control: %.2f"),
 	    // brakes
 	    mover.fBrakeCtrlPos,
 	    mover.LocalBrakePosA,
@@ -158,7 +158,7 @@ void ui::vehicleparams_panel::render_contents()
 	if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
 		std::snprintf(
 		    buffer.data(), buffer.size(),
-		    STR_C(debug_vehicle_pantograph),
+		    STR_C(" pantograph: %.2f%cMT"),
 		    mover.PantPress,
 		    ( mover.bPantKurek3 ? '-' : '|' ) );
 		ImGui::TextUnformatted(buffer.data());
@@ -166,7 +166,7 @@ void ui::vehicleparams_panel::render_contents()
 
 	std::snprintf(
 	    buffer.data(), buffer.size(),
-	    STR_C(debug_vehicle_forcesaccelerationvelocityposition),
+	    STR_C("Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]"),
 	    // forces
 	    mover.Ft * 0.001f * ( mover.ActiveCab ? mover.ActiveCab : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab : 1 ) + 0.001f,
 	    mover.Fb * 0.001f,
@@ -186,40 +186,40 @@ void ui::vehicleparams_panel::render_contents()
 
 	ImGui::TextUnformatted(buffer.data());
 
-	if (ImGui::Button(STR_C(vehicleparams_radiostop)))
+	if (ImGui::Button(STR_C("Radiostop")))
 		m_relay.post(user_command::radiostop, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
 	ImGui::SameLine();
 
-	if (ImGui::Button(STR_C(vehicleparams_reset)))
+	if (ImGui::Button(STR_C("Stop and repair")))
 		m_relay.post(user_command::resetconsist, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	ImGui::SameLine();
 
-	if (ImGui::Button(STR_C(vehicleparams_resetposition))) {
+	if (ImGui::Button(STR_C("Reset position"))) {
 		std::string payload = vehicle_ptr->name() + '%' + vehicle_ptr->initial_track->name();
 		m_relay.post(user_command::consistteleport, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &payload);
 		m_relay.post(user_command::resetconsist, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	}
 
-	if (ImGui::Button(STR_C(vehicleparams_resetpipe)))
+	if (ImGui::Button(STR_C("Refill main tank")))
 		m_relay.post(user_command::fillcompressor, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	ImGui::SameLine();
 
-	if (ImGui::Button(STR_C(vehicleparams_rupturepipe)))
+	if (ImGui::Button(STR_C("Rupture main pipe")))
 		m_relay.post(user_command::pullalarmchain, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	ImGui::SameLine();
 
-	ImGui::Button(STR_C(cab_releaser_bt));
+	ImGui::Button(STR_C("independent brake releaser"));
 	if (ImGui::IsItemClicked())
 		m_relay.post(user_command::consistreleaser, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	if (ImGui::IsItemDeactivated())
 		m_relay.post(user_command::consistreleaser, 0.0, 0.0, GLFW_RELEASE, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 
 	if (vehicle_ptr->MoverParameters->V < 0.01) {
-		if (ImGui::Button(STR_C(vehicleparams_move500f)))
+		if (ImGui::Button(STR_C("Move +500m")))
 			m_relay.post(user_command::dynamicmove, 500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 		ImGui::SameLine();
 
-		if (ImGui::Button(STR_C(vehicleparams_move500b)))
+		if (ImGui::Button(STR_C("Move -500m")))
 			m_relay.post(user_command::dynamicmove, -500.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &vehicle_ptr->name());
 	}
 }

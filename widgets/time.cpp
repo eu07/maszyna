@@ -3,20 +3,20 @@
 #include "simulationtime.h"
 #include "Globals.h"
 
-ui::time_panel::time_panel() : ui_panel(STR_C(time_window), false)
+ui::time_panel::time_panel() : ui_panel(STR_C("Time and environment"), false)
 {
 	size.x = 450;
 }
 
 void ui::time_panel::render_contents()
 {
-	ImGui::SliderFloat(STR_C(time_time), &time, 0.0f, 24.0f, "%.1f");
-	ImGui::SliderInt(STR_C(time_yearday), &yearday, 1, 365);
-	ImGui::SliderFloat(STR_C(time_visibility), &fog, 50.0f, 3000.0f, "%.0f");
-	ImGui::SliderFloat(STR_C(time_weather), &overcast, 0.0f, 2.0f, "%.1f");
-	ImGui::SliderFloat(STR_C(time_temperature), &temperature, -20.0f, 40.0f, "%.0f");
+	ImGui::SliderFloat(STR_C("Time"), &time, 0.0f, 24.0f, "%.1f");
+	ImGui::SliderInt(STR_C("Day in year"), &yearday, 1, 365);
+	ImGui::SliderFloat(STR_C("Visibility"), &fog, 50.0f, 3000.0f, "%.0f");
+	ImGui::SliderFloat(STR_C("Overcast and precipitation"), &overcast, 0.0f, 2.0f, "%.1f");
+	ImGui::SliderFloat(STR_C("Temperature"), &temperature, -20.0f, 40.0f, "%.0f");
 
-	if (ImGui::Button(STR_C(time_apply)))
+	if (ImGui::Button(STR_C("Apply")))
 	{
 		m_relay.post(user_command::setdatetime, (double)yearday, time, 1, 0);
 		m_relay.post(user_command::setweather, fog, overcast, 1, 0);

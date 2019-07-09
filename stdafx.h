@@ -76,6 +76,7 @@
 #include <bitset>
 #include <chrono>
 #include <optional>
+#include <filesystem>
 
 #include "glad/glad.h"
 

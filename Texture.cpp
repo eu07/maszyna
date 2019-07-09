@@ -180,7 +180,7 @@ opengl_texture::load() {
              if( type == ".dds" ) { load_DDS(); }
         else if( type == ".tga" ) { load_TGA(); }
         else if( type == ".png" ) { load_PNG(); }
-        else if( type == ".bmp" ) { load_BMP(); }
+		else if( type == ".bmp" ) { load_STBI(); }
 		else if( type == ".jpg" ) { load_STBI(); }
         else if( type == ".tex" ) { load_TEX(); }
         else { goto fail; }
@@ -257,6 +257,7 @@ void opengl_texture::load_PNG()
 void opengl_texture::load_STBI()
 {
 	int x, y, n;
+	stbi_set_flip_vertically_on_load(1);
 	uint8_t *image = stbi_load((name + type).c_str(), &x, &y, &n, 4);
 
 	if (!image) {
@@ -302,64 +303,6 @@ opengl_texture::make_request() {
 	rt->shared_tex = id;
 
 	Application.request( { ToLower( components.front() ), dictionary, rt } );
-}
-
-void
-opengl_texture::load_BMP() {
-
-	std::ifstream file( name + type, std::ios::binary ); file.unsetf( std::ios::skipws );
-
-    BITMAPFILEHEADER header;
-
-	file.read((char *) &header, sizeof( BITMAPFILEHEADER ) );
-    if( file.eof() ) {
-
-        data_state = resource_state::failed;
-        return;
-    }
-
-    // Read in bitmap information structure
-    BITMAPINFO info;
-    unsigned int infosize = header.bfOffBits - sizeof( BITMAPFILEHEADER );
-    if( infosize > sizeof( info ) ) {
-        WriteLog( "Warning - BMP header is larger than expected, possible format difference.", logtype::texture );
-    }
-	file.read((char *) &info, std::min( (size_t)infosize, sizeof( info ) ) );
-
-    data_width = info.bmiHeader.biWidth;
-    data_height = info.bmiHeader.biHeight;
-
-    if( info.bmiHeader.biCompression != BI_RGB ) {
-
-        ErrorLog( "Bad texture: compressed BMP textures aren't supported.", logtype::texture );
-        data_state = resource_state::failed;
-        return;
-    }
-
-    unsigned long datasize = info.bmiHeader.biSizeImage;
-    if( 0 == datasize ) {
-        // calculate missing info
-        datasize = ( data_width * info.bmiHeader.biBitCount + 7 ) / 8 * data_height;
-    }
-
-    data.resize( datasize );
-	file.read((char*) &data[0], datasize );
-	// we're storing texture data internally with bottom-left origin
-	// so BMP origin matches, no flipping needed
-
-    // fill remaining data info
-    if( info.bmiHeader.biBitCount == 32 ) {
-        data_format = GL_BGRA;
-        data_components = GL_RGBA;
-    }
-    else {
-        data_format = GL_BGR;
-        data_components = GL_RGB;
-    }
-    data_mapcount = 1;
-    data_state = resource_state::good;
-
-    return;
 }
 
 DDCOLORKEY opengl_texture::deserialize_ddck(std::istream &s)
