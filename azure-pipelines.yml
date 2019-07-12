@@ -21,7 +21,7 @@ jobs:
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
-        artifactName: binaries
+        artifactName: binaries_linux
       displayName: 'Publish binaries'
 
   - job: macos1013
@@ -41,7 +41,7 @@ jobs:
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
-        artifactName: binaries
+        artifactName: binaries_macos
       displayName: 'Publish binaries'
 
   - job: windows_x64
@@ -58,12 +58,12 @@ jobs:
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
-        artifactName: binaries
+        artifactName: binaries_win64
       displayName: 'Publish binaries'
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/pdb'
-        artifactName: symbols
+        artifactName: binaries_win64
       displayName: 'Publish symbols'
 
   - job: windows_x32
@@ -80,10 +80,10 @@ jobs:
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
-        artifactName: binaries
+        artifactName: binaries_win32
       displayName: 'Publish binaries'
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/pdb'
-        artifactName: symbols
+        artifactName: binaries_win32
       displayName: 'Publish symbols'
