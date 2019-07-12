@@ -14,6 +14,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "scenenode.h"
 
+// radio-transmitted event launch messages
+enum radio_message {
+    call3 = -3,
+    call1 = -1
+};
+
 class TEventLauncher : public scene::basic_node {
 
 public:
@@ -27,7 +33,11 @@ public:
     bool check_activation();
     // checks conditions associated with the event. returns: true if the conditions are met
     bool check_conditions();
+    inline
+    auto key() const {
+        return iKey; }
     bool IsGlobal() const;
+    bool IsRadioActivated() const;
 // members
     std::string asEvent1Name;
     std::string asEvent2Name;

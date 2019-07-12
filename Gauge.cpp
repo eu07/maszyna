@@ -183,6 +183,7 @@ TGauge::Load_mapping( cParser &Input ) {
         m_type = (
             gaugetype == "impulse" ? TGaugeType::push :
             gaugetype == "return" ? TGaugeType::push :
+            gaugetype == "delayed" ? TGaugeType::push_delayed :
             TGaugeType::toggle ); // default
     }
     else if( key == "soundinc:" ) {
