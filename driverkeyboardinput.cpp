@@ -128,6 +128,7 @@ driverkeyboard_input::default_bindings() {
         { user_command::radiochanneldecrease, GLFW_KEY_R },
         { user_command::radiostopsend, GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
         { user_command::radiostoptest, GLFW_KEY_R | keymodifier::shift | keymodifier::control },
+        { user_command::radiocall3send, GLFW_KEY_BACKSPACE },
         { user_command::cabchangeforward, GLFW_KEY_HOME },
         { user_command::cabchangebackward, GLFW_KEY_END },
         // viewturn,

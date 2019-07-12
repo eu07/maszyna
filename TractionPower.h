@@ -15,6 +15,8 @@ http://mozilla.org/MPL/2.0/.
 
 class TTractionPowerSource : public scene::basic_node {
 
+    friend class debug_panel;
+
 public:
 // constructor
     TTractionPowerSource( scene::node_data const &Nodedata );

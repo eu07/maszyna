@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "Timer.h"
 #include "Event.h"
+#include "TractionPower.h"
 #include "Camera.h"
 #include "mtable.h"
 #include "Train.h"
@@ -265,23 +266,23 @@ timetable_panel::update() {
     auto const *table = owner->TrainTimetable();
     if( table == nullptr ) { return; }
 
-    { // destination
+    // destination
+    {
         auto textline = Bezogonkow( owner->Relation(), true );
         if( false == textline.empty() ) {
             textline += " (" + Bezogonkow( owner->TrainName(), true ) + ")";
         }
-
         text_lines.emplace_back( textline, Global.UITextColor );
     }
 
-    { // next station
+    if( false == is_expanded ) {
+        // next station
         auto const nextstation = owner->NextStop();
         if( false == nextstation.empty() ) {
             // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
             auto textline = " -> " + nextstation;
 
             text_lines.emplace_back( textline, Global.UITextColor );
-            text_lines.emplace_back( "", Global.UITextColor );
         }
     }
 
@@ -309,7 +310,6 @@ timetable_panel::update() {
                 static_cast<int>( consistlength ) );
 
             text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
-            text_lines.emplace_back( "", Global.UITextColor );
         }
 
         if( 0 == table->StationCount ) {
@@ -377,24 +377,26 @@ timetable_panel::update() {
                     candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
                     isatpassengerstop ? waitcolor :
                     Global.UITextColor ) };
+                auto const trackcount{ ( tableline->TrackNo == 1 ? u8" ┃  " : u8" ║  " ) };
                 m_tablelines.emplace_back(
-                    ( u8"│ " + vmax + u8" │ " + station + u8" │  " + arrival + u8" │ " + traveltime + u8" │" ),
+                    ( u8"│ " + vmax + u8" │ " + station + trackcount + arrival + u8" │ " + traveltime + u8" │" ),
                     linecolor );
                 m_tablelines.emplace_back(
-                    ( u8"│     │ " + location + tableline->StationWare + u8" │  " + departure + u8" │     │" ),
+                    ( u8"│     │ " + location + tableline->StationWare + trackcount + departure + u8" │     │" ),
                     linecolor );
                 // divider/footer
                 if( i < table->StationCount ) {
                     auto const *nexttableline { tableline + 1 };
-                    if( tableline->vmax == nexttableline->vmax ) {
-                        m_tablelines.emplace_back( u8"│     ├────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
-                    else {
-                        m_tablelines.emplace_back( u8"├─────┼────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
+                    std::string const vmaxnext{ ( tableline->vmax == nexttableline->vmax ? u8"│     ├" : u8"├─────┼" ) };
+                    auto const trackcountnext{ ( nexttableline->TrackNo == 1 ? u8"╂" : u8"╫" ) };
+                    m_tablelines.emplace_back(
+                        vmaxnext + u8"────────────────────────────────────" + trackcountnext + u8"─────────┼─────┤",
+                        Global.UITextColor );
                 }
                 else {
-                    m_tablelines.emplace_back( u8"└─────┴────────────────────────────────────┴─────────┴─────┘", Global.UITextColor );
+                    m_tablelines.emplace_back(
+                        u8"└─────┴────────────────────────────────────┴─────────┴─────┘",
+                        Global.UITextColor );
                 }
             }
         }
@@ -474,6 +476,7 @@ debug_panel::update() {
     m_scantablelines.clear();
     m_scenariolines.clear();
     m_eventqueuelines.clear();
+    m_powergridlines.clear();
     m_cameralines.clear();
     m_rendererlines.clear();
 
@@ -483,6 +486,7 @@ debug_panel::update() {
     update_section_scantable( m_scantablelines );
     update_section_scenario( m_scenariolines );
     update_section_eventqueue( m_eventqueuelines );
+    update_section_powergrid( m_powergridlines );
     update_section_camera( m_cameralines );
     update_section_renderer( m_rendererlines );
 }
@@ -524,19 +528,17 @@ debug_panel::render() {
             // event queue filter
             ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
         }
+        if( true == render_section( "Power Grid", m_powergridlines ) ) {
+            // traction state debug
+            ImGui::Checkbox(
+			        "Traction debug",
+			        &GfxRenderer.settings.traction_debug );
+        }
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
-        if( DebugModeFlag )
-        {
-            ImGui::Indent();
-            ImGui::Checkbox(
-                    "Draw normal traction",
-                    &GfxRenderer.settings.force_normal_traction_render );
-            ImGui::Unindent();
-        }
     }
     ImGui::End();
 }
@@ -588,14 +590,17 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.ConvOvldFlag ? '!' : '.' ),
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
+        ( mover.Heating ? 'H' : ( mover.HeatingAllow ? 'h' : '.' ) ),
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
-        std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
-        std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-        std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+        std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
+        std::string( vehicle.DirectionGet() ? ":<<" : ":>>" ).c_str(),
+        mover.Voltage,
+        std::string( vehicle.DirectionGet() ? "<<:" : ">>:" ).c_str(),
+        std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
         mover.Couplers[ end::rear ].power_high.current );
 
@@ -805,7 +810,11 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
             { "hTCTI: ", mover.hydro_TC_TorqueIn },
             { "hTCTO: ", mover.hydro_TC_TorqueOut },
             { "hTCfl: ", mover.hydro_TC_Fill },
-            { "hTCLR: ", mover.hydro_TC_LockupRate } };
+            { "hRtFl: ", mover.hydro_R_Fill } ,
+			{ " hRtn: ", mover.hydro_R_n } ,
+			{ "hRtTq: ", mover.hydro_R_Torque }
+		
+		};
         for( auto const &parameter : hydrovalues ) {
             parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
         }
@@ -890,7 +899,10 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
         + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
-		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2);
+		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2)
+		+ "\n desired diesel percentage: " + to_string(mechanik.DizelPercentage, 0)
+	    + "/" + to_string(mechanik.DizelPercentage_Speed, 0)
+		+ "/" + to_string(100.4*mechanik.mvControlling->eimic_real, 0);
 
     Output.emplace_back( textline, Global.UITextColor );
 
@@ -985,6 +997,46 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
     }
     if( Output.size() == 1 ) {
         Output.front().data = "(no queued events)";
+    }
+}
+
+void
+debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
+
+    auto const lowpowercolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+    auto const nopowercolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+
+    Output.emplace_back( "Name:               Output:   Timeout:", Global.UITextColor );
+
+    std::string textline;
+
+    for( auto const *powerstation : simulation::Powergrid.sequence() ) {
+
+        if( true == powerstation->bSection ) { continue; }
+
+        auto const name { (
+            powerstation->m_name.empty() ?
+                "(unnamed)" :
+                powerstation->m_name )
+            + "                              " };
+
+        textline =
+            name.substr( 0, 20 )
+            + " " + to_string( powerstation->OutputVoltage, 0, 5 )
+            + " " + to_string( powerstation->FuseTimer, 1, 12 )
+            + ( powerstation->FuseCounter == 0 ?
+                "" :
+                " (x" + to_string( powerstation->FuseCounter ) + ")" );
+
+        Output.emplace_back(
+            textline,
+            ( ( powerstation->FastFuse || powerstation->SlowFuse ) ? nopowercolor :
+              powerstation->OutputVoltage < ( 0.8 * powerstation->NominalVoltage ) ? lowpowercolor :
+              Global.UITextColor ) );
+    }
+
+    if( Output.size() == 1 ) {
+        Output.front().data = "(no power stations)";
     }
 }
 

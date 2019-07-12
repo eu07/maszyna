@@ -529,7 +529,7 @@ glm::vec3
 TTraction::wire_color() const {
 
     glm::vec3 color;
-    if( !DebugModeFlag || GfxRenderer.settings.force_normal_traction_render )
+	if( !GfxRenderer.settings.traction_debug )
     {
         switch( Material ) { // Ra: kolory podzieliłem przez 2, bo po zmianie ambient za jasne były
                              // trzeba uwzględnić kierunek świecenia Słońca - tylko ze Słońcem widać kolor
