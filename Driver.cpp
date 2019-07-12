@@ -1390,6 +1390,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             fVelDes = v;
                         }
                     }
+                    if( ( true == TestFlag( sSpeedTable[ i ].iFlags, spEnd ) )
+                     && ( mvOccupied->CategoryFlag & 1 ) ) {
+                        // if the railway track ends here set the velnext accordingly as well
+                        // TODO: test this with turntables and such
+                        fNext = 0.0;
+                    }
                 }
                 else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
                 { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
@@ -1400,12 +1406,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( v < fVelDes ) {
                         // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
                         fVelDes = v;
-                    }
-                    if( ( sSpeedTable[ i ].iFlags & spEnd )
-                     && ( mvOccupied->CategoryFlag & 1 ) ) {
-                        // if the railway track ends here set the velnext accordingly as well
-                        // TODO: test this with turntables and such
-                        fNext = 0.0;
                     }
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
@@ -2131,7 +2131,10 @@ bool TController::CheckVehicles(TOrders user)
                     // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
                     p->MoverParameters->BatterySwitch( true );
                 }
-                // enable heating and converter in carriages with can be heated
+            }
+            // enable heating and converter in carriages with can be heated
+            // NOTE: don't touch the controlled vehicle, let the user/ai handle it explicitly
+            if( p->MoverParameters != mvControlling ) {
                 if( p->MoverParameters->HeatingPower > 0 ) {
                     p->MoverParameters->HeatingAllow = true;
                     p->MoverParameters->ConverterSwitch( true, range_t::local );
@@ -2265,6 +2268,12 @@ bool TController::CheckVehicles(TOrders user)
         else {
             // zmiana czoła przez manewry
             iDrivigFlags &= ~movePushPull;
+        }
+
+        if( ( user == Connect )
+         || ( user == Disconnect ) ) {
+            // HACK: force route table update on consist change, new consist length means distances to points of interest are now wrong
+            iTableDirection = 0;
         }
     } // blok wykonywany, gdy aktywnie prowadzi
     return true;
@@ -2454,7 +2463,7 @@ bool TController::PrepareEngine()
             mvOccupied->PantRear( true );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
-                if( mvControlling->TrainType != dt_EZT ) {
+                if( false == mvControlling->PantAutoValve ) {
                     // odłączenie zbiornika głównego, bo z nim nie da rady napompować
                     mvControlling->bPantKurek3 = false;
                 }
@@ -2527,14 +2536,14 @@ bool TController::PrepareEngine()
             }
             else { 
                 OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
-                mvOccupied->ConverterSwitch( true );
+                mvControlling->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvOccupied->CompressorSwitch( true );
+                mvControlling->CompressorSwitch( true );
                 // enable motor blowers
-                mvOccupied->MotorBlowersSwitchOff( false, end::front );
-                mvOccupied->MotorBlowersSwitch( true, end::front );
-                mvOccupied->MotorBlowersSwitchOff( false, end::rear );
-                mvOccupied->MotorBlowersSwitch( true, end::rear );
+                mvControlling->MotorBlowersSwitchOff( false, end::front );
+                mvControlling->MotorBlowersSwitch( true, end::front );
+                mvControlling->MotorBlowersSwitchOff( false, end::rear );
+                mvControlling->MotorBlowersSwitch( true, end::rear );
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
@@ -2548,6 +2557,14 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
+                // enable train heating
+                // HACK: to account for su-45/-46 shortcomings diesel-powered engines only activate heating in cold conditions
+                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
+                mvControlling->HeatingAllow = (
+                    ( ( mvControlling->EngineType == TEngineType::DieselElectric )
+                   || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ?
+                        ( Global.AirTemperature < 10 ) :
+                        true );
             }
         }
         else
@@ -2630,7 +2647,9 @@ bool TController::ReleaseEngine() {
         mvOccupied->OperateDoors( side::left, false );
 
         if( true == mvControlling->Mains ) {
-            mvControlling->CompressorSwitch( false );
+            // heating
+            mvControlling->HeatingAllow = false;
+            // devices
             mvControlling->ConverterSwitch( false );
             // line breaker/engine
             OK = mvControlling->MainSwitch( false );
@@ -3125,6 +3144,14 @@ bool TController::IncSpeed()
         { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga zerowania kierunku)
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
         }
+		if (mvControlling->EIMCtrlType > 0) {
+			if (true == Ready)
+			{
+				DizelPercentage = (mvControlling->Vel > mvControlling->dizel_minVelfullengage ? 100 : 1);
+			}
+			break;
+		}
+		else
         if( true == Ready ) {
             if( ( mvControlling->Vel > mvControlling->dizel_minVelfullengage )
              && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 ) ) {
@@ -3187,6 +3214,12 @@ bool TController::DecSpeed(bool force)
             mvControlling->DecMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
         break;
     case TEngineType::DieselEngine:
+		if (mvControlling->EIMCtrlType > 0)
+		{
+			DizelPercentage = 0;
+			break;
+		}
+
         if ((mvControlling->Vel > mvControlling->dizel_minVelfullengage))
         {
             if (mvControlling->RList[mvControlling->MainCtrlPos].Mn > 0)
@@ -3510,6 +3543,64 @@ void TController::SetTimeControllers()
 		}
 	}
 	//5. Check Main Controller in Dizels
+	//5.1. Digital controller in DMUs with hydro
+	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
+	{
+
+        DizelPercentage_Speed = DizelPercentage; //wstepnie procenty
+		auto MinVel{ std::min(mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 6) }; //minimal velocity
+		if (VelDesired > MinVel) //more power for faster ride
+		{
+			auto const Factor{ 10 * (mvControlling->Vmax) / (mvControlling->Vmax + 3 * mvControlling->Vel) };
+			auto DesiredPercentage{ clamp(
+				(VelDesired > mvControlling->Vel ?
+					(VelDesired - mvControlling->Vel) / Factor :
+					0),
+				0.0, 1.0) }; //correction for reaching desired velocity
+			if ((VelDesired < 0.5 * mvControlling->Vmax) //low velocity and reaching desired 
+				&& (VelDesired - mvControlling->Vel < 10)) {
+				DesiredPercentage = std::min(DesiredPercentage, 0.75);
+			}
+			DizelPercentage_Speed = std::round(DesiredPercentage * DizelPercentage);
+		}
+		else
+		{
+			DizelPercentage_Speed = std::min(DizelPercentage, mvControlling->Vel < 0.99 * VelDesired ? 1 : 0);
+		}
+
+        auto const DizelActualPercentage { int(100.4 * mvControlling->eimic_real) };
+
+        auto const PosInc { mvControlling->MainCtrlPosNo };
+        auto PosDec { 0 };
+        for( int i = PosInc; i >= 0; --i ) {
+            if( ( mvControlling->UniCtrlList[ i ].SetCtrlVal <= 0 )
+             && ( mvControlling->UniCtrlList[ i ].SpeedDown > 0.01 ) ) {
+                PosDec = i;
+                break;
+            }
+        }
+
+        if( std::abs( DizelPercentage_Speed - DizelActualPercentage ) > ( DizelPercentage > 1 ? 0 : 0 ) ) {
+
+            if( ( PosDec > 0 )
+             && ( ( DizelActualPercentage - DizelPercentage_Speed > 50 )
+               || ( ( DizelPercentage_Speed == 0 )
+                 && ( DizelActualPercentage > 10 ) ) ) ) {
+                //one position earlier should be fast decreasing
+                PosDec -= 1;
+            }
+            auto const DesiredPos { (
+                DizelPercentage_Speed > DizelActualPercentage ?
+                    PosInc :
+                    PosDec ) };
+            while( mvControlling->MainCtrlPos > DesiredPos ) { mvControlling->DecMainCtrl( 1 ); }
+            while( mvControlling->MainCtrlPos < DesiredPos ) { mvControlling->IncMainCtrl( 1 ); }
+		}
+		if (BrakeCtrlPosition < 0.1) //jesli nie hamuje
+			mvOccupied->BrakeLevelSet(mvControlling->UniCtrlList[mvControlling->MainCtrlPos].mode); //zeby nie bruzdzilo machanie zespolonym
+	}
+	else
+	//5.2. Analog direct controller
 	if ((mvControlling->EngineType == TEngineType::DieselEngine)&&(mvControlling->Vmax>30))
 	{
 		int MaxPos = mvControlling->MainCtrlPosNo;
@@ -3567,6 +3658,28 @@ void TController::CheckTimeControllers()
 		if (mvOccupied->ScndCtrlPosNo == 4)
 		{
 				mvOccupied->ScndCtrlPos = 2;
+		}
+	}
+
+	//5. Check Main Controller in Dizels
+	//5.1. Digital controller in DMUs with hydro
+	if ((mvControlling->EngineType == TEngineType::DieselEngine) && (mvControlling->EIMCtrlType == 3))
+	{
+		int DizelActualPercentage = 100.4 * mvControlling->eimic_real;
+		int NeutralPos = mvControlling->MainCtrlPosNo - 1; //przedostatnia powinna wstrzymywać - hipoteza robocza
+		for (int i = mvControlling->MainCtrlPosNo; i >= 0; i--)
+			if ((mvControlling->UniCtrlList[i].SetCtrlVal <= 0) && (mvControlling->UniCtrlList[i].SpeedDown < 0.01)) //niby zero, ale nie zmniejsza procentów
+			{
+				NeutralPos = i;
+				break;
+			}
+		if (BrakeCtrlPosition < 0.1) //jesli nie hamuje
+		{
+			if ((DizelActualPercentage >= DizelPercentage_Speed) && (mvControlling->MainCtrlPos > NeutralPos))
+				while (mvControlling->MainCtrlPos > NeutralPos) mvControlling->DecMainCtrl(1);
+			if ((DizelActualPercentage <= DizelPercentage_Speed) && (mvControlling->MainCtrlPos < NeutralPos))
+				while (mvControlling->MainCtrlPos < NeutralPos) mvControlling->IncMainCtrl(1);
+			mvOccupied->BrakeLevelSet(mvControlling->UniCtrlList[mvControlling->MainCtrlPos].mode); //zeby nie bruzdzilo machanie zespolonym
 		}
 	}
 };
@@ -4700,7 +4813,7 @@ TController::UpdateSituation(double dt) {
                         iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
                         iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
                         SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                        CheckVehicles(); // sprawdzić światła nowego składu
+                        CheckVehicles( Connect ); // sprawdzić światła nowego składu
                         JumpToNextOrder(); // wykonanie następnej komendy
                     }
                 }
@@ -5067,6 +5180,7 @@ TController::UpdateSituation(double dt) {
                             // tylko jeśli odepnie
                             WriteLog( mvOccupied->Name + " odczepiony." );
                             iVehicleCount = -2;
+                            CheckVehicles( Disconnect ); // update trainset state
                         } // a jak nie, to dociskać dalej
                     }
                     if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))
@@ -5074,6 +5188,7 @@ TController::UpdateSituation(double dt) {
                         // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
+                        AccDesired = std::min( AccDesired, -0.9 ); // HACK: make sure the ai doesn't try to release the brakes to accelerate
                         if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
                             mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
                         }
@@ -5321,7 +5436,8 @@ TController::UpdateSituation(double dt) {
                     exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
                     vehicle = vehicle->Next();
                 }
-                if( exchangetime > 0 ) {
+                if( ( exchangetime > 0 )
+                 || ( mvOccupied->Vel > 2.0 ) ) { // HACK: force timer reset if the load exchange is cancelled due to departure
                     WaitingSet( exchangetime );
                 }
             }

@@ -86,16 +86,7 @@ Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Lin
   - `_d` is debug flag.
 
   If you currently have MaSzyna assets, just copy executable to install directory.
-  Else you must download and unpack assets.
-
-  Links:
-  - http://eu07.pl/theme/MaSzyna1803.zip
-  - http://eu07.pl/theme/MaSzynaP1805.zip
-  - http://eu07.pl/theme/MaSzynaP1806.zip 
-  - http://eu07.pl/theme/MaSzynaP1807.zip 
-  - http://stuff.eu07.pl/MaSzynaP1810.zip
-
-  Override every file.
+  You can download assets from [eu07.pl](https://eu07.pl/).
 
   **Note:** Linux users may have issue, that `Rainsted` (third party starter), may not detect executable. In that case it is possible, to simulate Windows executable, by creation shell script, like this:
   

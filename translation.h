@@ -174,6 +174,7 @@ enum string {
     cab_radiochannelnext_sw,
     cab_radiotest_sw,
     cab_radiostop_sw,
+    cab_radiocall3_sw,
     cab_pantfront_sw,
     cab_pantrear_sw,
     cab_pantfrontoff_sw,

@@ -41,7 +41,7 @@ driver_ui::driver_ui() {
     m_scenariopanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
 
     m_timetablepanel.title = locale::strings[ locale::string::driver_timetable_header ];
-    m_timetablepanel.size_min = { 435, 110 };
+    m_timetablepanel.size_min = { 435, 70 };
     m_timetablepanel.size_max = { 435, Global.iWindowHeight * 0.95 };
 
     m_transcriptspanel.title = locale::strings[ locale::string::driver_transcripts_header ];

@@ -550,6 +550,7 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
             Output->insert( ( stationlabel + "am" ), timetableline.Am );
             Output->insert( ( stationlabel + "dh" ), timetableline.Dh );
             Output->insert( ( stationlabel + "dm" ), timetableline.Dm );
+            Output->insert( ( stationlabel + "tracks" ), timetableline.TrackNo );
         }
     }
 }
