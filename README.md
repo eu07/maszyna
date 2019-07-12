@@ -86,9 +86,7 @@ Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Lin
   - `_d` is debug flag.
 
   If you currently have MaSzyna assets, just copy executable to install directory.
-  Else you must [download](http://stuff.eu07.pl/MaSzyna-release-latest.zip) and unpack assets.
-
-  Override every file.
+  You can download assets from [eu07.pl](https://eu07.pl/).
 
   **Note:** Linux users may have issue, that `Rainsted` (third party starter), may not detect executable. In that case it is possible, to simulate Windows executable, by creation shell script, like this:
   
