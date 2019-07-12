@@ -246,6 +246,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "radiochannelnext_sw:", STRN("radio channel") },
 	    { "radiotest_sw:", STRN("radiostop test") },
 	    { "radiostop_sw:", STRN("radiostop") },
+	    { "radiocall3_sw:", STRN("radio call 3") },
 	    { "pantfront_sw:", STRN("pantograph A") },
 	    { "pantrear_sw:", STRN("pantograph B") },
 	    { "pantfrontoff_sw:", STRN("pantograph A") },

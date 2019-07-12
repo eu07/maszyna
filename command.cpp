@@ -125,6 +125,7 @@ commanddescription_sequence Commands_descriptions = {
     { "radiochanneldecrease", command_target::vehicle, command_mode::oneoff },
     { "radiostopsend", command_target::vehicle, command_mode::oneoff },
     { "radiostoptest", command_target::vehicle, command_mode::oneoff },
+    { "radiocall3send", command_target::vehicle, command_mode::oneoff },
     // TBD, TODO: make cab change controls entity-centric
     { "cabchangeforward", command_target::vehicle, command_mode::oneoff },
     { "cabchangebackward", command_target::vehicle, command_mode::oneoff },

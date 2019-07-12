@@ -377,7 +377,7 @@ struct TBrakePressure
 typedef std::map<int,TBrakePressure> TBrakePressureTable;
 
 /*typy napedow*/
-enum class TEngineType { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric };
+enum class TEngineType { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric, Main };
 /*postac dostarczanej energii*/
 enum class TPowerType { NoPower, BioPower, MechPower, ElectricPower, SteamPower };
 /*rodzaj paliwa*/
@@ -431,10 +431,22 @@ struct TCurrentCollector {
     //}
 };
 /*typy źródeł mocy*/
-enum class TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
+enum class TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater, Main };
 
+struct engine_generator {
+    // ld inputs
+    double *engine_revolutions; // revs per second of the prime mover
+    // config
+    double revolutions_min; // min working revolutions rate, in revs per second
+    double revolutions_max; // max working revolutions rate, in revs per second
+    double voltage_min; // voltage generated at min working revolutions
+    double voltage_max; // voltage generated at max working revolutions
+    // ld outputs
+    double revolutions;
+    double voltage;
+};
 
-struct _mover__1
+struct TAccumulator
 {
 	double MaxCapacity;
 	TPowerSource RechargeSource;
@@ -444,7 +456,7 @@ struct _mover__1
     //}
 };
 
-struct _mover__2
+struct TPowerCable
 {
 	TPowerType PowerTrans;
 	double SteamPressure;
@@ -454,10 +466,15 @@ struct _mover__2
     //}
 };
 
-struct _mover__3
+struct THeater
 {
 	TGrateType Grate;
 	TBoilerType Boiler;
+};
+
+struct TTransducer {
+    // ld inputs
+    double InputVoltage;
 };
 
 /*parametry źródeł mocy*/
@@ -471,11 +488,11 @@ struct TPowerParameters
 	{
 		struct
 		{
-			_mover__3 RHeater;
+			THeater RHeater;
 		};
 		struct
 		{
-			_mover__2 RPowerCable;
+			TPowerCable RPowerCable;
 		};
 		struct
 		{
@@ -483,15 +500,15 @@ struct TPowerParameters
 		};
 		struct
 		{
-			_mover__1 RAccumulator;
+			TAccumulator RAccumulator;
 		};
 		struct
 		{
-			TEngineType GeneratorEngine;
+			engine_generator EngineGenerator;
 		};
 		struct
 		{
-			double InputVoltage;
+			TTransducer Transducer;
 		};
 		struct
 		{
@@ -633,7 +650,8 @@ enum class TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic 
 struct power_coupling {
     double current{ 0.0 };
     double voltage{ 0.0 };
-    bool local{ false }; // whether the power comes from external or onboard source
+    bool is_local{ false }; // whether the power comes from external or onboard source
+    bool is_live{ false }; // whether the coupling with next vehicle is live
 };
 
 struct TCoupling {
@@ -1037,7 +1055,11 @@ public:
 						 /*                dizel_auto_min, dizel_auto_max: real; {predkosc obrotowa przelaczania automatycznej skrzyni biegow*/
 	double dizel_nmax_cutoff = 0.0; /*predkosc obrotowa zadzialania ogranicznika predkosci*/
 	double dizel_nmin = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa*/
+	double dizel_nmin_hdrive = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa w czasie jazdy na hydro */
+	double dizel_nmin_hdrive_factor = 0.0; /*wspolczynnik wzrostu obrotow minimalnych hydro zaleznosci od zadanego procentu*/
+	double dizel_nmin_retarder = 0.0; /*obroty pracy podczas hamowania retarderem*/
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
+	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
 	double dizel_engageDia = 0.5; double dizel_engageMaxForce = 6000.0; double dizel_engagefriction = 0.5; /*parametry sprzegla*/
 	double engagedownspeed = 0.9;
@@ -1065,6 +1087,7 @@ public:
 	double hydro_R_FillRateInc = 1.0; /*szybkosc napelniania sprzegla*/
 	double hydro_R_FillRateDec = 1.0; /*szybkosc oprozniania sprzegla*/
 	double hydro_R_MinVel = 1.0; /*minimalna predkosc, przy ktorej retarder dziala*/
+	double hydro_R_EngageVel = 1.0; /*minimalna predkosc hamowania, przy ktorej sprzeglo jest wciaz wlaczone*/
     /*- dla lokomotyw spalinowo-elektrycznych -*/
 	double AnPos = 0.0; // pozycja sterowania dokladnego (analogowego)
 	bool AnalogCtrl = false; //
@@ -1096,10 +1119,10 @@ public:
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
 
-	int DCEMUED_CC; //na którym sprzęgu sprawdzać działanie ED
-	double DCEMUED_EP_max_Vel; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
-	double DCEMUED_EP_min_Im; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
-	double DCEMUED_EP_delay; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
+    int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
+    double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
+    double DCEMUED_EP_min_Im{ 0.0 }; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
+    double DCEMUED_EP_delay{ 0.0 }; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
 
 	/*-dla wagonow*/
     struct load_attributes {
@@ -1240,6 +1263,8 @@ public:
 
     /*-zmienne dla lokomotyw*/
 	bool Mains = false;    /*polozenie glownego wylacznika*/
+    double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
+    double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0;
@@ -1305,6 +1330,7 @@ public:
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
 	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
 	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
+	double dizel_nreg_min = 0.0; /*predkosc regulatora minimalna, zmienna w hydro*/
 
 	/* - zmienne dla przetowrnika momentu */
 	double hydro_TC_Fill = 0.0; /*napelnienie*/
@@ -1385,6 +1411,7 @@ public:
 
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
+    bool PantAutoValve { false }; // type of installed pantograph compressor valve
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
@@ -1517,7 +1544,9 @@ public:
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
-	void ConverterCheck( double const Timestep ); // przetwornica
+    void MainsCheck( double const Deltatime );
+    void PowerCouplersCheck( double const Deltatime );
+    void ConverterCheck( double const Timestep ); // przetwornica
     void HeatingCheck( double const Timestep );
     void WaterPumpCheck( double const Timestep );
     void WaterHeaterCheck( double const Timestep );
@@ -1557,8 +1586,9 @@ public:
 	bool dizel_EngageSwitch(double state);
 	bool dizel_EngageChange(double dt);
 	bool dizel_AutoGearCheck(void);
-	double dizel_fillcheck(int mcp);
+	double dizel_fillcheck(int mcp, double dt);
 	double dizel_Momentum(double dizel_fill, double n, double dt);
+	double dizel_MomentumRetarder(double n, double dt);  // moment hamowania retardera
     void dizel_HeatSet( float const Value );
     void dizel_Heat( double const dt );
     bool dizel_StartupCheck();

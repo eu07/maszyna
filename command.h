@@ -119,6 +119,7 @@ enum class user_command {
     radiochanneldecrease,
     radiostopsend,
     radiostoptest,
+    radiocall3send,
     cabchangeforward,
     cabchangebackward,
 

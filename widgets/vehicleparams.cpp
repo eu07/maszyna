@@ -74,9 +74,9 @@ void ui::vehicleparams_panel::render_contents()
 	    // power transfers
 	    mover.Couplers[ end::front ].power_high.voltage,
 	    mover.Couplers[ end::front ].power_high.current,
-	    std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
+	    std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
 	    std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-	    std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+	    std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
 	    mover.Couplers[ end::rear ].power_high.voltage,
 	    mover.Couplers[ end::rear ].power_high.current );
 

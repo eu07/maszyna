@@ -101,7 +101,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
 { // przesuwanie wózka po torach o odległość (fDistance), z wyzwoleniem eventów
     // bPrimary=true - jest pierwszą osią w pojeździe, czyli generuje eventy i przepisuje pojazd
     // Ra: zwraca false, jeśli pojazd ma być usunięty
-    auto const ismoving { ( std::abs( fDistance ) > 0.01 ) && ( Owner->GetVelocity() > 0.01 ) };
+    auto const ismoving { /* ( std::abs( fDistance ) > 0.01 ) && */ ( Owner->GetVelocity() > 0.01 ) };
     fDistance *= fDirection; // dystans mnożnony przez kierunek
     double s; // roboczy dystans
     double dir; // zapamiętany kierunek do sprawdzenia, czy się zmienił

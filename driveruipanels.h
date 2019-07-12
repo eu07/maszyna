@@ -85,6 +85,7 @@ private:
     void update_section_scantable( std::vector<text_line> &Output );
     void update_section_scenario( std::vector<text_line> &Output );
     void update_section_eventqueue( std::vector<text_line> &Output );
+    void update_section_powergrid( std::vector<text_line> &Output );
     void update_section_camera( std::vector<text_line> &Output );
     void update_section_renderer( std::vector<text_line> &Output );
     // section update helpers
@@ -103,6 +104,7 @@ private:
         m_cameralines,
         m_scenariolines,
         m_eventqueuelines,
+        m_powergridlines,
         m_rendererlines;
     int tprev { 0 }; // poprzedni czas
     double VelPrev { 0.0 }; // poprzednia prędkość

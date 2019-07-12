@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "Timer.h"
 #include "Event.h"
+#include "TractionPower.h"
 #include "Camera.h"
 #include "mtable.h"
 #include "Train.h"
@@ -223,15 +224,15 @@ scenario_panel::render() {
 void
 timetable_panel::update() {
 
-    if( false == is_open ) { return; }
+	if( false == is_open ) { return; }
 
-    text_lines.clear();
-    m_tablelines.clear();
+	text_lines.clear();
+	m_tablelines.clear();
 
-    auto const *train { simulation::Train };
-    auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
-    auto const &camera { Global.pCamera };
-    auto const &time { simulation::Time.data() };
+	auto const *train { simulation::Train };
+	auto const *controlled { ( train ? train->Dynamic() : nullptr ) };
+	auto const &camera { Global.pCamera };
+	auto const &time { simulation::Time.data() };
 
     { // current time
         std::snprintf(
@@ -243,60 +244,60 @@ timetable_panel::update() {
             time.wMinute,
             time.wSecond );
 
-        title = m_buffer.data();
-    }
+		title = m_buffer.data();
+	}
 
-    auto *vehicle { (
-        false == FreeFlyModeFlag ? controlled :
-        camera.m_owner != nullptr ? camera.m_owner :
+	auto *vehicle { (
+		false == FreeFlyModeFlag ? controlled :
+		camera.m_owner != nullptr ? camera.m_owner :
 		std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ) }; // w trybie latania lokalizujemy wg mapy
 
-    if( vehicle == nullptr ) { return; }
-    // if the nearest located vehicle doesn't have a direct driver, try to query its owner
-    auto const *owner = (
-        ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->Primary() ) ) ?
-            vehicle->Mechanik :
-            vehicle->ctOwner );
-    if( owner == nullptr ) { return; }
+	if( vehicle == nullptr ) { return; }
+	// if the nearest located vehicle doesn't have a direct driver, try to query its owner
+	auto const *owner = (
+	    ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->Primary() ) ) ?
+	        vehicle->Mechanik :
+	        vehicle->ctOwner );
+	if( owner == nullptr ) { return; }
 
-    auto const *table = owner->TrainTimetable();
-    if( table == nullptr ) { return; }
+	auto const *table = owner->TrainTimetable();
+	if( table == nullptr ) { return; }
 
-    { // destination
-        auto textline = Bezogonkow( owner->Relation(), true );
-        if( false == textline.empty() ) {
-            textline += " (" + Bezogonkow( owner->TrainName(), true ) + ")";
-        }
+	// destination
+	{
+		auto textline = Bezogonkow( owner->Relation(), true );
+		if( false == textline.empty() ) {
+			textline += " (" + Bezogonkow( owner->TrainName(), true ) + ")";
+		}
+		text_lines.emplace_back( textline, Global.UITextColor );
+	}
 
-        text_lines.emplace_back( textline, Global.UITextColor );
-    }
+	if( false == is_expanded ) {
+		// next station
+		auto const nextstation = owner->NextStop();
+		if( false == nextstation.empty() ) {
+			// jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
+			auto textline = " -> " + nextstation;
 
-    { // next station
-        auto const nextstation = owner->NextStop();
-        if( false == nextstation.empty() ) {
-            // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
-            auto textline = " -> " + nextstation;
+			text_lines.emplace_back( textline, Global.UITextColor );
+		}
+	}
 
-            text_lines.emplace_back( textline, Global.UITextColor );
-            text_lines.emplace_back( "", Global.UITextColor );
-        }
-    }
+	if( is_expanded ) {
 
-    if( is_expanded ) {
-
-        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
-            // consist data
-            auto consistmass { owner->fMass };
-            auto consistlength { owner->fLength };
-            if( ( owner->mvControlling->TrainType != dt_DMU )
-             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
+		if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+			// consist data
+			auto consistmass { owner->fMass };
+			auto consistlength { owner->fLength };
+			if( ( owner->mvControlling->TrainType != dt_DMU )
+			 && ( owner->mvControlling->TrainType != dt_EZT ) ) {
 				//odejmij lokomotywy czynne, a przynajmniej aktualną
-                consistmass -= owner->pVehicle->MoverParameters->TotalMass;
-                // subtract potential other half of a two-part vehicle
+				consistmass -= owner->pVehicle->MoverParameters->TotalMass;
+				// subtract potential other half of a two-part vehicle
 				auto const *previous { owner->pVehicle->Prev( coupling::permanent ) };
-                if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
+				if( previous != nullptr ) { consistmass -= previous->MoverParameters->TotalMass; }
 				auto const *next { owner->pVehicle->Next( coupling::permanent ) };
-                if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
+				if( next != nullptr ) { consistmass -= next->MoverParameters->TotalMass; }
 			}
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
@@ -320,82 +321,84 @@ timetable_panel::update() {
             auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
 
 			// header
-            m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
+			m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
-            TMTableLine const *tableline;
-            for( int i = owner->iStationStart; i <= table->StationCount; ++i ) {
-                // wyświetlenie pozycji z rozkładu
-                tableline = table->TimeTable + i; // linijka rozkładu
+			TMTableLine const *tableline;
+			for( int i = owner->iStationStart; i <= table->StationCount; ++i ) {
+				// wyświetlenie pozycji z rozkładu
+				tableline = table->TimeTable + i; // linijka rozkładu
 
-                bool vmaxchange { true };
-                if( i > owner->iStationStart ) {
-                    auto const *previoustableline { tableline - 1 };
-                    if( tableline->vmax == previoustableline->vmax ) {
-                        vmaxchange = false;
-                    }
-                }
-                std::string vmax { "   " };
-                if( true == vmaxchange ) {
-                    vmax += to_string( tableline->vmax, 0 );
-                    vmax = vmax.substr( vmax.size() - 3, 3 ); // z wyrównaniem do prawej
-                }
-                auto const station { (
-                    Bezogonkow( tableline->StationName, true )
-                    + "                                  " )
-                    .substr( 0, 34 ) };
-                auto const location { (
-                    ( tableline->km > 0.0 ?
-                        to_string( tableline->km, 2 ) :
-                        "" )
-                    + "                                  " )
-                    .substr( 0, 34 - tableline->StationWare.size() ) };
-                auto const arrival { (
-                    tableline->Ah >= 0 ?
-                        to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Am, true, 3 ) :
-                        u8"  │   " ) };
-                auto const departure { (
-                    tableline->Dh >= 0 ?
-                        to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
-                        u8"  │   " ) };
-                auto const candeparture { (
-                       ( owner->iStationStart < table->StationIndex )
-                    && ( i < table->StationIndex )
-                    && ( ( tableline->Ah < 0 ) // pass-through, always valid
-                      || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
-                auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
-                auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };
-                auto const traveltime { (
-                    i < 2 ? "   " :
-                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
-                    to_minutes_str( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
-                auto const linecolor { (
-                    ( i != owner->iStationStart ) ? Global.UITextColor :
-                    loadchangeinprogress ? loadingcolor :
-                    candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
-                    isatpassengerstop ? waitcolor :
-                    Global.UITextColor ) };
-                m_tablelines.emplace_back(
-                    ( u8"│ " + vmax + u8" │ " + station + u8" │  " + arrival + u8" │ " + traveltime + u8" │" ),
-                    linecolor );
-                m_tablelines.emplace_back(
-                    ( u8"│     │ " + location + tableline->StationWare + u8" │  " + departure + u8" │     │" ),
-                    linecolor );
-                // divider/footer
-                if( i < table->StationCount ) {
-                    auto const *nexttableline { tableline + 1 };
-                    if( tableline->vmax == nexttableline->vmax ) {
-                        m_tablelines.emplace_back( u8"│     ├────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
-                    else {
-                        m_tablelines.emplace_back( u8"├─────┼────────────────────────────────────┼─────────┼─────┤", Global.UITextColor );
-                    }
-                }
-                else {
-                    m_tablelines.emplace_back( u8"└─────┴────────────────────────────────────┴─────────┴─────┘", Global.UITextColor );
-                }
-            }
-        }
-    } // is_expanded
+				bool vmaxchange { true };
+				if( i > owner->iStationStart ) {
+					auto const *previoustableline { tableline - 1 };
+					if( tableline->vmax == previoustableline->vmax ) {
+						vmaxchange = false;
+					}
+				}
+				std::string vmax { "   " };
+				if( true == vmaxchange ) {
+					vmax += to_string( tableline->vmax, 0 );
+					vmax = vmax.substr( vmax.size() - 3, 3 ); // z wyrównaniem do prawej
+				}
+				auto const station { (
+					Bezogonkow( tableline->StationName, true )
+					+ "                                  " )
+					.substr( 0, 34 ) };
+				auto const location { (
+					( tableline->km > 0.0 ?
+					    to_string( tableline->km, 2 ) :
+					    "" )
+					+ "                                  " )
+					.substr( 0, 34 - tableline->StationWare.size() ) };
+				auto const arrival { (
+					tableline->Ah >= 0 ?
+					    to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Am, true, 3 ) :
+					    u8"  │   " ) };
+				auto const departure { (
+					tableline->Dh >= 0 ?
+					    to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
+					    u8"  │   " ) };
+				auto const candeparture { (
+					   ( owner->iStationStart < table->StationIndex )
+					&& ( i < table->StationIndex )
+					&& ( ( tableline->Ah < 0 ) // pass-through, always valid
+					  || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
+				auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
+				auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };
+				auto const traveltime { (
+					i < 2 ? "   " :
+					tableline->Ah >= 0 ? to_minutes_str( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
+					to_minutes_str( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
+					auto const linecolor { (
+					( i != owner->iStationStart ) ? Global.UITextColor :
+					loadchangeinprogress ? loadingcolor :
+					candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
+					isatpassengerstop ? waitcolor :
+					Global.UITextColor ) };
+				auto const trackcount{ ( tableline->TrackNo == 1 ? u8" ┃  " : u8" ║  " ) };
+				m_tablelines.emplace_back(
+				    ( u8"│ " + vmax + u8" │ " + station + trackcount + arrival + u8" │ " + traveltime + u8" │" ),
+				    linecolor );
+				m_tablelines.emplace_back(
+				    ( u8"│     │ " + location + tableline->StationWare + trackcount + departure + u8" │     │" ),
+				    linecolor );
+				// divider/footer
+				if( i < table->StationCount ) {
+					auto const *nexttableline { tableline + 1 };
+					std::string const vmaxnext{ ( tableline->vmax == nexttableline->vmax ? u8"│     ├" : u8"├─────┼" ) };
+					auto const trackcountnext{ ( nexttableline->TrackNo == 1 ? u8"╂" : u8"╫" ) };
+					m_tablelines.emplace_back(
+					    vmaxnext + u8"────────────────────────────────────" + trackcountnext + u8"─────────┼─────┤",
+					    Global.UITextColor );
+				}
+				else {
+					m_tablelines.emplace_back(
+					    u8"└─────┴────────────────────────────────────┴─────────┴─────┘",
+					    Global.UITextColor );
+				}
+				}
+			}
+		} // is_expanded
 }
 
 void
@@ -438,49 +441,51 @@ timetable_panel::render() {
 void
 debug_panel::update() {
 
-    if( false == is_open ) { return; }
+	if( false == is_open ) { return; }
 
-    // input item bindings
-    m_input.train = simulation::Train;
-    m_input.controlled = ( m_input.train ? m_input.train->Dynamic() : nullptr );
-    m_input.camera = &( Global.pCamera );
-    m_input.vehicle = (
-        false == FreeFlyModeFlag ? m_input.controlled :
-        m_input.camera->m_owner != nullptr ? m_input.camera->m_owner :
-        std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
-    m_input.mover =
-        ( m_input.vehicle != nullptr ?
-            m_input.vehicle->MoverParameters :
-            nullptr );
-    m_input.mechanik = (
-        m_input.vehicle != nullptr ?
-            m_input.vehicle->Mechanik :
-            nullptr );
+	// input item bindings
+	m_input.train = simulation::Train;
+	m_input.controlled = ( m_input.train ? m_input.train->Dynamic() : nullptr );
+	m_input.camera = &( Global.pCamera );
+	m_input.vehicle = (
+	    false == FreeFlyModeFlag ? m_input.controlled :
+	    m_input.camera->m_owner != nullptr ? m_input.camera->m_owner :
+	    std::get<TDynamicObject *>( simulation::Region->find_vehicle( m_input.camera->Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
+	m_input.mover =
+	    ( m_input.vehicle != nullptr ?
+	        m_input.vehicle->MoverParameters :
+	        nullptr );
+	m_input.mechanik = (
+	    m_input.vehicle != nullptr ?
+	        m_input.vehicle->Mechanik :
+	        nullptr );
 
-    // header section
-    text_lines.clear();
+	// header section
+	text_lines.clear();
 
-    auto textline = "Version " + Global.asVersion;
+	auto textline = "Version " + Global.asVersion;
 
-    text_lines.emplace_back( textline, Global.UITextColor );
+	text_lines.emplace_back( textline, Global.UITextColor );
 
-    // sub-sections
-    m_vehiclelines.clear();
-    m_enginelines.clear();
-    m_ailines.clear();
-    m_scantablelines.clear();
-    m_scenariolines.clear();
-    m_eventqueuelines.clear();
-    m_cameralines.clear();
+	// sub-sections
+	m_vehiclelines.clear();
+	m_enginelines.clear();
+	m_ailines.clear();
+	m_scantablelines.clear();
+	m_scenariolines.clear();
+	m_eventqueuelines.clear();
+	m_powergridlines.clear();
+	m_cameralines.clear();
 	m_rendererlines.clear();
 
-    update_section_vehicle( m_vehiclelines );
-    update_section_engine( m_enginelines );
-    update_section_ai( m_ailines );
-    update_section_scantable( m_scantablelines );
-    update_section_scenario( m_scenariolines );
-    update_section_eventqueue( m_eventqueuelines );
-    update_section_camera( m_cameralines );
+	update_section_vehicle( m_vehiclelines );
+	update_section_engine( m_enginelines );
+	update_section_ai( m_ailines );
+	update_section_scantable( m_scantablelines );
+	update_section_scenario( m_scenariolines );
+	update_section_eventqueue( m_eventqueuelines );
+	update_section_powergrid( m_powergridlines );
+	update_section_camera( m_cameralines );
 	update_section_renderer( m_rendererlines );
 }
 
@@ -518,24 +523,22 @@ debug_panel::render() {
 		render_section( "Vehicle Scan Table", m_scantablelines );
 		render_section( "Scenario", m_scenariolines );
 		if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
-            // event queue filter
-            ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
-        }
+			// event queue filter
+			ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
+		}
+		if( true == render_section( "Power Grid", m_powergridlines ) ) {
+			// traction state debug
+			ImGui::Checkbox(
+			        "Traction debug",
+			        &GfxRenderer.settings.traction_debug );
+		}
 		render_section( "Camera", m_cameralines );
 		render_section( "Gfx Renderer", m_rendererlines );
-        // toggles
-        ImGui::Separator();
-        ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
-        if( DebugModeFlag )
-        {
-            ImGui::Indent();
-            ImGui::Checkbox(
-                    "Draw normal traction",
-			        &GfxRenderer.settings.force_normal_traction_render );
-            ImGui::Unindent();
-        }
-    }
-    ImGui::End();
+		// toggles
+		ImGui::Separator();
+		ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
+	}
+	ImGui::End();
 }
 
 void
@@ -569,7 +572,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-	    STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s%s%s%.0f@%.0f"),
+	    STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s%s[%.0f]%s%s%.0f@%.0f"),
         // devices
         ( mover.Battery ? 'B' : '.' ),
         ( mover.Mains ? 'M' : '.' ),
@@ -585,14 +588,17 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.ConvOvldFlag ? '!' : '.' ),
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
+        ( mover.Heating ? 'H' : ( mover.HeatingAllow ? 'h' : '.' ) ),
         std::string( isplayervehicle ? STR(" radio: ") + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? STR(" oil pressure: ") + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
-        std::string( mover.Couplers[ end::front ].power_high.local ? "" : "-" ).c_str(),
+        std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
         std::string( vehicle.DirectionGet() ? ":<<:" : ":>>:" ).c_str(),
-        std::string( mover.Couplers[ end::rear ].power_high.local ? "" : "-" ).c_str(),
+	    mover.Voltage,
+	    std::string( vehicle.DirectionGet() ? "<<:" : ">>:" ).c_str(),
+	    std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
         mover.Couplers[ end::rear ].power_high.current );
 
@@ -704,369 +710,416 @@ debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
     std::string couplerstatus { STR("none") };
 
-    auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
+	auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
-    if( connected == nullptr ) { return couplerstatus; }
+	if( connected == nullptr ) { return couplerstatus; }
 
-    auto const &mover { *( m_input.mover ) };
+	auto const &mover { *( m_input.mover ) };
 
-    std::snprintf(
-        m_buffer.data(), m_buffer.size(),
-        "%s [%d] (%.1f m)",
-        connected->name().c_str(),
-        mover.Couplers[ Side ].CouplingFlag,
-        mover.Neighbours[ Side ].distance );
+	std::snprintf(
+	    m_buffer.data(), m_buffer.size(),
+	    "%s [%d] (%.1f m)",
+	    connected->name().c_str(),
+	    mover.Couplers[ Side ].CouplingFlag,
+	    mover.Neighbours[ Side ].distance );
 
-    return { m_buffer.data() };
+	return { m_buffer.data() };
 }
 
 std::string
 debug_panel::update_vehicle_brake() const {
-    // NOTE: mover is guaranteed to be valid by the caller
-    auto const &mover { *( m_input.mover ) };
+	// NOTE: mover is guaranteed to be valid by the caller
+	auto const &mover { *( m_input.mover ) };
 
-    std::string brakedelay;
+	std::string brakedelay;
 
-    std::vector<std::pair<int, std::string>> delays {
-        { bdelay_G, "G" },
-        { bdelay_P, "P" },
-        { bdelay_R, "R" },
-        { bdelay_M, "+Mg" } };
+	std::vector<std::pair<int, std::string>> delays {
+		{ bdelay_G, "G" },
+		{ bdelay_P, "P" },
+		{ bdelay_R, "R" },
+		{ bdelay_M, "+Mg" } };
 
-    for( auto const &delay : delays ) {
-        if( ( mover.BrakeDelayFlag & delay.first ) == delay.first ) {
-            brakedelay += delay.second;
-        }
-    }
+	for( auto const &delay : delays ) {
+		if( ( mover.BrakeDelayFlag & delay.first ) == delay.first ) {
+			brakedelay += delay.second;
+		}
+	}
 
-    return brakedelay;
+	return brakedelay;
 }
 
 void
 debug_panel::update_section_engine( std::vector<text_line> &Output ) {
 
-    if( m_input.train == nullptr ) { return; }
-    if( m_input.vehicle == nullptr ) { return; }
-    if( m_input.mover == nullptr ) { return; }
+	if( m_input.train == nullptr ) { return; }
+	if( m_input.vehicle == nullptr ) { return; }
+	if( m_input.mover == nullptr ) { return; }
 
-    auto const &train { *m_input.train };
-    auto const &vehicle{ *m_input.vehicle };
-    auto const &mover{ *m_input.mover };
+	auto const &train { *m_input.train };
+	auto const &vehicle{ *m_input.vehicle };
+	auto const &mover{ *m_input.mover };
 
-        // engine data
-                // induction motor data
-    if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
+	    // engine data
+	            // induction motor data
+	if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
 
-        Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
-        for( int i = 0; i <= 20; ++i ) {
+		Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
+		for( int i = 0; i <= 20; ++i ) {
 
-            std::string parameters =
-                mover.eimc_labels[ i ] + to_string( mover.eimc[ i ], 2, 9 )
-                + " | "
-                + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
+			std::string parameters =
+			    mover.eimc_labels[ i ] + to_string( mover.eimc[ i ], 2, 9 )
+			    + " | "
+			    + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
 
-            if( i < 10 ) {
-                parameters += " | " + train.fPress_labels[ i ] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
-            }
-            else if( i == 12 ) {
-                parameters += "        med:";
-            }
-            else if( i >= 13 ) {
-                parameters += " | " + vehicle.MED_labels[ i - 13 ] + to_string( vehicle.MED[ 0 ][ i - 13 ], 2, 9 );
-            }
+			if( i < 10 ) {
+				parameters += " | " + train.fPress_labels[ i ] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
+			}
+			else if( i == 12 ) {
+				parameters += "        med:";
+			}
+			else if( i >= 13 ) {
+				parameters += " | " + vehicle.MED_labels[ i - 13 ] + to_string( vehicle.MED[ 0 ][ i - 13 ], 2, 9 );
+			}
 
-            Output.emplace_back( parameters, Global.UITextColor );
-        }
-    }
-    if( mover.EngineType == TEngineType::DieselEngine ) {
+			Output.emplace_back( parameters, Global.UITextColor );
+		}
+	}
+	if( mover.EngineType == TEngineType::DieselEngine ) {
 
-        std::string parameterstext = "param       value";
-        std::vector< std::pair <std::string, double> > const paramvalues {
+		std::string parameterstext = "param       value";
+		std::vector< std::pair <std::string, double> > const paramvalues {
 			{ "  rpm: ", mover.enrot * 60.0 },
 			{ "efill: ", mover.dizel_fill },
-            { "etorq: ", mover.dizel_Torque },
-            { "creal: ", mover.dizel_engage },
-            { "cdesi: ", mover.dizel_engagestate },
-            { "cdelt: ", mover.dizel_engagedeltaomega },
-            { "gears: ", mover.dizel_automaticgearstatus} };
-        for( auto const &parameter : paramvalues ) {
-            parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
-        }
-        Output.emplace_back( parameterstext, Global.UITextColor );
+			{ "etorq: ", mover.dizel_Torque },
+			{ "creal: ", mover.dizel_engage },
+			{ "cdesi: ", mover.dizel_engagestate },
+			{ "cdelt: ", mover.dizel_engagedeltaomega },
+			{ "gears: ", mover.dizel_automaticgearstatus} };
+		for( auto const &parameter : paramvalues ) {
+			parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
+		}
+		Output.emplace_back( parameterstext, Global.UITextColor );
 
-        parameterstext = "hydro      value";
-        std::vector< std::pair <std::string, double> > const hydrovalues {
-            { "hTCnI: ", mover.hydro_TC_nIn },
-            { "hTCnO: ", mover.hydro_TC_nOut },
-            { "hTCTM: ", mover.hydro_TC_TMRatio },
-            { "hTCTI: ", mover.hydro_TC_TorqueIn },
-            { "hTCTO: ", mover.hydro_TC_TorqueOut },
-            { "hTCfl: ", mover.hydro_TC_Fill },
-            { "hTCLR: ", mover.hydro_TC_LockupRate } };
-        for( auto const &parameter : hydrovalues ) {
-            parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
-        }
-        Output.emplace_back( parameterstext, Global.UITextColor );
-    }
+		parameterstext = "hydro      value";
+		std::vector< std::pair <std::string, double> > const hydrovalues {
+			{ "hTCnI: ", mover.hydro_TC_nIn },
+			{ "hTCnO: ", mover.hydro_TC_nOut },
+			{ "hTCTM: ", mover.hydro_TC_TMRatio },
+			{ "hTCTI: ", mover.hydro_TC_TorqueIn },
+			{ "hTCTO: ", mover.hydro_TC_TorqueOut },
+			{ "hTCfl: ", mover.hydro_TC_Fill },
+			{ "hRtFl: ", mover.hydro_R_Fill } ,
+			{ " hRtn: ", mover.hydro_R_n } ,
+			{ "hRtTq: ", mover.hydro_R_Torque }
+
+		};
+		for( auto const &parameter : hydrovalues ) {
+			parameterstext += "\n" + parameter.first + to_string( parameter.second, 2, 9 );
+		}
+		Output.emplace_back( parameterstext, Global.UITextColor );
+	}
 }
 
 void
 debug_panel::update_section_ai( std::vector<text_line> &Output ) {
 
-    if( m_input.mover == nullptr )    { return; }
-    if( m_input.mechanik == nullptr ) { return; }
+	if( m_input.mover == nullptr )    { return; }
+	if( m_input.mechanik == nullptr ) { return; }
 
-    auto const &mover{ *m_input.mover };
-    auto const &mechanik{ *m_input.mechanik };
+	auto const &mover{ *m_input.mover };
+	auto const &mechanik{ *m_input.mechanik };
 
-    // biezaca komenda dla AI
-    auto textline =
-        "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
-        + mechanik.OrderCurrent();
+	// biezaca komenda dla AI
+	auto textline =
+	    "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
+	    + mechanik.OrderCurrent();
 
-    if( mechanik.fStopTime < 0.0 ) {
-        textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
-    }
+	if( mechanik.fStopTime < 0.0 ) {
+		textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
+	}
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    if( ( mechanik.VelNext == 0.0 )
-     && ( mechanik.eSignNext ) ) {
-        // jeśli ma zapamiętany event semafora, nazwa eventu semafora
-        Output.emplace_back( "Current signal: " + Bezogonkow( mechanik.eSignNext->m_name ), Global.UITextColor );
-    }
+	if( ( mechanik.VelNext == 0.0 )
+	 && ( mechanik.eSignNext ) ) {
+		// jeśli ma zapamiętany event semafora, nazwa eventu semafora
+		Output.emplace_back( "Current signal: " + Bezogonkow( mechanik.eSignNext->m_name ), Global.UITextColor );
+	}
 
-    // distances
-    textline =
-        "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
-        + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+	// distances
+	textline =
+	    "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
+	    + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
 
-    if( mechanik.Obstacle.distance < 5000 ) {
-        textline +=
-            "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 )
-            + " (" + mechanik.Obstacle.vehicle->asName + ")";
-    }
+	if( mechanik.Obstacle.distance < 5000 ) {
+		textline +=
+		    "\n obstacle: " + to_string( mechanik.Obstacle.distance, 0 )
+		    + " (" + mechanik.Obstacle.vehicle->asName + ")";
+	}
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    // velocity factors
-    textline =
-        "Velocity:\n desired: " + to_string( mechanik.VelDesired, 0 )
-        + ", next: " + to_string( mechanik.VelNext, 0 );
+	// velocity factors
+	textline =
+	    "Velocity:\n desired: " + to_string( mechanik.VelDesired, 0 )
+	    + ", next: " + to_string( mechanik.VelNext, 0 );
 
-    std::vector< std::pair< double, std::string > > const restrictions{
-        { mechanik.VelSignalLast, "signal" },
-        { mechanik.VelLimitLast, "limit" },
-        { mechanik.VelRoad, "road" },
-        { mechanik.VelRestricted, "restricted" },
-        { mover.RunningTrack.Velmax, "track" } };
+	std::vector< std::pair< double, std::string > > const restrictions{
+		{ mechanik.VelSignalLast, "signal" },
+		{ mechanik.VelLimitLast, "limit" },
+		{ mechanik.VelRoad, "road" },
+		{ mechanik.VelRestricted, "restricted" },
+		{ mover.RunningTrack.Velmax, "track" } };
 
-    std::string restrictionstext;
-    for( auto const &restriction : restrictions ) {
-        if( restriction.first < 0.0 ) { continue; }
-        if( false == restrictionstext.empty() ) {
-            restrictionstext += ", ";
-        }
-        restrictionstext +=
-            to_string( restriction.first, 0 )
-            + " (" + restriction.second + ")";
-    }
+	std::string restrictionstext;
+	for( auto const &restriction : restrictions ) {
+		if( restriction.first < 0.0 ) { continue; }
+		if( false == restrictionstext.empty() ) {
+			restrictionstext += ", ";
+		}
+		restrictionstext +=
+		    to_string( restriction.first, 0 )
+		    + " (" + restriction.second + ")";
+	}
 
-    if( false == restrictionstext.empty() ) {
-        textline += "\n restrictions: " + restrictionstext;
-    }
+	if( false == restrictionstext.empty() ) {
+		textline += "\n restrictions: " + restrictionstext;
+	}
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    // acceleration
-    textline =
-        "Acceleration:\n desired: " + to_string( mechanik.AccDesired, 2 )
-        + ", corrected: " + to_string( mechanik.AccDesired * mechanik.BrakeAccFactor(), 2 )
-        + "\n current: " + to_string( mechanik.AbsAccS_pub + 0.001f, 2 )
-        + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
-        + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
-        + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
-        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
-		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2);
+	// acceleration
+	textline =
+	    "Acceleration:\n desired: " + to_string( mechanik.AccDesired, 2 )
+	    + ", corrected: " + to_string( mechanik.AccDesired * mechanik.BrakeAccFactor(), 2 )
+	    + "\n current: " + to_string( mechanik.AbsAccS_pub + 0.001f, 2 )
+	    + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
+	    + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
+	    + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
+	    + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
+	    + "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2)
+	    + "\n desired diesel percentage: " + to_string(mechanik.DizelPercentage, 0)
+	    + "/" + to_string(mechanik.DizelPercentage_Speed, 0)
+	    + "/" + to_string(100.4*mechanik.mvControlling->eimic_real, 0);
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    // brakes
-    textline =
-        "Brakes:\n consist: " + to_string( mechanik.fReady, 2 ) + " or less";
+	// brakes
+	textline =
+	    "Brakes:\n consist: " + to_string( mechanik.fReady, 2 ) + " or less";
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    // ai driving flags
-    std::vector<std::string> const drivingflagnames {
-        "StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
-        "StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
-        "Visibility", "DoorOpened", "PushPull", "SemaphorFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
+	// ai driving flags
+	std::vector<std::string> const drivingflagnames {
+		"StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
+		"StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
+		"Visibility", "DoorOpened", "PushPull", "SemaphorFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
 
-    textline = "Driving flags:";
-    for( int idx = 0, flagbit = 1; idx < drivingflagnames.size(); ++idx, flagbit <<= 1 ) {
-        if( mechanik.DrivigFlags() & flagbit ) {
-            textline += "\n " + drivingflagnames[ idx ];
-        }
-    }
+	textline = "Driving flags:";
+	for( int idx = 0, flagbit = 1; idx < drivingflagnames.size(); ++idx, flagbit <<= 1 ) {
+		if( mechanik.DrivigFlags() & flagbit ) {
+			textline += "\n " + drivingflagnames[ idx ];
+		}
+	}
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 }
 
 void
 debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 
-    if( m_input.mechanik == nullptr ) { return; }
+	if( m_input.mechanik == nullptr ) { return; }
 
-    Output.emplace_back( "Flags:       Dist:    Vel:  Name:", Global.UITextColor );
+	Output.emplace_back( "Flags:       Dist:    Vel:  Name:", Global.UITextColor );
 
-    auto const &mechanik{ *m_input.mechanik };
+	auto const &mechanik{ *m_input.mechanik };
 
-    std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( mechanik.TableSize() ) - 1, 0, 30 );
-    do {
-        auto const scanline = mechanik.TableText( i );
-        if( scanline.empty() ) { break; }
-        Output.emplace_back( Bezogonkow( scanline ), Global.UITextColor );
-        ++i;
-    } while( i < speedtablesize );
-    if( Output.size() == 1 ) {
-        Output.front().data = "(no points of interest)";
-    }
+	std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( mechanik.TableSize() ) - 1, 0, 30 );
+	do {
+		auto const scanline = mechanik.TableText( i );
+		if( scanline.empty() ) { break; }
+		Output.emplace_back( Bezogonkow( scanline ), Global.UITextColor );
+		++i;
+	} while( i < speedtablesize );
+	if( Output.size() == 1 ) {
+		Output.front().data = "(no points of interest)";
+	}
 }
 
 void
 debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 
-    auto textline =
-        "vehicles: " + to_string( Timer::subsystem.sim_dynamics.average(), 2 ) + " msec"
-        + " update total: " + to_string( Timer::subsystem.sim_total.average(), 2 ) + " msec";
+	auto textline =
+	    "vehicles: " + to_string( Timer::subsystem.sim_dynamics.average(), 2 ) + " msec"
+	    + " update total: " + to_string( Timer::subsystem.sim_total.average(), 2 ) + " msec";
 
-    Output.emplace_back( textline, Global.UITextColor );
-    // current luminance level
-    textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
-    textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
-    if( Global.FakeLight ) { textline += "(*)"; }
-    textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
+	Output.emplace_back( textline, Global.UITextColor );
+	// current luminance level
+	textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
+	textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
+	if( Global.FakeLight ) { textline += "(*)"; }
+	textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 }
 
 void
 debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
 
-    std::string textline;
+	std::string textline;
 
-    // current event queue
-    auto const time { Timer::GetTime() };
-    auto const *event { simulation::Events.begin() };
+	// current event queue
+	auto const time { Timer::GetTime() };
+	auto const *event { simulation::Events.begin() };
 
-    Output.emplace_back( "Delay:   Event:", Global.UITextColor );
+	Output.emplace_back( "Delay:   Event:", Global.UITextColor );
 
-    while( ( event != nullptr )
-        && ( Output.size() < 30 ) ) {
+	while( ( event != nullptr )
+	    && ( Output.size() < 30 ) ) {
 
-        if( ( false == event->m_ignored )
-         && ( false == event->m_passive )
-         && ( ( false == m_eventqueueactivevehicleonly )
-           || ( event->m_activator == m_input.vehicle ) ) ) {
+		if( ( false == event->m_ignored )
+		 && ( false == event->m_passive )
+		 && ( ( false == m_eventqueueactivevehicleonly )
+		   || ( event->m_activator == m_input.vehicle ) ) ) {
 
-            auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
-            textline = delay.substr( delay.length() - 6 )
-                + "   " + event->m_name
-                + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
-                + ( event->m_sibling ? " (joint event)" : "" );
+			auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
+			textline = delay.substr( delay.length() - 6 )
+			    + "   " + event->m_name
+			    + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
+			    + ( event->m_sibling ? " (joint event)" : "" );
 
-            Output.emplace_back( textline, Global.UITextColor );
-        }
-        event = event->m_next;
-    }
-    if( Output.size() == 1 ) {
-        Output.front().data = "(no queued events)";
-    }
+			Output.emplace_back( textline, Global.UITextColor );
+		}
+		event = event->m_next;
+	}
+	if( Output.size() == 1 ) {
+		Output.front().data = "(no queued events)";
+	}
+}
+
+void
+debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
+
+	auto const lowpowercolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+	auto const nopowercolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
+
+	Output.emplace_back( "Name:               Output:   Timeout:", Global.UITextColor );
+
+	std::string textline;
+
+	for( auto const *powerstation : simulation::Powergrid.sequence() ) {
+
+		if( true == powerstation->bSection ) { continue; }
+
+		auto const name { (
+			powerstation->m_name.empty() ?
+			    "(unnamed)" :
+			    powerstation->m_name )
+			+ "                              " };
+
+		textline =
+		    name.substr( 0, 20 )
+		    + " " + to_string( powerstation->OutputVoltage, 0, 5 )
+		    + " " + to_string( powerstation->FuseTimer, 1, 12 )
+		    + ( powerstation->FuseCounter == 0 ?
+		        "" :
+		        " (x" + to_string( powerstation->FuseCounter ) + ")" );
+
+		Output.emplace_back(
+		    textline,
+		    ( ( powerstation->FastFuse || powerstation->SlowFuse ) ? nopowercolor :
+		      powerstation->OutputVoltage < ( 0.8 * powerstation->NominalVoltage ) ? lowpowercolor :
+		      Global.UITextColor ) );
+	}
+
+	if( Output.size() == 1 ) {
+		Output.front().data = "(no power stations)";
+	}
 }
 
 void
 debug_panel::update_section_camera( std::vector<text_line> &Output ) {
 
-    if( m_input.camera == nullptr ) { return; }
+	if( m_input.camera == nullptr ) { return; }
 
-    auto const &camera{ *m_input.camera };
+	auto const &camera{ *m_input.camera };
 
-    // camera data
-    auto textline =
-        "Position: ["
-        + to_string( camera.Pos.x, 2 ) + ", "
-        + to_string( camera.Pos.y, 2 ) + ", "
-        + to_string( camera.Pos.z, 2 ) + "]";
+	// camera data
+	auto textline =
+	    "Position: ["
+	    + to_string( camera.Pos.x, 2 ) + ", "
+	    + to_string( camera.Pos.y, 2 ) + ", "
+	    + to_string( camera.Pos.z, 2 ) + "]";
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 
-    textline =
-        "Azimuth: "
-        + to_string( 180.0 - glm::degrees( camera.Angle.y ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
-        + " "
-        + std::string( "S SEE NEN NWW SW" )
-        .substr( 0 + 2 * floor( fmod( 8 + ( camera.Angle.y + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+	textline =
+	    "Azimuth: "
+	    + to_string( 180.0 - glm::degrees( camera.Angle.y ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+	    + " "
+	    + std::string( "S SEE NEN NWW SW" )
+	    .substr( 0 + 2 * floor( fmod( 8 + ( camera.Angle.y + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
 
-    Output.emplace_back( textline, Global.UITextColor );
+	Output.emplace_back( textline, Global.UITextColor );
 }
 
 void
 debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
 	        // gfx renderer data
-            auto textline =
-                "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
-                + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
+	        auto textline =
+			    "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
+			    + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
 //                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
-                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
-            if( Global.iSlowMotion ) {
-                textline += " (slowmotion " + to_string( Global.iSlowMotion ) + ")";
-            }
+			    + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
+			if( Global.iSlowMotion ) {
+				textline += " (slowmotion " + to_string( Global.iSlowMotion ) + ")";
+			}
 
-            Output.emplace_back( textline, Global.UITextColor );
+			Output.emplace_back( textline, Global.UITextColor );
 
-            textline = "";
-            if( false == Global.LastGLError.empty() ) {
-                textline +=
-                    "Last openGL error: "
-                    + Global.LastGLError;
-            }
+			textline = "";
+			if( false == Global.LastGLError.empty() ) {
+				textline +=
+				    "Last openGL error: "
+				    + Global.LastGLError;
+			}
 
-            Output.emplace_back( textline, Global.UITextColor );
+			Output.emplace_back( textline, Global.UITextColor );
 
 			// renderer stats
-            Output.emplace_back( GfxRenderer.info_times(), Global.UITextColor );
-            Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
+			Output.emplace_back( GfxRenderer.info_times(), Global.UITextColor );
+			Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
 }
 
 bool
 debug_panel::render_section( std::string const &Header, std::vector<text_line> const &Lines ) {
 
-    if( true == Lines.empty() ) { return false; }
-    if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
+	if( true == Lines.empty() ) { return false; }
+	if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
 
-    for( auto const &line : Lines ) {
-        ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
-        ImGui::TextUnformatted( line.data.c_str() );
-        ImGui::PopStyleColor();
+	for( auto const &line : Lines ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
+		ImGui::TextUnformatted( line.data.c_str() );
+		ImGui::PopStyleColor();
 //        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
-    }
-    return true;
+	}
+	return true;
 }
 
 void
 transcripts_panel::update() {
 
-    if( false == is_open ) { return; }
+	if( false == is_open ) { return; }
 
-    text_lines.clear();
+	text_lines.clear();
 
-    for( auto const &transcript : ui::Transcripts.aLines ) {
-        if( Global.fTimeAngleDeg + ( transcript.fShow - Global.fTimeAngleDeg > 180 ? 360 : 0 ) < transcript.fShow ) { continue; }
-        text_lines.emplace_back( ExchangeCharInString( transcript.asText, '|', ' ' ), colors::white );
-    }
+	for( auto const &transcript : ui::Transcripts.aLines ) {
+		if( Global.fTimeAngleDeg + ( transcript.fShow - Global.fTimeAngleDeg > 180 ? 360 : 0 ) < transcript.fShow ) { continue; }
+		text_lines.emplace_back( ExchangeCharInString( transcript.asText, '|', ' ' ), colors::white );
+	}
 }
 
 void

@@ -578,6 +578,9 @@ public:
     // adds specified event launcher to the list of global launchers
     void
         queue( TEventLauncher *Launcher );
+    // inserts in the event query events assigned to event launchers capable of receiving specified radio message sent from specified location
+    void
+        queue_receivers( radio_message const Message, glm::dvec3 const &Location );
     // legacy method, updates event queues
     void
         update();
@@ -588,10 +591,13 @@ public:
     inline
     bool
         insert( TEventLauncher *Launcher ) {
-            return m_launchers.insert( Launcher ); }
-	inline void purge (TEventLauncher *Launcher) {
-		m_launchers.purge(Launcher);
-	}
+            return (
+                Launcher->IsRadioActivated() ?
+                    m_radiodrivenlaunchers.insert( Launcher ) :
+                    m_inputdrivenlaunchers.insert( Launcher ) ); }
+    inline void purge (TEventLauncher *Launcher) {
+		m_radiodrivenlaunchers.purge(Launcher);
+		m_inputdrivenlaunchers.purge(Launcher); }
     // returns first event in the queue
     inline
     basic_event *
@@ -607,7 +613,8 @@ public:
     basic_event *
         FindEvent( std::string const &Name );
 	inline TEventLauncher* FindEventlauncher(std::string const &Name) {
-		return m_launchers.find(Name);
+		auto ptr = m_inputdrivenlaunchers.find(Name);
+		return ptr ? ptr : m_radiodrivenlaunchers.find(Name);
 	}
     // legacy method, inserts specified event in the event query
     bool
@@ -643,7 +650,8 @@ private:
     basic_event *QueryRootEvent { nullptr };
     basic_event *m_workevent { nullptr };
     event_map m_eventmap;
-    basic_table<TEventLauncher> m_launchers;
+    basic_table<TEventLauncher> m_inputdrivenlaunchers;
+    basic_table<TEventLauncher> m_radiodrivenlaunchers;
     eventlauncher_sequence m_launcherqueue;
 	command_relay m_relay;
 };

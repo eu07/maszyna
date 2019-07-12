@@ -265,6 +265,8 @@ public:
     int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
     int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
     double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
+	int DizelPercentage = 0; // oczekiwane procenty jazdy/hamowania szynobusem
+	int DizelPercentage_Speed = 0; // oczekiwane procenty jazdy/hamowania szynobusem w związku z osiąganiem VelDesired
 private:
     bool Psyche = false;
     int HelperState = 0; //stan pomocnika maszynisty
