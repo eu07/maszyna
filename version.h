@@ -1,5 +1,5 @@
 #pragma once
 
 #define VERSION_MAJOR 19
-#define VERSION_MINOR 701
+#define VERSION_MINOR 712
 #define VERSION_REVISION 0

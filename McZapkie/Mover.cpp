@@ -1572,6 +1572,8 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
 
                 auto const absrevolutions { std::abs( generator.revolutions ) };
                 generator.voltage = (
+                    false == HeatingAllow ? 0.0 :
+                    // TODO: add support for desired voltage selector
                     absrevolutions < generator.revolutions_min ? generator.voltage_min * absrevolutions / generator.revolutions_min :
 //                    absrevolutions > generator.revolutions_max ? generator.voltage_max * absrevolutions / generator.revolutions_max :
                     interpolate(

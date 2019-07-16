@@ -8377,6 +8377,18 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.AssignDouble(&mvControlled->AnPos);
         m_controlmapper.insert( gauge, "shuntmodepower:" );
     }
+    else if( Label == "heatingvoltage:" ) {
+        if( mvControlled->HeatingPowerSource.SourceType == TPowerSource::Generator ) {
+            auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+            gauge.Load( Parser, DynamicObject );
+            gauge.AssignDouble( &(mvControlled->HeatingPowerSource.EngineGenerator.voltage) );
+        }
+    }
+    else if( Label == "heatingcurrent:" ) {
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject );
+        gauge.AssignDouble( &( mvControlled->TotalCurrent ) );
+    }
     else
     {
         // failed to match the label
