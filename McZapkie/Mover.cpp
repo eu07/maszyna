@@ -6163,7 +6163,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 		{
 			if (eimic > 0.001)
 				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
-			if (eimic < -0.001)
+			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
 				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
 		}
 		break;
