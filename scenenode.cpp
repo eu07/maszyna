@@ -190,7 +190,8 @@ shape_node::import( cParser &Input, scene::node_data const &Nodedata ) {
     }
 
     // assigned material
-    m_data.material = GfxRenderer.Fetch_Material( token );
+	replace_slashes(token);
+	m_data.material = GfxRenderer.Fetch_Material( token );
 
     // determine way to proceed from the assigned diffuse texture
     // TBT, TODO: add methods to material manager to access these simpler

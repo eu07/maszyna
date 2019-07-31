@@ -29,7 +29,7 @@ void ui::scenerylist_panel::render()
 			bool collapse_open = false;
 
 			for (auto const &desc : scenarios) {
-				std::string name = desc.path.stem();
+				std::string name = desc.path.stem().string();
 				std::string prefix = name.substr(0, name.find_first_of("-_"));
 				if (prefix.empty())
 					prefix = name;
@@ -120,8 +120,8 @@ void ui::scenerylist_panel::scan_scenarios()
 		if (*(path.filename().string().begin()) == '$')
 			continue;
 
-		if (string_ends_with(path, ".scn"))
-			scan_scn(path);
+		if (string_ends_with(path.string(), ".scn"))
+			scan_scn(path.string());
 	}
 }
 

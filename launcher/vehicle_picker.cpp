@@ -32,10 +32,7 @@ glm::ivec2 ui::deferred_image::size()
 ui::vehiclepicker_panel::vehiclepicker_panel()
     : ui_panel(STR("Select vehicle"), true)
 {
-	auto now = std::chrono::high_resolution_clock::now();
 	bank.scan_textures();
-	auto diff = std::chrono::high_resolution_clock::now() - now;
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << std::endl;
 	filter.resize(256, 0);
 }
 
@@ -84,35 +81,46 @@ void ui::vehiclepicker_panel::render()
 		ImGui::EndChild();
 		ImGui::NextColumn();
 
-		if (ImGui::BeginChild("box2")) {
-			for (auto const &v : bank.vehicles) {
-				auto desc = v.second;
-				if (selected_type == desc->type) {
-					if (desc->matching_skinsets.size() == 0)
-						continue;
+		std::vector<std::shared_ptr<vehicle_desc>> model_list;
+		std::vector<skin_set*> skinset_list;
 
+		for (auto const &v : bank.vehicles) {
+			auto desc = v.second;
+
+			if (selected_type == desc->type && desc->matching_skinsets.size() > 0)
+				model_list.push_back(desc);
+
+			if (selected_vehicle == desc) {
+				for (auto &skin : desc->matching_skinsets)
+					skinset_list.push_back(&skin);
+			}
+		}
+
+		if (ImGui::BeginChild("box2")) {
+			ImGuiListClipper clipper(model_list.size());
+			while (clipper.Step())
+				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+					auto &desc = model_list[i];
 					auto image = &desc->matching_skinsets[0].mini;
 
-					if (selectable_image(desc->path.stem().c_str(), desc == selected_vehicle, image))
+					std::string label = desc->path.stem().string();
+					if (selectable_image(label.c_str(), desc == selected_vehicle, image))
 						selected_vehicle = desc;
 				}
-			}
 		}
 		ImGui::EndChild();
 		ImGui::NextColumn();
 
 		if (ImGui::BeginChild("box3")) {
-			for (auto const &v : bank.vehicles) {
-				auto desc = v.second;
-				if (selected_vehicle == desc) {
-					for (auto &skin : desc->matching_skinsets) {
-						auto image = &skin.mini;
+			ImGuiListClipper clipper(skinset_list.size());
+			while (clipper.Step())
+				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+					auto skin = skinset_list[i];
 
-						if (selectable_image(skin.skins[0].stem().c_str(), &skin == selected_skinset, image))
-							selected_skinset = &skin;
-					}
+					std::string label = skin->skins[0].stem().string();
+					if (selectable_image(label.c_str(), skin == selected_skinset, &skin->mini))
+						selected_skinset = skin;
 				}
-			}
 		}
 		ImGui::EndChild();
 
@@ -242,7 +250,7 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	skin_set set;
 	set.group = mini;
 	if (!miniplus.empty())
-		set.mini = deferred_image("textures/mini/" + ToLower(miniplus));
+		set.mini = std::move(deferred_image("textures/mini/" + ToLower(miniplus)));
 
 	std::istringstream tex_stream(target);
 	std::string texture;
@@ -252,7 +260,9 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 		set.skins.push_back(path);
 	}
 
-	get_vehicle(model)->matching_skinsets.push_back(set);
+	auto vehicle = get_vehicle(model);
+	group_map[set.group].insert(vehicle);
+	vehicle->matching_skinsets.push_back(std::move(set));
 }
 
 void ui::vehicles_bank::parse_coupling_rule(const std::string &target, const std::string &param)

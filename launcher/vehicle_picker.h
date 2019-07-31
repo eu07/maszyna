@@ -26,6 +26,9 @@ class deferred_image {
 public:
 	deferred_image() = default;
 	deferred_image(const std::string &p) : path(p) { }
+	deferred_image(const deferred_image&) = delete;
+	deferred_image(deferred_image&&) = default;
+	deferred_image &operator=(deferred_image&&) = default;
 
 	GLuint get();
 	glm::ivec2 size();
@@ -65,7 +68,7 @@ class vehicles_bank {
 public:
 	std::unordered_map<vehicle_type, deferred_image> category_icons;
 	std::map<std::filesystem::path, std::shared_ptr<vehicle_desc>> vehicles;
-	std::map<std::string, std::vector<std::shared_ptr<vehicle_desc>>> group_map;
+	std::map<std::string, std::set<std::shared_ptr<vehicle_desc>>> group_map;
 	void scan_textures();
 
 private:
