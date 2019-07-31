@@ -30,9 +30,11 @@ float calc_shadow()
 vec2 calc_light(vec3 light_dir)
 {
 #ifdef NORMALMAP
-	vec3 normal = normalize(f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0));
+	vec3 normal = normal;
 #elif defined(WATER)
 	vec3 normal = normal_d;
+#elif defined(PARALLAX)
+	vec3 normal = normal_p;
 #else
 	vec3 normal = normalize(f_normal);
 #endif

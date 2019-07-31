@@ -56,7 +56,10 @@ void main()
 	vec2 total_distorted_tex_coord = (texture(dudvmap, distorted_tex_coord).rg * 2.0 - 1.0 ) * param[2].y;
 	texture_coords += total_distorted_tex_coord;
 
-	normal_d = f_tbn * normalize(texture(normalmap, texture_coords).rgb * 2.0 - 1.0);
+	vec3 normal;
+	normal.xy = (texture(normalmap, texture_coords).rg * 2.0 - 1.0);
+	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	normal_d = normalize(f_tbn * normalize(normal.xyz));
 	vec3 refvec = reflect(f_pos.xyz, normal_d);
 #if ENVMAP_ENABLED
 	vec3 envcolor = texture(envmap, refvec).rgb;
