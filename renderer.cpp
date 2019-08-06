@@ -106,6 +106,134 @@ opengl_camera::draw( glm::vec3 const &Offset ) const {
     ::glEnd();
 }
 
+
+
+std::vector<std::pair<glm::vec3, glm::vec2>> const billboard_vertices {
+
+    { { -0.5f, -0.5f, 0.f }, { 0.f, 0.f } },
+    { {  0.5f, -0.5f, 0.f }, { 1.f, 0.f } },
+    { {  0.5f,  0.5f, 0.f }, { 1.f, 1.f } },
+    { { -0.5f,  0.5f, 0.f }, { 0.f, 1.f } }
+};
+
+void
+opengl_particles::update( opengl_camera const &Camera ) {
+
+    m_particlevertices.clear();
+    // build a list of visible smoke sources
+    // NOTE: arranged by distance to camera, if we ever need sorting and/or total amount cap-based culling
+    std::multimap<float, smoke_source const &> sources;
+
+    for( auto const &source : simulation::Particles.sequence() ) {
+        if( false == Camera.visible( source.area() ) ) { continue; }
+        // NOTE: the distance is negative when the camera is inside the source's bounding area
+        sources.emplace(
+            static_cast<float>( glm::length( Camera.position() - source.area().center ) - source.area().radius ),
+            source );
+    }
+
+    if( true == sources.empty() ) { return; }
+
+    // build billboard data for particles from visible sources
+    auto const camerarotation { glm::mat3( Camera.modelview() ) };
+    particle_vertex vertex;
+    for( auto const &source : sources ) {
+
+        auto const &particles { source.second.sequence() };
+        // TODO: put sanity cap on the overall amount of particles that can be drawn
+        auto const sizestep { 256.0 * billboard_vertices.size() };
+        m_particlevertices.reserve(
+            sizestep * std::ceil( m_particlevertices.size() + ( particles.size() * billboard_vertices.size() ) / sizestep ) );
+        for( auto const &particle : particles ) {
+            // TODO: particle color support
+            vertex.color[ 0 ] =
+            vertex.color[ 1 ] =
+            vertex.color[ 2 ] = static_cast<std::uint8_t>( Global.fLuminance * 32 );
+            vertex.color[ 3 ] = clamp<std::uint8_t>( particle.opacity * 255, 0, 255 );
+
+            auto const offset { glm::vec3{ particle.position - Camera.position() } };
+            auto const rotation { glm::angleAxis( particle.rotation, glm::vec3{ 0.f, 0.f, 1.f } ) };
+
+            for( auto const &billboardvertex : billboard_vertices ) {
+                vertex.position = offset + ( rotation * billboardvertex.first * particle.size ) * camerarotation;
+                vertex.texture = billboardvertex.second;
+
+                m_particlevertices.emplace_back( vertex );
+            }
+        }
+    }
+
+    // ship the billboard data to the gpu:
+    // setup...
+    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
+    // ...make sure we have enough room...
+    if( m_buffercapacity < m_particlevertices.size() ) {
+        // allocate gpu side buffer big enough to hold the data
+        m_buffercapacity = 0;
+        if( m_buffer != -1 ) {
+            // get rid of the old buffer
+            ::glDeleteBuffers( 1, &m_buffer );
+        }
+        ::glGenBuffers( 1, &m_buffer );
+        ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+        if( m_buffer > 0 ) {
+            // if we didn't get a buffer we'll try again during the next draw call
+            // NOTE: we match capacity instead of current size to reduce number of re-allocations
+            auto const particlecount { m_particlevertices.capacity() };
+            ::glBufferData(
+                GL_ARRAY_BUFFER,
+                particlecount * sizeof( particle_vertex ),
+                nullptr,
+                GL_DYNAMIC_DRAW );
+            if( ::glGetError() == GL_OUT_OF_MEMORY ) {
+                // TBD: throw a bad_alloc?
+                ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
+                ::glDeleteBuffers( 1, &m_buffer );
+                m_buffer = -1;
+            }
+            else {
+                m_buffercapacity = particlecount;
+            }
+        }
+    }
+    // ...send the data...
+    if( m_buffer > 0 ) {
+        // if the buffer exists at this point it's guaranteed to be big enough to hold our data
+        ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+        ::glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            m_particlevertices.size() * sizeof( particle_vertex ),
+            m_particlevertices.data() );
+    }
+    // ...and cleanup
+    ::glPopClientAttrib();
+}
+
+void
+opengl_particles::render( int const Textureunit ) {
+
+    if( m_buffercapacity == 0 ) { return; }
+    if( m_particlevertices.empty() ) { return; }
+
+    // setup...
+    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
+    ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
+    ::glVertexPointer( 3, GL_FLOAT, sizeof( particle_vertex ), static_cast<char *>( nullptr ) );
+    ::glEnableClientState( GL_VERTEX_ARRAY );
+    ::glColorPointer( 4, GL_UNSIGNED_BYTE, sizeof( particle_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
+    ::glEnableClientState( GL_COLOR_ARRAY );
+    ::glClientActiveTexture( Textureunit );
+    ::glTexCoordPointer( 2, GL_FLOAT, sizeof( particle_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 + sizeof( std::uint8_t ) * 4 );
+    ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+    // ...draw...
+    ::glDrawArrays( GL_QUADS, 0, m_particlevertices.size() );
+    // ...and cleanup
+    ::glPopClientAttrib();
+}
+
+
+
 bool
 opengl_renderer::Init( GLFWwindow *Window ) {
 
@@ -194,6 +322,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     if( m_helpertextureunit >= 0 ) {
         m_reflectiontexture = Fetch_Texture( "fx/reflections" );
     }
+    m_smoketexture = Fetch_Texture( "fx/smoke" );
     WriteLog( "...gfx data pre-loading done" );
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -576,6 +705,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // ...translucent parts
                 setup_drawing( true );
                 Render_Alpha( simulation::Region );
+                // particles
+                Render_particles();
                 // precipitation; done at the end, only before cab render
                 Render_precipitation();
                 // cab render
@@ -1489,7 +1620,7 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
 
-    auto const fogfactor { clamp<float>( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // stronger fog reduces opacity of the celestial bodies
+    auto const fogfactor { clamp<float>( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // closer/denser fog reduces opacity of the celestial bodies
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
     glm::vec3 suncolor = interpolate(
         glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
@@ -3009,6 +3140,25 @@ opengl_renderer::Render( TMemCell *Memcell ) {
 }
 
 void
+opengl_renderer::Render_particles() {
+
+    switch_units( true, false, false );
+
+    Bind_Material( null_handle ); // TODO: bind smoke texture
+
+    // TBD: leave lighting on to allow vehicle lights to affect it?
+    ::glDisable( GL_LIGHTING );
+    // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
+    ::glDepthMask( GL_FALSE );
+
+    Bind_Texture( m_smoketexture );
+    m_particlerenderer.render( m_diffusetextureunit );
+
+    ::glDepthMask( GL_TRUE );
+    ::glEnable( GL_LIGHTING );
+}
+
+void
 opengl_renderer::Render_precipitation() {
 
     if( Global.Overcast <= 1.f ) { return; }
@@ -3023,8 +3173,11 @@ opengl_renderer::Render_precipitation() {
                 colors::white,
                 0.5f * clamp<float>( Global.fLuminance, 0.f, 1.f ) ) ) );
     ::glPushMatrix();
-    // tilt the precipitation cone against the velocity vector for crude motion blur
-    auto const velocity { simulation::Environment.m_precipitation.m_cameramove * -1.0 };
+    // tilt the precipitation cone against the camera movement vector for crude motion blur
+    // include current wind vector while at it
+    auto const velocity {
+        simulation::Environment.m_precipitation.m_cameramove * -1.0
+        + glm::dvec3{ simulation::Environment.wind() } * 0.5 };
     if( glm::length2( velocity ) > 0.0 ) {
         auto const forward{ glm::normalize( velocity ) };
         auto left { glm::cross( forward, {0.0,1.0,0.0} ) };
@@ -3801,6 +3954,16 @@ opengl_renderer::Update_Mouse_Position() {
 
 void
 opengl_renderer::Update( double const Deltatime ) {
+
+    // per frame updates
+    if( simulation::is_ready ) {
+        // update particle subsystem
+        renderpass_config renderpass;
+        setup_pass( renderpass, rendermode::color );
+        m_particlerenderer.update( renderpass.camera );
+    }
+
+    // fixed step updates
 /*
     m_pickupdateaccumulator += Deltatime;
 

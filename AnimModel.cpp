@@ -422,7 +422,19 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
     }
     else if( asReplacableTexture != "none" ) {
+/*
+        auto const texturepath { substr_path( asReplacableTexture ) };
+        if( false == texturepath.empty() ) {
+            Global.asCurrentTexturePath = texturepath;
+        }
+*/
         m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
+/*
+        if( false == texturepath.empty() ) {
+            // z powrotem defaultowa sciezka do tekstur
+            Global.asCurrentTexturePath = std::string( szTexturePath );
+        }
+*/
     }
     if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
      && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {

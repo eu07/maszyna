@@ -4553,9 +4553,12 @@ double TMoverParameters::TractionForce( double dt ) {
                                 EngineHeatingRPM )
                                 / 60.0 );
                 }
+                // NOTE: fake dizel_fill calculation for the sake of smoke emitter which uses this parameter to determine smoke opacity
+                dizel_fill = clamp( 0.2 + 0.35 * ( tmp - enrot ), 0.0, 1.0 );
             }
             else {
                 tmp = 0.0;
+                dizel_fill = 0.0;
             }
 
             if( enrot != tmp ) {

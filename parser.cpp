@@ -79,6 +79,19 @@ cParser::~cParser() {
     }
 }
 
+template <>
+glm::vec3
+cParser::getToken( bool const ToLower, char const *Break ) {
+    // NOTE: this specialization ignores default arguments
+    getTokens( 3, false, "\n\r\t  ,;[]" );
+    glm::vec3 output;
+    *this
+        >> output.x
+        >> output.y
+        >> output.z;
+    return output;
+};
+
 template<>
 cParser&
 cParser::operator>>( std::string &Right ) {

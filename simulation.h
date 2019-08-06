@@ -48,6 +48,7 @@ extern sound_table Sounds;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
 extern light_array Lights;
+extern particle_manager Particles;
 
 extern scene::basic_region *Region;
 extern TTrain *Train;

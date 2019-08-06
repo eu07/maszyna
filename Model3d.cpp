@@ -703,7 +703,8 @@ void TSubModel::InitialRotate(bool doit)
         }
         else if (Global.iConvertModels & 2) {
             // optymalizacja jest opcjonalna
-            if ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
+            if ( ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
+              && ( false == is_emitter() ) ) // don't optimize smoke emitter attachment points
             { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować go
                 float4x4 *mat = GetMatrix(); // transform submodelu
                 if( false == Vertices.empty() ) {
@@ -808,6 +809,26 @@ TSubModel::find_replacable4() {
     }
 
     return std::make_tuple( nullptr, false );
+}
+
+// locates particle emitter submodels and adds them to provided list
+void
+TSubModel::find_smoke_sources( nameoffset_sequence &Sourcelist ) const {
+
+    auto const name { ToLower( pName ) };
+
+    if( ( eType == TP_ROTATOR )
+     && ( pName.find( "smokesource_" ) == 0 ) ) {
+        Sourcelist.emplace_back( pName, offset() );
+    }
+
+    if( Next != nullptr ) {
+        Next->find_smoke_sources( Sourcelist );
+    }
+
+    if( Child != nullptr ) {
+        Child->find_smoke_sources( Sourcelist );
+    }
 }
 
 int TSubModel::FlagsCheck()
@@ -1047,7 +1068,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 };
 
-   //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 void TSubModel::serialize_geometry( std::ostream &Output ) const {
 
@@ -1131,6 +1152,14 @@ void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, g
 			f4Specular[i] = s[i] / 255.0;
 */
 };
+
+bool
+TSubModel::is_emitter() const {
+
+    return (
+        ( eType == TP_ROTATOR )
+     && ( ToLower( pName ).find( "smokesource_" ) == 0 ) );
+}
 
 // pobranie transformacji względem wstawienia modelu
 void TSubModel::ParentMatrix( float4x4 *m ) const {
@@ -1230,8 +1259,9 @@ TModel3d::~TModel3d() {
     }
 };
 
-TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
-{
+TSubModel *
+TModel3d::AddToNamed(const char *Name, TSubModel *SubModel) {
+
 	TSubModel *sm = Name ? GetFromName(Name) : nullptr;
     if( ( sm == nullptr )
      && ( Name != nullptr ) && ( std::strcmp( Name, "none" ) != 0 ) ) {
@@ -1243,6 +1273,7 @@ TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 
 // jedyny poprawny sposób dodawania submodeli, inaczej mogą zginąć przy zapisie E3D
 void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel) {
+
 	if (tmp) {
         // jeśli znaleziony, podłączamy mu jako potomny
 		tmp->ChildAdd(SubModel);
@@ -1268,6 +1299,18 @@ TSubModel *TModel3d::GetFromName(std::string const &Name) const
 		return Root ? Root->GetFromName(Name) : nullptr;
 	}
 };
+
+// locates particle source submodels and stores them on internal list
+nameoffset_sequence const &
+TModel3d::find_smoke_sources() {
+
+    m_smokesources.clear();
+    if( Root != nullptr ) {
+        Root->find_smoke_sources( m_smokesources );
+    }
+
+    return smoke_sources();
+}
 
 // returns offset vector from root
 glm::vec3
@@ -1888,6 +1931,8 @@ void TModel3d::Init()
             asBinary = ""; // zablokowanie powtórnego zapisu
         }
     }
+    // check if the model contains particle emitters
+    find_smoke_sources();
 };
 
 //-----------------------------------------------------------------------------

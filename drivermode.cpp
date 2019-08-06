@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "simulationenvironment.h"
 #include "lightarray.h"
+#include "particles.h"
 #include "Train.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -235,6 +236,8 @@ driver_mode::update() {
     simulation::Region->update_sounds();
     audio::renderer.update( deltarealtime );
 
+    // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
+    simulation::Particles.update();
     GfxRenderer.Update( deltarealtime );
 
     simulation::is_ready = true;
