@@ -5049,12 +5049,23 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( false == Train->CabChange( 1 ) ) {
-            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::front ].CouplingFlag, coupling::gangway ) ) {
+        auto const movedirection {
+            1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
+                    1 :
+                   -1 ) };
+        if( false == Train->CabChange( movedirection ) ) {
+            auto const exitdirection { (
+                movedirection > 0 ?
+                    end::front :
+                    end::rear ) };
+            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->PrevConnected();
+                Global.changeDynObj = (
+                    exitdirection == end::front ?
+                        Train->DynamicObject->PrevConnected() :
+                        Train->DynamicObject->NextConnected() );
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->MoverParameters->Neighbours[end::front].vehicle_end ?
+                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
             }
@@ -5069,12 +5080,23 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
 void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        if( false == Train->CabChange( -1 ) ) {
-            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ end::rear ].CouplingFlag, coupling::gangway ) ) {
+        auto const movedirection {
+            -1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
+                    1 :
+                   -1 ) };
+        if( false == Train->CabChange( movedirection ) ) {
+            auto const exitdirection { (
+                movedirection > 0 ?
+                    end::front :
+                    end::rear ) };
+            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = Train->DynamicObject->NextConnected();
+                Global.changeDynObj = (
+                    exitdirection == end::front ?
+                        Train->DynamicObject->PrevConnected() :
+                        Train->DynamicObject->NextConnected() );
                 Global.changeDynObj->MoverParameters->ActiveCab = (
-                    Train->DynamicObject->MoverParameters->Neighbours[end::rear].vehicle_end ?
+                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
             }
