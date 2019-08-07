@@ -3438,30 +3438,35 @@ void TController::SpeedSet()
         break;
     case TEngineType::DieselEngine:
         // Ra 2014-06: "automatyczna" skrzynia biegów...
-        if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) // gdy biegi ręczne
-            if ((mvControlling->ShuntMode ? mvControlling->AnPos : 1.0) * mvControlling->Vel >
-                0.75 * mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+        if( false == mvControlling->MotorParam[ mvControlling->ScndCtrlPos ].AutoSwitch ) {
+            // gdy biegi ręczne
+            if( ( mvControlling->ShuntMode ? mvControlling->AnPos : 1.0 ) * mvControlling->Vel >
+                0.75 * mvControlling->MotorParam[ mvControlling->ScndCtrlPos ].mfi )
             // if (mvControlling->enrot>0.95*mvControlling->dizel_nMmax) //youBy: jeśli obroty >
             // 0,95 nmax, wrzuć wyższy bieg - Ra: to nie działa
             { // jak prędkość większa niż 0.6 maksymalnej na danym biegu, wrzucić wyższy
-                mvControlling->DecMainCtrl(2);
-                if (mvControlling->IncScndCtrl(1))
-                    if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat ==
-                        0.0) // jeśli bieg jałowy
-                        mvControlling->IncScndCtrl(1); // to kolejny
+                if( mvControlling->ScndCtrlPos < mvControlling->ScndCtrlPosNo ) {
+                    // ...presuming there is a higher gear
+                    mvControlling->DecMainCtrl( 2 );
+                    if( mvControlling->IncScndCtrl( 1 ) ) {
+                        while( ( mvControlling->MotorParam[ mvControlling->ScndCtrlPos ].mIsat == 0.0 ) // jeśli bieg jałowy
+                            && ( mvControlling->IncScndCtrl( 1 ) ) ) { // to kolejny
+                            ;
+                        }
+                    }
+                }
             }
-            else if ((mvControlling->ShuntMode ? mvControlling->AnPos : 1.0) * mvControlling->Vel <
-                     mvControlling->MotorParam[mvControlling->ScndCtrlPos].fi)
-            { // jak prędkość mniejsza niż minimalna na danym biegu, wrzucić niższy
-                mvControlling->DecMainCtrl(2);
-                mvControlling->DecScndCtrl(1);
-                if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat ==
-                    0.0) // jeśli bieg jałowy
-                    if (mvControlling->ScndCtrlPos) // a jeszcze zera nie osiągnięto
-                        mvControlling->DecScndCtrl(1); // to kolejny wcześniejszy
+            else if( ( mvControlling->ShuntMode ? mvControlling->AnPos : 1.0 ) * mvControlling->Vel <
+                mvControlling->MotorParam[ mvControlling->ScndCtrlPos ].fi ) { // jak prędkość mniejsza niż minimalna na danym biegu, wrzucić niższy
+                mvControlling->DecMainCtrl( 2 );
+                mvControlling->DecScndCtrl( 1 );
+                if( mvControlling->MotorParam[ mvControlling->ScndCtrlPos ].mIsat == 0.0 ) // jeśli bieg jałowy
+                    if( mvControlling->ScndCtrlPos ) // a jeszcze zera nie osiągnięto
+                        mvControlling->DecScndCtrl( 1 ); // to kolejny wcześniejszy
                     else
-                        mvControlling->IncScndCtrl(1); // a jak zeszło na zero, to powrót
+                        mvControlling->IncScndCtrl( 1 ); // a jak zeszło na zero, to powrót
             }
+        }
         break;
     }
 };

@@ -103,6 +103,7 @@ set(SOURCES
 "precipitation.cpp"
 "openglcolor.cpp"
 "dictionary.cpp"
+"particles.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"

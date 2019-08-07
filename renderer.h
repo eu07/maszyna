@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "frustum.h"
 #include "scene.h"
 #include "simulationenvironment.h"
+#include "particles.h"
 #include "MemCell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
@@ -42,12 +43,16 @@ struct opengl_light : public basic_light {
             return *this; }
 };
 
+
+
 // encapsulates basic rendering setup.
 // for modern opengl this translates to a specific collection of glsl shaders,
 // for legacy opengl this is combination of blending modes, active texture units etc
 struct opengl_technique {
 
 };
+
+
 
 // simple camera object. paired with 'virtual camera' in the scene
 class opengl_camera {
@@ -110,6 +115,46 @@ private:
     glm::mat4 m_modelview;
     glm::mat4 m_inversetransformation; // cached transformation to world space
 };
+
+
+// particle data visualizer
+class opengl_particles {
+public:
+// constructors
+    opengl_particles() = default;
+// destructor
+    ~opengl_particles() {
+        if( m_buffer != 0 ) {
+            ::glDeleteBuffers( 1, &m_buffer ); } }
+// methods
+    void
+        update( opengl_camera const &Camera );
+    void
+        render( int const Textureunit );
+private:
+// types
+    struct particle_vertex {
+        glm::vec3 position; // 3d space
+        std::uint8_t color[ 4 ]; // rgba, unsigned byte format
+        glm::vec2 texture; // uv space
+        float padding[ 2 ]; // experimental, some gfx hardware allegedly works better with 32-bit aligned data blocks
+    };
+/*
+    using sourcedistance_pair = std::pair<smoke_source *, float>;
+    using source_sequence = std::vector<sourcedistance_pair>;
+*/
+    using particlevertex_sequence = std::vector<particle_vertex>;
+// methods
+// members
+/*
+    source_sequence m_sources; // list of particle sources visible in current render pass, with their respective distances to the camera
+*/
+    particlevertex_sequence m_particlevertices; // geometry data of visible particles, generated on the cpu end
+    GLuint m_buffer{ (GLuint)-1 }; // id of the buffer holding geometry data on the opengl end
+    std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
+};
+
+
 
 // bare-bones render controller, in lack of anything better yet
 class opengl_renderer {
@@ -301,6 +346,8 @@ private:
     void
         Render( TMemCell *Memcell );
     void
+        Render_particles();
+    void
         Render_precipitation();
     void
         Render_Alpha( scene::basic_region *Region );
@@ -342,6 +389,7 @@ private:
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };
     texture_handle m_reflectiontexture { -1 };
+    texture_handle m_smoketexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
     // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
@@ -373,6 +421,8 @@ private:
     int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
     int m_environmentupdatetime { 0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
+    // particle visualization subsystem
+    opengl_particles m_particlerenderer;
 
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_shadowtextureunit { GL_TEXTURE1 };

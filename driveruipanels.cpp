@@ -752,17 +752,14 @@ debug_panel::update_vehicle_brake() const {
 
 void
 debug_panel::update_section_engine( std::vector<text_line> &Output ) {
-
-    if( m_input.train == nullptr ) { return; }
+    // engine data
     if( m_input.vehicle == nullptr ) { return; }
     if( m_input.mover == nullptr ) { return; }
 
-    auto const &train { *m_input.train };
     auto const &vehicle{ *m_input.vehicle };
     auto const &mover{ *m_input.mover };
 
-        // engine data
-                // induction motor data
+    // induction motor data
     if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
 
         Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
@@ -774,7 +771,11 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
                 + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
 
             if( i < 10 ) {
-                parameters += " | " + train.fPress_labels[ i ] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
+                // NOTE: we pull consist data from the train structure, so show this data only if we're viewing controlled vehicle
+                parameters +=
+                    ( ( m_input.train != nullptr ) && ( m_input.train->Dynamic() == m_input.vehicle ) ?
+                        " | " + TTrain::fPress_labels[ i ] + to_string( m_input.train->fPress[ i ][ 0 ], 2, 9 ) :
+                        "" );
             }
             else if( i == 12 ) {
                 parameters += "        med:";
@@ -786,6 +787,7 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
             Output.emplace_back( parameters, Global.UITextColor );
         }
     }
+    // diesel engine data
     if( mover.EngineType == TEngineType::DieselEngine ) {
 
         std::string parameterstext = "param       value";

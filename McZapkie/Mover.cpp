@@ -1572,6 +1572,8 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
 
                 auto const absrevolutions { std::abs( generator.revolutions ) };
                 generator.voltage = (
+                    false == HeatingAllow ? 0.0 :
+                    // TODO: add support for desired voltage selector
                     absrevolutions < generator.revolutions_min ? generator.voltage_min * absrevolutions / generator.revolutions_min :
 //                    absrevolutions > generator.revolutions_max ? generator.voltage_max * absrevolutions / generator.revolutions_max :
                     interpolate(
@@ -2381,8 +2383,9 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 	if ((!Radio))
 		RadiostopSwitch(false);
 
-    if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0) &&
-        (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
+    if ((SecuritySystem.SystemType > 0)
+     && (SecuritySystem.Status > 0)
+     && (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
         if( ( SecuritySystem.AwareMinSpeed > 0.0 ?
@@ -2410,30 +2413,29 @@ void TMoverParameters::SecuritySystemCheck(double dt)
                                      SecuritySystem.EmergencyBrakeDelay) &&
                                     (SecuritySystem.EmergencyBrakeDelay >= 0))
                                     SetFlag(SecuritySystem.Status, s_CAebrake);
-
-            // SHP
-            if (TestFlag(SecuritySystem.SystemType, 2) &&
-                TestFlag(SecuritySystem.Status, s_active)) // jeśli świeci albo miga
-                SecuritySystem.SystemSoundSHPTimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 2) &&
-                TestFlag(SecuritySystem.Status, s_SHPalarm)) // jeśli buczy
+        }
+        // SHP
+        if( TestFlag( SecuritySystem.SystemType, 2 ) ) {
+            if( TestFlag( SecuritySystem.Status, s_SHPalarm ) ) {
+                // jeśli buczy
                 SecuritySystem.SystemBrakeSHPTimer += dt;
-            if (TestFlag(SecuritySystem.SystemType, 2) && TestFlag(SecuritySystem.Status, s_active))
-                if ((Vel > SecuritySystem.VelocityAllowed) && (SecuritySystem.VelocityAllowed >= 0))
-                    SetFlag(SecuritySystem.Status, s_SHPebrake);
-                else if (((SecuritySystem.SystemSoundSHPTimer > SecuritySystem.SoundSignalDelay) &&
-                          (SecuritySystem.SoundSignalDelay >= 0)) ||
-                         ((Vel > SecuritySystem.NextVelocityAllowed) &&
-                          (SecuritySystem.NextVelocityAllowed >= 0)))
-                    if (!SetFlag(SecuritySystem.Status,
-                                 s_SHPalarm)) // juz wlaczony sygnal dzwiekowy}
-                        if ((SecuritySystem.SystemBrakeSHPTimer >
-                             SecuritySystem.EmergencyBrakeDelay) &&
-                            (SecuritySystem.EmergencyBrakeDelay >= 0))
-                            SetFlag(SecuritySystem.Status, s_SHPebrake);
+            }
+            if( TestFlag( SecuritySystem.Status, s_active ) ) {
+                // jeśli świeci albo miga
+                SecuritySystem.SystemSoundSHPTimer += dt;
 
-        } // else SystemTimer:=0;
-
+                if( ( SecuritySystem.VelocityAllowed >= 0 ) && ( Vel > SecuritySystem.VelocityAllowed ) ) {
+                    SetFlag( SecuritySystem.Status, s_SHPebrake );
+                }
+                else if( ( ( SecuritySystem.SoundSignalDelay >= 0 ) && ( SecuritySystem.SystemSoundSHPTimer > SecuritySystem.SoundSignalDelay ) )
+                      || ( ( SecuritySystem.NextVelocityAllowed >= 0 ) && ( Vel > SecuritySystem.NextVelocityAllowed ) ) ) {
+                    SetFlag( SecuritySystem.Status, s_SHPalarm );
+                    if( ( SecuritySystem.EmergencyBrakeDelay >= 0 ) && ( SecuritySystem.SystemBrakeSHPTimer > SecuritySystem.EmergencyBrakeDelay ) ) {
+                        SetFlag( SecuritySystem.Status, s_SHPebrake );
+                    }
+                }
+            }
+        }
         // TEST CA
         if (TestFlag(SecuritySystem.Status, s_CAtest)) // jeśli świeci albo miga
             SecuritySystem.SystemBrakeCATestTimer += dt;
@@ -4561,9 +4563,12 @@ double TMoverParameters::TractionForce( double dt ) {
                                 EngineHeatingRPM )
                                 / 60.0 );
                 }
+                // NOTE: fake dizel_fill calculation for the sake of smoke emitter which uses this parameter to determine smoke opacity
+                dizel_fill = clamp( 0.2 + 0.35 * ( tmp - enrot ), 0.0, 1.0 );
             }
             else {
                 tmp = 0.0;
+                dizel_fill = 0.0;
             }
 
             if( enrot != tmp ) {
@@ -6168,7 +6173,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 		{
 			if (eimic > 0.001)
 				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
-			if (eimic < -0.001)
+			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
 				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
 		}
 		break;
@@ -10321,7 +10326,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         else if ((CValue1 == 0))
             Battery = false;
         if ((Battery) && (ActiveCab != 0) /*or (TrainType=dt_EZT)*/)
-            SecuritySystem.Status = SecuritySystem.Status || s_waiting; // aktywacja czuwaka
+            SecuritySystem.Status = SecuritySystem.Status | s_waiting; // aktywacja czuwaka
         else
             SecuritySystem.Status = 0; // wyłączenie czuwaka
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
