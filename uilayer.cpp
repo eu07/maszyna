@@ -86,7 +86,7 @@ void ui_log_panel::render_contents()
     for (const std::string &s : log_scrollback)
         ImGui::TextUnformatted(s.c_str());
     if (ImGui::GetScrollY() == ImGui::GetScrollMaxY())
-        ImGui::SetScrollHere(1.0f);
+		ImGui::SetScrollHereY(1.0f);
 }
 
 ui_layer::~ui_layer() {}

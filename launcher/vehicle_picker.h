@@ -29,13 +29,14 @@ public:
 	deferred_image(const deferred_image&) = delete;
 	deferred_image(deferred_image&&) = default;
 	deferred_image &operator=(deferred_image&&) = default;
+	operator bool() const;
 
-	GLuint get();
-	glm::ivec2 size();
+	GLuint get() const;
+	glm::ivec2 size() const;
 
 private:
-	std::string path;
-	texture_handle image = 0;
+	mutable std::string path;
+	mutable texture_handle image = 0;
 };
 
 struct skin_set {
@@ -67,6 +68,8 @@ struct vehicle_desc {
 class vehicles_bank {
 public:
 	std::unordered_map<vehicle_type, deferred_image> category_icons;
+	std::map<std::string, deferred_image> group_icons;
+
 	std::map<std::filesystem::path, std::shared_ptr<vehicle_desc>> vehicles;
 	std::map<std::string, std::set<std::shared_ptr<vehicle_desc>>> group_map;
 	void scan_textures();
@@ -93,13 +96,16 @@ class vehiclepicker_panel : public ui_panel
 	void render() override;
 
 private:
-	bool selectable_image(const char *desc, bool selected, deferred_image *image);
+	bool selectable_image(const char *desc, bool selected, const deferred_image *image);
 
 	vehicle_type selected_type = vehicle_type::none;
-	std::shared_ptr<vehicle_desc> selected_vehicle;
+	std::shared_ptr<const vehicle_desc> selected_vehicle;
+	const std::string *selected_group = nullptr;
 	const skin_set *selected_skinset = nullptr;
+	bool display_by_groups = false;
 
 	vehicles_bank bank;
-	std::string filter;
+
+	const deferred_image *lastdef = nullptr;
 };
 } // namespace ui
