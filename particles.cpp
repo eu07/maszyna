@@ -117,11 +117,6 @@ smoke_source::initialize() {
             // this gives us estimate of longest potential lifespan of single particle, and how many particles total can there be at any given time
             // TBD, TODO: explicit lifespan variable as part of the source configuration?
             static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) ) );
-/*
-    m_particlehead =
-    m_particletail =
-        std::begin( m_particles );
-*/
 }
 
 void
@@ -131,6 +126,16 @@ smoke_source::bind( TDynamicObject const *Vehicle ) {
     m_ownertype = (
         m_owner.vehicle != nullptr ?
             owner_type::vehicle :
+            owner_type::none );
+}
+
+void
+smoke_source::bind( TAnimModel const *Node ) {
+
+    m_owner.node = Node;
+    m_ownertype = (
+        m_owner.node != nullptr ?
+            owner_type::node :
             owner_type::none );
 }
 
@@ -151,32 +156,6 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
                 m_spawncount + ( m_spawnrate * Timedelta ),
                 m_particles.capacity() ) );
     // update spawned particles
-/*
-    while( m_particlehead != m_particletail ) {
-
-        auto &particle { *m_particlehead };
-        bool particleisalive;
-
-        while( ( false == ( particleisalive = update( particle, Timedelta ) ) )
-            && ( m_spawncount >= 1.f ) ) {
-            // replace dead particle with a new one
-            m_spawncount -= 1.f;
-            initialize( particle );
-        }
-        if( false == particleisalive ) {
-            // we have a dead particle and no pending spawn requests, (try to) move the last particle here
-            do {
-                --m_particletail;
-                if( m_particlehead == m_particletail ) { break; }
-                particle = *m_particletail;
-            } while( false == ( particleisalive = update( particle, Timedelta ) ) );
-        }
-        if( true == particleisalive ) {
-            // ensure at the end of the pass the head iterator is placed after the last alive particle
-            ++m_particlehead;
-        }
-    }
-*/
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 
         auto &particle { *particleiterator };
@@ -205,18 +184,6 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
         }
     }
     // spawn pending particles in remaining container slots
-/*
-    while( ( m_spawncount >= 1.f )
-        && ( m_particlehead != std::end( m_particles ) ) ) {
-
-        m_spawncount -= 1.f;
-        auto &particle { *m_particlehead };
-        initialize( particle );
-        if( true == update( particle, Timedelta ) ) {
-            ++m_particlehead;
-        }
-    }
-*/
     while( ( m_spawncount >= 1.f )
         && ( m_particles.size() < m_particles.capacity() ) ) {
 
@@ -258,12 +225,6 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
         // discard pending spawn requests our container couldn't fit
         m_spawncount -= std::floor( m_spawncount );
     }
-/*
-    // after the pass the head iterator is left last alive particle
-    m_particletail = m_particlehead;
-    m_particlehead = std::begin( m_particles );
-*/
-
     // determine bounding area from calculated bounding box
     if( false == m_particles.empty() ) {
         m_area.center = interpolate( boundingbox[ value_limit::min ], boundingbox[ value_limit::max ], 0.5 );
@@ -291,7 +252,8 @@ smoke_source::location() const {
         }
         case owner_type::node: {
             // TODO: take into account node rotation
-            location = m_offset;
+            auto const rotation { glm::angleAxis( glm::radians( m_owner.node->Angles().y ), glm::vec3{ 0.f, 1.f, 0.f } ) };
+            location = rotation * glm::vec3{ m_offset };
             location += m_owner.node->location();
             break;
         }
@@ -342,10 +304,12 @@ smoke_source::update( smoke_particle &Particle, bounding_box &Boundingbox, doubl
 
     // crude smoke dispersion simulation
     // http://www.auburn.edu/academic/forestry_wildlife/fire/smoke_guide/smoke_dispersion.htm
-    Particle.velocity.y = std::max<float>( 0.25 * ( 1.f - Global.Overcast ), Particle.velocity.y - 0.25 * Global.Overcast * Timedelta );
+    Particle.velocity.y += ( 0.005 * Particle.velocity.y ) * std::min( 0.f, Global.AirTemperature - 10 ) * Timedelta; // decelerate faster in cold weather
+    Particle.velocity.y -= ( 0.010 * Particle.velocity.y ) * Global.Overcast * Timedelta; // decelerate faster with high air humidity and/or precipitation
+    Particle.velocity.y = std::max<float>( 0.25 * ( 2.f - Global.Overcast ), Particle.velocity.y ); // put a cap on deceleration
 
     Particle.position += Particle.velocity * static_cast<float>( Timedelta );
-    Particle.position += 0.35f * simulation::Environment.wind() * static_cast<float>( Timedelta );
+    Particle.position += 0.1f * Particle.age * simulation::Environment.wind() * static_cast<float>( Timedelta );
 //    m_velocitymodifier.update( Particle.velocity, Timedelta );
 
     Particle.age += Timedelta;
@@ -385,6 +349,18 @@ particle_manager::insert( std::string const &Sourcetemplate, TDynamicObject cons
     // attach the source to specified vehicle
     auto &source { m_sources.back() };
     source.bind( Vehicle );
+
+    return true;
+}
+
+bool
+particle_manager::insert( std::string const &Sourcetemplate, TAnimModel const *Node, glm::dvec3 const Location ) {
+
+    if( false == insert( Sourcetemplate, Location ) ) { return false; }
+        
+    // attach the source to specified node
+    auto &source { m_sources.back() };
+    source.bind( Node );
 
     return true;
 }

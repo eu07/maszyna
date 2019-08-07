@@ -81,6 +81,8 @@ public:
         initialize();
     void
         bind( TDynamicObject const *Vehicle );
+    void
+        bind( TAnimModel const *Node );
     // updates state of owned particles
     void
         update( double const Timedelta, bool const Onlydespawn );
@@ -171,6 +173,8 @@ public:
         insert( std::string const &Sourcetemplate, glm::dvec3 const Location );
     bool
         insert( std::string const &Sourcetemplate, TDynamicObject const *Vehicle, glm::dvec3 const Location );
+    bool
+        insert( std::string const &Sourcetemplate, TAnimModel const *Node, glm::dvec3 const Location );
     // updates state of all owned emitters
     void
         update();
