@@ -465,6 +465,15 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             // model import can potentially fail
             if( instance == nullptr ) { return; }
 
+            if( instance->Model() != nullptr ) {
+                for( auto const &smokesource : instance->Model()->smoke_sources() ) {
+                    Particles.insert(
+                        smokesource.first,
+                        instance,
+                        smokesource.second );
+                }
+            }
+
             if( false == simulation::Instances.insert( instance ) ) {
                 ErrorLog( "Bad scenario: duplicate 3d model instance name \"" + instance->name() + "\" defined in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
             }
