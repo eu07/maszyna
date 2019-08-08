@@ -16,6 +16,7 @@ gl::vao::~vao()
 	if (!use_vao)
 		return;
 
+	unbind();
 	glDeleteVertexArrays(1, *this);
 }
 
@@ -74,4 +75,11 @@ void gl::vao::bind()
 void gl::vao::unbind()
 {
 	active = nullptr;
+	if (use_vao) {
+		glBindVertexArray(0);
+	}
+	else {
+		for (size_t i = 0; i < 4; i++)
+			glDisableVertexAttribArray(i);
+	}
 }
