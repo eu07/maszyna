@@ -201,8 +201,12 @@ world_environment::update_wind() {
     m_wind.change_time -= timedelta;
     if( m_wind.change_time < 0 ) {
         m_wind.change_time = Random( 5, 30 );
-        m_wind.azimuth_change = Random( -5, 5 );
         m_wind.velocity_change = Random( -1, 1 );
+        if( Random() < 0.2 ) {
+            // changes in wind direction should be less frequent than changes in wind speed
+            // TBD, TODO: configuration-driven direction change frequency
+            m_wind.azimuth_change = Random( -5, 5 );
+        }
     }
     // TBD, TODO: wind configuration
     m_wind.azimuth = clamp_circular( m_wind.azimuth + m_wind.azimuth_change * timedelta );
