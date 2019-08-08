@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "PyInt.h"
 #include "Timer.h"
+#include "vao.h"
 
 global_settings Global;
 
@@ -855,6 +856,10 @@ global_settings::ConfigParse(cParser &Parser) {
 				Parser >> conf.transform[i / 4][i % 4];
 
 			extra_viewports.push_back(conf);
+			if (gl::vao::use_vao) {
+				gl::vao::use_vao = false;
+				WriteLog("using multiple viewports, disabling vao!");
+			}
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności

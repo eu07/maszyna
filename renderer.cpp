@@ -450,6 +450,7 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 	if (!Global.gfx_usegles)
 		glEnable(GL_PROGRAM_POINT_SIZE);
 
+	if (!gl::vao::use_vao)
 	{
 		GLuint v;
 		glGenVertexArrays(1, &v);

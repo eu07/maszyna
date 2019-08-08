@@ -6,7 +6,7 @@
 
 namespace gl
 {
-    class vao : public bindable<vao>
+    class vao : object, public bindable<vao>
     {
 		struct attrib_params {
 			// TBD: should be shared_ptr? (when buffer is destroyed by owner VAO could still potentially exist)
@@ -23,15 +23,15 @@ namespace gl
 		std::vector<attrib_params> params;
 
     public:
-		//vao();
-		//~vao();
+		vao();
+		~vao();
 
 		void setup_attrib(buffer &buffer, int attrib, int size, int type, int stride, int offset);
 		void setup_ebo(buffer &ebo);
 
-		//using bindable::bind;
 		void bind();
 		static void unbind();
-		//static void bind(GLuint i);
+
+		static bool use_vao;
     };
 }
