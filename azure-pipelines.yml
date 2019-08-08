@@ -26,10 +26,10 @@ jobs:
         artifactName: binaries_linux
       displayName: 'Publish binaries'
 
-  - job: macos1013
+  - job: macos1014
     pool:
-      vmImage: 'macOS-10.13'
-    displayName: 'MacOS 10.13'
+      vmImage: 'macOS-10.14'
+    displayName: 'MacOS 10.14'
     steps:
     - script: |
         HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile asio pkg-config
