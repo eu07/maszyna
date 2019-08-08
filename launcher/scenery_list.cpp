@@ -6,12 +6,9 @@
 #include <filesystem>
 
 ui::scenerylist_panel::scenerylist_panel()
-    : ui_panel(STR("Scenario list"), true)
+    : ui_panel(STR("Scenario list"), false)
 {
-	scan_scenarios();
-
-	std::sort(scenarios.begin(), scenarios.end(),
-	          [](const scenery_desc &a, const scenery_desc &b) { return a.path < b.path; });
+	scanner.scan();
 }
 
 void ui::scenerylist_panel::render()
@@ -24,11 +21,11 @@ void ui::scenerylist_panel::render()
 	if (ImGui::Begin(panelname.c_str(), &is_open)) {
 		ImGui::Columns(3);
 
-		if (ImGui::BeginChild("child1")) {
+		if (ImGui::BeginChild("child1", ImVec2(0, -50))) {
 			std::string prev_prefix;
 			bool collapse_open = false;
 
-			for (auto const &desc : scenarios) {
+			for (auto const &desc : scanner.scenarios) {
 				std::string name = desc.path.stem().string();
 				std::string prefix = name.substr(0, name.find_first_of("-_"));
 				if (prefix.empty())
@@ -55,7 +52,7 @@ void ui::scenerylist_panel::render()
 
 		ImGui::NextColumn();
 
-		if (ImGui::BeginChild("child2")) {
+		if (ImGui::BeginChild("child2", ImVec2(0, -50))) {
 			if (selected_scenery) {
 				ImGui::TextWrapped("%s", selected_scenery->name.c_str());
 				ImGui::TextWrapped("%s", selected_scenery->description.c_str());
@@ -80,7 +77,7 @@ void ui::scenerylist_panel::render()
 		ImGui::NextColumn();
 
 		if (selected_scenery) {
-			if (ImGui::BeginChild("child3", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollbar)) {
+			if (ImGui::BeginChild("child3", ImVec2(0, -50), false, ImGuiWindowFlags_NoScrollbar)) {
 				if (!selected_scenery->image_path.empty()) {
 					scenery_desc *desc = const_cast<scenery_desc*>(selected_scenery);
 					desc->image = GfxRenderer.Fetch_Texture(selected_scenery->image_path, true);
@@ -99,67 +96,25 @@ void ui::scenerylist_panel::render()
 					}
 				}
 			} ImGui::EndChild();
-
-			if (ImGui::Begin(STR_C("Select trainset"))) {
-				for (auto const &trainset : selected_scenery->trainsets) {
-					ImGui::Selectable("Trainset", false);
-				}
-			}
-			ImGui::End();
 		}
+		ImGui::Columns();
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("child4")) {
+			if (selected_scenery) {
+				ImGui::Columns(2);
+
+				if (ImGui::BeginChild("child5", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar)) {
+					for (auto const &trainset : selected_scenery->trainsets) {
+						ImGui::Selectable("trainset", false);
+					}
+				} ImGui::EndChild();
+
+				ImGui::NextColumn();
+				//ImGui::Button(STR_C("Launch"));
+			}
+		} ImGui::EndChild();
 	}
 
 	ImGui::End();
-}
-
-void ui::scenerylist_panel::scan_scenarios()
-{
-	for (auto &f : std::filesystem::directory_iterator("scenery")) {
-		std::filesystem::path path(f.path());
-
-		if (*(path.filename().string().begin()) == '$')
-			continue;
-
-		if (string_ends_with(path.string(), ".scn"))
-			scan_scn(path.string());
-	}
-}
-
-void ui::scenerylist_panel::scan_scn(std::string path)
-{
-	scenarios.emplace_back();
-	scenery_desc &desc = scenarios.back();
-	desc.path = path;
-
-	std::ifstream stream(path, std::ios_base::binary | std::ios_base::in);
-
-	std::string line;
-	while (std::getline(stream, line))
-	{
-		if (line.size() < 6 || !string_starts_with(line, "//$"))
-			continue;
-
-		if (line[3] == 'i')
-			desc.image_path = "scenery/images/" + line.substr(5);
-		else if (line[3] == 'n')
-			desc.name = line.substr(5);
-		else if (line[3] == 'd')
-			desc.description += line.substr(5) + '\n';
-		else if (line[3] == 'f') {
-			std::string lang;
-			std::string file;
-			std::string label;
-
-			std::istringstream stream(line.substr(5));
-			stream >> lang >> file;
-			std::getline(stream, label);
-
-			desc.links.push_back(std::make_pair(file, label));
-		}
-		else if (line[3] == 'o') {
-			desc.trainsets.emplace_back();
-			trainset_desc &trainset = desc.trainsets.back();
-			trainset.name = line.substr(5);
-		}
-	}
 }

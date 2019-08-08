@@ -3,7 +3,7 @@
 #include "simulation.h"
 
 ui::keymapper_panel::keymapper_panel()
-    : ui_panel(STR("Keymapper"), true)
+    : ui_panel(STR("Keymapper"), false)
 {
 	keyboard.init();
 }

@@ -170,7 +170,8 @@ set(SOURCES
 "launcher/launcheruilayer.cpp"
 "launcher/vehicle_picker.cpp"
 "launcher/keymapper.cpp"
-"launcher/mainmenu.cpp"
+"launcher/textures_scanner.cpp"
+"launcher/scenery_scanner.cpp"
 )
 
 if (USE_IMGUI_GL3)
