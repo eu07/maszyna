@@ -1683,6 +1683,8 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
 
                 auto const absrevolutions { std::abs( generator.revolutions ) };
                 generator.voltage = (
+                    false == HeatingAllow ? 0.0 :
+                    // TODO: add support for desired voltage selector
                     absrevolutions < generator.revolutions_min ? generator.voltage_min * absrevolutions / generator.revolutions_min :
 //                    absrevolutions > generator.revolutions_max ? generator.voltage_max * absrevolutions / generator.revolutions_max :
                     interpolate(
@@ -4543,9 +4545,12 @@ double TMoverParameters::TractionForce( double dt ) {
                                 EngineHeatingRPM )
                                 / 60.0 );
                 }
+                // NOTE: fake dizel_fill calculation for the sake of smoke emitter which uses this parameter to determine smoke opacity
+                dizel_fill = clamp( 0.2 + 0.35 * ( tmp - enrot ), 0.0, 1.0 );
             }
             else {
                 tmp = 0.0;
+                dizel_fill = 0.0;
             }
 
             if( enrot != tmp ) {
@@ -6150,7 +6155,7 @@ void TMoverParameters::CheckEIMIC(double dt)
 		{
 			if (eimic > 0.001)
 				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
-			if (eimic < -0.001)
+			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
 				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
 		}
 		break;

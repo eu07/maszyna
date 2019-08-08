@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "scenenodegroups.h"
+#include "particles.h"
 #include "Event.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -369,6 +370,16 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         // vehicle import can potentially fail
         if( vehicle == nullptr ) { return; }
 
+        //
+        if( vehicle->mdModel != nullptr ) {
+            for( auto const &smokesource : vehicle->mdModel->smoke_sources() ) {
+                Particles.insert(
+                    smokesource.first,
+                    vehicle,
+                    smokesource.second );
+            }
+        }
+
         if( false == simulation::Vehicles.insert( vehicle ) ) {
 
             ErrorLog( "Bad scenario: duplicate vehicle name \"" + vehicle->name() + "\" defined in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );
@@ -460,6 +471,15 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             auto *instance { deserialize_model( Input, Scratchpad, nodedata ) };
             // model import can potentially fail
             if( instance == nullptr ) { return; }
+
+            if( instance->Model() != nullptr ) {
+                for( auto const &smokesource : instance->Model()->smoke_sources() ) {
+                    Particles.insert(
+                        smokesource.first,
+                        instance,
+                        smokesource.second );
+                }
+            }
 
             if( false == simulation::Instances.insert( instance ) ) {
                 ErrorLog( "Bad scenario: duplicate 3d model instance name \"" + instance->name() + "\" defined in file \"" + Input.Name() + "\" (line " + std::to_string( inputline ) + ")" );

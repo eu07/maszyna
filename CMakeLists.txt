@@ -125,6 +125,7 @@ set(SOURCES
 "precipitation.cpp"
 "pythonscreenviewer.cpp"
 "dictionary.cpp"
+"particles.cpp"
 
 "network/network.cpp"
 "network/message.cpp"

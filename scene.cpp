@@ -1025,6 +1025,9 @@ basic_region::on_click( TAnimModel const *Instance ) {
 // legacy method, polls event launchers around camera
 void
 basic_region::update_events() {
+
+    if( false == simulation::is_ready ) { return; }
+
     // render events and sounds from sectors near enough to the viewer
     auto const range = EU07_SECTIONSIZE; // arbitrary range
     auto const &sectionlist = sections( Global.pCamera.Pos, range );
