@@ -59,6 +59,7 @@ extern train_table Trains;
 extern light_array Lights;
 extern sound_table Sounds;
 extern lua Lua;
+extern particle_manager Particles;
 
 extern scene::basic_region *Region;
 extern TTrain *Train;

@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "scene.h"
 #include "light.h"
+#include "particles.h"
 #include "gl/ubo.h"
 #include "gl/framebuffer.h"
 #include "gl/renderbuffer.h"
@@ -114,6 +115,42 @@ class opengl_camera
 	glm::mat4 m_projection;
 	glm::mat4 m_modelview;
 	glm::mat4 m_inversetransformation; // cached transformation to world space
+};
+
+// particle data visualizer
+class opengl_particles {
+public:
+// constructors
+	opengl_particles() = default;
+
+// methods
+	void
+	    update( opengl_camera const &Camera );
+	void
+	    render( );
+private:
+// types
+	struct particle_vertex {
+		glm::vec3 position; // 3d space
+		glm::vec4 color; // rgba, unsigned byte format
+		glm::vec2 texture; // uv space
+	};
+/*
+	using sourcedistance_pair = std::pair<smoke_source *, float>;
+	using source_sequence = std::vector<sourcedistance_pair>;
+*/
+	using particlevertex_sequence = std::vector<particle_vertex>;
+// methods
+// members
+/*
+	source_sequence m_sources; // list of particle sources visible in current render pass, with their respective distances to the camera
+*/
+	particlevertex_sequence m_particlevertices; // geometry data of visible particles, generated on the cpu end
+	std::optional<gl::buffer> m_buffer;
+	std::optional<gl::vao> m_vao;
+	std::unique_ptr<gl::program> m_shader;
+
+	std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
 };
 
 // bare-bones render controller, in lack of anything better yet
@@ -289,6 +326,7 @@ class opengl_renderer
 	void Render(scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last);
 	bool Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha = false);
 	void Render(TMemCell *Memcell);
+	void Render_particles();
 	void Render_precipitation();
 	void Render_Alpha(scene::basic_region *Region);
 	void Render_Alpha(cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last);
@@ -324,6 +362,7 @@ class opengl_renderer
 	texture_handle m_glaretexture{-1};
 	texture_handle m_suntexture{-1};
     texture_handle m_moontexture{-1};
+	texture_handle m_smoketexture{-1};
 
 	// main shadowmap resources
 	int m_shadowbuffersize{2048};
@@ -333,6 +372,7 @@ class opengl_renderer
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
 	int m_environmentupdatetime{0}; // time of the most recent environment map update
 	glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
+	opengl_particles m_particlerenderer; // particle visualization subsystem
 
 	unsigned int m_framestamp; // id of currently rendered gfx frame
 	float m_framerate;

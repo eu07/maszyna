@@ -1,4 +1,3 @@
-in vec3 f_normal;
 in vec2 f_coord;
 
 #texture (tex1, 0, sRGB_A)

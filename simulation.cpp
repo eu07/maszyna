@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "lightarray.h"
+#include "particles.h"
 #include "scene.h"
 #include "Train.h"
 
@@ -38,6 +39,7 @@ train_table Trains;
 light_array Lights;
 sound_table Sounds;
 lua Lua;
+particle_manager Particles;
 
 scene::basic_region *Region { nullptr };
 TTrain *Train { nullptr };

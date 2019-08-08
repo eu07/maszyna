@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "scenenodegroups.h"
+#include "particles.h"
 #include "Event.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -368,6 +369,16 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
         auto *vehicle { deserialize_dynamic( Input, Scratchpad, nodedata ) };
         // vehicle import can potentially fail
         if( vehicle == nullptr ) { return; }
+
+        //
+        if( vehicle->mdModel != nullptr ) {
+            for( auto const &smokesource : vehicle->mdModel->smoke_sources() ) {
+                Particles.insert(
+                    smokesource.first,
+                    vehicle,
+                    smokesource.second );
+            }
+        }
 
         if( false == simulation::Vehicles.insert( vehicle ) ) {
 

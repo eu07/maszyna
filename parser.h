@@ -37,7 +37,7 @@ class cParser //: public std::stringstream
         operator>>( Type_ &Right );
     template <typename Output_>
 	Output_
-		getToken( bool const ToLower = true, const char *Break = "\n\r\t ;" ) {
+		getToken( bool const ToLower = true, char const *Break = "\n\r\t ;" ) {
             getTokens( 1, ToLower, Break );
 		    Output_ output;
             *this >> output;
@@ -107,6 +107,12 @@ class cParser //: public std::stringstream
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
 };
+
+
+template <>
+glm::vec3
+cParser::getToken( bool const ToLower, const char *Break );
+
 
 template<typename Type_>
 cParser&
