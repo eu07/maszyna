@@ -32,6 +32,9 @@ jobs:
     displayName: 'MacOS 10.14'
     steps:
     - script: |
+        sudo xcode-select -s /Applications/Xcode_11.app
+      displayName: 'Setup Xcode'
+    - script: |
         HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile asio pkg-config
       displayName: 'Install dependencies'
     - script: |
