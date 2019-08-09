@@ -71,10 +71,9 @@ std::vector<std::pair<glm::vec3, glm::vec2>> const billboard_vertices {
 	{ { -0.5f, -0.5f, 0.f }, { 0.f, 0.f } },
 	{ {  0.5f, -0.5f, 0.f }, { 1.f, 0.f } },
 	{ {  0.5f,  0.5f, 0.f }, { 1.f, 1.f } },
-
 	{ { -0.5f, -0.5f, 0.f }, { 0.f, 0.f } },
+	{ {  0.5f,  0.5f, 0.f }, { 1.f, 1.f } },
 	{ { -0.5f,  0.5f, 0.f }, { 0.f, 1.f } },
-	{ {  0.5f,  0.5f, 0.f }, { 1.f, 1.f } }
 };
 
 void
@@ -2708,7 +2707,9 @@ void opengl_renderer::Render(TSubModel *Submodel)
 
 							glDepthMask(GL_FALSE);
 							draw(Submodel->m_geometry);
-							glDepthMask(GL_TRUE);
+
+							if (!m_blendingenabled)
+								glDepthMask(GL_TRUE);
 						}
 						model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
@@ -3047,17 +3048,12 @@ void opengl_renderer::Render(TMemCell *Memcell)
 
 void opengl_renderer::Render_particles()
 {
-	// momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
-	glDepthMask(GL_FALSE);
-
 	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
 	model_ubo->update(model_ubs);
 
 	Bind_Texture(0, m_smoketexture);
 	m_particlerenderer.update(m_renderpass.pass_camera);
 	m_particlerenderer.render();
-
-	glDepthMask(GL_TRUE);
 }
 
 void opengl_renderer::Render_precipitation()
@@ -3107,12 +3103,8 @@ void opengl_renderer::Render_precipitation()
 	model_ubs.param[1].x = simulation::Environment.m_precipitation.get_textureoffset();
 	model_ubo->update(model_ubs);
 
-	// momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
-	::glDepthMask(GL_FALSE);
-
 	simulation::Environment.m_precipitation.render();
 
-	::glDepthMask(GL_TRUE);
 	::glPopMatrix();
 }
 
@@ -3557,7 +3549,8 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 						// main draw call
 						draw(m_billboardgeometry);
 
-						glDepthMask(GL_TRUE);
+						if (!m_blendingenabled)
+							glDepthMask(GL_TRUE);
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 						::glPopMatrix();
