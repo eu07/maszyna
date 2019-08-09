@@ -1616,6 +1616,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
     // load the cargo now that we know whether the vehicle will allow it
     MoverParameters->AssignLoad( LoadType, Load );
+    MoverParameters->ComputeMass();
 
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch
     if (!MoverParameters->CheckLocomotiveParameters(
@@ -2431,6 +2432,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 m_exchange.unload_count -= exchangesize;
                 MoverParameters->LoadStatus = 1;
                 MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
+                MoverParameters->ComputeMass();
                 update_load_visibility();
             }
             if( m_exchange.unload_count < 0.01 ) {
@@ -2445,6 +2447,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                     m_exchange.load_count -= exchangesize;
                     MoverParameters->LoadStatus = 2;
                     MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
+                    MoverParameters->ComputeMass();
                     update_load_visibility();
                 }
             }

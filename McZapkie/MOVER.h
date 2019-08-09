@@ -1497,7 +1497,7 @@ public:
 
 	/*funkcje obliczajace sily*/
 	void ComputeConstans(void);//ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
-	double ComputeMass(void);
+	void ComputeMass(void);
 	void ComputeTotalForce(double dt);
 	double Adhesive(double staticfriction) const;
 	double TractionForce(double dt);
@@ -1645,3 +1645,11 @@ private:
 };
 
 //double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
+
+namespace simulation {
+
+using weights_table = std::unordered_map<std::string, float>;
+
+extern weights_table Weights;
+
+} // simulation

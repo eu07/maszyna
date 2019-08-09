@@ -49,6 +49,7 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
             // (try to) set the cargo type for empty cars
             parameters.LoadAmount = 0.f; // safety measure against edge cases
             parameters.AssignLoad( "passengers" );
+            parameters.ComputeMass();
         }
 
         if( parameters.LoadType.name == "passengers" ) {

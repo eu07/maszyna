@@ -4010,7 +4010,6 @@ void TMoverParameters::ComputeConstans(void)
     double BearingF, RollF, HideModifier;
     double Curvature; // Ra 2014-07: odwrotność promienia
 
-    TotalMass = ComputeMass();
     TotalMassxg = TotalMass * g; // TotalMass*g
     BearingF = 2.0 * (DamageFlag && dtrain_bearing);
 
@@ -4061,29 +4060,28 @@ void TMoverParameters::ComputeConstans(void)
 // Q: 20160713
 // Oblicza masę ładunku
 // *************************************************************************************************
-double TMoverParameters::ComputeMass(void)
+void TMoverParameters::ComputeMass()
 {
-    double M { 0.0 };
-    // TODO: unit weight table, pulled from external data file
-    if( LoadAmount > 0 ) {
-
-        if (ToLower(LoadQuantity) == "tonns")
-            M = LoadAmount * 1000;
-        else if (LoadType.name == "passengers")
-            M = LoadAmount * 80;
-        else if (LoadType.name == "luggage")
-            M = LoadAmount * 100;
-        else if (LoadType.name == "cars")
-            M = LoadAmount * 1200; // 800 kilo to miał maluch
-        else if (LoadType.name == "containers")
-            M = LoadAmount * 8000;
-        else if (LoadType.name == "transformers")
-            M = LoadAmount * 50000;
-        else
-            M = LoadAmount * 1000;
-    }
     // Ra: na razie tak, ale nie wszędzie masy wirujące się wliczają
-    return Mass + M + Mred;
+    TotalMass = Mass + Mred;
+
+    if( LoadAmount == 0 ) { return; }
+
+    // include weight of carried load
+    auto loadtypeunitweight { 0.f };
+
+    if( ToLower( LoadQuantity ) == "tonns" ) {
+        loadtypeunitweight = 1000;
+    }
+    else {
+        auto const lookup { simulation::Weights.find( LoadType.name ) };
+        loadtypeunitweight = (
+            lookup != simulation::Weights.end() ?
+                lookup->second :
+                1000.f ); // legacy default unit weight value
+    }
+
+    TotalMass += LoadAmount * loadtypeunitweight;
 }
 
 // *************************************************************************************************
@@ -7069,6 +7067,7 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
         if( Name == loadattributes.name ) {
             LoadType = loadattributes;
             LoadAmount = clamp( Amount, 0.f, MaxLoad ) ;
+            ComputeMass();
             return true;
         }
     }
@@ -7088,7 +7087,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
         return true;
     }
 
-    if( Loadname.empty() )             { return ( LoadStatus >= 4 ); } 
+    if( Loadname.empty() )          { return ( LoadStatus >= 4 ); } 
     if( Loadname != LoadType.name ) { return ( LoadStatus >= 4 ); }
 
     // test zakończenia załadunku/rozładunku
@@ -7111,6 +7110,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
             if( LoadAmount == 0.f ) {
                 AssignLoad(""); // jak nic nie ma, to nie ma też nazwy
             }
+            ComputeMass();
         }
     }
     else if( LSpeed > 0 ) {
@@ -7125,6 +7125,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
                 LoadStatus = 4; // skończony załadunek
                 LoadAmount = std::min<float>( MaxLoad * ( 1.0 + OverLoadFactor ), LoadAmount );
             }
+            ComputeMass();
         }
     }
 
@@ -10666,3 +10667,9 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
         return current;
     }
 }
+
+namespace simulation {
+
+weights_table Weights;
+
+} // simulation
